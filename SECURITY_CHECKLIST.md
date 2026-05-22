@@ -1,0 +1,200 @@
+# Vilo Platform — Security Checklist
+
+**Version:** 1.0
+**Last Updated:** May 2026
+**Run this checklist:** Before every production deployment. All items must be ✅ before going live.
+
+---
+
+## 1. Authentication & Sessions
+
+- [ ] Email verification required before host onboarding can complete
+- [ ] Password requirements enforced: min 8 chars (Supabase Auth handles this)
+- [ ] Rate limiting on login attempts: Supabase Auth built-in — confirm it's enabled in dashboard
+- [ ] Refresh token rotation enabled in Supabase Auth settings
+- [ ] JWT expiry set appropriately (Supabase default: 1 hour access token, 7 days refresh)
+- [ ] Web: session stored in httpOnly cookie via `@supabase/ssr` — confirm no `localStorage` usage for tokens
+- [ ] Mobile: session stored in `expo-secure-store` — confirm no `AsyncStorage` usage for tokens
+- [ ] Google OAuth: confirm callback URL whitelisted in Google Cloud Console
+
+---
+
+## 2. Row Level Security
+
+Run this query against the production database. Every table must have RLS enabled:
+
+```sql
+SELECT tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY tablename;
+```
+
+- [ ] All tables show `rowsecurity = true`
+- [ ] `anon` role cannot read: `payments`, `refund_requests`, `eft_banking_details`, `admin_audit_log`, `subscriptions`, `host_feature_overrides`, `booking_notes`
+- [ ] `anon` role CAN read: `listings` (published only), `hosts` (active only), `reviews` (published only), `plan_features`, `platform_settings`
+- [ ] Guests can only read/modify their own `bookings`, `conversations`, `messages`, `reviews`
+- [ ] Hosts can only read/modify their own `listings`, `bookings`, `conversations`, `blocked_dates`
+- [ ] Staff access matches documented permission matrix (cannot access billing/subscriptions)
+- [ ] `super_admin` role has full access where expected
+- [ ] `service_role` key is only used in Edge Functions (never in client-side code)
+
+Verify with grep:
+```bash
+grep -r "SUPABASE_SERVICE_ROLE_KEY" apps/web/src
+grep -r "SUPABASE_SERVICE_ROLE_KEY" apps/mobile
+# Both should return zero results
+grep -r "NEXT_PUBLIC_SUPABASE_SERVICE" apps/
+# Should return zero results
+```
+
+---
+
+## 3. API & Edge Functions
+
+- [ ] All public Edge Functions have input validation via Zod before any DB operation
+- [ ] All public Edge Functions validate the JWT before performing any action requiring auth
+- [ ] Rate limiting confirmed: directory endpoints at 60 req/min per IP
+- [ ] Edge Functions return `{ success: false, error: { code, message } }` on all error paths — no stack traces leaked to clients
+- [ ] No Edge Function exposes internal implementation details in error messages
+
+---
+
+## 4. Payment Security
+
+- [ ] **Paystack webhook signature verified** (HMAC SHA-512 on `x-paystack-signature`) before any DB write
+- [ ] **PayPal webhook verified** via PayPal Webhook Verification API before any DB write
+- [ ] Paystack `PAYSTACK_WEBHOOK_SECRET` is set in production Edge Function secrets
+- [ ] PayPal `PAYPAL_WEBHOOK_ID` is set in production Edge Function secrets
+- [ ] Price is **never trusted from the client** — `booking-create` always recalculates using `calculate_booking_price` DB function
+- [ ] Refund amount validated: `approved_amount <= original_payment.amount` in `refund-process`
+- [ ] Duplicate webhook delivery handled: `provider_reference` unique constraint prevents double-processing
+- [ ] Paystack live keys active (`pk_live_...` / `sk_live_...`) — test keys must not be in production
+
+---
+
+## 5. Sensitive Data
+
+- [ ] EFT `account_number` encrypted at application layer before DB storage — never stored in plain text
+- [ ] EFT banking details only accessible to guests with `payment_method = 'eft'` confirmed bookings — enforced via Edge Function, not PostgREST
+- [ ] Guest banking details (for EFT refunds) encrypted before storage in `refund_requests.guest_banking_details`
+- [ ] No PII in error logs (no emails, phone numbers, or names in Sentry breadcrumbs)
+- [ ] No secrets in application logs (no API keys, webhook secrets in `console.log`)
+- [ ] `admin_audit_log` captures all super admin actions — confirm inserts are happening in production
+
+---
+
+## 6. File Uploads
+
+- [ ] Supabase Storage bucket policies restrict file types:
+  - `listing-photos`: image/jpeg, image/png, image/webp only
+  - `eft-proofs`: image/jpeg, image/png, application/pdf only
+  - `refund-requests`: image/jpeg, image/png, application/pdf only
+- [ ] File size limits enforced per bucket (10 MB max for most — see `supabase_database.md` Section 20)
+- [ ] Private buckets (`eft-proofs`, `message-attachments`, `refund-requests`) have no public read access
+- [ ] Storage RLS policies restrict uploads to authenticated users scoped to their own data
+
+---
+
+## 7. Web Security Headers
+
+Confirm these headers are set in `next.config.ts` for production:
+
+```typescript
+headers: [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
+  // Content Security Policy — restrict script sources
+  { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.paystack.co https://www.paypal.com; img-src 'self' data: https://*.supabase.co https://api.mapbox.com; connect-src 'self' https://*.supabase.co https://api.mapbox.com https://exp.host;" },
+]
+```
+
+- [ ] `X-Frame-Options: DENY` — prevents clickjacking
+- [ ] `X-Content-Type-Options: nosniff` — prevents MIME sniffing
+- [ ] Content Security Policy blocks inline scripts from untrusted sources
+- [ ] No `dangerouslySetInnerHTML` used with user-supplied content anywhere in the codebase
+
+```bash
+grep -r "dangerouslySetInnerHTML" apps/web/src
+# Any result requires review — should be zero
+```
+
+---
+
+## 8. Secrets & Environment
+
+- [ ] All secrets in Doppler — not in `.env` files committed to git
+- [ ] `.env.local` is in `.gitignore`
+- [ ] No hardcoded API keys in source code
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` only in Edge Function secrets — not in Vercel env vars
+- [ ] Vercel environment variables reviewed — no secrets marked `NEXT_PUBLIC_` that shouldn't be
+
+```bash
+# Scan for accidental key exposure
+grep -r "sk_live_" apps/
+grep -r "sk_test_" apps/
+grep -r "re_" apps/
+# All should return zero results (keys must be in env vars only)
+```
+
+---
+
+## 9. Admin Panel
+
+- [ ] Admin panel accessible only to `super_admin` role — middleware check confirmed
+- [ ] Impersonation sessions always create an `impersonation_sessions` record
+- [ ] All admin mutations write to `admin_audit_log` before completing
+- [ ] Impersonation banner is not dismissible and always visible during an active session
+- [ ] Admin panel is not accessible from the mobile app
+
+---
+
+## 10. POPIA Compliance (South Africa)
+
+- [ ] Privacy policy page live at `/privacy`
+- [ ] Terms of service page live at `/terms`
+- [ ] Cookie consent banner shown to new visitors (web)
+- [ ] Data deletion request flow works: guest/host can request via account settings → admin review flow
+- [ ] Supabase region is `af-south-1` (Cape Town) — verify in Supabase dashboard
+- [ ] PostHog hosted on EU region (`eu.posthog.com`) — confirm in `ENV_VARS.md`
+- [ ] No PII sent to PostHog event properties (only anonymised identifiers)
+
+---
+
+## 11. Calendar Sync (iCal)
+
+- [ ] iCal export URLs use a per-listing secret token — confirm token is not guessable (32-byte random hex)
+- [ ] iCal export endpoint does NOT require auth (must be subscribable by external calendars) but does validate the token
+- [ ] iCal import: URL is fetched server-side only (Edge Function) — never from the client browser
+- [ ] iCal import: validate the fetched content is valid RFC 5545 before parsing — reject non-iCal responses
+- [ ] iCal import: cap imported events at 500 per feed to prevent DoS via giant feeds
+- [ ] iCal import: only block dates within the next 24 months — ignore far-future events
+- [ ] External feed URLs are stored in DB — confirm no SSRF vector (reject private IP ranges: 10.x, 192.168.x, localhost, 127.x)
+- [ ] Feed error states do not expose raw error messages to the host UI — log to Sentry, show friendly message
+- [ ] Rotating an iCal export token is an irreversible action — confirm host is warned before proceeding
+
+---
+
+## 12. Mobile App
+
+- [ ] No sensitive data in `AsyncStorage` — all auth tokens in `expo-secure-store`
+- [ ] Deep link scheme `vilo://` registered and verified in `app.json`
+- [ ] No hardcoded secrets in `app.json` or `eas.json`
+- [ ] Google Maps API key in Android build restricted to the app's package name in Google Cloud Console
+- [ ] Push notification permissions requested gracefully with explanatory copy before system prompt
+
+---
+
+## Sign-Off
+
+Before production deployment, this checklist must be reviewed and signed off:
+
+| Item | Reviewer | Date | Status |
+|---|---|---|---|
+| Sections 1–4 (auth, RLS, API, payments) | | | |
+| Sections 5–8 (data, uploads, headers, secrets) | | | |
+| Sections 9–11 (admin, POPIA, mobile) | | | |
+
+**All items must be ✅ before going live. No exceptions.**
