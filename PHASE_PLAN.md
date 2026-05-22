@@ -2,8 +2,8 @@
 
 **Version:** 1.2 (consolidated from `vilo-platform-mvp.md` v1.2)
 **Last Updated:** May 2026
-**Current Phase:** Phase 0 — Pre-build setup
-**Status key:** ✅ Done · 🔄 In progress · ⬜ Not started
+**Current Phase:** Phase 0 — Pre-build setup (mostly complete; remaining items below need user-side accounts)
+**Status key:** ✅ Done · 🔄 In progress · ⬜ Not started · 👤 User action required
 
 > This is the single source of truth for build order. Update checkboxes as tasks complete. When a phase finishes, add a `CHANGELOG.md` entry and update "Current Phase" above.
 
@@ -13,27 +13,27 @@
 **Goal:** Everything scaffolded and configured before a single feature line is written.
 
 ### Infrastructure
-- ⬜ Create Supabase project (production + staging)
-- ⬜ Link Supabase CLI to project (`supabase link --project-ref`)
-- ⬜ Create GitHub repository
-- ⬜ Set up monorepo structure (`apps/web`, `apps/mobile`, `packages/`)
-- ⬜ Configure `pnpm-workspace.yaml` and `turbo.json`
-- ⬜ Set up Doppler — `dev`, `staging`, `production` configs
-- ⬜ Create `.env.example` from `ENV_VARS.md` template
-- ⬜ Configure Vercel project — link to GitHub repo
-- ⬜ Create Expo EAS project (`eas init`)
-- ⬜ Create Sentry projects (web + mobile)
-- ⬜ Create PostHog project
+- ✅ Create Supabase project (single project `Vilo2027`/`zlcivjgvtyeaszikqleu` in Frankfurt — staging deferred, see ADR-015)
+- ✅ Link Supabase CLI to project
+- ✅ Create GitHub repository (`Wollie333/Vilo2027`, private)
+- ✅ Set up monorepo structure (`apps/web` + `packages/types`; `apps/mobile` pending)
+- ✅ Configure `pnpm-workspace.yaml` and `turbo.json`
+- 👤 Set up Doppler — `dev`, `staging`, `production` configs
+- ✅ Create `.env.example` from `ENV_VARS.md` template
+- 👤 Configure Vercel project — link to GitHub repo (in progress — currently fails with monorepo "no public directory" error; configure Root Directory = `apps/web`)
+- 👤 Create Expo EAS project (`eas init`)
+- 👤 Create Sentry projects (web + mobile)
+- 👤 Create PostHog project
 
 ### Next.js Web App
-- ⬜ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
-- ⬜ Install all web dependencies (see `DEVSTACK.md` Section 6 — Dependency Installation)
-- ⬜ Configure `tailwind.config.ts` with Vilo brand tokens (see `DESIGN_SYSTEM.md`)
-- ⬜ Initialise shadcn/ui (`npx shadcn-ui@latest init`)
+- ✅ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
+- ✅ Install web dependencies (core set — Mapbox/Tiptap/etc. installed when first needed)
+- ✅ Configure `tailwind.config.ts` with Vilo brand tokens
+- ✅ Initialise shadcn/ui (`components.json` + `lib/utils.ts` written; component installs ongoing)
 - ⬜ Add all required shadcn/ui components (see `DESIGN_SYSTEM.md`)
-- ⬜ Set up TypeScript path aliases (`@/*`)
-- ⬜ Configure ESLint + Prettier + Husky + Commitlint
-- ⬜ Configure Supabase SSR client (`lib/supabase/client.ts`, `server.ts`, `middleware.ts`)
+- ✅ Set up TypeScript path aliases (`@/*`)
+- ⬜ Configure ESLint + Prettier + Husky + Commitlint (ESLint configured; Prettier/Husky/Commitlint pending)
+- ✅ Configure Supabase SSR client (`lib/supabase/client.ts`, `server.ts`, `middleware.ts`)
 
 ### Expo Mobile App
 - ⬜ Bootstrap with `create-expo-app` (TypeScript template)
@@ -44,21 +44,22 @@
 - ⬜ Configure Supabase client with Expo SecureStore adapter
 
 ### Database
-- ⬜ Apply all migrations (000000 → 000017) from `supabase_database.md`
-- ⬜ Apply v1.1 migrations (20260502000000 → 20260502000017)
-- ⬜ Seed `platform_settings` and `plan_features`
-- ⬜ Seed default policy templates
-- ⬜ Generate TypeScript types: `supabase gen types typescript --local > packages/types/database.types.ts`
-- ⬜ Verify all RLS policies apply correctly in Supabase Studio
+- ✅ Apply all migrations (000000 → 000017) from `supabase_database.md`
+- ✅ Apply v1.1 migrations (Refund Manager + Policy Manager — 9 files written, all applied)
+- ✅ Seed `platform_settings` and `plan_features`
+- ✅ Seed default policy templates
+- ✅ Generate TypeScript types: `packages/types/database.types.ts` (3479 lines)
+- ⬜ Verify all RLS policies apply correctly in Supabase Studio (user verification step)
+- 👤 Create 6 Storage buckets in Supabase dashboard: `listing-photos`, `host-avatars`, `host-covers`, `eft-proofs`, `message-attachments`, `refund-requests` (RLS policies already applied — buckets just need to exist)
 
 ### CI/CD
-- ⬜ Create GitHub Actions workflows: `ci.yml`, `deploy-web.yml`, `deploy-functions.yml`, `db-migrate.yml`
-- ⬜ Connect Doppler → GitHub Secrets integration
-- ⬜ Connect Doppler → Vercel integration
-- ⬜ Verify first deployment to Vercel succeeds
+- ✅ Create GitHub Actions workflows: `ci.yml`, `deploy-web.yml`, `deploy-functions.yml`, `db-migrate.yml`, `mobile-preview.yml`
+- 👤 Connect Doppler → GitHub Secrets integration
+- 👤 Connect Doppler → Vercel integration
+- 👤 Verify first deployment to Vercel succeeds (currently failing on monorepo root-dir config — set Vercel "Root Directory" to `apps/web`)
 
 ### Email
-- ⬜ Set up Resend account + verify `viloplatform.com` domain
+- 👤 Set up Resend account + verify `viloplatform.com` domain (domain registration also pending)
 - ⬜ Create `emails/` directory with React Email setup
 - ⬜ Create email layout component (shared header, footer, brand colours)
 - ⬜ Verify preview server works (`npx email dev`)

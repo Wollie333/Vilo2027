@@ -113,4 +113,52 @@ Copy this template and fill it in at the end of every session:
 ### Commits
 - (Single commit for this slice — pushed to `main`.)
 
+## 2026-05-22 — Phase 0 — DB schema live + CI workflows scaffolded
+
+### Built
+- **27 SQL migrations** applied to live Supabase (`zlcivjgvtyeaszikqleu`):
+  - 18 v1.0 migrations (extensions, 9 domains, RLS helpers/policies, functions, triggers, cron, storage RLS, seed)
+  - 9 v1.1 migrations (Policy Manager + Refund Manager domains, ALTERs, RLS, functions, triggers, cron, storage, seed)
+- Full schema: 46 tables, 4 RLS helper functions, 8+ business functions (`check_feature_permission`, `calculate_booking_price`, `calculate_policy_refund_amount`, `snapshot_booking_policies`, `recalculate_listing_ranking`, etc.), 13+ triggers, 15 pg_cron jobs.
+- Realtime publication enabled for `messages`, `conversations`, `bookings`.
+- Storage RLS policies for 6 buckets (`listing-photos`, `host-avatars`, `host-covers`, `eft-proofs`, `message-attachments`, `refund-requests`) — buckets themselves still need to be created in the Supabase dashboard.
+- `packages/types/database.types.ts` regenerated (3479 lines) — covers full schema.
+- All 5 GitHub Actions workflows written per `CI_CD.md`:
+  - `ci.yml` — PR validation (typecheck, lint, tests, E2E)
+  - `db-migrate.yml` — auto-apply schema on push + auto-regen + auto-commit types
+  - `deploy-functions.yml` — Edge Functions deploy
+  - `deploy-web.yml` — Vercel deploy
+  - `mobile-preview.yml` — EAS OTA on `develop`
+
+### Fixed
+- `gen_random_bytes()` calls qualified with `extensions.` schema in `staff_invites.token` and `reviews.review_token` defaults — Supabase puts pgcrypto in the `extensions` schema, not `public`, so unqualified calls fail.
+
+### Notes
+- **DB verified live:** queried `platform_settings` via PostgREST, all 10 seeded keys returned.
+- Migrations follow the spec exactly except for one deviation: `blocked_dates` moved from the listings migration to the bookings migration to resolve a forward FK to `bookings(id)`.
+- Single Supabase project (no staging yet) per ADR-015. The Frankfurt → af-south-1 migration is still required before public launch.
+- **Vercel deploy failing:** the first push triggered a Vercel build that compiled cleanly but reported "No Output Directory named public found". Fix: in Vercel Project Settings → Build & Development Settings, set **Root Directory** to `apps/web`. Then redeploy. (Not done in this session — user-side action.)
+- **Storage buckets still need to be created** by hand in the dashboard (Storage → New bucket). The RLS policies are already in place; they only activate once buckets exist.
+
+### Active blockers / user-side actions for Phase 0
+- Doppler account + dev/staging/prod configs
+- Vercel root-dir fix + first successful deploy
+- EAS account + `eas init` for `apps/mobile`
+- Sentry projects (web + mobile)
+- PostHog project
+- Resend account + `viloplatform.com` domain verification (domain itself not yet registered)
+- 6 Supabase Storage buckets
+
+### Still TODO (autonomous in next session)
+- Scaffold `apps/mobile` (Expo + NativeWind + Expo Router)
+- Install shadcn/ui component set from `DESIGN_SYSTEM.md`
+- Prettier + Husky + Commitlint config
+- `emails/` directory + React Email setup
+- Tighten Vercel monorepo config (`vercel.json` or root-dir setting)
+
+### Commits
+- `feat(db): add v1.0 schema migrations` — `7c1ec14`
+- `feat(db): add v1.1 schema migrations (Refund + Policy Manager)` — `9fa4e67`
+- `feat(db): apply 27 migrations + generate database.types.ts` — `c623cba`
+
 <!-- New entries go above this line -->

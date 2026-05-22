@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Apply migrations
+        run: supabase db push
+
+      - name: Type check
+        run: cd apps/web && pnpm tsc --noEmit
+
+      - name: Lint
+        run: cd apps/web && pnpm lint
+
+      - name: Unit tests
+        run: cd apps/web && pnpm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.LOCAL_ANON_KEY }}
+
+      - name: E2E tests
+        run: cd apps/web && pnpm test:e2e
+        env:
+          BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.LOCAL_ANON_KEY }}
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
