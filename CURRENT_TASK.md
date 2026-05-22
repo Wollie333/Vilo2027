@@ -132,7 +132,39 @@ The session is **done** when every checkbox is ticked:
 
 ## Session Notes
 
-*Fill this in before closing the session. Decisions made, things discovered, blockers hit, what's left for next time.*
+### What landed
+- Local `git` repo on `main`, four clean commits, pushed to `https://github.com/Wollie333/Vilo2027` (private).
+- `.gitignore`, `.env.example`, `.env.local` (untracked) in place.
+- Supabase project linked: `Vilo2027` / ref `zlcivjgvtyeaszikqleu` / region Central EU (Frankfurt).
+- `gh` 2.92.0 + `supabase` 2.101.0 installed and on user PATH (Supabase via direct binary at `%LOCALAPPDATA%\supabase`).
+- ADR-015 added explaining the region trade-off; `PHASE_PLAN.md` Phase 5 line annotated.
+
+### Decisions and deviations from spec
+- **Repo name** is `Vilo2027` (matches the project codename), NOT `vilo` as `README.md` suggested. All docs that say `vilo` still read fine since they don't reference the GitHub slug directly, but `gh repo create` and clone URLs need the actual name.
+- **Single Supabase project** instead of production + staging. Staging will be created when CI/CD or staging deploys are needed.
+- **Region:** Frankfurt, not `af-south-1`. Migration required before public launch — see `DECISIONS.md` ADR-015.
+- **Git identity** set locally only (`wollie333@gmail.com` / `Wollie333`). User can override.
+
+### Next session candidates (any of these is a coherent slice)
+1. **Scaffold the monorepo + Next.js web app** (`apps/web`). Use `DEVSTACK.md` §1.1 + §6 for exact versions and dependencies. Stops at "first page renders against linked Supabase from `.env.local`".
+2. **Add the three missing spec docs** (`vilo-platform-mvp.md`, `supabase_database.md`, `customer_journey.md`). They are referenced everywhere; without them Phase 0 Database is blocked and a number of `RULES.md` instructions ("read supabase_database.md before any query") can't be followed.
+3. **Doppler + Vercel wiring** (only if next step is a real deploy). Until there's app code to deploy, this can wait.
+
+### Still TODO from Phase 0 — Pre-Build Setup (not started this session)
+- Monorepo scaffold (`apps/web`, `apps/mobile`, `packages/`, `pnpm-workspace.yaml`, `turbo.json`)
+- Doppler dev/staging/production configs
+- Vercel project + GitHub integration
+- Expo EAS project (`eas init`)
+- Sentry, PostHog projects
+- Resend account + `viloplatform.com` domain verification
+- DB migrations 000000 → 000017 (blocked on missing `supabase_database.md`)
+- GitHub Actions workflows (`ci.yml`, `deploy-web.yml`, `deploy-functions.yml`, `db-migrate.yml`)
+- Staging Supabase project
+
+### Blockers carried into the next session
+- `supabase_database.md` is missing — no DB migrations can land until it does.
+- `viloplatform.com` is not registered (or at least not confirmed) — email setup (Resend) cannot proceed.
+- Supabase `af-south-1` region is not available on this account — see ADR-015. May resolve on a plan upgrade.
 
 ---
 

@@ -277,4 +277,29 @@ This file records every significant technical decision made for the Vilo platfor
 
 ---
 
+## ADR-015 — Supabase region: Central EU (Frankfurt) at bootstrap, af-south-1 deferred
+**Status:** Accepted (revisit before public launch)
+**Date:** 2026-05-22
+
+**Decision:** Provision the development Supabase project in `Central EU (Frankfurt)` instead of `af-south-1 (Cape Town)` as `SECURITY_CHECKLIST.md` §10 requires.
+
+**Reasons:**
+- `af-south-1` was not offered as a region option in the Supabase dashboard for this account at project creation time — likely a Free-tier availability constraint or a per-organization restriction
+- Frankfurt is the closest fully-available alternative geographically and latency-wise for South African users
+- The project is empty — no user data is stored against this region yet, so the migration cost remains low while the project stays in this state
+- Blocking the entire Phase 0 setup on region availability would stall the project indefinitely; bootstrapping in Frankfurt unblocks all early development
+
+**Rejected alternatives:**
+- Waiting for `af-south-1` access (no clear path to enable it on the current plan)
+- North EU (Stockholm) / East US — further from SA users
+- Self-hosted Supabase in a SA datacenter — defeats ADR-002 (Supabase managed)
+
+**Constraint:**
+- **Before public launch**, the production database MUST be migrated to `af-south-1` to satisfy `SECURITY_CHECKLIST.md` §10 (POPIA compliance). Strategies: `pg_dump` + restore to a new project, or use Supabase's project clone feature if it lands. Validate cross-region transfer of any personal data with legal before users are added.
+- All new schema, RLS policies, and storage buckets created in Frankfurt must be re-applied to the `af-south-1` project at migration time — keep migrations idempotent and the seed data clean.
+- Add `[ ] Migrate Supabase to af-south-1 before launch` to `PHASE_PLAN.md` Phase 5 — Launch Readiness when that section is next edited.
+- Do NOT add personal data (real guest/host PII) to the Frankfurt project. Test data only.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

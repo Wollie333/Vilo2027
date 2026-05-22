@@ -389,7 +389,7 @@
 - ⬜ Terms of service page (`/terms`) — legal team content
 - ⬜ Cookie consent banner (web)
 - ⬜ POPIA data deletion request flow in account settings
-- ⬜ Supabase region confirmed: `af-south-1` (Cape Town)
+- ⬜ Supabase region confirmed: `af-south-1` (Cape Town) — currently provisioned in `Central EU (Frankfurt)`; migration required before launch (see `DECISIONS.md` ADR-015)
 
 ### Environment
 - ⬜ Staging environment mirroring production schema
