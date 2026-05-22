@@ -23,7 +23,7 @@ CREATE TABLE public.reviews (
   admin_decision     text    CHECK (admin_decision IN ('upheld','rejected')),
   admin_actioned_by  uuid    REFERENCES user_profiles(id) ON DELETE SET NULL,
 
-  review_token       text    UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  review_token       text    UNIQUE DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
   token_expires_at   timestamptz DEFAULT (now() + interval '30 days'),
 
   created_at         timestamptz NOT NULL DEFAULT now(),

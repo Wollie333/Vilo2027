@@ -108,7 +108,7 @@ CREATE TABLE public.staff_invites (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   host_id     uuid NOT NULL REFERENCES hosts(id) ON DELETE CASCADE,
   email       text NOT NULL,
-  token       text NOT NULL UNIQUE DEFAULT encode(gen_random_bytes(32), 'hex'),
+  token       text NOT NULL UNIQUE DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   expires_at  timestamptz NOT NULL DEFAULT (now() + interval '7 days'),
   accepted_at timestamptz,
   created_at  timestamptz NOT NULL DEFAULT now()
