@@ -66,4 +66,20 @@ Copy this template and fill it in at the end of every session:
 - `chore: bootstrap supabase config, session contract, and changelog` — 969ea79
 - (final commit appended after this update is staged.)
 
+## 2026-05-22 — Phase 0 — Specs added: product, schema, customer journey
+
+### Built
+- `vilo-platform-mvp.md` (85 KB) added — full v1.2 product spec with 10 core modules including Refund Manager (6.9) and Policy Manager (6.10).
+- `supabase_database.md` (137 KB) added — complete DB architecture: 11 domains, RLS, functions, triggers, pg_cron, Realtime, Storage, seed data, migration strategy. Requires extensions `uuid-ossp`, `pgcrypto`, `pg_trgm`, `postgis`, `pg_cron`.
+- `customer_journey.md` (86 KB) added — 6 personas across ~50 end-to-end journeys (guest, host free/pro/business, staff, admin, subscriptions).
+
+### Changed
+- `CURRENT_TASK.md` Session Notes: missing-specs blocker removed from "Blockers carried into the next session".
+- Decided next session focus: scaffold monorepo + Next.js web app (`apps/web`) per `DEVSTACK.md` §1.1 + §6.
+
+### Notes
+- Phase 0 Database section is now **unblocked** — migrations 000000 → 000017 and the v1.1 migration set (20260502000000 → 20260502000017) can be applied in a future session.
+- `RULES.md` §2 and `AGENT_RULES.md` §2 ("read `supabase_database.md` before any DB-related work") can now be satisfied.
+- Active blockers remaining: Supabase region migration to `af-south-1` (see ADR-015), `viloplatform.com` domain ownership not confirmed.
+
 <!-- New entries go above this line -->

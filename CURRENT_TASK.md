@@ -162,9 +162,11 @@ The session is **done** when every checkbox is ticked:
 - Staging Supabase project
 
 ### Blockers carried into the next session
-- `supabase_database.md` is missing — no DB migrations can land until it does.
 - `viloplatform.com` is not registered (or at least not confirmed) — email setup (Resend) cannot proceed.
 - Supabase `af-south-1` region is not available on this account — see ADR-015. May resolve on a plan upgrade.
+
+### Cleared during the session
+- ~~`supabase_database.md` is missing~~ — added 2026-05-22 along with `vilo-platform-mvp.md` and `customer_journey.md`. Phase 0 Database section is now unblocked.
 
 ---
 
