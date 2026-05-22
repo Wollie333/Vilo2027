@@ -82,4 +82,35 @@ Copy this template and fill it in at the end of every session:
 - `RULES.md` §2 and `AGENT_RULES.md` §2 ("read `supabase_database.md` before any DB-related work") can now be satisfied.
 - Active blockers remaining: Supabase region migration to `af-south-1` (see ADR-015), `viloplatform.com` domain ownership not confirmed.
 
+## 2026-05-22 — Phase 0 — Monorepo scaffold + Next.js web app
+
+### Built
+- pnpm monorepo: root `package.json` (private), `pnpm-workspace.yaml` declaring `apps/*` + `packages/*`, `turbo.json` with build/dev/lint/type-check tasks, `tsconfig.base.json` for shared TS strict settings.
+- `apps/web` — Next.js 14.2.35 App Router, TypeScript strict, Tailwind 3.4, no `src/` dir, `@/*` import alias. `tsconfig.json` extends the root base.
+- Brand-token Tailwind config (`apps/web/tailwind.config.ts`): Vilo primary/secondary/accent/dark/light per `DESIGN_SYSTEM.md` §2 + status palette, custom border-radius (DEFAULT 10px, card 16px, pill, sm), Inter (sans) + Plus Jakarta Sans (display) via CSS variables, shadcn semantic tokens layered on top.
+- `apps/web/app/globals.css` — shadcn-style HSL CSS variables tuned to Vilo brand (background = brand.light, foreground = brand.dark, primary = brand.primary).
+- `next/font/google` wiring in `apps/web/app/layout.tsx` for Inter + Plus Jakarta Sans (zero layout shift, auto self-hosted).
+- shadcn/ui configuration: `components.json` + `lib/utils.ts` (cn helper). Component installs (`pnpm dlx shadcn@latest add ...`) can proceed in any future session.
+- Supabase SSR wiring per `ARCHITECTURE.md` §7:
+  - `lib/supabase/client.ts` — `createBrowserClient` for Client Components.
+  - `lib/supabase/server.ts` — `createServerClient` with Next.js cookie store for Server Components and Server Actions.
+  - `lib/supabase/middleware.ts` — `updateSession` helper that refreshes the JWT cookie on each request.
+  - `middleware.ts` — wires the helper into Next.js middleware with the standard matcher (skips `_next/static`, `_next/image`, favicon, common image asset paths).
+- `apps/web/app/page.tsx` — Server Component homepage that fetches `/auth/v1/health` on the linked Supabase project; renders "OK — GoTrue v2.189.0" in green when reachable. Confirms the env vars load and the network path to Supabase works end-to-end.
+- `packages/types` — workspace package with placeholder `database.types.ts`. Populated by `supabase gen types typescript` after DB migrations land.
+
+### Changed
+- Removed scaffold-default Geist fonts (`apps/web/app/fonts/`).
+- Replaced the default Next.js boilerplate `page.tsx` and `globals.css` with brand-aligned versions.
+- Copied root `.env.local` to `apps/web/.env.local` so Next.js can resolve `NEXT_PUBLIC_*` vars; both stay gitignored. Flagged in session notes — when `apps/mobile` lands, switch to a shared loader (dotenv-cli or `next.config.mjs` env merge) to avoid duplication.
+
+### Notes
+- **Verified end-to-end:** `pnpm --filter web build` and `pnpm --filter web lint` both pass with zero errors / zero warnings. Started dev server, curled `http://localhost:3000`, confirmed HTTP 200 and the rendered HTML contains the Supabase project URL plus a live "OK — GoTrue v2.189.0" connection signal from `/auth/v1/health`.
+- **Node 22.17.1 in use.** `DEVSTACK.md` §1.4 locks Node 20 LTS; Next.js 14.2 is compatible with Node 22 so no blocker, but flagged for revisit.
+- Minimal dep set installed — only what the homepage needs (`@supabase/supabase-js`, `@supabase/ssr`, `clsx`, `tailwind-merge`, `class-variance-authority`, `tailwindcss-animate`, `lucide-react`). The remaining `DEVSTACK.md` §6 deps (Mapbox, PayPal, Tiptap, react-big-calendar, Resend, react-email, Sentry, PostHog, sonner, react-dropzone, qrcode.react) will be added in the session that first uses each, per CLAUDE.md "least amount of code that solves the problem".
+- Husky / lint-staged / Commitlint / Prettier are still pending — pick up in a polish session.
+
+### Commits
+- (Single commit for this slice — pushed to `main`.)
+
 <!-- New entries go above this line -->

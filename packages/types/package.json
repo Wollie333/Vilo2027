@@ -1,0 +1,7 @@
+{
+  "name": "@vilo/types",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./database.types.ts",
+  "types": "./database.types.ts"
+}
