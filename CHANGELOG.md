@@ -31,6 +31,34 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /dashboard/payments — read-only host payments list
+
+### Built
+- **`/dashboard/payments`** — Server Component listing every payment
+  the host has received (RLS `host_read_own_payments` filters by
+  `bookings.host_id = get_my_host_id()`). 100-row cap, newest first.
+- **Three KPI tiles** — Collected (sum of `status='completed'`), Pending
+  count (awaiting webhook), Failed count.
+- **Table columns** — When (captured_at or created_at, en-ZA datetime),
+  Booking ref (link to `/dashboard/bookings/{id}`), Listing name,
+  Method (paystack/paypal/eft → friendly label), Amount, Status pill,
+  Provider ref (first 14 chars). Sidebar Payments nav target now
+  resolves.
+
+### Notes
+- **Read-only first cut.** Refund actions + manual reconciliation land
+  in Phase 3 with the Refund Manager. The KPI tiles compute on the
+  100-row fetch — when payment volume grows we&rsquo;ll move them to
+  a server-side aggregate.
+- **No new packages, no migrations.**
+- **`pnpm --filter web build`** passes — 31 routes, payments 186 B
+  (pure server render). `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — iCal export per listing
 
 ### Built
