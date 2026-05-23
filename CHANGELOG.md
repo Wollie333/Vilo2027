@@ -31,6 +31,67 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — /booking-management marketing page + /change-log
+
+### Built
+- **`/booking-management`** — full marketing page translating the canonical
+  emerald design at `Vilo Home Page (2).html`. 13 sections in order:
+  `SiteHeader` (sticky nav with gradient-SVG V logo) · `Hero` (split layout
+  with URL grabber form, social-proof avatars, and a stacked mockup column
+  containing a browser dashboard, a floating mobile inbox card, and a
+  "commission saved" stat tile) · `TrustMarquee` (auto-scrolling brand strip)
+  · `ValueProp` + interactive `EarningsCalculator` (range slider that
+  computes Airbnb 18% / Booking 22% / Vilo flat R499 net amounts and the
+  annual savings vs Airbnb) · `Features` (6 cards) · `HowItWorks` (4 steps
+  with dashed connectors) · `ProductShowcase` (iPhone-frame mockup of a
+  Vilo listing detail) · `DirectoryStrip` (4 verified-host cards) ·
+  `Pricing` (3-tier with `Monthly | Annual SAVE 20%` toggle and Free-tier
+  strip) · `Testimonials` (1 dark featured + 2 white) · `Comparison`
+  (Vilo vs Airbnb vs Booking.com vs DIY table) · `FAQ` (6 native
+  `<details>` accordion items) · `FinalCTA` (claim-your-URL form on the
+  primary-emerald section) · `PageFooter` (dark-emerald, 4 link columns,
+  social SVGs, status dot linking to /change-log).
+- **`/change-log`** — Server Component that reads `CHANGELOG.md` at build
+  time, parses each `## DATE — Phase X — Title` entry into structured
+  sections, and renders them as cards in the booking-management visual
+  style. Falls back to a GitHub link if the file can't be read on the host.
+  Footer "Changelog" link and the status-line `v1.0.0` link both point here.
+
+### Changed
+- **`apps/web/app/globals.css`** — added a `@layer components` block with
+  the design's custom CSS: `marquee-track` keyframes, `details[open]
+  .acc-icon` rotation, `.step-line::after` dashed connector,
+  `.vilo-range` slider track/thumb styling (WebKit + Mozilla), `.dotgrid`
+  utility (22px variant of the existing 18px `.bg-dot-grid`), `.ribbon`,
+  `.avatar`, `.chrome-dot`, `.num-display`, `.brand-gradient`.
+
+### Notes
+- **Palette is the canonical emerald `brand-*` set** — no new tokens needed.
+  The earlier forest+amber design (`Vilo Home Page.html` / `(1).html`) was
+  superseded by the (2) revision which uses our existing tokens exactly.
+- **Two Client Components only** — `EarningsCalculator` (controlled range +
+  text input) and `Pricing` (billing toggle). Everything else is a Server
+  Component. The interactive calculator port preserves the design's
+  formatting rules (`en-ZA` with space thousands separator,
+  `Math.round(Math.abs(n))` to match the original JS).
+- **Images come from `images.unsplash.com` via plain `<img>` tags** — no
+  `next/image` domain config needed. Each `<img>` carries the
+  `eslint-disable-next-line @next/next/no-img-element` pragma.
+- **No new packages.** All icons via the already-installed `lucide-react`,
+  all SVG logos inlined.
+- **`pnpm --filter web build`** passes — 14 routes (slice 3's 12 +
+  `/booking-management` + `/change-log`). `/booking-management` first-load
+  JS 100 kB, `/change-log` prerendered statically at build time so first
+  load is 96.1 kB. `pnpm --filter web lint` zero warnings.
+- **CTAs wire to existing routes** — Hero + FinalCTA forms `action="/register"`,
+  nav "Log in" → `/login`. URL handle isn't read yet — that lands when the
+  host onboarding wizard ships.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — Auth slice 3: magic link sign-in
 
 ### Built

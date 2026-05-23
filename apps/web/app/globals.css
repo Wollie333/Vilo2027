@@ -103,6 +103,151 @@
     );
     background-size: 18px 18px;
   }
+
+  /* ── Booking-management page utilities (per Vilo Home Page (2).html) ── */
+
+  .dotgrid {
+    background-image: radial-gradient(
+      rgba(16, 185, 129, 0.14) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  .brand-gradient {
+    background: linear-gradient(135deg, #10b981 0%, #064e3b 100%);
+  }
+
+  .num-display {
+    font-feature-settings: "tnum" 1;
+  }
+
+  .chrome-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+  }
+
+  .avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+
+  .ribbon {
+    background: #064e3b;
+    color: #ffffff;
+  }
+}
+
+@layer components {
+  /* Marquee */
+  .marquee-track {
+    animation: bm-scroll 38s linear infinite;
+    will-change: transform;
+  }
+  @keyframes bm-scroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Native <details> accordion */
+  details summary::-webkit-details-marker {
+    display: none;
+  }
+  details[open] .acc-icon {
+    transform: rotate(45deg);
+  }
+  .acc-icon {
+    transition: transform 0.2s ease;
+  }
+
+  /* Dashed connectors between HowItWorks steps */
+  .step-line {
+    position: relative;
+  }
+  .step-line::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 28px;
+    width: calc(100% - 8px);
+    height: 1px;
+    background-image: linear-gradient(to right, #dceae0 50%, transparent 0%);
+    background-size: 8px 1px;
+    background-repeat: repeat-x;
+  }
+  @media (max-width: 767px) {
+    .step-line::after {
+      display: none;
+    }
+  }
+
+  /* Earnings calculator range slider — emerald track + thumb */
+  .vilo-range {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    height: 28px;
+  }
+  .vilo-range:focus {
+    outline: none;
+  }
+  .vilo-range::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      #10b981 0 var(--val, 30%),
+      #d1fae5 var(--val, 30%) 100%
+    );
+  }
+  .vilo-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: #ffffff;
+    border: 2px solid #10b981;
+    margin-top: -6px;
+  }
+  .vilo-range:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  }
+  .vilo-range::-moz-range-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: #d1fae5;
+  }
+  .vilo-range::-moz-range-progress {
+    height: 8px;
+    border-radius: 9999px;
+    background: #10b981;
+  }
+  .vilo-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    border: 2px solid #10b981;
+    background: #ffffff;
+  }
+  .vilo-range:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  }
+  .calc-input {
+    font-feature-settings: "tnum" 1;
+  }
+  .calc-input::placeholder {
+    color: #4a7c6a;
+    opacity: 0.5;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
