@@ -31,6 +31,40 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /[handle] host public profile page
+
+### Built
+- **`apps/web/app/[handle]/page.tsx`** — top-level dynamic route at
+  `viloplatform.com/{handle}`. Fetches the host via RLS
+  `public_read_active_hosts` (only `is_active=true` + `deleted_at IS
+  NULL`), then their published listings + each listing&rsquo;s hero photo.
+  Reuses guest chrome (`SiteHeader` + `SiteFooter`). 404 via `notFound()`
+  if no host matches.
+- **Reserved-handle guard** — hard-coded set (`login`, `register`,
+  `dashboard`, `booking`, `booking-management`, `change-log`, `cookies`,
+  `privacy`, `terms`, `status`, `listing`, `signup`, `auth`, `explore`,
+  `api`) returns null from `loadHost` so a maliciously-handled host
+  can&rsquo;t shadow real routes. Belt-and-braces — Next.js prefers
+  static segments anyway, and the DB CHECK on `handle` enforces format.
+- **Header card** — large circular avatar (initials fallback), display
+  name, verified badge, `viloplatform.com/{handle}` mono URL, rating +
+  review count, listing count, bio. Sits on a dot-grid background.
+- **Listings grid** — same card shape as `/dashboard/listings` but
+  guest-facing: hero photo, hover zoom, name, type + city, base price.
+  Each card links to `/listing/{slug}`.
+
+### Notes
+- **`generateMetadata`** — title `${display_name} · Vilo` + bio for the
+  share preview.
+- **No new packages, no migrations.** Uses the existing RLS path.
+- **`pnpm --filter web build`** passes — 26 routes, `/[handle]` at
+  2.21 kB. `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1/2 — Listings management (/dashboard/listings + /new)
 
 ### Built
