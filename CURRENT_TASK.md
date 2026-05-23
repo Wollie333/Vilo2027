@@ -18,19 +18,19 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 
 ---
 
-## Acceptance Criteria (next session)
+## Acceptance Criteria (this session — 2026-05-23 Phase 1 Auth slice 1)
 
-- [ ] `/login` page — Email + password fields, "Forgot password?" link, "Don't have an account?" link, error states, loading state on submit.
-- [ ] `/register` page — Email + password + confirm-password, terms-of-service checkbox, error states, loading state on submit.
-- [ ] Both pages use shadcn `Button`, `Input`, `Label`, `Card`, `Form` with **React Hook Form + Zod** validation.
-- [ ] Brand styling per `Vilo Design System.html` — emerald primary, `rounded` (10px) inputs, `font-display` headings, `shadow-card` on the form panel, dot-grid hero background on desktop.
-- [ ] Successful sign-up triggers Supabase's default verification email (no Resend yet — that's deferred).
-- [ ] Successful login redirects to `/dashboard` (stub page is fine — full dashboard is later in Phase 1).
-- [ ] `middleware.ts` updated to redirect authenticated users away from `/login`/`/register`, and unauthenticated users away from `/dashboard`.
-- [ ] `pnpm build` from `apps/web/` passes with zero errors / zero warnings.
-- [ ] `pnpm lint` from `apps/web/` passes with zero warnings.
-- [ ] Vercel deploy goes green on push to main.
-- [ ] `CHANGELOG.md` updated.
+- [x] `/login` page — Email + password fields, "Forgot password?" link, "Don't have an account?" link, error states, loading state on submit.
+- [x] `/register` page — Email + password + confirm-password, terms-of-service checkbox, error states, loading state on submit.
+- [x] Both pages use shadcn `Button`, `Input`, `Label`, `Card`, `Form` with **React Hook Form + Zod** validation.
+- [x] Brand styling per `Vilo Design System.html` — emerald primary, `rounded` (10px) inputs, `font-display` headings, `shadow-card` on the form panel, dot-grid hero background on desktop.
+- [x] Successful sign-up triggers Supabase's default verification email (no Resend yet — that's deferred).
+- [x] Successful login redirects to `/dashboard` (stub page is fine — full dashboard is later in Phase 1).
+- [x] `middleware.ts` updated to redirect authenticated users away from `/login`/`/register`, and unauthenticated users away from `/dashboard`.
+- [x] `pnpm build` from `apps/web/` passes with zero errors / zero warnings.
+- [x] `pnpm lint` from `apps/web/` passes with zero warnings.
+- [ ] Vercel deploy goes green on push to main. *(pending push at end of session)*
+- [x] `CHANGELOG.md` updated.
 
 ---
 
@@ -79,3 +79,21 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 ### Active blockers carried into Phase 1
 - `viloplatform.com` domain ownership unconfirmed — only blocks Resend / branded email work, which is itself deferred.
 - Supabase `af-south-1` region unavailable (ADR-015) — only blocks the production region migration, which is launch-readiness work.
+
+---
+
+## Session Notes — 2026-05-23 (mid-session, marketing homepage)
+
+### What landed (out of the original auth-only scope)
+- Marketing homepage v1 at `/` — see CHANGELOG entry. Replaces the previous dev-status page, which moved to `/status`.
+- 9 files added/changed: `apps/web/app/page.tsx`, `apps/web/app/status/page.tsx`, and `apps/web/app/_components/home/{SiteHeader,Hero,Features,HowItWorks,Pricing,SiteFooter,VLogo}.tsx`.
+- Pricing tiers pulled directly from `vilo-platform-mvp.md` §6.6B (Basic R299 / Pro R599 / Business R1,199, 14-day trial, annual = 2 months free).
+
+### Decisions
+- Section components co-located under `apps/web/app/_components/home/` (underscored, non-routed). Reusable cross-route UI still belongs in `apps/web/components/`.
+- Footer links to `/privacy` and `/terms` are present but those routes don't exist yet — will 404 until added. Acceptable placeholder for now.
+- No CTA band added (kept to the 5-section scope the user picked).
+
+### Still in scope for next push
+- `/login` and `/register` UI shells (Zod schemas already exist at `apps/web/app/(auth)/schemas.ts`).
+- Verify the homepage in the dev server / on Vercel preview — not yet manually QA'd in a browser this session.

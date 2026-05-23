@@ -31,6 +31,96 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — Auth slice 1: /login + /register live
+
+### Built
+- **`/login`** (`apps/web/app/(auth)/login`) — email + password, "Forgot password?" link
+  (`/forgot-password` — page lands next sub-session), "Create one" link to `/register`,
+  inline field errors (RHF + Zod), pending state, post-register verification banner
+  when `?verify=1` is present.
+- **`/register`** (`apps/web/app/(auth)/register`) — email + password + confirm-password
+  + ToS checkbox linking `/terms` and `/privacy` (legal pages land in Phase 5), inline
+  field errors, pending state. On success Supabase fires the default verification email
+  and the page redirects to `/login?verify=1`.
+- **`/dashboard`** (`apps/web/app/dashboard`) — stub Server Component that reads
+  `auth.getUser()`, shows the signed-in email and a sign-out button. Real dashboard
+  lands later in Phase 1.
+- **`/auth/confirm`** (`apps/web/app/auth/confirm/route.ts`) — Route Handler that
+  consumes Supabase's `token_hash` + `type` and calls `verifyOtp`, then redirects to
+  `/dashboard` (or `/login?verify=failed` on error).
+- **Server Actions** (`apps/web/app/(auth)/actions.ts`) — `loginAction`,
+  `registerAction`, `signOutAction`. All re-validate input with Zod server-side, call
+  the `@supabase/ssr` server client, map Supabase error messages to user-friendly
+  toasts, then `redirect()` on success.
+- **Shared `(auth)` layout** — centered card on the brand dot-grid background, Vilo
+  logo mark in the header, "Back to site" link.
+- **Sonner `<Toaster richColors position="top-center" />`** wired into the root
+  `apps/web/app/layout.tsx` so any Client Component can `toast.error` / `toast.success`
+  per CONVENTIONS.md §8.1.
+- **Schemas** (`apps/web/app/(auth)/schemas.ts`) — `loginSchema` and `registerSchema`
+  with email lowercasing, >=8 char password, password-match refinement, and
+  ToS-must-be-true rule. Colocated rather than in `packages/schemas` since they are
+  single-consumer for now (per CONVENTIONS.md §6.2).
+
+### Changed
+- **`apps/web/lib/supabase/middleware.ts`** — `updateSession` now also enforces route
+  protection: authenticated users hitting `/login` or `/register` are redirected to
+  `/dashboard`; unauthenticated users hitting `/dashboard*` are redirected to `/login`.
+  Single `supabase.auth.getUser()` call drives both the session refresh and the
+  redirect logic.
+- **`apps/web/app/layout.tsx`** — added `<Toaster />` import and render so toasts work
+  app-wide.
+
+### Notes
+- **`pnpm --filter web build`** passes — 9 routes generated. Middleware bundle 82.6 kB.
+  `pnpm --filter web lint` passes with zero warnings.
+- **No new DB migrations.** Phase 0's `handle_new_user` trigger auto-inserts
+  `user_profiles` on `auth.users` INSERT — sign-up flows through it with no extra wiring.
+- **Sign-up metadata kept minimal.** Spec only asks for email + password + ToS this
+  slice; no `full_name` collected yet. `user_profiles.full_name` stays null until the
+  host onboarding wizard (next sub-session) collects it.
+- **Email verification path:** `signUp({ options: { emailRedirectTo:
+  ${origin}/auth/confirm } })` => Supabase emails a link with `token_hash` +
+  `type=signup` => our Route Handler calls `verifyOtp` => middleware sees a fresh
+  session and lands the user on `/dashboard`.
+- **Server Action redirect pattern:** actions return `{ ok: false, error }` on failure
+  and call `redirect("/...")` on success. The client form awaits the action; on a
+  returned error it pops a toast, on redirect Next.js intercepts the thrown
+  `NEXT_REDIRECT` and navigates.
+- **`/forgot-password`, `/terms`, `/privacy` not yet built.** Links exist per the spec
+  but resolve to 404. Forgot-password is the next Phase 1 sub-session per
+  PHASE_PLAN.md; legal pages are Phase 5.
+- **No Google OAuth, no magic link, no password reset** — all out of scope for this
+  slice per CURRENT_TASK.md.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
+## 2026-05-23 — Phase 1 — Marketing homepage v1
+
+### Built
+- `apps/web/app/page.tsx` rewritten as a real marketing homepage. Composed from co-located server components under `apps/web/app/_components/home/`: `SiteHeader`, `Hero`, `Features`, `HowItWorks`, `Pricing`, `SiteFooter`, plus a shared `VLogo` SVG.
+- Sections: sticky nav · split hero with dual CTA · feature grid (3 host + 3 guest + 2 universal) · two-column how-it-works (hosts + guests, 3 steps each) · 3-tier pricing pulled verbatim from `vilo-platform-mvp.md` §6.6B (Basic R299 / Pro R599 / Business R1,199) · dark-emerald site footer with status dot.
+- All sections are server components, all classes use canonical Vilo Design System tokens (brand-primary/secondary/dark/accent/line/mute, rounded-card, shadow-glow, dot-grid, font-display). Lucide icons via existing `lucide-react` dep.
+
+### Changed
+- Old dev-status content (Supabase auth health check + stack readout) moved from `/` to a new `/status` route at `apps/web/app/status/page.tsx`. Same readout, same brand styling, but off the public front door. Footer + status-dot link to it.
+
+### Migrations
+- None.
+
+### Notes
+- Scope: this was outside `CURRENT_TASK.md` (which targeted `/login` + `/register`). The auth Zod schemas at `apps/web/app/(auth)/schemas.ts` and the `/login` `/register` route files already exist on disk from earlier in this session — homepage CTAs already wire to them.
+- `pnpm build` clean. `pnpm lint` clean. `/` is statically prerendered (180 B route, 96.1 kB first-load JS).
+- Decision: section components live under `apps/web/app/_components/home/` (underscored = private, non-routed) rather than `apps/web/components/` to keep route-local UI close to the route that uses it. Reusable cross-route UI still belongs in `apps/web/components/`.
+
+### Commit
+- _Pending — user has not yet asked for commit/PR._
+
+---
+
 ## 2026-05-22 — Phase 0 — Bootstrap: git, GitHub, Supabase link
 
 ### Built
@@ -255,6 +345,34 @@ Everything I can do without external account access is done. Remaining items in 
 
 ### Commits
 - (single commit for this slice — pushed after this entry is staged.)
+
+## 2026-05-23 — Phase 1 — Auth slice 1: /login + /register live
+
+### Built
+- **`/login`** (`apps/web/app/(auth)/login`) — email + password, "Forgot password?" link (`/forgot-password` — page lands next sub-session), "Create one" link to `/register`, inline field errors (RHF + Zod), pending state, post-register verification banner when `?verify=1` is present.
+- **`/register`** (`apps/web/app/(auth)/register`) — email + password + confirm-password + ToS checkbox linking `/terms` and `/privacy` (legal pages land in Phase 5), inline field errors, pending state. On success Supabase fires the default verification email and the page redirects to `/login?verify=1`.
+- **`/dashboard`** (`apps/web/app/dashboard`) — stub Server Component that reads `auth.getUser()`, shows the signed-in email and a sign-out button. Real dashboard lands later in Phase 1.
+- **`/auth/confirm`** (`apps/web/app/auth/confirm/route.ts`) — Route Handler that consumes Supabase's `token_hash` + `type` from the verification email and calls `verifyOtp`, then redirects to `/dashboard` (or `/login?verify=failed` on error).
+- **Server Actions** (`apps/web/app/(auth)/actions.ts`) — `loginAction`, `registerAction`, `signOutAction`. All re-validate input with Zod server-side, call `@supabase/ssr` server client, map Supabase error messages to user-friendly toasts, then `redirect()` on success.
+- **Shared `(auth)` layout** — centered card on the brand dot-grid background, Vilo logo mark in the header, "Back to site" link.
+- **Sonner `<Toaster richColors position="top-center" />`** wired into the root `apps/web/app/layout.tsx` so any Client Component can `toast.error(...)` / `toast.success(...)` per CONVENTIONS.md §8.1.
+- **Schemas** (`apps/web/app/(auth)/schemas.ts`) — `loginSchema` and `registerSchema` with email lowercasing, ≥8 char password, password-match refinement, and ToS-must-be-true rule. Colocated rather than in `packages/schemas` since they're single-consumer for now (per CONVENTIONS.md §6.2).
+
+### Changed
+- **`apps/web/lib/supabase/middleware.ts`** — `updateSession` now also enforces route protection: authenticated users hitting `/login` or `/register` are redirected to `/dashboard`; unauthenticated users hitting `/dashboard*` are redirected to `/login`. Single `supabase.auth.getUser()` call drives both the session refresh and the redirect logic.
+- **`apps/web/app/layout.tsx`** — added `<Toaster />` from `components/ui/sonner` and an explicit import section for it.
+
+### Notes
+- **`pnpm --filter web build`** passes — 9 routes generated (`/`, `/login`, `/register`, `/dashboard`, `/auth/confirm`, `/_not-found`). Middleware bundle 82.6 kB. `pnpm --filter web lint` passes with zero warnings.
+- **No new DB migrations.** Phase 0's `handle_new_user` trigger auto-inserts `user_profiles` on `auth.users` INSERT — sign-up flows through it with no extra wiring.
+- **Sign-up metadata kept minimal.** Spec only asks for email + password + ToS this slice; no `full_name` collected yet. `user_profiles.full_name` stays null until the host onboarding wizard (next sub-session) collects it.
+- **Email verification path:** `signUp({ options: { emailRedirectTo: ${origin}/auth/confirm } })` → Supabase emails the user a link with `token_hash` + `type=signup` + `next=/dashboard` → our Route Handler calls `verifyOtp` → on success the middleware sees a fresh session and lands the user on `/dashboard`.
+- **Server Action redirect pattern:** actions return `{ ok: false, error }` on failure and call `redirect("/...")` on success. The client form awaits the action; on a returned error it pops a toast, on redirect Next.js intercepts the thrown `NEXT_REDIRECT` and navigates.
+- **`/forgot-password`, `/terms`, `/privacy` not yet built.** Links exist per the spec but resolve to 404. Forgot-password is the next Phase 1 sub-session per PHASE_PLAN.md; legal pages are Phase 5.
+- **No Google OAuth, no magic link, no password reset** — all out of scope for this slice per CURRENT_TASK.md.
+
+### Commits
+- (single commit for this slice — pushed to `main` after staging.)
 
 ## 2026-05-23 — Phase 0 — Closeout: Storage, Doppler, EAS landed; Sentry/PostHog/Resend deferred
 
