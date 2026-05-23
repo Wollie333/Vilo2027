@@ -31,6 +31,40 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1/2 — /dashboard/settings (profile + host + subscription)
+
+### Built
+- **`/dashboard/settings`** — Server page composes three sections:
+  Profile, Public host page, Subscription.
+- **`ProfileForm`** (Client) — `full_name` + optional `phone`. Email is
+  shown read-only ("change via auth flow"). Saves via `saveProfileAction`
+  which updates `user_profiles` via the user-bound client (RLS
+  `users_update_own`).
+- **`HostForm`** (Client) — `display_name` + optional `bio` + optional
+  `website_url`. Subtitle shows the live `viloplatform.com/{handle}`,
+  Verified pill if applicable, and a "View public" external link to
+  `/{handle}`. Saves via `saveHostAction` which updates `hosts` via the
+  user-bound client (RLS `host_manage_own`).
+- **Subscription card** — Free/Pro/Business label + status text + "See
+  plans" link to `/booking-management#pricing`. Notes that paid plans +
+  billing controls land in Phase 3.
+- **Onboarding nudge** — if the user has no `hosts` row yet, the Host
+  section shows a "Finish setting up" link to `/signup/host` instead of
+  the form.
+
+### Notes
+- **Handle is read-only.** Changing it is a separate Phase-3 slice that
+  needs old→new redirect handling per PHASE_PLAN.md "Handle redirect".
+- **Sidebar Settings target now resolves.** Was a 404 before.
+- **No new packages, no migrations.**
+- **`pnpm --filter web build`** passes — 29 routes, settings 4.22 kB.
+  `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /dashboard/calendar availability view
 
 ### Built
