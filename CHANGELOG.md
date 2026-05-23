@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /dashboard/calendar availability view
+
+### Built
+- **`/dashboard/calendar`** — Server Component three-month rolling view
+  of every blocked date for the selected listing. RLS-bound. Empty
+  state with "New listing" CTA when the host has none.
+- **`CalendarMonth`** — Server presentational. Mo-first weekday layout,
+  7×N grid. Per-cell colouring: booking dates render with
+  `bg-brand-primary` (and the booking_id is tooltipped), manual blocks
+  render with `bg-brand-line`. Today gets a `ring-2 ring-brand-dark`.
+- **`ListingPicker`** (Client) — `<select>` of the host&rsquo;s listings;
+  navigates to `/dashboard/calendar?listing={id}` on change. Picks the
+  first listing if none specified.
+- **Legend** card at the bottom describes the three states and notes
+  that manual block/unblock UI lands later (this slice is read-only;
+  bookings auto-block via the existing `trigger_booking_confirmed`).
+
+### Notes
+- **Sidebar Calendar nav target now resolves.** Was a 404 before.
+- **No new packages.** No `react-big-calendar`; the calendar is a
+  ~120-line plain Tailwind grid. Lightweight, no client JS needed for
+  rendering (Server Component).
+- **`pnpm --filter web build`** passes — 28 routes, calendar 621 B.
+  `pnpm --filter web lint` zero warnings.
+
+### Deferred
+- Drag-to-block dates / manual unblock UI — next slice once we wire the
+  block/unblock Server Actions.
+- Year view, multi-listing overlay.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /explore directory search page
 
 ### Built
