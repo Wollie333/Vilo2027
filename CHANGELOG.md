@@ -31,6 +31,44 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1/2 — Listings management (/dashboard/listings + /new)
+
+### Built
+- **`/dashboard/listings`** — Server Component grid of every listing the
+  host owns (RLS `host_manage_own_listings`, soft-deleted rows excluded).
+  Card per listing: hero photo (or Home icon placeholder), Draft/Published
+  status pill, name + type + city/province, base price + /night, Edit link
+  and View (new tab) link for published rows. "+ New listing" CTA in
+  header and empty state.
+- **`/dashboard/listings/new`** — auth-guarded Server page that also
+  bounces to `/signup/host` if no `hosts` row. Renders a Client form for
+  name + listing_type (Accommodation vs Experience cards) + nested
+  accommodation/experience type picker, matching the onboarding wizard&rsquo;s
+  step 2+3 UX so hosts learn the pattern once.
+- **`createListingAction`** Server Action — uses user-bound client (RLS
+  `host_manage_own_listings` allows INSERT once the host row exists),
+  inserts the listing as draft (`is_published=false`; slug auto-generated
+  by `trigger_listing_slug`), then `redirect()` to
+  `/dashboard/listings/[id]/edit` so the host lands straight in the
+  full editor.
+- **Schemas** colocated at `/new/schemas.ts` — same cross-field listing-type
+  refinement pattern used in `/signup/host`.
+
+### Notes
+- **Sidebar nav target now resolves.** `/dashboard/listings` was a 404 in
+  the chrome; it now has a real destination. Active-state highlight
+  works for both list + edit URLs via the `match: "prefix"` rule already
+  in `Sidebar.tsx`.
+- **No new packages, no migrations.** Uses the existing RLS path and the
+  `generate_listing_slug` trigger from Phase 0.
+- **`pnpm --filter web build`** passes — 25 routes. `pnpm --filter web
+  lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — Host booking dashboard (/dashboard/bookings)
 
 ### Built
