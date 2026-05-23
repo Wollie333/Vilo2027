@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Vilo",
-    "slug": "vilo",
+    "slug": "vilo2027",
     "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -39,6 +39,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "50664ed2-d876-4edd-aab0-6a984fbdfca7"
+      }
     }
   }
 }

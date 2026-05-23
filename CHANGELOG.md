@@ -256,4 +256,28 @@ Everything I can do without external account access is done. Remaining items in 
 ### Commits
 - (single commit for this slice — pushed after this entry is staged.)
 
+## 2026-05-23 — Phase 0 — Closeout: Storage, Doppler, EAS landed; Sentry/PostHog/Resend deferred
+
+### Built
+- **6 Supabase Storage buckets** created in the Vilo2027 project (`listing-photos`, `host-avatars`, `host-covers` public; `eft-proofs`, `message-attachments`, `refund-requests` private). MIME types and size limits per `supabase_database.md` §17. RLS policies were already applied in the v1.0 migration set; buckets now exist for them to protect. Verified via Storage REST API.
+- **Doppler workspace `Vilo2027`**, project `vilo2027`, four configs (`dev`, `dev_personal`, `stg`, `prd`). Imported 18 secrets from `.env.local` (+ 3 Doppler-managed metadata vars) into each top-level config. Integrations connected: Vercel (`wollie333's projects`) and Supabase (`Mana` org). Active syncs: `dev` → Vercel Development env (last synced 13:47 UTC), `dev` → Supabase Edge Functions secrets (13:46 UTC). See Notes for the free-plan gap.
+- **EAS project linked** to `apps/mobile`. UUID `50664ed2-d876-4edd-aab0-6a984fbdfca7` written to `app.json` at `expo.extra.eas.projectId`. `eas build` will pick this up when first invoked.
+
+### Changed
+- `apps/mobile/app.json` — `slug` changed from `vilo` to `vilo2027` to match the EAS project name (avoids slug-mismatch errors during `eas build`).
+- `PHASE_PLAN.md` — Phase 0 marked closed out. New status emoji `🕑` introduced for "deferred-by-design (wire just-in-time)" items. Doppler / Vercel / Storage / EAS lines flipped to ✅. Sentry / PostHog / Resend lines flipped to 🕑 with explicit notes.
+- `CURRENT_TASK.md` — fully rewritten to scope the next session (Phase 1 Auth: `/login` + `/register`).
+- New memory: `project-doppler-state` capturing the sync gap and the 5 in-transcript tokens flagged for revocation.
+
+### Decisions
+- **Doppler free-plan limit accepted as a documented gap.** Doppler's Developer (free) plan caps at one sync per integration; we created the `dev` → Vercel Development sync first, then `stg` and `prd` sync attempts were rejected. Because all three Doppler configs hold identical values today (single Supabase project per ADR-015), the practical impact is nil — Vercel Production is still using the manually-set vars from the earlier deploy session, which match the Doppler `dev` values exactly. Revisit when Doppler is upgraded to a paid plan or when staging/production Supabase projects actually diverge (af-south-1 migration, ADR-015).
+- **Sentry, PostHog, Resend all deferred by design.** No users → no errors / no analytics / no outbound emails worth instrumenting. Supabase Auth's built-in templates cover the auth-flow emails Phase 1 needs. Each will be wired just-in-time when its specific feature lands. Placeholder env vars exist in Doppler under the canonical names so adding values later is a one-step change.
+
+### Notes
+- 5 Doppler tokens were pasted in chat during the integration debugging (1 read-only Personal Token `dp.pt.P05SY…`, 4 Service Tokens `dp.st.{prd,stg,dev,dev_personal}.…`). All are scoped tightly so blast radius is minimal, but they should be revoked from the Doppler dashboard at convenience. Tracked in `project-doppler-state` memory.
+- The Phase 0 closeout was originally scoped to also do Sentry/PostHog/Resend account setup. User opted to defer all three after seeing the Doppler dashboard friction. This deviates from the literal Phase 0 plan but aligns with the platform's "ship over block" guidance and CLAUDE.md's "use the least amount of code that solves the problem" principle — no need to wire telemetry for a service with zero users.
+
+### Commits
+- (this commit — closeout + docs update; pushed to main after staging.)
+
 <!-- New entries go above this line -->

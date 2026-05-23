@@ -2,8 +2,8 @@
 
 **Version:** 1.2 (consolidated from `vilo-platform-mvp.md` v1.2)
 **Last Updated:** May 2026
-**Current Phase:** Phase 0 — Pre-build setup (mostly complete; remaining items below need user-side accounts)
-**Status key:** ✅ Done · 🔄 In progress · ⬜ Not started · 👤 User action required
+**Current Phase:** Phase 0 closed out 2026-05-23. **Phase 1 — Foundation** is next.
+**Status key:** ✅ Done · 🔄 In progress · ⬜ Not started · 👤 User action required · 🕑 Deferred-by-design (wire just-in-time)
 
 > This is the single source of truth for build order. Update checkboxes as tasks complete. When a phase finishes, add a `CHANGELOG.md` entry and update "Current Phase" above.
 
@@ -18,12 +18,12 @@
 - ✅ Create GitHub repository (`Wollie333/Vilo2027`, private)
 - ✅ Set up monorepo structure (`apps/web` + `packages/types`; `apps/mobile` pending)
 - ✅ Configure `pnpm-workspace.yaml` and `turbo.json`
-- 👤 Set up Doppler — `dev`, `staging`, `production` configs
+- ✅ Set up Doppler — project `vilo2027` with `dev`/`stg`/`prd` configs, 21 secrets imported. Vercel + Supabase integrations connected. **Known gap (accepted):** only the `dev`→Vercel Development sync exists; `stg`→Preview and `prd`→Production are blocked by the Developer (free) plan's one-sync-per-integration limit. All configs hold identical values per ADR-015, so impact is nil until staging/production diverge.
 - ✅ Create `.env.example` from `ENV_VARS.md` template
-- 👤 Configure Vercel project — link to GitHub repo (in progress — currently fails with monorepo "no public directory" error; configure Root Directory = `apps/web`)
-- 👤 Create Expo EAS project (`eas init`)
-- 👤 Create Sentry projects (web + mobile)
-- 👤 Create PostHog project
+- ✅ Configure Vercel project — live at https://vilo2027.vercel.app/ (Root Directory `apps/web`, env vars synced from Doppler `dev`, `vercel.json` framework pin per ADR-017)
+- ✅ Create Expo EAS project — UUID `50664ed2-d876-4edd-aab0-6a984fbdfca7` linked in `apps/mobile/app.json`; slug updated to `vilo2027` to match
+- 🕑 Sentry projects (web + mobile) — **deferred** to the week before public launch. No users = no errors to capture. Placeholder env var `NEXT_PUBLIC_SENTRY_DSN` lives in Doppler.
+- 🕑 PostHog project — **deferred** to the week before public launch. No users = no analytics. Placeholders `NEXT_PUBLIC_POSTHOG_KEY` + `NEXT_PUBLIC_POSTHOG_HOST` live in Doppler.
 
 ### Next.js Web App
 - ✅ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
@@ -50,16 +50,16 @@
 - ✅ Seed default policy templates
 - ✅ Generate TypeScript types: `packages/types/database.types.ts` (3479 lines)
 - ⬜ Verify all RLS policies apply correctly in Supabase Studio (user verification step)
-- 👤 Create 6 Storage buckets in Supabase dashboard: `listing-photos`, `host-avatars`, `host-covers`, `eft-proofs`, `message-attachments`, `refund-requests` (RLS policies already applied — buckets just need to exist)
+- ✅ Create 6 Storage buckets — all live (`listing-photos`, `host-avatars`, `host-covers` public; `eft-proofs`, `message-attachments`, `refund-requests` private); MIME types and size limits per `supabase_database.md` §17.
 
 ### CI/CD
 - ✅ Create GitHub Actions workflows: `ci.yml`, `deploy-web.yml`, `deploy-functions.yml`, `db-migrate.yml`, `mobile-preview.yml`
-- 👤 Connect Doppler → GitHub Secrets integration
-- 👤 Connect Doppler → Vercel integration
-- 👤 Verify first deployment to Vercel succeeds (currently failing on monorepo root-dir config — set Vercel "Root Directory" to `apps/web`)
+- 🕑 Connect Doppler → GitHub Secrets integration — deferred (CI workflows not yet running end-to-end; wire when first workflow needs real secrets)
+- ✅ Connect Doppler → Vercel integration (one sync active; see "Set up Doppler" note above for plan-limit gap)
+- ✅ Verify first deployment to Vercel succeeds — live at https://vilo2027.vercel.app/
 
 ### Email
-- 👤 Set up Resend account + verify `viloplatform.com` domain (domain registration also pending)
+- 🕑 Set up Resend account + verify `viloplatform.com` domain — **deferred**, domain not yet registered. Supabase Auth's built-in email templates handle verification + password reset for Phase 1. Wire Resend when the first branded transactional email (booking confirmation, welcome) is built.
 - ✅ Create `emails/` directory with React Email setup (as `@vilo/emails` workspace package)
 - ✅ Create email layout component (`emails/components/Layout.tsx` with Vilo brand colours + Inter font)
 - ⬜ Verify preview server works (`pnpm --filter @vilo/emails dev`) — requires user verification
