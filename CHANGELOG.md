@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /listing/[slug] photo lightbox
+
+### Built
+- **`PhotoGallery`** upgraded from Server presentational to Client. Each
+  photo is now a `<button>` that opens a fullscreen lightbox. The 5-up
+  grid stays unchanged; tap any cell to open at that index.
+- **Lightbox** — fixed-overlay (`bg-black/90`), centred image
+  (`max-h-[90vh] object-contain`), Close button (top right), Prev/Next
+  arrows (when >1 photo), `{i} / {n}` position counter at the bottom.
+  Keyboard: `Esc` closes, `ArrowLeft` / `ArrowRight` navigate. Click
+  outside the image closes too. `document.body.style.overflow="hidden"`
+  while open so the page doesn&rsquo;t scroll behind.
+- **"Show all N photos" pill** — bottom-right of the grid when there are
+  more than 5 photos; opens the lightbox at the first photo. Phase 2
+  paginated "show all photos" page lands when we need it.
+
+### Notes
+- **No new packages.** Pure React state + `useEffect` keyboard handler.
+- **`pnpm --filter web build`** passes — `/listing/[slug]` 4.98 kB
+  (was 3.92 kB; +1 kB for the lightbox client). `pnpm --filter web
+  lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /dashboard/payments — read-only host payments list
 
 ### Built
