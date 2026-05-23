@@ -29,7 +29,7 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 - [x] `middleware.ts` updated to redirect authenticated users away from `/login`/`/register`, and unauthenticated users away from `/dashboard`.
 - [x] `pnpm build` from `apps/web/` passes with zero errors / zero warnings.
 - [x] `pnpm lint` from `apps/web/` passes with zero warnings.
-- [ ] Vercel deploy goes green on push to main. *(pending push at end of session)*
+- [x] Vercel deploy goes green on push to main. *(verified: /login 200, /register 200, /dashboard 307→/login)*
 - [x] `CHANGELOG.md` updated.
 
 ---

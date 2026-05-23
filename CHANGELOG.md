@@ -31,6 +31,49 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — Auth slice 2: password reset flow
+
+### Built
+- **`/forgot-password`** (`apps/web/app/(auth)/forgot-password`) — email-only form
+  that calls `forgotPasswordAction`, which fires
+  `supabase.auth.resetPasswordForEmail` with
+  `redirectTo: ${origin}/auth/confirm?next=/reset-password`. Always redirects to
+  `/forgot-password?sent=1` regardless of whether the email exists, to avoid
+  account-enumeration leaks. The "sent" state renders a `SentNotice` card with a
+  back-to-sign-in link.
+- **`/reset-password`** (`apps/web/app/(auth)/reset-password`) — Server Component
+  guard that redirects to `/forgot-password` if there's no session, then renders a
+  Client form with password + confirm-password. Submit calls `resetPasswordAction`
+  which re-checks the session, calls `supabase.auth.updateUser({ password })`, and
+  redirects to `/dashboard`.
+- **Two new Server Actions** in `apps/web/app/(auth)/actions.ts`:
+  `forgotPasswordAction`, `resetPasswordAction`.
+- **Two new Zod schemas** in `apps/web/app/(auth)/schemas.ts`:
+  `forgotPasswordSchema`, `resetPasswordSchema` (>=8 char password, match refine).
+
+### Changed
+- **`apps/web/lib/supabase/middleware.ts`** — added `/forgot-password` to
+  `AUTH_ROUTES` so authenticated users hitting it get bounced to `/dashboard`.
+  `/reset-password` is intentionally NOT in `AUTH_ROUTES` — it relies on the
+  short-lived recovery session that `/auth/confirm` issues via `verifyOtp`.
+
+### Notes
+- **Reuses existing `/auth/confirm` Route Handler.** That handler already accepts a
+  `next` query param; the recovery flow piggybacks on it instead of duplicating
+  verifyOtp logic.
+- **Account-enumeration protection.** `forgotPasswordAction` doesn't surface
+  Supabase errors to the client — it always redirects to the "check your inbox"
+  state. The error path is logged server-side by Supabase but not exposed.
+- **`pnpm --filter web build`** passes — 12 routes generated. `pnpm --filter web
+  lint` zero warnings.
+- **Out of scope:** custom email template (still Supabase default), rate-limiting
+  the request endpoint (Supabase enforces ~3/hour on the free SMTP plan).
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — Auth slice 1: /login + /register live
 
 ### Built
@@ -345,34 +388,6 @@ Everything I can do without external account access is done. Remaining items in 
 
 ### Commits
 - (single commit for this slice — pushed after this entry is staged.)
-
-## 2026-05-23 — Phase 1 — Auth slice 1: /login + /register live
-
-### Built
-- **`/login`** (`apps/web/app/(auth)/login`) — email + password, "Forgot password?" link (`/forgot-password` — page lands next sub-session), "Create one" link to `/register`, inline field errors (RHF + Zod), pending state, post-register verification banner when `?verify=1` is present.
-- **`/register`** (`apps/web/app/(auth)/register`) — email + password + confirm-password + ToS checkbox linking `/terms` and `/privacy` (legal pages land in Phase 5), inline field errors, pending state. On success Supabase fires the default verification email and the page redirects to `/login?verify=1`.
-- **`/dashboard`** (`apps/web/app/dashboard`) — stub Server Component that reads `auth.getUser()`, shows the signed-in email and a sign-out button. Real dashboard lands later in Phase 1.
-- **`/auth/confirm`** (`apps/web/app/auth/confirm/route.ts`) — Route Handler that consumes Supabase's `token_hash` + `type` from the verification email and calls `verifyOtp`, then redirects to `/dashboard` (or `/login?verify=failed` on error).
-- **Server Actions** (`apps/web/app/(auth)/actions.ts`) — `loginAction`, `registerAction`, `signOutAction`. All re-validate input with Zod server-side, call `@supabase/ssr` server client, map Supabase error messages to user-friendly toasts, then `redirect()` on success.
-- **Shared `(auth)` layout** — centered card on the brand dot-grid background, Vilo logo mark in the header, "Back to site" link.
-- **Sonner `<Toaster richColors position="top-center" />`** wired into the root `apps/web/app/layout.tsx` so any Client Component can `toast.error(...)` / `toast.success(...)` per CONVENTIONS.md §8.1.
-- **Schemas** (`apps/web/app/(auth)/schemas.ts`) — `loginSchema` and `registerSchema` with email lowercasing, ≥8 char password, password-match refinement, and ToS-must-be-true rule. Colocated rather than in `packages/schemas` since they're single-consumer for now (per CONVENTIONS.md §6.2).
-
-### Changed
-- **`apps/web/lib/supabase/middleware.ts`** — `updateSession` now also enforces route protection: authenticated users hitting `/login` or `/register` are redirected to `/dashboard`; unauthenticated users hitting `/dashboard*` are redirected to `/login`. Single `supabase.auth.getUser()` call drives both the session refresh and the redirect logic.
-- **`apps/web/app/layout.tsx`** — added `<Toaster />` from `components/ui/sonner` and an explicit import section for it.
-
-### Notes
-- **`pnpm --filter web build`** passes — 9 routes generated (`/`, `/login`, `/register`, `/dashboard`, `/auth/confirm`, `/_not-found`). Middleware bundle 82.6 kB. `pnpm --filter web lint` passes with zero warnings.
-- **No new DB migrations.** Phase 0's `handle_new_user` trigger auto-inserts `user_profiles` on `auth.users` INSERT — sign-up flows through it with no extra wiring.
-- **Sign-up metadata kept minimal.** Spec only asks for email + password + ToS this slice; no `full_name` collected yet. `user_profiles.full_name` stays null until the host onboarding wizard (next sub-session) collects it.
-- **Email verification path:** `signUp({ options: { emailRedirectTo: ${origin}/auth/confirm } })` → Supabase emails the user a link with `token_hash` + `type=signup` + `next=/dashboard` → our Route Handler calls `verifyOtp` → on success the middleware sees a fresh session and lands the user on `/dashboard`.
-- **Server Action redirect pattern:** actions return `{ ok: false, error }` on failure and call `redirect("/...")` on success. The client form awaits the action; on a returned error it pops a toast, on redirect Next.js intercepts the thrown `NEXT_REDIRECT` and navigates.
-- **`/forgot-password`, `/terms`, `/privacy` not yet built.** Links exist per the spec but resolve to 404. Forgot-password is the next Phase 1 sub-session per PHASE_PLAN.md; legal pages are Phase 5.
-- **No Google OAuth, no magic link, no password reset** — all out of scope for this slice per CURRENT_TASK.md.
-
-### Commits
-- (single commit for this slice — pushed to `main` after staging.)
 
 ## 2026-05-23 — Phase 0 — Closeout: Storage, Doppler, EAS landed; Sentry/PostHog/Resend deferred
 
