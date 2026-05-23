@@ -31,6 +31,81 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — Host booking dashboard (/dashboard/bookings)
+
+### Built
+- **`/dashboard/bookings`** — Server Component list of every booking the
+  host owns (RLS `host_manage_own_bookings`). Newest first, 50 cap. Table
+  shows reference (link to detail), guest name + headcount, listing,
+  check-in → check-out + nights, total + payment_status, status pill.
+- **`StatusFilter`** — Client URL-driven pill row: All · Pending · Confirmed
+  · Checked in · Completed · Cancelled. Each pill shows a live count
+  badge pulled from a parallel `select status` query. The "Cancelled"
+  filter rolls up `cancelled_by_host`, `cancelled_by_guest`, `declined`,
+  `expired`, `no_show`.
+- **`StatusPill`** — shared `bookings.status` → label + tone helper.
+  Eleven states mapped to amber / green / emerald / indigo / red / slate.
+- **Empty state** — dashed card with the calendar-check icon when no
+  bookings match.
+
+- **`/dashboard/bookings/[id]`** — full detail page. Header: listing name
+  + status pill + reference + state-aware action buttons. Body grid:
+  - Left: Trip card (dates, nights, guests, payment method/status,
+    special requests if set), Timeline card (booked / confirmed / checked
+    in / checked out / cancelled — formatted en-ZA datetime, em-dash for
+    empty).
+  - Right: Guest card (avatar + name + email + phone; a disabled
+    "Message guest (Inbox slice)" button placeholding the inbox), Amount
+    card (base, cleaning, total breakdown), "View public listing" link.
+
+- **`BookingActions`** (Client) — state-machine UI:
+  - **pending** → Confirm (primary) + Decline (with `window.confirm`).
+  - **confirmed** → Mark check-in + Cancel.
+  - **checked_in** → Mark check-out + Cancel.
+  - **completed / cancelled / declined / expired** → no buttons.
+
+- **`apps/web/app/dashboard/bookings/actions.ts`** — five Server Actions
+  (`confirmBookingAction`, `declineBookingAction`, `cancelBookingAction`,
+  `checkInBookingAction`, `checkOutBookingAction`) that all funnel into
+  one `applyTransition` helper. The helper:
+  1. SELECTs the booking via the user-bound client (RLS-bound to the host).
+  2. Validates the transition is legal against
+     `AGENT_RULES.md` §4.1&rsquo;s state machine (e.g. can&rsquo;t
+     check-in a pending booking).
+  3. UPDATEs with `status`, `previous_status` (preserving the prior
+     value), timestamp field (`confirmed_at` / `cancelled_at` etc.),
+     and `.eq("status", booking.status)` for optimistic concurrency.
+  4. `revalidatePath` on both the detail and the list.
+
+### Notes
+- **DB triggers already handle the side effects.** When status flips to
+  `confirmed`, `trigger_booking_confirmed` inserts `blocked_dates` rows
+  and bumps host/listing booking counters. When it flips to a cancelled
+  state, `on_booking_cancelled` deletes those `blocked_dates`. Actions
+  here don&rsquo;t duplicate that work per `AGENT_RULES.md` §4.2.
+- **No admin client used.** The host owns the row via
+  `host_manage_own_bookings`, so the user-bound `createServerClient()` is
+  sufficient. Service-role stays scoped to the guest-side booking
+  creation only.
+- **Sidebar Bookings nav target now resolves.** Previously 404; now
+  active-state highlights when on `/dashboard/bookings[*]`.
+- **`pnpm --filter web build`** passes — 23 routes;
+  `/dashboard/bookings` 829 B, `/dashboard/bookings/[id]` 3.25 kB.
+  `pnpm --filter web lint` zero warnings.
+
+### Deferred (next slices)
+- **Inbox + messaging** — the "Message guest" CTA is disabled.
+- **24-hour auto-cancel cron** — `pg_cron` job already exists in
+  `20260501000014_create_cron_jobs.sql`; wiring it up to schedule is a
+  Phase-2 host-protection slice.
+- **Booking emails** — guest gets nothing today after the host confirms.
+  Lands next slice (Resend or Supabase default for first cut).
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — Booking flow + Paystack init + webhook
 
 ### Built
