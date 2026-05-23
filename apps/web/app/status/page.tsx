@@ -45,7 +45,7 @@ export default async function StatusPage() {
         <div aria-hidden className="absolute inset-0 bg-dot-grid opacity-70" />
         <div className="relative mx-auto max-w-5xl px-6 py-16 sm:py-20 lg:px-10">
           <Link href="/" className="inline-flex items-center gap-3">
-            <VLogo className="h-10 w-10" />
+            <VLogo size={40} gradientId="status-logo" />
             <span className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand-mute">
               Vilo · Status
             </span>

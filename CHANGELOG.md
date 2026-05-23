@@ -31,6 +31,78 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — New homepage / = directory landing
+
+### Built
+- **`/` rewritten** as the guest-facing directory landing per the canonical
+  emerald design at `Main Home.html`. 13 sections in order:
+  `UtilityBar` (dark thin bar — language, currency, "List your property") ·
+  `SiteHeader` (sticky nav with gradient-SVG V logo + tagline; reveals a
+  compact "Anywhere · Any week · Guests" search button after the hero scrolls
+  past, with `nav-elevated` shadow) · `Hero` (full-bleed Unsplash image with
+  dark `hero-veil` overlay, headline, 4-input search card that GETs to
+  `/explore`, 6 popular-search chips, 4-stat row in white) ·
+  `CategoryChips` (sticky `top-16` row of 11 chips with active state +
+  Filters button on the right) · `TrendingDestinations` (6 destination
+  cards, 4:5 aspect, gradient bottom overlay) · `FeaturedListings` (8
+  listing cards with image, instant-book/featured badge, heart toggle,
+  rating, location, detail and price; "Show all 2 348 stays" CTA) ·
+  `TrustPillars` (4 cards — No fees, Verified hosts, Talk to host, Honest
+  cancellations) · `BrowseByType` (6 large 16:10 type cards) ·
+  `DealsBanner` (Summer-deal image card + brand-gradient Group-stays card)
+  · `RecentReviews` (3 review cards with rating, body, avatar, 4.83 stat)
+  · `AppNewsletter` (newsletter capture + iOS/Android download tiles) ·
+  `HostCTA` (dark-emerald section linking to `/booking-management` — two
+  CTAs: "List your property" deep-linked to `#cta`, "See how Vilo works") ·
+  `SiteFooter` (4 link columns: Explore / Guests / Hosts / Company; social
+  SVGs; "All systems operational" links to `/change-log`).
+- **Three Client Components only** — `SiteHeader` (scroll listener for
+  sticky-search reveal), `CategoryChips` (active-chip state), `HeartButton`
+  (per-listing saved toggle). Everything else is a Server Component.
+- **New `VLogo`** that takes `size` (px) + `gradientId` (so multiple
+  instances on the same page don't collide on the SVG `<defs>` id).
+  Replaces the simple-V version used by the old marketing homepage.
+
+### Changed
+- **`apps/web/app/globals.css`** — added directory-page utilities to the
+  existing `@layer utilities`: `.hero-veil` (gradient overlay),
+  `.hscroll` (scrollbar-none), `.num` (tabular numerals alias),
+  `.card-img` (hover zoom paired with `.group`), `.chip-active`,
+  `.nav-elevated` (sticky-nav shadow).
+- **`apps/web/app/status/page.tsx`** — updated to the new `VLogo` API
+  (`size` + `gradientId` instead of `className`). Same visual size (40 px).
+
+### Removed
+- **`apps/web/app/_components/home/{Hero,Features,HowItWorks,Pricing,SiteHeader,SiteFooter,VLogo}.tsx`** —
+  the marketing-style components from the earlier "Marketing homepage v1"
+  entry. Their content has been superseded twice: visually by
+  `/booking-management` (which has its own component set), and structurally
+  by this new directory homepage which uses entirely different sections.
+  Replaced in-place with the new directory components under the same
+  `_components/home/` directory.
+
+### Notes
+- **Palette is canonical emerald** — no `tailwind.config.ts` changes. The
+  design file (`Main Home.html`) was authored against our existing
+  `brand-*` tokens.
+- **Unsplash images via plain `<img>`** with `loading="lazy"` and the
+  `eslint-disable-next-line @next/next/no-img-element` pragma. Avoids
+  `next.config.js` image domain configuration; matches the approach used
+  in `/booking-management`.
+- **Header tagline** ("Direct stays. Direct hosts.") visible at `sm+` only
+  to keep the mobile nav clean.
+- **Search card POSTs to `/explore`** (not yet built — placeholder route
+  for Phase 2 directory work). The form will degrade gracefully to a 404
+  on submit until that page lands.
+- **`pnpm --filter web build`** passes — 14 routes. `/` first-load JS now
+  100 kB (was 96.1 kB; +4 kB for the three small Client Components).
+  `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — /booking-management marketing page + /change-log
 
 ### Built

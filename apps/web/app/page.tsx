@@ -1,26 +1,40 @@
-import { Features } from "./_components/home/Features";
+import type { Metadata } from "next";
+
+import { AppNewsletter } from "./_components/home/AppNewsletter";
+import { BrowseByType } from "./_components/home/BrowseByType";
+import { CategoryChips } from "./_components/home/CategoryChips";
+import { DealsBanner } from "./_components/home/DealsBanner";
+import { FeaturedListings } from "./_components/home/FeaturedListings";
 import { Hero } from "./_components/home/Hero";
-import { HowItWorks } from "./_components/home/HowItWorks";
-import { Pricing } from "./_components/home/Pricing";
+import { HostCTA } from "./_components/home/HostCTA";
+import { RecentReviews } from "./_components/home/RecentReviews";
 import { SiteFooter } from "./_components/home/SiteFooter";
 import { SiteHeader } from "./_components/home/SiteHeader";
+import { TrendingDestinations } from "./_components/home/TrendingDestinations";
+import { TrustPillars } from "./_components/home/TrustPillars";
+import { UtilityBar } from "./_components/home/UtilityBar";
 
-export const metadata = {
-  title: "Vilo — Direct-booking management for South African hosts",
+export const metadata: Metadata = {
+  title: "Vilo — South Africa's direct booking directory",
   description:
-    "Vilo is a direct-booking platform for South African accommodation hosts and the guests who travel with them. One subscription, zero booking fees.",
+    "From a cottage in the Karoo to a lodge in the Drakensberg — every booking goes straight to the host. No middle-man, no booking fees, no fine print.",
 };
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="min-h-screen bg-brand-light text-brand-ink">
+    <div className="bg-brand-light text-brand-ink">
+      <UtilityBar />
       <SiteHeader />
-      <main>
-        <Hero />
-        <Features />
-        <HowItWorks />
-        <Pricing />
-      </main>
+      <Hero />
+      <CategoryChips />
+      <TrendingDestinations />
+      <FeaturedListings />
+      <TrustPillars />
+      <BrowseByType />
+      <DealsBanner />
+      <RecentReviews />
+      <AppNewsletter />
+      <HostCTA />
       <SiteFooter />
     </div>
   );

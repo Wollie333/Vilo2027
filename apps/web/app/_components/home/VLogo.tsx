@@ -1,26 +1,18 @@
-type Props = {
-  className?: string;
-  /** Unique gradient id — required when multiple VLogos render on the same page. */
-  gradientId?: string;
-  withGlow?: boolean;
-};
-
 export function VLogo({
-  className,
-  gradientId = "viloLogoGradient",
-  withGlow = false,
-}: Props) {
+  size = 32,
+  gradientId,
+}: {
+  size?: number;
+  gradientId: string;
+}) {
   return (
     <svg
+      className="rounded-md"
+      width={size}
+      height={size}
       viewBox="0 0 100 100"
       fill="none"
-      className={className}
-      style={
-        withGlow
-          ? { filter: "drop-shadow(0 12px 32px rgba(16,185,129,0.28))" }
-          : undefined
-      }
-      aria-hidden
+      aria-hidden="true"
     >
       <defs>
         <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">

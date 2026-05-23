@@ -139,6 +139,53 @@
     background: #064e3b;
     color: #ffffff;
   }
+
+  /* ── Directory homepage utilities (per Main Home.html) ── */
+
+  /* Hero veil — dark gradient overlay on full-bleed image */
+  .hero-veil {
+    background: linear-gradient(
+      180deg,
+      rgba(5, 46, 31, 0.45) 0%,
+      rgba(5, 46, 31, 0.55) 60%,
+      rgba(5, 46, 31, 0.7) 100%
+    );
+  }
+
+  /* Horizontal scrollers (category chips, mobile carousels) */
+  .hscroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hscroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Tabular numerals — short alias used in the directory templates */
+  .num {
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Card image hover zoom — pairs with parent `.group` */
+  .card-img {
+    transition: transform 0.55s ease;
+  }
+  .group:hover .card-img {
+    transform: scale(1.04);
+  }
+
+  /* Active category chip */
+  .chip-active {
+    background: #052e1f;
+    color: #ffffff;
+  }
+
+  /* Sticky nav elevated shadow (toggled when hero scrolls past) */
+  .nav-elevated {
+    box-shadow:
+      0 1px 0 rgba(6, 78, 59, 0.06),
+      0 4px 16px -8px rgba(6, 78, 59, 0.08);
+  }
 }
 
 @layer components {
