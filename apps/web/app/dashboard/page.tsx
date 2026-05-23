@@ -1,5 +1,14 @@
 import type { Metadata } from "next";
-import { ArrowRight, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  BarChart3,
+  CalendarCheck,
+  CalendarClock,
+  ExternalLink,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import Link from "next/link";
 
 import { createServerClient } from "@/lib/supabase/server";
@@ -10,52 +19,171 @@ export const metadata: Metadata = {
   title: "Dashboard · Vilo",
 };
 
+export const dynamic = "force-dynamic";
+
+function fmtR(n: number, currency = "ZAR"): string {
+  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
+    .toLocaleString("en-ZA")
+    .replace(/,/g, " ")}`;
+}
+
+function isoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function startOfMonth(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+}
+
+function endOfMonth(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
+}
+
+const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"] as const;
+
 export default async function DashboardPage({
   searchParams,
 }: {
   searchParams?: { welcome?: string };
 }) {
-  // Layout already enforces auth + fetches user/host. We re-fetch the
-  // listings + the welcome-banner state here.
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: host }, { data: listings }] = await Promise.all([
+  // Pull everything we need in parallel.
+  const monthStart = startOfMonth(new Date());
+  const monthEnd = endOfMonth(new Date());
+  const monthStartIso = isoDate(monthStart);
+  const monthEndIso = isoDate(monthEnd);
+  const today = isoDate(new Date());
+  const sevenDays = isoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
+
+  const [
+    { data: host },
+    { data: monthBookings },
+    { data: upcomingCheckIns },
+    { data: recentBookings },
+    { data: listings },
+    { count: pendingCount },
+  ] = await Promise.all([
     supabase
       .from("hosts")
-      .select("id, handle, display_name")
+      .select("id, handle, display_name, avg_rating, total_reviews")
       .eq("user_id", user!.id)
       .maybeSingle(),
     supabase
-      .from("listings")
-      .select("id, name, slug, is_published")
+      .from("bookings")
+      .select("id, total_amount, currency, status, nights, check_in")
+      .gte("check_in", monthStartIso)
+      .lte("check_in", monthEndIso),
+    supabase
+      .from("bookings")
+      .select(
+        "id, reference, check_in, guests_count, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email )",
+      )
+      .in("status", ["confirmed", "checked_in"])
+      .gte("check_in", today)
+      .lte("check_in", sevenDays)
+      .order("check_in", { ascending: true })
+      .limit(8),
+    supabase
+      .from("bookings")
+      .select(
+        "id, reference, status, payment_status, check_in, check_out, total_amount, currency, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email )",
+      )
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("listings")
+      .select("id, name, slug, is_published")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
   ]);
+
+  // ── KPIs ──
+  const confirmedSet = new Set(CONFIRMED_STATUSES as readonly string[]);
+  const confirmedThisMonth = (monthBookings ?? []).filter((b) =>
+    confirmedSet.has(b.status as string),
+  );
+
+  const revenue = confirmedThisMonth.reduce(
+    (acc, b) => acc + Number(b.total_amount),
+    0,
+  );
+  const bookingsCount = (monthBookings ?? []).length;
+  const confirmedCount = confirmedThisMonth.length;
+  const pendingThisMonth = (monthBookings ?? []).filter(
+    (b) => b.status === "pending",
+  ).length;
+
+  const totalListings =
+    (listings ?? []).filter((l) => l.is_published).length || 0;
+  const daysInMonth = monthEnd.getUTCDate() - monthStart.getUTCDate() + 1;
+  const totalAvailableNights = totalListings * daysInMonth;
+  const bookedNights = confirmedThisMonth.reduce(
+    (acc, b) => acc + (Number(b.nights) || 0),
+    0,
+  );
+  const occupancyPct =
+    totalAvailableNights > 0
+      ? Math.round((bookedNights / totalAvailableNights) * 100)
+      : null;
+
+  const avgRating = host?.avg_rating ? Number(host.avg_rating) : null;
+  const totalReviews = host?.total_reviews ?? 0;
 
   const justOnboarded = searchParams?.welcome === "1";
   const needsOnboarding = !host;
 
+  const firstName = host
+    ? host.display_name.split(" ")[0]
+    : (user?.email ?? "").split("@")[0];
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 lg:space-y-7">
       {justOnboarded ? <WelcomeToast /> : null}
 
       {/* Welcome strip */}
       <section className="-mt-1 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
         <div>
           <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            {host
-              ? `Welcome back, ${host.display_name.split(" ")[0]}.`
-              : "Welcome to Vilo."}
+            {host ? `Welcome back, ${firstName}.` : "Welcome to Vilo."}
           </h2>
           <p className="mt-1 text-sm text-brand-mute">
             {host
-              ? `Your Vilo URL is viloplatform.com/${host.handle}.`
+              ? pendingCount && pendingCount > 0
+                ? `You have ${pendingCount} pending booking${
+                    pendingCount === 1 ? "" : "s"
+                  } to review.`
+                : "Nothing pending. Your inbox is empty."
               : "Finish onboarding to take your first booking."}
           </p>
         </div>
+        {host ? (
+          <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+            <Link
+              href={`/${host.handle}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+            >
+              View public page
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/dashboard/listings/new"
+              className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+            >
+              <Sparkles className="h-4 w-4" />
+              New listing
+            </Link>
+          </div>
+        ) : null}
       </section>
 
       {needsOnboarding ? (
@@ -79,82 +207,307 @@ export default async function DashboardPage({
         </Link>
       ) : null}
 
-      {host && listings && listings.length > 0 ? (
-        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                Your listings
-              </div>
-              <div className="mt-1 font-display text-lg font-semibold text-brand-ink">
-                {listings.length}{" "}
-                {listings.length === 1 ? "listing" : "listings"}
-              </div>
-            </div>
-            <Link
-              href="/dashboard/listings"
-              className="text-xs font-medium text-brand-primary hover:underline"
-            >
-              See all →
-            </Link>
-          </div>
-          <ul className="divide-y divide-brand-line rounded-card border border-brand-line">
-            {listings.map((l) => (
-              <li key={l.id} className="flex items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-brand-dark">
-                    {l.name}
+      {host ? (
+        <>
+          {/* KPI tiles */}
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-4">
+            <KpiTile
+              icon={Banknote}
+              label="Revenue · this month"
+              value={fmtR(revenue, "ZAR")}
+              sub={`${confirmedCount} confirmed booking${confirmedCount === 1 ? "" : "s"}`}
+            />
+            <KpiTile
+              icon={CalendarCheck}
+              label="Bookings · this month"
+              value={String(bookingsCount)}
+              sub={`${confirmedCount} confirmed · ${pendingThisMonth} pending`}
+            />
+            <KpiTile
+              icon={BarChart3}
+              label="Occupancy"
+              value={occupancyPct == null ? "—" : `${occupancyPct}%`}
+              sub={
+                totalListings === 0
+                  ? "Publish a listing first"
+                  : `${bookedNights} of ${totalAvailableNights} nights`
+              }
+            />
+            <KpiTile
+              icon={Star}
+              label="Avg rating"
+              value={avgRating == null ? "—" : avgRating.toFixed(1)}
+              sub={
+                totalReviews === 0
+                  ? "Reviews land after first stay"
+                  : `${totalReviews} review${totalReviews === 1 ? "" : "s"}`
+              }
+            />
+          </section>
+
+          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+            {/* Recent bookings */}
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Recent bookings
+                  </div>
+                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
+                    Latest 5
                   </div>
                 </div>
-                <span
-                  className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
-                    l.is_published
-                      ? "bg-green-100 text-green-800"
-                      : "bg-brand-line text-brand-mute"
-                  }`}
-                >
-                  {l.is_published ? "Published" : "Draft"}
-                </span>
-                {l.is_published && l.slug ? (
-                  <Link
-                    href={`/listing/${l.slug}`}
-                    target="_blank"
-                    className="text-xs font-medium text-brand-mute hover:text-brand-primary"
-                  >
-                    View
-                  </Link>
-                ) : null}
                 <Link
-                  href={`/dashboard/listings/${l.id}/edit`}
-                  className="text-xs font-medium text-brand-primary hover:underline"
+                  href="/dashboard/bookings"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
                 >
-                  Edit →
+                  See all
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 text-xs text-brand-mute">
-            Edit any listing to set photos, location, rooms, amenities, pricing
-            and policies. Publish flips it live for guests.
-          </p>
-        </section>
-      ) : null}
+              </div>
+              {!recentBookings || recentBookings.length === 0 ? (
+                <EmptyState
+                  icon={CalendarCheck}
+                  title="No bookings yet"
+                  body="Once a guest reserves, it will land here."
+                />
+              ) : (
+                <ul className="divide-y divide-brand-line">
+                  {recentBookings.map((b) => {
+                    const listing = b.listing as unknown as { name: string };
+                    const guest = b.guest as unknown as {
+                      full_name: string | null;
+                      email: string | null;
+                    };
+                    return (
+                      <li key={b.id} className="flex items-center gap-3 py-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-brand-dark">
+                            {guest.full_name || guest.email || "Guest"} ·{" "}
+                            {listing.name}
+                          </div>
+                          <div className="font-mono text-[11px] text-brand-mute">
+                            {b.reference} · {b.check_in} → {b.check_out}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right text-xs">
+                          <div className="font-display font-bold text-brand-ink">
+                            {fmtR(Number(b.total_amount), b.currency)}
+                          </div>
+                          <Link
+                            href={`/dashboard/bookings/${b.id}`}
+                            className="text-[11px] font-medium text-brand-primary hover:underline"
+                          >
+                            Open →
+                          </Link>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
 
-      {/* Empty-state placeholders matching the new chrome layout */}
-      {host && (!listings || listings.length === 0) ? (
-        <section className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <Sparkles className="h-6 w-6" />
+            {/* Upcoming check-ins */}
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Upcoming check-ins
+                  </div>
+                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
+                    Next 7 days
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/calendar"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                >
+                  Calendar
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              {!upcomingCheckIns || upcomingCheckIns.length === 0 ? (
+                <EmptyState
+                  icon={CalendarClock}
+                  title="No arrivals yet"
+                  body="When a confirmed booking lands within the next week, you&rsquo;ll see it here."
+                />
+              ) : (
+                <ul className="divide-y divide-brand-line">
+                  {upcomingCheckIns.map((b) => {
+                    const listing = b.listing as unknown as { name: string };
+                    const guest = b.guest as unknown as {
+                      full_name: string | null;
+                      email: string | null;
+                    };
+                    return (
+                      <li key={b.id} className="flex items-center gap-3 py-3">
+                        <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-card border border-brand-line bg-brand-light text-brand-ink">
+                          <span className="text-[10px] uppercase">
+                            {new Intl.DateTimeFormat("en-ZA", {
+                              month: "short",
+                            }).format(new Date(b.check_in!))}
+                          </span>
+                          <span className="font-display text-sm font-bold">
+                            {new Date(b.check_in!).getUTCDate()}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-brand-dark">
+                            {guest.full_name || guest.email || "Guest"}
+                          </div>
+                          <div className="truncate text-[11px] text-brand-mute">
+                            {listing.name} · {b.guests_count}{" "}
+                            {b.guests_count === 1 ? "guest" : "guests"}
+                          </div>
+                        </div>
+                        <Link
+                          href={`/dashboard/bookings/${b.id}`}
+                          className="shrink-0 text-xs font-medium text-brand-primary hover:underline"
+                        >
+                          Open →
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
           </div>
-          <h3 className="font-display text-lg font-bold text-brand-ink">
-            No listings yet
-          </h3>
-          <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-            Your first listing was created during onboarding. If you removed it,
-            you can create another from the Listings page.
-          </p>
-        </section>
+
+          {/* Listings */}
+          {listings && listings.length > 0 ? (
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Your listings
+                  </div>
+                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
+                    {listings.length}{" "}
+                    {listings.length === 1 ? "listing" : "listings"}
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/listings"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                >
+                  See all
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              <ul className="divide-y divide-brand-line">
+                {listings.map((l) => (
+                  <li key={l.id} className="flex items-center gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-brand-dark">
+                        {l.name}
+                      </div>
+                    </div>
+                    <span
+                      className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
+                        l.is_published
+                          ? "bg-green-100 text-green-800"
+                          : "bg-brand-line text-brand-mute"
+                      }`}
+                    >
+                      {l.is_published ? "Published" : "Draft"}
+                    </span>
+                    {l.is_published && l.slug ? (
+                      <Link
+                        href={`/listing/${l.slug}`}
+                        target="_blank"
+                        className="text-xs font-medium text-brand-mute hover:text-brand-primary"
+                      >
+                        View
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={`/dashboard/listings/${l.id}/edit`}
+                      className="text-xs font-medium text-brand-primary hover:underline"
+                    >
+                      Edit →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : (
+            <EmptyListings />
+          )}
+        </>
       ) : null}
     </div>
+  );
+}
+
+function KpiTile({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: typeof Banknote;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+      <div className="flex items-center gap-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-accent text-brand-secondary">
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <span className="text-xs font-medium text-brand-mute">{label}</span>
+      </div>
+      <div className="num mt-3 font-display text-3xl font-bold text-brand-ink">
+        {value}
+      </div>
+      <div className="mt-1 text-xs text-brand-mute">{sub}</div>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: typeof CalendarCheck;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-8 text-center">
+      <Icon className="h-6 w-6 text-brand-mute" />
+      <div className="font-display text-sm font-semibold text-brand-ink">
+        {title}
+      </div>
+      <p className="text-xs text-brand-mute">{body}</p>
+    </div>
+  );
+}
+
+function EmptyListings() {
+  return (
+    <section className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
+      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+        <Sparkles className="h-6 w-6" />
+      </div>
+      <h3 className="font-display text-lg font-bold text-brand-ink">
+        No listings yet
+      </h3>
+      <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
+        Your first listing was created during onboarding. If you removed it, add
+        another.
+      </p>
+      <Link
+        href="/dashboard/listings/new"
+        className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+      >
+        New listing
+      </Link>
+    </section>
   );
 }

@@ -31,6 +31,45 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — Dashboard overview redesigned with real KPIs
+
+### Built
+- **`/dashboard` body** rewritten to match the `Dashboard.html` mock&rsquo;s
+  shape with live data:
+  - **Welcome strip** — first-name greeting, pending bookings count
+    in the subtitle ("You have N pending booking(s) to review"), plus
+    "View public page" + "New listing" CTAs in the right rail.
+  - **4 KPI tiles**: **Revenue this month** (sum of `total_amount`
+    where status is confirmed/checked_in/completed), **Bookings this
+    month** (count + confirmed/pending split), **Occupancy** (proxy:
+    booked nights ÷ total available nights × 100; "—" if no published
+    listings), **Avg rating** (from `hosts.avg_rating` + review count).
+  - **Two-column row**: **Recent bookings** (latest 5 with guest +
+    listing + dates + total + Open link) and **Upcoming check-ins**
+    (next 7 days, dated tile + guest + listing). Empty states for
+    each.
+  - **Listings card** — your 5 most recent listings with Draft /
+    Published pill + View (public) + Edit links.
+  - Onboarding banner stays for hosts without a `hosts` row;
+    `EmptyListings` card for hosts with zero listings.
+- **`KpiTile` / `EmptyState` / `EmptyListings`** — small inline
+  components keeping the file self-contained.
+
+### Notes
+- **All data fetched in parallel** (6 queries) via one `Promise.all`.
+  Pending count uses `select("id", { count: "exact", head: true })` so
+  no rows are returned, just the count.
+- **No new packages, no migrations.**
+- **`pnpm --filter web build`** passes — dashboard page weight
+  unchanged at 311 B (the new components compile-time-only;
+  the queries are server-side). `pnpm --filter web lint` zero
+  warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1/2 — Last sidebar 404s closed (refunds, staff, channels, calendar-sync, reports, invoices)
 
 ### Built
