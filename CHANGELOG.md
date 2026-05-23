@@ -225,4 +225,35 @@ Everything I can do without external account access is done. Remaining items in 
 - `fix(vercel): pin framework to nextjs so Turbo detection doesn't override output dir` — `054c6b9`
 - (this CHANGELOG + DECISIONS update — final commit of the session, appended after staging)
 
+## 2026-05-23 — Phase 0 — Canonical design system adopted
+
+### Built
+- `Vilo Design System.html` (3914 lines, 290 KB) added at the repo root as the **canonical** source of truth for all Vilo UX/UI work. Replaces the inline token specs in earlier `DESIGN_SYSTEM.md` and `tailwind.config.ts` drafts.
+- `apps/web/public/DESIGN_SYSTEM.HTML` — static mirror published via Next.js, accessible at https://vilo2027.vercel.app/DESIGN_SYSTEM.HTML.
+
+### Changed
+- `apps/web/tailwind.config.ts` rewritten to match the canonical tokens:
+  - Brand palette: `primary #10B981`, `secondary/deep #064E3B`, `accent #D1FAE5`, `dark #0A1510`, `light #F0FDF4`, plus new `ink #052E1F`, `mute #4A7C6A`, `line #DCEAE0` tokens.
+  - Status palette adjusted: `confirmed #10B981` (was `#22C55E` — now tracks brand primary).
+  - Added `font-mono` family wiring to JetBrains Mono.
+  - Added `shadow-card`, `shadow-lift`, `shadow-ring`, `shadow-glow`.
+  - Added `transitionTimingFunction.out: cubic-bezier(0.2, 0.8, 0.2, 1)`.
+  - Added `bg-brand-gradient`, `bg-brand-gradient-dark`, `bg-dot-grid` background-image utilities.
+- `apps/web/app/globals.css` rewritten with the canonical CSS custom properties (light + dark mode), new utility classes (`bg-brand-gradient`, `bg-dot-grid`), and a global `prefers-reduced-motion` rule.
+- `apps/web/app/layout.tsx` now loads JetBrains Mono alongside Inter + Plus Jakarta Sans via `next/font/google` and exposes it as `--font-jetbrains-mono`.
+- `apps/web/app/page.tsx` (homepage) restyled to the new system: hero with brand gradient logo mark on a dot-grid background, status pill, Foundation Status card with `shadow-card` and `divide-y` rows, and a discoverable link to `/DESIGN_SYSTEM.HTML`.
+- `DESIGN_SYSTEM.md` slimmed from a full token spec to a short pointer at the canonical HTML, with a quick-reference cheatsheet of utility names and the hard rules.
+
+### Decisions
+- **HTML is canonical.** When `DESIGN_SYSTEM.md` and `Vilo Design System.html` conflict, the HTML wins. Reasoning saved in memory `feedback_design_system_source.md`.
+- Old primary `#1B4D3E` (a darker forest green) and amber secondary `#F4A836` from the previous Tailwind config are retired. The new palette is emerald-led, matching the canonical HTML and the live homepage hero.
+
+### Notes
+- Web build (`pnpm build`) and lint (`pnpm lint`) both pass with zero warnings.
+- shadcn/ui components in `apps/web/components/ui/` were not edited — they consume the CSS custom properties (`--primary`, `--accent`, `--border`, etc.) and pick up the new palette automatically. Per ADR-006, never edit `components/ui/` directly.
+- Mobile (`apps/mobile`) NativeWind config is not yet wired up — the design system applies there too, but the wiring is deferred to the first mobile UI session per CHANGELOG 2026-05-23 entry "Mobile + shadcn + tooling + emails scaffolded".
+
+### Commits
+- (single commit for this slice — pushed after this entry is staged.)
+
 <!-- New entries go above this line -->
