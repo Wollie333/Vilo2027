@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { headers } from "next/headers";
 import Link from "next/link";
 
+import { signListingToken } from "@/lib/ical";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { CalendarMonth } from "./CalendarMonth";
+import { IcalExportPanel } from "./IcalExportPanel";
 import { ListingPicker } from "./ListingPicker";
 
 export const metadata: Metadata = {
@@ -124,6 +127,18 @@ export default async function CalendarPage({
               />
             ))}
           </div>
+
+          {selectedListing ? (
+            <IcalExportPanel
+              url={(() => {
+                const h = headers();
+                const proto = h.get("x-forwarded-proto") ?? "https";
+                const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+                const token = signListingToken(selectedListing.id);
+                return `${proto}://${host}/ical/${selectedListing.id}/${token}.ics`;
+              })()}
+            />
+          ) : null}
 
           <div className="rounded-card border border-brand-line bg-white p-4 text-xs shadow-card">
             <div className="font-semibold text-brand-ink">Legend</div>

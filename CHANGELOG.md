@@ -31,6 +31,68 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — iCal export per listing
+
+### Built
+- **`/ical/[listing_id]/[token].ics`** Route Handler — public endpoint
+  that serves an RFC 5545 calendar of every blocked date for the listing
+  over the next 24 months. Token-gated (HMAC SHA-256 verified with
+  `timingSafeEqual`). Returns `text/calendar; charset=utf-8` with a
+  5-minute `Cache-Control` so consumer calendars don&rsquo;t hammer the
+  origin. Strips an optional trailing `.ics` so both
+  `/ical/{id}/{token}.ics` and `/ical/{id}/{token}` resolve.
+- **`apps/web/lib/ical.ts`** — three helpers:
+  - `signListingToken(listingId)` / `verifyListingToken(id, token)` —
+    HMAC SHA-256 over the listing id with `ICAL_TOKEN_SECRET` (falls
+    back to `SUPABASE_SERVICE_ROLE_KEY` if unset). Token is the first
+    22 base64url chars (~128-bit entropy).
+  - `buildIcalFeed({calendarName, events})` — hand-rolled RFC 5545
+    output. `BEGIN:VCALENDAR` … `END:VCALENDAR` with proper escaping
+    (`,`, `;`, `\n`), CRLF line endings, `X-WR-CALNAME` for Apple
+    Calendar.
+  - `collapseConsecutiveDates(rows)` — folds the per-day rows that
+    `blocked_dates` stores into multi-day spans. Most consumers
+    (Airbnb, Booking.com, Apple Calendar) read one VEVENT per stay
+    better than one VEVENT per night.
+- **`IcalExportPanel`** (Client) on `/dashboard/calendar` — shows the
+  full URL with a Copy button. Toast on success, 2s confirmation state,
+  fallback "copy it manually" toast if `navigator.clipboard` fails.
+- **`/dashboard/calendar` page** — threads `headers()` to build an
+  absolute URL (works in any environment, no `NEXT_PUBLIC_BASE_URL`
+  needed) and signs a token for the selected listing.
+
+### Changed
+- **`.env.example`** — added `ICAL_TOKEN_SECRET` slot with a note that
+  it falls back to the service role key and that rotation invalidates
+  every active feed URL at once.
+
+### Notes
+- **No `ical_feeds` table.** Per `AGENT_RULES.md` §7.5 ("ask before
+  creating new tables"), this slice opts for the HMAC-derived token
+  pattern. The per-listing rotation that the spec describes (each row
+  in `ical_feeds` holds its own token) lands when we need it — likely
+  with the iCal **import** slice, which does need the table for
+  external-feed URLs anyway.
+- **Service role used for the read.** The route handler is
+  unauthenticated (the token is the only auth), so the user-bound
+  client has no session. Admin client only reads `listings.name` +
+  `blocked_dates` which are public surface area anyway.
+- **`pnpm --filter web build`** passes — 30 routes, calendar 2.06 kB
+  (was 621 B before the panel + sign helper). `pnpm --filter web lint`
+  zero warnings.
+
+### Deferred
+- iCal **import** (Vilo pulling Airbnb/Booking blocked dates) — needs
+  the `ical_feeds` table + a 15-minute cron + per-feed parse error
+  handling. Bigger slice.
+- Per-listing token rotation UI — needs `ical_feeds`.
+- "Add to Google / Apple / Outlook" deep links — small follow-up.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1/2 — /dashboard/settings (profile + host + subscription)
 
 ### Built
