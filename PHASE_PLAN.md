@@ -1,11 +1,167 @@
 # Vilo Platform — Phase Plan
 
-**Version:** 1.2 (consolidated from `vilo-platform-mvp.md` v1.2)
+**Version:** 1.3 (parallel-track section added 2026-05-23)
 **Last Updated:** May 2026
 **Current Phase:** Phase 0 closed out 2026-05-23. **Phase 1 — Foundation** is next.
 **Status key:** ✅ Done · 🔄 In progress · ⬜ Not started · 👤 User action required · 🕑 Deferred-by-design (wire just-in-time)
 
 > This is the single source of truth for build order. Update checkboxes as tasks complete. When a phase finishes, add a `CHANGELOG.md` entry and update "Current Phase" above.
+
+---
+
+## Parallel Execution Tracks
+
+**Purpose:** Allow multiple Claude Code agents to work on Vilo at the same time without colliding on files or duplicating work. Each track owns a **disjoint set of file paths**; agents must stay strictly inside their track's owned paths.
+
+> **Before any agent picks up work from this phase plan, it must first identify which track it belongs to and confirm the scope is inside that track's owned paths.** If the task crosses tracks, stop and ask the user.
+
+### Rules of engagement
+
+1. **One agent per track per session.** Two agents must never run inside the same track at the same time.
+2. **Stay inside owned paths.** If a task needs to edit a file outside the track's ownership list, stop and ask the user — never silently expand scope across tracks.
+3. **Branch per session.** Each parallel session works on a branch named `track/<n>-<short-slug>` (e.g. `track/3-ical-feeds-migration`) and merges to `main` via PR. Track 1 (main line) may push directly to `main` when no parallel sessions are open.
+4. **Pull before you start.** Every parallel session begins with `git checkout main && git pull && git checkout -b track/<n>-…`.
+5. **Per-track task file.** Track 1 owns the canonical `CURRENT_TASK.md`. Other tracks use `CURRENT_TASK.track-<n>.md` at the repo root and reset it at the start of each session.
+6. **Append-only `CHANGELOG.md`.** Each track appends its own dated entry. Never rewrite another track's entry.
+
+### Shared zones (paths any track may need to touch)
+
+| Path | Coordination rule |
+|------|-------------------|
+| `supabase/migrations/` | New migration files only. Two tracks may add migrations in parallel; if they touch the same table, the second-to-merge rebases and re-timestamps. |
+| `packages/types/database.types.ts` | Regenerated **in the same commit as the migration that changed the schema**, by the track that wrote the migration. Other tracks `git pull --rebase` before continuing. |
+| `packages/schemas/` | Each track owns a sub-folder (e.g. `packages/schemas/booking/`). Never edit another track's schemas. |
+| `packages/utils/` | Same rule as schemas — track-owned sub-folders. |
+| `CHANGELOG.md` | Append-only per track. |
+| `CLAUDE.md`, `RULES.md`, `AGENT_RULES.md`, `CONVENTIONS.md`, `ARCHITECTURE.md`, `DEVSTACK.md`, `ENV_VARS.md`, `PHASE_PLAN.md` (this file) | User-edited only. Agents propose changes in conversation; user accepts. |
+
+### Track definitions
+
+#### Track 1 — Main Line (Foundation → Booking → Host Tools)
+The critical path. Owns the host-facing app and core booking engine. This is the largest track.
+
+**Owns (file paths):**
+- `apps/web/app/(auth)/` *(complete through Phase 1 slice 3)*
+- `apps/web/app/(onboarding)/` (to be created)
+- `apps/web/app/dashboard/` **except** `dashboard/listings/[id]/calendar/` (Track 3)
+- `apps/web/middleware.ts`
+- `apps/web/lib/supabase/`
+- `supabase/functions/booking-*`, `host-*`, `subscription-*`, `policy-*`, `review-*`, `paystack-*`, `paypal-*`, `eft-*`, `refund-*`, `register-push-token`
+
+**Owns in phase plan:** Phase 1 Auth & Users · Host Onboarding Wizard · Listing Editor · Phase 2 Booking Flow · Paystack · PayPal · Manual EFT · Host Booking Dashboard · Availability Calendar · Policy Manager · Free Tier Enforcement · Experience Listing · Phase 3 Inbox · Reviews · Subscriptions · Policy Manager · Phase 4 Refund Manager.
+
+**Next step:** Host onboarding wizard (Phase 1 §Host Onboarding Wizard).
+
+**Depends on:** Nothing. **Blocks:** Track 4 needs a published listing schema before it can wire real data.
+
+---
+
+#### Track 2 — Email Templates
+Pure React Email components — no runtime collisions with any other track.
+
+**Owns:**
+- `emails/` (entire workspace except `package.json`, which all tracks read but only Track 2 edits)
+- Template implementations for every entry in `EMAIL_TEMPLATES.md`
+
+**Owns in phase plan:** Every "Email Templates — Phase N" sub-section across Phase 1–4.
+
+**Next step:** Build the Phase 1 + Phase 2 templates per `EMAIL_TEMPLATES.md`. Edge Functions on Track 1 reference templates by name; missing templates only fail at runtime, not build.
+
+**Depends on:** Nothing — layout component already scaffolded.
+
+---
+
+#### Track 3 — Booking Sync (iCal)
+Self-contained Phase 2 module. Carves one route out of Track 1's dashboard.
+
+**Owns:**
+- `supabase/functions/ical-import/`
+- `supabase/functions/ical-export/`
+- `supabase/functions/ical-sync-all/`
+- `apps/web/app/dashboard/listings/[id]/calendar/` (carved out of Track 1)
+- New migration: `ical_feeds` table + `packages/schemas/ical/`
+- `apps/mobile/src/app/calendar-sync/` (mobile counterpart)
+- `BOOKING_SYNC.md` updates
+
+**Owns in phase plan:** Phase 2 Booking Sync (iCal / External Calendars).
+
+**Next step:** Write the `ical_feeds` migration and scaffold the two Edge Functions per `BOOKING_SYNC.md`. UI tab can scaffold against a stub listing ID until Track 1's listing editor lands.
+
+**Depends on:** Track 1 finishing the listing editor before the calendar tab plugs into a real listing context. Edge Functions and migration are independent and can ship first.
+
+---
+
+#### Track 4 — Public Directory & Listing Detail
+Guest-facing surface. Lives in a separate URL space from Track 1's `/dashboard`.
+
+**Owns:**
+- `apps/web/app/explore/`
+- `apps/web/app/listing/[id]/`
+- `apps/web/app/[handle]/` (host public profile)
+- `supabase/functions/directory-*`
+- `supabase/functions/listing-detail/`
+- `supabase/functions/host-profile/`
+- `supabase/functions/pricing-preview/`
+- `apps/web/app/_components/directory/` (new sub-folder for directory-only components)
+
+**Owns in phase plan:** Phase 2 Vilo Directory · Listing Detail Page · Host Public Profile Page.
+
+**Next step:** Scaffold `/explore` UI with mock data and write the `directory-search` Edge Function shell. Swap mocks for real data once Track 1 ships the listing editor.
+
+**Depends on:** Track 1 publishing the listing schema and producing at least one published listing for end-to-end testing. UI shells build in parallel against mocks until then.
+
+---
+
+#### Track 5 — Legal & Marketing Polish
+Static content and marketing-site additions.
+
+**Owns:**
+- `apps/web/app/privacy/`
+- `apps/web/app/terms/`
+- `apps/web/app/cookies/`
+- `apps/web/app/help/`, `about/`, `contact/` (if added)
+- `apps/web/app/_components/home/` — **refinements only**, do not delete components that Track 1 or Track 4 already imports
+
+**Owns in phase plan:** Phase 5 Legal & Compliance · marketing-site upkeep.
+
+**Next step:** Ship `/privacy` and `/terms` pages — footer links to them currently 404. Cookie consent banner follows.
+
+**Depends on:** Nothing.
+
+---
+
+#### Track 6 — Mobile App (Expo)
+Separate workspace, separate package boundary.
+
+**Owns:**
+- `apps/mobile/` **except** `apps/mobile/src/app/calendar-sync/` (Track 3)
+
+**Owns in phase plan:** Phase 0 NativeWind wiring · Phase 4 React Native Mobile App (entire section).
+
+**Next step:** Finish NativeWind wiring (Phase 0 ⬜), then mirror the web auth UI in mobile screens.
+
+**Depends on:** Track 1 for the Server Action / Edge Function API surface — mobile calls the same Edge Functions, so contract changes on Track 1 propagate here. Pull `database.types.ts` after every Track 1 schema change.
+
+---
+
+### Allocation guidance (which tracks to run together)
+
+| Setup | Recommended tracks | Rationale |
+|-------|-------------------|-----------|
+| 1 worker | Track 1 | Critical path only — fastest single-thread progress. |
+| 1 main + 1 parallel | Track 1 + Track 2 | Emails are pure components, zero collision risk. |
+| 1 main + 2 parallel | Track 1 + Track 2 + Track 5 | Adds legal pages — also zero collision with Track 1. |
+| 1 main + 3 parallel | Track 1 + Track 2 + Track 3 + Track 5 | Adds iCal sync — touches its own Edge Functions + one carved-out dashboard route. |
+| Aggressive (all tracks) | 1 + 2 + 3 + 4 + 5 + 6 | Requires a **daily sync** where the user merges all open PRs, regenerates `database.types.ts`, and resolves any shared-zone conflicts before tracks pull and continue. |
+
+### When a track must cross into another's territory
+
+Stop. Surface it to the user. Options in order of preference:
+1. Hand the cross-cutting change to the owning track to do in its next session.
+2. Pair-handoff: this track writes a stub or interface, the owning track fills it in.
+3. User permits a one-time encroachment, documented in the PR description.
+
+Never silently edit another track's owned paths.
 
 ---
 
