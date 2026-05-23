@@ -50,3 +50,9 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+export const magicLinkSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+});
+
+export type MagicLinkInput = z.infer<typeof magicLinkSchema>;

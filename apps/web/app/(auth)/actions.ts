@@ -8,10 +8,12 @@ import { createServerClient } from "@/lib/supabase/server";
 import {
   forgotPasswordSchema,
   loginSchema,
+  magicLinkSchema,
   registerSchema,
   resetPasswordSchema,
   type ForgotPasswordInput,
   type LoginInput,
+  type MagicLinkInput,
   type RegisterInput,
   type ResetPasswordInput,
 } from "./schemas";
@@ -105,6 +107,35 @@ export async function forgotPasswordAction(
   });
 
   redirect("/forgot-password?sent=1");
+}
+
+export async function magicLinkAction(
+  input: MagicLinkInput,
+): Promise<AuthActionResult> {
+  const parsed = magicLinkSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please enter a valid email address.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const supabase = createServerClient();
+  const origin = headers().get("origin") ?? "";
+
+  // Like forgotPasswordAction, we intentionally swallow Supabase errors here to
+  // avoid leaking whether an email exists. The form switches to a sent-state
+  // either way.
+  await supabase.auth.signInWithOtp({
+    email: parsed.data.email,
+    options: {
+      emailRedirectTo: `${origin}/auth/confirm`,
+      shouldCreateUser: false,
+    },
+  });
+
+  return { ok: true };
 }
 
 export async function resetPasswordAction(

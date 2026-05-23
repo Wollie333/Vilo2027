@@ -31,6 +31,51 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — Auth slice 3: magic link sign-in
+
+### Built
+- **Magic link sign-in** added to `/login` as a second tab next to "Password" (shadcn
+  `Tabs`). The Magic-link pane has a single email field; submit fires
+  `magicLinkAction`, which calls
+  `supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: ${origin}/auth/confirm, shouldCreateUser: false } })`.
+  On success the pane swaps in an inline sent-state ("If an account exists for
+  X, a sign-in link is on its way. It expires in 1 hour.") with a "Send another
+  link" button to reset.
+- **`shouldCreateUser: false`** — magic-link form is sign-in only. New users go
+  through `/register`. Stops the magic-link surface from quietly minting accounts
+  with no ToS acceptance and no `handle_new_user` trigger context.
+- **One new Server Action** in `apps/web/app/(auth)/actions.ts`: `magicLinkAction`.
+  Like `forgotPasswordAction`, it swallows Supabase errors and always returns
+  `{ ok: true }` to the client — anti-enumeration. Real failures (rate limit,
+  SMTP) still produce a toast via the existing `friendlyAuthError` path.
+- **One new Zod schema** in `apps/web/app/(auth)/schemas.ts`: `magicLinkSchema`
+  (email only, mirrors `forgotPasswordSchema`).
+
+### Changed
+- **`LoginForm.tsx`** restructured into a single Client Component containing the
+  shared card (header, verify banner, footer "Don't have an account?" link) and
+  two inline panes — `PasswordPane` (unchanged behavior) and `MagicLinkPane` (new)
+  — switched by shadcn `Tabs`. Each pane owns its own RHF instance so the two
+  forms don't interfere.
+
+### Notes
+- **No `/auth/confirm` change needed.** Existing Route Handler already accepts
+  `type=magiclink` (it's in Supabase's `EmailOtpType` union) and the default
+  `next=/dashboard` lands users in the right place.
+- **No middleware change needed.** Magic-link sign-in lives at `/login` which is
+  already in `AUTH_ROUTES`, so signed-in users are still bounced to `/dashboard`
+  before they ever see the tab.
+- **`pnpm --filter web build`** passes — 12 routes, `/login` first-load JS now
+  152 kB (was 146 kB; +6 kB for the tabs + magic-link form). `pnpm --filter web
+  lint` zero warnings.
+- **Out of scope:** changing the magic-link email template (still Supabase
+  default), throttling client-side (Supabase enforces SMTP rate limits).
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — Auth slice 2: password reset flow
 
 ### Built
