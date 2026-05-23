@@ -31,6 +31,45 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /explore directory search page
+
+### Built
+- **`/explore`** — guest-facing Server Component lists every published
+  listing (RLS `public_read_published`) with URL-driven filters: `where`
+  (text matched ilike against name + city + province), `guests` (min
+  `max_guests`), `type` (accommodation_type or "all accommodation"),
+  `sort` (newest / price_asc / price_desc / rating). Cards mirror the
+  homepage style — hero photo with hover zoom, Instant pill, Verified
+  pill, rating, price + /night. 24-card cap; pagination is a later
+  slice.
+- **`SearchBar`** (Client) — destination input + guests select + Search
+  button. Submits to `/explore?where=…&guests=…` preserving the current
+  type + sort. Bubbles via the chrome at the top of the page; the
+  existing homepage SearchHero already points at `/explore`.
+- **`TypeChips`** (Client) — sticky `top-16` row beneath the search bar:
+  All stays · Self-catering · B&B · Guesthouse · Lodge · Hotel. Active
+  state via `chip-active`; links preserve the rest of the search params.
+- **Empty state** — dashed card with helpful copy ("Try a different
+  city…") when zero results.
+
+### Notes
+- **No Edge Function.** The full `directory-search` Edge Function from
+  PHASE_PLAN.md (full-text + Mapbox proximity + ranked caching) lands
+  in a later slice. For now a direct Supabase query is plenty for the
+  expected dataset.
+- **No new packages, no migrations.** Filter logic is plain PostgREST
+  `.or` + `.eq` + `.gte` + `.order`.
+- **Homepage Hero `<form action="/explore">`** already worked; the
+  `Where` field name was `where`, which matches this page&rsquo;s param
+  name — so the homepage search now lands a real page instead of 404.
+- **`pnpm --filter web build`** passes — 27 routes, `/explore` 3.66 kB.
+  `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /[handle] host public profile page
 
 ### Built
