@@ -16,7 +16,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-brand-line/70 bg-brand-light/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-5 lg:px-8">
         <Link
-          href="/booking-management"
+          href="/"
           aria-label="Vilo home"
           className="flex shrink-0 items-center gap-2.5"
         >
