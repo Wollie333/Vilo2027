@@ -31,6 +31,39 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1/2 — Last sidebar 404s closed (refunds, staff, channels, calendar-sync, reports, invoices)
+
+### Built
+- **`/dashboard/refunds`** — `ComingSoon` Phase 4. Refund Manager, policy
+  calculator, Paystack/PayPal refund + EFT mark-as-sent, guest
+  escalation.
+- **`/dashboard/staff`** — `ComingSoon` Phase 3. Email invites, scoped
+  roles (co-host, cleaner, assistant), 3 seats on Pro / unlimited on
+  Business, audit trail.
+- **`/dashboard/channels`** — `ComingSoon` Post-launch. Push to Airbnb +
+  Booking.com, one-way pricing+availability sync, pull external
+  bookings into Inbox. Pro+ only.
+- **`/dashboard/calendar-sync`** — not a stub: explains that export is
+  live (links to `/dashboard/calendar`) and import (Airbnb/Booking
+  feeds) lands Phase 2.
+- **`/dashboard/reports`** — `ComingSoon` Phase 4. Revenue / occupancy
+  heatmap / booking funnel / CSV export.
+- **`/dashboard/invoices`** — `ComingSoon` Phase 4. Per-booking + monthly
+  subscription invoices, bulk PDF export, hosted invoice URLs.
+
+### Notes
+- **Every sidebar nav target now resolves.** Overview, Bookings, Inbox,
+  Calendar, Listings, Reviews, Payments, Channels, Calendar sync,
+  Staff, Reports, Invoices, Refunds, Settings, Help — all 15 of them.
+- All six stubs are 100–200 B each — single import + ComingSoon call.
+- **`pnpm --filter web build`** passes — 40 routes total.
+  `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1/2 — Sidebar stub pages + soft-delete listing
 
 ### Built
