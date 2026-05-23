@@ -17,7 +17,7 @@ type Listing = {
 
 const LISTINGS: Listing[] = [
   {
-    href: "/explore/karoo-cottage",
+    href: "/listing/karoo-cottage",
     image:
       "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=600&q=80&auto=format&fit=crop",
     alt: "Karoo Cottage",
@@ -30,7 +30,7 @@ const LISTINGS: Listing[] = [
     badge: { label: "Instant book", tone: "instant" },
   },
   {
-    href: "/explore/tide-beach-house",
+    href: "/listing/tide-beach-house",
     image:
       "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=600&q=80&auto=format&fit=crop",
     alt: "Tide Beach House",
@@ -42,7 +42,7 @@ const LISTINGS: Listing[] = [
     price: "R 2 450",
   },
   {
-    href: "/explore/drakensberg-lodge",
+    href: "/listing/drakensberg-lodge",
     image:
       "https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=600&q=80&auto=format&fit=crop",
     alt: "Drakensberg Lodge",
@@ -55,7 +55,7 @@ const LISTINGS: Listing[] = [
     badge: { label: "Featured", tone: "featured" },
   },
   {
-    href: "/explore/vineyard-stay",
+    href: "/listing/vineyard-stay",
     image:
       "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80&auto=format&fit=crop",
     alt: "Vineyard Stay",
@@ -68,7 +68,7 @@ const LISTINGS: Listing[] = [
     badge: { label: "Instant book", tone: "instant" },
   },
   {
-    href: "/explore/lowveld-safari-camp",
+    href: "/listing/lowveld-safari-camp",
     image:
       "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=600&q=80&auto=format&fit=crop",
     alt: "Lowveld Safari Camp",
@@ -80,7 +80,7 @@ const LISTINGS: Listing[] = [
     price: "R 4 200",
   },
   {
-    href: "/explore/knysna-forest-cabin",
+    href: "/listing/knysna-forest-cabin",
     image:
       "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=600&q=80&auto=format&fit=crop",
     alt: "Knysna Forest Cabin",
@@ -92,7 +92,7 @@ const LISTINGS: Listing[] = [
     price: "R 2 100",
   },
   {
-    href: "/explore/camps-bay-villa",
+    href: "/listing/camps-bay-villa",
     image:
       "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&q=80&auto=format&fit=crop",
     alt: "Camps Bay Villa",
@@ -105,7 +105,7 @@ const LISTINGS: Listing[] = [
     badge: { label: "Featured", tone: "featured" },
   },
   {
-    href: "/explore/karoo-stargazer",
+    href: "/listing/karoo-stargazer",
     image:
       "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=80&auto=format&fit=crop",
     alt: "Karoo Stargazer",

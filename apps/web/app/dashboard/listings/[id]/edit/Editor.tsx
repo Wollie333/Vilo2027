@@ -3,6 +3,7 @@
 import {
   CalendarClock,
   Camera,
+  ExternalLink,
   Globe,
   Home,
   Image as ImageIcon,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -139,22 +141,34 @@ export function Editor({
           </div>
         </div>
 
-        <Button
-          type="button"
-          onClick={togglePublish}
-          disabled={publishPending}
-          variant={isPublished ? "outline" : "default"}
-          className="gap-1.5"
-        >
-          {isPublished ? (
-            "Unpublish"
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Publish
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          {isPublished && listing.slug ? (
+            <Link
+              href={`/listing/${listing.slug}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+            >
+              View public
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          ) : null}
+          <Button
+            type="button"
+            onClick={togglePublish}
+            disabled={publishPending}
+            variant={isPublished ? "outline" : "default"}
+            className="gap-1.5"
+          >
+            {isPublished ? (
+              "Unpublish"
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Publish
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">

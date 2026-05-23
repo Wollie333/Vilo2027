@@ -31,6 +31,69 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — /listing/[slug] public detail page
+
+### Built
+- **`/listing/[slug]`** — public Server Component that fetches a published
+  listing by slug (RLS `public_read_published` enforces `is_published=true
+  AND is_suspended=false AND deleted_at IS NULL`), joins `hosts!inner`, and
+  parallel-loads `listing_photos` + `listing_amenities`. 404s via `notFound()`
+  if no row matches. Reuses the guest chrome (`UtilityBar` + `SiteHeader` +
+  `SiteFooter` from the homepage), so it sits seamlessly alongside `/`.
+- **Page sections** — title strip (type pill, name, city/province, rating,
+  guest capacity) · `PhotoGallery` (5-up grid: hero left, 4 small right;
+  empty-state for no photos) · 4 quick-fact tiles (bedrooms / bathrooms /
+  min nights / check-in) · description prose · `HostCard` (avatar with
+  initials fallback, display_name, verified badge, handle, bio, "Message"
+  CTA stub) · `AmenitiesList` (20-key icon grid with lucide-react mapping)
+  · "Things to know" policies (check-in/out, cancellation policy with
+  blurb, house rules if set).
+- **`BookingWidget`** (Client) — sticky right-rail card. Per-night price +
+  rating, instant-book pill, date-input check-in/check-out, guests
+  `<select>` capped at `max_guests`. Client-side price calculator
+  (subtotal = base_price × nights, +cleaning_fee when nights > 0; total
+  shown when dates picked). "Reserve" links to
+  `/listing/[slug]/book?from=…&to=…&guests=…` (next-slice route, currently
+  404s). Disabled state until dates valid.
+- **`generateMetadata`** — title `{name} · {city, province} · Vilo` +
+  description from listing body for SEO + share previews.
+
+### Changed
+- **Editor (`Editor.tsx`)** — Publish toggle row now includes a "View
+  public" button (visible when `is_published && slug`) opening
+  `/listing/[slug]` in a new tab. Hosts can preview what guests see
+  immediately after publishing.
+- **Dashboard listings panel (`/dashboard/page.tsx`)** — each row gets a
+  "View" link (published listings only) next to "Edit". The listings query
+  now also pulls `slug`.
+- **Homepage `FeaturedListings`** — mock cards now point at
+  `/listing/[slug]` (was `/explore/[slug]`). The route prefix is real; the
+  slugs themselves are still placeholders until `directory-featured` ships
+  in Phase 2 and pulls real hosts.
+
+### Notes
+- **Deferred from spec (flagged inline):** photo lightbox, full-screen
+  gallery, availability calendar, reviews section, share button + QR
+  code, Mapbox approximate-location map, `pricing-preview` Edge Function.
+  None block a guest from seeing a listing.
+- **RLS verified** — `public_read_published` lets anon read published
+  listings; `listing_photos` and `listing_amenities` inherit access via
+  their listing FK + RLS rules in `20260501000011_create_rls_policies.sql`.
+  No new policies needed.
+- **`pnpm --filter web build`** passes — 18 routes, `/listing/[slug]` at
+  3.92 kB / 99.9 kB first-load JS. `pnpm --filter web lint` zero
+  warnings.
+
+### Out of scope (next slice)
+- **Booking flow + Paystack** (Phase 2) — `/listing/[slug]/book` page,
+  `booking-create` Edge Function, Paystack init + webhook, success/failed
+  pages. This is the MVP-critical next slice.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — Dashboard chrome (Sidebar + Topbar + MobileBottomNav)
 
 ### Built

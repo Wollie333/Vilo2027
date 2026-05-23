@@ -30,7 +30,7 @@ export default async function DashboardPage({
       .maybeSingle(),
     supabase
       .from("listings")
-      .select("id, name, is_published")
+      .select("id, name, slug, is_published")
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
@@ -115,6 +115,15 @@ export default async function DashboardPage({
                 >
                   {l.is_published ? "Published" : "Draft"}
                 </span>
+                {l.is_published && l.slug ? (
+                  <Link
+                    href={`/listing/${l.slug}`}
+                    target="_blank"
+                    className="text-xs font-medium text-brand-mute hover:text-brand-primary"
+                  >
+                    View
+                  </Link>
+                ) : null}
                 <Link
                   href={`/dashboard/listings/${l.id}/edit`}
                   className="text-xs font-medium text-brand-primary hover:underline"
