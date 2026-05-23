@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   CalendarClock,
   Camera,
   ExternalLink,
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { togglePublishAction } from "./actions";
 import { AmenitiesTab } from "./tabs/AmenitiesTab";
 import { BasicTab } from "./tabs/BasicTab";
+import { DangerTab } from "./tabs/DangerTab";
 import { LocationTab } from "./tabs/LocationTab";
 import { PhotosTab } from "./tabs/PhotosTab";
 import { PoliciesTab } from "./tabs/PoliciesTab";
@@ -73,7 +75,8 @@ type TabKey =
   | "amenities"
   | "pricing"
   | "policies"
-  | "settings";
+  | "settings"
+  | "danger";
 
 const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "basic", label: "Basic info", icon: Home },
@@ -84,6 +87,7 @@ const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "pricing", label: "Pricing", icon: Receipt },
   { key: "policies", label: "Policies", icon: CalendarClock },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
+  { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
 
 export function Editor({
@@ -225,6 +229,9 @@ export function Editor({
           {active === "pricing" ? <PricingTab listing={listing} /> : null}
           {active === "policies" ? <PoliciesTab listing={listing} /> : null}
           {active === "settings" ? <SettingsTab listing={listing} /> : null}
+          {active === "danger" ? (
+            <DangerTab listingId={listing.id} listingName={listing.name} />
+          ) : null}
         </div>
       </div>
 

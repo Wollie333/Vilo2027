@@ -195,6 +195,48 @@ export async function deleteListingPhotoAction(
   return { ok: true };
 }
 
+export async function softDeleteListingAction(
+  listingId: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+
+  // Block deletion when there are active bookings — soft-deleting a listing
+  // with future stays would orphan paid bookings. Per AGENT_RULES.md §2.1
+  // we never hard-delete, only set deleted_at.
+  const { count } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("listing_id", listingId)
+    .in("status", ["pending", "pending_eft", "confirmed", "checked_in"]);
+
+  if (count && count > 0) {
+    return {
+      ok: false,
+      error: `Can't delete — ${count} active booking${
+        count === 1 ? "" : "s"
+      } first need to be cancelled or completed.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("listings")
+    .update({
+      deleted_at: new Date().toISOString(),
+      is_published: false,
+    })
+    .eq("id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not delete listing. Try again." };
+  }
+
+  revalidatePath("/dashboard/listings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 export async function togglePublishAction(
   listingId: string,
   publish: boolean,

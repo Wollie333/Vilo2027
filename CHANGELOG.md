@@ -31,6 +31,50 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1/2 — Sidebar stub pages + soft-delete listing
+
+### Built
+- **`/dashboard/inbox`** — "Coming in Phase 3" stub via a new shared
+  `ComingSoon` component. Lists what&rsquo;s coming (enquiries, system
+  messages, attachments, push, saved replies).
+- **`/dashboard/reviews`** — same shape. Bullets: review request email
+  (24h post-checkout), 48h auto-publish, inline reply, flag for
+  moderation.
+- **`/dashboard/help`** — real content, not a stub. "Email a real person"
+  card pointing to `hello@viloplatform.com`, plus shortcuts to
+  `/booking-management`, `#pricing`, `#faq`, and `/change-log`.
+- **`apps/web/app/dashboard/_components/ComingSoon.tsx`** — reusable
+  honest-stub component (icon + tagline + "Coming in Phase X" + bullets
+  of what to expect).
+
+- **Soft-delete listing** at the editor:
+  - `softDeleteListingAction` Server Action sets `deleted_at` (per
+    `AGENT_RULES.md` §2.1 — never hard-delete listings) and forces
+    `is_published=false`. Pre-deletion guard rejects when the listing
+    has bookings in any active status (`pending`, `pending_eft`,
+    `confirmed`, `checked_in`) — error message says how many to
+    cancel/complete first.
+  - 9th editor tab **"Danger zone"** (`DangerTab.tsx`) — Card with
+    AlertTriangle, type-the-listing-name confirmation pattern, red
+    destructive Button. On success: toast + redirect to
+    `/dashboard/listings`.
+  - Existing surfaces already filtered deleted rows:
+    `/dashboard/listings`, `/[handle]`, `/explore`, and
+    `/listing/[slug]` (RLS `public_read_published` enforces it).
+
+### Notes
+- **Three sidebar 404s closed** — Inbox, Reviews, Help.
+- **Bookings outlive the listing.** Soft-deleting keeps the related
+  rows intact for the guest&rsquo;s booking history and host records.
+- **`pnpm --filter web build`** passes — 34 routes; editor up from
+  12.5 kB → 13.2 kB with the new tab. `pnpm --filter web lint` zero
+  warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /listing/[slug] photo lightbox
 
 ### Built
