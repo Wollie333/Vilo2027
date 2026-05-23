@@ -31,6 +31,85 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — Listing editor (8 tabs) live
+
+### Built
+- **`/dashboard/listings/[id]/edit`** — full 8-tab listing editor per
+  `PHASE_PLAN.md` Phase 1 → Listing Editor (Accommodation — Basic).
+  Server Component (`page.tsx`) guards auth, fetches the listing
+  (RLS-bound to the owner via `host_manage_own_listings`), and pre-loads
+  amenities + photos. Client `Editor.tsx` owns tab navigation + the
+  Publish toggle; each tab is its own file managing its own RHF form:
+  - **Basic info** — name, type picker (accommodation-type or
+    experience-type per `listings.listing_type`), plain Textarea
+    description (Tiptap deferred).
+  - **Photos** — single-file upload via Supabase Storage
+    `listing-photos/{listing_id}/{uuid}.{ext}`; thumbnail grid with
+    hover-Trash to delete; "Add a photo" tile triggers a hidden file
+    input. JPEG/PNG/WebP only, max 8 MB. Drag-and-drop multi-upload
+    is deferred.
+  - **Location** — address fields (line1/2, city, province dropdown of
+    SA provinces, postal code) + optional manual latitude/longitude.
+    Mapbox pin is deferred.
+  - **Rooms & capacity** — bedrooms, bathrooms, max_guests, min/max
+    nights.
+  - **Amenities** — checkbox grid of 20 curated options
+    (WiFi/Kitchen/Pool/Braai/Pet-friendly/etc.) backed by
+    `listing_amenities` table (wipe-and-reinsert on save).
+  - **Pricing** — base_price, optional weekend_price + cleaning_fee,
+    currency (ZAR default).
+  - **Policies** — check_in_time + check_out_time (HTML `<input
+    type="time">`), cancellation policy radio (Flexible / Moderate /
+    Strict — three cards using `listings.cancellation_policy`), house
+    rules. Full Policy Manager (versioning + snapshots) is deferred.
+  - **Booking settings** — instant_booking toggle + a "Payment methods"
+    info card pointing to Phase 2 work.
+- **`saveListingPatchAction`** Server Action — takes a partial Zod-validated
+  listings row, ownership-checks via a `hosts!inner ( user_id )` join, then
+  updates. Each tab calls it with its slice.
+- **`replaceAmenitiesAction`** — delete-then-insert pattern keyed by
+  `listing_id`. **`uploadListingPhotoAction`** — file validation + Storage
+  upload + `listing_photos` row insert + `revalidatePath`. On row-insert
+  failure, best-effort removes the storage object. **`deleteListingPhotoAction`**
+  — removes the row + the storage object. **`togglePublishAction`** —
+  pre-publish guard (name + base_price + max_guests required) then
+  updates `is_published`.
+- **`assertOwnership` helper** in `actions.ts` — single source of truth
+  for the ownership check, called by every mutating action.
+
+### Changed
+- **`apps/web/app/dashboard/page.tsx`** — each listing row in the host
+  list now has an "Edit →" link to the new editor. Helper copy updated.
+- **`apps/web/app/dashboard/listings/[id]/edit/schemas.ts`** — numeric
+  form fields (location lat/lng, rooms counts, pricing amounts) are
+  defined as `numericString` (a `z.string().refine(...)` validator)
+  rather than `z.coerce.number().or(z.literal(""))`. Cleaner RHF types,
+  and the per-tab submit handlers convert strings to `number | null`
+  before calling the action.
+
+### Notes
+- **RLS verified** — storage policies for `listing-photos` allow uploads
+  only where the path starts with a `listing_id` the user owns; listing
+  rows are gated by `host_manage_own_listings`; amenities + photos
+  inherit ownership via `listing_id`. The user-bound Supabase client
+  handles all mutations.
+- **`pnpm --filter web build`** passes — 18 routes, the editor at
+  12.3 kB / 159 kB first-load JS. `pnpm --filter web lint` zero warnings.
+- **Deferred from spec (flagged inline in the editor):** Tiptap rich-text
+  description, Mapbox location pin, drag-and-drop multi-photo upload,
+  full Policy Manager UI. None of these block a publishable listing.
+
+### Out of scope (next slice)
+- **Dashboard chrome** — the user supplied a `Dashboard.html` design that
+  should wrap all logged-in routes (`/dashboard`, `/signup/host`,
+  `/dashboard/listings/[id]/edit`). Refactor lands in the next slice as
+  a shared `(app)` route-group layout.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase Plan + Track 5 — Parallel execution tracks defined; /privacy, /terms, /cookies shipped
 
 ### Built

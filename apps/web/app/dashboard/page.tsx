@@ -114,12 +114,18 @@ export default async function DashboardPage({
                     >
                       {l.is_published ? "Published" : "Draft"}
                     </span>
+                    <Link
+                      href={`/dashboard/listings/${l.id}/edit`}
+                      className="text-xs font-medium text-brand-primary hover:underline"
+                    >
+                      Edit →
+                    </Link>
                   </li>
                 ))}
               </ul>
               <p className="mt-3 text-xs text-brand-mute">
-                The full listing editor lands next slice — for now your draft
-                holds the basics.
+                Edit any listing to set photos, location, rooms, amenities,
+                pricing and policies. Publish flips it live for guests.
               </p>
             </div>
           ) : null}
