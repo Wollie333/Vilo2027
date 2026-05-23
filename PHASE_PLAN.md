@@ -30,18 +30,18 @@
 - ✅ Install web dependencies (core set — Mapbox/Tiptap/etc. installed when first needed)
 - ✅ Configure `tailwind.config.ts` with Vilo brand tokens
 - ✅ Initialise shadcn/ui (`components.json` + `lib/utils.ts` written; component installs ongoing)
-- ⬜ Add all required shadcn/ui components (see `DESIGN_SYSTEM.md`)
+- ✅ Add shadcn/ui components — 18 installed (button, input, card, label, badge, skeleton, form, dialog, sonner, separator, avatar, alert, tabs, select, checkbox, textarea, dropdown-menu, sheet)
 - ✅ Set up TypeScript path aliases (`@/*`)
-- ⬜ Configure ESLint + Prettier + Husky + Commitlint (ESLint configured; Prettier/Husky/Commitlint pending)
+- ✅ Configure ESLint + Prettier + Husky + Commitlint
 - ✅ Configure Supabase SSR client (`lib/supabase/client.ts`, `server.ts`, `middleware.ts`)
 
 ### Expo Mobile App
-- ⬜ Bootstrap with `create-expo-app` (TypeScript template)
-- ⬜ Install all mobile dependencies (see `DEVSTACK.md` Section 6 — Dependency Installation)
-- ⬜ Configure NativeWind + Tailwind
-- ⬜ Configure Expo Router
-- ⬜ Configure EAS build profiles (`eas.json`)
-- ⬜ Configure Supabase client with Expo SecureStore adapter
+- ✅ Bootstrap with `create-expo-app` (Expo SDK 56, TypeScript, Expo Router included by default)
+- ✅ Install mobile dependencies (`@supabase/supabase-js`, `expo-secure-store`, `react-native-url-polyfill`, `@tanstack/react-query`, `zustand`)
+- ⬜ Configure NativeWind + Tailwind (metro/babel/global.css wiring — deferred to first UI session)
+- ✅ Configure Expo Router (included in `default` template — file-based routing in `src/app/`)
+- ✅ Configure EAS build profiles (`eas.json` — development / preview / production)
+- ✅ Configure Supabase client with Expo SecureStore adapter (`src/lib/supabase.ts`)
 
 ### Database
 - ✅ Apply all migrations (000000 → 000017) from `supabase_database.md`
@@ -60,9 +60,10 @@
 
 ### Email
 - 👤 Set up Resend account + verify `viloplatform.com` domain (domain registration also pending)
-- ⬜ Create `emails/` directory with React Email setup
-- ⬜ Create email layout component (shared header, footer, brand colours)
-- ⬜ Verify preview server works (`npx email dev`)
+- ✅ Create `emails/` directory with React Email setup (as `@vilo/emails` workspace package)
+- ✅ Create email layout component (`emails/components/Layout.tsx` with Vilo brand colours + Inter font)
+- ⬜ Verify preview server works (`pnpm --filter @vilo/emails dev`) — requires user verification
+- ✅ Sample template scaffolded: `emails/templates/WelcomeHost.tsx` (one of 26 from `EMAIL_TEMPLATES.md`)
 
 ---
 

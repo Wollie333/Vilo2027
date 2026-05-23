@@ -1,0 +1,27 @@
+node_modules
+.next
+.expo
+.expo-shared
+dist
+build
+out
+.turbo
+.vercel
+.git
+coverage
+playwright-report
+test-results
+
+# Lockfile
+pnpm-lock.yaml
+
+# Generated
+packages/types/database.types.ts
+**/.next/**
+**/next-env.d.ts
+
+# Migrations are formatted as SQL deliberately
+supabase/migrations/**
+
+# Spec docs are large and hand-formatted
+*.md

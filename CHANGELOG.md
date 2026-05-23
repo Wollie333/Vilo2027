@@ -161,4 +161,34 @@ Copy this template and fill it in at the end of every session:
 - `feat(db): add v1.1 schema migrations (Refund + Policy Manager)` — `9fa4e67`
 - `feat(db): apply 27 migrations + generate database.types.ts` — `c623cba`
 
+## 2026-05-23 — Phase 0 — Mobile + shadcn + tooling + emails scaffolded
+
+### Built
+- **`apps/mobile`** scaffolded with Expo SDK 56 (newer than DEVSTACK's 51+ — modern stack, React Native 0.85, Expo Router pre-configured). Includes `src/app/` file-based routing, `eas.json` (development/preview/production profiles), `app.json` branded as Vilo, `.env.local` with `EXPO_PUBLIC_*` Supabase vars, and `src/lib/supabase.ts` using Expo SecureStore as the auth-storage adapter per `ARCHITECTURE.md` §7. Deps: `@supabase/supabase-js`, `expo-secure-store`, `react-native-url-polyfill`, `@tanstack/react-query`, `zustand`.
+- **18 shadcn/ui components** installed in `apps/web/components/ui/` per `DESIGN_SYSTEM.md`: button, input, card, label, badge, skeleton, form, dialog, sonner, separator, avatar, alert, tabs, select, checkbox, textarea, dropdown-menu, sheet. Pulled in `react-hook-form`, `zod`, `@hookform/resolvers`, `sonner`, `next-themes`, and the relevant `@radix-ui/*` primitives as transitive deps.
+- **Code quality tooling** at workspace root:
+  - Prettier 3.8 + `prettier-plugin-tailwindcss` with `.prettierrc.json` (double quotes, trailing comma all, 80-col).
+  - `.prettierignore` excluding generated files (lockfile, `database.types.ts`, migrations, `.next`, `.expo`, etc.).
+  - Husky 9 with `.husky/pre-commit` running `lint-staged` and `.husky/commit-msg` running `commitlint --edit`.
+  - `commitlint.config.js` extending `@commitlint/config-conventional` with Vilo's allowed types (feat, fix, chore, docs, refactor, test, style, perf, ci, build, revert, wip, migration).
+  - Root `package.json` scripts: `format`, `format:check`, `prepare`; `lint-staged` config for `*.{ts,tsx,js,jsx}` and `*.{json,md,yml,yaml,css}`.
+- **`@vilo/emails` workspace package** at `emails/` with React Email setup:
+  - `components/Layout.tsx` — brand-styled shared layout (Vilo green/cream, Inter font, header + content + footer with email-preferences link).
+  - `templates/WelcomeHost.tsx` — first of the 26 templates from `EMAIL_TEMPLATES.md` (host onboarding welcome).
+  - `package.json` with `email dev`/`build`/`export` scripts.
+  - `.gitignore` for `.react-email/` build output.
+
+### Changed
+- `pnpm-workspace.yaml` now declares `emails` alongside `apps/*` + `packages/*`.
+- `apps/web` `lucide-react` pinned to `^0.469.0` (v1.x requires React 19 types — incompatible with our React 18). Fixed a build failure in `components/ui/checkbox.tsx`.
+
+### Notes
+- **NativeWind not configured yet.** It needs metro.config.js, babel.config.js, and tailwind.config.js wiring that's tightly coupled to actual UI work. Deferred to the first mobile UI session.
+- **Expo's `default` template uses `src/`** (newer convention); `ARCHITECTURE.md` §4 shows `app/` at app root. Treating `src/app/` as the active path — when ARCHITECTURE.md is next edited, update §4 to match.
+- The Vercel deploy is still failing because Vercel needs `Root Directory = apps/web` set in Project Settings. Not done in this session.
+- Husky's `prepare` script logs `apps/web prepare: .git can't be found` — benign, can be silenced by removing the propagated `prepare` script from individual workspaces if it becomes noise.
+
+### Phase 0 autonomous work — now complete
+Everything I can do without external account access is done. Remaining items in Phase 0 all need user-side action (see PHASE_PLAN.md 👤 items).
+
 <!-- New entries go above this line -->
