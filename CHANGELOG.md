@@ -31,6 +31,105 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 2 — Booking flow + Paystack init + webhook
+
+### Built
+- **`/listing/[slug]/book`** — Server Component requires auth (redirects to
+  `/login?next=…` if signed-out), fetches the listing via RLS
+  `public_read_published`, validates URL search params (from / to / guests)
+  server-side, and refuses to render the form until dates are valid. Reuses
+  the guest `SiteHeader` + `SiteFooter` for chrome.
+- **`BookingForm`** (Client) — three stacked panels: Trip details (dates
+  read-only from search params, guests `<select>` capped at `max_guests`),
+  Payment (Paystack selected — PayPal/EFT flagged "after launch"),
+  Cancellation policy + ack checkbox. Sticky right rail shows
+  per-night × nights, cleaning fee, total, and "Reserve and pay" CTA
+  (disabled until ack ticked). Footer line shows the email the booking
+  will be made under.
+- **`createBookingAction`** Server Action:
+  1. `auth.getUser()` via user-bound client.
+  2. Re-fetch listing (RLS-public) — refuses unpublished, missing price,
+     or guest count above `max_guests`.
+  3. Server-side date + price recalc (per `AGENT_RULES.md` §1.2 — never
+     trust the client). Enforces `min_nights`.
+  4. **Admin client** (`createAdminClient` — new) inserts `bookings`
+     (status=pending, payment_status=pending; `reference` auto-generated
+     by the DB default `VILO-YYYY-XXXXXX`) and `payments` (status=pending).
+     Admin client is required because no RLS path lets a guest INSERT
+     bookings — `host_manage_own_bookings` is host-only and there's no
+     `guest_create` policy.
+  5. Calls `initializeTransaction` (new `apps/web/lib/paystack.ts`).
+  6. Stashes Paystack's returned reference on the payment row for
+     idempotency. Rolls back booking + payment on any init failure so
+     retry works.
+  7. `redirect(authorization_url)` — guest leaves Vilo for Paystack.
+- **`apps/web/lib/paystack.ts`** — thin server-side wrappers for
+  `/transaction/initialize` and `/transaction/verify`. Converts ZAR Rand
+  amounts to kobo (×100) only at the Paystack boundary per
+  `CONVENTIONS.md` §9.1. Throws on non-200 responses.
+- **`apps/web/lib/supabase/admin.ts`** — `createAdminClient()` using
+  `SUPABASE_SERVICE_ROLE_KEY`. **Server-side only**; sanity-checks the env
+  vars and throws if missing.
+- **`/booking/[id]/success`** — Server Component, dynamic. Reads the
+  booking (RLS `guest_read_own_bookings`), falls back to
+  `verifyTransaction(reference)` if the webhook hasn&rsquo;t landed yet
+  and mirrors the same status flip via admin client (still idempotent via
+  the `payment.status='pending'` filter). Shows reference, listing,
+  dates, nights, guests, total. "Confirming your payment…" state when
+  pending; "You&rsquo;re booked" when settled.
+- **`/booking/[id]/failed`** — Server Component showing reference + listing
+  + "Try again" link back to the listing.
+- **`supabase/functions/paystack-webhook/index.ts`** — Edge Function.
+  Verifies `x-paystack-signature` via HMAC SHA-512 against
+  `PAYSTACK_SECRET_KEY` (per `AGENT_RULES.md` §1.3). Returns 200
+  immediately and processes async. Logs the full raw payload to
+  `payments.provider_response` for audit. Idempotency: skips DB writes
+  when `payment.status !== 'pending'`. On `charge.success` flips payment
+  to `completed` and booking to `confirmed` (DB trigger
+  `trigger_booking_confirmed` inserts `blocked_dates` automatically per
+  `AGENT_RULES.md` §4.2 — no duplication). On `charge.failed` flips both
+  to failed.
+
+### Notes
+- **User action required before live testing:**
+  1. Sign up for Paystack (test mode is free).
+  2. Paste test public + secret keys into Doppler `dev` config:
+     `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`, `PAYSTACK_SECRET_KEY` (already
+     declared in `.env.example`). Push the sync so Vercel + Edge Functions
+     get them.
+  3. `supabase functions deploy paystack-webhook --no-verify-jwt`.
+  4. In the Paystack dashboard add the deployed function URL as the
+     webhook URL (test + live). The Edge Function already uses
+     `PAYSTACK_SECRET_KEY` for HMAC verification, so no separate
+     `PAYSTACK_WEBHOOK_SECRET` is needed for Paystack (the secret IS the
+     key per their docs).
+- **Service role key.** Now in active use server-side. Confirmed it stays
+  out of any `NEXT_PUBLIC_` env var and is only imported in
+  `lib/supabase/admin.ts`. Per `AGENT_RULES.md` §1.1.
+- **No new packages.** `fetch` + `node:crypto` only.
+- **No new migrations.** Booking creation uses admin client to bypass
+  the missing guest-INSERT RLS — clean enough for now; if we later want
+  to remove the admin dependency, add a `guest_create_bookings` policy
+  with `WITH CHECK (guest_id = auth.uid())`.
+- **`pnpm --filter web build`** passes — 21 routes:
+  `/listing/[slug]/book` at 7.81 kB, `/booking/[id]/success` + `/failed`
+  at 2.21 kB each. `pnpm --filter web lint` zero warnings.
+
+### Deferred (next slices)
+- **Host booking dashboard** (Phase 2) — `/dashboard/bookings` list +
+  confirm/decline/cancel actions.
+- **Booking emails** — guest confirmation + host new-booking notification
+  via Resend or Supabase default email.
+- **PayPal + manual EFT** payment methods.
+- **Policy snapshot** at booking creation (`snapshot_booking_policies`)
+  — DB function exists; calling it from the action lands when the Policy
+  Manager UI does (Phase 2/3).
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 2 — /listing/[slug] public detail page
 
 ### Built
