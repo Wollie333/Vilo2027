@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
@@ -85,26 +84,5 @@ export default async function EditListingPage({
     url: r.url,
   }));
 
-  return (
-    <main className="min-h-screen bg-brand-light text-brand-ink">
-      <div className="border-b border-brand-line bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 lg:px-8">
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-brand-mute hover:text-brand-primary"
-          >
-            ← Dashboard
-          </Link>
-          <div className="text-xs text-brand-mute">
-            Listing ID{" "}
-            <span className="font-mono text-brand-ink">
-              {listing.id.slice(0, 8)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <Editor listing={listing} amenities={amenities} photos={photos} />
-    </main>
-  );
+  return <Editor listing={listing} amenities={amenities} photos={photos} />;
 }

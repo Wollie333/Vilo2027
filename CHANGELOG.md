@@ -31,6 +31,79 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase 1 — Dashboard chrome (Sidebar + Topbar + MobileBottomNav)
+
+### Built
+- **`apps/web/app/dashboard/layout.tsx`** — Server Component that wraps every
+  route under `/dashboard/*` with the chrome from `Dashboard.html`. Auth-guarded
+  (redirect `/login?next=/dashboard`), pre-fetches the user&rsquo;s `hosts` row
+  + `listings` count + active `subscriptions.plan` and threads them into the
+  Sidebar so each render lands without a client roundtrip.
+- **`Sidebar.tsx`** (Client — `usePathname`) — full sidebar per the design:
+  brand mark + "Host dashboard" subtitle, workspace switcher (host
+  display_name + plan, or "Set up host profile" CTA for un-onboarded), quick
+  search button (⌘K placeholder), 3 nav sections (Main: Overview / Bookings
+  / Inbox / Calendar / Listings / Reviews / Payments · Connect: Channels /
+  Calendar sync / Staff · Tools: Reports / Invoices / Refunds), Settings +
+  Help footer, dark-emerald plan card at the bottom showing the host&rsquo;s
+  current plan with a link to `/dashboard/settings/subscription`.
+- **`Topbar.tsx`** — date label + page title (currently fixed "Dashboard";
+  per-page title slot lands next slice), search button, "This month" date
+  range, notifications bell with red unread dot, "New booking" CTA, plus
+  `AvatarMenu` (initials + dropdown).
+- **`AvatarMenu.tsx`** (Client — uses existing shadcn `DropdownMenu`) —
+  Profile / Settings / Sign out. Sign out wires to the existing
+  `signOutAction` from `(auth)/actions.ts` via `useTransition`.
+- **`MobileBottomNav.tsx`** (Client — `usePathname`) — `lg:hidden` fixed-
+  bottom 5-button tray: Home · Bookings · Inbox · Listings · More. Active
+  state pill matches sidebar style.
+- **`VLogo.tsx`** (dashboard-scoped, `compact` prop for the topbar mobile
+  logo) — duplicated rather than imported across routes to keep dashboard
+  chrome self-contained.
+
+### Changed
+- **`apps/web/app/dashboard/page.tsx`** — stripped its own auth check + the
+  wrapper `<main>` (layout owns both now). Reformatted as a sequence of
+  sections that drop straight into the layout&rsquo;s content slot: welcome
+  strip (host first name + handle, or "Welcome to Vilo" for un-onboarded),
+  onboarding banner (unchanged behavior), listings card (now with a "See all"
+  link to `/dashboard/listings`), empty-state card for hosts with zero
+  listings. Removed the old "Signed in" pill + redundant "Welcome to Vilo"
+  header (the layout handles identity at the topbar).
+- **`apps/web/app/dashboard/listings/[id]/edit/page.tsx`** — removed the
+  duplicate "← Dashboard" header strip and the `<main>` wrapper. The Sidebar
+  + Topbar are the sole navigational chrome now.
+- **`Editor.tsx`** — dropped its own page padding (`px-5 py-8 lg:px-8
+  lg:py-10`) since the dashboard layout already adds it. Internal max-width
+  and section padding stay.
+
+### Removed
+- **`apps/web/app/dashboard/SignOutButton.tsx`** — superseded by
+  `AvatarMenu`&rsquo;s Sign out item.
+
+### Notes
+- **Most sidebar nav targets don&rsquo;t exist yet** — Bookings, Inbox,
+  Calendar, Listings, Reviews, Payments, Settings, the Connect/Tools
+  sections all link to `/dashboard/{...}` routes that 404 today. They
+  land slice-by-slice as the MVP fills out. The chrome shipping ahead is
+  intentional: visual progress, real routes follow.
+- **`/signup/host` deliberately stays outside the dashboard layout** — a
+  wizard works better full-screen without sidebar/topbar distractions.
+- **Per-page title in the topbar is deferred.** Currently the topbar always
+  reads "Dashboard". Next slice can thread a title via React Context or a
+  `params.json` convention. Not blocking — the page body already includes
+  its own h1.
+- **No new packages.** Uses the already-installed shadcn `DropdownMenu`
+  primitive for the avatar menu.
+- **`pnpm --filter web build`** passes — 18 routes. `/dashboard` page
+  weight dropped from 1.33 kB → 311 B because the chrome moved to the
+  layout. `pnpm --filter web lint` zero warnings.
+
+### Commit
+- (single commit for this slice — pushed to `main` after staging.)
+
+---
+
 ## 2026-05-23 — Phase 1 — Listing editor (8 tabs) live
 
 ### Built
