@@ -108,18 +108,18 @@ export function SiteFooter() {
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
           <div>© 2026 Vilo Platform (Pty) Ltd · Cape Town, South Africa</div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:ml-auto">
-            <a href="#" className="hover:text-white">
+            <Link href="/terms" className="hover:text-white">
               Terms
-            </a>
-            <a href="#" className="hover:text-white">
+            </Link>
+            <Link href="/privacy" className="hover:text-white">
               Privacy
-            </a>
+            </Link>
             <a href="#" className="hover:text-white">
               POPIA
             </a>
-            <a href="#" className="hover:text-white">
+            <Link href="/cookies" className="hover:text-white">
               Cookies
-            </a>
+            </Link>
             <Link
               href="/change-log"
               className="inline-flex items-center gap-1.5 font-mono hover:text-white"

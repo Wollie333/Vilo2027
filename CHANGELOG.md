@@ -31,6 +31,43 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-23 — Phase Plan + Track 5 — Parallel execution tracks defined; /privacy, /terms, /cookies shipped
+
+### Built
+- **`PHASE_PLAN.md` v1.3** — added "Parallel Execution Tracks" section
+  defining 6 tracks (Main Line · Email Templates · iCal Booking Sync ·
+  Public Directory · Legal & Marketing · Mobile) with disjoint file
+  ownership, rules of engagement, and a shared-zone protocol so multiple
+  Claude Code agents can work in parallel without colliding.
+- **Track 5 first session — legal page shells.** `/privacy`, `/terms`, and
+  `/cookies` Server Components rendering with the homepage `SiteHeader`
+  and `SiteFooter`, plus a shared `LegalPage` helper at
+  `apps/web/app/_components/legal/LegalPage.tsx`. All three pages
+  prerender as static (2.2 kB each).
+
+### Changed
+- `apps/web/app/_components/home/SiteFooter.tsx` — bottom-strip Terms /
+  Privacy / Cookies links now point at the real routes instead of `#`.
+  POPIA left as `#` until the data-deletion flow lands in Phase 5.
+
+### Notes
+- Page content is structural placeholder marked `DRAFT — pending legal
+  review`. Real wording comes from counsel before public launch.
+- **Cross-track finding for Track 1:** `apps/web/app/dashboard/listings/`
+  exists as untracked WIP in the working tree (never committed). The
+  build fails on `main` because `Editor.tsx` can't resolve its tab
+  imports. Track 5 worked around it via temporary stash; Track 1 needs to
+  resolve before any further parallel session is started. See
+  `CURRENT_TASK.track-5.md` for details.
+- Branch: `track/5-legal-pages`. Does not merge to `main` directly —
+  user merges via PR or fast-forward per Track 5 protocol.
+
+### Commits
+- `docs(phase-plan): add parallel execution tracks section`
+- `feat(legal): /privacy, /terms, /cookies page shells (track 5)`
+
+---
+
 ## 2026-05-23 — Phase 1 — Host onboarding wizard + dashboard banner
 
 ### Built
