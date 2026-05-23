@@ -302,4 +302,75 @@ This file records every significant technical decision made for the Vilo platfor
 
 ---
 
+## ADR-016 — Pin `@types/react` to v18 across the workspace via pnpm overrides
+**Status:** Accepted (revisit when mobile type-checking matters)
+**Date:** 2026-05-23
+
+**Decision:** Add `pnpm.overrides` to root `package.json` pinning both `@types/react` and `@types/react-dom` to `18.3.x` for the entire workspace, despite `apps/mobile` (Expo SDK 56) declaring React 19 via its dependency chain.
+
+```json
+"pnpm": {
+  "overrides": {
+    "@types/react": "18.3.29",
+    "@types/react-dom": "18.3.7"
+  }
+}
+```
+
+**Reasons:**
+- `apps/web` declares `@types/react@^18`. `apps/mobile` peers `@types/react@19.2.x` via Expo SDK 56 / React Native 0.85. Without the override, pnpm resolves both into the workspace store.
+- During the Vercel build, `lucide-react` resolved its `@types/react` to the v19 graph, while the Next.js JSX context resolved to v18. The mismatch surfaced as `Type 'bigint' is not assignable to type 'ReactNode'` in `components/ui/checkbox.tsx` (v19's `ReactNode` includes `bigint`; v18's does not).
+- Pinning to v18 globally fixes the web `tsc` pass without breaking the mobile **runtime** — Expo bundles React 19 at runtime from the `react` package, which is independent of `@types/react`.
+- Web is the immediately deploying surface (live at https://vilo2027.vercel.app/ as of this ADR). Blocking the launch to redesign workspace isolation is not warranted at MVP scale — this is a reversible workaround.
+
+**Rejected alternatives:**
+- **Upgrade web to React 19 + `@types/react@19`:** Next.js 14.2 supports React 19, but the broader stack (shadcn/ui generated components, Tailwind plugins, third-party Radix peers in the lockfile) was tested against React 18 and a full upgrade would expand this session's scope significantly.
+- **Per-app pnpm workspace isolation (`nodeLinker: "isolated"`, `publicHoistPattern`):** more correct long-term but requires deeper pnpm config work and may break shadcn's expectations around hoisted Radix peers. Not justified for an MVP unblocker.
+- **`skipLibCheck: true`:** doesn't help — the error is in user code (`components/ui/checkbox.tsx`), not a library file.
+- **`typescript.ignoreBuildErrors: true` in `next.config.mjs`:** masks every future type error, not just this one. Violates CLAUDE.md "no `any`" spirit.
+
+**Constraint:**
+- Mobile-side TypeScript may report v18/v19 mismatches in editor and `tsc`. The Expo Metro bundler does **not** type-check at build time, so production builds (`eas build`) are unaffected. When mobile's type story becomes a quality bar (CI type-check, contributor DX), revisit by either (a) upgrading web to React 19 or (b) introducing scoped overrides that target only `apps/web`.
+- If a third package legitimately needs the v19 `bigint`-in-`ReactNode` semantics (vanishingly unlikely at this stage), revisit before forcing a workaround on top of this one.
+- Removing or weakening the override requires regenerating the lockfile and reproducing a clean Vercel build of `apps/web` before merging.
+
+Related: this override layers on top of the existing `apps/web` choice to pin `lucide-react` to `^0.469.0` (last release built against React 18 types). See CHANGELOG entry for 2026-05-23 "Mobile + shadcn + tooling + emails scaffolded".
+
+---
+
+## ADR-017 — Pin Vercel framework to `nextjs` via `apps/web/vercel.json`
+**Status:** Accepted
+**Date:** 2026-05-23
+
+**Decision:** Commit `apps/web/vercel.json` containing:
+
+```json
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
+}
+```
+
+This file lives inside the Vercel Root Directory (`apps/web`) so it is loaded as the project's effective Vercel config.
+
+**Reasons:**
+- The repo contains a `turbo.json` at the workspace root. Vercel's build pipeline detects Turbo and prints `Detected Turbo. Adjusting default settings...` early in the build.
+- With Turbo detection active and no explicit framework declaration, Vercel skipped Next.js framework auto-detection and fell back to treating the build output as a static site. The build completed (`next build` succeeded, all 5 pages emitted to `apps/web/.next`), but the deploy then failed with `No Output Directory named "public" found after the Build completed.`
+- Declaring `framework: "nextjs"` explicitly re-asserts the framework regardless of Turbo detection. Declaring `outputDirectory: ".next"` is redundant but makes the intent explicit and protects against future changes to Vercel's Next.js defaults.
+
+**Rejected alternatives:**
+- **Set Framework Preset = Next.js in the Vercel dashboard:** equivalent effect, but invisible to anyone reading the repo and not reproducible if the project is recreated or re-linked. Source-controlled config is preferred per ADR-012's general "single source of truth" principle.
+- **Remove `turbo.json` to stop Turbo detection:** Turborepo is the chosen build orchestrator (see ADR-011). Removing it to placate Vercel reverses a more important decision.
+- **`vercel.json` at the repo root:** when Root Directory is set to `apps/web`, Vercel reads `apps/web/vercel.json`, not the root one. Placing it at the root would have no effect.
+
+**Constraint:**
+- Do not delete `apps/web/vercel.json`. If the file disappears, the deploy will silently fail with the "No Output Directory" error again on the next build that re-detects Turbo.
+- Any future Vercel projects in this monorepo (e.g. a separate admin app under `apps/admin`) need their own `vercel.json` with the same framework declaration.
+- If the build command is ever customised (e.g. to pre-generate types), add it to this file as `buildCommand` rather than to the Vercel dashboard, for the same reproducibility reason.
+
+Related: this is the second of two fixes that took the web app live in the 2026-05-23 deploy session — see ADR-016 and the corresponding CHANGELOG entry.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

@@ -191,4 +191,38 @@ Copy this template and fill it in at the end of every session:
 ### Phase 0 autonomous work — now complete
 Everything I can do without external account access is done. Remaining items in Phase 0 all need user-side action (see PHASE_PLAN.md 👤 items).
 
+## 2026-05-23 — Phase 0 — Vercel web deploy live
+
+### Built
+- **https://vilo2027.vercel.app/ is live.** First successful production deploy of `apps/web` — Server Component homepage renders the Foundation Status panel with a green Supabase connection check against the Frankfurt project.
+- `apps/web/vercel.json` — explicit `"framework": "nextjs"` + `"outputDirectory": ".next"`. See ADR-017.
+- `pnpm.overrides` block in root `package.json` pinning `@types/react@18.3.29` and `@types/react-dom@18.3.7` across the entire workspace. See ADR-016.
+
+### Changed
+- Vercel project `vilo2027` (org `wollie333s-projects`) connected to GitHub `Wollie333/Vilo2027`. Root Directory set to `apps/web`. Environment variables `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` populated for Production, Preview, and Development.
+- `pnpm-lock.yaml` regenerated under the new overrides — single `@types/react@18.3.29` resolution for the web app's dep graph.
+
+### Decisions
+- **ADR-016** — `@types/react` pinned to v18 across the workspace despite Expo SDK 56 declaring v19 via its peer chain. Required to make `lucide-react` resolve to v18 types in `apps/web`, which fixed the `bigint`-in-`ReactNode` error in `components/ui/checkbox.tsx` during the Vercel build. Mobile runtime unaffected; mobile type-check may show false positives until revisited.
+- **ADR-017** — `apps/web/vercel.json` introduced because Vercel's Turbo detection (`turbo.json` at workspace root) overrode Next.js framework auto-detection, causing the build to succeed but the deploy to fail with "No Output Directory named 'public' found".
+
+### Notes
+- **Two genuine bugs in the deploy chain were fixed by the build pipeline itself, not patched around.** The "wrong commit" deploy (Vercel building a stale `eedc69d`) was caused by the GitHub ↔ Vercel App lacking repo access while we pushed new commits; reconnecting the GitHub installation fixed it and the next push triggered an up-to-date build automatically.
+- Sequence of issues + fixes during this session: (1) Root Directory not set → set to `apps/web` in dashboard; (2) GitHub auth broken → reconnected Vercel GitHub App, scoped to `Wollie333/Vilo2027`; (3) Vercel deploying stale commit → empty trigger commit `576875c`; (4) `@types/react` v18/v19 type collision → ADR-016 override; (5) Vercel Turbo detection overrode framework → ADR-017 `vercel.json`.
+- The lint-staged pre-commit hook auto-reformatted `pnpm-lock.yaml` and `package.json` with Prettier on each commit. Cosmetic — the dep graph and override semantics are unchanged.
+
+### Active blockers / user-side actions still open for Phase 0
+- Doppler account + dev/staging/prod configs
+- EAS account + `eas init` for `apps/mobile`
+- Sentry projects (web + mobile)
+- PostHog project
+- Resend account + `viloplatform.com` domain verification (domain itself not yet registered)
+- 6 Supabase Storage buckets (`listing-photos`, `host-avatars`, `host-covers`, `eft-proofs`, `message-attachments`, `refund-requests`)
+
+### Commits
+- `chore: trigger vercel rebuild` — `576875c`
+- `fix(deps): pin @types/react to 18 across workspace to fix web build` — `657ddb8`
+- `fix(vercel): pin framework to nextjs so Turbo detection doesn't override output dir` — `054c6b9`
+- (this CHANGELOG + DECISIONS update — final commit of the session, appended after staging)
+
 <!-- New entries go above this line -->
