@@ -8,7 +8,12 @@
 
 ## 1. Overview
 
-All CI/CD runs through GitHub Actions. Five workflow files live in `.github/workflows/`. Secrets are managed via Doppler — no app secrets are stored directly in GitHub Secrets (only Doppler tokens and service credentials are in GitHub).
+All CI/CD runs through GitHub Actions. Six workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `deploy-web.yml`, `mobile-preview.yml`, `docker-build.yml`). Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `DOCKERHUB_*`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
+
+**Doppler integration:**
+- Workflows that need app secrets at build time use either `doppler run -- <command>` (full env injection) or `dopplerhq/secrets-fetch-action` (named outputs for build-args).
+- `DOPPLER_TOKEN` is a read-only service token scoped to the `prd` config.
+- See `ENV_VARS.md` for the full secret catalogue and Doppler config layout.
 
 ### Deployment order on push to `main`
 
@@ -292,15 +297,18 @@ All secrets are set in GitHub → Repo Settings → Secrets and variables → Ac
 
 | Secret | Used in | Where to get it |
 |---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | All Supabase workflows | supabase.com → Account → Access Tokens |
+| `DOPPLER_TOKEN` | deploy-web, docker-build (and any workflow needing app secrets) | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
+| `DOCKERHUB_USERNAME` | docker-build | Your Docker Hub username |
+| `DOCKERHUB_TOKEN` | docker-build | hub.docker.com → Account Settings → Security → Access Tokens |
+| `SUPABASE_ACCESS_TOKEN` | db-migrate, deploy-functions, ci | supabase.com → Account → Access Tokens |
 | `SUPABASE_PROJECT_ID` | db-migrate, deploy-functions | Supabase Dashboard → Project Settings → General |
 | `SUPABASE_DB_URL` | db-migrate | Supabase Dashboard → Settings → Database → Connection String (Transaction mode) |
-| `NEXT_PUBLIC_SUPABASE_URL` | deploy-web | Supabase Dashboard → Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | deploy-web | Supabase Dashboard → Settings → API → anon public |
 | `VERCEL_TOKEN` | deploy-web | Vercel → Account Settings → Tokens |
 | `VERCEL_ORG_ID` | deploy-web | Vercel → Project Settings → General |
 | `VERCEL_PROJECT_ID` | deploy-web | Vercel → Project Settings → General |
 | `EXPO_TOKEN` | mobile-preview | expo.dev → Account Settings → Access Tokens |
+
+**App secrets (NEXT_PUBLIC_SUPABASE_*, PAYSTACK_*, PAYPAL_*, RESEND_API_KEY, etc.)** are *not* stored as GitHub secrets — they live in Doppler `prd` and are pulled into workflows via `DOPPLER_TOKEN`.
 
 ---
 

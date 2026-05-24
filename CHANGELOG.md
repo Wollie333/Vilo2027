@@ -31,6 +31,52 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Phase 0 — Docker CI + Doppler secret centralization
+
+### Built
+- **Docker image pipeline** — `apps/web/Dockerfile` (multi-stage pnpm
+  monorepo build using Next.js standalone output) + `.dockerignore` +
+  new `.github/workflows/docker-build.yml` pushing
+  `wollie333/vilo-web:latest` and `:sha-<short>` to Docker Hub on
+  every push to `main` touching web/packages. Uses GHA cache layer.
+- **Doppler as single source of truth for app secrets** — project
+  `vilo2027` (free Developer plan) with `prd` config seeded from
+  `.env.local` (19 application secrets). Local dev:
+  `doppler run -- pnpm dev`. Vercel Production: Doppler dashboard
+  integration (1 of 1 free-tier Vercel sync slots). GitHub Actions:
+  `DOPPLER_TOKEN` service token consumed by workflows.
+
+### Changed
+- `apps/web/next.config.mjs` — added `output: 'standalone'` for the
+  Docker build (no-op for Vercel).
+- `.github/workflows/docker-build.yml` — fetches `NEXT_PUBLIC_*`
+  build-args from Doppler via `dopplerhq/secrets-fetch-action`.
+- `.github/workflows/deploy-web.yml` — wraps `pnpm --filter web build`
+  in `doppler run` so all 19 app secrets inject at build time.
+
+### Notes
+- **Doppler → Supabase Edge Function sync intentionally NOT set up.**
+  Supabase reserves the `SUPABASE_*` prefix (Edge Functions
+  auto-inject `SUPABASE_URL/ANON_KEY/SERVICE_ROLE_KEY`), so the
+  Doppler dashboard sync rejects the upload. When `paystack-webhook`
+  ships, push its secrets via
+  `doppler run -- supabase secrets set --project-ref <ref> KEY=...`.
+- Tools installed locally this session: GitHub CLI (`gh`, authed as
+  Wollie333), Doppler CLI (v3.76.0). Docker CLI not installed —
+  doesn't matter, builds run on Actions.
+- Rotated mid-session: `SUPABASE_SERVICE_ROLE_KEY` (was in
+  transcript). Doppler service token `dp.st.prd.VWb…` should be
+  rotated after first green CI run.
+- Existing `apps/web/.env.local` still on disk but no longer the
+  source of truth — Doppler is. Safe to delete after team is
+  comfortable with `doppler run`.
+
+### Commits
+- `chore(ci): add Docker build & push workflow for web app` — 052d4f4
+- `chore(ci): migrate app secrets to Doppler for build workflows` — 17744d4
+
+---
+
 ## 2026-05-24 — Phase 2 — Universal Add-ons catalog (host CRUD + guest checkout)
 
 ### Built
