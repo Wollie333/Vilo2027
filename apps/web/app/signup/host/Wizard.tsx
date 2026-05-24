@@ -1,720 +1,1716 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Camera,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Compass,
+  Copy,
+  CreditCard,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Home,
+  ImagePlus,
+  Info,
+  Layers,
+  Minus,
+  PartyPopper,
+  Plus,
+  RotateCcw,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
 import Link from "next/link";
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-
-import { finalizeOnboardingAction } from "./actions";
-import {
-  ACCOMMODATION_TYPES,
-  EXPERIENCE_TYPES,
+  COUNTRIES,
+  LANGUAGE_OPTIONS,
   PLANS,
-  firstListingSchema,
-  personalDetailsSchema,
-  planSchema,
-  propertyTypeSchema,
-  type FirstListingInput,
-  type OnboardingInput,
-  type PersonalDetailsInput,
-  type PlanInput,
-  type PropertyTypeInput,
+  SA_REGIONS,
+  accountSchema,
+  aboutSchema,
+  listingSchema,
 } from "./schemas";
+import { createAccountAction, finalizeOnboardingAction } from "./actions";
 
-type StepNumber = 1 | 2 | 3 | 4 | 5;
+// ─── Step machinery ───────────────────────────────────────────────
 
-const STEPS: { n: StepNumber; label: string }[] = [
-  { n: 1, label: "Your details" },
-  { n: 2, label: "Listing type" },
-  { n: 3, label: "First listing" },
-  { n: 4, label: "Plan" },
-  { n: 5, label: "Welcome" },
-];
+const STEPS = [
+  { key: "account", label: "Account", short: "Account" },
+  { key: "about", label: "About you", short: "Profile" },
+  { key: "offer", label: "What you offer", short: "Offering" },
+  { key: "listing", label: "First listing", short: "Listing" },
+  { key: "plan", label: "Subscription", short: "Plan" },
+  { key: "welcome", label: "Welcome", short: "Done" },
+] as const;
+type StepKey = (typeof STEPS)[number]["key"];
 
-type WizardState = Partial<
-  PersonalDetailsInput & PropertyTypeInput & FirstListingInput & PlanInput
->;
+type WizardData = {
+  // account
+  fullName: string;
+  email: string;
+  password: string;
+  showPassword: boolean;
+  terms: boolean;
+  // about
+  phone: string;
+  country: string;
+  bio: string;
+  languages: string[];
+  // offer
+  offering: "accommodation" | "experiences" | "both";
+  // listing
+  listingName: string;
+  listingKind: "accommodation" | "experience";
+  accommodationType:
+    | "guesthouse"
+    | "bb"
+    | "self_catering"
+    | "lodge"
+    | "hotel"
+    | "cottage"
+    | "villa";
+  experienceType: "tour" | "activity" | "workshop" | "transfer" | "other";
+  city: string;
+  region: string;
+  maxGuests: number;
+  durationHours: number;
+  rate: string;
+  coverUploaded: boolean;
+  // plan
+  plan: "free" | "basic" | "pro" | "business";
+  billingCycle: "monthly" | "annual";
+};
 
-export function Wizard({ userEmail }: { userEmail: string }) {
-  const [step, setStep] = useState<StepNumber>(1);
-  const [state, setState] = useState<WizardState>({ plan: "free" });
-  const [isFinalizing, startFinalize] = useTransition();
+function initialData(prefilledEmail: string | null): WizardData {
+  return {
+    fullName: "",
+    email: prefilledEmail ?? "",
+    password: "",
+    showPassword: false,
+    terms: false,
+    phone: "",
+    country: "South Africa",
+    bio: "",
+    languages: ["English"],
+    offering: "accommodation",
+    listingName: "",
+    listingKind: "accommodation",
+    accommodationType: "guesthouse",
+    experienceType: "tour",
+    city: "",
+    region: "Western Cape",
+    maxGuests: 4,
+    durationHours: 3,
+    rate: "",
+    coverUploaded: false,
+    plan: "pro",
+    billingCycle: "monthly",
+  };
+}
 
-  function advance(patch: Partial<WizardState>, next: StepNumber) {
-    setState((s) => ({ ...s, ...patch }));
-    setStep(next);
+const SIDE_RAIL: Record<
+  StepKey,
+  {
+    eyebrow: string;
+    title: string;
+    body: string;
+    proof?: { quote: string; name: string; role: string; initials: string };
+  }
+> = {
+  account: {
+    eyebrow: "Free to join",
+    title: "Direct bookings. Zero booking fees.",
+    body: "You keep 100% of what guests pay. We charge one flat subscription — no commission on bookings, ever.",
+    proof: {
+      quote:
+        "I cancelled my Airbnb listing 6 months ago. Booking direct via Vilo means I keep R3 200 a month I used to lose to fees.",
+      name: "Lerato M.",
+      role: "Featherstone Guesthouse · Knysna",
+      initials: "LM",
+    },
+  },
+  about: {
+    eyebrow: "Why this matters",
+    title: "A profile guests trust.",
+    body: "Hosts with a photo and bio get 2.3× more enquiries on average. It takes 60 seconds.",
+  },
+  offer: {
+    eyebrow: "Built for SA",
+    title: "Stays & experiences, one inbox.",
+    body: "Whether you run a guesthouse, lead canoe tours, or both — every booking and message lives in a single dashboard.",
+  },
+  listing: {
+    eyebrow: "Step by step",
+    title: "The basics now. Polish later.",
+    body: "We only ask for the minimum to get you live. Photos, seasonal pricing, house rules and amenities all live in the full editor — no rush.",
+  },
+  plan: {
+    eyebrow: "No lock-in",
+    title: "Pick a plan to test with.",
+    body: "Billing isn't live yet — every signup goes through as free for now. You'll be able to upgrade from settings once payments ship.",
+  },
+  welcome: {
+    eyebrow: "You're live",
+    title: "Time to take direct bookings.",
+    body: "Share your profile URL with past guests, on Instagram and on your website. Every booking lands straight in your Vilo inbox.",
+  },
+};
+
+// ─── Root component ───────────────────────────────────────────────
+
+export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
+  const startIndex = prefilledEmail ? 1 : 0;
+  const [currentIndex, setCurrentIndex] = useState(startIndex);
+  const [data, setData] = useState<WizardData>(() =>
+    initialData(prefilledEmail),
+  );
+  const [createPending, startCreate] = useTransition();
+  const [finalizePending, startFinalize] = useTransition();
+
+  const current = STEPS[currentIndex];
+  const isLast = currentIndex === STEPS.length - 1;
+
+  function patch(p: Partial<WizardData>) {
+    setData((d) => ({ ...d, ...p }));
   }
 
-  function back() {
-    if (step > 1) setStep((step - 1) as StepNumber);
+  function jumpBack(index: number) {
+    if (index < currentIndex) {
+      setCurrentIndex(index);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
-  function finalize() {
-    startFinalize(async () => {
-      const result = await finalizeOnboardingAction(state as OnboardingInput);
-      if (result && !result.ok) {
+  function goBack() {
+    if (currentIndex > 0) {
+      setCurrentIndex((i) => i - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function advance() {
+    setCurrentIndex((i) => Math.min(STEPS.length - 1, i + 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleAccountNext() {
+    const parsed = accountSchema.safeParse({
+      full_name: data.fullName,
+      email: data.email,
+      password: data.password,
+      terms: data.terms,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      return;
+    }
+    startCreate(async () => {
+      const result = await createAccountAction({
+        full_name: data.fullName,
+        email: data.email,
+        password: data.password,
+        terms: data.terms,
+      });
+      if (!result.ok) {
         toast.error(result.error);
+        return;
       }
+      advance();
     });
   }
 
+  function handleAboutNext() {
+    const parsed = aboutSchema.safeParse({
+      phone: data.phone,
+      country: data.country,
+      bio: data.bio,
+      languages: data.languages,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      return;
+    }
+    advance();
+  }
+
+  function handleListingNext() {
+    // Mirror offer choice into listingKind if not already aligned.
+    const inferredKind: "accommodation" | "experience" =
+      data.offering === "experiences" ? "experience" : "accommodation";
+    const parsed = listingSchema.safeParse({
+      listing_name: data.listingName,
+      listing_kind: inferredKind,
+      accommodation_type:
+        inferredKind === "accommodation" ? data.accommodationType : undefined,
+      experience_type:
+        inferredKind === "experience" ? data.experienceType : undefined,
+      city: data.city,
+      region: data.region,
+      max_guests: inferredKind === "accommodation" ? data.maxGuests : undefined,
+      duration_hours:
+        inferredKind === "experience" ? data.durationHours : undefined,
+      rate: Number((data.rate || "").replace(/\s/g, "")),
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      return;
+    }
+    patch({ listingKind: inferredKind });
+    advance();
+  }
+
+  function handlePlanNext() {
+    // Any plan choice → free for now (payment wiring lands later).
+    // Just advance to welcome where finalize runs.
+    advance();
+    startFinalize(async () => {
+      const inferredKind: "accommodation" | "experience" =
+        data.offering === "experiences" ? "experience" : "accommodation";
+      const result = await finalizeOnboardingAction({
+        full_name: data.fullName,
+        phone: data.phone,
+        country: data.country,
+        bio: data.bio,
+        languages: data.languages,
+        offering: data.offering,
+        listing_name: data.listingName,
+        listing_kind: inferredKind,
+        accommodation_type:
+          inferredKind === "accommodation" ? data.accommodationType : undefined,
+        experience_type:
+          inferredKind === "experience" ? data.experienceType : undefined,
+        city: data.city,
+        region: data.region,
+        max_guests:
+          inferredKind === "accommodation" ? data.maxGuests : undefined,
+        duration_hours:
+          inferredKind === "experience" ? data.durationHours : undefined,
+        rate: Number((data.rate || "").replace(/\s/g, "")),
+        plan: data.plan,
+        billing_cycle: data.billingCycle,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+      }
+      // On success, the action redirects to /dashboard?welcome=1, so the
+      // welcome step is briefly visible before the redirect lands.
+    });
+  }
+
+  function onNext() {
+    switch (current.key) {
+      case "account":
+        handleAccountNext();
+        break;
+      case "about":
+        handleAboutNext();
+        break;
+      case "offer":
+        advance();
+        break;
+      case "listing":
+        handleListingNext();
+        break;
+      case "plan":
+        handlePlanNext();
+        break;
+    }
+  }
+
+  const nextLabel =
+    current.key === "account"
+      ? createPending
+        ? "Creating account…"
+        : "Create account"
+      : current.key === "plan"
+        ? finalizePending
+          ? "Setting up…"
+          : "Finish & go live"
+        : "Continue";
+  const nextDisabled = createPending || finalizePending;
+
+  const stepBody = (() => {
+    switch (current.key) {
+      case "account":
+        return (
+          <StepAccount
+            data={data}
+            patch={patch}
+            pending={createPending}
+            stepIndex={currentIndex}
+          />
+        );
+      case "about":
+        return <StepAbout data={data} patch={patch} stepIndex={currentIndex} />;
+      case "offer":
+        return <StepOffer data={data} patch={patch} stepIndex={currentIndex} />;
+      case "listing":
+        return (
+          <StepListing data={data} patch={patch} stepIndex={currentIndex} />
+        );
+      case "plan":
+        return <StepPlan data={data} patch={patch} stepIndex={currentIndex} />;
+      case "welcome":
+        return <StepWelcome data={data} finalizePending={finalizePending} />;
+    }
+  })();
+
   return (
-    <div className="mx-auto max-w-2xl px-5 py-10 sm:py-14 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="text-sm font-medium text-brand-mute hover:text-brand-primary"
-        >
-          ← Vilo
-        </Link>
-        <span className="font-mono text-xs text-brand-mute">{userEmail}</span>
+    <div className="min-h-screen w-full bg-brand-light text-brand-ink">
+      {/* Top bar — mobile only */}
+      <div className="border-b border-brand-line bg-white lg:hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <ViloMark size={28} />
+            <div className="font-display font-bold text-brand-ink">Vilo</div>
+          </div>
+          <Link
+            href="/login"
+            className="text-xs text-brand-mute hover:text-brand-ink"
+          >
+            Already a host?{" "}
+            <span className="font-medium text-brand-primary">Sign in</span>
+          </Link>
+        </div>
       </div>
 
-      <StepIndicator current={step} />
+      <div className="mx-auto max-w-[1280px] px-3 py-4 lg:px-6 lg:py-8">
+        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+          <div className="grid min-h-[760px] lg:grid-cols-[400px_1fr]">
+            <SideRail stepKey={current.key} current={currentIndex} />
 
-      {step === 1 ? (
-        <PersonalDetailsStep
-          defaults={state}
-          onNext={(values) => advance(values, 2)}
-        />
-      ) : null}
+            <div className="flex flex-col bg-white">
+              <div className="flex flex-wrap items-center gap-4 border-b border-brand-line px-6 py-5 lg:px-10">
+                <div className="min-w-0 flex-1">
+                  <Stepper current={currentIndex} onJump={jumpBack} />
+                </div>
+                <Link
+                  href="/login"
+                  className="hidden shrink-0 text-xs text-brand-mute hover:text-brand-ink lg:inline-flex"
+                >
+                  Already a host?{" "}
+                  <span className="ml-1 font-medium text-brand-primary">
+                    Sign in
+                  </span>
+                </Link>
+              </div>
 
-      {step === 2 ? (
-        <PropertyTypeStep
-          defaults={state}
-          onBack={back}
-          onNext={(values) => advance(values, 3)}
-        />
-      ) : null}
+              <div className="flex-1 px-6 py-8 lg:px-10 lg:py-10">
+                {stepBody}
+              </div>
 
-      {step === 3 ? (
-        <FirstListingStep
-          defaults={state}
-          onBack={back}
-          onNext={(values) => advance(values, 4)}
-        />
-      ) : null}
+              {!isLast ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-line bg-brand-light/40 px-6 py-4 lg:px-10">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    disabled={currentIndex === 0 || nextDisabled}
+                    className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink disabled:opacity-40"
+                  >
+                    <ArrowLeft className="h-4 w-4" /> Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    disabled={nextDisabled}
+                    className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary disabled:opacity-60"
+                  >
+                    {nextLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
 
-      {step === 4 ? (
-        <PlanStep
-          defaults={state}
-          onBack={back}
-          onNext={(values) => advance(values, 5)}
-        />
-      ) : null}
+        <p className="mt-4 text-center text-[11px] text-brand-mute">
+          By continuing, you agree to Vilo&apos;s Terms of Service.
+        </p>
+      </div>
+    </div>
+  );
+}
 
-      {step === 5 ? (
-        <WelcomeStep
-          isFinalizing={isFinalizing}
-          onBack={back}
-          onFinish={finalize}
+// ─── Side rail ────────────────────────────────────────────────────
+
+function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
+  const c = SIDE_RAIL[stepKey];
+  return (
+    <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:rounded-l-card lg:p-10">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-dot-grid opacity-30"
+      />
+      <div className="relative flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <ViloMark size={36} glow />
+          <div>
+            <div className="font-display font-bold leading-none">Vilo</div>
+            <div className="mt-0.5 text-[10px] text-emerald-200/70">
+              Host onboarding
+            </div>
+          </div>
+        </div>
+        <div className="font-mono text-[11px] text-emerald-200/70">
+          {String(current + 1).padStart(2, "0")} /{" "}
+          {String(STEPS.length).padStart(2, "0")}
+        </div>
+      </div>
+
+      <div className="relative mt-10 flex-1 lg:mt-16">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-300">
+          {c.eyebrow}
+        </div>
+        <h3 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight lg:text-3xl">
+          {c.title}
+        </h3>
+        <p className="mt-4 max-w-sm text-sm leading-relaxed text-emerald-100/75 lg:text-[15px]">
+          {c.body}
+        </p>
+
+        {c.proof ? (
+          <div className="mt-8 rounded-card border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
+            <div className="mb-2 flex items-center gap-1 text-amber-300">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="h-3.5 w-3.5 fill-current" />
+              ))}
+            </div>
+            <p className="text-sm leading-relaxed text-emerald-50/90">
+              &ldquo;{c.proof.quote}&rdquo;
+            </p>
+            <div className="mt-4 flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-brand-accent/40 text-[10px] font-semibold text-brand-secondary">
+                {c.proof.initials}
+              </div>
+              <div>
+                <div className="text-xs font-semibold">{c.proof.name}</div>
+                <div className="text-[11px] text-emerald-200/70">
+                  {c.proof.role}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="mt-8 grid grid-cols-3 gap-3">
+          {[
+            { v: "0%", l: "Booking fees" },
+            { v: "1.2k+", l: "SA hosts" },
+            { v: "R0", l: "To start" },
+          ].map((s) => (
+            <div
+              key={s.l}
+              className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2.5"
+            >
+              <div className="font-display text-lg font-bold">{s.v}</div>
+              <div className="mt-0.5 text-[10px] uppercase tracking-wider text-emerald-200/70">
+                {s.l}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="relative mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-5 text-[11px] text-emerald-200/70">
+        <span>
+          Need a hand?{" "}
+          <Link
+            href="/help"
+            className="text-white underline underline-offset-2"
+          >
+            Chat with support
+          </Link>
+        </span>
+        <span>© Vilo 2026</span>
+      </div>
+    </aside>
+  );
+}
+
+// ─── Stepper ──────────────────────────────────────────────────────
+
+function Stepper({
+  current,
+  onJump,
+}: {
+  current: number;
+  onJump: (i: number) => void;
+}) {
+  return (
+    <div className="vilo-hide-sb flex items-center gap-1 overflow-x-auto md:gap-3">
+      {STEPS.map((s, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <div key={s.key} className="flex items-center gap-1 md:gap-3">
+            <button
+              type="button"
+              onClick={() => done && onJump(i)}
+              disabled={!done}
+              className={`flex shrink-0 items-center gap-2 ${
+                done ? "cursor-pointer" : "cursor-default"
+              }`}
+            >
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-pill text-xs font-semibold ${
+                  done
+                    ? "bg-brand-primary text-white"
+                    : active
+                      ? "vilo-ring-pulse border-2 border-brand-primary bg-white text-brand-primary"
+                      : "border border-brand-line bg-white text-brand-mute"
+                }`}
+              >
+                {done ? <Check className="h-4 w-4" /> : i + 1}
+              </div>
+              <div className="hidden text-left md:block">
+                <div
+                  className={`text-xs font-medium ${
+                    done
+                      ? "text-brand-ink"
+                      : active
+                        ? "text-brand-primary"
+                        : "text-brand-mute"
+                  }`}
+                >
+                  {s.label}
+                </div>
+                <div className="text-[10px] text-brand-mute">
+                  {done
+                    ? "Completed"
+                    : active
+                      ? `Step ${i + 1} of ${STEPS.length}`
+                      : "—"}
+                </div>
+              </div>
+            </button>
+            {i < STEPS.length - 1 ? (
+              <div
+                className={`h-px min-w-3 flex-1 md:min-w-6 ${
+                  i < current ? "bg-brand-primary" : "bg-brand-line"
+                }`}
+              />
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Step 1: Account ──────────────────────────────────────────────
+
+function StepAccount({
+  data,
+  patch,
+  pending,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  pending: boolean;
+  stepIndex: number;
+}) {
+  return (
+    <div className="vilo-step-enter">
+      <StepHeading
+        stepIndex={stepIndex}
+        title="Create your host account"
+        subtitle="Just the basics — you can edit everything later in settings."
+      />
+
+      <div className="mt-7 space-y-5">
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-brand-line" />
+          <span className="text-[11px] uppercase tracking-wider text-brand-mute">
+            Sign up with email
+          </span>
+          <div className="h-px flex-1 bg-brand-line" />
+        </div>
+
+        <FormField label="Full name">
+          <TextInput
+            value={data.fullName}
+            onChange={(e) => patch({ fullName: e.target.value })}
+            placeholder="Lerato Mokoena"
+            disabled={pending}
+            autoComplete="name"
+          />
+        </FormField>
+
+        <FormField label="Email">
+          <TextInput
+            type="email"
+            value={data.email}
+            onChange={(e) => patch({ email: e.target.value })}
+            placeholder="you@yourbusiness.co.za"
+            disabled={pending}
+            autoComplete="email"
+          />
+        </FormField>
+
+        <FormField label="Password" hint="At least 8 characters.">
+          <div className="relative">
+            <TextInput
+              type={data.showPassword ? "text" : "password"}
+              value={data.password}
+              onChange={(e) => patch({ password: e.target.value })}
+              placeholder="••••••••"
+              className="pr-10"
+              disabled={pending}
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              onClick={() => patch({ showPassword: !data.showPassword })}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-mute hover:text-brand-ink"
+              tabIndex={-1}
+            >
+              {data.showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </FormField>
+
+        <label className="flex cursor-pointer select-none items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={data.terms}
+            onChange={(e) => patch({ terms: e.target.checked })}
+            disabled={pending}
+            className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
+          <span className="text-xs leading-relaxed text-brand-mute">
+            I agree to Vilo&apos;s{" "}
+            <Link href="/terms" className="text-brand-primary hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="text-brand-primary hover:underline"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </span>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 2: About you ─────────────────────────────────────────────
+
+function StepAbout({
+  data,
+  patch,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  stepIndex: number;
+}) {
+  const initials =
+    (data.fullName || "V")
+      .split(" ")
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "V";
+  return (
+    <div className="vilo-step-enter">
+      <StepHeading
+        stepIndex={stepIndex}
+        title="A bit about you"
+        subtitle="Guests see this on your public profile. A photo and short bio earn trust."
+      />
+
+      <div className="mt-7 space-y-5">
+        {/* Avatar placeholder — upload wiring lands later */}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-accent text-base font-semibold text-brand-secondary">
+              {initials}
+            </div>
+            <button
+              type="button"
+              disabled
+              title="Photo upload coming soon"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink opacity-60 shadow-card"
+            >
+              <Camera className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="text-sm">
+            <div className="font-medium text-brand-ink">Profile photo</div>
+            <div className="mt-0.5 text-xs text-brand-mute">
+              Upload lands shortly — add yours from settings after onboarding.
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            label="Phone number"
+            hint="Used for booking-critical SMS only."
+          >
+            <div className="flex">
+              <span className="inline-flex items-center rounded-l border border-r-0 border-brand-line bg-brand-light/60 px-3 font-mono text-sm text-brand-mute">
+                +27
+              </span>
+              <TextInput
+                value={data.phone}
+                onChange={(e) => patch({ phone: e.target.value })}
+                placeholder="82 123 4567"
+                className="rounded-l-none"
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Country">
+            <SelectInput
+              value={data.country}
+              onChange={(e) => patch({ country: e.target.value })}
+            >
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+        </div>
+
+        <FormField
+          label="Short bio"
+          optional
+          hint="A sentence or two about you and your hospitality style."
+        >
+          <TextAreaInput
+            rows={3}
+            value={data.bio}
+            onChange={(e) => patch({ bio: e.target.value })}
+            placeholder="We've been hosting in the Karoo since 2018. Slow mornings, big skies, fresh bread."
+            maxLength={240}
+          />
+          <div className="mt-1 text-right text-[11px] text-brand-mute">
+            {(data.bio || "").length} / 240
+          </div>
+        </FormField>
+
+        <FormField label="Languages you speak" optional>
+          <div className="flex flex-wrap gap-2">
+            {LANGUAGE_OPTIONS.map((l) => {
+              const on = data.languages.includes(l);
+              return (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() =>
+                    patch({
+                      languages: on
+                        ? data.languages.filter((x) => x !== l)
+                        : [...data.languages, l],
+                    })
+                  }
+                  className={`rounded-pill border px-3 py-1 text-xs font-medium transition-colors ${
+                    on
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-line bg-white text-brand-mute hover:bg-brand-accent hover:text-brand-ink"
+                  }`}
+                >
+                  {on ? <Check className="-mt-px mr-1 inline h-3 w-3" /> : null}
+                  {l}
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 3: What you offer ────────────────────────────────────────
+
+function StepOffer({
+  data,
+  patch,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  stepIndex: number;
+}) {
+  const choices: {
+    id: "accommodation" | "experiences" | "both";
+    icon: typeof Home;
+    title: string;
+    desc: string;
+  }[] = [
+    {
+      id: "accommodation",
+      icon: Home,
+      title: "Accommodation",
+      desc: "Guesthouses, B&Bs, lodges, self-catering, hotels.",
+    },
+    {
+      id: "experiences",
+      icon: Compass,
+      title: "Experiences",
+      desc: "Tours, activities, classes, day trips.",
+    },
+    {
+      id: "both",
+      icon: Layers,
+      title: "Both",
+      desc: "I do both — let's set up accommodation first.",
+    },
+  ];
+  return (
+    <div className="vilo-step-enter">
+      <StepHeading
+        stepIndex={stepIndex}
+        title="What are you offering?"
+        subtitle="Don't worry — you can add experiences later if you start with accommodation, and vice versa."
+      />
+
+      <div className="mt-7 grid gap-3 md:grid-cols-3">
+        {choices.map((c) => {
+          const on = data.offering === c.id;
+          const Icon = c.icon;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => patch({ offering: c.id })}
+              className={`rounded-card border p-5 text-left transition-all hover:-translate-y-px ${
+                on
+                  ? "border-brand-primary bg-brand-accent/40 shadow-card"
+                  : "border-brand-line bg-white hover:border-brand-primary/50"
+              }`}
+            >
+              <div
+                className={`mb-4 flex h-10 w-10 items-center justify-center rounded-md ${
+                  on
+                    ? "bg-brand-primary text-white"
+                    : "bg-brand-accent text-brand-primary"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-display font-semibold text-brand-ink">
+                  {c.title}
+                </h3>
+                {on ? (
+                  <CheckCircle2 className="h-4 w-4 text-brand-primary" />
+                ) : null}
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-brand-mute">
+                {c.desc}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 flex items-start gap-3 rounded-card border border-brand-line bg-brand-light/60 p-4">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+          <Info className="h-4 w-4" />
+        </div>
+        <div className="text-xs leading-relaxed text-brand-mute">
+          Your choice changes which fields we ask for next. Accommodation asks
+          for rooms &amp; rates. Experiences asks for duration &amp; price per
+          person.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 4: First listing ─────────────────────────────────────────
+
+function StepListing({
+  data,
+  patch,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  stepIndex: number;
+}) {
+  const isExperience = data.offering === "experiences";
+  return (
+    <div className="vilo-step-enter">
+      <StepHeading
+        stepIndex={stepIndex}
+        title={
+          isExperience
+            ? "Tell us about your first experience"
+            : "Tell us about your first listing"
+        }
+        subtitle="The basics now. Photos, amenities, and pricing rules come in the full editor."
+      />
+
+      <div className="mt-7 space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField label={isExperience ? "Experience name" : "Listing name"}>
+            <TextInput
+              value={data.listingName}
+              onChange={(e) => patch({ listingName: e.target.value })}
+              placeholder={
+                isExperience ? "Sunrise Canoe Tour" : "Cape Town Boutique B&B"
+              }
+            />
+          </FormField>
+
+          <FormField label={isExperience ? "Experience type" : "Listing type"}>
+            {isExperience ? (
+              <SelectInput
+                value={data.experienceType}
+                onChange={(e) =>
+                  patch({
+                    experienceType: e.target
+                      .value as WizardData["experienceType"],
+                  })
+                }
+              >
+                <option value="tour">Tour</option>
+                <option value="activity">Activity</option>
+                <option value="workshop">Class</option>
+                <option value="transfer">Transfer</option>
+                <option value="other">Other</option>
+              </SelectInput>
+            ) : (
+              <SelectInput
+                value={data.accommodationType}
+                onChange={(e) =>
+                  patch({
+                    accommodationType: e.target
+                      .value as WizardData["accommodationType"],
+                  })
+                }
+              >
+                <option value="guesthouse">Guesthouse</option>
+                <option value="bb">B&amp;B</option>
+                <option value="self_catering">Self-catering</option>
+                <option value="lodge">Lodge</option>
+                <option value="hotel">Hotel</option>
+                <option value="cottage">Cottage</option>
+                <option value="villa">Villa</option>
+              </SelectInput>
+            )}
+          </FormField>
+
+          <FormField label="City">
+            <TextInput
+              value={data.city}
+              onChange={(e) => patch({ city: e.target.value })}
+              placeholder="Cape Town"
+            />
+          </FormField>
+
+          <FormField label="Province / region">
+            <SelectInput
+              value={data.region}
+              onChange={(e) => patch({ region: e.target.value })}
+            >
+              {SA_REGIONS.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </SelectInput>
+          </FormField>
+
+          {!isExperience ? (
+            <>
+              <FormField label="Max guests">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patch({ maxGuests: Math.max(1, data.maxGuests - 1) })
+                    }
+                    className="inline-flex h-10 w-10 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <div className="flex-1 text-center font-display text-xl font-semibold text-brand-ink">
+                    {data.maxGuests}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patch({ maxGuests: Math.min(20, data.maxGuests + 1) })
+                    }
+                    className="inline-flex h-10 w-10 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </FormField>
+
+              <FormField
+                label="Starting nightly rate"
+                hint="ZAR. You can set weekend & seasonal overrides later."
+              >
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
+                    R
+                  </span>
+                  <TextInput
+                    value={data.rate}
+                    onChange={(e) =>
+                      patch({ rate: e.target.value.replace(/[^\d\s]/g, "") })
+                    }
+                    placeholder="1 200"
+                    className="pl-8"
+                    inputMode="numeric"
+                  />
+                </div>
+              </FormField>
+            </>
+          ) : (
+            <>
+              <FormField label="Duration (hours)">
+                <TextInput
+                  value={String(data.durationHours)}
+                  onChange={(e) => {
+                    const n = parseFloat(e.target.value);
+                    patch({
+                      durationHours: Number.isFinite(n) ? n : 0,
+                    });
+                  }}
+                  placeholder="3"
+                  inputMode="decimal"
+                />
+              </FormField>
+              <FormField label="Price per person" hint="ZAR.">
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
+                    R
+                  </span>
+                  <TextInput
+                    value={data.rate}
+                    onChange={(e) =>
+                      patch({ rate: e.target.value.replace(/[^\d\s]/g, "") })
+                    }
+                    placeholder="450"
+                    className="pl-8"
+                    inputMode="numeric"
+                  />
+                </div>
+              </FormField>
+            </>
+          )}
+        </div>
+
+        <FormField
+          label="Cover photo"
+          optional
+          hint="One photo gets you live. Add up to 20 more later. (Upload lands after onboarding for now.)"
+        >
+          <button
+            type="button"
+            onClick={() => patch({ coverUploaded: !data.coverUploaded })}
+            className={`flex w-full flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed py-8 transition ${
+              data.coverUploaded
+                ? "border-brand-primary bg-brand-accent/30"
+                : "border-brand-line bg-brand-light/40 hover:bg-brand-accent/30"
+            }`}
+          >
+            {data.coverUploaded ? (
+              <>
+                <div className="flex h-24 w-40 items-center justify-center rounded-md bg-brand-accent/50 font-mono text-[11px] text-brand-secondary">
+                  cover-photo.jpg
+                </div>
+                <div className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary">
+                  <CheckCircle2 className="h-4 w-4" /> Photo selected · click to
+                  clear
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex h-10 w-10 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-primary">
+                  <ImagePlus className="h-5 w-5" />
+                </div>
+                <div className="text-sm font-medium text-brand-ink">
+                  Drag &amp; drop or{" "}
+                  <span className="text-brand-primary">browse</span>
+                </div>
+                <div className="text-xs text-brand-mute">
+                  JPG or PNG · 16:9 recommended
+                </div>
+              </>
+            )}
+          </button>
+        </FormField>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 5: Subscription ──────────────────────────────────────────
+
+function StepPlan({
+  data,
+  patch,
+  stepIndex,
+}: {
+  data: WizardData;
+  patch: (p: Partial<WizardData>) => void;
+  stepIndex: number;
+}) {
+  const cycle = data.billingCycle;
+  return (
+    <div className="vilo-step-enter">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <StepHeading
+          stepIndex={stepIndex}
+          title="Choose a plan"
+          subtitle="Flat subscription — never a fee per booking. Cancel any time."
         />
+        <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
+          <button
+            type="button"
+            onClick={() => patch({ billingCycle: "monthly" })}
+            className={`rounded-pill px-3 py-1 text-xs font-semibold transition ${
+              cycle === "monthly"
+                ? "bg-brand-primary text-white"
+                : "text-brand-mute hover:text-brand-ink"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => patch({ billingCycle: "annual" })}
+            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold transition ${
+              cycle === "annual"
+                ? "bg-brand-primary text-white"
+                : "text-brand-mute hover:text-brand-ink"
+            }`}
+          >
+            Annual
+            <span
+              className={`rounded-pill px-1.5 py-0 text-[10px] font-medium ${
+                cycle === "annual"
+                  ? "bg-white/20 text-white"
+                  : "bg-brand-accent text-brand-primary"
+              }`}
+            >
+              −2 mo
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {PLANS.map((p) => {
+          const on = data.plan === p.value;
+          const price =
+            cycle === "annual"
+              ? p.annual === 0
+                ? 0
+                : Math.round(p.annual / 12)
+              : p.monthly;
+          const showStrike = cycle === "annual" && p.monthly > 0;
+          return (
+            <button
+              key={p.value}
+              type="button"
+              onClick={() => patch({ plan: p.value })}
+              className={`relative flex flex-col rounded-card border p-5 text-left transition-all hover:-translate-y-px ${
+                on
+                  ? "border-brand-primary bg-white shadow-glow"
+                  : "border-brand-line bg-white hover:border-brand-primary/50"
+              }`}
+            >
+              {p.tag ? (
+                <span
+                  className={`absolute -top-2 right-4 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
+                    p.value === "pro"
+                      ? "bg-brand-secondary text-white"
+                      : "border border-brand-primary/30 bg-brand-accent text-brand-secondary"
+                  }`}
+                >
+                  {p.tag}
+                </span>
+              ) : null}
+              <div className="flex items-center justify-between">
+                <div className="font-display text-lg font-bold text-brand-ink">
+                  {p.name}
+                </div>
+                <div
+                  className={`flex h-5 w-5 items-center justify-center rounded-pill border-2 ${
+                    on
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-line"
+                  }`}
+                >
+                  {on ? <Check className="h-3 w-3" /> : null}
+                </div>
+              </div>
+              <p className="mt-1.5 min-h-[32px] text-xs text-brand-mute">
+                {p.blurb}
+              </p>
+
+              <div className="mt-4 flex items-baseline gap-1.5">
+                <span className="font-display text-3xl font-bold text-brand-ink">
+                  R{price.toLocaleString("en-ZA")}
+                </span>
+                <span className="text-xs text-brand-mute">
+                  {p.value === "free" ? "" : "/month"}
+                </span>
+              </div>
+              {showStrike ? (
+                <div className="mt-0.5 text-[11px] text-brand-mute">
+                  <span className="line-through">R{p.monthly}</span> billed
+                  annually
+                </div>
+              ) : null}
+
+              <ul className="mt-4 space-y-2">
+                {p.features.map((f) => (
+                  <li
+                    key={f}
+                    className="flex items-start gap-2 text-xs text-brand-ink"
+                  >
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                    <span className="leading-snug">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div
+                className={`mt-5 rounded py-2 text-center text-xs font-semibold ${
+                  on
+                    ? "bg-brand-primary text-white"
+                    : "border border-brand-line bg-brand-light text-brand-secondary"
+                }`}
+              >
+                {on ? "Selected" : "Pick this plan"}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-5 flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+          <ShieldCheck className="h-4 w-4" />
+        </div>
+        <div className="text-xs leading-relaxed text-brand-mute">
+          Billing isn&apos;t wired up yet, so every sign-up goes through on the
+          free plan for now. You&apos;ll be able to upgrade from settings once
+          payments ship — your data carries over.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 6: Welcome ───────────────────────────────────────────────
+
+function Confetti() {
+  const pieces = useMemo(() => {
+    const colors = [
+      "#10B981",
+      "#064E3B",
+      "#D1FAE5",
+      "#34D399",
+      "#A7F3D0",
+      "#F4A836",
+    ];
+    return Array.from({ length: 60 }).map((_, i) => ({
+      left: Math.random() * 100,
+      dx: `${Math.random() * 200 - 100}px`,
+      d: `${(3 + Math.random() * 2.5).toFixed(2)}s`,
+      delay: `${(Math.random() * 1.2).toFixed(2)}s`,
+      bg: colors[i % colors.length],
+      rot: Math.random() * 180,
+    }));
+  }, []);
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="vilo-confetti-piece"
+          style={
+            {
+              left: `${p.left}%`,
+              background: p.bg,
+              transform: `rotate(${p.rot}deg)`,
+              ["--dx" as never]: p.dx,
+              ["--d" as never]: p.d,
+              ["--delay" as never]: p.delay,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function StepWelcome({
+  data,
+  finalizePending,
+}: {
+  data: WizardData;
+  finalizePending: boolean;
+}) {
+  const handle =
+    (data.listingName || "my-listing")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 24) || "my-vilo";
+
+  const checklist = [
+    { id: 1, label: "Account created", done: true },
+    { id: 2, label: "First listing added", done: true },
+    { id: 3, label: "Add 5+ photos", done: false },
+    { id: 4, label: "Set check-in / check-out times", done: false },
+    { id: 5, label: "Connect Paystack to accept payments", done: false },
+    { id: 6, label: "Publish your listing", done: false },
+  ];
+  const doneCount = checklist.filter((c) => c.done).length;
+  const pct = Math.round((doneCount / checklist.length) * 100);
+  const [copied, setCopied] = useState(false);
+
+  function copyHandle() {
+    const url = `viloplatform.com/${handle}`;
+    navigator.clipboard.writeText(url).then(
+      () => {
+        setCopied(true);
+        toast.success("Profile URL copied");
+        setTimeout(() => setCopied(false), 2000);
+      },
+      () => toast.error("Couldn't copy — copy it manually."),
+    );
+  }
+
+  return (
+    <div className="vilo-step-enter relative">
+      <Confetti />
+
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 rounded-pill bg-brand-accent px-3 py-1 text-[11px] font-semibold text-brand-secondary">
+          <PartyPopper className="h-3.5 w-3.5" />{" "}
+          {finalizePending ? "Wrapping up…" : "You're in"}
+        </div>
+        <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-brand-ink md:text-4xl">
+          Welcome to Vilo, {(data.fullName || "host").split(" ")[0]}.
+        </h2>
+        <p className="mt-2 max-w-xl text-sm text-brand-mute md:text-base">
+          Your <span className="font-medium text-brand-ink">Free</span> account
+          is live. Here&apos;s everything you need to start taking direct
+          bookings.
+        </p>
+
+        <div className="mt-6 rounded-card border border-brand-line bg-white p-5">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Your public profile
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <div className="flex items-center font-mono text-base text-brand-ink md:text-lg">
+              <span className="text-brand-mute">viloplatform.com/</span>
+              <span className="font-semibold">{handle}</span>
+            </div>
+            <button
+              type="button"
+              onClick={copyHandle}
+              className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:underline"
+            >
+              {copied ? (
+                <CheckCircle2 className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <Link
+              href={`/${handle}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:underline"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Preview
+            </Link>
+          </div>
+          <div className="mt-3 text-xs text-brand-mute">
+            Share this with anyone — your existing guests, your Instagram, your
+            WhatsApp footer. Direct bookings are now possible.
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-card border border-brand-line bg-white p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-display font-semibold text-brand-ink">
+                Setup checklist
+              </div>
+              <div className="mt-0.5 text-xs text-brand-mute">
+                {doneCount} of {checklist.length} complete
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl font-bold text-brand-primary">
+                {pct}%
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-pill bg-brand-light">
+            <div
+              className="h-full bg-brand-primary transition-all duration-700"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <ul className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            {checklist.map((c) => (
+              <li key={c.id} className="flex items-center gap-2.5 text-sm">
+                <div
+                  className={`flex h-5 w-5 items-center justify-center rounded-pill ${
+                    c.done
+                      ? "bg-brand-primary text-white"
+                      : "border border-brand-line bg-white text-brand-mute"
+                  }`}
+                >
+                  {c.done ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <span className="h-1 w-1 rounded-pill bg-brand-mute" />
+                  )}
+                </div>
+                <span
+                  className={
+                    c.done
+                      ? "text-brand-ink line-through decoration-brand-line"
+                      : "text-brand-ink"
+                  }
+                >
+                  {c.label}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              {
+                icon: ImagePlus,
+                title: "Complete your listing",
+                desc: "Add photos, amenities, pricing.",
+                cta: "Open editor",
+                href: "/dashboard/listings",
+              },
+              {
+                icon: CreditCard,
+                title: "Connect Paystack",
+                desc: "Accept card payments instantly.",
+                cta: "Connect",
+                href: "/dashboard/settings",
+              },
+              {
+                icon: BookOpen,
+                title: "Read the host guide",
+                desc: "6-min read · best-practice tips.",
+                cta: "Open guide",
+                href: "/help",
+              },
+            ] as const
+          ).map((t) => {
+            const Icon = t.icon;
+            return (
+              <Link
+                key={t.title}
+                href={t.href}
+                className="group rounded-card border border-brand-line bg-white p-4 transition hover:border-brand-primary/50 hover:shadow-card"
+              >
+                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="font-display text-sm font-semibold text-brand-ink">
+                  {t.title}
+                </div>
+                <div className="mt-1 text-xs leading-relaxed text-brand-mute">
+                  {t.desc}
+                </div>
+                <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary transition-all group-hover:gap-2">
+                  {t.cta} <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1.5 text-xs text-brand-mute">
+            <RotateCcw className="h-3.5 w-3.5" />
+            We&apos;ll redirect you to the dashboard automatically.
+          </div>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-secondary"
+          >
+            Go to dashboard <ArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tiny form atoms ──────────────────────────────────────────────
+
+function FormField({
+  label,
+  hint,
+  optional,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  optional?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+        {label}
+        {optional ? (
+          <span className="ml-1 font-normal text-brand-mute">(optional)</span>
+        ) : null}
+      </label>
+      {children}
+      {hint ? (
+        <div className="mt-1.5 text-xs text-brand-mute">{hint}</div>
       ) : null}
     </div>
   );
 }
 
-function StepIndicator({ current }: { current: StepNumber }) {
+function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  const { className, ...rest } = props;
   return (
-    <ol className="mb-8 flex items-center justify-between gap-2">
-      {STEPS.map((s) => {
-        const isDone = s.n < current;
-        const isCurrent = s.n === current;
-        return (
-          <li
-            key={s.n}
-            className="flex flex-1 items-center gap-2"
-            aria-current={isCurrent ? "step" : undefined}
-          >
-            <span
-              className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                isDone
-                  ? "bg-brand-primary text-white"
-                  : isCurrent
-                    ? "bg-brand-primary text-white ring-4 ring-brand-primary/15"
-                    : "bg-brand-accent text-brand-mute"
-              }`}
-            >
-              {isDone ? <Check className="h-4 w-4" /> : s.n}
-            </span>
-            <span
-              className={`hidden text-xs font-medium sm:inline ${
-                isCurrent ? "text-brand-dark" : "text-brand-mute"
-              }`}
-            >
-              {s.label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+    <input
+      {...rest}
+      className={`w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink transition placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 ${className ?? ""}`}
+    />
   );
 }
 
-function PersonalDetailsStep({
-  defaults,
-  onNext,
-}: {
-  defaults: WizardState;
-  onNext: (values: PersonalDetailsInput) => void;
-}) {
-  const form = useForm<PersonalDetailsInput>({
-    resolver: zodResolver(personalDetailsSchema),
-    defaultValues: {
-      full_name: defaults.full_name ?? "",
-      phone: defaults.phone ?? "",
-    },
-  });
-
+function TextAreaInput(
+  props: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+) {
+  const { className, ...rest } = props;
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="font-display text-2xl font-bold text-brand-dark">
-          Tell us about you
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          Guests will see your name on bookings and messages.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onNext)}
-            className="space-y-4"
-            noValidate
-          >
-            <FormField
-              control={form.control}
-              name="full_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your full name</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="name"
-                      placeholder="Lerato Mahlangu"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Phone number{" "}
-                    <span className="font-normal text-brand-mute">
-                      (optional)
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="tel"
-                      autoComplete="tel"
-                      placeholder="+27 82 123 4567"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end pt-2">
-              <Button type="submit" size="lg" className="gap-1.5">
-                Continue
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <textarea
+      {...rest}
+      className={`w-full resize-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink transition placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 ${className ?? ""}`}
+    />
   );
 }
 
-function PropertyTypeStep({
-  defaults,
-  onBack,
-  onNext,
-}: {
-  defaults: WizardState;
-  onBack: () => void;
-  onNext: (values: PropertyTypeInput) => void;
-}) {
-  const form = useForm<PropertyTypeInput>({
-    resolver: zodResolver(propertyTypeSchema),
-    defaultValues: {
-      listing_type: defaults.listing_type ?? "accommodation",
-      accommodation_type: defaults.accommodation_type,
-      experience_type: defaults.experience_type,
-    },
-  });
-
-  const listingType = form.watch("listing_type");
-
+function SelectInput({
+  children,
+  ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="font-display text-2xl font-bold text-brand-dark">
-          What are you listing?
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          You can add more types later.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onNext)}
-            className="space-y-5"
-            noValidate
-          >
-            <FormField
-              control={form.control}
-              name="listing_type"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {(["accommodation", "experience"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => field.onChange(t)}
-                        className={`rounded-card border p-4 text-left transition-colors ${
-                          field.value === t
-                            ? "border-brand-primary bg-brand-accent/50"
-                            : "border-brand-line bg-white hover:bg-brand-light/60"
-                        }`}
-                      >
-                        <div className="font-display text-base font-semibold capitalize text-brand-dark">
-                          {t === "accommodation"
-                            ? "A place to stay"
-                            : "An experience"}
-                        </div>
-                        <div className="mt-1 text-xs text-brand-mute">
-                          {t === "accommodation"
-                            ? "Cottage, B&B, lodge, self-catering, etc."
-                            : "Tours, workshops, transfers, activities."}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {listingType === "accommodation" ? (
-              <FormField
-                control={form.control}
-                name="accommodation_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Accommodation type</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {ACCOMMODATION_TYPES.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => field.onChange(opt.value)}
-                          className={`rounded border px-3 py-2 text-left text-sm transition-colors ${
-                            field.value === opt.value
-                              ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                              : "border-brand-line bg-white text-brand-mute hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-
-            {listingType === "experience" ? (
-              <FormField
-                control={form.control}
-                name="experience_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Experience type</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {EXPERIENCE_TYPES.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => field.onChange(opt.value)}
-                          className={`rounded border px-3 py-2 text-left text-sm transition-colors ${
-                            field.value === opt.value
-                              ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                              : "border-brand-line bg-white text-brand-mute hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-
-            <div className="flex items-center justify-between pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onBack}
-                className="gap-1.5"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <Button type="submit" size="lg" className="gap-1.5">
-                Continue
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="relative">
+      <select
+        {...rest}
+        className="w-full appearance-none rounded border border-brand-line bg-white px-3.5 py-2.5 pr-9 text-sm text-brand-ink transition focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+    </div>
   );
 }
 
-function FirstListingStep({
-  defaults,
-  onBack,
-  onNext,
+function StepHeading({
+  stepIndex,
+  title,
+  subtitle,
 }: {
-  defaults: WizardState;
-  onBack: () => void;
-  onNext: (values: FirstListingInput) => void;
+  stepIndex: number;
+  title: string;
+  subtitle: string;
 }) {
-  const form = useForm<FirstListingInput>({
-    resolver: zodResolver(firstListingSchema),
-    defaultValues: {
-      display_name: defaults.display_name ?? defaults.full_name ?? "",
-      name: defaults.name ?? "",
-      description: defaults.description ?? "",
-    },
-  });
-
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="font-display text-2xl font-bold text-brand-dark">
-          Your first listing
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          A draft — you can polish photos, pricing and policies after this.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onNext)}
-            className="space-y-4"
-            noValidate
-          >
-            <FormField
-              control={form.control}
-              name="display_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Host display name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Karoo Cottages"
-                      autoComplete="organization"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  <p className="text-xs text-brand-mute">
-                    Shown on your booking page. Your Vilo URL handle is derived
-                    from this — you can rename it later.
-                  </p>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Listing name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Karoo Stargazer Cottage" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Description{" "}
-                    <span className="font-normal text-brand-mute">
-                      (optional)
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={4}
-                      placeholder="A short paragraph — what makes this place special?"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex items-center justify-between pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onBack}
-                className="gap-1.5"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <Button type="submit" size="lg" className="gap-1.5">
-                Continue
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div>
+      <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+        Step {stepIndex + 1} of {STEPS.length - 1}
+      </div>
+      <h2 className="mt-1.5 font-display text-2xl font-bold text-brand-ink md:text-3xl">
+        {title}
+      </h2>
+      <p className="mt-2 text-sm text-brand-mute">{subtitle}</p>
+    </div>
   );
 }
 
-function PlanStep({
-  defaults,
-  onBack,
-  onNext,
+// ─── Inline logo ──────────────────────────────────────────────────
+
+function ViloMark({
+  size = 36,
+  glow = false,
 }: {
-  defaults: WizardState;
-  onBack: () => void;
-  onNext: (values: PlanInput) => void;
+  size?: number;
+  glow?: boolean;
 }) {
-  const form = useForm<PlanInput>({
-    resolver: zodResolver(planSchema),
-    defaultValues: { plan: defaults.plan ?? "free" },
-  });
-
-  return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="font-display text-2xl font-bold text-brand-dark">
-          Pick your plan
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          Start free — upgrade from settings whenever you&rsquo;re ready.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onNext)}
-            className="space-y-5"
-            noValidate
-          >
-            <FormField
-              control={form.control}
-              name="plan"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {PLANS.map((p) => {
-                      const isSelected = field.value === p.value;
-                      const isLocked = !p.available;
-                      return (
-                        <button
-                          key={p.value}
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => field.onChange(p.value)}
-                          className={`relative rounded-card border p-4 text-left transition-colors ${
-                            isLocked
-                              ? "cursor-not-allowed border-brand-line bg-brand-light/40 opacity-60"
-                              : isSelected
-                                ? "border-brand-primary bg-brand-accent/50"
-                                : "border-brand-line bg-white hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {isLocked ? (
-                            <span className="absolute right-3 top-3 rounded-pill bg-brand-line px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-mute">
-                              After launch
-                            </span>
-                          ) : null}
-                          <div className="font-display text-base font-bold text-brand-dark">
-                            {p.name}
-                          </div>
-                          <div className="mt-1 text-xs text-brand-mute">
-                            {p.tagline}
-                          </div>
-                          <div className="mt-3 flex items-baseline gap-1">
-                            <span className="font-display text-xl font-bold text-brand-dark">
-                              {p.price}
-                            </span>
-                            <span className="text-xs text-brand-mute">
-                              {p.cadence}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="rounded border border-brand-line bg-brand-accent/40 px-4 py-3 text-xs text-brand-ink">
-              Paid plans land when subscription billing ships (Phase 3). Start
-              free now — your data carries over.
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onBack}
-                className="gap-1.5"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-              <Button type="submit" size="lg" className="gap-1.5">
-                Continue
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+  const id = useMemo(
+    () => `vilo-grad-${Math.random().toString(36).slice(2, 8)}`,
+    [],
   );
-}
-
-function WelcomeStep({
-  isFinalizing,
-  onBack,
-  onFinish,
-}: {
-  isFinalizing: boolean;
-  onBack: () => void;
-  onFinish: () => void;
-}) {
-  const [acknowledged, setAcknowledged] = useState(false);
-
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader className="text-center">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
-          <Sparkles className="h-6 w-6" />
-        </div>
-        <CardTitle className="font-display text-2xl font-bold text-brand-dark">
-          You&rsquo;re ready to launch
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          We&rsquo;ll create your host profile, your first draft listing, and
-          your free plan in one go.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <ul className="space-y-2 text-sm text-brand-dark">
-          <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-            Host profile with an auto-generated Vilo URL handle (you can rename
-            it later)
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-            First listing as a <strong>draft</strong> — guests can&rsquo;t see
-            it until you publish
-          </li>
-          <li className="flex items-start gap-2">
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-            Free plan, no card required
-          </li>
-        </ul>
-
-        <label className="flex items-start gap-3 rounded-card border border-brand-line bg-brand-light/60 p-3">
-          <Checkbox
-            checked={acknowledged}
-            onCheckedChange={(v) => setAcknowledged(v === true)}
-            className="mt-0.5"
-          />
-          <span className="text-sm text-brand-ink">
-            I&rsquo;ll keep my listing accurate and respond to guests within 24
-            hours.
-          </span>
-        </label>
-
-        <div className="flex items-center justify-between pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            disabled={isFinalizing}
-            className="gap-1.5"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-          <Button
-            type="button"
-            size="lg"
-            onClick={onFinish}
-            disabled={!acknowledged || isFinalizing}
-            className="gap-1.5"
-          >
-            {isFinalizing ? "Creating…" : "Create my host profile"}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      style={
+        glow
+          ? { filter: "drop-shadow(0 8px 20px rgba(16,185,129,0.45))" }
+          : undefined
+      }
+    >
+      <defs>
+        <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#064E3B" />
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" rx="22" fill={`url(#${id})`} />
+      <path
+        d="M50 76L20 32H36L50 56L64 32H80L50 76Z"
+        fill="white"
+        opacity="0.4"
+      />
+      <path
+        d="M50 66L26 32H38L50 50L62 32H74L50 66Z"
+        fill="white"
+        opacity="0.7"
+      />
+      <path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="white" />
+    </svg>
   );
 }

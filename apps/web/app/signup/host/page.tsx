@@ -11,30 +11,28 @@ export const metadata: Metadata = {
     "Set up your Vilo host profile and your first listing — five quick steps.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function HostSignupPage() {
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Auth-only. Middleware will catch this too but be explicit.
-  if (!user) {
-    redirect("/login?next=/signup/host");
+  // If they're already a host, send them home — no point re-onboarding.
+  if (user) {
+    const { data: existingHost } = await supabase
+      .from("hosts")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (existingHost) {
+      redirect("/dashboard");
+    }
   }
 
-  // If they already have a hosts row, the wizard's done — send them home.
-  const { data: existingHost } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (existingHost) {
-    redirect("/dashboard");
-  }
-
-  return (
-    <main className="min-h-screen bg-brand-light text-brand-ink">
-      <Wizard userEmail={user.email ?? ""} />
-    </main>
-  );
+  // Unsigned users can land here directly — Step 1 (Account) creates the
+  // auth user. If a signed-in user (no host row yet) comes back to finish,
+  // we just skip Step 1 client-side using the prefilledEmail prop.
+  return <Wizard prefilledEmail={user?.email ?? null} />;
 }
