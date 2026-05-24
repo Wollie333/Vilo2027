@@ -96,7 +96,9 @@ export default async function DashboardPage({
       .limit(5),
     supabase
       .from("listings")
-      .select("id, name, slug, is_published")
+      .select(
+        "id, name, slug, is_published, booking_mode, listing_rooms ( id )",
+      )
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -398,39 +400,49 @@ export default async function DashboardPage({
                 </Link>
               </div>
               <ul className="divide-y divide-brand-line">
-                {listings.map((l) => (
-                  <li key={l.id} className="flex items-center gap-3 py-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-brand-dark">
-                        {l.name}
+                {listings.map((l) => {
+                  const roomCount =
+                    (l.listing_rooms as Array<{ id: string }> | null)?.length ??
+                    0;
+                  return (
+                    <li key={l.id} className="flex items-center gap-3 py-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-brand-dark">
+                          {l.name}
+                        </div>
                       </div>
-                    </div>
-                    <span
-                      className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
-                        l.is_published
-                          ? "bg-green-100 text-green-800"
-                          : "bg-brand-line text-brand-mute"
-                      }`}
-                    >
-                      {l.is_published ? "Published" : "Draft"}
-                    </span>
-                    {l.is_published && l.slug ? (
-                      <Link
-                        href={`/listing/${l.slug}`}
-                        target="_blank"
-                        className="text-xs font-medium text-brand-mute hover:text-brand-primary"
+                      {l.booking_mode !== "whole_listing" && roomCount > 0 ? (
+                        <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
+                          {roomCount} {roomCount === 1 ? "room" : "rooms"}
+                        </span>
+                      ) : null}
+                      <span
+                        className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
+                          l.is_published
+                            ? "bg-green-100 text-green-800"
+                            : "bg-brand-line text-brand-mute"
+                        }`}
                       >
-                        View
+                        {l.is_published ? "Published" : "Draft"}
+                      </span>
+                      {l.is_published && l.slug ? (
+                        <Link
+                          href={`/listing/${l.slug}`}
+                          target="_blank"
+                          className="text-xs font-medium text-brand-mute hover:text-brand-primary"
+                        >
+                          View
+                        </Link>
+                      ) : null}
+                      <Link
+                        href={`/dashboard/listings/${l.id}/edit`}
+                        className="text-xs font-medium text-brand-primary hover:underline"
+                      >
+                        Edit →
                       </Link>
-                    ) : null}
-                    <Link
-                      href={`/dashboard/listings/${l.id}/edit`}
-                      className="text-xs font-medium text-brand-primary hover:underline"
-                    >
-                      Edit →
-                    </Link>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             </section>
           ) : (

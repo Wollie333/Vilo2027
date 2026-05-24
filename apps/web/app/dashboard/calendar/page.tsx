@@ -9,6 +9,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { CalendarMonth } from "./CalendarMonth";
 import { IcalExportPanel } from "./IcalExportPanel";
 import { ListingPicker } from "./ListingPicker";
+import { RoomPicker, type CalendarRoom } from "./RoomPicker";
 
 export const metadata: Metadata = {
   title: "Calendar · Vilo",
@@ -35,19 +36,20 @@ type RawBlock = {
   date: string;
   reason: string | null;
   booking_id: string | null;
+  room_id: string | null;
 };
 
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams?: { listing?: string };
+  searchParams?: { listing?: string; room?: string };
 }) {
   const supabase = createServerClient();
 
   // RLS host_manage_own_listings — only the host's rows.
   const { data: listings } = await supabase
     .from("listings")
-    .select("id, name")
+    .select("id, name, booking_mode")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -57,16 +59,40 @@ export default async function CalendarPage({
       : null;
 
   let blocksByIso: Map<string, RawBlock> = new Map();
+  let calendarRooms: CalendarRoom[] = [];
+  const roomFilter = (searchParams?.room ?? "").trim();
+
   if (selectedListing) {
     const today = startOfMonth(new Date());
     const end = endOfMonthN(today, MONTH_WINDOW - 1);
+
+    // Fetch rooms if the listing supports per-room booking.
+    if (selectedListing.booking_mode !== "whole_listing") {
+      const { data: roomRows } = await supabase
+        .from("listing_rooms")
+        .select("id, name")
+        .eq("listing_id", selectedListing.id)
+        .is("deleted_at", null)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      calendarRooms = (roomRows ?? []).map((r) => ({ id: r.id, name: r.name }));
+    }
+
     const { data: blocks } = await supabase
       .from("blocked_dates")
-      .select("date, reason, booking_id")
+      .select("date, reason, booking_id, room_id")
       .eq("listing_id", selectedListing.id)
       .gte("date", isoDate(today))
       .lte("date", isoDate(end));
-    blocksByIso = new Map((blocks ?? []).map((b) => [b.date, b as RawBlock]));
+
+    // Apply room filter on the server.
+    const filtered = (blocks ?? []).filter((b) => {
+      if (!roomFilter || roomFilter === "any") return true;
+      if (roomFilter === "whole") return b.room_id == null;
+      // Specific room: include whole-listing blocks (they affect every room).
+      return b.room_id === roomFilter || b.room_id == null;
+    });
+    blocksByIso = new Map(filtered.map((b) => [b.date, b as RawBlock]));
   }
 
   // Pre-compute the months to render.
@@ -90,10 +116,21 @@ export default async function CalendarPage({
           </p>
         </div>
         {listings && listings.length > 0 ? (
-          <ListingPicker
-            listings={listings}
-            current={selectedListing?.id ?? ""}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <ListingPicker
+              listings={listings}
+              current={selectedListing?.id ?? ""}
+            />
+            {selectedListing &&
+            selectedListing.booking_mode !== "whole_listing" &&
+            calendarRooms.length > 0 ? (
+              <RoomPicker
+                listingId={selectedListing.id}
+                rooms={calendarRooms}
+                current={roomFilter}
+              />
+            ) : null}
+          </div>
         ) : null}
       </header>
 

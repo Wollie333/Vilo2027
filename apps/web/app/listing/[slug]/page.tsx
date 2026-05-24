@@ -11,6 +11,9 @@ import { AmenitiesList } from "./AmenitiesList";
 import { BookingWidget } from "./BookingWidget";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
+import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
+import { RoomsCartSidebar } from "./RoomsCartSidebar";
+import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 
 type RawListing = {
   id: string;
@@ -31,6 +34,7 @@ type RawListing = {
   base_price: number | null;
   cleaning_fee: number | null;
   currency: string;
+  booking_mode: BookingMode;
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
   instant_booking: boolean;
@@ -91,7 +95,7 @@ async function loadListing(slug: string) {
         city, province,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
-        base_price, cleaning_fee, currency,
+        base_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         avg_rating, total_reviews,
         host:hosts!inner ( display_name, handle, bio, avatar_url, is_verified )
@@ -102,25 +106,69 @@ async function loadListing(slug: string) {
 
   if (!listing) return null;
 
-  const [{ data: photoRows }, { data: amenityRows }] = await Promise.all([
-    supabase
-      .from("listing_photos")
-      .select("id, url, sort_order")
-      .eq("listing_id", listing.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("listing_amenities")
-      .select("amenity_key")
-      .eq("listing_id", listing.id),
-  ]);
+  const [{ data: photoRows }, { data: amenityRows }, { data: roomRows }] =
+    await Promise.all([
+      supabase
+        .from("listing_photos")
+        .select("id, url, sort_order, room_id")
+        .eq("listing_id", listing.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("listing_amenities")
+        .select("amenity_key")
+        .eq("listing_id", listing.id),
+      listing.booking_mode === "whole_listing"
+        ? Promise.resolve({ data: [] as Array<Record<string, never>> })
+        : supabase
+            .from("listing_rooms")
+            .select(
+              "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, sort_order, is_active",
+            )
+            .eq("listing_id", listing.id)
+            .is("deleted_at", null)
+            .eq("is_active", true)
+            .order("sort_order", { ascending: true }),
+    ]);
 
-  const photos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
+  const galleryPhotos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
     id: r.id,
     url: r.url,
   }));
   const amenities = (amenityRows ?? []).map((r) => r.amenity_key);
 
-  return { listing, photos, amenities };
+  // First photo per room (if any) as the room thumbnail.
+  const firstPhotoByRoom = new Map<string, string>();
+  for (const p of photoRows ?? []) {
+    const rid = (p as { room_id: string | null }).room_id;
+    if (rid && !firstPhotoByRoom.has(rid)) firstPhotoByRoom.set(rid, p.url);
+  }
+
+  const rooms: PublicRoom[] = (
+    (roomRows ?? []) as Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      bedrooms: number | null;
+      bathrooms: number | null;
+      max_guests: number;
+      base_price: number;
+      cleaning_fee: number | null;
+      sort_order: number;
+      is_active: boolean;
+    }>
+  ).map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    bedrooms: r.bedrooms,
+    bathrooms: r.bathrooms,
+    max_guests: r.max_guests,
+    base_price: Number(r.base_price),
+    cleaning_fee: Number(r.cleaning_fee ?? 0),
+    photoUrl: firstPhotoByRoom.get(r.id) ?? null,
+  }));
+
+  return { listing, photos: galleryPhotos, amenities, rooms };
 }
 
 export async function generateMetadata({
@@ -147,7 +195,9 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const { listing, photos, amenities } = data;
+  const { listing, photos, amenities, rooms } = data;
+
+  const hasRoomsMode = listing.booking_mode !== "whole_listing";
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -195,114 +245,174 @@ export default async function ListingDetailPage({
           <PhotoGallery photos={photos} />
         </div>
 
-        <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
-          <div className="space-y-10">
-            {/* Quick facts */}
-            <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Fact label="Bedrooms" value={listing.bedrooms ?? "—"} />
-              <Fact label="Bathrooms" value={listing.bathrooms ?? "—"} />
-              <Fact label="Min nights" value={listing.min_nights ?? 1} />
-              <Fact
-                label="Check-in"
-                value={listing.check_in_time?.slice(0, 5) ?? "—"}
-              />
-            </section>
-
-            {/* Description */}
-            {listing.description ? (
-              <section>
-                <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-                  About this{" "}
-                  {listing.listing_type === "accommodation"
-                    ? "stay"
-                    : "experience"}
-                </h2>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                  {listing.description}
-                </p>
-              </section>
-            ) : null}
-
-            {/* Host */}
-            <section>
-              <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-                Hosted by {listing.host.display_name}
-              </h2>
-              <HostCard
-                displayName={listing.host.display_name}
-                handle={listing.host.handle}
-                bio={listing.host.bio}
-                avatarUrl={listing.host.avatar_url}
-                isVerified={listing.host.is_verified}
-              />
-            </section>
-
-            {/* Amenities */}
-            <section>
-              <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-                What this place offers
-              </h2>
-              <AmenitiesList keys={amenities} />
-            </section>
-
-            {/* Policies */}
-            <section>
-              <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-                Things to know
-              </h2>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <PolicyCard title="Check-in / out">
-                  <ul className="space-y-1 text-sm text-brand-dark">
-                    <li>
-                      Check-in from{" "}
-                      <span className="font-medium">
-                        {listing.check_in_time?.slice(0, 5) ?? "—"}
-                      </span>
-                    </li>
-                    <li>
-                      Check-out by{" "}
-                      <span className="font-medium">
-                        {listing.check_out_time?.slice(0, 5) ?? "—"}
-                      </span>
-                    </li>
-                  </ul>
-                </PolicyCard>
-                <PolicyCard title="Cancellation policy">
-                  <p className="text-sm text-brand-dark">
-                    <span className="font-medium capitalize">
-                      {listing.cancellation_policy}.
-                    </span>{" "}
-                    {CANCELLATION_BLURB[listing.cancellation_policy]}
-                  </p>
-                </PolicyCard>
-                {listing.house_rules ? (
-                  <PolicyCard title="House rules" wide>
-                    <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                      {listing.house_rules}
-                    </p>
-                  </PolicyCard>
-                ) : null}
-              </div>
-            </section>
-          </div>
-
-          {/* Booking widget */}
-          <aside className="lg:pl-4">
-            <BookingWidget
-              slug={listing.slug ?? params.slug}
-              basePrice={listing.base_price}
-              cleaningFee={listing.cleaning_fee}
-              currency={listing.currency}
-              maxGuests={listing.max_guests}
-              instantBooking={listing.instant_booking}
-              rating={listing.avg_rating}
-              reviewCount={listing.total_reviews}
+        {hasRoomsMode ? (
+          <RoomsCartProvider mode={listing.booking_mode}>
+            <ListingBody
+              listing={listing}
+              amenities={amenities}
+              showRoomsGrid
+              roomsNode={
+                <RoomsGrid rooms={rooms} currency={listing.currency} />
+              }
+              sidebarNode={
+                <RoomsCartSidebar
+                  slug={listing.slug ?? params.slug}
+                  rooms={rooms}
+                  currency={listing.currency}
+                  maxGuestsCap={listing.max_guests ?? 50}
+                  instantBooking={listing.instant_booking}
+                  rating={listing.avg_rating}
+                  reviewCount={listing.total_reviews}
+                  basePrice={listing.base_price}
+                  cleaningFee={listing.cleaning_fee}
+                />
+              }
             />
-          </aside>
-        </div>
+          </RoomsCartProvider>
+        ) : (
+          <ListingBody
+            listing={listing}
+            amenities={amenities}
+            showRoomsGrid={false}
+            roomsNode={null}
+            sidebarNode={
+              <BookingWidget
+                slug={listing.slug ?? params.slug}
+                basePrice={listing.base_price}
+                cleaningFee={listing.cleaning_fee}
+                currency={listing.currency}
+                maxGuests={listing.max_guests}
+                instantBooking={listing.instant_booking}
+                rating={listing.avg_rating}
+                reviewCount={listing.total_reviews}
+              />
+            }
+          />
+        )}
       </main>
 
       <SiteFooter />
+    </div>
+  );
+}
+
+function ListingBody({
+  listing,
+  amenities,
+  showRoomsGrid,
+  roomsNode,
+  sidebarNode,
+}: {
+  listing: RawListing;
+  amenities: string[];
+  showRoomsGrid: boolean;
+  roomsNode: React.ReactNode;
+  sidebarNode: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
+      <div className="space-y-10">
+        {/* Quick facts */}
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Fact label="Bedrooms" value={listing.bedrooms ?? "—"} />
+          <Fact label="Bathrooms" value={listing.bathrooms ?? "—"} />
+          <Fact label="Min nights" value={listing.min_nights ?? 1} />
+          <Fact
+            label="Check-in"
+            value={listing.check_in_time?.slice(0, 5) ?? "—"}
+          />
+        </section>
+
+        {/* Description */}
+        {listing.description ? (
+          <section>
+            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+              About this{" "}
+              {listing.listing_type === "accommodation" ? "stay" : "experience"}
+            </h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+              {listing.description}
+            </p>
+          </section>
+        ) : null}
+
+        {/* Rooms grid (rooms_only / flexible) */}
+        {showRoomsGrid ? (
+          <section>
+            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+              {listing.booking_mode === "flexible"
+                ? "Or pick specific rooms"
+                : "Rooms"}
+            </h2>
+            {roomsNode}
+          </section>
+        ) : null}
+
+        {/* Host */}
+        <section>
+          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+            Hosted by {listing.host.display_name}
+          </h2>
+          <HostCard
+            displayName={listing.host.display_name}
+            handle={listing.host.handle}
+            bio={listing.host.bio}
+            avatarUrl={listing.host.avatar_url}
+            isVerified={listing.host.is_verified}
+          />
+        </section>
+
+        {/* Amenities */}
+        <section>
+          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+            What this place offers
+          </h2>
+          <AmenitiesList keys={amenities} />
+        </section>
+
+        {/* Policies */}
+        <section>
+          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+            Things to know
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PolicyCard title="Check-in / out">
+              <ul className="space-y-1 text-sm text-brand-dark">
+                <li>
+                  Check-in from{" "}
+                  <span className="font-medium">
+                    {listing.check_in_time?.slice(0, 5) ?? "—"}
+                  </span>
+                </li>
+                <li>
+                  Check-out by{" "}
+                  <span className="font-medium">
+                    {listing.check_out_time?.slice(0, 5) ?? "—"}
+                  </span>
+                </li>
+              </ul>
+            </PolicyCard>
+            <PolicyCard title="Cancellation policy">
+              <p className="text-sm text-brand-dark">
+                <span className="font-medium capitalize">
+                  {listing.cancellation_policy}.
+                </span>{" "}
+                {CANCELLATION_BLURB[listing.cancellation_policy]}
+              </p>
+            </PolicyCard>
+            {listing.house_rules ? (
+              <PolicyCard title="House rules" wide>
+                <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                  {listing.house_rules}
+                </p>
+              </PolicyCard>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      {/* Booking widget / cart */}
+      <aside className="lg:pl-4">{sidebarNode}</aside>
     </div>
   );
 }

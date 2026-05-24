@@ -113,12 +113,18 @@ export function buildIcalFeed({
  * Vilo writes one row per day in `blocked_dates`; most calendar consumers
  * (Airbnb, Booking.com, Apple Calendar) read multi-day VEVENTs better than
  * one VEVENT per night.
+ *
+ * For per-room bookings rows carry an optional `room_name` so OTAs can see
+ * which room was booked. Rows are first grouped by room_name (NULL ⇒
+ * whole-listing), then consecutive same-room dates with the same
+ * booking/reason kind collapse into a single span.
  */
 export function collapseConsecutiveDates(
   rows: Array<{
     date: string;
     booking_id: string | null;
     reason: string | null;
+    room_name?: string | null;
   }>,
 ): Array<{
   startDate: string;
@@ -127,7 +133,15 @@ export function collapseConsecutiveDates(
   uidSuffix: string;
 }> {
   if (rows.length === 0) return [];
-  const sorted = [...rows].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  // Bucket by (room_name ?? "") so different rooms never collapse together.
+  const buckets = new Map<string, typeof rows>();
+  for (const r of rows) {
+    const key = r.room_name ?? "";
+    const list = buckets.get(key) ?? [];
+    list.push(r);
+    buckets.set(key, list);
+  }
 
   const out: Array<{
     startDate: string;
@@ -136,38 +150,44 @@ export function collapseConsecutiveDates(
     uidSuffix: string;
   }> = [];
 
-  let runStart = sorted[0];
-  let runEnd = sorted[0];
+  for (const [roomKey, bucket] of buckets) {
+    const sorted = [...bucket].sort((a, b) => (a.date < b.date ? -1 : 1));
+    let runStart = sorted[0];
+    let runEnd = sorted[0];
 
-  function flush() {
-    // DTEND is exclusive for all-day → add one day.
-    const end = new Date(`${runEnd.date}T00:00:00Z`);
-    end.setUTCDate(end.getUTCDate() + 1);
-    const endIso = end.toISOString().slice(0, 10);
-    out.push({
-      startDate: runStart.date,
-      endDate: endIso,
-      summary: runStart.booking_id ? "Booked" : runStart.reason || "Blocked",
-      // UID derived from start + end so re-syncs collapse to the same event.
-      uidSuffix: `${runStart.date}-${endIso}`,
-    });
-  }
+    const flush = () => {
+      const end = new Date(`${runEnd.date}T00:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + 1);
+      const endIso = end.toISOString().slice(0, 10);
+      const baseSummary = runStart.booking_id
+        ? "Booked"
+        : runStart.reason || "Blocked";
+      const summary =
+        roomKey.length > 0 ? `${baseSummary}: ${roomKey}` : baseSummary;
+      out.push({
+        startDate: runStart.date,
+        endDate: endIso,
+        summary,
+        uidSuffix: `${roomKey || "whole"}-${runStart.date}-${endIso}`,
+      });
+    };
 
-  for (let i = 1; i < sorted.length; i++) {
-    const prev = new Date(`${runEnd.date}T00:00:00Z`);
-    prev.setUTCDate(prev.getUTCDate() + 1);
-    const expectNext = prev.toISOString().slice(0, 10);
-    const reasonChanged =
-      Boolean(sorted[i].booking_id) !== Boolean(runEnd.booking_id);
-    if (sorted[i].date === expectNext && !reasonChanged) {
-      runEnd = sorted[i];
-    } else {
-      flush();
-      runStart = sorted[i];
-      runEnd = sorted[i];
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = new Date(`${runEnd.date}T00:00:00Z`);
+      prev.setUTCDate(prev.getUTCDate() + 1);
+      const expectNext = prev.toISOString().slice(0, 10);
+      const reasonChanged =
+        Boolean(sorted[i].booking_id) !== Boolean(runEnd.booking_id);
+      if (sorted[i].date === expectNext && !reasonChanged) {
+        runEnd = sorted[i];
+      } else {
+        flush();
+        runStart = sorted[i];
+        runEnd = sorted[i];
+      }
     }
+    flush();
   }
-  flush();
 
   return out;
 }

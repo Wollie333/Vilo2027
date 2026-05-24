@@ -31,7 +31,7 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
-## 2026-05-24 — Phase 1/2 — Per-room bookings finished (listing editor wired)
+## 2026-05-24 — Phase 1/2 — Per-room bookings end-to-end (schema → editor → guest flow → calendar → iCal)
 
 ### Built
 - **`migrations/20260524000000_per_room_bookings.sql`** lands the per-room
@@ -58,7 +58,7 @@ Copy this template and fill it in at the end of every session:
   `EditorAmenity[]` (with id + roomId) and a `rooms` prop. Per amenity,
   when rooms exist, a "Listing-wide / room name" select assigns the
   amenity to a specific room.
-- **Server actions** (`actions.ts`):
+- **Editor Server actions** (`actions.ts`):
   - `setBookingModeAction` — guards switching to per-room without rooms.
   - `createRoomAction` / `updateRoomAction` / `deleteRoomAction` —
     full CRUD with sort_order assignment and active-booking guard on
@@ -69,20 +69,73 @@ Copy this template and fill it in at the end of every session:
     `room_id` map before the wipe, re-applies it on the reinsert, and
     returns the new rows (with fresh IDs) so the per-room dropdown
     updates immediately after save without a page reload.
+- **Listing detail (`/listing/[slug]`) — cart pattern.** New
+  `RoomsCartProvider` (React Context), `RoomsGrid` (left-column room
+  cards with Add/Remove toggle, photo, capacity, price), and
+  `RoomsCartSidebar` (shared dates, room picks, total, reserve CTA).
+  - `whole_listing` mode → existing single `BookingWidget`.
+  - `rooms_only` mode → room grid + cart sidebar.
+  - `flexible` mode → cart sidebar with **Whole place / Specific rooms**
+    pill tabs; switching tabs clears the room selection.
+- **Booking page (`/listing/[slug]/book`)** parses `?room_ids=A,B,C`
+  from search params, refuses if scope/mode disagrees, fetches the
+  picked `listing_rooms`, and surfaces them in a "Your rooms (N)"
+  panel inside the `BookingForm` with per-row subtotal + remove
+  button. Removing the last room redirects back to the listing.
+- **`createBookingAction`** now branches on `scope`:
+  - `rooms` → validates every room_id belongs to the listing,
+    server-recalculates price per room (never trusts the client per
+    AGENT_RULES §1.2), runs `room_is_available` per room, refuses if
+    any room is taken, inserts the `bookings` row + N `booking_rooms`
+    join rows.
+  - `whole_listing` → runs `listing_is_available_whole`, existing
+    path otherwise.
+  - Paystack init unchanged (the recalculated total goes through
+    untouched). Failed insert paths roll back booking + booking_rooms
+    + payment so retry is clean.
+- **Dashboard calendar (`/dashboard/calendar`)** gains a per-room
+  sub-picker (`RoomPicker`) next to `ListingPicker` for listings whose
+  `booking_mode` is not whole. Options: Any room (default) / Whole
+  place / each `listing_rooms` row. The block fetch now selects
+  `room_id` and the filter narrows what's painted on the calendar
+  cells (whole-listing blocks still show for a specific-room view
+  because they affect every room).
+- **iCal feed (`/ical/[id]/[token].ics`)** now joins
+  `listing_rooms.name` per block. `collapseConsecutiveDates` buckets
+  by room before collapsing so different rooms produce separate
+  VEVENTs, and SUMMARY becomes `"Booked: {room.name}"` for
+  room-scoped blocks (plain `"Booked"` for whole-listing).
+- **Bookings list (`/dashboard/bookings`)** adds a small "N rooms"
+  hint under the listing name for `scope='rooms'` bookings via a
+  `booking_rooms ( id )` count.
+- **Booking detail (`/dashboard/bookings/[id]`)** shows a new "Rooms"
+  card listing each `booking_rooms` row with name + per-room subtotal
+  when `scope='rooms'`, and labels the Amount card's first line
+  "Rooms" instead of "Base".
+- **Dashboard listings card** shows a "N rooms" pill next to the
+  Published/Draft status when `booking_mode != 'whole_listing'`.
+- **Guest discovery** — `/[handle]` and `/explore` show
+  `from {min(room.base_price)}` for `rooms_only` listings (joined via
+  `listing_rooms` with active + non-deleted filter); `whole_listing`
+  and `flexible` keep showing `listing.base_price`.
 - **Generated types regenerated** (`packages/types/database.types.ts`,
   +157 lines for the two new tables and the new columns).
 
 ### Notes
-- **`pnpm --filter web build`** passes (34 routes). `pnpm --filter web
-  lint` zero warnings. No `console.log` introduced.
+- **`pnpm --filter web build`** passes (34 routes — `/listing/[slug]`
+  now 7.36 kB, `/listing/[slug]/book` 8.6 kB, editor unchanged at
+  15.8 kB). `pnpm --filter web lint` zero warnings. No `console.log`
+  introduced.
 - The room-picker overlay on `PhotosTab` shows only on hover via
   `group-hover:opacity-100`. Acceptable on desktop; mobile UX will
   switch to an always-visible picker when we polish the editor on
   small screens.
-- Booking flow (`/listing/[slug]/book`), price preview, and the
-  `booking-create` Edge Function still treat every listing as
-  whole-place. Wiring guests to pick a room is the next slice — the
-  schema, RLS, triggers and host-side editor are all in place.
+- Pre-MVP data policy is in effect (see `CLAUDE.md`) — the migration
+  drops `unique_blocked_date` and reshapes the trigger without any
+  backwards-compat shim, since the DB is empty.
+- `FeaturedListings.tsx` on the homepage is still hard-coded demo data;
+  it'll pick up the `from {min}` treatment once it's wired to the
+  real listings query.
 
 ### Migrations
 - `20260524000000_per_room_bookings.sql`

@@ -5,7 +5,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { BookingForm } from "./BookingForm";
+import { BookingForm, type BookedRoom } from "./BookingForm";
 
 export const metadata: Metadata = {
   title: "Confirm and pay · Vilo",
@@ -21,23 +21,39 @@ function nightsBetween(from: string, to: string): number {
   return Math.round((t - f) / (1000 * 60 * 60 * 24));
 }
 
+function parseRoomIds(raw: string | undefined): string[] {
+  if (!raw) return [];
+  const uuidRe =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => uuidRe.test(s));
+}
+
 export default async function BookingPage({
   params,
   searchParams,
 }: {
   params: { slug: string };
-  searchParams?: { from?: string; to?: string; guests?: string };
+  searchParams?: {
+    from?: string;
+    to?: string;
+    guests?: string;
+    room_ids?: string;
+  };
 }) {
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const here = `/listing/${params.slug}/book${
-    searchParams
-      ? `?from=${searchParams.from ?? ""}&to=${searchParams.to ?? ""}&guests=${searchParams.guests ?? ""}`
-      : ""
-  }`;
+  const qs = new URLSearchParams();
+  if (searchParams?.from) qs.set("from", searchParams.from);
+  if (searchParams?.to) qs.set("to", searchParams.to);
+  if (searchParams?.guests) qs.set("guests", searchParams.guests);
+  if (searchParams?.room_ids) qs.set("room_ids", searchParams.room_ids);
+  const here = `/listing/${params.slug}/book?${qs.toString()}`;
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(here)}`);
   }
@@ -46,7 +62,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking",
+      "id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -58,6 +74,43 @@ export default async function BookingPage({
   const guestsParsed = parseInt(searchParams?.guests ?? "", 10);
   const guests =
     Number.isFinite(guestsParsed) && guestsParsed > 0 ? guestsParsed : 2;
+
+  const requestedRoomIds = parseRoomIds(searchParams?.room_ids);
+  const scope: "whole_listing" | "rooms" =
+    requestedRoomIds.length > 0 ? "rooms" : "whole_listing";
+
+  // Mode/scope compatibility check.
+  if (scope === "rooms" && listing.booking_mode === "whole_listing") {
+    redirect(`/listing/${params.slug}`);
+  }
+  if (scope === "whole_listing" && listing.booking_mode === "rooms_only") {
+    redirect(`/listing/${params.slug}`);
+  }
+
+  // Fetch rooms if scope=rooms.
+  let bookedRooms: BookedRoom[] = [];
+  let maxGuestsForForm = listing.max_guests ?? 50;
+  if (scope === "rooms") {
+    const { data: roomRows } = await supabase
+      .from("listing_rooms")
+      .select("id, name, base_price, cleaning_fee, max_guests")
+      .eq("listing_id", listing.id)
+      .is("deleted_at", null)
+      .eq("is_active", true)
+      .in("id", requestedRoomIds);
+
+    if (!roomRows || roomRows.length !== requestedRoomIds.length) {
+      redirect(`/listing/${params.slug}`);
+    }
+    bookedRooms = (roomRows ?? []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      basePrice: Number(r.base_price),
+      cleaningFee: Number(r.cleaning_fee ?? 0),
+      maxGuests: r.max_guests,
+    }));
+    maxGuestsForForm = bookedRooms.reduce((acc, r) => acc + r.maxGuests, 0);
+  }
 
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const datesOk = nights > 0 && nights >= (listing.min_nights ?? 1);
@@ -97,6 +150,7 @@ export default async function BookingPage({
         ) : (
           <BookingForm
             listingId={listing.id}
+            listingSlug={params.slug}
             listingName={listing.name}
             basePrice={Number(listing.base_price ?? 0)}
             cleaningFee={Number(listing.cleaning_fee ?? 0)}
@@ -107,8 +161,10 @@ export default async function BookingPage({
             checkOut={checkOut}
             nights={nights}
             guests={guests}
-            maxGuests={listing.max_guests ?? 50}
+            maxGuests={maxGuestsForForm}
             guestEmail={user.email ?? ""}
+            scope={scope}
+            rooms={bookedRooms}
           />
         )}
       </main>

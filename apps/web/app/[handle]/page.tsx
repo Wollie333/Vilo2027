@@ -84,7 +84,7 @@ async function loadHost(handle: string) {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, listing_type, accommodation_type, experience_type, city, province, base_price, currency, avg_rating, total_reviews, photos:listing_photos ( url, sort_order )",
+      "id, slug, name, listing_type, accommodation_type, experience_type, city, province, base_price, currency, booking_mode, avg_rating, total_reviews, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("host_id", host.id)
     .eq("is_published", true)
@@ -92,6 +92,29 @@ async function loadHost(handle: string) {
     .order("created_at", { ascending: false });
 
   return { host, listings: listings ?? [] };
+}
+
+function priceForListing(l: {
+  base_price: number | null;
+  booking_mode: string;
+  listing_rooms?: Array<{
+    base_price: number;
+    is_active: boolean | null;
+    deleted_at: string | null;
+  }> | null;
+}): { amount: number | null; fromLabel: boolean } {
+  if (l.booking_mode === "rooms_only") {
+    const prices = (l.listing_rooms ?? [])
+      .filter((r) => r.is_active !== false && r.deleted_at == null)
+      .map((r) => Number(r.base_price))
+      .filter((p) => p > 0);
+    if (prices.length === 0) return { amount: null, fromLabel: true };
+    return { amount: Math.min(...prices), fromLabel: true };
+  }
+  return {
+    amount: l.base_price != null ? Number(l.base_price) : null,
+    fromLabel: false,
+  };
 }
 
 export async function generateMetadata({
@@ -232,16 +255,21 @@ export default async function HostProfilePage({
                           {location ? ` · ${location}` : ""}
                         </div>
                       </div>
-                      {l.base_price != null ? (
-                        <div className="shrink-0 text-right">
-                          <div className="num font-display text-sm font-bold text-brand-primary">
-                            {fmtR(Number(l.base_price), l.currency)}
+                      {(() => {
+                        const price = priceForListing(l);
+                        if (price.amount == null) return null;
+                        return (
+                          <div className="shrink-0 text-right">
+                            <div className="num font-display text-sm font-bold text-brand-primary">
+                              {price.fromLabel ? "from " : ""}
+                              {fmtR(price.amount, l.currency)}
+                            </div>
+                            <div className="text-[10px] text-brand-mute">
+                              /night
+                            </div>
                           </div>
-                          <div className="text-[10px] text-brand-mute">
-                            /night
-                          </div>
-                        </div>
-                      ) : null}
+                        );
+                      })()}
                     </div>
                     {l.avg_rating != null &&
                     l.total_reviews != null &&

@@ -31,7 +31,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, listing:listings!inner ( name, slug ), guest:user_profiles!inner ( full_name, email, phone )",
+      "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, listing:listings!inner ( name, slug ), guest:user_profiles!inner ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -47,6 +47,12 @@ export default async function BookingDetailPage({
     email: string | null;
     phone: string | null;
   };
+  const bookingRooms = (booking.booking_rooms ?? []) as unknown as Array<{
+    id: string;
+    base_amount: number;
+    cleaning_fee: number | null;
+    room: { name: string } | null;
+  }>;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -155,20 +161,60 @@ export default async function BookingDetailPage({
             </button>
           </section>
 
+          {booking.scope === "rooms" && bookingRooms.length > 0 ? (
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Rooms ({bookingRooms.length})
+              </div>
+              <ul className="mt-3 space-y-2">
+                {bookingRooms.map((br) => (
+                  <li
+                    key={br.id}
+                    className="flex items-center justify-between gap-2 rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-brand-ink">
+                        {br.room?.name ?? "Room"}
+                      </div>
+                      {Number(br.cleaning_fee ?? 0) > 0 ? (
+                        <div className="text-[11px] text-brand-mute">
+                          + {fmtR(Number(br.cleaning_fee), booking.currency)}{" "}
+                          cleaning
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="shrink-0 text-sm font-medium text-brand-dark">
+                      {fmtR(
+                        Number(br.base_amount) + Number(br.cleaning_fee ?? 0),
+                        booking.currency,
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
               Amount
             </div>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex items-center justify-between">
-                <dt className="text-brand-mute">Base</dt>
+                <dt className="text-brand-mute">
+                  {booking.scope === "rooms" ? "Rooms" : "Base"}
+                </dt>
                 <dd className="font-medium text-brand-ink">
                   {fmtR(Number(booking.base_amount), booking.currency)}
                 </dd>
               </div>
               {Number(booking.cleaning_fee) > 0 ? (
                 <div className="flex items-center justify-between">
-                  <dt className="text-brand-mute">Cleaning fee</dt>
+                  <dt className="text-brand-mute">
+                    {booking.scope === "rooms"
+                      ? "Cleaning fees"
+                      : "Cleaning fee"}
+                  </dt>
                   <dd className="font-medium text-brand-ink">
                     {fmtR(Number(booking.cleaning_fee), booking.currency)}
                   </dd>

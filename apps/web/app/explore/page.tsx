@@ -65,7 +65,7 @@ export default async function ExplorePage({
   let query = supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)
@@ -231,14 +231,41 @@ export default async function ExplorePage({
                         ) : null}
                       </div>
                     </div>
-                    {l.base_price != null ? (
-                      <div className="mt-2 flex items-baseline gap-1.5">
-                        <span className="num font-display font-bold text-brand-ink">
-                          {fmtR(Number(l.base_price), l.currency)}
-                        </span>
-                        <span className="text-xs text-brand-mute">/ night</span>
-                      </div>
-                    ) : null}
+                    {(() => {
+                      const rooms =
+                        (l.listing_rooms as Array<{
+                          base_price: number;
+                          is_active: boolean | null;
+                          deleted_at: string | null;
+                        }> | null) ?? [];
+                      let amount: number | null = null;
+                      let fromLabel = false;
+                      if (l.booking_mode === "rooms_only") {
+                        const prices = rooms
+                          .filter(
+                            (r) =>
+                              r.is_active !== false && r.deleted_at == null,
+                          )
+                          .map((r) => Number(r.base_price))
+                          .filter((p) => p > 0);
+                        amount = prices.length > 0 ? Math.min(...prices) : null;
+                        fromLabel = true;
+                      } else if (l.base_price != null) {
+                        amount = Number(l.base_price);
+                      }
+                      if (amount == null) return null;
+                      return (
+                        <div className="mt-2 flex items-baseline gap-1.5">
+                          <span className="num font-display font-bold text-brand-ink">
+                            {fromLabel ? "from " : ""}
+                            {fmtR(amount, l.currency)}
+                          </span>
+                          <span className="text-xs text-brand-mute">
+                            / night
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </Link>
               );

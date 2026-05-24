@@ -48,6 +48,24 @@ Read these when working in a specific domain:
 
 ## Absolute Rules
 
+### Pre-MVP data policy (active until first public launch)
+- **No real users yet.** The Supabase database has no production data
+  worth preserving. Treat every table as empty.
+- **No backwards-compat shims.** No data backfills, no dual-write
+  windows, no feature flags for soft rollouts, no rename-and-alias
+  columns. If a migration needs to drop a constraint, drop a column, or
+  reshape a table — just do it.
+- **`supabase db reset` is fair game.** Wipe and re-seed whenever it
+  simplifies things.
+- **Soft-delete may be bypassed during the MVP build** if it costs
+  meaningful complexity — but only on tables not yet listed in the
+  `AGENT_RULES.md` §2.1 "never hard-delete" set. (For `user_profiles`,
+  `hosts`, `listings`, `bookings` keep using `deleted_at` because the
+  triggers and RLS policies already depend on it.)
+- **This policy expires at MVP launch.** The moment real users hit
+  production, revert to the standard rules: additive migrations only,
+  soft-delete only, no destructive reshapes without a documented plan.
+
 ### Security
 - NEVER expose `SUPABASE_SERVICE_ROLE_KEY` to the client — Edge Functions and Server Actions only
 - NEVER trust client-supplied prices — always recalculate server-side in Edge Functions

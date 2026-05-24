@@ -46,7 +46,7 @@ export default async function BookingsListPage({
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, payment_status, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email )",
+        "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email ), booking_rooms ( id )",
       )
       .order("created_at", { ascending: false });
 
@@ -143,6 +143,16 @@ export default async function BookingsListPage({
                       <div className="truncate font-medium text-brand-ink">
                         {listing.name}
                       </div>
+                      {b.scope === "rooms" ? (
+                        <div className="mt-0.5 text-[11px] text-brand-mute">
+                          {(b.booking_rooms as Array<{ id: string }> | null)
+                            ?.length ?? 0}{" "}
+                          {((b.booking_rooms as Array<{ id: string }> | null)
+                            ?.length ?? 0) === 1
+                            ? "room"
+                            : "rooms"}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="text-brand-ink">{b.check_in ?? "—"}</div>

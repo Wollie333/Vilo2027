@@ -49,13 +49,22 @@ export async function GET(
 
   const { data: blocks } = await supabase
     .from("blocked_dates")
-    .select("date, booking_id, reason")
+    .select("date, booking_id, reason, room_id, room:listing_rooms ( name )")
     .eq("listing_id", listingId)
     .gte("date", today.toISOString().slice(0, 10))
     .lte("date", horizon.toISOString().slice(0, 10))
     .order("date", { ascending: true });
 
-  const spans = collapseConsecutiveDates(blocks ?? []);
+  const blockRows = (blocks ?? []).map((b) => {
+    const room = b.room as unknown as { name: string } | null;
+    return {
+      date: b.date,
+      booking_id: b.booking_id,
+      reason: b.reason,
+      room_name: room?.name ?? null,
+    };
+  });
+  const spans = collapseConsecutiveDates(blockRows);
   const events = spans.map((s) => ({
     startDate: s.startDate,
     endDate: s.endDate,
