@@ -6,7 +6,7 @@ import Link from "next/link";
 import { signListingToken } from "@/lib/ical";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { CalendarMonth } from "./CalendarMonth";
+import { CalendarBoard } from "./CalendarBoard";
 import { IcalExportPanel } from "./IcalExportPanel";
 import { ListingPicker } from "./ListingPicker";
 import { RoomPicker, type CalendarRoom } from "./RoomPicker";
@@ -154,16 +154,22 @@ export default async function CalendarPage({
         </div>
       ) : (
         <>
-          <div className="grid gap-6 lg:grid-cols-3">
-            {months.map((m) => (
-              <CalendarMonth
-                key={`${m.year}-${m.month}`}
-                year={m.year}
-                month={m.month}
-                blocks={blocksByIso}
-              />
-            ))}
-          </div>
+          {selectedListing ? (
+            <CalendarBoard
+              listingId={selectedListing.id}
+              roomScope={
+                // When the host has selected a specific room, manual blocks
+                // are scoped to that room. Otherwise (whole-listing mode, or
+                // "any" / "whole" filter on a flexible listing) blocks are
+                // listing-wide. Matches the read-side filter on the page.
+                roomFilter && roomFilter !== "any" && roomFilter !== "whole"
+                  ? roomFilter
+                  : null
+              }
+              months={months}
+              initialBlocks={Array.from(blocksByIso.entries())}
+            />
+          ) : null}
 
           {selectedListing ? (
             <IcalExportPanel
@@ -198,7 +204,8 @@ export default async function CalendarPage({
                 ring
               />
               <span className="text-brand-mute">
-                · Manual block / unblock from the editor lands later.
+                · Click any empty day to block it; click a manually blocked day
+                to free it. Booked + quote-pending days are locked.
               </span>
             </div>
           </div>
