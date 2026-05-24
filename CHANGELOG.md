@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — MVP — Settings tabs + pre-MVP feature-gate policy
+
+### Built
+- **Tabbed settings shell** — new `apps/web/app/dashboard/settings/layout.tsx`
+  wraps every settings route with a shared "Settings" header + a URL-driven
+  horizontal tab bar (`SettingsTabs.tsx`, emerald underline on the active
+  tab). Four tabs land on four routes:
+  - `/dashboard/settings` → **Your profile**
+  - `/dashboard/settings/host` → **Public host page**
+  - `/dashboard/settings/banking` → **Banking & business**
+  - `/dashboard/settings/subscription` → **Subscription**
+- Deep links to each tab survive refresh; switching tabs is instant
+  because adjacent routes share the layout.
+
+### Changed
+- The previous monolithic `/dashboard/settings/page.tsx` (Profile + Host
+  page + Banking link + Subscription card stacked) is now only the
+  Profile content; Host page, Banking, and Subscription each have their
+  own route.
+- Banking page dropped its standalone back-link + page-header + pill —
+  the encryption badge moved inline next to the section heading.
+- New `AGENT_RULES.md` §3.4: **pre-MVP feature-gate policy** — every new
+  gated feature must be open on the `free` plan while there's no
+  subscription management UI. `assertFeatureEnabled` short-circuits to
+  `true` (with the original RPC body preserved as a comment for Phase 3).
+  `CLAUDE.md` Feature Permissions section points at the new rule.
+
+### Notes
+- The policy exists because free hosts created via `handle_new_user`
+  don't get an active `subscriptions` row, so `check_feature_permission`
+  returns disabled regardless of `plan_features` — strict gating blocked
+  the founder from testing his own platform.
+
+---
+
 ## 2026-05-24 — MVP — Banking & business details (enterprise)
 
 ### Built
