@@ -249,8 +249,7 @@ All secrets are set in GitHub → Repo Settings → Secrets and variables → Ac
 | Secret | Used in | Where to get it |
 |---|---|---|
 | `DOPPLER_TOKEN` | docker-build (and any workflow needing app secrets) | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
-| `DOCKERHUB_USERNAME` | docker-build | Your Docker Hub username |
-| `DOCKERHUB_TOKEN` | docker-build | hub.docker.com → Account Settings → Security → Access Tokens |
+| `GITHUB_TOKEN` | docker-build | Auto-provided by GitHub Actions — used to push images to ghcr.io. No setup needed. |
 | `SUPABASE_ACCESS_TOKEN` | db-migrate, deploy-functions, ci | supabase.com → Account → Access Tokens |
 | `SUPABASE_PROJECT_ID` | db-migrate, deploy-functions | Supabase Dashboard → Project Settings → General |
 | `SUPABASE_DB_URL` | db-migrate | Supabase Dashboard → Settings → Database → Connection String (Transaction mode) |

@@ -210,8 +210,8 @@ function BookingModeCard({ listing }: { listing: EditorListing }) {
           Booking mode
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          How guests book this place. Switch to per-room any time, but
-          you&rsquo;ll need to add at least one room first (Rooms tab).
+          How guests book this place. Switch any time — rooms you&rsquo;ve added
+          are kept either way.
         </CardDescription>
       </CardHeader>
       <CardContent>

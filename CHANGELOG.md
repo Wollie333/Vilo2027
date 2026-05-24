@@ -37,8 +37,11 @@ Copy this template and fill it in at the end of every session:
 - **Docker image pipeline** — `apps/web/Dockerfile` (multi-stage pnpm
   monorepo build using Next.js standalone output) + `.dockerignore` +
   new `.github/workflows/docker-build.yml` pushing
-  `wollie333/vilo-web:latest` and `:sha-<short>` to Docker Hub on
-  every push to `main` touching web/packages. Uses GHA cache layer.
+  `ghcr.io/wollie333/vilo-web:latest` and `:sha-<short>` to GitHub
+  Container Registry on every push to `main` touching web/packages.
+  Uses `GITHUB_TOKEN` (auto-provided) for registry auth and GHA cache
+  for layer reuse. Pulled from Docker Hub after repeated PAT auth
+  failures — ghcr.io eliminates token management entirely.
 - **Doppler as single source of truth for app secrets** — project
   `vilo2027` (free Developer plan) with `prd` config seeded from
   `.env.local` (19 application secrets). Local dev:
@@ -47,8 +50,10 @@ Copy this template and fill it in at the end of every session:
   `DOPPLER_TOKEN` service token consumed by workflows.
 
 ### Changed
-- `apps/web/next.config.mjs` — added `output: 'standalone'` for the
-  Docker build (no-op for Vercel).
+- `apps/web/next.config.mjs` — `output: 'standalone'` now gated on
+  `NEXT_OUTPUT=standalone` env var (Dockerfile sets it in the
+  builder stage). Required because the unconditional standalone
+  setting broke local Windows builds with EPERM symlink errors.
 - `.github/workflows/docker-build.yml` — fetches `NEXT_PUBLIC_*`
   build-args from Doppler via `dopplerhq/secrets-fetch-action`.
 - `.github/workflows/deploy-web.yml` — wraps `pnpm --filter web build`

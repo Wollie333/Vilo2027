@@ -14,6 +14,7 @@ import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
+import { RoomsInfoGrid } from "./RoomsInfoGrid";
 
 type RawListing = {
   id: string;
@@ -273,8 +274,10 @@ export default async function ListingDetailPage({
           <ListingBody
             listing={listing}
             amenities={amenities}
-            showRoomsGrid={false}
-            roomsNode={null}
+            showRoomsGrid={rooms.length > 0}
+            roomsNode={
+              rooms.length > 0 ? <RoomsInfoGrid rooms={rooms} /> : null
+            }
             sidebarNode={
               <BookingWidget
                 slug={listing.slug ?? params.slug}
@@ -336,13 +339,15 @@ function ListingBody({
           </section>
         ) : null}
 
-        {/* Rooms grid (rooms_only / flexible) */}
+        {/* Rooms grid — bookable in rooms_only / flexible, info-only in whole_listing */}
         {showRoomsGrid ? (
           <section>
             <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
               {listing.booking_mode === "flexible"
                 ? "Or pick specific rooms"
-                : "Rooms"}
+                : listing.booking_mode === "whole_listing"
+                  ? "Rooms in this place"
+                  : "Rooms"}
             </h2>
             {roomsNode}
           </section>

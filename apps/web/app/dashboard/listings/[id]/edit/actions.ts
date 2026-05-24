@@ -355,22 +355,9 @@ export async function setBookingModeAction(
 
   const supabase = createServerClient();
 
-  // Switching to anything that needs rooms requires at least one room.
-  if (parsed.data.booking_mode !== "whole_listing") {
-    const { count } = await supabase
-      .from("listing_rooms")
-      .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId)
-      .is("deleted_at", null);
-    if (!count || count === 0) {
-      return {
-        ok: false,
-        error:
-          "Add at least one room before switching to a per-room booking mode.",
-      };
-    }
-  }
-
+  // Booking mode is independent of room existence. A listing in per-room or
+  // flexible mode with zero rooms is simply not bookable as rooms until the
+  // host adds one — a soft constraint the host resolves organically.
   const { error } = await supabase
     .from("listings")
     .update({ booking_mode: parsed.data.booking_mode })

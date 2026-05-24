@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Save } from "lucide-react";
+import { Info, Save } from "lucide-react";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -28,6 +28,27 @@ import { saveListingPatchAction } from "../actions";
 import type { EditorListing } from "../Editor";
 import { roomsSchema, type RoomsInput } from "../schemas";
 
+const MODE_NOTICE: Record<
+  EditorListing["booking_mode"],
+  { tone: "neutral" | "accent"; title: string; body: string }
+> = {
+  whole_listing: {
+    tone: "neutral",
+    title: "Whole-place mode — rooms are descriptive",
+    body: "Guests book this listing as a whole. Rooms you add here describe what's inside (e.g. King master, twin guest) and show on the public page. Switch to per-room or flexible mode if you want guests to book individual rooms.",
+  },
+  rooms_only: {
+    tone: "accent",
+    title: "Per-room mode — each room is independently bookable",
+    body: "Guests pick specific rooms on this listing. Pricing and capacity are set per-room.",
+  },
+  flexible: {
+    tone: "accent",
+    title: "Flexible mode — guests can pick rooms or buy out",
+    body: "Guests can book individual rooms (per-room rates apply) or the whole place (listing-level rate). Both paths live alongside each other.",
+  },
+};
+
 function toInt(v: string): number | null {
   if (v === "") return null;
   const n = parseInt(v, 10);
@@ -50,15 +71,40 @@ export function RoomsTab({
   rooms: EditorRoom[];
   onRoomsChange: (rooms: EditorRoom[]) => void;
 }) {
+  const notice = MODE_NOTICE[listing.booking_mode];
   return (
     <div className="space-y-6">
-      {listing.booking_mode !== "whole_listing" ? (
-        <RoomsManager
-          listingId={listing.id}
-          rooms={rooms}
-          onChange={onRoomsChange}
-        />
-      ) : null}
+      <div
+        className={`flex items-start gap-3 rounded-card border p-4 ${
+          notice.tone === "accent"
+            ? "border-brand-primary/40 bg-brand-accent/40"
+            : "border-brand-line bg-brand-light/60"
+        }`}
+      >
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+            notice.tone === "accent"
+              ? "bg-brand-primary text-white"
+              : "bg-brand-accent text-brand-primary"
+          }`}
+        >
+          <Info className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <div className="font-display text-sm font-semibold text-brand-ink">
+            {notice.title}
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-brand-mute">
+            {notice.body}
+          </p>
+        </div>
+      </div>
+
+      <RoomsManager
+        listingId={listing.id}
+        rooms={rooms}
+        onChange={onRoomsChange}
+      />
       <CapacityForm listing={listing} />
     </div>
   );

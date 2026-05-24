@@ -1,11 +1,5 @@
 import type { Metadata } from "next";
-import {
-  ArrowRight,
-  BedDouble,
-  ExternalLink,
-  Plus,
-  Settings2,
-} from "lucide-react";
+import { BedDouble, ExternalLink, Plus, Settings2 } from "lucide-react";
 import Link from "next/link";
 
 import { createServerClient } from "@/lib/supabase/server";
@@ -68,9 +62,6 @@ export default async function RoomsPage() {
   }));
 
   const totalRooms = groups.reduce((acc, g) => acc + g.rooms.length, 0);
-  const listingsWithRoomsMode = groups.filter(
-    (g) => g.booking_mode !== "whole_listing",
-  );
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -98,10 +89,6 @@ export default async function RoomsPage() {
       </header>
 
       {groups.length === 0 ? <EmptyStateNoListings /> : null}
-
-      {groups.length > 0 && listingsWithRoomsMode.length === 0 ? (
-        <EmptyStateAllWhole groups={groups} />
-      ) : null}
 
       <div className="space-y-6">
         {groups.map((g) => (
@@ -134,7 +121,6 @@ type Group = {
 };
 
 function ListingRoomsCard({ group }: { group: Group }) {
-  const isWholeOnly = group.booking_mode === "whole_listing";
   const roomsHref = `/dashboard/listings/${group.id}/edit?tab=rooms`;
 
   return (
@@ -188,20 +174,7 @@ function ListingRoomsCard({ group }: { group: Group }) {
 
       {/* Body */}
       <div className="p-5">
-        {isWholeOnly ? (
-          <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-5 text-sm text-brand-mute">
-            This listing is set to{" "}
-            <span className="font-medium text-brand-ink">whole-place</span>{" "}
-            bookings — guests book the entire listing, not individual rooms.{" "}
-            <Link
-              href={`/dashboard/listings/${group.id}/edit?tab=rooms`}
-              className="font-medium text-brand-primary hover:underline"
-            >
-              Switch to per-room
-            </Link>{" "}
-            to start adding rooms.
-          </div>
-        ) : group.rooms.length === 0 ? (
+        {group.rooms.length === 0 ? (
           <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-8 text-center">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
               <BedDouble className="h-5 w-5" />
@@ -210,8 +183,10 @@ function ListingRoomsCard({ group }: { group: Group }) {
               No rooms on this listing yet
             </div>
             <p className="mx-auto mt-1 max-w-sm text-xs text-brand-mute">
-              Add your first room to enable per-room booking — pricing and
-              capacity are per-room from there.
+              Add your first room.{" "}
+              {group.booking_mode === "whole_listing"
+                ? "In whole-place mode, rooms describe what's inside for guests."
+                : "In per-room mode, each room is independently bookable."}
             </p>
             <Link
               href={roomsHref}
@@ -297,46 +272,6 @@ function EmptyStateNoListings() {
         <Plus className="h-4 w-4" />
         New listing
       </Link>
-    </div>
-  );
-}
-
-function EmptyStateAllWhole({ groups }: { groups: Group[] }) {
-  return (
-    <div className="rounded-card border border-dashed border-brand-line bg-white p-6 shadow-card">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-          <BedDouble className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-base font-bold text-brand-ink">
-            None of your listings use per-room bookings yet
-          </h2>
-          <p className="mt-1 text-sm text-brand-mute">
-            Rooms only show up for listings set to{" "}
-            <span className="text-brand-ink">Per-room</span> or{" "}
-            <span className="text-brand-ink">Flexible</span> booking mode.
-            Switch a listing to enable rooms.
-          </p>
-          <ul className="mt-3 space-y-1.5 text-sm">
-            {groups.map((g) => (
-              <li
-                key={g.id}
-                className="flex items-center justify-between gap-3"
-              >
-                <span className="truncate text-brand-ink">{g.name}</span>
-                <Link
-                  href={`/dashboard/listings/${g.id}/edit?tab=rooms`}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-                >
-                  Switch to per-room
-                  <ArrowRight className="h-3 w-3" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
     </div>
   );
 }
