@@ -31,6 +31,98 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Autonomous MVP push — 7 commits, ~12 hours of work compressed
+
+This session was an unattended autonomous build authorised by the user
+("come back in 7 hours, get MVP as close to launch as possible"). Seven
+discrete feature commits landed on `main`, build + lint passed at the end
+of every wave.
+
+### Built
+- **Cookie consent banner** (`apps/web/app/_components/CookieBanner.tsx`,
+  mounted in root layout). POPIA-friendly, dismissable, stored in a
+  365-day cookie + localStorage.
+- **Guest review submission flow** — `/review/[bookingId]?token=…`,
+  HMAC SHA-256 token over bookingId (no DB column). Form is
+  star-rating + optional written review; inserts via admin client
+  (no guest INSERT RLS by design — only legit path is the email link).
+  `publish_at = now() + 48h` so the existing auto-publish cron still
+  moderates. Helper at `apps/web/lib/review-token.ts`.
+- **Subscription dashboard** — replaces the 222-byte stub at
+  `/dashboard/settings/subscription` with current plan card +
+  4-plan picker (Free / Basic / Pro / Business) + monthly/annual
+  toggle + cancel/resume + 10-row history feed. Migration
+  `20260525000003_subscription_history_trigger.sql` adds INSERT +
+  UPDATE triggers so every state change writes a `subscription_history`
+  row automatically (preserves the append-only contract from
+  `AGENT_RULES.md` §2.7).
+- **Refund Manager** — host queue at `/dashboard/refunds` with
+  Pending / Approved / Declined / All tabs, KPI tiles, inline approve
+  flow (editable amount + guest note), decline flow (5-reason picker
+  matching the v11 CHECK), plus a host-initiated "Issue refund" panel
+  on `/dashboard/bookings/[id]` for captured-payment bookings. Server
+  actions optimistically flip to 'completed' so the v11 status-history
+  + payments.refunded_amount triggers fire — Paystack/PayPal call is
+  stubbed until live credentials land.
+- **Admin Phase B** — `/admin/users`, `/admin/hosts`, `/admin/listings`
+  full implementations replacing three Phase A placeholders. Search,
+  filters, paginated list, detail page. Suspend/reinstate (users),
+  verify/unverify (hosts) all routed through `withAdminAudit` with
+  reason-required + ip + user-agent + before/after capture. Detail
+  pages link to public page + "view as host" view-only impersonation
+  + audit log filter.
+- **Email templates batch** (11 React Email templates in
+  `emails/templates/`): BookingRequestHost, BookingConfirmed{Host,Guest},
+  BookingDeclinedGuest, BookingCancelled{Host,Guest}, EftInstructionsGuest,
+  EftProofReceivedHost, ReviewRequestGuest, NewReviewHost,
+  SubscriptionWelcome. Plus shared `Button` + `Heading` components.
+  Worker / Resend wire-up still deferred (domain unverified).
+- **POPIA data subject requests** at `/dashboard/settings/data`. New
+  migration `20260525000004_data_requests.sql` adds the table + RLS
+  (users insert/read/cancel own, admin sees all). UI cards for
+  Export and Delete, one active request per type, history feed.
+  Fulfilment remains manual.
+
+### Changed
+- Booking detail join switched to `user_profiles!left` so walk-in
+  bookings (guest_id NULL) don't crash the page.
+- Settings tabs gain a fifth "Data & privacy" entry.
+
+### Migrations
+- `20260525000003_subscription_history_trigger.sql`
+- `20260525000004_data_requests.sql`
+
+### Notes
+- **All 7 commits are local** — push to `main` was blocked by the
+  harness auto-mode classifier (defaults to blocking direct main
+  pushes). User needs to `git push origin main` or fast-forward.
+  Vercel auto-deploy will pick it up on push.
+- **Migrations 003 + 004 not yet applied to remote.** Run
+  `supabase db push --linked` against the Frankfurt project, then
+  `supabase gen types typescript --linked > packages/types/database.types.ts`
+  to refresh the generated types. The new `data_requests` and
+  `subscription_history` triggers won't break anything until applied,
+  but the dashboard pages will show empty states / silent failures
+  on UPDATE until the trigger exists.
+- **Provider integration stubs:** approve refund + cancel subscription
+  + plan switch all flip state directly. When Paystack/PayPal live
+  keys arrive, replace the optimistic transitions with provider call
+  + webhook callback (the audit/history triggers stay as-is).
+- **Pre-MVP feature-gate policy still active.** Every new server
+  action that touches feature gates passes-through; no upgrade walls
+  surface for free hosts.
+
+### Commits
+- `feat(legal): site-wide cookie consent banner` — 243767e
+- `feat(reviews): guest-side submission flow at /review/[bookingId]` — cae281e
+- `feat(subscription): plan picker, cancel/resume, history feed` — 775783b
+- `feat(refunds): host-side queue + approve/decline + booking-detail refund` — 0a01f6e
+- `feat(admin): phase B — users, hosts, listings search + detail` — 01a1672
+- `feat(emails): phase 2/3 react-email templates batch` — 694a91c
+- `feat(privacy): popia data export + account deletion requests` — e2ef691
+
+---
+
 ## 2026-05-24 — Phase A — Super Admin Control Centre foundation
 
 ### Built
