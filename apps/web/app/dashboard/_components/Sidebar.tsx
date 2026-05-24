@@ -2,6 +2,7 @@
 
 import {
   BarChart3,
+  BedDouble,
   Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
@@ -52,6 +53,7 @@ const MAIN: Item[] = [
     icon: HomeIcon,
     match: "prefix",
   },
+  { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
 ];
