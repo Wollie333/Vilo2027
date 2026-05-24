@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { LocationPicker } from "@/components/location/LocationPicker";
 
 import { saveListingPatchAction } from "../actions";
 import type { EditorListing } from "../Editor";
@@ -40,6 +41,11 @@ function strToNum(v: string): number | null {
 
 export function LocationTab({ listing }: { listing: EditorListing }) {
   const [pending, start] = useTransition();
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
+  // The placeholder value in .env.example is "pk." — treat that as missing
+  // so the picker only renders when a real token is configured.
+  const hasMapbox = mapboxToken.length > 3 && mapboxToken.startsWith("pk.");
+
   const form = useForm<LocationInput>({
     resolver: zodResolver(locationSchema),
     defaultValues: {
@@ -52,6 +58,13 @@ export function LocationTab({ listing }: { listing: EditorListing }) {
       longitude: listing.longitude == null ? "" : String(listing.longitude),
     },
   });
+
+  const watchedLat = form.watch("latitude");
+  const watchedLng = form.watch("longitude");
+  const latNum = watchedLat === "" ? null : Number(watchedLat);
+  const lngNum = watchedLng === "" ? null : Number(watchedLng);
+  const pickerLat = latNum != null && Number.isFinite(latNum) ? latNum : null;
+  const pickerLng = lngNum != null && Number.isFinite(lngNum) ? lngNum : null;
 
   function onSubmit(values: LocationInput) {
     start(async () => {
@@ -76,7 +89,9 @@ export function LocationTab({ listing }: { listing: EditorListing }) {
           Location
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          Address fields for now — Mapbox pin lands later.
+          {hasMapbox
+            ? "Search an address to drop the pin — the fields below fill in automatically. Edit them if you need to fine-tune."
+            : "Address fields only — set NEXT_PUBLIC_MAPBOX_TOKEN to switch on the search-and-pin picker."}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -86,6 +101,38 @@ export function LocationTab({ listing }: { listing: EditorListing }) {
             className="space-y-4"
             noValidate
           >
+            {hasMapbox ? (
+              <LocationPicker
+                latitude={pickerLat}
+                longitude={pickerLng}
+                token={mapboxToken}
+                onSelect={(sel) => {
+                  form.setValue("address_line1", sel.address_line1, {
+                    shouldDirty: true,
+                  });
+                  if (sel.city) {
+                    form.setValue("city", sel.city, { shouldDirty: true });
+                  }
+                  if (sel.province) {
+                    form.setValue("province", sel.province, {
+                      shouldDirty: true,
+                    });
+                  }
+                  if (sel.postal_code) {
+                    form.setValue("postal_code", sel.postal_code, {
+                      shouldDirty: true,
+                    });
+                  }
+                  form.setValue("latitude", String(sel.latitude), {
+                    shouldDirty: true,
+                  });
+                  form.setValue("longitude", String(sel.longitude), {
+                    shouldDirty: true,
+                  });
+                }}
+              />
+            ) : null}
+
             <FormField
               control={form.control}
               name="address_line1"

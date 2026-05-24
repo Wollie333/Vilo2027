@@ -318,8 +318,9 @@ export function Editor({
 
       <div className="mt-8 rounded border border-brand-line bg-white p-4 text-xs text-brand-mute">
         <Globe className="mr-1.5 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
-        Rich-text description (Tiptap) and a Mapbox location picker are deferred
-        — the current editor uses plain text and address fields.
+        Each tab saves on its own. The Mapbox picker on Location and the
+        rich-text editor on Basic info activate when their env vars are set —
+        without them the editor falls back to plain address + text fields.
       </div>
     </div>
   );
