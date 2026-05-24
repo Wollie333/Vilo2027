@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-All CI/CD runs through GitHub Actions. Six workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `deploy-web.yml`, `mobile-preview.yml`, `docker-build.yml`). Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `DOCKERHUB_*`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
+All CI/CD runs through GitHub Actions. Five workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `mobile-preview.yml`, `docker-build.yml`). The web app deploys via Vercel's native GitHub integration, not a workflow. Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `DOCKERHUB_*`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
 
 **Doppler integration:**
 - Workflows that need app secrets at build time use either `doppler run -- <command>` (full env injection) or `dopplerhq/secrets-fetch-action` (named outputs for build-args).
@@ -21,11 +21,12 @@ All CI/CD runs through GitHub Actions. Six workflow files live in `.github/workf
 db-migrate.yml       (1st — schema must be live before app)
     ↓
 deploy-functions.yml  (2nd — Edge Functions deployed)
-    ↓
-deploy-web.yml        (3rd — web app deployed last)
+
+Vercel (parallel)     Web deploy via native GitHub integration —
+                      Doppler→Vercel sync keeps prod env in lockstep.
 ```
 
-Use `needs:` in each workflow to enforce this chain.
+Use `needs:` in each workflow to enforce ordering when chained.
 
 ---
 
@@ -104,61 +105,11 @@ jobs:
 
 ---
 
-### `deploy-web.yml` — Deploy web app to Vercel
+### Vercel web deploys
 
-**Trigger:** `push` to `main`
-**Needs:** `db-migrate` job must complete first
+The web app deploys via Vercel's native GitHub integration — no workflow file needed. Every push to `main` triggers a Vercel build automatically. Production env vars are kept in sync with Doppler `prd` via the Doppler→Vercel integration.
 
-```yaml
-name: Deploy Web
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy-web:
-    runs-on: ubuntu-latest
-    needs: [db-migrate, deploy-functions]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build web app
-        run: cd apps/web && pnpm build
-        env:
-          # Vercel pulls production env vars from Doppler integration
-          # These are the only build-time values needed here
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          working-directory: apps/web
-```
-
-**GitHub Secrets required:**
-- `VERCEL_TOKEN` — Vercel personal access token
-- `VERCEL_ORG_ID` — from Vercel project settings
-- `VERCEL_PROJECT_ID` — from Vercel project settings
-- `NEXT_PUBLIC_SUPABASE_URL` — production Supabase URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — production anon key
+If you ever need CI-controlled deploys (e.g., to gate on tests or chain after `db-migrate`), reintroduce a workflow that uses `doppler run -- pnpm --filter web build` + `amondnet/vercel-action` and add `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` as GH secrets.
 
 ---
 
@@ -297,15 +248,12 @@ All secrets are set in GitHub → Repo Settings → Secrets and variables → Ac
 
 | Secret | Used in | Where to get it |
 |---|---|---|
-| `DOPPLER_TOKEN` | deploy-web, docker-build (and any workflow needing app secrets) | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
+| `DOPPLER_TOKEN` | docker-build (and any workflow needing app secrets) | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
 | `DOCKERHUB_USERNAME` | docker-build | Your Docker Hub username |
 | `DOCKERHUB_TOKEN` | docker-build | hub.docker.com → Account Settings → Security → Access Tokens |
 | `SUPABASE_ACCESS_TOKEN` | db-migrate, deploy-functions, ci | supabase.com → Account → Access Tokens |
 | `SUPABASE_PROJECT_ID` | db-migrate, deploy-functions | Supabase Dashboard → Project Settings → General |
 | `SUPABASE_DB_URL` | db-migrate | Supabase Dashboard → Settings → Database → Connection String (Transaction mode) |
-| `VERCEL_TOKEN` | deploy-web | Vercel → Account Settings → Tokens |
-| `VERCEL_ORG_ID` | deploy-web | Vercel → Project Settings → General |
-| `VERCEL_PROJECT_ID` | deploy-web | Vercel → Project Settings → General |
 | `EXPO_TOKEN` | mobile-preview | expo.dev → Account Settings → Access Tokens |
 
 **App secrets (NEXT_PUBLIC_SUPABASE_*, PAYSTACK_*, PAYPAL_*, RESEND_API_KEY, etc.)** are *not* stored as GitHub secrets — they live in Doppler `prd` and are pulled into workflows via `DOPPLER_TOKEN`.
