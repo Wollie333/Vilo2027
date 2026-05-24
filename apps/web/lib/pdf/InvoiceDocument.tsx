@@ -9,6 +9,24 @@ export type InvoiceLineItem = {
   subtotal: number;
 };
 
+export type InvoiceBanking = {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  branchCode: string;
+  accountType: string;
+  swiftCode?: string | null;
+  reference?: string | null;
+};
+
+export type InvoiceBusiness = {
+  legalName?: string | null;
+  tradingName?: string | null;
+  vatNumber?: string | null;
+  companyRegistrationNumber?: string | null;
+  billingAddress?: string[] | null;
+};
+
 export type InvoiceProps = {
   invoiceNumber: string;
   status: "draft" | "issued" | "paid" | "cancelled";
@@ -18,6 +36,8 @@ export type InvoiceProps = {
     handle: string | null;
     email: string | null;
     phone: string | null;
+    banking?: InvoiceBanking | null;
+    business?: InvoiceBusiness | null;
   };
   guest: {
     name: string | null;
@@ -73,16 +93,42 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
           <View style={styles.col}>
             <Text style={styles.sectionLabel}>From</Text>
             <Text style={styles.partyName}>
-              {invoice.host.displayName ?? "—"}
+              {invoice.host.business?.tradingName ??
+                invoice.host.business?.legalName ??
+                invoice.host.displayName ??
+                "—"}
             </Text>
+            {invoice.host.business?.legalName &&
+            invoice.host.business?.tradingName &&
+            invoice.host.business.legalName !==
+              invoice.host.business.tradingName ? (
+              <Text style={styles.partyLine}>
+                {invoice.host.business.legalName}
+              </Text>
+            ) : null}
             {invoice.host.handle ? (
               <Text style={styles.partyLine}>@{invoice.host.handle}</Text>
             ) : null}
+            {invoice.host.business?.billingAddress?.map((line, i) => (
+              <Text key={`addr-${i}`} style={styles.partyLine}>
+                {line}
+              </Text>
+            ))}
             {invoice.host.email ? (
               <Text style={styles.partyLine}>{invoice.host.email}</Text>
             ) : null}
             {invoice.host.phone ? (
               <Text style={styles.partyLine}>{invoice.host.phone}</Text>
+            ) : null}
+            {invoice.host.business?.vatNumber ? (
+              <Text style={styles.partyLine}>
+                VAT {invoice.host.business.vatNumber}
+              </Text>
+            ) : null}
+            {invoice.host.business?.companyRegistrationNumber ? (
+              <Text style={styles.partyLine}>
+                Reg {invoice.host.business.companyRegistrationNumber}
+              </Text>
             ) : null}
           </View>
           <View style={styles.col}>
@@ -166,6 +212,31 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
             </Text>
           </View>
         </View>
+
+        {invoice.host.banking ? (
+          <View style={styles.notesBox}>
+            <Text style={styles.notesLabel}>Payment details</Text>
+            <Text style={styles.notesBody}>
+              {invoice.host.banking.bankName} —{" "}
+              {invoice.host.banking.accountHolder}
+            </Text>
+            <Text style={styles.notesBody}>
+              Account {invoice.host.banking.accountNumber} ·{" "}
+              {invoice.host.banking.accountType} · Branch{" "}
+              {invoice.host.banking.branchCode}
+              {invoice.host.banking.swiftCode
+                ? ` · SWIFT ${invoice.host.banking.swiftCode}`
+                : ""}
+            </Text>
+            {invoice.host.banking.reference ? (
+              <Text
+                style={[styles.notesBody, { marginTop: 4, color: "#4A7C6A" }]}
+              >
+                Use reference: {invoice.host.banking.reference}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {invoice.notes ? (
           <View style={styles.notesBox}>

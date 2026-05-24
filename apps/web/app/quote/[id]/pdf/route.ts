@@ -1,10 +1,53 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { decryptAccountNumber } from "@/lib/crypto/banking";
+import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
 import { renderQuotePdf } from "@/lib/pdf/render";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+type BusinessRow = {
+  legal_name: string | null;
+  trading_name: string | null;
+  vat_number: string | null;
+  company_registration_number: string | null;
+  billing_address_line1: string | null;
+  billing_address_line2: string | null;
+  billing_city: string | null;
+  billing_postcode: string | null;
+  billing_country: string | null;
+};
+
+function shapeBusiness(row: BusinessRow | null): QuoteBusiness | null {
+  if (!row) return null;
+  const addressLines: string[] = [
+    row.billing_address_line1,
+    row.billing_address_line2,
+    [row.billing_city, row.billing_postcode].filter(Boolean).join(" "),
+    row.billing_country && row.billing_country !== "ZA"
+      ? row.billing_country
+      : null,
+  ].filter((l): l is string => !!l && l.trim().length > 0);
+  const out: QuoteBusiness = {
+    legalName: row.legal_name,
+    tradingName: row.trading_name,
+    vatNumber: row.vat_number,
+    companyRegistrationNumber: row.company_registration_number,
+    billingAddress: addressLines.length > 0 ? addressLines : null,
+  };
+  if (
+    !out.legalName &&
+    !out.tradingName &&
+    !out.vatNumber &&
+    !out.companyRegistrationNumber &&
+    (!out.billingAddress || out.billingAddress.length === 0)
+  ) {
+    return null;
+  }
+  return out;
+}
 
 export async function GET(
   _req: Request,
@@ -28,7 +71,7 @@ export async function GET(
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes,
       listing:listings ( name ),
-      host:hosts!inner ( display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
+      host:hosts!inner ( id, display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
     `,
     )
     .eq("id", params.id)
@@ -45,6 +88,7 @@ export async function GET(
   const hostObj = Array.isArray(quote.host)
     ? quote.host[0]
     : (quote.host as {
+        id?: string;
         display_name?: string;
         handle?: string;
         user_id?: string;
@@ -66,6 +110,48 @@ export async function GET(
     .select("label, quantity, unit_price, subtotal")
     .eq("quote_id", params.id)
     .order("sort_order");
+
+  // Live banking + business (quotes always reflect the host's current values).
+  // RLS gates these tables to the host owner — and we've already verified
+  // ownership of the quote above.
+  let banking: QuoteBanking | null = null;
+  let business: QuoteBusiness | null = null;
+  if (hostObj.id) {
+    const [{ data: bank }, { data: biz }] = await Promise.all([
+      supabase
+        .from("eft_banking_details")
+        .select(
+          "bank_name, account_holder, account_number, account_type, branch_code, swift_code",
+        )
+        .eq("host_id", hostObj.id)
+        .eq("is_default", true)
+        .eq("is_archived", false)
+        .maybeSingle(),
+      supabase
+        .from("host_business_details")
+        .select(
+          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
+        )
+        .eq("host_id", hostObj.id)
+        .maybeSingle(),
+    ]);
+
+    if (bank?.account_number) {
+      try {
+        banking = {
+          bankName: bank.bank_name,
+          accountHolder: bank.account_holder,
+          accountNumber: decryptAccountNumber(bank.account_number),
+          accountType: bank.account_type,
+          branchCode: bank.branch_code,
+          swiftCode: bank.swift_code,
+        };
+      } catch {
+        banking = null;
+      }
+    }
+    business = shapeBusiness(biz as BusinessRow | null);
+  }
 
   const lineRows: {
     description: string;
@@ -131,6 +217,8 @@ export async function GET(
       handle: hostObj.handle ?? null,
       email: hostProfile?.email ?? null,
       phone: hostProfile?.phone ?? null,
+      banking,
+      business,
     },
     guest: {
       name: quote.guest_name,

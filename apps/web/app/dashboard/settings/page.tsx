@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, Crown, ExternalLink } from "lucide-react";
+import { ArrowRight, Crown, ExternalLink, Landmark } from "lucide-react";
 import Link from "next/link";
 
 import { createServerClient } from "@/lib/supabase/server";
@@ -118,6 +118,32 @@ export default async function SettingsPage() {
           </Link>
         </section>
       )}
+
+      {host ? (
+        <section>
+          <h2 className="mb-3 font-display text-lg font-bold text-brand-ink">
+            Banking & business
+          </h2>
+          <Link
+            href="/dashboard/settings/banking"
+            className="flex items-start gap-4 rounded-card border border-brand-line bg-white p-5 shadow-card transition-colors hover:bg-brand-light/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+              <Landmark className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-display text-base font-semibold text-brand-ink">
+                Bank accounts, VAT & invoice details
+              </div>
+              <p className="mt-0.5 text-sm text-brand-mute">
+                Used on EFT instructions, invoices, and quotes. Account numbers
+                are encrypted.
+              </p>
+            </div>
+            <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-brand-mute" />
+          </Link>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-3 font-display text-lg font-bold text-brand-ink">

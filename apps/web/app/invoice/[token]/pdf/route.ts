@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { decryptAccountNumber } from "@/lib/crypto/banking";
+import {
+  type InvoiceBanking,
+  type InvoiceBusiness,
+} from "@/lib/pdf/InvoiceDocument";
 import { renderInvoicePdf } from "@/lib/pdf/render";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -22,13 +27,94 @@ type Lines = {
   }[];
 };
 
+type BankingSnap = {
+  bank_name?: string;
+  account_holder?: string;
+  account_number?: string;
+  account_type?: string;
+  branch_code?: string;
+  swift_code?: string | null;
+  reference_format?: string;
+};
+type BusinessSnap = {
+  legal_name?: string | null;
+  trading_name?: string | null;
+  vat_number?: string | null;
+  company_registration_number?: string | null;
+  billing_address_line1?: string | null;
+  billing_address_line2?: string | null;
+  billing_city?: string | null;
+  billing_postcode?: string | null;
+  billing_country?: string | null;
+};
 type Snap = {
   display_name?: string;
   handle?: string;
   email?: string;
   phone?: string;
+  banking?: BankingSnap | null;
+  business?: BusinessSnap | null;
+  booking_ref?: string | null;
 };
 type GuestSnap = { name?: string; email?: string; phone?: string };
+
+function buildBusiness(
+  snap: BusinessSnap | null | undefined,
+): InvoiceBusiness | null {
+  if (!snap) return null;
+  const addressLines: string[] = [
+    snap.billing_address_line1,
+    snap.billing_address_line2,
+    [snap.billing_city, snap.billing_postcode].filter(Boolean).join(" "),
+    snap.billing_country && snap.billing_country !== "ZA"
+      ? snap.billing_country
+      : null,
+  ].filter((l): l is string => !!l && l.trim().length > 0);
+  const out: InvoiceBusiness = {
+    legalName: snap.legal_name ?? null,
+    tradingName: snap.trading_name ?? null,
+    vatNumber: snap.vat_number ?? null,
+    companyRegistrationNumber: snap.company_registration_number ?? null,
+    billingAddress: addressLines.length > 0 ? addressLines : null,
+  };
+  // If every field is empty, treat as null so the PDF skips it.
+  if (
+    !out.legalName &&
+    !out.tradingName &&
+    !out.vatNumber &&
+    !out.companyRegistrationNumber &&
+    (!out.billingAddress || out.billingAddress.length === 0)
+  ) {
+    return null;
+  }
+  return out;
+}
+
+function buildBanking(
+  snap: BankingSnap | null | undefined,
+  bookingRef: string | null,
+): InvoiceBanking | null {
+  if (!snap || !snap.account_number) return null;
+  let accountNumber: string;
+  try {
+    accountNumber = decryptAccountNumber(snap.account_number);
+  } catch {
+    return null;
+  }
+  const reference =
+    bookingRef && snap.reference_format
+      ? snap.reference_format.replace(/\{booking_ref\}/g, bookingRef)
+      : null;
+  return {
+    bankName: snap.bank_name ?? "",
+    accountHolder: snap.account_holder ?? "",
+    accountNumber,
+    accountType: snap.account_type ?? "",
+    branchCode: snap.branch_code ?? "",
+    swiftCode: snap.swift_code ?? null,
+    reference,
+  };
+}
 
 export async function GET(
   _req: Request,
@@ -103,6 +189,9 @@ export async function GET(
     });
   }
 
+  const banking = buildBanking(host.banking, host.booking_ref ?? null);
+  const business = buildBusiness(host.business);
+
   const buffer = await renderInvoicePdf({
     invoiceNumber: invoice.invoice_number,
     status: invoice.status as "draft" | "issued" | "paid" | "cancelled",
@@ -112,6 +201,8 @@ export async function GET(
       handle: host.handle ?? null,
       email: host.email ?? null,
       phone: host.phone ?? null,
+      banking,
+      business,
     },
     guest: {
       name: guest.name ?? null,

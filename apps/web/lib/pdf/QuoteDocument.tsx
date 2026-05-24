@@ -9,6 +9,23 @@ export type QuoteLineItem = {
   subtotal: number;
 };
 
+export type QuoteBanking = {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  branchCode: string;
+  accountType: string;
+  swiftCode?: string | null;
+};
+
+export type QuoteBusiness = {
+  legalName?: string | null;
+  tradingName?: string | null;
+  vatNumber?: string | null;
+  companyRegistrationNumber?: string | null;
+  billingAddress?: string[] | null;
+};
+
 export type QuoteProps = {
   quoteNumber: string;
   status: "draft" | "sent" | "accepted" | "declined" | "expired" | "converted";
@@ -20,6 +37,8 @@ export type QuoteProps = {
     handle: string | null;
     email: string | null;
     phone: string | null;
+    banking?: QuoteBanking | null;
+    business?: QuoteBusiness | null;
   };
   guest: {
     name: string;
@@ -79,16 +98,42 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
           <View style={styles.col}>
             <Text style={styles.sectionLabel}>From</Text>
             <Text style={styles.partyName}>
-              {quote.host.displayName ?? "—"}
+              {quote.host.business?.tradingName ??
+                quote.host.business?.legalName ??
+                quote.host.displayName ??
+                "—"}
             </Text>
+            {quote.host.business?.legalName &&
+            quote.host.business?.tradingName &&
+            quote.host.business.legalName !==
+              quote.host.business.tradingName ? (
+              <Text style={styles.partyLine}>
+                {quote.host.business.legalName}
+              </Text>
+            ) : null}
             {quote.host.handle ? (
               <Text style={styles.partyLine}>@{quote.host.handle}</Text>
             ) : null}
+            {quote.host.business?.billingAddress?.map((line, i) => (
+              <Text key={`addr-${i}`} style={styles.partyLine}>
+                {line}
+              </Text>
+            ))}
             {quote.host.email ? (
               <Text style={styles.partyLine}>{quote.host.email}</Text>
             ) : null}
             {quote.host.phone ? (
               <Text style={styles.partyLine}>{quote.host.phone}</Text>
+            ) : null}
+            {quote.host.business?.vatNumber ? (
+              <Text style={styles.partyLine}>
+                VAT {quote.host.business.vatNumber}
+              </Text>
+            ) : null}
+            {quote.host.business?.companyRegistrationNumber ? (
+              <Text style={styles.partyLine}>
+                Reg {quote.host.business.companyRegistrationNumber}
+              </Text>
             ) : null}
           </View>
           <View style={styles.col}>
@@ -164,6 +209,23 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
             </Text>
           </View>
         </View>
+
+        {quote.host.banking ? (
+          <View style={styles.notesBox}>
+            <Text style={styles.notesLabel}>Banking details</Text>
+            <Text style={styles.notesBody}>
+              {quote.host.banking.bankName} — {quote.host.banking.accountHolder}
+            </Text>
+            <Text style={styles.notesBody}>
+              Account {quote.host.banking.accountNumber} ·{" "}
+              {quote.host.banking.accountType} · Branch{" "}
+              {quote.host.banking.branchCode}
+              {quote.host.banking.swiftCode
+                ? ` · SWIFT ${quote.host.banking.swiftCode}`
+                : ""}
+            </Text>
+          </View>
+        ) : null}
 
         {quote.acceptUrl ? (
           <View style={styles.notesBox}>

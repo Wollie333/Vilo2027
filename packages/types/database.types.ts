@@ -668,11 +668,15 @@ export type Database = {
         Row: {
           account_holder: string
           account_number: string
+          account_type: string
           bank_name: string
           branch_code: string
           created_at: string
           host_id: string
           id: string
+          is_archived: boolean
+          is_default: boolean
+          label: string
           reference_format: string
           swift_code: string | null
           updated_at: string
@@ -680,11 +684,15 @@ export type Database = {
         Insert: {
           account_holder: string
           account_number: string
+          account_type?: string
           bank_name: string
           branch_code: string
           created_at?: string
           host_id: string
           id?: string
+          is_archived?: boolean
+          is_default?: boolean
+          label?: string
           reference_format?: string
           swift_code?: string | null
           updated_at?: string
@@ -692,11 +700,15 @@ export type Database = {
         Update: {
           account_holder?: string
           account_number?: string
+          account_type?: string
           bank_name?: string
           branch_code?: string
           created_at?: string
           host_id?: string
           id?: string
+          is_archived?: boolean
+          is_default?: boolean
+          label?: string
           reference_format?: string
           swift_code?: string | null
           updated_at?: string
@@ -704,6 +716,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "eft_banking_details_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_business_details: {
+        Row: {
+          billing_address_line1: string | null
+          billing_address_line2: string | null
+          billing_city: string | null
+          billing_country: string
+          billing_postcode: string | null
+          company_registration_number: string | null
+          created_at: string
+          host_id: string
+          legal_name: string | null
+          trading_name: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postcode?: string | null
+          company_registration_number?: string | null
+          created_at?: string
+          host_id: string
+          legal_name?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          billing_address_line1?: string | null
+          billing_address_line2?: string | null
+          billing_city?: string | null
+          billing_country?: string
+          billing_postcode?: string | null
+          company_registration_number?: string | null
+          created_at?: string
+          host_id?: string
+          legal_name?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_business_details_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: true
             referencedRelation: "hosts"
@@ -841,7 +906,6 @@ export type Database = {
           avatar_url: string | null
           avg_rating: number | null
           avg_response_hours: number | null
-          banking_details: Json | null
           bio: string | null
           cover_photo_url: string | null
           created_at: string
@@ -864,7 +928,6 @@ export type Database = {
           avatar_url?: string | null
           avg_rating?: number | null
           avg_response_hours?: number | null
-          banking_details?: Json | null
           bio?: string | null
           cover_photo_url?: string | null
           created_at?: string
@@ -887,7 +950,6 @@ export type Database = {
           avatar_url?: string | null
           avg_rating?: number | null
           avg_response_hours?: number | null
-          banking_details?: Json | null
           bio?: string | null
           cover_photo_url?: string | null
           created_at?: string

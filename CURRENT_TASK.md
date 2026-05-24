@@ -58,6 +58,35 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 
 ---
 
+## Session Notes — 2026-05-24 — Banking & business details
+
+### What landed (out of original auth scope — user-authorised deviation)
+- New `/dashboard/settings/banking` page with multi-account banking
+  management (one default enforced via partial unique index) plus a tax/
+  business form (VAT, company reg, billing address).
+- AES-256-GCM at the application layer — `BANKING_CIPHER_KEY` required;
+  Node impl at `apps/web/lib/crypto/banking.ts`, Deno impl at
+  `supabase/functions/_shared/banking-crypto.ts`, same wire format
+  (`v1.<nonce>.<ct>.<tag>`).
+- Edge Function `eft-banking-details` gates by booking ownership +
+  `payment_method='eft'` + status `pending_eft`/`pending_eft_review` per
+  `AGENT_RULES.md` §4.4.
+- Invoices and quotes now render the issuer's banking + tax info on the
+  PDF; invoices snapshot at issue time, quotes use live data.
+- Migration: `20260525000001_banking_and_business_details.sql` — reshapes
+  `eft_banking_details`, adds `host_business_details`, updates the
+  invoice trigger, seeds `banking_details` feature key across plans.
+
+### Pickup
+- Set `BANKING_CIPHER_KEY` in Doppler dev (`openssl rand -base64 32`,
+  then `doppler secrets set BANKING_CIPHER_KEY=...`).
+- `supabase db reset` then `supabase gen types typescript --local >
+  packages/types/database.types.ts`.
+- The Edge Function deploys via the existing `deploy-functions.yml` on
+  next push; no extra wiring.
+
+---
+
 ## Session Notes — 2026-05-24 — Seasonal pricing MVP
 
 ### What landed

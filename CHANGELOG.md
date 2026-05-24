@@ -31,6 +31,54 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — MVP — Banking & business details (enterprise)
+
+### Built
+- **`/dashboard/settings/banking`** — dedicated sub-route for hosts to manage
+  multiple bank accounts (with one default) plus a tax/business block
+  (legal/trading name, VAT no., company reg no., billing address).
+- **Encrypted account numbers** — AES-256-GCM with `BANKING_CIPHER_KEY`,
+  format `v1.<nonce>.<ciphertext>.<tag>`. Two implementations (Node and
+  Web Crypto) at `apps/web/lib/crypto/banking.ts` and
+  `supabase/functions/_shared/banking-crypto.ts`.
+- **Edge Function `eft-banking-details`** — exposes the host's default
+  account + business + computed payment reference to a verified guest on a
+  `pending_eft` / `pending_eft_review` booking (per `AGENT_RULES.md` §1.5
+  and §4.4). Returns `EFT_NOT_APPLICABLE` / `NOT_BOOKING_GUEST` /
+  `NO_DEFAULT_BANK_ACCOUNT` / `DECRYPT_FAILED` for the gate failures.
+- **Invoice + quote PDFs** — issuer "From" block now carries trading/legal
+  name, VAT no., company reg no., and billing address; a "Payment details"
+  block (invoices) / "Banking details" block (quotes) renders the full
+  account number, branch code, account type, SWIFT, and reference (invoice
+  only — uses the snapshot's booking ref). Invoices read from the frozen
+  `host_snapshot.banking`; quotes read live.
+
+### Changed
+- `eft_banking_details` reshape: dropped `UNIQUE(host_id)`, added `label`,
+  `account_type`, `is_default`, `is_archived`; partial unique index
+  `eft_banking_one_default_per_host` enforces one default per host
+  excluding archived rows. Updated `eft_banking_details` to track
+  `updated_at` via trigger.
+- `on_booking_confirmed_create_invoice()` now snapshots `banking` and
+  `business` into `host_snapshot`, plus the booking reference for reference
+  substitution in PDFs.
+- `hosts.banking_details` jsonb column dropped (vestigial — pre-MVP).
+
+### Migrations
+- `supabase/migrations/20260525000001_banking_and_business_details.sql`
+
+### Notes
+- This shipped out of the original `/login` `/register` Phase-1 scope —
+  user-authorised deviation per `feedback_ship_over_block`.
+- `BANKING_CIPHER_KEY` must be generated (`openssl rand -base64 32`) and
+  set in Doppler dev. Without it the page falls back to "????" for last4
+  in the accounts list and the Edge Function returns `DECRYPT_FAILED`.
+- `banking_details` feature key seeded enabled across every plan (matches
+  the `seasonal_pricing` precedent — gate is wired so plans can disable
+  later with one UPDATE).
+
+---
+
 ## 2026-05-24 — MVP — Seasonal pricing (host catalog)
 
 ### Built
