@@ -49,6 +49,7 @@ export async function loginAction(
 
 export async function registerAction(
   input: RegisterInput,
+  next?: string | null,
 ): Promise<AuthActionResult> {
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
@@ -62,11 +63,17 @@ export async function registerAction(
   const supabase = createServerClient();
   const origin = headers().get("origin") ?? "";
 
+  // Only honour relative next paths (open-redirect guard).
+  const safeNext = next && next.startsWith("/") ? next : null;
+  const confirmUrl = safeNext
+    ? `${origin}/auth/confirm?next=${encodeURIComponent(safeNext)}`
+    : `${origin}/auth/confirm`;
+
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      emailRedirectTo: `${origin}/auth/confirm`,
+      emailRedirectTo: confirmUrl,
     },
   });
 
@@ -75,8 +82,11 @@ export async function registerAction(
   }
 
   const needsVerification = !data.session;
-  const query = needsVerification ? "?verify=1" : "";
-  redirect(`/login${query}`);
+  const params = new URLSearchParams();
+  if (needsVerification) params.set("verify", "1");
+  if (safeNext) params.set("next", safeNext);
+  const qs = params.toString();
+  redirect(`/login${qs ? `?${qs}` : ""}`);
 }
 
 export async function signOutAction(): Promise<void> {

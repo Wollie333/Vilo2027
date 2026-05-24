@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -30,11 +31,16 @@ import { registerSchema, type RegisterInput } from "../schemas";
 
 export function RegisterForm() {
   const [isPending, startTransition] = useTransition();
+  const params = useSearchParams();
+  const prefillEmail = params.get("email") ?? "";
+  const next = params.get("next");
+  const inviteToken = params.get("invite_token");
+  const fromInvite = Boolean(inviteToken && prefillEmail);
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
+      email: prefillEmail,
       password: "",
       confirmPassword: "",
       acceptTerms: false,
@@ -43,21 +49,27 @@ export function RegisterForm() {
 
   function onSubmit(values: RegisterInput) {
     startTransition(async () => {
-      const result = await registerAction(values);
+      const result = await registerAction(values, next);
       if (result && !result.ok) {
         toast.error(result.error);
       }
     });
   }
 
+  const signInHref = next
+    ? `/login?next=${encodeURIComponent(next)}`
+    : "/login";
+
   return (
     <Card className="rounded-card border-brand-line shadow-card">
       <CardHeader className="space-y-2 pb-4 text-center">
         <CardTitle className="font-display text-2xl font-bold tracking-tight text-brand-ink">
-          Create your account
+          {fromInvite ? "Accept your invite" : "Create your account"}
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          Manage your listings, calendars, and bookings in one place.
+          {fromInvite
+            ? "Set a password to finish joining the team."
+            : "Manage your listings, calendars, and bookings in one place."}
         </CardDescription>
       </CardHeader>
 
@@ -79,7 +91,8 @@ export function RegisterForm() {
                       type="email"
                       autoComplete="email"
                       placeholder="you@example.com"
-                      disabled={isPending}
+                      disabled={isPending || fromInvite}
+                      readOnly={fromInvite}
                       {...field}
                     />
                   </FormControl>
@@ -179,7 +192,7 @@ export function RegisterForm() {
         <p className="mt-6 text-center text-sm text-brand-mute">
           Already have an account?{" "}
           <Link
-            href="/login"
+            href={signInHref}
             className="font-medium text-brand-primary hover:underline"
           >
             Sign in

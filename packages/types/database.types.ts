@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -1146,58 +1145,80 @@ export type Database = {
         Row: {
           base_price: number
           bathrooms: number | null
+          bed_type: string | null
           bedrooms: number | null
           cleaning_fee: number
           created_at: string
           currency: string
           deleted_at: string | null
           description: string | null
+          experiences: string[]
+          featured_photo_id: string | null
           id: string
           is_active: boolean
           listing_id: string
           max_guests: number
           name: string
+          room_size_sqm: number | null
           sort_order: number
           updated_at: string
+          view_type: string | null
           weekend_price: number | null
         }
         Insert: {
           base_price: number
           bathrooms?: number | null
+          bed_type?: string | null
           bedrooms?: number | null
           cleaning_fee?: number
           created_at?: string
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          experiences?: string[]
+          featured_photo_id?: string | null
           id?: string
           is_active?: boolean
           listing_id: string
           max_guests?: number
           name: string
+          room_size_sqm?: number | null
           sort_order?: number
           updated_at?: string
+          view_type?: string | null
           weekend_price?: number | null
         }
         Update: {
           base_price?: number
           bathrooms?: number | null
+          bed_type?: string | null
           bedrooms?: number | null
           cleaning_fee?: number
           created_at?: string
           currency?: string
           deleted_at?: string | null
           description?: string | null
+          experiences?: string[]
+          featured_photo_id?: string | null
           id?: string
           is_active?: boolean
           listing_id?: string
           max_guests?: number
           name?: string
+          room_size_sqm?: number | null
           sort_order?: number
           updated_at?: string
+          view_type?: string | null
           weekend_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listing_rooms_featured_photo_id_fkey"
+            columns: ["featured_photo_id"]
+            isOneToOne: false
+            referencedRelation: "listing_photos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listing_rooms_listing_id_fkey"
             columns: ["listing_id"]
@@ -2665,6 +2686,8 @@ export type Database = {
           expires_at: string
           host_id: string
           id: string
+          invited_by: string | null
+          role: string
           token: string
         }
         Insert: {
@@ -2674,6 +2697,8 @@ export type Database = {
           expires_at?: string
           host_id: string
           id?: string
+          invited_by?: string | null
+          role?: string
           token?: string
         }
         Update: {
@@ -2683,6 +2708,8 @@ export type Database = {
           expires_at?: string
           host_id?: string
           id?: string
+          invited_by?: string | null
+          role?: string
           token?: string
         }
         Relationships: [
@@ -2693,6 +2720,13 @@ export type Database = {
             referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       staff_members: {
@@ -2700,18 +2734,21 @@ export type Database = {
           created_at: string
           host_id: string
           id: string
+          role: string
           user_id: string
         }
         Insert: {
           created_at?: string
           host_id: string
           id?: string
+          role?: string
           user_id: string
         }
         Update: {
           created_at?: string
           host_id?: string
           id?: string
+          role?: string
           user_id?: string
         }
         Relationships: [
