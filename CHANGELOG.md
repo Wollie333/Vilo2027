@@ -31,6 +31,63 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — MVP — Seasonal pricing (host catalog)
+
+### Built
+- **Seasonal pricing dashboard** at `/dashboard/seasonal-pricing` — a new
+  top-level tab directly below **Rooms** in the sidebar. Hosts manage
+  date-range price rules per listing or per individual room, with:
+  - **Per-rule min-nights override** (e.g. 5-night minimum over Christmas
+    layered on a 1-night default).
+  - **Explicit priority** integer — higher wins on overlap, with a
+    non-blocking overlap warning shown in the edit dialog.
+  - **Active/inactive toggle** for archiving without deleting.
+  - **Room vs listing precedence** — room-scoped rules beat listing-wide
+    rules on the same night (mirrors the addons pattern).
+  - Live "R{price} × N nights = R{total}" preview while editing.
+- **Server Actions** (`apps/web/app/dashboard/seasonal-pricing/actions.ts`)
+  — create / update / delete / toggle-active, all gated by
+  `check_feature_permission('seasonal_pricing')` and ownership checked.
+
+### Changed
+- `calculate_booking_price()` now takes an **optional** `p_room_id` and
+  picks the highest-priority active rule with room-scope > listing-scope
+  ordering. Existing 3-arg callers are unaffected.
+- New RPC `get_min_nights_for_stay(listing, room, in, out)` returns the
+  effective minimum-nights for a stay (will be wired into booking
+  validation in Phase 2 / `booking-create`).
+
+### Migrations
+- `20260524000008_seasonal_pricing_v2.sql` — adds
+  `room_id / min_nights / priority / is_active / updated_at` to
+  `listing_seasonal_pricing`, indexes, updated_at trigger, replaces
+  `calculate_booking_price()`, adds `get_min_nights_for_stay()`, seeds
+  `plan_features.seasonal_pricing` enabled on all plans.
+
+### Notes
+- **Feature gate open on every plan for now** (founder's free test
+  account). To restrict later flip
+  `plan_features.is_enabled = false WHERE plan = 'free' AND feature_key = 'seasonal_pricing'`
+  — no code change.
+- The existing `listing_seasonal_pricing` RLS policies in
+  `20260501000011` (host_manage_seasonal_pricing / public_read /
+  admin_full) already cover the new columns; no policy edits needed.
+- Out of scope (tracked for follow-up): calendar timeline visualisation,
+  bulk-copy rules across listings/rooms, SA preset templates
+  (December / Easter / school terms), percentage adjustments, guest
+  checkout price-preview wire-up (Phase 2 work — the function update
+  lets it drop in cleanly).
+- **Build status:** `pnpm lint` clean. `tsc --noEmit` clean on every
+  new and modified file. `pnpm build` currently fails on an unrelated,
+  pre-existing WIP file (`tabs/RoomsManager.tsx` line 81) tied to the
+  uncommitted "room enterprise fields" feature — not introduced by this
+  session.
+
+### Commit
+- pending
+
+---
+
 ## 2026-05-24 — Phase 0 — Docker CI + Doppler secret centralization
 
 ### Built

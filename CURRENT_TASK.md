@@ -58,6 +58,55 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 
 ---
 
+## Session Notes — 2026-05-24 — Seasonal pricing MVP
+
+### What landed
+- New top-level **Seasonal pricing** dashboard tab inserted directly under
+  Rooms in `_components/Sidebar.tsx`. Lives at `/dashboard/seasonal-pricing`.
+- Hosts can create date-range price rules scoped either to a whole listing
+  or a single room, with per-rule **min_nights** override, **priority**
+  integer (highest wins on overlap), active/inactive toggle, and overlap
+  warning + live nightly-total preview in the dialog.
+- Server Actions in `apps/web/app/dashboard/seasonal-pricing/{actions,schemas}.ts`,
+  gated by `check_feature_permission('seasonal_pricing')` — currently
+  enabled across every plan so the founder's free test account works.
+- Migration `20260524000008_seasonal_pricing_v2.sql` ALTERs
+  `listing_seasonal_pricing` (adds `room_id`/`min_nights`/`priority`/
+  `is_active`/`updated_at` + indexes), replaces `calculate_booking_price()`
+  with an optional `p_room_id` arg + priority-ordered rule lookup, and adds
+  `get_min_nights_for_stay()`.
+
+### Decisions
+- **Overlap policy:** allow overlaps with explicit priority field (user's
+  choice over block-at-save or highest-price-wins).
+- **Per-rule min-nights** included as MVP — industry standard for peak
+  seasons (Christmas etc.).
+- **Feature gate open to every plan for now** with the gating wiring in
+  place; flippable later by a one-row `plan_features` UPDATE.
+- **Room rules beat listing rules** on the same night, then priority
+  decides. Mirrors `listing_addons` precedence.
+- Used native `<input type="date">` rather than a shadcn Calendar popover
+  to keep the dialog tight for MVP.
+
+### Next-session pickup
+- Run `supabase db reset` to apply the migration locally, then
+  `supabase gen types typescript --local > packages/types/database.types.ts`
+  to regenerate types (the new columns are present in types but the
+  `calculate_booking_price` / `get_min_nights_for_stay` RPC signatures
+  in `database.types.ts` are still the pre-migration shape — harmless
+  for now since nothing in TS calls them, but worth regenerating).
+- **Pre-existing build blocker:** the in-progress "room enterprise
+  fields" feature (uncommitted) breaks `pnpm build` at
+  `tabs/RoomsManager.tsx:81` — `EditorRoom` literal is missing
+  `room_size_sqm`, `view_type`, `experiences`, `has_ensuite_bathroom`,
+  and 7 more fields added by `schemas.ts`. Needs the room-feature
+  author to finish the literal. Seasonal-pricing code itself
+  passes `tsc --noEmit` cleanly.
+- Wire `calculate_booking_price()` + `get_min_nights_for_stay()` into
+  the eventual `booking-create` Edge Function (Phase 2).
+
+---
+
 ## Session Notes — 2026-05-23 closing session
 
 ### What landed this session

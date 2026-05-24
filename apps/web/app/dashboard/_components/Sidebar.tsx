@@ -6,6 +6,7 @@ import {
   Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
+  CalendarRange,
   ChevronsUpDown,
   CreditCard,
   Crown,
@@ -54,6 +55,11 @@ const MAIN: Item[] = [
     match: "prefix",
   },
   { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
+  {
+    href: "/dashboard/seasonal-pricing",
+    label: "Seasonal pricing",
+    icon: CalendarRange,
+  },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
 ];

@@ -1287,16 +1287,23 @@ export type Database = {
           description: string | null
           experiences: string[]
           featured_photo_id: string | null
+          floor_number: number | null
+          has_ensuite_bathroom: boolean
           id: string
+          inventory_count: number
           is_active: boolean
           listing_id: string
           max_guests: number
           name: string
+          pets_allowed: boolean
+          private_entrance: boolean
           room_size_sqm: number | null
+          smoking_allowed: boolean
           sort_order: number
           updated_at: string
           view_type: string | null
           weekend_price: number | null
+          wheelchair_accessible: boolean
         }
         Insert: {
           base_price: number
@@ -1310,16 +1317,23 @@ export type Database = {
           description?: string | null
           experiences?: string[]
           featured_photo_id?: string | null
+          floor_number?: number | null
+          has_ensuite_bathroom?: boolean
           id?: string
+          inventory_count?: number
           is_active?: boolean
           listing_id: string
           max_guests?: number
           name: string
+          pets_allowed?: boolean
+          private_entrance?: boolean
           room_size_sqm?: number | null
+          smoking_allowed?: boolean
           sort_order?: number
           updated_at?: string
           view_type?: string | null
           weekend_price?: number | null
+          wheelchair_accessible?: boolean
         }
         Update: {
           base_price?: number
@@ -1333,16 +1347,23 @@ export type Database = {
           description?: string | null
           experiences?: string[]
           featured_photo_id?: string | null
+          floor_number?: number | null
+          has_ensuite_bathroom?: boolean
           id?: string
+          inventory_count?: number
           is_active?: boolean
           listing_id?: string
           max_guests?: number
           name?: string
+          pets_allowed?: boolean
+          private_entrance?: boolean
           room_size_sqm?: number | null
+          smoking_allowed?: boolean
           sort_order?: number
           updated_at?: string
           view_type?: string | null
           weekend_price?: number | null
+          wheelchair_accessible?: boolean
         }
         Relationships: [
           {
@@ -1367,30 +1388,45 @@ export type Database = {
           currency: string
           end_date: string
           id: string
+          is_active: boolean
           label: string
           listing_id: string
+          min_nights: number | null
           price: number
+          priority: number
+          room_id: string | null
           start_date: string
+          updated_at: string
         }
         Insert: {
           created_at?: string
           currency?: string
           end_date: string
           id?: string
+          is_active?: boolean
           label: string
           listing_id: string
+          min_nights?: number | null
           price: number
+          priority?: number
+          room_id?: string | null
           start_date: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
           currency?: string
           end_date?: string
           id?: string
+          is_active?: boolean
           label?: string
           listing_id?: string
+          min_nights?: number | null
           price?: number
+          priority?: number
+          room_id?: string | null
           start_date?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -1398,6 +1434,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_seasonal_pricing_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -2783,6 +2826,41 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_beds: {
+        Row: {
+          bed_kind: string
+          created_at: string
+          id: string
+          quantity: number
+          room_id: string
+          sort_order: number
+        }
+        Insert: {
+          bed_kind: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          room_id: string
+          sort_order?: number
+        }
+        Update: {
+          bed_kind?: string
+          created_at?: string
+          id?: string
+          quantity?: number
+          room_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_beds_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
