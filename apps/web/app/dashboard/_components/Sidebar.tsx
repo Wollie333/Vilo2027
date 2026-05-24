@@ -43,12 +43,6 @@ const MAIN: Item[] = [
     match: "exact",
   },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
-  {
-    href: "/dashboard/quotes",
-    label: "Quotes",
-    icon: FileText,
-    match: "prefix",
-  },
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
   {
@@ -73,8 +67,14 @@ const CONNECT: Item[] = [
 ];
 
 const TOOLS: Item[] = [
-  { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
+  {
+    href: "/dashboard/quotes",
+    label: "Quotes",
+    icon: FileText,
+    match: "prefix",
+  },
   { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
+  { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
