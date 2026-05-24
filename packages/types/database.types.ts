@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -3336,7 +3337,12 @@ export type Database = {
             Returns: string
           }
       calculate_booking_price: {
-        Args: { p_check_in: string; p_check_out: string; p_listing_id: string }
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_listing_id: string
+          p_room_id?: string
+        }
         Returns: Json
       }
       calculate_policy_refund_amount: {
@@ -3498,6 +3504,15 @@ export type Database = {
       get_listing_policy_summary: {
         Args: { p_listing_id: string }
         Returns: Json
+      }
+      get_min_nights_for_stay: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_listing_id: string
+          p_room_id: string
+        }
+        Returns: number
       }
       get_my_host_id: { Args: never; Returns: string }
       get_my_host_id_as_staff: { Args: never; Returns: string }

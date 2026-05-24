@@ -51,9 +51,16 @@ CREATE TRIGGER trigger_seasonal_pricing_touch
   FOR EACH ROW EXECUTE FUNCTION touch_seasonal_pricing_updated_at();
 
 -- ─── 3. Replace calculate_booking_price() ────────────────────────
--- Adds an optional p_room_id param. When set, sources base/weekend
--- fallback prices from listing_rooms instead of listings, and prefers
--- room-scoped seasonal rules. Existing 3-arg callers stay valid.
+-- Adds a p_room_id param (DEFAULT NULL so existing 3-arg callers still
+-- work). When set, sources base/weekend fallback prices from listing_rooms
+-- instead of listings, and prefers room-scoped seasonal rules.
+--
+-- PG treats (uuid, date, date) and (uuid, date, date, uuid) as two
+-- distinct functions, so we must DROP the old signature first — otherwise
+-- both coexist and 3-arg calls would bind to the obsolete logic, and a
+-- bare COMMENT ON FUNCTION becomes ambiguous.
+DROP FUNCTION IF EXISTS calculate_booking_price(uuid, date, date);
+
 CREATE OR REPLACE FUNCTION calculate_booking_price(
   p_listing_id uuid,
   p_check_in   date,
