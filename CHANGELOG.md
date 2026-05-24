@@ -31,6 +31,67 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Phase 1/2 — Per-room bookings finished (listing editor wired)
+
+### Built
+- **`migrations/20260524000000_per_room_bookings.sql`** lands the per-room
+  domain: `listing_rooms` + `booking_rooms` tables, `listings.booking_mode`
+  (`whole_listing` / `rooms_only` / `flexible`), `bookings.scope`
+  (`whole_listing` / `rooms`), nullable `room_id` on `blocked_dates`,
+  `listing_photos`, `listing_amenities`, scope-aware unique indexes
+  on blocked dates + amenities, `on_booking_confirmed` rewritten to
+  block per-room or whole-listing, two new SQL helpers
+  (`room_is_available`, `listing_is_available_whole`), RLS policies for
+  the two new tables, and a `touch_listing_rooms_updated_at` trigger.
+- **Listing editor — Basic info tab** gains a **Booking mode** card
+  (Whole place / Rooms only / Both). Switching to per-room is blocked
+  until the host adds at least one room.
+- **Listing editor — Rooms tab** now hosts a `RoomsManager` (collapsible
+  rows, per-room name / description / capacity / pricing / cleaning
+  fee / active toggle) plus the existing whole-listing capacity form.
+  Add / edit / soft-delete a room. Delete refuses if any active
+  booking references the room.
+- **Listing editor — Photos tab** accepts the rooms prop and renders an
+  overlay "Listing-wide / room name" picker on hover for each photo
+  when the listing has rooms. Picker calls `assignPhotoToRoomAction`.
+- **Listing editor — Amenities tab** rewritten to accept the full
+  `EditorAmenity[]` (with id + roomId) and a `rooms` prop. Per amenity,
+  when rooms exist, a "Listing-wide / room name" select assigns the
+  amenity to a specific room.
+- **Server actions** (`actions.ts`):
+  - `setBookingModeAction` — guards switching to per-room without rooms.
+  - `createRoomAction` / `updateRoomAction` / `deleteRoomAction` —
+    full CRUD with sort_order assignment and active-booking guard on
+    delete.
+  - `assignPhotoToRoomAction` / `assignAmenityToRoomAction` —
+    update `room_id` on the join row.
+  - `replaceAmenitiesAction` now snapshots the existing `amenity_key`→
+    `room_id` map before the wipe, re-applies it on the reinsert, and
+    returns the new rows (with fresh IDs) so the per-room dropdown
+    updates immediately after save without a page reload.
+- **Generated types regenerated** (`packages/types/database.types.ts`,
+  +157 lines for the two new tables and the new columns).
+
+### Notes
+- **`pnpm --filter web build`** passes (34 routes). `pnpm --filter web
+  lint` zero warnings. No `console.log` introduced.
+- The room-picker overlay on `PhotosTab` shows only on hover via
+  `group-hover:opacity-100`. Acceptable on desktop; mobile UX will
+  switch to an always-visible picker when we polish the editor on
+  small screens.
+- Booking flow (`/listing/[slug]/book`), price preview, and the
+  `booking-create` Edge Function still treat every listing as
+  whole-place. Wiring guests to pick a room is the next slice — the
+  schema, RLS, triggers and host-side editor are all in place.
+
+### Migrations
+- `20260524000000_per_room_bookings.sql`
+
+### Commit
+- (pending — Track 1)
+
+---
+
 ## 2026-05-23 — Phase 2 — Dashboard overview redesigned with real KPIs
 
 ### Built

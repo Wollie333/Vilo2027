@@ -63,9 +63,35 @@ export type EditorListing = {
   house_rules: string | null;
   instant_booking: boolean;
   is_published: boolean;
+  booking_mode: "whole_listing" | "rooms_only" | "flexible";
 };
 
-export type EditorPhoto = { id: string; url: string };
+export type EditorPhoto = {
+  id: string;
+  url: string;
+  roomId: string | null;
+};
+
+export type EditorAmenity = {
+  id: string;
+  key: string;
+  label: string | null;
+  roomId: string | null;
+};
+
+export type EditorRoom = {
+  id: string;
+  name: string;
+  description: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  max_guests: number;
+  base_price: number;
+  weekend_price: number | null;
+  cleaning_fee: number;
+  sort_order: number;
+  is_active: boolean;
+};
 
 type TabKey =
   | "basic"
@@ -94,16 +120,19 @@ export function Editor({
   listing,
   amenities,
   photos: initialPhotos,
+  rooms: initialRooms,
 }: {
   listing: EditorListing;
-  amenities: string[];
+  amenities: EditorAmenity[];
   photos: EditorPhoto[];
+  rooms: EditorRoom[];
 }) {
   const [active, setActive] = useState<TabKey>("basic");
   const [isPublished, setIsPublished] = useState(listing.is_published);
   const [publishPending, startPublish] = useTransition();
   // Local photo state so adds/removes show immediately without page reload.
   const [photos, setPhotos] = useState<EditorPhoto[]>(initialPhotos);
+  const [rooms, setRooms] = useState<EditorRoom[]>(initialRooms);
 
   function togglePublish() {
     const next = !isPublished;
@@ -218,13 +247,24 @@ export function Editor({
             <PhotosTab
               listingId={listing.id}
               photos={photos}
+              rooms={rooms}
               onChange={setPhotos}
             />
           ) : null}
           {active === "location" ? <LocationTab listing={listing} /> : null}
-          {active === "rooms" ? <RoomsTab listing={listing} /> : null}
+          {active === "rooms" ? (
+            <RoomsTab
+              listing={listing}
+              rooms={rooms}
+              onRoomsChange={setRooms}
+            />
+          ) : null}
           {active === "amenities" ? (
-            <AmenitiesTab listingId={listing.id} initial={amenities} />
+            <AmenitiesTab
+              listingId={listing.id}
+              initial={amenities}
+              rooms={rooms}
+            />
           ) : null}
           {active === "pricing" ? <PricingTab listing={listing} /> : null}
           {active === "policies" ? <PoliciesTab listing={listing} /> : null}

@@ -38,7 +38,33 @@ function numToStr(v: number | null | undefined, fallback = ""): string {
   return v == null ? fallback : String(v);
 }
 
-export function RoomsTab({ listing }: { listing: EditorListing }) {
+import type { EditorRoom } from "../Editor";
+import { RoomsManager } from "./RoomsManager";
+
+export function RoomsTab({
+  listing,
+  rooms,
+  onRoomsChange,
+}: {
+  listing: EditorListing;
+  rooms: EditorRoom[];
+  onRoomsChange: (rooms: EditorRoom[]) => void;
+}) {
+  return (
+    <div className="space-y-6">
+      {listing.booking_mode !== "whole_listing" ? (
+        <RoomsManager
+          listingId={listing.id}
+          rooms={rooms}
+          onChange={onRoomsChange}
+        />
+      ) : null}
+      <CapacityForm listing={listing} />
+    </div>
+  );
+}
+
+function CapacityForm({ listing }: { listing: EditorListing }) {
   const [pending, start] = useTransition();
   const form = useForm<RoomsInput>({
     resolver: zodResolver(roomsSchema),

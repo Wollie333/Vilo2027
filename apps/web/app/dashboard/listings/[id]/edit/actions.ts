@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { patchSchema, type PatchInput } from "./schemas";
+import {
+  bookingModeSchema,
+  patchSchema,
+  roomPatchSchema,
+  type BookingModeInput,
+  type PatchInput,
+  type RoomPatch,
+} from "./schemas";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -63,16 +70,32 @@ export async function saveListingPatchAction(
   return { ok: true };
 }
 
+export type AmenityRow = {
+  id: string;
+  key: string;
+  label: string | null;
+  roomId: string | null;
+};
+
 export async function replaceAmenitiesAction(
   listingId: string,
   amenityKeys: string[],
-): Promise<ActionResult> {
+): Promise<ActionResult<AmenityRow[]>> {
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
   const supabase = createServerClient();
 
-  // Wipe + reinsert. Simple and predictable for the first cut.
+  // Preserve per-amenity room assignments across re-saves by snapshotting
+  // the existing key → room_id map before wiping.
+  const { data: existing } = await supabase
+    .from("listing_amenities")
+    .select("amenity_key, room_id")
+    .eq("listing_id", listingId);
+  const roomByKey = new Map<string, string | null>(
+    (existing ?? []).map((r) => [r.amenity_key, r.room_id ?? null]),
+  );
+
   const { error: delErr } = await supabase
     .from("listing_amenities")
     .delete()
@@ -85,6 +108,7 @@ export async function replaceAmenitiesAction(
     const rows = amenityKeys.map((key) => ({
       listing_id: listingId,
       amenity_key: key,
+      room_id: roomByKey.get(key) ?? null,
     }));
     const { error: insErr } = await supabase
       .from("listing_amenities")
@@ -94,8 +118,21 @@ export async function replaceAmenitiesAction(
     }
   }
 
+  const { data: fresh } = await supabase
+    .from("listing_amenities")
+    .select("id, amenity_key, amenity_label, room_id")
+    .eq("listing_id", listingId);
+
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
-  return { ok: true };
+  return {
+    ok: true,
+    data: (fresh ?? []).map((r) => ({
+      id: r.id,
+      key: r.amenity_key,
+      label: r.amenity_label ?? null,
+      roomId: r.room_id ?? null,
+    })),
+  };
 }
 
 export async function uploadListingPhotoAction(
@@ -276,5 +313,221 @@ export async function togglePublishAction(
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+// ─── Booking mode + rooms ────────────────────────────────────────
+
+export async function setBookingModeAction(
+  listingId: string,
+  input: BookingModeInput,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = bookingModeSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Pick a valid booking mode." };
+  }
+
+  const supabase = createServerClient();
+
+  // Switching to anything that needs rooms requires at least one room.
+  if (parsed.data.booking_mode !== "whole_listing") {
+    const { count } = await supabase
+      .from("listing_rooms")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .is("deleted_at", null);
+    if (!count || count === 0) {
+      return {
+        ok: false,
+        error:
+          "Add at least one room before switching to a per-room booking mode.",
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("listings")
+    .update({ booking_mode: parsed.data.booking_mode })
+    .eq("id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not change booking mode." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/listings");
+  return { ok: true };
+}
+
+export async function createRoomAction(
+  listingId: string,
+  input: RoomPatch,
+): Promise<ActionResult<{ id: string }>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = roomPatchSchema.safeParse(input);
+  if (!parsed.success || !parsed.data.name) {
+    return { ok: false, error: "Room needs at least a name." };
+  }
+  if (parsed.data.base_price == null) {
+    return { ok: false, error: "Room needs a base price." };
+  }
+  if (parsed.data.max_guests == null) {
+    return { ok: false, error: "Room needs a max guest count." };
+  }
+
+  const supabase = createServerClient();
+
+  // Sort_order = current max + 1 so new rooms append to the bottom.
+  const { data: existing } = await supabase
+    .from("listing_rooms")
+    .select("sort_order")
+    .eq("listing_id", listingId)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSort = (existing?.sort_order ?? -1) + 1;
+
+  const { data: room, error } = await supabase
+    .from("listing_rooms")
+    .insert({
+      listing_id: listingId,
+      name: parsed.data.name,
+      description: parsed.data.description ?? null,
+      bedrooms: parsed.data.bedrooms ?? 1,
+      bathrooms: parsed.data.bathrooms ?? 0,
+      max_guests: parsed.data.max_guests,
+      base_price: parsed.data.base_price,
+      weekend_price: parsed.data.weekend_price ?? null,
+      cleaning_fee: parsed.data.cleaning_fee ?? 0,
+      is_active: parsed.data.is_active ?? true,
+      sort_order: nextSort,
+    })
+    .select("id")
+    .single();
+  if (error || !room) {
+    return { ok: false, error: "Could not create room. Try again." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true, data: { id: room.id } };
+}
+
+export async function updateRoomAction(
+  listingId: string,
+  roomId: string,
+  input: RoomPatch,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = roomPatchSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Some room fields look wrong." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("listing_rooms")
+    .update(parsed.data)
+    .eq("id", roomId)
+    .eq("listing_id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not save room." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+export async function deleteRoomAction(
+  listingId: string,
+  roomId: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+
+  // Refuse if any active booking_rooms point at this room.
+  const { count } = await supabase
+    .from("booking_rooms")
+    .select("id, booking:bookings!inner ( status )", {
+      count: "exact",
+      head: true,
+    })
+    .eq("room_id", roomId)
+    .in("booking.status", [
+      "pending",
+      "pending_eft",
+      "confirmed",
+      "checked_in",
+    ]);
+
+  if (count && count > 0) {
+    return {
+      ok: false,
+      error: `Can't delete — ${count} active booking${
+        count === 1 ? "" : "s"
+      } still references this room.`,
+    };
+  }
+
+  const { error } = await supabase
+    .from("listing_rooms")
+    .update({ deleted_at: new Date().toISOString(), is_active: false })
+    .eq("id", roomId)
+    .eq("listing_id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not delete room." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+export async function assignPhotoToRoomAction(
+  listingId: string,
+  photoId: string,
+  roomId: string | null,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("listing_photos")
+    .update({ room_id: roomId })
+    .eq("id", photoId)
+    .eq("listing_id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not assign photo." };
+  }
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+export async function assignAmenityToRoomAction(
+  listingId: string,
+  amenityId: string,
+  roomId: string | null,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("listing_amenities")
+    .update({ room_id: roomId })
+    .eq("id", amenityId)
+    .eq("listing_id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not assign amenity." };
+  }
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
   return { ok: true };
 }

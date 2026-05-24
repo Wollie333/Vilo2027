@@ -12,16 +12,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { deleteListingPhotoAction, uploadListingPhotoAction } from "../actions";
-import type { EditorPhoto } from "../Editor";
+import {
+  assignPhotoToRoomAction,
+  deleteListingPhotoAction,
+  uploadListingPhotoAction,
+} from "../actions";
+import type { EditorPhoto, EditorRoom } from "../Editor";
 
 export function PhotosTab({
   listingId,
   photos,
+  rooms,
   onChange,
 }: {
   listingId: string;
   photos: EditorPhoto[];
+  rooms: EditorRoom[];
   onChange: (photos: EditorPhoto[]) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -40,9 +46,22 @@ export function PhotosTab({
     setUploading(false);
 
     if (result.ok && result.data) {
-      onChange([...photos, { id: result.data.id, url: result.data.url }]);
+      onChange([
+        ...photos,
+        { id: result.data.id, url: result.data.url, roomId: null },
+      ]);
       toast.success("Photo uploaded");
     } else if (!result.ok) {
+      toast.error(result.error);
+    }
+  }
+
+  async function assignRoom(photoId: string, roomId: string | null) {
+    const result = await assignPhotoToRoomAction(listingId, photoId, roomId);
+    if (result.ok) {
+      onChange(photos.map((p) => (p.id === photoId ? { ...p, roomId } : p)));
+      toast.success(roomId ? "Photo assigned to room" : "Photo unassigned");
+    } else {
       toast.error(result.error);
     }
   }
@@ -75,7 +94,7 @@ export function PhotosTab({
           {photos.map((p) => (
             <div
               key={p.id}
-              className="group relative aspect-[4/3] overflow-hidden rounded-card border border-brand-line bg-brand-accent"
+              className="group relative flex aspect-[4/3] flex-col overflow-hidden rounded-card border border-brand-line bg-brand-accent"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -92,6 +111,26 @@ export function PhotosTab({
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+              {rooms.length > 0 ? (
+                <select
+                  value={p.roomId ?? ""}
+                  onChange={(e) =>
+                    assignRoom(
+                      p.id,
+                      e.target.value === "" ? null : e.target.value,
+                    )
+                  }
+                  className="absolute bottom-2 left-2 right-2 rounded border border-white/30 bg-black/60 px-2 py-1 text-[11px] text-white opacity-0 backdrop-blur transition-opacity group-hover:opacity-100"
+                  aria-label="Assign photo to room"
+                >
+                  <option value="">Listing-wide</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
+                </select>
+              ) : null}
             </div>
           ))}
 

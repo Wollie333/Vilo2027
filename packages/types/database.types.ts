@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -102,6 +103,7 @@ export type Database = {
           id: string
           listing_id: string
           reason: string | null
+          room_id: string | null
         }
         Insert: {
           booking_id?: string | null
@@ -111,6 +113,7 @@ export type Database = {
           id?: string
           listing_id: string
           reason?: string | null
+          room_id?: string | null
         }
         Update: {
           booking_id?: string | null
@@ -120,6 +123,7 @@ export type Database = {
           id?: string
           listing_id?: string
           reason?: string | null
+          room_id?: string | null
         }
         Relationships: [
           {
@@ -141,6 +145,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_dates_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -184,6 +195,48 @@ export type Database = {
           },
         ]
       }
+      booking_rooms: {
+        Row: {
+          base_amount: number
+          booking_id: string
+          cleaning_fee: number
+          created_at: string
+          id: string
+          room_id: string
+        }
+        Insert: {
+          base_amount: number
+          booking_id: string
+          cleaning_fee?: number
+          created_at?: string
+          id?: string
+          room_id: string
+        }
+        Update: {
+          base_amount?: number
+          booking_id?: string
+          cleaning_fee?: number
+          created_at?: string
+          id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_rooms_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_rooms_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           actioned_by: string | null
@@ -218,6 +271,7 @@ export type Database = {
           previous_status: string | null
           reference: string
           refund_total: number | null
+          scope: string
           session_date: string | null
           special_requests: string | null
           status: string
@@ -257,6 +311,7 @@ export type Database = {
           previous_status?: string | null
           reference?: string
           refund_total?: number | null
+          scope?: string
           session_date?: string | null
           special_requests?: string | null
           status?: string
@@ -296,6 +351,7 @@ export type Database = {
           previous_status?: string | null
           reference?: string
           refund_total?: number | null
+          scope?: string
           session_date?: string | null
           special_requests?: string | null
           status?: string
@@ -719,18 +775,21 @@ export type Database = {
           amenity_label: string | null
           id: string
           listing_id: string
+          room_id: string | null
         }
         Insert: {
           amenity_key: string
           amenity_label?: string | null
           id?: string
           listing_id: string
+          room_id?: string | null
         }
         Update: {
           amenity_key?: string
           amenity_label?: string | null
           id?: string
           listing_id?: string
+          room_id?: string | null
         }
         Relationships: [
           {
@@ -738,6 +797,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_amenities_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -748,6 +814,7 @@ export type Database = {
           created_at: string
           id: string
           listing_id: string
+          room_id: string | null
           sort_order: number
           storage_path: string
           url: string
@@ -757,6 +824,7 @@ export type Database = {
           created_at?: string
           id?: string
           listing_id: string
+          room_id?: string | null
           sort_order?: number
           storage_path: string
           url: string
@@ -766,6 +834,7 @@ export type Database = {
           created_at?: string
           id?: string
           listing_id?: string
+          room_id?: string | null
           sort_order?: number
           storage_path?: string
           url?: string
@@ -776,6 +845,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_photos_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -870,6 +946,71 @@ export type Database = {
           },
         ]
       }
+      listing_rooms: {
+        Row: {
+          base_price: number
+          bathrooms: number | null
+          bedrooms: number | null
+          cleaning_fee: number
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          listing_id: string
+          max_guests: number
+          name: string
+          sort_order: number
+          updated_at: string
+          weekend_price: number | null
+        }
+        Insert: {
+          base_price: number
+          bathrooms?: number | null
+          bedrooms?: number | null
+          cleaning_fee?: number
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          listing_id: string
+          max_guests?: number
+          name: string
+          sort_order?: number
+          updated_at?: string
+          weekend_price?: number | null
+        }
+        Update: {
+          base_price?: number
+          bathrooms?: number | null
+          bedrooms?: number | null
+          cleaning_fee?: number
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          listing_id?: string
+          max_guests?: number
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          weekend_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_rooms_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_seasonal_pricing: {
         Row: {
           created_at: string
@@ -923,6 +1064,7 @@ export type Database = {
           base_price: number | null
           bathrooms: number | null
           bedrooms: number | null
+          booking_mode: string
           cancellation_policy: string
           cancellation_policy_label: string | null
           check_in_time: string | null
@@ -980,6 +1122,7 @@ export type Database = {
           base_price?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          booking_mode?: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
           check_in_time?: string | null
@@ -1037,6 +1180,7 @@ export type Database = {
           base_price?: number | null
           bathrooms?: number | null
           bedrooms?: number | null
+          booking_mode?: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
           check_in_time?: string | null
@@ -2691,6 +2835,10 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
       is_super_admin: { Args: never; Returns: boolean }
+      listing_is_available_whole: {
+        Args: { p_check_in: string; p_check_out: string; p_listing_id: string }
+        Returns: boolean
+      }
       longtransactionsenabled: { Args: never; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -2735,6 +2883,15 @@ export type Database = {
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      room_is_available: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_listing_id: string
+          p_room_id: string
+        }
+        Returns: boolean
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
