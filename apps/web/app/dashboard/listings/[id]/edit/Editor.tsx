@@ -319,8 +319,7 @@ export function Editor({
       <div className="mt-8 rounded border border-brand-line bg-white p-4 text-xs text-brand-mute">
         <Globe className="mr-1.5 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
         Rich-text description (Tiptap) and a Mapbox location picker are deferred
-        — the current editor uses plain text and address fields. Photos upload
-        one at a time; drag-and-drop multi-upload lands next slice.
+        — the current editor uses plain text and address fields.
       </div>
     </div>
   );

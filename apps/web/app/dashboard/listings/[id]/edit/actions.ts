@@ -260,6 +260,44 @@ export async function deleteListingPhotoAction(
   return { ok: true };
 }
 
+// Reorder listing-wide photos. The client passes the photo IDs in the new
+// display order; we write sort_order = index to match. Used by the drag-and-
+// drop reorder in PhotosTab — the first photo becomes the listing cover.
+export async function reorderListingPhotosAction(
+  listingId: string,
+  orderedIds: string[],
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false, error: "Nothing to reorder." };
+  }
+  if (orderedIds.some((id) => typeof id !== "string" || id.length === 0)) {
+    return { ok: false, error: "Bad photo id list." };
+  }
+
+  const supabase = createServerClient();
+  // Parallel updates — sort_order is independent per row, no FK churn, the
+  // listing_id eq narrows to this listing so cross-listing writes are blocked
+  // by RLS even if the IDs were forged.
+  const results = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("listing_photos")
+        .update({ sort_order: index })
+        .eq("id", id)
+        .eq("listing_id", listingId),
+    ),
+  );
+  if (results.some((r) => r.error)) {
+    return { ok: false, error: "Some photos didn't reorder. Try again." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
 export async function softDeleteListingAction(
   listingId: string,
 ): Promise<ActionResult> {
