@@ -46,7 +46,7 @@ export default async function BookingsListPage({
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email ), booking_rooms ( id )",
+        "id, reference, status, payment_status, scope, origin, guest_name, guest_email, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( name ), guest:user_profiles!left ( full_name, email ), booking_rooms ( id )",
       )
       .order("created_at", { ascending: false });
 
@@ -72,14 +72,22 @@ export default async function BookingsListPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Bookings
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          Every reservation across your listings. Guests can pay here; you
-          confirm here.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+            Bookings
+          </h1>
+          <p className="mt-1 text-sm text-brand-mute">
+            Every reservation across your listings. Guests can pay here; you
+            confirm here.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/bookings/new"
+          className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+        >
+          New booking
+        </Link>
       </header>
 
       <StatusFilter counts={counts} />
@@ -115,7 +123,13 @@ export default async function BookingsListPage({
                 const guest = b.guest as unknown as {
                   full_name: string | null;
                   email: string | null;
-                };
+                } | null;
+                const guestLabel =
+                  guest?.full_name ||
+                  b.guest_name ||
+                  guest?.email ||
+                  b.guest_email ||
+                  "—";
                 const listing = b.listing as unknown as { name: string };
                 return (
                   <tr
@@ -132,11 +146,16 @@ export default async function BookingsListPage({
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="font-medium text-brand-ink">
-                        {guest.full_name || guest.email || "—"}
+                        {guestLabel}
                       </div>
                       <div className="text-[11px] text-brand-mute">
                         {b.guests_count}{" "}
                         {b.guests_count === 1 ? "guest" : "guests"}
+                        {b.origin === "host_manual"
+                          ? " · Manual"
+                          : b.origin === "quote_converted"
+                            ? " · From quote"
+                            : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3 align-top">

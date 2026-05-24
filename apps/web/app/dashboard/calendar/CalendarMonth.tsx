@@ -71,11 +71,26 @@ export function CalendarMonth({
           const block = blocks.get(iso);
           const isToday = isSameDay(year, month, day, today);
 
+          const isQuoteHold =
+            block != null &&
+            block.booking_id == null &&
+            block.reason === "quote_pending";
+
           const cls = block
             ? block.booking_id
               ? "bg-brand-primary text-white font-semibold"
-              : "bg-brand-line text-brand-mute"
+              : isQuoteHold
+                ? "bg-status-pending/20 text-status-pending font-medium border border-dashed border-status-pending"
+                : "bg-brand-line text-brand-mute"
             : "text-brand-dark";
+
+          const titleText = block?.booking_id
+            ? "Booked"
+            : isQuoteHold
+              ? "Quote pending"
+              : block
+                ? block.reason || "Blocked"
+                : "";
 
           return (
             <div
@@ -83,13 +98,7 @@ export function CalendarMonth({
               className={`flex h-7 items-center justify-center rounded text-[11px] ${cls} ${
                 isToday ? "ring-2 ring-brand-dark" : ""
               }`}
-              title={
-                block?.booking_id
-                  ? "Booked"
-                  : block
-                    ? block.reason || "Blocked"
-                    : ""
-              }
+              title={titleText}
             >
               {day}
             </div>

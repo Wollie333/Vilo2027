@@ -8,6 +8,7 @@ import {
   ChevronsUpDown,
   CreditCard,
   Crown,
+  FileText,
   Home as HomeIcon,
   LayoutDashboard,
   LifeBuoy,
@@ -42,6 +43,12 @@ const MAIN: Item[] = [
     match: "exact",
   },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
+  {
+    href: "/dashboard/quotes",
+    label: "Quotes",
+    icon: FileText,
+    match: "prefix",
+  },
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
   {

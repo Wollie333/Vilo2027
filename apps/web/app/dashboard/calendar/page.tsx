@@ -189,6 +189,10 @@ export default async function CalendarPage({
                 label="Manually blocked"
               />
               <LegendDot
+                className="border border-dashed border-status-pending bg-status-pending/20 text-status-pending"
+                label="Quote pending"
+              />
+              <LegendDot
                 className="ring-2 ring-brand-dark"
                 label="Today"
                 ring

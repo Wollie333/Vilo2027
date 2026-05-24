@@ -102,6 +102,7 @@ export type Database = {
           date: string
           id: string
           listing_id: string
+          quote_id: string | null
           reason: string | null
           room_id: string | null
         }
@@ -112,6 +113,7 @@ export type Database = {
           date: string
           id?: string
           listing_id: string
+          quote_id?: string | null
           reason?: string | null
           room_id?: string | null
         }
@@ -122,6 +124,7 @@ export type Database = {
           date?: string
           id?: string
           listing_id?: string
+          quote_id?: string | null
           reason?: string | null
           room_id?: string | null
         }
@@ -148,10 +151,58 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "blocked_dates_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "blocked_dates_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_addons: {
+        Row: {
+          booking_id: string
+          created_at: string
+          id: string
+          label: string
+          quantity: number
+          sort_order: number
+          subtotal: number | null
+          unit_price: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          id?: string
+          label: string
+          quantity?: number
+          sort_order?: number
+          subtotal?: number | null
+          unit_price: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          quantity?: number
+          sort_order?: number
+          subtotal?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_addons_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -255,20 +306,26 @@ export type Database = {
           declined_at: string | null
           deleted_at: string | null
           eft_proof_url: string | null
-          guest_id: string
+          guest_email: string | null
+          guest_id: string | null
+          guest_name: string | null
+          guest_phone: string | null
           guests_breakdown: Json | null
           guests_count: number
           has_open_refund: boolean | null
           host_id: string
+          host_payment_note: string | null
           id: string
           internal_notes: string | null
           listing_id: string
           nights: number | null
+          origin: string
           payment_method: string | null
           payment_status: string
           policy_acknowledged: boolean
           policy_acknowledged_at: string | null
           previous_status: string | null
+          quote_id: string | null
           reference: string
           refund_total: number | null
           scope: string
@@ -295,20 +352,26 @@ export type Database = {
           declined_at?: string | null
           deleted_at?: string | null
           eft_proof_url?: string | null
-          guest_id: string
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           guests_breakdown?: Json | null
           guests_count?: number
           has_open_refund?: boolean | null
           host_id: string
+          host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
           listing_id: string
           nights?: number | null
+          origin?: string
           payment_method?: string | null
           payment_status?: string
           policy_acknowledged?: boolean
           policy_acknowledged_at?: string | null
           previous_status?: string | null
+          quote_id?: string | null
           reference?: string
           refund_total?: number | null
           scope?: string
@@ -335,20 +398,26 @@ export type Database = {
           declined_at?: string | null
           deleted_at?: string | null
           eft_proof_url?: string | null
-          guest_id?: string
+          guest_email?: string | null
+          guest_id?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           guests_breakdown?: Json | null
           guests_count?: number
           has_open_refund?: boolean | null
           host_id?: string
+          host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
           listing_id?: string
           nights?: number | null
+          origin?: string
           payment_method?: string | null
           payment_status?: string
           policy_acknowledged?: boolean
           policy_acknowledged_at?: string | null
           previous_status?: string | null
+          quote_id?: string | null
           reference?: string
           refund_total?: number | null
           scope?: string
@@ -385,6 +454,13 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
         ]
@@ -596,6 +672,35 @@ export type Database = {
           },
         ]
       }
+      host_counters: {
+        Row: {
+          host_id: string
+          last_invoice_number: number
+          last_quote_number: number
+          updated_at: string
+        }
+        Insert: {
+          host_id: string
+          last_invoice_number?: number
+          last_quote_number?: number
+          updated_at?: string
+        }
+        Update: {
+          host_id?: string
+          last_invoice_number?: number
+          last_quote_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_counters_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: true
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       host_feature_overrides: {
         Row: {
           created_at: string
@@ -765,6 +870,97 @@ export type Database = {
             columns: ["target_user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          booking_id: string
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          guest_id: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          line_items: Json
+          paid_at: string | null
+          pdf_storage_path: string | null
+          status: string
+          subtotal: number
+          total_amount: number
+          updated_at: string
+          vat_amount: number
+        }
+        Insert: {
+          booking_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token?: string
+          id?: string
+          invoice_number: string
+          issued_at?: string
+          line_items: Json
+          paid_at?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          subtotal: number
+          total_amount: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Update: {
+          booking_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot?: Json
+          host_id?: string
+          host_snapshot?: Json
+          hosted_token?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          line_items?: Json
+          paid_at?: string | null
+          pdf_storage_path?: string | null
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
         ]
@@ -1746,6 +1942,220 @@ export type Database = {
           },
         ]
       }
+      quote_addons: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          quantity: number
+          quote_id: string
+          sort_order: number
+          subtotal: number | null
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          quantity?: number
+          quote_id: string
+          sort_order?: number
+          subtotal?: number | null
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          quantity?: number
+          quote_id?: string
+          sort_order?: number
+          subtotal?: number | null
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_addons_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_rooms: {
+        Row: {
+          base_amount: number
+          cleaning_fee: number
+          created_at: string
+          id: string
+          quote_id: string
+          room_id: string
+        }
+        Insert: {
+          base_amount: number
+          cleaning_fee?: number
+          created_at?: string
+          id?: string
+          quote_id: string
+          room_id: string
+        }
+        Update: {
+          base_amount?: number
+          cleaning_fee?: number
+          created_at?: string
+          id?: string
+          quote_id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_rooms_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_rooms_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          accept_token: string
+          accepted_at: string | null
+          addons_total: number
+          base_amount: number
+          check_in: string
+          check_out: string
+          cleaning_fee: number
+          converted_at: string | null
+          converted_booking_id: string | null
+          created_at: string
+          currency: string
+          declined_at: string | null
+          deleted_at: string | null
+          guest_email: string
+          guest_id: string | null
+          guest_name: string
+          guest_phone: string | null
+          headcount: number
+          host_id: string
+          id: string
+          listing_id: string
+          notes: string | null
+          policy_snapshot: Json | null
+          previous_status: string | null
+          quote_number: string
+          scope: string
+          sent_at: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          accept_token?: string
+          accepted_at?: string | null
+          addons_total?: number
+          base_amount: number
+          check_in: string
+          check_out: string
+          cleaning_fee?: number
+          converted_at?: string | null
+          converted_booking_id?: string | null
+          created_at?: string
+          currency?: string
+          declined_at?: string | null
+          deleted_at?: string | null
+          guest_email: string
+          guest_id?: string | null
+          guest_name: string
+          guest_phone?: string | null
+          headcount?: number
+          host_id: string
+          id?: string
+          listing_id: string
+          notes?: string | null
+          policy_snapshot?: Json | null
+          previous_status?: string | null
+          quote_number: string
+          scope?: string
+          sent_at?: string | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          accept_token?: string
+          accepted_at?: string | null
+          addons_total?: number
+          base_amount?: number
+          check_in?: string
+          check_out?: string
+          cleaning_fee?: number
+          converted_at?: string | null
+          converted_booking_id?: string | null
+          created_at?: string
+          currency?: string
+          declined_at?: string | null
+          deleted_at?: string | null
+          guest_email?: string
+          guest_id?: string | null
+          guest_name?: string
+          guest_phone?: string | null
+          headcount?: number
+          host_id?: string
+          id?: string
+          listing_id?: string
+          notes?: string | null
+          policy_snapshot?: Json | null
+          previous_status?: string | null
+          quote_number?: string
+          scope?: string
+          sent_at?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_converted_booking_id_fkey"
+            columns: ["converted_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refund_requests: {
         Row: {
           actioned_at: string | null
@@ -2722,6 +3132,7 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -2840,6 +3251,8 @@ export type Database = {
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      next_invoice_number: { Args: { p_host_id: string }; Returns: string }
+      next_quote_number: { Args: { p_host_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

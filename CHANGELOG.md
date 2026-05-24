@@ -31,6 +31,117 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Phase 2 — Quotes + Invoices + Manual booking flow
+
+### Built
+- **Schema (`20260524000001_quotes_invoices_addons.sql` +
+  `20260524000002_fix_invoice_host_snapshot.sql`):**
+  - `quotes`, `quote_rooms`, `quote_addons` — host sends a quote to a
+    prospect; quote has `accept_token`, `valid_until`, status machine
+    (draft / sent / accepted / declined / expired / converted).
+  - `booking_addons` — free-form line items on a booking (clone of
+    `quote_addons` on conversion; populated directly for manual
+    bookings).
+  - `invoices` — 1-to-1 with `bookings`, auto-issued by trigger on
+    transition to `confirmed`. Frozen `host_snapshot` + `guest_snapshot`
+    JSON, `hosted_token` for the public URL, `pdf_storage_path` into a
+    new private `invoice-pdfs` storage bucket.
+  - `host_counters` + `next_quote_number(host)` /
+    `next_invoice_number(host)` — per-host monotonic counters yielding
+    `{HANDLE}-QYYYY-NNNN` / `{HANDLE}-INVYYYY-NNNN`.
+  - `bookings`: nullable `guest_id` (walk-ins), new `guest_name /
+    guest_email / guest_phone`, `origin` (`guest_request` /
+    `host_manual` / `quote_converted`), `host_payment_note`,
+    `quote_id`. Identity CHECK so every booking has either a real
+    `guest_id` or a `guest_name + guest_email`.
+  - `blocked_dates.quote_id` + soft-hold trigger
+    `on_quote_status_change`: when a quote flips to `sent`, insert one
+    `blocked_dates` row per night with `reason='quote_pending'`.
+    Holds clear on decline / expire / convert.
+- **Server actions (no new Edge Functions in this slice):**
+  - `app/dashboard/quotes/actions.ts` — create / update / send /
+    mark-accepted / decline / convert / soft-delete.
+  - `app/dashboard/bookings/new/actions.ts` — `createManualBookingAction`
+    honours the `paid` / `unpaid` / `send_paystack_link` payment-state
+    picker.
+  - `app/dashboard/invoices/actions.ts` — mark paid / regen PDF
+    (renders via `@react-pdf/renderer`, uploads to `invoice-pdfs`
+    via the admin client).
+  - `app/q/[id]/[token]/actions.ts` — guest accept / decline, gated by
+    `accept_token` + `valid_until` via the admin client (RLS-bypass).
+- **Host UI (Track 1 paths):**
+  - `/dashboard/quotes` list — search by number / guest name / email,
+    status filter, "New quote" CTA.
+  - `/dashboard/quotes/new` — listing picker, dates, headcount, base +
+    cleaning + free-form add-ons (label / qty / unit price), notes,
+    "Save draft" + "Save & send" actions.
+  - `/dashboard/quotes/[id]` — line-items, status pill, hosted accept
+    URL, action panel (Send / Mark accepted / Decline / Convert /
+    Delete) plus the "Paid / Unpaid + note" convert picker.
+  - `/dashboard/bookings/new` — manual booking form mirroring the
+    quote form plus the three-way payment-state picker.
+  - `/dashboard/invoices` — replaces the ComingSoon stub. Search by
+    number, status filter, status pills.
+  - `/dashboard/invoices/[id]` — full preview, "Mark paid" /
+    "Revert to issued", "Regenerate PDF", hosted URL display.
+  - Sidebar gains a **Quotes** entry between Bookings and Inbox.
+  - Bookings list now surfaces manual + quote-converted bookings
+    (with a `· Manual` / `· From quote` tag) and the
+    `user_profiles!inner` join becomes `!left` so walk-ins
+    (`guest_id IS NULL`) aren't filtered out.
+  - Bookings header now has a **New booking** button.
+- **Public pages:**
+  - `/q/[id]/[token]` — guest-facing quote view with Accept / Decline.
+    Expired / decided quotes show a status notice.
+  - `/invoice/[hosted_token]` — public hosted HTML preview with
+    **Download PDF** button.
+  - `/quote/[id]/pdf` — host-authenticated server-rendered quote PDF.
+  - `/invoice/[token]/pdf` — public token-gated invoice PDF.
+- **PDF templates** (`apps/web/lib/pdf/`) — branded `InvoiceDocument`
+  and `QuoteDocument` (`@react-pdf/renderer`), shared stylesheet,
+  Vilo emerald header with status pill.
+- **Calendar** (`/dashboard/calendar`) — renders `quote_pending`
+  holds in a third visual state (amber dashed border vs solid green
+  for booked vs muted gray for manual block). Legend updated.
+
+### Notes
+- **No new Edge Functions in this slice.** All mutations are Server
+  Actions or token-gated Route Handlers — simpler to ship and lints
+  cleanly. A `quote-sent` → Resend email integration lands in a
+  follow-up; for now the host copies the hosted URL out of the quote
+  detail page.
+- **Payment flow:** manual bookings with `payment_state =
+  send_paystack_link` land as `pending` and the host hits "Send
+  payment link" from the booking detail page (existing flow).
+- **Add-ons** are free-form only (label / qty / unit price). A
+  reusable per-listing add-on catalogue is deferred per the approved
+  plan.
+- **Per-room quotes** — the schema supports them (`quote_rooms`,
+  `scope='rooms'`) but the new-quote form defaults to whole-listing.
+  Wiring the room picker on the quote form is a follow-up.
+- The invoice trigger snapshot pulls host email + phone from
+  `user_profiles` (joined via `hosts.user_id`) — there are no
+  `hosts.contact_email` / `contact_phone` columns. The first migration
+  referenced non-existent columns; the second migration is the fix.
+- **PDF rendering** uses `@react-pdf/renderer` server-side. `Buffer`
+  is wrapped with `new Uint8Array(buffer)` before passing to
+  `NextResponse`.
+- **Pushed migrations to remote (linked Frankfurt project
+  `zlcivjgvtyeaszikqleu`)** since Docker isn't running locally;
+  `database.types.ts` regenerated with `supabase gen types typescript
+  --linked` (4049 lines).
+- `pnpm --filter web build` passes (47 routes). `pnpm --filter web
+  lint` zero warnings. No `console.log` introduced.
+
+### Migrations
+- `20260524000001_quotes_invoices_addons.sql`
+- `20260524000002_fix_invoice_host_snapshot.sql`
+
+### Commit
+- (pending — Track 1)
+
+---
+
 ## 2026-05-24 — Phase 1/2 — Per-room bookings end-to-end (schema → editor → guest flow → calendar → iCal)
 
 ### Built
