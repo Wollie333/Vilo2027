@@ -36,6 +36,8 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { createClient } from "@/lib/supabase/client";
+
 import {
   archiveConversationAction,
   markConversationReadAction,
@@ -244,6 +246,31 @@ export function InboxView({
     }
   }, [messages.length, selectedId]);
 
+  // Realtime: refresh on any messages/conversations change the host can see.
+  // RLS filters server-side; we just need a soft refresh whenever something
+  // moves. router.refresh() re-runs the server component without a full
+  // navigation, so derived counts and the selected thread both update.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel("inbox-host")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "conversations" },
+        () => router.refresh(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [router]);
+
   const navigateWith = useCallback(
     (next: Partial<Record<"c" | "f" | "q", string | null>>) => {
       const u = new URLSearchParams(params?.toString() ?? "");
@@ -313,16 +340,19 @@ export function InboxView({
         </div>
 
         <div className="mt-auto border-t border-brand-line px-4 py-4">
-          <div className="rounded-card bg-brand-light p-3">
+          <Link
+            href="/dashboard/inbox/templates"
+            className="block rounded-card bg-brand-light p-3 transition-colors hover:bg-brand-accent"
+          >
             <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-secondary">
               <Sparkles className="h-3.5 w-3.5" /> Quick replies
             </div>
             <div className="mt-1 text-[11px] text-brand-mute">
               {templates.length === 0
-                ? "Save common replies once, reuse them everywhere."
-                : `${templates.length} ${templates.length === 1 ? "template" : "templates"} saved`}
+                ? "Save common replies once — open to add your first."
+                : `${templates.length} ${templates.length === 1 ? "template" : "templates"} saved · manage`}
             </div>
-          </div>
+          </Link>
         </div>
       </aside>
 
@@ -830,24 +860,29 @@ function Composer({
 
   return (
     <div className="shrink-0 border-t border-brand-line bg-white px-5 py-3">
-      {templates.length > 0 ? (
-        <div className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2">
-          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Quick replies
-          </span>
-          {templates.slice(0, 6).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => applyTemplate(t)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-secondary hover:border-brand-primary hover:bg-brand-accent"
-              title={t.body}
-            >
-              {t.title}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2">
+        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+          Quick replies
+        </span>
+        {templates.slice(0, 6).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => applyTemplate(t)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-secondary hover:border-brand-primary hover:bg-brand-accent"
+            title={t.body}
+          >
+            {t.title}
+          </button>
+        ))}
+        <Link
+          href="/dashboard/inbox/templates"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-dashed border-brand-line bg-white px-3 py-1 text-[12px] font-medium text-brand-mute hover:border-brand-primary hover:text-brand-secondary"
+          title="Manage templates"
+        >
+          + {templates.length === 0 ? "Add template" : "Manage"}
+        </Link>
+      </div>
 
       <div className="rounded-card border border-brand-line bg-white transition-shadow focus-within:border-brand-primary focus-within:ring-4 focus-within:ring-brand-primary/15">
         <textarea

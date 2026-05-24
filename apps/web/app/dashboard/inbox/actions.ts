@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { sendMessageSchema, type SendMessageInput } from "./schemas";
+import {
+  sendMessageSchema,
+  templateInputSchema,
+  type SendMessageInput,
+  type TemplateInput,
+} from "./schemas";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -142,5 +147,103 @@ export async function unarchiveConversationAction(
   if (error) return { ok: false, error: "Could not unarchive." };
 
   revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
+// ── Templates ───────────────────────────────────────────────
+async function assertTemplateOwnership(
+  templateId: string,
+  hostId: string,
+): Promise<boolean> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("message_templates")
+    .select("id")
+    .eq("id", templateId)
+    .eq("host_id", hostId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function createTemplateAction(
+  input: TemplateInput,
+): Promise<ActionResult<{ id: string }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const parsed = templateInputSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+  const v = parsed.data;
+
+  const supabase = createServerClient();
+  const { data: row, error } = await supabase
+    .from("message_templates")
+    .insert({
+      host_id: host.hostId,
+      title: v.title,
+      body: v.body,
+      sort_order: v.sort_order,
+    })
+    .select("id")
+    .single();
+  if (error || !row) {
+    return { ok: false, error: "Could not save template." };
+  }
+
+  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard/inbox/templates");
+  return { ok: true, data: { id: row.id } };
+}
+
+export async function updateTemplateAction(
+  templateId: string,
+  input: TemplateInput,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertTemplateOwnership(templateId, host.hostId))) {
+    return { ok: false, error: "Not your template." };
+  }
+
+  const parsed = templateInputSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+  const v = parsed.data;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("message_templates")
+    .update({ title: v.title, body: v.body, sort_order: v.sort_order })
+    .eq("id", templateId);
+  if (error) return { ok: false, error: "Could not save template." };
+
+  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard/inbox/templates");
+  return { ok: true };
+}
+
+export async function deleteTemplateAction(
+  templateId: string,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertTemplateOwnership(templateId, host.hostId))) {
+    return { ok: false, error: "Not your template." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("message_templates")
+    .delete()
+    .eq("id", templateId);
+  if (error) return { ok: false, error: "Could not delete template." };
+
+  revalidatePath("/dashboard/inbox");
+  revalidatePath("/dashboard/inbox/templates");
   return { ok: true };
 }
