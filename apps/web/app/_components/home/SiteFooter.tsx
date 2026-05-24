@@ -12,7 +12,7 @@ const EXPLORE = [
 
 const GUESTS = [
   { href: "/login", label: "Sign in" },
-  { href: "/dashboard", label: "My bookings" },
+  { href: "/my-trips", label: "My trips" },
   { href: "/help", label: "Help centre" },
   { href: "/terms", label: "Refund policy" },
   { href: "/help", label: "Cancel a booking" },
