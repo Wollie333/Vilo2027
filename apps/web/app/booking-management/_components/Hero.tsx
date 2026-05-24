@@ -114,7 +114,7 @@ export function Hero() {
           {/* URL grabber */}
           <form
             className="mt-8 flex max-w-md items-stretch gap-2 rounded-card border border-brand-line bg-white p-1.5 shadow-card focus-within:ring-2 focus-within:ring-brand-primary/40"
-            action="/register"
+            action="/signup/host"
             method="get"
           >
             <div className="flex shrink-0 items-center pl-3 pr-1 font-mono text-sm text-brand-mute">

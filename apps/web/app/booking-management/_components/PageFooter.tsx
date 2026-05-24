@@ -11,7 +11,7 @@ const PRODUCT_LINKS = [
 ] as const;
 
 const HOST_LINKS = [
-  { label: "Start trial", href: "/register" },
+  { label: "Start trial", href: "/signup/host" },
   { label: "Migration guide", href: "#" },
   { label: "Help centre", href: "#" },
   { label: "API docs", href: "#" },

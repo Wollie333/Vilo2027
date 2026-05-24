@@ -94,7 +94,7 @@ export function SiteHeader() {
             Sign in
           </Link>
           <Link
-            href="/register"
+            href="/signup/host"
             className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
           >
             Join Vilo

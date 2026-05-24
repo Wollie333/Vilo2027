@@ -70,10 +70,10 @@ export function LoginForm({ justRegistered }: { justRegistered: boolean }) {
         <p className="mt-6 text-center text-sm text-brand-mute">
           Don&rsquo;t have an account?{" "}
           <Link
-            href="/register"
+            href="/signup/host"
             className="font-medium text-brand-primary hover:underline"
           >
-            Create one
+            Become a host
           </Link>
         </p>
       </CardContent>

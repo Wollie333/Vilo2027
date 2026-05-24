@@ -40,7 +40,7 @@ export function FinalCTA() {
               </div>
               <form
                 className="mt-3 flex items-stretch gap-2 rounded-card border border-brand-line bg-brand-light p-1.5 focus-within:ring-2 focus-within:ring-brand-primary/30"
-                action="/register"
+                action="/signup/host"
                 method="get"
               >
                 <div className="flex shrink-0 items-center pl-3 pr-1 font-mono text-sm text-brand-mute">

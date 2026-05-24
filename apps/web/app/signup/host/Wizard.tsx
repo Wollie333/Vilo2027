@@ -167,12 +167,35 @@ const SIDE_RAIL: Record<
 
 // ─── Root component ───────────────────────────────────────────────
 
+// Map Zod schema field names (snake_case) → wizard state field names
+// (camelCase) so we can render errors next to the right inputs.
+const ERROR_KEY_MAP: Record<string, string> = {
+  full_name: "fullName",
+  listing_name: "listingName",
+  // Everything else (email, password, terms, phone, bio, city, rate, …)
+  // already matches between schema and state, so no rewrite needed.
+};
+
+function zodIssuesToFieldErrors(
+  issues: ReadonlyArray<{ path: ReadonlyArray<PropertyKey>; message: string }>,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const issue of issues) {
+    const first = issue.path[0];
+    if (typeof first !== "string") continue;
+    const key = ERROR_KEY_MAP[first] ?? first;
+    if (!out[key]) out[key] = issue.message;
+  }
+  return out;
+}
+
 export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [data, setData] = useState<WizardData>(() =>
     initialData(prefilledEmail),
   );
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
 
@@ -181,11 +204,20 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
 
   function patch(p: Partial<WizardData>) {
     setData((d) => ({ ...d, ...p }));
+    // Clear errors for any field the user is editing so they fade as the
+    // user fixes them rather than waiting for a re-validate on next.
+    setErrors((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      const next = { ...prev };
+      for (const k of Object.keys(p)) delete next[k];
+      return next;
+    });
   }
 
   function jumpBack(index: number) {
     if (index < currentIndex) {
       setCurrentIndex(index);
+      setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -193,12 +225,14 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
   function goBack() {
     if (currentIndex > 0) {
       setCurrentIndex((i) => i - 1);
+      setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
   function advance() {
     setCurrentIndex((i) => Math.min(STEPS.length - 1, i + 1));
+    setErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -210,9 +244,10 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       terms: data.terms,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
+    setErrors({});
     startCreate(async () => {
       const result = await createAccountAction({
         full_name: data.fullName,
@@ -236,7 +271,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       languages: data.languages,
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
     advance();
@@ -261,9 +296,10 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       rate: Number((data.rate || "").replace(/\s/g, "")),
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Check the form.");
+      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
+    setErrors({});
     patch({ listingKind: inferredKind });
     advance();
   }
@@ -334,7 +370,9 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       : current.key === "plan"
         ? finalizePending
           ? "Setting up…"
-          : "Finish & go live"
+          : data.plan === "free"
+            ? "Start with Free"
+            : "Start 14-day trial"
         : "Continue";
   const nextDisabled = createPending || finalizePending;
 
@@ -345,17 +383,30 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
           <StepAccount
             data={data}
             patch={patch}
+            errors={errors}
             pending={createPending}
             stepIndex={currentIndex}
           />
         );
       case "about":
-        return <StepAbout data={data} patch={patch} stepIndex={currentIndex} />;
+        return (
+          <StepAbout
+            data={data}
+            patch={patch}
+            errors={errors}
+            stepIndex={currentIndex}
+          />
+        );
       case "offer":
         return <StepOffer data={data} patch={patch} stepIndex={currentIndex} />;
       case "listing":
         return (
-          <StepListing data={data} patch={patch} stepIndex={currentIndex} />
+          <StepListing
+            data={data}
+            patch={patch}
+            errors={errors}
+            stepIndex={currentIndex}
+          />
         );
       case "plan":
         return <StepPlan data={data} patch={patch} stepIndex={currentIndex} />;
@@ -612,11 +663,13 @@ function Stepper({
 function StepAccount({
   data,
   patch,
+  errors,
   pending,
   stepIndex,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
+  errors: Record<string, string>;
   pending: boolean;
   stepIndex: number;
 }) {
@@ -637,7 +690,7 @@ function StepAccount({
           <div className="h-px flex-1 bg-brand-line" />
         </div>
 
-        <FormField label="Full name">
+        <FormField label="Full name" error={errors.fullName}>
           <TextInput
             value={data.fullName}
             onChange={(e) => patch({ fullName: e.target.value })}
@@ -647,7 +700,7 @@ function StepAccount({
           />
         </FormField>
 
-        <FormField label="Email">
+        <FormField label="Email" error={errors.email}>
           <TextInput
             type="email"
             value={data.email}
@@ -658,7 +711,11 @@ function StepAccount({
           />
         </FormField>
 
-        <FormField label="Password" hint="At least 8 characters.">
+        <FormField
+          label="Password"
+          hint="At least 8 characters."
+          error={errors.password}
+        >
           <div className="relative">
             <TextInput
               type={data.showPassword ? "text" : "password"}
@@ -684,29 +741,37 @@ function StepAccount({
           </div>
         </FormField>
 
-        <label className="flex cursor-pointer select-none items-start gap-2.5">
-          <input
-            type="checkbox"
-            checked={data.terms}
-            onChange={(e) => patch({ terms: e.target.checked })}
-            disabled={pending}
-            className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-          />
-          <span className="text-xs leading-relaxed text-brand-mute">
-            I agree to Vilo&apos;s{" "}
-            <Link href="/terms" className="text-brand-primary hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              className="text-brand-primary hover:underline"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </span>
-        </label>
+        <div>
+          <label className="flex cursor-pointer select-none items-start gap-2.5">
+            <input
+              type="checkbox"
+              checked={data.terms}
+              onChange={(e) => patch({ terms: e.target.checked })}
+              disabled={pending}
+              className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+            />
+            <span className="text-xs leading-relaxed text-brand-mute">
+              I agree to Vilo&apos;s{" "}
+              <Link
+                href="/terms"
+                className="text-brand-primary hover:underline"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                className="text-brand-primary hover:underline"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+          {errors.terms ? (
+            <div className="mt-1.5 text-xs text-red-600">{errors.terms}</div>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -717,10 +782,12 @@ function StepAccount({
 function StepAbout({
   data,
   patch,
+  errors,
   stepIndex,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
+  errors: Record<string, string>;
   stepIndex: number;
 }) {
   const initials =
@@ -766,6 +833,7 @@ function StepAbout({
           <FormField
             label="Phone number"
             hint="Used for booking-critical SMS only."
+            error={errors.phone}
           >
             <div className="flex">
               <span className="inline-flex items-center rounded-l border border-r-0 border-brand-line bg-brand-light/60 px-3 font-mono text-sm text-brand-mute">
@@ -798,6 +866,7 @@ function StepAbout({
           label="Short bio"
           optional
           hint="A sentence or two about you and your hospitality style."
+          error={errors.bio}
         >
           <TextAreaInput
             rows={3}
@@ -947,10 +1016,12 @@ function StepOffer({
 function StepListing({
   data,
   patch,
+  errors,
   stepIndex,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
+  errors: Record<string, string>;
   stepIndex: number;
 }) {
   const isExperience = data.offering === "experiences";
@@ -968,7 +1039,10 @@ function StepListing({
 
       <div className="mt-7 space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
-          <FormField label={isExperience ? "Experience name" : "Listing name"}>
+          <FormField
+            label={isExperience ? "Experience name" : "Listing name"}
+            error={errors.listingName}
+          >
             <TextInput
               value={data.listingName}
               onChange={(e) => patch({ listingName: e.target.value })}
@@ -1016,7 +1090,7 @@ function StepListing({
             )}
           </FormField>
 
-          <FormField label="City">
+          <FormField label="City" error={errors.city}>
             <TextInput
               value={data.city}
               onChange={(e) => patch({ city: e.target.value })}
@@ -1068,6 +1142,7 @@ function StepListing({
               <FormField
                 label="Starting nightly rate"
                 hint="ZAR. You can set weekend & seasonal overrides later."
+                error={errors.rate}
               >
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
@@ -1100,7 +1175,11 @@ function StepListing({
                   inputMode="decimal"
                 />
               </FormField>
-              <FormField label="Price per person" hint="ZAR.">
+              <FormField
+                label="Price per person"
+                hint="ZAR."
+                error={errors.rate}
+              >
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
                     R
@@ -1304,7 +1383,11 @@ function StepPlan({
                     : "border border-brand-line bg-brand-light text-brand-secondary"
                 }`}
               >
-                {on ? "Selected" : "Pick this plan"}
+                {on
+                  ? "Selected"
+                  : p.value === "free"
+                    ? "Start with Free"
+                    : "Start 14-day trial"}
               </div>
             </button>
           );
@@ -1584,11 +1667,13 @@ function FormField({
   label,
   hint,
   optional,
+  error,
   children,
 }: {
   label: string;
   hint?: string;
   optional?: boolean;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -1600,7 +1685,9 @@ function FormField({
         ) : null}
       </label>
       {children}
-      {hint ? (
+      {error ? (
+        <div className="mt-1.5 text-xs text-red-600">{error}</div>
+      ) : hint ? (
         <div className="mt-1.5 text-xs text-brand-mute">{hint}</div>
       ) : null}
     </div>

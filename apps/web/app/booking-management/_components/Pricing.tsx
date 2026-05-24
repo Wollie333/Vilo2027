@@ -176,7 +176,7 @@ export function Pricing() {
                 <div className="mt-1 text-xs text-brand-mute">{sub}</div>
 
                 <a
-                  href="/register"
+                  href="/signup/host"
                   className={
                     tier.cta.primary
                       ? "mt-6 inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-brand-dark"
