@@ -7,6 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { StatusPill } from "../StatusPill";
 import { BookingActions } from "./BookingActions";
+import { IssueRefundButton } from "./IssueRefundButton";
 
 export const metadata: Metadata = {
   title: "Booking · Vilo",
@@ -31,7 +32,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, listing:listings!inner ( name, slug ), guest:user_profiles!inner ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
+      "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -42,10 +43,17 @@ export default async function BookingDetailPage({
     name: string;
     slug: string | null;
   };
-  const guest = booking.guest as unknown as {
-    full_name: string | null;
-    email: string | null;
-    phone: string | null;
+  const guestRaw = booking.guest as unknown as
+    | { full_name: string | null; email: string | null; phone: string | null }
+    | { full_name: string | null; email: string | null; phone: string | null }[]
+    | null;
+  const guestJoined = Array.isArray(guestRaw) ? guestRaw[0] : guestRaw;
+  // Falls back to the booking's denormalised guest_name (walk-ins) when no
+  // joined profile exists.
+  const guest = guestJoined ?? {
+    full_name: null,
+    email: null,
+    phone: null,
   };
   const bookingRooms = (booking.booking_rooms ?? []) as unknown as Array<{
     id: string;
@@ -230,6 +238,40 @@ export default async function BookingDetailPage({
               </div>
             </dl>
           </section>
+
+          {booking.guest_id &&
+          (booking.status === "completed" ||
+            booking.status === "checked_in" ||
+            booking.status === "checked_out" ||
+            booking.payment_status === "captured" ||
+            booking.payment_status === "completed") &&
+          !booking.has_open_refund ? (
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Refund
+              </div>
+              <p className="mt-2 text-[12.5px] text-brand-mute">
+                Refund part or all of this booking. The guest is notified and
+                the payment record updates immediately.
+              </p>
+              <div className="mt-3">
+                <IssueRefundButton
+                  bookingId={booking.id}
+                  totalAmount={Number(booking.total_amount)}
+                  currency={booking.currency}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {booking.has_open_refund ? (
+            <Link
+              href="/dashboard/refunds"
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
+            >
+              View open refund →
+            </Link>
+          ) : null}
 
           {listing.slug ? (
             <Link

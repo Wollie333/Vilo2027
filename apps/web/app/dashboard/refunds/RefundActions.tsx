@@ -1,0 +1,198 @@
+"use client";
+
+import { Check, Loader2, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+
+import { approveRefundAction, declineRefundAction } from "./actions";
+
+type Props = {
+  refundId: string;
+  requestedAmount: number;
+  currency: string;
+};
+
+type DeclineReason =
+  | "outside_policy"
+  | "no_show"
+  | "terms_violated"
+  | "services_rendered"
+  | "other";
+
+const DECLINE_LABELS: Record<DeclineReason, string> = {
+  outside_policy: "Outside cancellation policy",
+  no_show: "Guest no-show",
+  terms_violated: "Booking terms violated",
+  services_rendered: "Services already rendered",
+  other: "Other (explain below)",
+};
+
+function fmtR(amount: number, currency: string): string {
+  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
+    .toLocaleString("en-ZA")
+    .replace(/,/g, " ")}`;
+}
+
+export function RefundActions({ refundId, requestedAmount, currency }: Props) {
+  const router = useRouter();
+  const [mode, setMode] = useState<"idle" | "approve" | "decline">("idle");
+  const [amount, setAmount] = useState<number>(requestedAmount);
+  const [note, setNote] = useState<string>("");
+  const [reason, setReason] = useState<DeclineReason>("outside_policy");
+  const [pending, start] = useTransition();
+
+  function approve() {
+    if (amount <= 0 || amount > requestedAmount) {
+      toast.error(
+        `Amount must be between R 1 and ${fmtR(requestedAmount, currency)}.`,
+      );
+      return;
+    }
+    start(async () => {
+      const result = await approveRefundAction({
+        refundId,
+        amount,
+        note: note.trim() || null,
+      });
+      if (result.ok) {
+        toast.success("Refund approved.");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  function decline() {
+    if (reason === "other" && note.trim().length < 5) {
+      toast.error("Please add a short note explaining the decline.");
+      return;
+    }
+    start(async () => {
+      const result = await declineRefundAction({
+        refundId,
+        reason,
+        note: note.trim() || null,
+      });
+      if (result.ok) {
+        toast.success("Refund declined.");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
+
+  if (mode === "idle") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMode("approve")}
+          className="inline-flex items-center gap-1 rounded bg-status-confirmed px-3 py-1.5 text-xs font-semibold text-white hover:bg-status-confirmed/90"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Approve
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("decline")}
+          className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-semibold text-brand-ink hover:bg-brand-light"
+        >
+          <X className="h-3.5 w-3.5" />
+          Decline
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3 rounded border border-brand-line bg-brand-light/40 p-3">
+      {mode === "approve" ? (
+        <>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              Refund amount ({currency})
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={requestedAmount}
+              step={1}
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            />
+            <span className="mt-1 block text-[11px] text-brand-mute">
+              Up to {fmtR(requestedAmount, currency)} requested
+            </span>
+          </label>
+        </>
+      ) : (
+        <>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              Reason for declining
+            </span>
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value as DeclineReason)}
+              className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            >
+              {Object.entries(DECLINE_LABELS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
+
+      <label className="block">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+          Note for the guest (optional)
+        </span>
+        <textarea
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value.slice(0, 1000))}
+          placeholder={
+            mode === "approve"
+              ? "e.g. Refund approved as a goodwill gesture."
+              : "Explain briefly so the guest understands."
+          }
+          className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+      </label>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("idle");
+            setNote("");
+          }}
+          disabled={pending}
+          className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={mode === "approve" ? approve : decline}
+          disabled={pending}
+          className={`inline-flex items-center gap-1 rounded px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60 ${
+            mode === "approve"
+              ? "bg-status-confirmed hover:bg-status-confirmed/90"
+              : "bg-status-cancelled hover:bg-status-cancelled/90"
+          }`}
+        >
+          {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {mode === "approve" ? "Confirm refund" : "Confirm decline"}
+        </button>
+      </div>
+    </div>
+  );
+}
