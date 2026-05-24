@@ -8,7 +8,6 @@ import {
   InboxView,
   type ConversationRow,
   type MessageRow,
-  type TemplateRow,
   type ThreadContext,
 } from "./InboxView";
 
@@ -302,19 +301,8 @@ export default async function InboxPage({
     }
   }
 
-  // Quick-reply templates.
-  const { data: tmplRaw } = await supabase
-    .from("message_templates")
-    .select("id, title, body, sort_order")
-    .eq("host_id", host.id)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-
-  const templates: TemplateRow[] = (tmplRaw ?? []).map((t) => ({
-    id: t.id,
-    title: t.title,
-    body: t.body,
-  }));
+  // Quick-reply templates are a post-MVP feature — UI is rendered as a
+  // disabled "coming soon" placeholder in InboxView. Skip the DB read.
 
   const hostInitials =
     (host.display_name || "")
@@ -335,7 +323,6 @@ export default async function InboxPage({
       selectedId={selectedId}
       messages={messages}
       context={context}
-      templates={templates}
     />
   );
 }

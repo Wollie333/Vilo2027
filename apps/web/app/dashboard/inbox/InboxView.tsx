@@ -203,7 +203,6 @@ export function InboxView({
   selectedId,
   messages,
   context,
-  templates,
 }: {
   hostInitials: string;
   hostName: string;
@@ -214,7 +213,6 @@ export function InboxView({
   selectedId: string | null;
   messages: MessageRow[];
   context: ThreadContext | null;
-  templates: TemplateRow[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -340,19 +338,23 @@ export function InboxView({
         </div>
 
         <div className="mt-auto border-t border-brand-line px-4 py-4">
-          <Link
-            href="/dashboard/inbox/templates"
-            className="block rounded-card bg-brand-light p-3 transition-colors hover:bg-brand-accent"
+          <div
+            className="block rounded-card bg-brand-light p-3 opacity-70"
+            aria-disabled="true"
+            title="Coming soon"
           >
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-secondary">
-              <Sparkles className="h-3.5 w-3.5" /> Quick replies
+            <div className="flex items-center justify-between gap-2">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-secondary">
+                <Sparkles className="h-3.5 w-3.5" /> Quick replies
+              </div>
+              <span className="rounded-pill bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-mute">
+                Soon
+              </span>
             </div>
             <div className="mt-1 text-[11px] text-brand-mute">
-              {templates.length === 0
-                ? "Save common replies once — open to add your first."
-                : `${templates.length} ${templates.length === 1 ? "template" : "templates"} saved · manage`}
+              Save common replies once, reuse them everywhere.
             </div>
-          </Link>
+          </div>
         </div>
       </aside>
 
@@ -642,7 +644,6 @@ export function InboxView({
               {/* Composer */}
               <Composer
                 conversationId={context.conversationId}
-                templates={templates}
                 hostName={hostName}
               />
             </div>
@@ -817,11 +818,9 @@ function MessageBubble({
 // ── Composer ────────────────────────────────────────────────
 function Composer({
   conversationId,
-  templates,
   hostName,
 }: {
   conversationId: string;
-  templates: TemplateRow[];
   hostName: string;
 }) {
   const [value, setValue] = useState("");
@@ -853,35 +852,40 @@ function Composer({
     }
   }
 
-  function applyTemplate(t: TemplateRow) {
-    setValue((cur) => (cur.trim() ? `${cur}\n\n${t.body}` : t.body));
-    textareaRef.current?.focus();
-  }
-
   return (
     <div className="shrink-0 border-t border-brand-line bg-white px-5 py-3">
-      <div className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2">
+      {/* Quick replies — coming-soon placeholder; visuals only, no actions. */}
+      <div
+        className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2 opacity-70"
+        aria-disabled="true"
+      >
         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
           Quick replies
         </span>
-        {templates.slice(0, 6).map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => applyTemplate(t)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-secondary hover:border-brand-primary hover:bg-brand-accent"
-            title={t.body}
-          >
-            {t.title}
-          </button>
-        ))}
-        <Link
-          href="/dashboard/inbox/templates"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-dashed border-brand-line bg-white px-3 py-1 text-[12px] font-medium text-brand-mute hover:border-brand-primary hover:text-brand-secondary"
-          title="Manage templates"
+        <span
+          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
+          title="Coming soon"
         >
-          + {templates.length === 0 ? "Add template" : "Manage"}
-        </Link>
+          Confirm dates
+        </span>
+        <span
+          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
+          title="Coming soon"
+        >
+          Check-in details
+        </span>
+        <span
+          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
+          title="Coming soon"
+        >
+          Banking details
+        </span>
+        <span
+          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-dashed border-brand-line bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-mute"
+          title="Coming soon"
+        >
+          Soon
+        </span>
       </div>
 
       <div className="rounded-card border border-brand-line bg-white transition-shadow focus-within:border-brand-primary focus-within:ring-4 focus-within:ring-brand-primary/15">
