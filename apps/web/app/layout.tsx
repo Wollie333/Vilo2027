@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 
+import { CookieBanner } from "./_components/CookieBanner";
 import "./globals.css";
 
 const inter = Inter({
@@ -39,6 +40,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         {children}
+        <CookieBanner />
         <Toaster richColors position="top-center" />
       </body>
     </html>
