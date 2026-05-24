@@ -86,6 +86,20 @@ Never rely on UI-only gating. Always enforce server-side in the Edge Function to
 
 ### 3.3 Upgrade prompts are inline — never blocking modals
 
+### 3.4 Pre-MVP feature-gate policy — every feature open to `free` while testing
+While the platform has no real users and no subscription management UI, **every gateable feature must be available on the `free` plan** so the founder can smoke-test end-to-end. Build features knowing that in the future these will narrow to per-plan permissions — but for now, ship open.
+
+**When you ship a new gated feature:**
+1. **Pick a feature key** (snake_case, e.g. `banking_details`, `seasonal_pricing`).
+2. **Seed it in `plan_features`** with `is_enabled = true` across every plan (`free`, `basic`, `pro`, `business`) — mirror the INSERT pattern in `20260524000001_quotes_invoices_addons.sql` and `20260525000001_banking_and_business_details.sql`.
+3. **Wire the RPC at the page + Server Action layer** so the gate infrastructure exists and works — DO NOT remove the `check_feature_permission` calls when you write new code. Future-you needs them in place.
+4. **For now, the gate must always pass for free plan users.** Acceptable patterns: (a) make `assertFeatureEnabled()` return `true` with a comment pointing back at this rule, (b) skip the early-return upgrade block, OR (c) leave the gate active and rely on the `plan_features` seed — but only if you've verified the user actually has an active `subscriptions` row, which most free hosts won't until subscription management lands.
+5. **Don't add the upgrade card / paywall UI yet.** When Phase 3 (subscription management) lands, the gate code is already in place — flip one row in `plan_features` per plan and the upgrade card pattern from `apps/web/app/dashboard/seasonal-pricing/page.tsx` can be reused.
+
+**Why this policy exists:** without subscription onboarding, hosts created via `handle_new_user` don't get a `subscriptions` row, so `check_feature_permission` returns `is_enabled = false` regardless of what's in `plan_features`. Strict gating blocks the founder from testing their own platform.
+
+**This policy expires at MVP launch.** When real users + subscription management ship, narrow the per-plan flags then.
+
 ---
 
 ## 4. Booking & Payment Rules

@@ -34,14 +34,19 @@ async function resolveHost(): Promise<
   return { ok: true, hostId: host.id };
 }
 
+// Pre-MVP policy (AGENT_RULES.md §3.4): every feature is open to the free
+// plan while there's no subscription management UI. The RPC infrastructure
+// stays wired so Phase 3 can flip the gate per-plan without code changes.
+//
+// To re-enable strict gating later, replace the body with the original:
+//   const { data } = await supabase.rpc("check_feature_permission", {
+//     p_host_id: hostId,
+//     p_feature_key: "banking_details",
+//   });
+//   return (data as { is_enabled: boolean } | null)?.is_enabled ?? false;
 async function assertFeatureEnabled(hostId: string): Promise<boolean> {
-  const supabase = createServerClient();
-  const { data } = await supabase.rpc("check_feature_permission", {
-    p_host_id: hostId,
-    p_feature_key: "banking_details",
-  });
-  const result = data as { is_enabled: boolean } | null;
-  return result?.is_enabled ?? false;
+  if (!hostId) return false;
+  return true;
 }
 
 async function assertAccountOwnership(

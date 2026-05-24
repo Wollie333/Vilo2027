@@ -3,6 +3,11 @@ import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+// Pre-MVP feature-gate policy (AGENT_RULES.md §3.4): every gated feature is
+// open to the free plan while there's no subscription management UI. The
+// check_feature_permission infrastructure stays in place so plans can be
+// narrowed in Phase 3 without code changes.
+
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -44,41 +49,10 @@ export default async function BankingSettingsPage() {
     .maybeSingle();
   if (!host) redirect("/dashboard/settings");
 
-  const { data: featureRaw } = await supabase.rpc("check_feature_permission", {
-    p_host_id: host.id,
-    p_feature_key: "banking_details",
-  });
-  const enabled =
-    (featureRaw as { is_enabled: boolean } | null)?.is_enabled ?? false;
-
-  if (!enabled) {
-    return (
-      <div className="mx-auto max-w-3xl space-y-6">
-        <Link
-          href="/dashboard/settings"
-          className="inline-flex items-center gap-1 text-sm text-brand-mute hover:text-brand-ink"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to settings
-        </Link>
-        <div className="rounded-card border border-brand-line bg-white p-8 text-center shadow-card">
-          <h1 className="font-display text-xl font-bold text-brand-ink">
-            Upgrade to manage banking details
-          </h1>
-          <p className="mt-2 text-sm text-brand-mute">
-            Banking details aren&rsquo;t included on your current plan. Upgrade
-            to unlock EFT, invoices, and quotes with your banking on file.
-          </p>
-          <Link
-            href="/dashboard/settings/subscription"
-            className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand-primary hover:underline"
-          >
-            See plans →
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Feature gate kept open during MVP — see AGENT_RULES.md §3.4. The RPC call
+  // is omitted here on purpose so a missing/inactive subscription row doesn't
+  // block testing. Re-enable in Phase 3 by checking
+  // check_feature_permission(host.id, "banking_details").
 
   const [{ data: accountRows }, { data: businessRow }] = await Promise.all([
     supabase

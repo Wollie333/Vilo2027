@@ -82,6 +82,7 @@ Read these when working in a specific domain:
 ### Feature Permissions
 - ALWAYS use `check_feature_permission` RPC — never hardcode plan logic
 - Feature gates must exist at both Edge Function AND UI layer
+- **Pre-MVP policy:** every new feature must be open on the `free` plan so the founder can smoke-test. Seed `plan_features` with `is_enabled = true` for every plan AND make the gate's `assertFeatureEnabled` short-circuit to `true` (with a comment pointing to `AGENT_RULES.md` §3.4). The RPC wiring stays in place for Phase 3.
 
 ### Code Quality
 - NO `any` in TypeScript — use `unknown` + narrow, or generated DB types
