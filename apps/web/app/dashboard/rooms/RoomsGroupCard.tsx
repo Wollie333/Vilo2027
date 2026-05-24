@@ -1,13 +1,17 @@
 "use client";
 
-import { ExternalLink, Settings2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import type { EditorRoom } from "../listings/[id]/edit/Editor";
 import { RoomsManager } from "../listings/[id]/edit/tabs/RoomsManager";
+import {
+  ListingSettingsDialog,
+  type BookingMode,
+} from "./ListingSettingsDialog";
 
-const BOOKING_MODE_LABEL: Record<string, string> = {
+const BOOKING_MODE_LABEL: Record<BookingMode, string> = {
   whole_listing: "Whole place",
   rooms_only: "Per-room only",
   flexible: "Per-room or whole place",
@@ -17,7 +21,7 @@ export type RoomsGroupCardListing = {
   id: string;
   name: string;
   slug: string | null;
-  booking_mode: "whole_listing" | "rooms_only" | "flexible";
+  booking_mode: BookingMode;
   is_published: boolean;
 };
 
@@ -29,6 +33,9 @@ export function RoomsGroupCard({
   initialRooms: EditorRoom[];
 }) {
   const [rooms, setRooms] = useState<EditorRoom[]>(initialRooms);
+  const [bookingMode, setBookingMode] = useState<BookingMode>(
+    listing.booking_mode,
+  );
 
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -52,7 +59,7 @@ export function RoomsGroupCard({
           <div className="mt-0.5 text-xs text-brand-mute">
             Mode:{" "}
             <span className="text-brand-ink">
-              {BOOKING_MODE_LABEL[listing.booking_mode]}
+              {BOOKING_MODE_LABEL[bookingMode]}
             </span>{" "}
             · {rooms.length} room{rooms.length === 1 ? "" : "s"}
           </div>
@@ -68,13 +75,12 @@ export function RoomsGroupCard({
               <ExternalLink className="h-3 w-3" />
             </Link>
           ) : null}
-          <Link
-            href={`/dashboard/listings/${listing.id}/edit?tab=basic`}
-            className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-            Listing settings
-          </Link>
+          <ListingSettingsDialog
+            listingId={listing.id}
+            listingName={listing.name}
+            currentMode={bookingMode}
+            onSaved={setBookingMode}
+          />
         </div>
       </div>
 
