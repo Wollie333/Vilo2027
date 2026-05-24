@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import {
   Form,
   FormControl,
@@ -23,7 +24,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 import { saveListingPatchAction, setBookingModeAction } from "../actions";
 import type { EditorListing } from "../Editor";
@@ -148,16 +148,21 @@ export function BasicTab({ listing }: { listing: EditorListing }) {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>
-                      Description{" "}
-                      <span className="font-normal text-brand-mute">
-                        (plain text for now — rich editor lands later)
-                      </span>
-                    </FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea rows={8} {...field} />
+                      <RichTextEditor
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        disabled={pending}
+                        placeholder="Tell guests what makes this place special. Mornings, the views, the breakfast, the why behind it."
+                      />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-brand-mute">
+                      Bold what matters, use headings for sections like
+                      &ldquo;The space&rdquo; or &ldquo;The
+                      neighbourhood&rdquo;.
+                    </p>
                   </FormItem>
                 )}
               />
