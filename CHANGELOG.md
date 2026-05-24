@@ -31,6 +31,75 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Phase A — Super Admin Control Centre foundation
+
+### Built
+- **RBAC migration** (`20260525000002_create_platform_staff_rbac.sql`) — new
+  tables `admin_roles`, `admin_permissions`, `admin_role_permissions`,
+  `platform_staff`, `platform_staff_invites`. Seeded five named roles
+  (`super_admin`, `support_agent`, `finance`, `content_mod`, `ops`) with
+  17 permission keys in `domain.action` format.
+- **Replaced `is_super_admin()`** — now consults `platform_staff` (not
+  `user_profiles.role`) and requires AAL2. Signature unchanged so existing
+  `admin_full_*` RLS policies keep working.
+- **New `has_admin_permission(p_key text)`** SQL helper — source of truth
+  for capability checks. Also AAL2-gated.
+- **Founder seed** — migration auto-inserts wollie333@gmail.com into
+  `platform_staff` with `super_admin` role. Aborts with `RAISE EXCEPTION`
+  if the founder profile does not exist.
+- **Break-glass script** (`supabase/scripts/grant-super-admin.sql`) —
+  re-grants `super_admin` when locked out.
+- **Admin helpers** (`apps/web/lib/admin/`) — `requireAdmin()`,
+  `requirePermission()`, `hasPermission()` (non-throwing), `withAdminAudit()`
+  wrapper, impersonation cookie signing (HMAC-SHA256), custom error classes.
+- **`/admin` route group** with admin shell layout, sidebar (operations /
+  finance / moderation / platform sections), topbar, impersonation banner.
+  Sidebar renders the active role next to the email.
+- **KPI overview at `/admin`** — active hosts, live listings, total bookings,
+  pending refunds tiles plus a recent-activity feed of the last 10 audit rows.
+- **Audit log viewer at `/admin/audit`** — filters by admin, action,
+  target_type, since; 50-per-page pagination; highlights `permission_denied`
+  rows in red.
+- **Vilo staff management at `/admin/platform/staff`** — lists active staff
+  + pending invites + the available role catalog (Phase E will add invite UI).
+- **View-only impersonation** (`/admin/as/[userId]/...`) — read-only parallel
+  route tree using service-role with explicit user-id scoping. **Does not
+  swap auth cookies.** Banner shows elapsed time + "End session" button.
+- **Placeholder pages** for users / hosts / listings / bookings / payments /
+  subscriptions / reviews / platform settings / feature flags — each calls
+  `requirePermission()` so the permission gates are exercised end-to-end.
+
+### Changed
+- `AGENT_RULES.md` §6 expanded with subsections 6.4–6.8: RBAC source of
+  truth, AAL2 requirement, reason-required pattern, view-only impersonation,
+  atomic finance/moderation actions.
+- `admin_audit_log.target_type` CHECK constraint extended with `user`,
+  `platform_staff`, `staff_member`, `permission_denied` values.
+
+### Migrations
+- `20260525000002_create_platform_staff_rbac.sql`
+
+### Notes
+- **Phase B–E pending**: detail screens, user/host edit, refund admin,
+  subscription editor, reviews moderation, platform_settings editor, staff
+  invite flow, reason dialog component, finance Edge Function for atomic
+  audit writes, audit-log CSV export. The foundation is shippable on its
+  own — every permission gate works, every screen returns a placeholder
+  that explains which phase fills it in.
+- **PHASE_PLAN.md slates super admin for Phase 4 (weeks 10–13)**; this
+  foundation lands early so all later admin work has a place to plug in.
+- **`supabase db reset` was NOT run** this session — Docker wasn't running
+  locally. Run it on next boot to apply the RBAC migration, then regenerate
+  types: `supabase gen types typescript --local > packages/types/database.types.ts`.
+- View-only impersonation chosen over auth-swap on the Plan agent's
+  recommendation — swapping `sb-*` cookies races refresh-token rotation in
+  `@supabase/ssr` and can end the admin's real session.
+- Founder email is hardcoded in the migration. If `wollie333@gmail.com`
+  doesn't exist in `user_profiles` (e.g. fresh `db reset` before sign-up),
+  the migration aborts — sign up first, then re-run.
+
+---
+
 ## 2026-05-24 — MVP — Settings tabs + pre-MVP feature-gate policy
 
 ### Built

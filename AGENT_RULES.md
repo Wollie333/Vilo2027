@@ -145,6 +145,41 @@ Record `started_at` and `ended_at`. Tag all actions during impersonation with bo
 ### 6.3 platform_settings changes take effect immediately
 No cache. Test in staging before production.
 
+### 6.4 Super admin & Vilo staff RBAC — capability checks via DB, not code
+The control centre (`/admin`) is gated by the `platform_staff` table — never
+by hardcoded role checks in app code. Always call `has_admin_permission(key)`
+(RPC) via `requirePermission()` from `apps/web/lib/admin/`. The permission
+catalog lives in `admin_permissions`; grants live in `admin_role_permissions`.
+
+Staff inheritance: a `super_admin` row gets every permission. New roles are
+seeded in the RBAC migration (`20260525000002_create_platform_staff_rbac.sql`)
+— add a permission, then map it to the relevant roles in the same migration.
+Never grant `super_admin` to a colleague; create a focused role instead.
+
+### 6.5 MFA (AAL2) required for admin access
+`is_super_admin()` and `has_admin_permission()` both require `auth.jwt() ->> 'aal' = 'aal2'`.
+Staff cannot reach `/admin` until they enrol TOTP. If you're locked out, run
+`supabase/scripts/grant-super-admin.sql` as a break-glass recovery.
+
+### 6.6 Reason required on destructive admin actions
+Refunds, cancellations, suspensions, and forced plan changes must collect a
+free-text reason and persist it in `admin_audit_log.payload.reason`. Use the
+`withAdminAudit({ requireReason: true })` wrapper. Actions without a reason
+throw `AdminReasonRequired` before any DB write.
+
+### 6.7 View-only impersonation
+Impersonation (`/admin/as/[userId]/...`) is structurally read-only — those
+routes contain no mutation actions. Do not add server actions that mutate
+under that subtree. To edit on a user's behalf, use the direct `/admin/...`
+edit URLs which run through `withAdminAudit`.
+
+### 6.8 Finance and moderation actions must be atomic
+For `payments.refund`, `subscriptions.edit`, `bookings.cancel`, and
+`users.suspend`, route the mutation through a Supabase Edge Function that
+wraps `BEGIN ... INSERT INTO admin_audit_log ... COMMIT` in a single
+transaction. Other audited actions may use the eventual-consistency path
+in `withAdminAudit`.
+
 ---
 
 ## 7. Claude Code Terminal Rules

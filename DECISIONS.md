@@ -373,4 +373,87 @@ Related: this is the second of two fixes that took the web app live in the 2026-
 
 ---
 
+## ADR-018 — Super Admin Control Centre: route group, RBAC model, view-only impersonation
+**Status:** Accepted
+**Date:** 2026-05-24
+
+**Decision:** The super admin operator surface lives at `apps/web/app/admin/`
+as a Next.js route group on the same domain as the host dashboard. Access is
+gated by a new `platform_staff` table (separate from the host-delegated
+`staff_members`) with role-based permissions sourced from
+`admin_role_permissions`. Impersonation is structurally read-only — implemented
+as a parallel `/admin/as/[userId]/...` subtree using `createAdminClient()`
+scoped by URL param. Auth cookies are never swapped.
+
+**Reasons:**
+
+- **Same-domain route group, not a subdomain.** The product spec called for
+  `admin.viloplatform.com`, but a second Next.js app doubles deploys, env
+  vars, and CI. The subdomain can be added later via a Vercel rewrite with
+  no code change. One app, one deploy pipeline, until volume justifies the split.
+- **Role-based RBAC with a permission catalog**, not per-permission RBAC
+  and not a boolean `is_admin` flag. Five named roles (super_admin,
+  support_agent, finance, content_mod, ops) plus 17 `domain.action`
+  permission keys cover 95% of needs, are easy to extend, and avoid the
+  hardcoded role checks that AGENT_RULES.md §6 forbids.
+- **View-only impersonation via parallel route tree, not auth cookie swap.**
+  Cookie-swap impersonation races `@supabase/ssr` refresh-token rotation,
+  occasionally ends the admin's real session, and breaks "stop
+  impersonation". It also requires minting a JWT for the target user,
+  which means writes become possible at the auth layer — "view-only" is
+  then enforced only by app convention, not structure. The parallel route
+  tree contains zero mutation actions by construction; edits route through
+  separate `/admin/...edit` URLs which are always attributed to the admin
+  in `admin_audit_log`.
+- **Shell-and-injection for form reuse** (not a `mode` prop). The existing
+  listing editor tabs are tightly coupled to host-only server actions
+  (`assertOwnership`, hardcoded `revalidatePath`). To reuse them in admin
+  mode, extract a `<ListingEditorShell>` that takes actions as a prop and
+  inject either host self-actions or admin `withAdminAudit`-wrapped
+  actions. A `mode: 'admin' | 'self'` prop would spread `if (mode === ...)`
+  branches through every leaf and rot over time.
+- **MFA (AAL2) required on every admin call.** `is_super_admin()` and
+  `has_admin_permission()` both check `auth.jwt() ->> 'aal' = 'aal2'`.
+  Staff cannot reach `/admin` until they enrol TOTP. Break-glass via
+  `supabase/scripts/grant-super-admin.sql` for lockout recovery.
+
+**Rejected alternatives:**
+
+- **Subdomain admin app:** doubles deploy and ops surface; deferrable to
+  post-MVP via Vercel rewrite.
+- **Per-permission RBAC (composable grants):** maximum flexibility, but
+  3–4 named roles cover the foreseeable future. Revisit if multi-tenant
+  staff dynamics emerge.
+- **Boolean `is_platform_staff` flag:** simplest, but locks in hardcoded
+  capability logic — exactly what AGENT_RULES.md §6.4 forbids.
+- **Cookie-swap impersonation:** see above; structurally unsafe with
+  `@supabase/ssr` and dilutes the audit trail.
+- **`mode` prop on shared form components:** spreads conditional branches
+  through every leaf; harder to maintain than action-injection.
+- **No MFA at MVP:** the admin can refund money, force plan changes, and
+  impersonate any user. Single-factor auth is unacceptable for that
+  surface even for a solo founder.
+
+**Constraint:**
+
+- New admin permissions must be added in the RBAC migration (`admin_permissions`
+  + `admin_role_permissions`), not in app code. Update the `PermissionKey`
+  union in `apps/web/lib/admin/requirePermission.ts` to match.
+- Finance and moderation actions (`payments.refund`, `subscriptions.edit`,
+  `bookings.cancel`, `users.suspend`) must be executed inside a Supabase
+  Edge Function that wraps the mutation + audit insert in a single
+  transaction. Other audited actions may use the eventual-consistency path
+  in `withAdminAudit`.
+- The `/admin/as/[userId]/...` subtree must never gain mutation server
+  actions. Read-only is structural; do not rely on app-level checks.
+- The founder email (`wollie333@gmail.com`) is hardcoded in the seed at
+  the bottom of `20260525000002_create_platform_staff_rbac.sql`. If
+  ownership ever transfers, update the seed and the break-glass script
+  together.
+
+Related: ADR-010 (feature permissions via DB RPC — same philosophy applied to
+admin permissions); AGENT_RULES.md §6.4–6.8.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

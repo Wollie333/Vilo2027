@@ -49,6 +49,20 @@ function roundOne(n: number): string {
   return (Math.round(n * 100) / 100).toFixed(2);
 }
 
+// First letters of the first two words of a listing name, upper-cased.
+// Pulled out of the JSX so TS doesn't lose the parameter type when the
+// surrounding Supabase row is inferred loosely.
+function listingInitials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p: string) => p[0]?.toUpperCase() ?? "")
+      .join("") || "L"
+  );
+}
+
 export default async function ReviewsPage({
   searchParams,
 }: {
@@ -476,12 +490,7 @@ export default async function ReviewsPage({
                       }`}
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent/60 font-mono text-[10px] font-semibold text-brand-secondary">
-                        {l.name
-                          .split(/\s+/)
-                          .filter(Boolean)
-                          .slice(0, 2)
-                          .map((p) => p[0]?.toUpperCase() ?? "")
-                          .join("")}
+                        {listingInitials(l.name as string)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium text-brand-ink">

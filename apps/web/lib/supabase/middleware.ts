@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_ROUTES = ["/login", "/register", "/forgot-password"];
-const PROTECTED_PREFIXES = ["/dashboard"];
+const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -50,9 +50,13 @@ export async function updateSession(request: NextRequest) {
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.search = "";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
+
+  // Admin gate: deeper checks (platform_staff membership, AAL2) happen in the
+  // admin layout via requireAdmin(). Middleware only handles auth presence so
+  // every request doesn't pay for an extra DB roundtrip.
 
   return supabaseResponse;
 }

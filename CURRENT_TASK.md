@@ -87,6 +87,55 @@ Two user-facing pages plus the auth plumbing behind them. A real user can sign u
 
 ---
 
+## Session Notes — 2026-05-24 — Super Admin Control Centre · Phase A foundation
+
+### What landed (out of original auth scope — user-authorised deviation)
+- **RBAC migration** `20260525000002_create_platform_staff_rbac.sql` —
+  new tables `admin_roles`, `admin_permissions`, `admin_role_permissions`,
+  `platform_staff`, `platform_staff_invites`. Seeded 5 roles
+  (`super_admin`, `support_agent`, `finance`, `content_mod`, `ops`) and
+  17 permission keys (`domain.action`).
+- **`is_super_admin()` replaced** to read from `platform_staff` and require
+  AAL2. Signature unchanged so existing `admin_full_*` RLS policies still
+  work. New helper `has_admin_permission(p_key)`.
+- **Founder auto-seeded** into `platform_staff` as `super_admin` on
+  migration. Aborts loudly if the user_profile row is missing.
+- **`apps/web/lib/admin/`** — `requireAdmin()`, `requirePermission()`,
+  `hasPermission()`, `withAdminAudit()` wrapper, `openImpersonationSession`
+  / `closeImpersonationSession`, HMAC-signed impersonation cookie,
+  error classes.
+- **`/admin` route group** — layout with sidebar / topbar / impersonation
+  banner, KPI dashboard at `/admin`, audit log viewer at `/admin/audit`,
+  Vilo staff management at `/admin/platform/staff`, placeholder pages for
+  every other section (each exercising its `requirePermission()` gate).
+- **View-only impersonation** at `/admin/as/[userId]/dashboard` —
+  service-role queries scoped by URL param, NO auth-cookie swap.
+- **Break-glass:** `supabase/scripts/grant-super-admin.sql` re-grants the
+  founder when locked out.
+- **`AGENT_RULES.md` §6.4–6.8** added: RBAC via `has_admin_permission`,
+  AAL2 required, reason-required on destructive actions, view-only
+  impersonation, atomic finance/moderation actions.
+
+### Pickup
+- **Apply the migration locally** once Docker is up:
+  `supabase db reset` then
+  `supabase gen types typescript --local > packages/types/database.types.ts`.
+- Build + lint + type-check all pass in this session. The new RBAC tables
+  are typed as `any` in the queries until types are regenerated — that
+  hasn't broken strict mode but should be regenerated before Phase B
+  starts so Supabase queries get proper auto-completion.
+- **Phase B next:** users / hosts search + detail pages, then `/admin/as/`
+  read-only views for listings / calendar / inbox.
+- **Phase C–E roadmap:** see `~/.claude/plans/feature-super-admin-inherited-spark.md`
+  — edit powers (shell-and-injection refactor of existing dashboard tabs);
+  refund + subscription + reviews admin (atomic via Edge Function);
+  platform_settings + plan_features editors + staff invite UI.
+- The plan agent flagged one carry-over for Phase E: monthly CSV export of
+  `admin_audit_log` to Storage. Spec is ready; ship the cron when the
+  rest of platform settings lands.
+
+---
+
 ## Session Notes — 2026-05-24 — Seasonal pricing MVP
 
 ### What landed
