@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
 // Pre-MVP feature-gate policy (AGENT_RULES.md §3.4): every gated feature is
@@ -16,7 +15,7 @@ import { BusinessDetailsForm } from "./_components/BusinessDetailsForm";
 import type { BankAccountInput, BusinessDetailsInput } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Banking & business · Vilo",
+  title: "Banking & business · Settings · Vilo",
 };
 
 export const dynamic = "force-dynamic";
@@ -99,30 +98,21 @@ export default async function BankingSettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <Link
-        href="/dashboard/settings"
-        className="inline-flex items-center gap-1 text-sm text-brand-mute hover:text-brand-ink"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to settings
-      </Link>
-
-      <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Banking & business
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
+    <div className="space-y-8">
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-display text-lg font-bold text-brand-ink">
+            Banking & business
+          </h2>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-medium text-brand-secondary">
+            <ShieldCheck className="h-3 w-3" />
+            Encrypted at rest
+          </span>
+        </div>
+        <p className="mb-4 text-sm text-brand-mute">
           One source of truth for EFT, invoices, and quotes. Account numbers are
           encrypted and only shown to guests with a confirmed EFT booking.
         </p>
-        <p className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-medium text-brand-secondary">
-          <ShieldCheck className="h-3 w-3" />
-          Encrypted at rest with AES-256-GCM
-        </p>
-      </header>
-
-      <section>
         <BankAccountList accounts={accounts} />
       </section>
 
