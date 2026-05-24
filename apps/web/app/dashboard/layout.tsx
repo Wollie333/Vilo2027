@@ -28,30 +28,21 @@ export default async function DashboardLayout({
 
   let listingCount = 0;
   let plan: string | null = null;
-  let inboxUnread = 0;
 
   if (host) {
-    const [{ count }, { data: subscription }, { data: convs }] =
-      await Promise.all([
-        supabase
-          .from("listings")
-          .select("id", { count: "exact", head: true })
-          .eq("host_id", host.id),
-        supabase
-          .from("subscriptions")
-          .select("plan")
-          .eq("host_id", host.id)
-          .maybeSingle(),
-        supabase
-          .from("conversations")
-          .select("unread_host")
-          .eq("host_id", host.id)
-          .neq("status", "archived")
-          .gt("unread_host", 0),
-      ]);
+    const [{ count }, { data: subscription }] = await Promise.all([
+      supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id),
+      supabase
+        .from("subscriptions")
+        .select("plan")
+        .eq("host_id", host.id)
+        .maybeSingle(),
+    ]);
     listingCount = count ?? 0;
     plan = subscription?.plan ?? null;
-    inboxUnread = (convs ?? []).reduce((n, c) => n + (c.unread_host ?? 0), 0);
   }
 
   const initials = (host?.display_name || user.email || "??")
@@ -60,11 +51,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">
-      <Sidebar
-        host={host ? { ...host, listingCount } : null}
-        plan={plan}
-        inboxUnread={inboxUnread}
-      />
+      <Sidebar host={host ? { ...host, listingCount } : null} plan={plan} />
       <main className="min-w-0 flex-1 pb-20 lg:pb-0">
         <Topbar email={user.email ?? ""} initials={initials} />
         <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>

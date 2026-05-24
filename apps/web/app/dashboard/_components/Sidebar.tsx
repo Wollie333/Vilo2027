@@ -38,45 +38,31 @@ type Item = {
   match?: "exact" | "prefix";
 };
 
-function mainNav(inboxUnread: number): Item[] {
-  return [
-    {
-      href: "/dashboard",
-      label: "Overview",
-      icon: LayoutDashboard,
-      match: "exact",
-    },
-    { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
-    {
-      href: "/dashboard/inbox",
-      label: "Inbox",
-      icon: MessageSquare,
-      ...(inboxUnread > 0
-        ? {
-            badge: {
-              text: inboxUnread > 99 ? "99+" : String(inboxUnread),
-              tone: "alert" as const,
-            },
-          }
-        : {}),
-    },
-    { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
-    {
-      href: "/dashboard/listings",
-      label: "Listings",
-      icon: HomeIcon,
-      match: "prefix",
-    },
-    { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
-    {
-      href: "/dashboard/seasonal-pricing",
-      label: "Seasonal pricing",
-      icon: CalendarRange,
-    },
-    { href: "/dashboard/reviews", label: "Reviews", icon: Star },
-    { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
-  ];
-}
+const MAIN: Item[] = [
+  {
+    href: "/dashboard",
+    label: "Overview",
+    icon: LayoutDashboard,
+    match: "exact",
+  },
+  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
+  {
+    href: "/dashboard/listings",
+    label: "Listings",
+    icon: HomeIcon,
+    match: "prefix",
+  },
+  { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
+  {
+    href: "/dashboard/seasonal-pricing",
+    label: "Seasonal pricing",
+    icon: CalendarRange,
+  },
+  { href: "/dashboard/reviews", label: "Reviews", icon: Star },
+  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
+];
 
 const CONNECT: Item[] = [
   {
@@ -158,11 +144,9 @@ function NavLink({ item }: { item: Item }) {
 export function Sidebar({
   host,
   plan,
-  inboxUnread = 0,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
-  inboxUnread?: number;
 }) {
   const planLabel =
     plan === "free"
@@ -170,7 +154,6 @@ export function Sidebar({
       : plan
         ? plan[0].toUpperCase() + plan.slice(1)
         : "—";
-  const MAIN = mainNav(inboxUnread);
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
