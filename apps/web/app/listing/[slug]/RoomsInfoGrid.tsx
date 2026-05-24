@@ -1,6 +1,6 @@
 import { BedDouble, Users } from "lucide-react";
 
-import type { PublicRoom } from "./RoomsGrid";
+import { bedSummary, roomFlagPills, type PublicRoom } from "./RoomsGrid";
 
 // Display-only room cards for whole-listing mode. Same shape as RoomsGrid
 // but without per-room pricing or the Add-to-cart button — rooms are
@@ -42,17 +42,33 @@ export function RoomsInfoGrid({ rooms }: { rooms: PublicRoom[] }) {
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3 w-3" /> Sleeps {room.max_guests}
               </span>
-              {room.bedrooms != null ? (
-                <span>
-                  {room.bedrooms} bed{room.bedrooms === 1 ? "" : "s"}
-                </span>
-              ) : null}
               {room.bathrooms != null ? (
                 <span>
                   {room.bathrooms} bath{room.bathrooms === 1 ? "" : "s"}
                 </span>
               ) : null}
+              {room.room_size_sqm != null ? (
+                <span>{room.room_size_sqm}m²</span>
+              ) : null}
+              {room.view_type ? <span>{room.view_type} view</span> : null}
             </div>
+            {room.beds && room.beds.length > 0 ? (
+              <div className="text-[11px] text-brand-dark">
+                {bedSummary(room.beds)}
+              </div>
+            ) : null}
+            {roomFlagPills(room).length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {roomFlagPills(room).map((p) => (
+                  <span
+                    key={p}
+                    className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-secondary"
+                  >
+                    {p}
+                  </span>
+                ))}
+              </div>
+            ) : null}
           </div>
         </article>
       ))}

@@ -169,6 +169,49 @@ export const roomSchema = z.object({
 });
 export type RoomInput = z.infer<typeof roomSchema>;
 
+// ── Bed kinds (structured beds via room_beds table) ───────────
+export const BED_KINDS = [
+  { value: "king" as const, label: "King" },
+  { value: "queen" as const, label: "Queen" },
+  { value: "double" as const, label: "Double" },
+  { value: "twin" as const, label: "Twin" },
+  { value: "single" as const, label: "Single" },
+  { value: "bunk" as const, label: "Bunk" },
+  { value: "sofa_bed" as const, label: "Sofa bed" },
+  { value: "cot" as const, label: "Cot" },
+  { value: "floor_mattress" as const, label: "Floor mattress" },
+];
+
+export const bedKindSchema = z.enum([
+  "king",
+  "queen",
+  "double",
+  "twin",
+  "single",
+  "bunk",
+  "sofa_bed",
+  "cot",
+  "floor_mattress",
+]);
+export type BedKind = z.infer<typeof bedKindSchema>;
+
+export const bedInputSchema = z.object({
+  bed_kind: bedKindSchema,
+  quantity: z.number().int().min(1).max(20),
+});
+export type BedInput = z.infer<typeof bedInputSchema>;
+
+// Pluralise a bed kind label for the derived bed_type shim string.
+export function bedKindLabel(kind: BedKind, qty: number): string {
+  const base = BED_KINDS.find((b) => b.value === kind)?.label ?? kind;
+  if (qty <= 1) return base;
+  // Simple pluralisation — append 's' (Twin → Twins, Bunk → Bunks). "Sofa
+  // bed" becomes "Sofa beds"; "Floor mattress" becomes "Floor mattresses".
+  if (base.endsWith("ress")) return `${base}es`;
+  if (base.endsWith("s")) return base;
+  return `${base}s`;
+}
+
 // What the create/update Server Actions accept for a room — strict numerics
 // after the form converts strings, no nullable wrappers.
 export const roomPatchSchema = z.object({
@@ -187,6 +230,14 @@ export const roomPatchSchema = z.object({
   bed_type: z.string().max(40).nullable().optional(),
   view_type: z.string().max(40).nullable().optional(),
   experiences: z.array(z.string().max(60)).max(20).optional(),
+  // ── Enterprise fields (migration 20260524000007) ────────────
+  has_ensuite_bathroom: z.boolean().optional(),
+  smoking_allowed: z.boolean().optional(),
+  pets_allowed: z.boolean().optional(),
+  wheelchair_accessible: z.boolean().optional(),
+  private_entrance: z.boolean().optional(),
+  floor_number: z.number().int().min(-5).max(200).nullable().optional(),
+  inventory_count: z.number().int().min(1).max(99).optional(),
 });
 export type RoomPatch = z.infer<typeof roomPatchSchema>;
 

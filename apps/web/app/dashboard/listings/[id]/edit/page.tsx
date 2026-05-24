@@ -94,7 +94,7 @@ export default async function EditListingPage({
     supabase
       .from("listing_rooms")
       .select(
-        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active",
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
       )
       .eq("listing_id", params.id)
       .is("deleted_at", null)
@@ -124,19 +124,40 @@ export default async function EditListingPage({
     url: r.url,
     roomId: r.room_id ?? null,
   }));
-  const rooms: EditorRoom[] = (roomRows ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    description: r.description,
-    bedrooms: r.bedrooms,
-    bathrooms: r.bathrooms,
-    max_guests: r.max_guests,
-    base_price: r.base_price,
-    weekend_price: r.weekend_price,
-    cleaning_fee: r.cleaning_fee,
-    sort_order: r.sort_order,
-    is_active: r.is_active,
-  }));
+  const rooms: EditorRoom[] = (roomRows ?? []).map((r) => {
+    const rawBeds =
+      (r.beds as Array<{
+        bed_kind: string;
+        quantity: number;
+        sort_order: number;
+      }> | null) ?? [];
+    return {
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      bedrooms: r.bedrooms,
+      bathrooms: r.bathrooms,
+      max_guests: r.max_guests,
+      base_price: Number(r.base_price),
+      weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
+      cleaning_fee: Number(r.cleaning_fee ?? 0),
+      sort_order: r.sort_order,
+      is_active: r.is_active,
+      room_size_sqm: r.room_size_sqm == null ? null : Number(r.room_size_sqm),
+      view_type: r.view_type ?? null,
+      experiences: (r.experiences as string[] | null) ?? [],
+      has_ensuite_bathroom: r.has_ensuite_bathroom ?? false,
+      smoking_allowed: r.smoking_allowed ?? false,
+      pets_allowed: r.pets_allowed ?? false,
+      wheelchair_accessible: r.wheelchair_accessible ?? false,
+      private_entrance: r.private_entrance ?? false,
+      floor_number: r.floor_number ?? null,
+      inventory_count: r.inventory_count ?? 1,
+      beds: rawBeds
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
+    };
+  });
 
   const availableAddons: AvailableAddon[] = (addonRows ?? []).map((r) => ({
     id: r.id,

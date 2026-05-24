@@ -97,6 +97,27 @@ export type EditorRoom = {
   cleaning_fee: number;
   sort_order: number;
   is_active: boolean;
+  // Drill-in editor fields (migration 20260524000004).
+  room_size_sqm: number | null;
+  view_type: string | null;
+  experiences: string[];
+  // Enterprise fields (migration 20260524000007).
+  has_ensuite_bathroom: boolean;
+  smoking_allowed: boolean;
+  pets_allowed: boolean;
+  wheelchair_accessible: boolean;
+  private_entrance: boolean;
+  floor_number: number | null;
+  inventory_count: number;
+  beds: { bed_kind: string; quantity: number }[];
+  // Optional — populated by /dashboard/rooms so the inline tabbed editor
+  // has everything it needs without a follow-up fetch. The listing editor
+  // page doesn't populate these (it uses the drill-in editor for photos
+  // + amenities).
+  featuredPhotoUrl?: string | null;
+  featuredPhotoId?: string | null;
+  photos?: { id: string; url: string }[];
+  amenityKeys?: string[];
 };
 
 type TabKey =

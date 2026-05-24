@@ -4,10 +4,15 @@ import { revalidatePath } from "next/cache";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { z } from "zod";
+
 import {
+  bedInputSchema,
+  bedKindLabel,
   bookingModeSchema,
   patchSchema,
   roomPatchSchema,
+  type BedInput,
   type BookingModeInput,
   type PatchInput,
   type RoomPatch,
@@ -626,5 +631,81 @@ export async function setRoomAmenityAction(
   }
 
   revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
+  return { ok: true };
+}
+
+// ─── Structured per-room bed composition (room_beds) ─────────────
+
+const setRoomBedsInputSchema = z.array(bedInputSchema).max(30);
+
+export async function setRoomBedsAction(
+  listingId: string,
+  roomId: string,
+  beds: BedInput[],
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = setRoomBedsInputSchema.safeParse(beds);
+  if (!parsed.success) {
+    return { ok: false, error: "Some bed entries look wrong." };
+  }
+
+  const supabase = createServerClient();
+
+  // Confirm the room belongs to the listing (defence in depth — RLS would
+  // already deny cross-host writes).
+  const { data: roomRow } = await supabase
+    .from("listing_rooms")
+    .select("id")
+    .eq("id", roomId)
+    .eq("listing_id", listingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!roomRow) {
+    return { ok: false, error: "Room not found on this listing." };
+  }
+
+  // One-shot replacement: wipe + insert.
+  const { error: delErr } = await supabase
+    .from("room_beds")
+    .delete()
+    .eq("room_id", roomId);
+  if (delErr) {
+    return { ok: false, error: "Could not update beds." };
+  }
+
+  if (parsed.data.length > 0) {
+    const rows = parsed.data.map((b, i) => ({
+      room_id: roomId,
+      bed_kind: b.bed_kind,
+      quantity: b.quantity,
+      sort_order: i,
+    }));
+    const { error: insErr } = await supabase.from("room_beds").insert(rows);
+    if (insErr) {
+      return { ok: false, error: "Could not save beds." };
+    }
+  }
+
+  // Derive a display-friendly bed_type string ("1 King + 2 Twins") so the
+  // legacy text column keeps working for public readers that haven't been
+  // updated to join room_beds yet.
+  const summary =
+    parsed.data.length === 0
+      ? null
+      : parsed.data
+          .map((b) => `${b.quantity} ${bedKindLabel(b.bed_kind, b.quantity)}`)
+          .join(" + ")
+          .slice(0, 40);
+  await supabase
+    .from("listing_rooms")
+    .update({ bed_type: summary })
+    .eq("id", roomId)
+    .eq("listing_id", listingId);
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/rooms");
   return { ok: true };
 }

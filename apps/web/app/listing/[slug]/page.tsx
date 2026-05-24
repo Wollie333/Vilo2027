@@ -118,17 +118,18 @@ async function loadListing(slug: string) {
         .from("listing_amenities")
         .select("amenity_key")
         .eq("listing_id", listing.id),
-      listing.booking_mode === "whole_listing"
-        ? Promise.resolve({ data: [] as Array<Record<string, never>> })
-        : supabase
-            .from("listing_rooms")
-            .select(
-              "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, sort_order, is_active",
-            )
-            .eq("listing_id", listing.id)
-            .is("deleted_at", null)
-            .eq("is_active", true)
-            .order("sort_order", { ascending: true }),
+      // Rooms are fetched for every mode now — they're descriptive on
+      // whole-place listings (bedroom layout, beds, flags) and bookable
+      // on per-room / flexible.
+      supabase
+        .from("listing_rooms")
+        .select(
+          "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
+        )
+        .eq("listing_id", listing.id)
+        .is("deleted_at", null)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
     ]);
 
   const galleryPhotos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
@@ -152,10 +153,24 @@ async function loadListing(slug: string) {
       bedrooms: number | null;
       bathrooms: number | null;
       max_guests: number;
-      base_price: number;
-      cleaning_fee: number | null;
+      base_price: number | string;
+      cleaning_fee: number | string | null;
       sort_order: number;
       is_active: boolean;
+      room_size_sqm: number | string | null;
+      view_type: string | null;
+      has_ensuite_bathroom: boolean | null;
+      pets_allowed: boolean | null;
+      wheelchair_accessible: boolean | null;
+      private_entrance: boolean | null;
+      smoking_allowed: boolean | null;
+      floor_number: number | null;
+      inventory_count: number | null;
+      beds: Array<{
+        bed_kind: string;
+        quantity: number;
+        sort_order: number;
+      }> | null;
     }>
   ).map((r) => ({
     id: r.id,
@@ -167,6 +182,18 @@ async function loadListing(slug: string) {
     base_price: Number(r.base_price),
     cleaning_fee: Number(r.cleaning_fee ?? 0),
     photoUrl: firstPhotoByRoom.get(r.id) ?? null,
+    room_size_sqm: r.room_size_sqm == null ? null : Number(r.room_size_sqm),
+    view_type: r.view_type ?? null,
+    has_ensuite_bathroom: r.has_ensuite_bathroom ?? false,
+    pets_allowed: r.pets_allowed ?? false,
+    wheelchair_accessible: r.wheelchair_accessible ?? false,
+    private_entrance: r.private_entrance ?? false,
+    smoking_allowed: r.smoking_allowed ?? false,
+    floor_number: r.floor_number ?? null,
+    inventory_count: r.inventory_count ?? 1,
+    beds: (r.beds ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
   }));
 
   return { listing, photos: galleryPhotos, amenities, rooms };

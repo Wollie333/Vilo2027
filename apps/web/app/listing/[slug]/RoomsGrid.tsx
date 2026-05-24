@@ -14,7 +14,58 @@ export type PublicRoom = {
   base_price: number;
   cleaning_fee: number;
   photoUrl: string | null;
+  // Enterprise fields — present after migration 20260524000007.
+  room_size_sqm: number | null;
+  view_type: string | null;
+  has_ensuite_bathroom: boolean;
+  pets_allowed: boolean;
+  wheelchair_accessible: boolean;
+  private_entrance: boolean;
+  smoking_allowed: boolean;
+  floor_number: number | null;
+  inventory_count: number;
+  beds: { bed_kind: string; quantity: number }[];
 };
+
+const BED_LABEL: Record<string, string> = {
+  king: "King",
+  queen: "Queen",
+  double: "Double",
+  twin: "Twin",
+  single: "Single",
+  bunk: "Bunk",
+  sofa_bed: "Sofa bed",
+  cot: "Cot",
+  floor_mattress: "Floor mattress",
+};
+
+export function bedSummary(beds: PublicRoom["beds"]): string {
+  if (!beds || beds.length === 0) return "";
+  return beds
+    .map((b) => {
+      const base = BED_LABEL[b.bed_kind] ?? b.bed_kind;
+      if (b.quantity <= 1) return base;
+      const plural = base.endsWith("ress")
+        ? `${base}es`
+        : base.endsWith("s")
+          ? base
+          : `${base}s`;
+      return `${b.quantity} ${plural}`;
+    })
+    .join(" · ");
+}
+
+export function roomFlagPills(room: PublicRoom): string[] {
+  const pills: string[] = [];
+  if (room.has_ensuite_bathroom) pills.push("Ensuite bath");
+  if (room.wheelchair_accessible) pills.push("Wheelchair access");
+  if (room.pets_allowed) pills.push("Pets ok");
+  if (room.private_entrance) pills.push("Private entrance");
+  if (room.smoking_allowed) pills.push("Smoking allowed");
+  if (room.floor_number != null) pills.push(`Floor ${room.floor_number}`);
+  if (room.inventory_count > 1) pills.push("Multiple available");
+  return pills;
+}
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -82,17 +133,33 @@ export function RoomsGrid({
                 <span className="inline-flex items-center gap-1">
                   <Users className="h-3 w-3" /> Sleeps {room.max_guests}
                 </span>
-                {room.bedrooms != null ? (
-                  <span>
-                    {room.bedrooms} bed{room.bedrooms === 1 ? "" : "s"}
-                  </span>
-                ) : null}
                 {room.bathrooms != null ? (
                   <span>
                     {room.bathrooms} bath{room.bathrooms === 1 ? "" : "s"}
                   </span>
                 ) : null}
+                {room.room_size_sqm != null ? (
+                  <span>{room.room_size_sqm}m²</span>
+                ) : null}
+                {room.view_type ? <span>{room.view_type} view</span> : null}
               </div>
+              {room.beds && room.beds.length > 0 ? (
+                <div className="text-[11px] text-brand-dark">
+                  {bedSummary(room.beds)}
+                </div>
+              ) : null}
+              {roomFlagPills(room).length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {roomFlagPills(room).map((p) => (
+                    <span
+                      key={p}
+                      className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-secondary"
+                    >
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               <div className="flex items-center justify-between gap-3 border-t border-brand-line pt-3">
                 <div>
                   <span className="font-display text-lg font-bold text-brand-ink">

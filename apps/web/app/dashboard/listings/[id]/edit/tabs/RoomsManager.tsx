@@ -1,7 +1,6 @@
 "use client";
 
-import { ChevronDown, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { BedDouble, ChevronDown, Plus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -13,30 +12,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
-import {
-  createRoomAction,
-  deleteRoomAction,
-  updateRoomAction,
-} from "../actions";
+import { createRoomAction } from "../actions";
 import type { EditorRoom } from "../Editor";
+import { bedKindLabel, type BedKind } from "../schemas";
+import { RoomRowEditor } from "./RoomRowEditor";
 
-function toInt(v: string): number | null {
-  if (v === "") return null;
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) ? n : null;
+function roomBedTotal(room: EditorRoom): number {
+  return room.beds.reduce((acc, b) => acc + b.quantity, 0);
 }
 
-function toNum(v: string): number | null {
-  if (v === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
-
-function numToStr(n: number | null | undefined, fallback = ""): string {
-  return n == null ? fallback : String(n);
+function roomBedSummary(room: EditorRoom): string {
+  if (room.beds.length === 0) return "";
+  return room.beds
+    .map(
+      (b) => `${b.quantity} ${bedKindLabel(b.bed_kind as BedKind, b.quantity)}`,
+    )
+    .join(" · ");
 }
 
 export function RoomsManager({
@@ -84,6 +76,18 @@ export function RoomsManager({
           cleaning_fee: 0,
           sort_order: rooms.length,
           is_active: true,
+          room_size_sqm: null,
+          view_type: null,
+          experiences: [],
+          has_ensuite_bathroom: false,
+          smoking_allowed: false,
+          pets_allowed: false,
+          wheelchair_accessible: false,
+          private_entrance: false,
+          floor_number: null,
+          inventory_count: 1,
+          beds: [],
+          featuredPhotoUrl: null,
         },
       ]);
       toast.success("Room added");
@@ -162,74 +166,34 @@ function RoomRow({
   onDeleted: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [savePending, startSave] = useTransition();
-  const [deletePending, startDelete] = useTransition();
 
-  const [name, setName] = useState(room.name);
-  const [description, setDescription] = useState(room.description ?? "");
-  const [bedrooms, setBedrooms] = useState(numToStr(room.bedrooms, "1"));
-  const [bathrooms, setBathrooms] = useState(numToStr(room.bathrooms, "0"));
-  const [maxGuests, setMaxGuests] = useState(numToStr(room.max_guests, "2"));
-  const [basePrice, setBasePrice] = useState(numToStr(room.base_price, "0"));
-  const [weekendPrice, setWeekendPrice] = useState(
-    numToStr(room.weekend_price),
+  const bedTotal = roomBedTotal(room);
+  const amenityCount = room.amenityKeys?.length ?? 0;
+  const beds = roomBedSummary(room);
+
+  // Collapsed-row summary line: capacity + price + status + a few enrichments
+  // so the host sees richness at a glance ("Sleeps 4 · R 1 200/night · 4 beds
+  // · 6 amenities · 32m²"). All bits gracefully omit when missing.
+  const summaryBits: string[] = [];
+  summaryBits.push(`Sleeps ${room.max_guests}`);
+  summaryBits.push(
+    `R ${Math.round(room.base_price).toLocaleString("en-ZA").replace(/,/g, " ")}/night`,
   );
-  const [cleaningFee, setCleaningFee] = useState(
-    numToStr(room.cleaning_fee, "0"),
-  );
-  const [isActive, setIsActive] = useState(room.is_active);
-
-  function save() {
-    startSave(async () => {
-      const result = await updateRoomAction(listingId, room.id, {
-        name: name.trim(),
-        description: description.trim().length > 0 ? description.trim() : null,
-        bedrooms: toInt(bedrooms),
-        bathrooms: toInt(bathrooms),
-        max_guests: toInt(maxGuests) ?? room.max_guests,
-        base_price: toNum(basePrice) ?? room.base_price,
-        weekend_price: toNum(weekendPrice),
-        cleaning_fee: toNum(cleaningFee) ?? 0,
-        is_active: isActive,
-      });
-      if (result.ok) {
-        onUpdated({
-          ...room,
-          name: name.trim(),
-          description: description.trim().length > 0 ? description : null,
-          bedrooms: toInt(bedrooms),
-          bathrooms: toInt(bathrooms),
-          max_guests: toInt(maxGuests) ?? room.max_guests,
-          base_price: toNum(basePrice) ?? room.base_price,
-          weekend_price: toNum(weekendPrice),
-          cleaning_fee: toNum(cleaningFee) ?? 0,
-          is_active: isActive,
-        });
-        toast.success("Room saved");
-      } else {
-        toast.error(result.error);
-      }
-    });
+  if (bedTotal > 0) {
+    summaryBits.push(`${bedTotal} bed${bedTotal === 1 ? "" : "s"}`);
   }
-
-  function remove() {
-    if (
-      !window.confirm(
-        `Delete room "${room.name}"? It can't have any active bookings.`,
-      )
-    ) {
-      return;
-    }
-    startDelete(async () => {
-      const result = await deleteRoomAction(listingId, room.id);
-      if (result.ok) {
-        onDeleted();
-        toast.success("Room deleted");
-      } else {
-        toast.error(result.error);
-      }
-    });
+  if (amenityCount > 0) {
+    summaryBits.push(
+      `${amenityCount} amenit${amenityCount === 1 ? "y" : "ies"}`,
+    );
   }
+  if (room.room_size_sqm != null) {
+    summaryBits.push(`${room.room_size_sqm}m²`);
+  }
+  if (room.inventory_count > 1) {
+    summaryBits.push(`× ${room.inventory_count} units`);
+  }
+  if (!room.is_active) summaryBits.push("Hidden");
 
   return (
     <div className="overflow-hidden rounded-card border border-brand-line">
@@ -239,16 +203,33 @@ function RoomRow({
         className="flex w-full items-center gap-3 bg-white px-4 py-3 text-left hover:bg-brand-light/60"
         aria-expanded={open}
       >
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded border border-brand-line bg-brand-accent/40 text-brand-primary">
+          {room.featuredPhotoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={room.featuredPhotoUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <BedDouble className="h-5 w-5" />
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium text-brand-ink">{room.name}</div>
           <div className="text-xs text-brand-mute">
-            Sleeps {room.max_guests} · R{" "}
-            {Math.round(room.base_price)
-              .toLocaleString("en-ZA")
-              .replace(/,/g, " ")}
-            /night
-            {!room.is_active ? " · Hidden" : ""}
+            {summaryBits.join(" · ")}
+            {!room.featuredPhotoUrl ? (
+              <span className="ml-1.5 text-brand-primary">
+                · No cover photo
+              </span>
+            ) : null}
           </div>
+          {beds.length > 0 ? (
+            <div className="mt-0.5 truncate text-[11px] text-brand-mute">
+              {beds}
+            </div>
+          ) : null}
         </div>
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-brand-mute transition-transform ${
@@ -258,164 +239,13 @@ function RoomRow({
       </button>
 
       {open ? (
-        <div className="space-y-4 border-t border-brand-line bg-brand-light/30 p-4">
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              Room name
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1"
-              disabled={savePending}
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              Description{" "}
-              <span className="font-normal normal-case text-brand-mute">
-                (optional)
-              </span>
-            </label>
-            <Textarea
-              rows={3}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1"
-              disabled={savePending}
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Bedrooms">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={bedrooms}
-                onChange={(e) => setBedrooms(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-            <Field label="Bathrooms">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={bathrooms}
-                onChange={(e) => setBathrooms(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-            <Field label="Max guests">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={maxGuests}
-                onChange={(e) => setMaxGuests(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Base price / night">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={basePrice}
-                onChange={(e) => setBasePrice(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-            <Field label="Weekend price (optional)">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={weekendPrice}
-                onChange={(e) => setWeekendPrice(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-            <Field label="Cleaning fee">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={cleaningFee}
-                onChange={(e) => setCleaningFee(e.target.value)}
-                disabled={savePending}
-              />
-            </Field>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-brand-dark">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              disabled={savePending}
-              className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-            />
-            Bookable
-          </label>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={remove}
-              disabled={deletePending || savePending}
-              className="gap-1.5 text-status-cancelled hover:bg-red-50 hover:text-status-cancelled"
-            >
-              <Trash2 className="h-4 w-4" />
-              {deletePending ? "Deleting…" : "Delete"}
-            </Button>
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/dashboard/listings/${listingId}/edit/rooms/${room.id}`}
-                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-              >
-                <ImagePlus className="h-3.5 w-3.5" />
-                Photos &amp; amenities
-              </Link>
-              <Button
-                type="button"
-                onClick={save}
-                disabled={savePending}
-                className="gap-1.5"
-              >
-                <Save className="h-4 w-4" />
-                {savePending ? "Saving…" : "Save room"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <RoomRowEditor
+          listingId={listingId}
+          room={room}
+          onUpdated={onUpdated}
+          onDeleted={onDeleted}
+        />
       ) : null}
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </label>
-      <div className="mt-1">{children}</div>
     </div>
   );
 }
