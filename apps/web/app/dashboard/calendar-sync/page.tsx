@@ -1,12 +1,75 @@
 import type { Metadata } from "next";
-import { ExternalLink, RotateCw } from "lucide-react";
 import Link from "next/link";
+import { ExternalLink, RotateCw } from "lucide-react";
+
+import { createServerClient } from "@/lib/supabase/server";
+
+import { FeedManager, type Feed } from "./FeedManager";
 
 export const metadata: Metadata = {
   title: "Calendar sync · Vilo",
 };
 
-export default function CalendarSyncPage() {
+export const dynamic = "force-dynamic";
+
+export default async function CalendarSyncPage() {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return (
+      <p className="text-sm text-brand-mute">
+        Sign in to manage calendar sync.{" "}
+        <Link
+          href="/login"
+          className="text-brand-primary underline-offset-2 hover:underline"
+        >
+          Log in →
+        </Link>
+      </p>
+    );
+  }
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!host) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Empty body="Finish onboarding before connecting external calendars." />
+      </div>
+    );
+  }
+
+  const { data: listings } = await supabase
+    .from("listings")
+    .select("id, name")
+    .eq("host_id", host.id)
+    .is("deleted_at", null)
+    .order("name");
+
+  const { data: feedsRaw } = await supabase
+    .from("ical_feeds")
+    .select(
+      "id, listing_id, source_label, url, status, last_sync_at, last_error, imported_count",
+    )
+    .order("created_at", { ascending: false });
+
+  const feedsByListing = new Map<string, Feed[]>();
+  for (const f of (feedsRaw as Array<Feed & { listing_id: string }> | null) ??
+    []) {
+    const arr = feedsByListing.get(f.listing_id) ?? [];
+    arr.push(f);
+    feedsByListing.set(f.listing_id, arr);
+  }
+
+  const listingList = listings ?? [];
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
@@ -15,51 +78,100 @@ export default function CalendarSyncPage() {
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
           Two-way iCal between Vilo and Airbnb / Booking.com / Google / Apple.
-          Half of it&rsquo;s live.
+          Both directions live.
         </p>
       </header>
 
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+      {/* Export panel — already shipped */}
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <RotateCw className="h-5 w-5" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+            <RotateCw className="h-4 w-4" />
           </div>
           <div className="flex-1">
             <div className="font-display text-base font-semibold text-brand-ink">
-              Export — live now
+              Export — push your Vilo bookings out
             </div>
-            <p className="mt-1 text-sm text-brand-mute">
-              Every listing has a per-listing iCal URL you can paste into other
-              calendars. Find it under each listing on the Calendar page.
+            <p className="mt-1 text-[13px] text-brand-mute">
+              Every listing has a per-listing iCal URL. Paste it into the
+              calendar tool you want to keep in sync.
             </p>
             <Link
               href="/dashboard/calendar"
-              className="mt-3 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+              className="mt-3 inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink hover:bg-brand-light"
             >
-              Open Calendar
-              <ExternalLink className="h-3.5 w-3.5" />
+              Get my export URL
+              <ExternalLink className="h-3 w-3" />
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="rounded-card border border-dashed border-brand-line bg-white p-6 shadow-card">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-line text-brand-mute">
-            <RotateCw className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <div className="font-display text-base font-semibold text-brand-ink">
-              Import — coming in Phase 2
-            </div>
-            <p className="mt-1 text-sm text-brand-mute">
-              Add an Airbnb or Booking.com calendar URL and Vilo will block
-              those dates automatically. 15-minute re-sync, conflict detection,
-              host alerts on broken feeds.
-            </p>
-          </div>
+      {/* Import — per-listing feeds */}
+      <section>
+        <div className="mb-3">
+          <h2 className="font-display text-base font-bold text-brand-ink">
+            Import — pull external blocks in
+          </h2>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            Add an Airbnb or Booking.com calendar URL per listing. Hit{" "}
+            <strong>Sync</strong> to pull immediately, or wait for the scheduled
+            re-sync.
+          </p>
         </div>
+
+        {listingList.length === 0 ? (
+          <Empty body="Publish your first listing before adding external calendars." />
+        ) : (
+          <div className="space-y-6">
+            {listingList.map((listing) => (
+              <article
+                key={listing.id}
+                className="rounded-card border border-brand-line bg-white p-5 shadow-card"
+              >
+                <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-display text-base font-semibold text-brand-ink">
+                      {listing.name}
+                    </div>
+                    <Link
+                      href={`/dashboard/listings/${listing.id}/edit`}
+                      className="text-[11px] font-medium text-brand-primary hover:underline"
+                    >
+                      Edit listing →
+                    </Link>
+                  </div>
+                </header>
+
+                <FeedManager
+                  listingId={listing.id}
+                  feeds={feedsByListing.get(listing.id) ?? []}
+                />
+              </article>
+            ))}
+          </div>
+        )}
       </section>
+
+      <p className="text-[12px] text-brand-mute">
+        Imports respect{" "}
+        <Link
+          href="/booking-management"
+          className="text-brand-primary underline-offset-2 hover:underline"
+        >
+          AGENT_RULES §2.5
+        </Link>{" "}
+        — Vilo only touches dates it originally imported. Manual blocks and Vilo
+        bookings are never overwritten by a sync.
+      </p>
+    </div>
+  );
+}
+
+function Empty({ body }: { body: string }) {
+  return (
+    <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center">
+      <p className="text-sm text-brand-mute">{body}</p>
     </div>
   );
 }
