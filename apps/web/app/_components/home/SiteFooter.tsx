@@ -13,25 +13,25 @@ const EXPLORE = [
 const GUESTS = [
   { href: "/login", label: "Sign in" },
   { href: "/dashboard", label: "My bookings" },
-  { href: "#", label: "Help centre" },
-  { href: "#", label: "Refund policy" },
-  { href: "#", label: "Cancel a booking" },
+  { href: "/help", label: "Help centre" },
+  { href: "/terms", label: "Refund policy" },
+  { href: "/help", label: "Cancel a booking" },
 ] as const;
 
 const HOSTS = [
   { href: "/booking-management", label: "List your property" },
   { href: "/booking-management#how", label: "How Vilo works" },
   { href: "/booking-management#pricing", label: "Pricing" },
-  { href: "#", label: "Host academy" },
-  { href: "#", label: "Migration guide" },
+  { href: "/help", label: "Host academy" },
+  { href: "/help", label: "Migration guide" },
 ] as const;
 
 const COMPANY = [
-  { href: "#", label: "About" },
-  { href: "#", label: "Blog" },
-  { href: "#", label: "Careers" },
-  { href: "#", label: "Press" },
-  { href: "#", label: "Contact" },
+  { href: "/about", label: "About" },
+  { href: "/change-log", label: "Changelog" },
+  { href: "/contact", label: "Contact" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ] as const;
 
 export function SiteFooter() {
@@ -114,9 +114,9 @@ export function SiteFooter() {
             <Link href="/privacy" className="hover:text-white">
               Privacy
             </Link>
-            <a href="#" className="hover:text-white">
+            <Link href="/dashboard/settings/data" className="hover:text-white">
               POPIA
-            </a>
+            </Link>
             <Link href="/cookies" className="hover:text-white">
               Cookies
             </Link>
