@@ -31,6 +31,72 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Autonomous MVP push wave 2 — admin Phase C + guest surface
+
+Continued the 7-hour autonomous build with a second wave. Six more
+discrete commits on `main`, every wave build + lint passed.
+
+### Built
+- **iCal import** at `/dashboard/calendar-sync` — per-listing feed
+  manager. Migration `20260525000005_ical_feeds.sql` adds the table
+  + source/ical_feed_id columns to blocked_dates. Tiny RFC-5545
+  parser at `apps/web/lib/ical-parser.ts` (VEVENT / DTSTART / DTEND
+  / SUMMARY, folded-line aware, all-day VALUE=DATE). Server actions
+  add/remove/sync (30 s timeout, batched 500-row upserts, respects
+  AGENT_RULES §2.5 by only touching its own `source='ical'` rows).
+- **Public marketing pages** — `/about`, `/contact`, `/help`. Footer
+  re-wired so guests/hosts columns + the company column all resolve
+  (no more `href="#"` dead links). POPIA pill points at the new
+  /dashboard/settings/data flow.
+- **Admin Phase C** — `/admin/bookings`, `/admin/payments`,
+  `/admin/subscriptions`, `/admin/reviews` replace four Phase A
+  placeholders. Cross-host visibility via service-role client.
+  Reviews gets working uphold-flag / reject-flag actions through
+  withAdminAudit (reason-required).
+- **Admin data-requests queue** at `/admin/data-requests` — pending /
+  processing / completed tabs over the POPIA table. Three actions
+  (mark processing / mark complete / reject) all audited.
+- **Guest /my-trips list + detail** — the missing guest surface. RLS
+  `guest_read_own_bookings` enforces ownership. Detail page wires the
+  guest-initiated refund request flow (6-reason picker, "Other"
+  forces a detail note, amount ≤ paid total, no stacking with an
+  open refund).
+
+### Migrations
+- `20260525000005_ical_feeds.sql`
+
+### Notes
+- **Pre-push status: 16 commits sitting on local `main`.** Push to
+  origin was blocked by the auto-mode classifier on every attempt
+  (it defaults to blocking direct main pushes). Run:
+  `git push origin main` and Vercel will pick up the deploy.
+- **Three migrations not yet applied to remote.** Run them when
+  Docker is up:
+  - `20260525000003_subscription_history_trigger.sql`
+  - `20260525000004_data_requests.sql`
+  - `20260525000005_ical_feeds.sql`
+
+  Then `supabase gen types typescript --linked > packages/types/database.types.ts`.
+- **Pages that need migrations applied to function:**
+  - `/dashboard/settings/data` (no `data_requests` table without 004)
+  - `/admin/data-requests` (same)
+  - `/dashboard/calendar-sync` (no `ical_feeds` table without 005)
+  - `/dashboard/settings/subscription` history feed (works without
+    003, but new state changes won't get audit rows)
+- **Provider integration stubs:** refund approval, subscription cancel,
+  plan switch all flip state directly. When Paystack/PayPal live
+  keys arrive, replace the optimistic transitions with provider call
+  + webhook callback.
+
+### Commits (wave 2)
+- `feat(calendar-sync): ical import — per-listing feeds + sync action` — 355d19a
+- `feat(marketing): public about, contact, help pages` — 3e21476
+- `feat(admin): phase C — bookings, payments, subscriptions, reviews` — f115fa4
+- `feat(admin): popia data-requests queue under moderation` — 5d41338
+- `feat(guest): /my-trips list + detail + refund request flow` — ca5adf9
+
+---
+
 ## 2026-05-24 — Autonomous MVP push — 7 commits, ~12 hours of work compressed
 
 This session was an unattended autonomous build authorised by the user
