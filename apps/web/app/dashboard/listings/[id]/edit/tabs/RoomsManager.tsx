@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown, Plus, Save, Trash2 } from "lucide-react";
+import { ChevronDown, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -42,10 +43,12 @@ export function RoomsManager({
   listingId,
   rooms,
   onChange,
+  embedded = false,
 }: {
   listingId: string;
   rooms: EditorRoom[];
   onChange: (rooms: EditorRoom[]) => void;
+  embedded?: boolean;
 }) {
   const [createPending, startCreate] = useTransition();
 
@@ -87,6 +90,49 @@ export function RoomsManager({
     });
   }
 
+  const body = (
+    <>
+      {rooms.length === 0 ? (
+        <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-8 text-center text-sm text-brand-mute">
+          No rooms yet. Add the first one — for whole-place listings, rooms
+          describe what&rsquo;s inside; for per-room listings, each one is
+          independently bookable.
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {rooms.map((room) => (
+            <RoomRow
+              key={room.id}
+              listingId={listingId}
+              room={room}
+              onUpdated={(updated) =>
+                onChange(rooms.map((r) => (r.id === room.id ? updated : r)))
+              }
+              onDeleted={() => onChange(rooms.filter((r) => r.id !== room.id))}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 flex justify-end">
+        <Button
+          type="button"
+          onClick={addRoom}
+          disabled={createPending}
+          variant="outline"
+          className="gap-1.5"
+        >
+          <Plus className="h-4 w-4" />
+          {createPending ? "Adding…" : "Add room"}
+        </Button>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className="p-5">{body}</div>;
+  }
+
   return (
     <Card className="rounded-card border-brand-line shadow-card">
       <CardHeader>
@@ -94,46 +140,12 @@ export function RoomsManager({
           Rooms
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          One row per independently bookable room. Each room has its own price +
-          capacity. Guests on per-room listings pick rooms here.
+          One row per room. Click a row to edit name, capacity, pricing. Photos
+          &amp; amenities live in the per-room editor (link in each expanded
+          row).
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        {rooms.length === 0 ? (
-          <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-8 text-center text-sm text-brand-mute">
-            No rooms yet. Add the first one to enable per-room booking.
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {rooms.map((room) => (
-              <RoomRow
-                key={room.id}
-                listingId={listingId}
-                room={room}
-                onUpdated={(updated) =>
-                  onChange(rooms.map((r) => (r.id === room.id ? updated : r)))
-                }
-                onDeleted={() =>
-                  onChange(rooms.filter((r) => r.id !== room.id))
-                }
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="mt-4 flex justify-end">
-          <Button
-            type="button"
-            onClick={addRoom}
-            disabled={createPending}
-            variant="outline"
-            className="gap-1.5"
-          >
-            <Plus className="h-4 w-4" />
-            {createPending ? "Adding…" : "Add room"}
-          </Button>
-        </div>
-      </CardContent>
+      <CardContent>{body}</CardContent>
     </Card>
   );
 }
@@ -355,7 +367,7 @@ function RoomRow({
             Bookable
           </label>
 
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
             <Button
               type="button"
               variant="outline"
@@ -366,15 +378,24 @@ function RoomRow({
               <Trash2 className="h-4 w-4" />
               {deletePending ? "Deleting…" : "Delete"}
             </Button>
-            <Button
-              type="button"
-              onClick={save}
-              disabled={savePending}
-              className="gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              {savePending ? "Saving…" : "Save room"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/dashboard/listings/${listingId}/edit/rooms/${room.id}`}
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+              >
+                <ImagePlus className="h-3.5 w-3.5" />
+                Photos &amp; amenities
+              </Link>
+              <Button
+                type="button"
+                onClick={save}
+                disabled={savePending}
+                className="gap-1.5"
+              >
+                <Save className="h-4 w-4" />
+                {savePending ? "Saving…" : "Save room"}
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
