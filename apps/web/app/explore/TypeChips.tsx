@@ -2,6 +2,7 @@
 
 import {
   Building2,
+  Compass,
   Home,
   Mountain,
   Sparkles,
@@ -13,19 +14,23 @@ import { useSearchParams } from "next/navigation";
 type Chip = { key: string; label: string; icon: LucideIcon };
 
 const CHIPS: Chip[] = [
-  { key: "", label: "All stays", icon: Sparkles },
+  { key: "", label: "All", icon: Sparkles },
   { key: "self_catering", label: "Self-catering", icon: Home },
   { key: "bb", label: "B&B", icon: Building2 },
   { key: "guesthouse", label: "Guesthouse", icon: Building2 },
   { key: "lodge", label: "Lodge", icon: Mountain },
   { key: "hotel", label: "Hotel", icon: Building2 },
+  { key: "experience", label: "Experiences", icon: Compass },
 ];
 
 export function TypeChips({ currentType }: { currentType: string }) {
   const sp = useSearchParams();
 
   function hrefFor(typeKey: string): string {
+    // Reset to page 1 whenever the type changes so users don't land on an
+    // out-of-range page.
     const next = new URLSearchParams(sp.toString());
+    next.delete("page");
     if (typeKey) next.set("type", typeKey);
     else next.delete("type");
     const qs = next.toString();

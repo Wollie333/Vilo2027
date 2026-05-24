@@ -1,8 +1,15 @@
 "use client";
 
-import { Search, Users } from "lucide-react";
+import { ArrowDownUp, Search, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+const SORT_OPTIONS: { value: string; label: string }[] = [
+  { value: "newest", label: "Newest first" },
+  { value: "price_asc", label: "Price · low to high" },
+  { value: "price_desc", label: "Price · high to low" },
+  { value: "rating", label: "Top-rated" },
+];
 
 export function SearchBar({
   where,
@@ -18,6 +25,7 @@ export function SearchBar({
   const router = useRouter();
   const [w, setW] = useState(where);
   const [g, setG] = useState<number>(guests);
+  const [s, setS] = useState<string>(currentSort || "newest");
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -25,8 +33,7 @@ export function SearchBar({
     if (w.trim().length > 0) params.set("where", w.trim());
     if (g > 0) params.set("guests", String(g));
     if (currentType) params.set("type", currentType);
-    if (currentSort && currentSort !== "newest")
-      params.set("sort", currentSort);
+    if (s && s !== "newest") params.set("sort", s);
     const qs = params.toString();
     router.push(qs ? `/explore?${qs}` : "/explore");
   }
@@ -34,7 +41,7 @@ export function SearchBar({
   return (
     <form
       onSubmit={onSubmit}
-      className="grid grid-cols-1 gap-2 rounded-card border border-brand-line bg-white p-2 shadow-card sm:grid-cols-[2fr_1fr_auto]"
+      className="grid grid-cols-1 gap-2 rounded-card border border-brand-line bg-white p-2 shadow-card sm:grid-cols-[2fr_1fr_1fr_auto]"
     >
       <label className="flex items-center gap-2 rounded px-3 py-2 transition-colors hover:bg-brand-light/60">
         <Search className="h-4 w-4 shrink-0 text-brand-primary" />
@@ -53,11 +60,28 @@ export function SearchBar({
           value={g}
           onChange={(e) => setG(parseInt(e.target.value, 10))}
           className="w-full bg-transparent text-sm font-medium text-brand-ink outline-none"
+          aria-label="Minimum guest capacity"
         >
           <option value={0}>Any guests</option>
           {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16].map((n) => (
             <option key={n} value={n}>
               {n}+ {n === 1 ? "guest" : "guests"}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 rounded px-3 py-2 transition-colors hover:bg-brand-light/60">
+        <ArrowDownUp className="h-4 w-4 shrink-0 text-brand-primary" />
+        <select
+          value={s}
+          onChange={(e) => setS(e.target.value)}
+          className="w-full bg-transparent text-sm font-medium text-brand-ink outline-none"
+          aria-label="Sort order"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>

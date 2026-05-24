@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { BadgeCheck, MapPin, Search, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  MapPin,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -47,7 +55,21 @@ type SearchParams = {
   guests?: string;
   type?: string;
   sort?: string;
+  page?: string;
 };
+
+function buildQueryString(
+  base: { where: string; type: string; sort: string; guests: number | null },
+  page: number,
+): string {
+  const params = new URLSearchParams();
+  if (base.where) params.set("where", base.where);
+  if (base.guests) params.set("guests", String(base.guests));
+  if (base.type) params.set("type", base.type);
+  if (base.sort && base.sort !== "newest") params.set("sort", base.sort);
+  if (page > 1) params.set("page", String(page));
+  return params.toString();
+}
 
 export default async function ExplorePage({
   searchParams,
@@ -61,6 +83,13 @@ export default async function ExplorePage({
   const sort = searchParams?.sort ?? "newest";
   const guestsRaw = parseInt(searchParams?.guests ?? "", 10);
   const guests = Number.isFinite(guestsRaw) && guestsRaw > 0 ? guestsRaw : null;
+
+  const pageRaw = parseInt(searchParams?.page ?? "", 10);
+  const page = Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+  const rangeStart = (page - 1) * PAGE_SIZE;
+  const rangeEnd = rangeStart + PAGE_SIZE - 1;
+
+  const hasFilters = where.length > 0 || type !== "" || guests != null;
 
   let query = supabase
     .from("listings")
@@ -78,14 +107,12 @@ export default async function ExplorePage({
       `name.ilike.${pat},city.ilike.${pat},province.ilike.${pat}`,
     );
   }
-  if (
-    type &&
-    (type === "accommodation" ||
-      (ACC_TYPES as readonly string[]).includes(type))
-  ) {
+  if (type) {
     if (type === "accommodation") {
       query = query.eq("listing_type", "accommodation");
-    } else {
+    } else if (type === "experience") {
+      query = query.eq("listing_type", "experience");
+    } else if ((ACC_TYPES as readonly string[]).includes(type)) {
       query = query
         .eq("listing_type", "accommodation")
         .eq("accommodation_type", type);
@@ -108,9 +135,27 @@ export default async function ExplorePage({
     query = query.order("created_at", { ascending: false });
   }
 
-  query = query.limit(PAGE_SIZE);
+  query = query.range(rangeStart, rangeEnd);
 
   const { data: listings, count } = await query;
+
+  const totalCount = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const prevHref =
+    safePage > 1
+      ? `/explore${(() => {
+          const qs = buildQueryString(
+            { where, type, sort, guests },
+            safePage - 1,
+          );
+          return qs ? `?${qs}` : "";
+        })()}`
+      : null;
+  const nextHref =
+    safePage < totalPages
+      ? `/explore?${buildQueryString({ where, type, sort, guests }, safePage + 1)}`
+      : null;
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -137,12 +182,28 @@ export default async function ExplorePage({
 
       {/* Results */}
       <main className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-12">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <h1 className="font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
-            {where ? `Stays matching "${where}"` : "All stays"}
-          </h1>
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
+              {where
+                ? `Stays matching "${where}"`
+                : type === "experience"
+                  ? "All experiences"
+                  : "All stays"}
+            </h1>
+            {hasFilters ? (
+              <Link
+                href="/explore"
+                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+              >
+                <X className="h-3 w-3" />
+                Clear filters
+              </Link>
+            ) : null}
+          </div>
           <div className="text-sm text-brand-mute">
-            {count ?? 0} {count === 1 ? "result" : "results"}
+            {totalCount} {totalCount === 1 ? "result" : "results"}
+            {totalPages > 1 ? ` · page ${safePage} of ${totalPages}` : ""}
           </div>
         </div>
 
@@ -272,6 +333,47 @@ export default async function ExplorePage({
             })}
           </div>
         )}
+
+        {totalPages > 1 && listings && listings.length > 0 ? (
+          <nav
+            aria-label="Pagination"
+            className="mt-10 flex items-center justify-center gap-3"
+          >
+            {prevHref ? (
+              <Link
+                href={prevHref}
+                rel="prev"
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Previous
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-brand-light/40 px-4 py-2 text-sm font-medium text-brand-mute">
+                <ArrowLeft className="h-4 w-4" />
+                Previous
+              </span>
+            )}
+            <span className="text-sm font-medium text-brand-mute">
+              Page {safePage} of {totalPages}
+            </span>
+            {nextHref ? (
+              <Link
+                href={nextHref}
+                rel="next"
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+              >
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-brand-light/40 px-4 py-2 text-sm font-medium text-brand-mute">
+                Next
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            )}
+          </nav>
+        ) : null}
       </main>
 
       <SiteFooter />
