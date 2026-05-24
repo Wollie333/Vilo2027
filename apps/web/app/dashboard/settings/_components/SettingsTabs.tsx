@@ -26,6 +26,11 @@ const TABS: Tab[] = [
     label: "Subscription",
     match: "prefix",
   },
+  {
+    href: "/dashboard/settings/data",
+    label: "Data & privacy",
+    match: "prefix",
+  },
 ];
 
 export function SettingsTabs() {
