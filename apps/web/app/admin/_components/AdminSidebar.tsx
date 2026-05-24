@@ -63,6 +63,12 @@ const FINANCE: Item[] = [
 
 const MODERATION: Item[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
+  {
+    href: "/admin/data-requests",
+    label: "Data requests",
+    icon: ShieldAlert,
+    match: "prefix",
+  },
 ];
 
 const PLATFORM: Item[] = [
