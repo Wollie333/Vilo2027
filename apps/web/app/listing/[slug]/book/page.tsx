@@ -5,7 +5,12 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { BookingForm, type BookedRoom } from "./BookingForm";
+import { type PricingModel } from "../../../dashboard/addons/schemas";
+import {
+  BookingForm,
+  type AvailableAddon,
+  type BookedRoom,
+} from "./BookingForm";
 
 export const metadata: Metadata = {
   title: "Confirm and pay · Vilo",
@@ -115,6 +120,83 @@ export default async function BookingPage({
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const datesOk = nights > 0 && nights >= (listing.min_nights ?? 1);
 
+  // Fetch eligible addons (active + lead-time-satisfied + scope-matching).
+  let availableAddons: AvailableAddon[] = [];
+  if (datesOk) {
+    const leadDays = Math.max(
+      0,
+      Math.round(
+        (new Date(`${checkIn}T00:00:00Z`).getTime() -
+          new Date(
+            new Date().toISOString().slice(0, 10) + "T00:00:00Z",
+          ).getTime()) /
+          (1000 * 60 * 60 * 24),
+      ),
+    );
+    const { data: addonJoinRows } = await supabase
+      .from("listing_addons")
+      .select(
+        "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
+      )
+      .eq("listing_id", listing.id);
+
+    type Row = {
+      addon_id: string;
+      room_id: string | null;
+      unit_price_override: number | null;
+      addons: {
+        id: string;
+        name: string;
+        description: string | null;
+        image_path: string | null;
+        pricing_model: PricingModel;
+        unit_price: number;
+        currency: string;
+        min_quantity: number;
+        max_quantity: number | null;
+        is_required: boolean;
+        is_active: boolean;
+        lead_time_days: number;
+      };
+    };
+
+    const selectedIds = bookedRooms.map((r) => r.id);
+    const seen = new Map<string, AvailableAddon>();
+    for (const raw of (addonJoinRows ?? []) as unknown as Row[]) {
+      const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+      if (!a) continue;
+      if (!a.is_active) continue;
+      if (a.lead_time_days > leadDays) continue;
+      if (raw.room_id !== null) {
+        if (scope !== "rooms") continue;
+        if (!selectedIds.includes(raw.room_id)) continue;
+      }
+      const effective =
+        raw.unit_price_override == null
+          ? Number(a.unit_price)
+          : Number(raw.unit_price_override);
+      const existing = seen.get(a.id);
+      if (!existing || effective < existing.unitPrice) {
+        seen.set(a.id, {
+          id: a.id,
+          name: a.name,
+          description: a.description,
+          imageUrl: a.image_path
+            ? supabase.storage.from("addon-images").getPublicUrl(a.image_path)
+                .data.publicUrl
+            : null,
+          pricingModel: a.pricing_model,
+          unitPrice: effective,
+          currency: a.currency,
+          minQuantity: a.min_quantity,
+          maxQuantity: a.max_quantity,
+          isRequired: a.is_required,
+        });
+      }
+    }
+    availableAddons = Array.from(seen.values());
+  }
+
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -165,6 +247,7 @@ export default async function BookingPage({
             guestEmail={user.email ?? ""}
             scope={scope}
             rooms={bookedRooms}
+            availableAddons={availableAddons}
           />
         )}
       </main>

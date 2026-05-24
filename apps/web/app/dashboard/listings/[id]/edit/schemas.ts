@@ -182,6 +182,11 @@ export const roomPatchSchema = z.object({
   cleaning_fee: z.number().min(0).max(1000000).optional(),
   is_active: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
+  // ── Drill-in editor fields ──────────────────────────────────
+  room_size_sqm: z.number().min(0).max(10000).nullable().optional(),
+  bed_type: z.string().max(40).nullable().optional(),
+  view_type: z.string().max(40).nullable().optional(),
+  experiences: z.array(z.string().max(60)).max(20).optional(),
 });
 export type RoomPatch = z.infer<typeof roomPatchSchema>;
 

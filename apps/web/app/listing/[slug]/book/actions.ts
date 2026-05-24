@@ -7,6 +7,10 @@ import { initializeTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import {
+  computeAddonSubtotal,
+  type PricingModel,
+} from "../../../dashboard/addons/schemas";
 import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
@@ -16,6 +20,14 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   const t = new Date(`${checkOut}T00:00:00Z`).getTime();
   const n = Math.round((t - f) / (1000 * 60 * 60 * 24));
   return n;
+}
+
+function daysUntil(date: string): number {
+  const target = new Date(`${date}T00:00:00Z`).getTime();
+  const today = new Date(
+    new Date().toISOString().slice(0, 10) + "T00:00:00Z",
+  ).getTime();
+  return Math.round((target - today) / (1000 * 60 * 60 * 24));
 }
 
 export async function createBookingAction(
@@ -185,6 +197,124 @@ export async function createBookingAction(
     totalAmount = baseAmount + cleaning;
   }
 
+  // 5e. Re-fetch eligible addons server-side and snapshot prices.
+  const roomIdScope =
+    d.scope === "rooms" ? roomRowsForBooking.map((r) => r.room_id) : [];
+  const { data: eligibleAddonRows } = await admin
+    .from("listing_addons")
+    .select(
+      "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
+    )
+    .eq("listing_id", listing.id);
+
+  type AddonJoinRow = {
+    addon_id: string;
+    room_id: string | null;
+    unit_price_override: number | null;
+    addons: {
+      id: string;
+      name: string;
+      pricing_model: PricingModel;
+      unit_price: number;
+      currency: string;
+      min_quantity: number;
+      max_quantity: number | null;
+      is_required: boolean;
+      is_active: boolean;
+      lead_time_days: number;
+    };
+  };
+
+  // Dedupe by addon_id — listing-wide row wins over room-scoped; lowest
+  // override price wins among room rows. Filter for: active, lead time
+  // satisfied, room scope matches (NULL = listing-wide, else in selected
+  // rooms).
+  const leadDays = daysUntil(d.check_in);
+  const eligibleMap = new Map<
+    string,
+    {
+      addon: AddonJoinRow["addons"];
+      effectiveUnitPrice: number;
+    }
+  >();
+  for (const raw of (eligibleAddonRows ?? []) as unknown as AddonJoinRow[]) {
+    const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+    if (!a) continue;
+    if (!a.is_active) continue;
+    if (a.lead_time_days > leadDays) continue;
+    if (raw.room_id !== null) {
+      if (d.scope !== "rooms") continue;
+      if (!roomIdScope.includes(raw.room_id)) continue;
+    }
+    const effective =
+      raw.unit_price_override == null
+        ? Number(a.unit_price)
+        : Number(raw.unit_price_override);
+    const existing = eligibleMap.get(a.id);
+    if (!existing || effective < existing.effectiveUnitPrice) {
+      eligibleMap.set(a.id, { addon: a, effectiveUnitPrice: effective });
+    }
+  }
+
+  // Merge guest selection + auto-required addons.
+  const selectedQty = new Map<string, number>();
+  for (const sel of d.selected_addons ?? []) {
+    if (eligibleMap.has(sel.addon_id) && sel.quantity > 0) {
+      selectedQty.set(sel.addon_id, sel.quantity);
+    }
+  }
+  for (const [addonId, entry] of eligibleMap.entries()) {
+    if (entry.addon.is_required && !selectedQty.has(addonId)) {
+      selectedQty.set(addonId, Math.max(entry.addon.min_quantity, 1));
+    }
+  }
+
+  // Clamp quantities to min/max and compute snapshots.
+  const addonInserts: Array<{
+    label: string;
+    quantity: number;
+    unit_price: number;
+    pricing_model: PricingModel;
+    currency: string;
+    is_required: boolean;
+    subtotal: number;
+    addon_id: string;
+    sort_order: number;
+  }> = [];
+  let addonsTotal = 0;
+  let sortOrder = 0;
+  for (const [addonId, qty] of selectedQty.entries()) {
+    const entry = eligibleMap.get(addonId);
+    if (!entry) continue;
+    const a = entry.addon;
+    let clamped = qty;
+    if (clamped < a.min_quantity) clamped = a.min_quantity;
+    if (a.max_quantity != null && clamped > a.max_quantity) {
+      clamped = a.max_quantity;
+    }
+    if (clamped <= 0) continue;
+    const subtotal = computeAddonSubtotal(
+      a.pricing_model,
+      entry.effectiveUnitPrice,
+      clamped,
+      nights,
+      d.guests,
+    );
+    addonsTotal += subtotal;
+    addonInserts.push({
+      addon_id: a.id,
+      label: a.name,
+      quantity: clamped,
+      unit_price: entry.effectiveUnitPrice,
+      pricing_model: a.pricing_model,
+      currency: a.currency,
+      is_required: a.is_required,
+      subtotal,
+      sort_order: sortOrder++,
+    });
+  }
+  totalAmount = baseAmount + cleaning + addonsTotal;
+
   // 6. Insert booking.
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
@@ -223,6 +353,29 @@ export async function createBookingAction(
     if (brErr) {
       await admin.from("bookings").delete().eq("id", booking.id);
       return { ok: false, error: "Could not save room selection. Try again." };
+    }
+  }
+
+  // 6b. Insert booking_addons rows (catalog-linked + auto-required).
+  if (addonInserts.length > 0) {
+    const { error: addonErr } = await admin.from("booking_addons").insert(
+      addonInserts.map((a) => ({
+        booking_id: booking.id,
+        addon_id: a.addon_id,
+        label: a.label,
+        quantity: a.quantity,
+        unit_price: a.unit_price,
+        pricing_model: a.pricing_model,
+        currency: a.currency,
+        is_required: a.is_required,
+        subtotal: a.subtotal,
+        sort_order: a.sort_order,
+      })),
+    );
+    if (addonErr) {
+      await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
+      await admin.from("bookings").delete().eq("id", booking.id);
+      return { ok: false, error: "Could not save add-ons. Try again." };
     }
   }
 
@@ -265,6 +418,7 @@ export async function createBookingAction(
     });
   } catch {
     await admin.from("payments").delete().eq("id", payment.id);
+    await admin.from("booking_addons").delete().eq("booking_id", booking.id);
     await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
     await admin.from("bookings").delete().eq("id", booking.id);
     return {

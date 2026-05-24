@@ -10,6 +10,7 @@ import {
   Image as ImageIcon,
   ListChecks,
   MapPin,
+  PackagePlus,
   Receipt,
   Settings as SettingsIcon,
   Sparkles,
@@ -22,6 +23,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 import { togglePublishAction } from "./actions";
+import {
+  AddonsTab,
+  type AssignedAddon,
+  type AvailableAddon,
+} from "./tabs/AddonsTab";
 import { AmenitiesTab } from "./tabs/AmenitiesTab";
 import { BasicTab } from "./tabs/BasicTab";
 import { DangerTab } from "./tabs/DangerTab";
@@ -99,6 +105,7 @@ type TabKey =
   | "location"
   | "rooms"
   | "amenities"
+  | "addons"
   | "pricing"
   | "policies"
   | "settings"
@@ -110,6 +117,7 @@ const TABS: { key: TabKey; label: string; icon: LucideIcon }[] = [
   { key: "location", label: "Location", icon: MapPin },
   { key: "rooms", label: "Rooms & capacity", icon: Camera },
   { key: "amenities", label: "Amenities", icon: ListChecks },
+  { key: "addons", label: "Add-ons", icon: PackagePlus },
   { key: "pricing", label: "Pricing", icon: Receipt },
   { key: "policies", label: "Policies", icon: CalendarClock },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
@@ -121,11 +129,15 @@ export function Editor({
   amenities,
   photos: initialPhotos,
   rooms: initialRooms,
+  availableAddons,
+  assignedAddons,
 }: {
   listing: EditorListing;
   amenities: EditorAmenity[];
   photos: EditorPhoto[];
   rooms: EditorRoom[];
+  availableAddons: AvailableAddon[];
+  assignedAddons: AssignedAddon[];
 }) {
   const [active, setActive] = useState<TabKey>("basic");
   const [isPublished, setIsPublished] = useState(listing.is_published);
@@ -264,6 +276,14 @@ export function Editor({
               listingId={listing.id}
               initial={amenities}
               rooms={rooms}
+            />
+          ) : null}
+          {active === "addons" ? (
+            <AddonsTab
+              listingId={listing.id}
+              available={availableAddons}
+              rooms={rooms}
+              initialAssigned={assignedAddons}
             />
           ) : null}
           {active === "pricing" ? <PricingTab listing={listing} /> : null}

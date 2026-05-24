@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   MessageSquare,
+  PackagePlus,
   Receipt,
   RotateCcw,
   RotateCw,
@@ -74,6 +75,12 @@ const TOOLS: Item[] = [
     match: "prefix",
   },
   { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
+  {
+    href: "/dashboard/addons",
+    label: "Add-ons",
+    icon: PackagePlus,
+    badge: { text: "PRO", tone: "pro" },
+  },
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];

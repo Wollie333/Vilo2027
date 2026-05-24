@@ -14,6 +14,15 @@ export const createBookingSchema = z
     policy_acknowledged: z.boolean().refine((v) => v === true, {
       message: "You must accept the policies to book.",
     }),
+    selected_addons: z
+      .array(
+        z.object({
+          addon_id: z.string().uuid(),
+          quantity: z.number().int().min(0).max(99),
+        }),
+      )
+      .optional()
+      .default([]),
   })
   .refine(
     (d) =>

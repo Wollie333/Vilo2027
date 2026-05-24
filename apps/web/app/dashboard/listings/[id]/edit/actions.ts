@@ -154,7 +154,26 @@ export async function uploadListingPhotoAction(
     return { ok: false, error: "Use a JPEG, PNG or WebP image." };
   }
 
+  // Optional room scoping — if present, photo lands assigned to that room.
+  const roomIdRaw = formData.get("room_id");
+  const roomId =
+    typeof roomIdRaw === "string" && roomIdRaw.length > 0 ? roomIdRaw : null;
+
   const supabase = createServerClient();
+
+  if (roomId) {
+    const { data: room } = await supabase
+      .from("listing_rooms")
+      .select("id")
+      .eq("id", roomId)
+      .eq("listing_id", listingId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!room) {
+      return { ok: false, error: "Room not found on this listing." };
+    }
+  }
+
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const filename = `${crypto.randomUUID()}.${ext}`;
   const storagePath = `${listingId}/${filename}`;
@@ -187,6 +206,7 @@ export async function uploadListingPhotoAction(
       storage_path: storagePath,
       url: publicUrl.publicUrl,
       sort_order: count ?? 0,
+      room_id: roomId,
     })
     .select("id, url")
     .single();
@@ -197,6 +217,9 @@ export async function uploadListingPhotoAction(
   }
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  if (roomId) {
+    revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
+  }
   return { ok: true, data: { id: row.id, url: row.url } };
 }
 
@@ -529,5 +552,92 @@ export async function assignAmenityToRoomAction(
     return { ok: false, error: "Could not assign amenity." };
   }
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+// ─── Per-room drill-in actions ───────────────────────────────────
+
+export async function setRoomFeaturedPhotoAction(
+  listingId: string,
+  roomId: string,
+  photoId: string | null,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+
+  if (photoId) {
+    const { data: photo } = await supabase
+      .from("listing_photos")
+      .select("id")
+      .eq("id", photoId)
+      .eq("listing_id", listingId)
+      .eq("room_id", roomId)
+      .maybeSingle();
+    if (!photo) {
+      return {
+        ok: false,
+        error: "That photo doesn't belong to this room.",
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("listing_rooms")
+    .update({ featured_photo_id: photoId })
+    .eq("id", roomId)
+    .eq("listing_id", listingId);
+  if (error) {
+    return { ok: false, error: "Could not set cover photo." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+export async function setRoomAmenityAction(
+  listingId: string,
+  roomId: string,
+  amenityKey: string,
+  on: boolean,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+
+  if (on) {
+    const { data: existing } = await supabase
+      .from("listing_amenities")
+      .select("id")
+      .eq("listing_id", listingId)
+      .eq("room_id", roomId)
+      .eq("amenity_key", amenityKey)
+      .maybeSingle();
+    if (!existing) {
+      const { error } = await supabase.from("listing_amenities").insert({
+        listing_id: listingId,
+        room_id: roomId,
+        amenity_key: amenityKey,
+      });
+      if (error) {
+        return { ok: false, error: "Could not add amenity." };
+      }
+    }
+  } else {
+    const { error } = await supabase
+      .from("listing_amenities")
+      .delete()
+      .eq("listing_id", listingId)
+      .eq("room_id", roomId)
+      .eq("amenity_key", amenityKey);
+    if (error) {
+      return { ok: false, error: "Could not remove amenity." };
+    }
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
   return { ok: true };
 }

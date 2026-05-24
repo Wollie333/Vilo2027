@@ -39,6 +39,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      addons: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          host_id: string
+          id: string
+          image_path: string | null
+          is_active: boolean
+          is_required: boolean
+          lead_time_days: number
+          max_quantity: number | null
+          min_quantity: number
+          name: string
+          pricing_model: string
+          sort_order: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          host_id: string
+          id?: string
+          image_path?: string | null
+          is_active?: boolean
+          is_required?: boolean
+          lead_time_days?: number
+          max_quantity?: number | null
+          min_quantity?: number
+          name: string
+          pricing_model: string
+          sort_order?: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          host_id?: string
+          id?: string
+          image_path?: string | null
+          is_active?: boolean
+          is_required?: boolean
+          lead_time_days?: number
+          max_quantity?: number | null
+          min_quantity?: number
+          name?: string
+          pricing_model?: string
+          sort_order?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addons_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_audit_log: {
         Row: {
           action: string
@@ -167,36 +232,55 @@ export type Database = {
       }
       booking_addons: {
         Row: {
+          addon_id: string | null
           booking_id: string
           created_at: string
+          currency: string
           id: string
+          is_required: boolean
           label: string
+          pricing_model: string | null
           quantity: number
           sort_order: number
-          subtotal: number | null
+          subtotal: number
           unit_price: number
         }
         Insert: {
+          addon_id?: string | null
           booking_id: string
           created_at?: string
+          currency?: string
           id?: string
+          is_required?: boolean
           label: string
+          pricing_model?: string | null
           quantity?: number
           sort_order?: number
-          subtotal?: number | null
+          subtotal?: number
           unit_price: number
         }
         Update: {
+          addon_id?: string | null
           booking_id?: string
           created_at?: string
+          currency?: string
           id?: string
+          is_required?: boolean
           label?: string
+          pricing_model?: string | null
           quantity?: number
           sort_order?: number
-          subtotal?: number | null
+          subtotal?: number
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "booking_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booking_addons_booking_id_fkey"
             columns: ["booking_id"]
@@ -960,6 +1044,55 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_addons: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          listing_id: string
+          room_id: string | null
+          unit_price_override: number | null
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          room_id?: string | null
+          unit_price_override?: number | null
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          room_id?: string | null
+          unit_price_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_addons_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_addons_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -3135,6 +3268,16 @@ export type Database = {
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
+      }
+      compute_addon_subtotal: {
+        Args: {
+          p_guests: number
+          p_nights: number
+          p_pricing_model: string
+          p_quantity: number
+          p_unit_price: number
+        }
+        Returns: number
       }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:

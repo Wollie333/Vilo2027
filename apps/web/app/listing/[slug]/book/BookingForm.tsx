@@ -4,6 +4,7 @@ import {
   BedDouble,
   CreditCard,
   Lock,
+  PackagePlus,
   ShieldCheck,
   Users,
   X,
@@ -16,6 +17,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import {
+  PRICING_LABEL,
+  computeAddonSubtotal,
+  type PricingModel,
+} from "../../../dashboard/addons/schemas";
 import { createBookingAction } from "./actions";
 
 export type BookedRoom = {
@@ -24,6 +30,19 @@ export type BookedRoom = {
   basePrice: number;
   cleaningFee: number;
   maxGuests: number;
+};
+
+export type AvailableAddon = {
+  id: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  pricingModel: PricingModel;
+  unitPrice: number;
+  currency: string;
+  minQuantity: number;
+  maxQuantity: number | null;
+  isRequired: boolean;
 };
 
 function fmtR(n: number, currency: string): string {
@@ -55,6 +74,7 @@ export function BookingForm({
   guestEmail,
   scope,
   rooms,
+  availableAddons,
 }: {
   listingId: string;
   listingSlug: string;
@@ -72,6 +92,7 @@ export function BookingForm({
   guestEmail: string;
   scope: "whole_listing" | "rooms";
   rooms: BookedRoom[];
+  availableAddons: AvailableAddon[];
 }) {
   const router = useRouter();
   const [policyAck, setPolicyAck] = useState(false);
@@ -80,6 +101,27 @@ export function BookingForm({
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(() =>
     rooms.map((r) => r.id),
   );
+
+  // Pre-select required addons at their min_quantity. Stored as
+  // Map<addonId, qty> so 0/missing = unselected.
+  const [addonQty, setAddonQty] = useState<Map<string, number>>(() => {
+    const m = new Map<string, number>();
+    for (const a of availableAddons) {
+      if (a.isRequired) m.set(a.id, Math.max(a.minQuantity, 1));
+    }
+    return m;
+  });
+
+  function toggleAddon(addonId: string) {
+    const a = availableAddons.find((x) => x.id === addonId);
+    if (!a || a.isRequired) return;
+    setAddonQty((prev) => {
+      const next = new Map(prev);
+      if (next.has(addonId)) next.delete(addonId);
+      else next.set(addonId, Math.max(a.minQuantity, 1));
+      return next;
+    });
+  }
 
   const activeRooms = useMemo(
     () => rooms.filter((r) => selectedRoomIds.includes(r.id)),
@@ -94,7 +136,44 @@ export function BookingForm({
     scope === "rooms"
       ? activeRooms.reduce((acc, r) => acc + r.cleaningFee, 0)
       : cleaningFee;
-  const total = subtotal + cleaningTotal;
+
+  const addonsTotal = useMemo(() => {
+    let sum = 0;
+    for (const [id, qty] of addonQty.entries()) {
+      const a = availableAddons.find((x) => x.id === id);
+      if (!a || qty <= 0) continue;
+      sum += computeAddonSubtotal(
+        a.pricingModel,
+        a.unitPrice,
+        qty,
+        nights,
+        guestCount,
+      );
+    }
+    return sum;
+  }, [addonQty, availableAddons, nights, guestCount]);
+
+  const selectedAddonLines = useMemo(() => {
+    const lines: Array<{ id: string; name: string; subtotal: number }> = [];
+    for (const [id, qty] of addonQty.entries()) {
+      const a = availableAddons.find((x) => x.id === id);
+      if (!a || qty <= 0) continue;
+      lines.push({
+        id,
+        name: a.name,
+        subtotal: computeAddonSubtotal(
+          a.pricingModel,
+          a.unitPrice,
+          qty,
+          nights,
+          guestCount,
+        ),
+      });
+    }
+    return lines;
+  }, [addonQty, availableAddons, nights, guestCount]);
+
+  const total = subtotal + cleaningTotal + addonsTotal;
   const reserveDisabled =
     !policyAck || isPending || (scope === "rooms" && activeRooms.length === 0);
 
@@ -131,6 +210,9 @@ export function BookingForm({
         guests: guestCount,
         payment_method: "paystack",
         policy_acknowledged: true,
+        selected_addons: Array.from(addonQty.entries())
+          .filter(([, q]) => q > 0)
+          .map(([addon_id, quantity]) => ({ addon_id, quantity })),
       });
       // Success path is a server-side redirect to Paystack; we only get
       // here on failure.
@@ -188,6 +270,84 @@ export function BookingForm({
             </div>
           </div>
         </section>
+
+        {availableAddons.length > 0 ? (
+          <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              <PackagePlus className="h-3.5 w-3.5" />
+              Add-ons
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {availableAddons.map((a) => {
+                const qty = addonQty.get(a.id) ?? 0;
+                const checked = qty > 0;
+                const lineTotal = checked
+                  ? computeAddonSubtotal(
+                      a.pricingModel,
+                      a.unitPrice,
+                      qty,
+                      nights,
+                      guestCount,
+                    )
+                  : 0;
+                return (
+                  <button
+                    type="button"
+                    key={a.id}
+                    disabled={a.isRequired || isPending}
+                    onClick={() => toggleAddon(a.id)}
+                    className={`flex items-start gap-3 rounded-card border p-3 text-left transition-colors ${
+                      checked
+                        ? "border-brand-primary bg-brand-accent/40"
+                        : "border-brand-line bg-white hover:bg-brand-light/60"
+                    } ${a.isRequired ? "cursor-default opacity-95" : ""}`}
+                  >
+                    {a.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={a.imageUrl}
+                        alt=""
+                        className="h-14 w-14 shrink-0 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-brand-accent/40 text-brand-primary">
+                        <PackagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="truncate text-sm font-semibold text-brand-ink">
+                          {a.name}
+                        </div>
+                        {a.isRequired ? (
+                          <span className="shrink-0 rounded-pill bg-brand-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                            Required
+                          </span>
+                        ) : null}
+                      </div>
+                      {a.description ? (
+                        <div className="mt-0.5 line-clamp-2 text-[11px] text-brand-mute">
+                          {a.description}
+                        </div>
+                      ) : null}
+                      <div className="mt-1 text-[11px] font-medium text-brand-dark">
+                        {fmtR(a.unitPrice, currency)}{" "}
+                        <span className="text-brand-mute">
+                          {PRICING_LABEL[a.pricingModel]}
+                        </span>
+                        {checked && lineTotal > 0 ? (
+                          <span className="ml-1.5 text-brand-primary">
+                            = {fmtR(lineTotal, currency)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
         {scope === "rooms" ? (
           <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -339,6 +499,14 @@ export function BookingForm({
                 </dd>
               </div>
             ) : null}
+            {selectedAddonLines.map((line) => (
+              <div key={line.id} className="flex items-center justify-between">
+                <dt className="truncate pr-2 text-brand-mute">{line.name}</dt>
+                <dd className="font-medium text-brand-dark">
+                  {fmtR(line.subtotal, currency)}
+                </dd>
+              </div>
+            ))}
             <div className="flex items-center justify-between border-t border-brand-line pt-3">
               <dt className="font-display font-semibold text-brand-ink">
                 Total

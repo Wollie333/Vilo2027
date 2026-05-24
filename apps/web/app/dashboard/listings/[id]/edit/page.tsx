@@ -10,6 +10,8 @@ import {
   type EditorPhoto,
   type EditorRoom,
 } from "./Editor";
+import { type PricingModel } from "../../../addons/schemas";
+import type { AssignedAddon, AvailableAddon } from "./tabs/AddonsTab";
 
 export const metadata: Metadata = {
   title: "Edit listing · Vilo",
@@ -73,26 +75,43 @@ export default async function EditListingPage({
     notFound();
   }
 
-  const [{ data: amenityRows }, { data: photoRows }, { data: roomRows }] =
-    await Promise.all([
-      supabase
-        .from("listing_amenities")
-        .select("id, amenity_key, amenity_label, room_id")
-        .eq("listing_id", params.id),
-      supabase
-        .from("listing_photos")
-        .select("id, url, sort_order, room_id")
-        .eq("listing_id", params.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("listing_rooms")
-        .select(
-          "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active",
-        )
-        .eq("listing_id", params.id)
-        .is("deleted_at", null)
-        .order("sort_order", { ascending: true }),
-    ]);
+  const [
+    { data: amenityRows },
+    { data: photoRows },
+    { data: roomRows },
+    { data: addonRows },
+    { data: listingAddonRows },
+  ] = await Promise.all([
+    supabase
+      .from("listing_amenities")
+      .select("id, amenity_key, amenity_label, room_id")
+      .eq("listing_id", params.id),
+    supabase
+      .from("listing_photos")
+      .select("id, url, sort_order, room_id")
+      .eq("listing_id", params.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_rooms")
+      .select(
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active",
+      )
+      .eq("listing_id", params.id)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("addons")
+      .select(
+        "id, name, pricing_model, unit_price, currency, is_active, sort_order",
+      )
+      .eq("host_id", listing.host_id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_addons")
+      .select("addon_id, room_id, unit_price_override")
+      .eq("listing_id", params.id),
+  ]);
 
   const amenities: EditorAmenity[] = (amenityRows ?? []).map((r) => ({
     id: r.id,
@@ -119,12 +138,29 @@ export default async function EditListingPage({
     is_active: r.is_active,
   }));
 
+  const availableAddons: AvailableAddon[] = (addonRows ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    pricingModel: r.pricing_model as PricingModel,
+    unitPrice: Number(r.unit_price),
+    currency: r.currency,
+    isActive: r.is_active,
+  }));
+  const assignedAddons: AssignedAddon[] = (listingAddonRows ?? []).map((r) => ({
+    addonId: r.addon_id,
+    roomId: r.room_id ?? null,
+    unitPriceOverride:
+      r.unit_price_override == null ? null : Number(r.unit_price_override),
+  }));
+
   return (
     <Editor
       listing={listing}
       amenities={amenities}
       photos={photos}
       rooms={rooms}
+      availableAddons={availableAddons}
+      assignedAddons={assignedAddons}
     />
   );
 }

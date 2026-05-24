@@ -31,6 +31,117 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-24 — Phase 2 — Universal Add-ons catalog (host CRUD + guest checkout)
+
+### Built
+- **Schema (`20260524000005_addons_catalog.sql`):**
+  - `addons` — per-host catalog (name, description, featured image,
+    `pricing_model` enum: `per_stay / per_night / per_guest /
+    per_guest_per_night / per_couple`, `unit_price`, currency,
+    `min_quantity`/`max_quantity`, `is_required`, `is_active`,
+    `lead_time_days`, `sort_order`, `image_path`).
+  - `listing_addons` — availability join with NULL-safe partial unique
+    indexes for the dual-scope pattern (`room_id IS NULL` = listing-wide,
+    set = scoped to one room). Optional `unit_price_override` per
+    listing/room.
+  - Reshape `booking_addons`: dropped the generated `subtotal` (wrong
+    math for non-flat pricing), added `addon_id` FK (NULL = legacy
+    free-form line), `pricing_model`, `currency`, `is_required`, plain
+    `subtotal` snapshot column.
+  - `compute_addon_subtotal(model, unit_price, qty, nights, guests)`
+    SQL helper — single source of truth for line subtotal math, mirrored
+    in TS at `apps/web/app/dashboard/addons/schemas.ts`.
+  - RLS: host CRUD own, staff read, public read on active addons +
+    published-listing `listing_addons`, admin full.
+  - Plan-gating via `plan_features` rows (Pro + Business enabled, Free
+    + Basic disabled — keyed off `feature_key = 'addons'`).
+  - New private storage bucket `addon-images` (8 MB, JPEG/PNG/WebP)
+    with host-folder upload + delete policies. Public read.
+- **Host catalog UI (`apps/web/app/dashboard/addons/`):**
+  - `page.tsx` — Server Component. Plan-gated: shows an "Upgrade to Pro"
+    card for Free/Basic; otherwise renders `AddonsManager`.
+  - `AddonsManager.tsx` — inline expandable card list (mirrors
+    `RoomsManager` pattern): each addon expands to a form with name,
+    description, pricing model select, unit price, min/max qty, lead
+    time, required + active toggles, featured-image dropzone.
+  - `AddonImageInput.tsx` — single-image dropzone wrapper around
+    `uploadAddonImageAction` (8 MB cap, MIME allowlist, orphan cleanup
+    on DB-update failure, mirrors `PhotosTab`).
+  - `actions.ts` — Server Actions: `createAddon`, `updateAddon`,
+    `deleteAddon` (hard delete + storage folder cleanup),
+    `toggleAddonActive`, `uploadAddonImage`, `deleteAddonImage`,
+    `setListingAddon` (upserts the `(listing_id, addon_id, room_id)`
+    triple with single-scope semantics — wipes other rows for the pair
+    so toggling the dropdown moves the row instead of stacking). Every
+    mutator first calls `check_feature_permission(host_id, 'addons')`
+    and ownership-checks via `assertAddonOwnership` /
+    `assertListingOwnership`.
+  - `schemas.ts` — Zod `pricingModelSchema`, `addonInputSchema`,
+    `listingAddonInputSchema`, `PRICING_LABEL` lookup, and the
+    `computeAddonSubtotal` TS mirror of the SQL helper.
+- **Per-listing assignment UI (`apps/web/app/dashboard/listings/[id]/edit/tabs/AddonsTab.tsx`):**
+  - Clones the `AmenitiesTab` pattern: lists active host addons,
+    checkbox to enable, "Listing-wide / Room X / …" dropdown when the
+    listing has rooms, optional per-row "Price override" number input.
+    Per-row autosave + optimistic state with rollback on failure.
+
+### Changed
+- `booking_addons.subtotal` is now a plain snapshot column (was a
+  generated column — broke for `per_night`/`per_guest` math).
+
+### Migrations
+- `supabase/migrations/20260524000005_addons_catalog.sql`
+
+### Notes
+- **Status:** All integration patches applied. `pnpm build` passes (zero
+  errors) and `pnpm lint` passes (zero warnings) against a hand-patched
+  `packages/types/database.types.ts` that includes the new tables.
+- **Before deploy, run locally:**
+  1. Start Docker Desktop.
+  2. `supabase db reset` — applies the new migration, creates the
+     `addon-images` bucket, seeds the `plan_features` rows.
+  3. `supabase gen types typescript --local > packages/types/database.types.ts`
+     — overwrites the hand-patched types with the canonical output.
+  4. `pnpm --filter @vilo/web build && pnpm --filter @vilo/web lint`
+     again to confirm parity.
+- **Sidebar entry, AddonsTab registration, parallel-fetch in the
+  listing editor, BookingForm cards + price-line UI, and the
+  `createBookingAction` snapshot/insert/rollback chain are all wired.**
+- **Stylistic merge conflicts** in `dashboard/staff/{page,actions,StaffManager}.tsx`
+  and `staff/accept/[token]/page.tsx` were resolved (Prettier-only
+  conflicts; both sides semantically identical — kept the formatted
+  variant).
+- **`apps/web/app/dashboard/listings/[id]/edit/roomEnums.ts`** created
+  as a stub for the in-progress room drill-in editor — was missing,
+  blocking the build. Lists `BED_TYPES`, `VIEW_TYPES`, `EXPERIENCES`
+  as plain string arrays; refine values to taste.
+- **`roomPatchSchema`** extended with the drill-in fields
+  (`room_size_sqm`, `bed_type`, `view_type`, `experiences`) that the
+  RoomDetailsForm relies on.
+- **Quote flow left untouched (deferred).** `quote_addons` stays
+  free-form for v1 to avoid churn in the live quote→invoice path. A
+  follow-up should wire catalog-linked addons into `QuoteForm.tsx` and
+  the quote→booking conversion trigger.
+- **Single featured image per addon** (v1 — multi-image gallery
+  deferred).
+- **`per_couple` math** = `ceil(guests / 2) × price`. "Per person" maps
+  to the existing `per_guest` enum value (same math, just relabel in
+  copy).
+- **Lead-time filter** is applied in BOTH the `book/page.tsx` SQL
+  fetch (so the card never renders) AND in `createBookingAction`
+  server-side (so forged selections get rejected).
+- **Required addons** are auto-inserted server-side regardless of guest
+  selection, with qty = `min_quantity`.
+- Existing `on_booking_confirmed_create_invoice` trigger reads
+  `booking_addons.label`/`quantity`/`unit_price` — addon-derived rows
+  should flow into invoice `line_items` without trigger changes
+  (verify during manual smoke test).
+
+### Commit
+- (uncommitted — apply INTEGRATION.md patches, then commit)
+
+---
+
 ## 2026-05-24 — Phase 2 — Quotes + Invoices + Manual booking flow
 
 ### Built
