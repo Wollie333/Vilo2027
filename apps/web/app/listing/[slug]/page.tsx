@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { UtilityBar } from "@/app/_components/home/UtilityBar";
+import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AmenitiesList } from "./AmenitiesList";
@@ -208,11 +209,13 @@ export async function generateMetadata({
   if (!data) return { title: "Listing not found · Vilo" };
   const { listing } = data;
   const where = locationLabel(listing);
+  const plain = listing.description ? stripHtml(listing.description) : "";
   return {
     title: `${listing.name}${where ? ` · ${where}` : ""} · Vilo`,
     description:
-      listing.description?.slice(0, 200) ??
-      `Direct booking with ${listing.host.display_name} on Vilo.`,
+      plain.length > 0
+        ? plain.slice(0, 200)
+        : `Direct booking with ${listing.host.display_name} on Vilo.`,
   };
 }
 
@@ -353,16 +356,20 @@ function ListingBody({
           />
         </section>
 
-        {/* Description */}
+        {/* Description — HTML produced by Tiptap in the host editor. Always
+            sanitised server-side via sanitiseListingHtml before render. */}
         {listing.description ? (
           <section>
             <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
               About this{" "}
               {listing.listing_type === "accommodation" ? "stay" : "experience"}
             </h2>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-              {listing.description}
-            </p>
+            <div
+              className="text-sm leading-relaxed text-brand-dark [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{
+                __html: sanitiseListingHtml(listing.description),
+              }}
+            />
           </section>
         ) : null}
 
