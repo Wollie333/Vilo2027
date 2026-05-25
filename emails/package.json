@@ -2,6 +2,13 @@
   "name": "@vilo/emails",
   "version": "0.0.0",
   "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./templates/*": "./templates/*.tsx",
+    "./components/*": "./components/*.tsx"
+  },
   "scripts": {
     "dev": "email dev",
     "build": "email build",

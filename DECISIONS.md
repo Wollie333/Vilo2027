@@ -456,4 +456,35 @@ admin permissions); AGENT_RULES.md §6.4–6.8.
 
 ---
 
+## ADR-019 — Email worker is a Next.js Route Handler, not a Supabase Edge Function
+**Status:** Accepted
+**Date:** 2026-05-25
+
+**Decision:** The cron-driven email worker that drains `notification_queue` and sends via Resend lives in `apps/web/app/api/email-worker/route.ts` as a Node-runtime Next.js Route Handler. pg_cron POSTs to its public URL every minute with a shared bearer (`EMAIL_WORKER_SECRET`). The React Email templates in `@vilo/emails` are imported and rendered natively by the Resend SDK (`react:` field) inside the route.
+
+**Reasons:**
+
+- **The templates were written for Node, not Deno.** Every template imports `@react-email/components` and `react` from npm and reads `process.env.NEXT_PUBLIC_APP_URL`. Re-rendering them in a Supabase Edge Function (Deno) requires `npm:` specifiers, JSX-in-Deno config, and either copying templates into `_shared/` or fighting `--import-map` to reach a workspace-relative path. The Next.js route gets all of this for free.
+- **Resend's `react:` field renders server-side.** Passing the React component directly avoids the manual `@react-email/render` step and keeps the worker code thin.
+- **pg_cron + `net.http_post` is already the established cron pattern.** All four existing cron jobs (`expire-pending-bookings`, `expire-eft-bookings`, `alert-pending-refunds`, etc.) live in pg_cron; calling out to a Vercel URL is a single line.
+- **One bearer, two consumers.** The route reads `EMAIL_WORKER_SECRET` from `process.env`; pg_cron reads it from `current_setting('app.email_worker_secret', true)`. Same secret, two stores, no shared service that has to know both.
+- **No SMTP, no provider mock.** Resend SDK + verified domain is enough. When delivery problems show up, retry/backoff lives in the cron, not the template path.
+
+**Rejected alternatives:**
+
+- **Supabase Edge Function in Deno** (the original spec in `EMAIL_TEMPLATES.md` §"Calling templates from Edge Functions"): would force a parallel template copy under `supabase/functions/_shared/emails/` (single-source-of-truth lost) or a brittle Deno import map. The maintenance cost outweighs the colocation benefit while the worker is one route.
+- **Build-time render → HTML strings + `{{var}}` substitution**: clean Edge Function path but loses the dynamic bits the existing templates already use (ternaries like `${nights} ${nights === 1 ? "night" : "nights"}`, computed URLs).
+- **Vercel Cron** (built-in `vercel.json` schedule): no DB-side gate (would tick even when queue is empty), and signing/auth lives in Vercel's config rather than the same Postgres that owns the queue.
+
+**Constraint:**
+
+- The route handler must stay idempotent. `notification_queue.sent_at`/`failed_at` mutate per row inside the loop; if Vercel kills the request mid-batch the next tick picks up the unmarked rows. Don't introduce app-level batching state.
+- The bearer check uses constant-time comparison. Any future header-auth additions to this route must do the same — never compare tokens with `===`.
+- If a future requirement forces a Deno runtime (e.g. moving off Vercel), the worker stays Node-by-default; the migration path is "introduce a parallel Deno function and dual-write the queue tick," not "rewrite the only worker as Deno on day one."
+- `EMAIL_FROM_ADDRESS` falls back to `Vilo <onboarding@resend.dev>` so pre-domain-verification dev work doesn't 500. Production must override to a verified domain — `noreply@viloplatform.com` per spec.
+
+Related: ADR-007 (React Email choice — preserved); `NOTIFICATIONS.md` §6 (push dispatch will follow the same pattern — Node route, pg_cron caller); `EMAIL_TEMPLATES.md` §"Calling templates from Edge Functions" (now superseded by this ADR — keep the doc snippet but cross-link here).
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

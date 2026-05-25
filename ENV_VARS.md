@@ -23,6 +23,8 @@ This file documents every environment variable used across the platform, what it
 | `PAYPAL_CLIENT_SECRET` | Server only | — | ✅ | ✅ |
 | `PAYPAL_WEBHOOK_ID` | — | — | ✅ | ✅ |
 | `RESEND_API_KEY` | — | — | ✅ | ✅ |
+| `EMAIL_FROM_ADDRESS` | Server only | — | ✅ | ✅ |
+| `EMAIL_WORKER_SECRET` | Server only | — | — | Staging/Prod |
 | `NEXT_PUBLIC_APP_URL` | ✅ | — | ✅ | ✅ |
 | `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ✅ | — | Staging/Prod |
 | `NEXT_PUBLIC_POSTHOG_KEY` | ✅ | ✅ | — | Staging/Prod |
@@ -134,9 +136,23 @@ This file documents every environment variable used across the platform, what it
 
 ### `EMAIL_FROM_ADDRESS`
 - **What:** The "from" address for all transactional emails
-- **Value:** `noreply@viloplatform.com`
-- **Used in:** Edge Functions
+- **Value:** `Vilo <onboarding@resend.dev>` (dev / pre-domain) → `Vilo <noreply@viloplatform.com>` once the sending domain verifies in Resend
+- **Used in:** Next.js Route Handler (`/api/email-worker`) — see `DECISIONS.md` 2026-05-25 entry for why the worker is a Next.js route, not an Edge Function
 - **Environments:** All
+
+### `EMAIL_WORKER_SECRET`
+- **What:** Shared bearer the `/api/email-worker` route requires on every POST. pg_cron sends it as `Authorization: Bearer …`.
+- **Format:** 32+ random bytes — `openssl rand -hex 32`
+- **Where to set:**
+  1. **Vercel** (Production + Preview env) — the route reads `process.env.EMAIL_WORKER_SECRET`.
+  2. **Supabase** — one-time SQL via the Dashboard SQL Editor:
+     ```sql
+     ALTER DATABASE postgres SET app.email_worker_secret = '<the same value>';
+     ALTER DATABASE postgres SET app.email_worker_url = 'https://vilo2027.vercel.app/api/email-worker';
+     ```
+     (Migration `20260525000006_email_worker_cron.sql` reads both settings on every tick; missing settings are a no-op.)
+- **Used in:** Route handler (Next.js) + pg_cron job (Postgres).
+- **Environments:** Staging/Prod required. Local dev: omit to leave cron inert.
 
 ---
 

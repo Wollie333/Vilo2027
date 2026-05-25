@@ -1,0 +1,12 @@
+export { default as BookingCancelledGuest } from "./templates/BookingCancelledGuest";
+export { default as BookingCancelledHost } from "./templates/BookingCancelledHost";
+export { default as BookingConfirmedGuest } from "./templates/BookingConfirmedGuest";
+export { default as BookingConfirmedHost } from "./templates/BookingConfirmedHost";
+export { default as BookingDeclinedGuest } from "./templates/BookingDeclinedGuest";
+export { default as BookingRequestHost } from "./templates/BookingRequestHost";
+export { default as EftInstructionsGuest } from "./templates/EftInstructionsGuest";
+export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHost";
+export { default as NewReviewHost } from "./templates/NewReviewHost";
+export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
+export { default as SubscriptionWelcome } from "./templates/SubscriptionWelcome";
+export { default as WelcomeHost } from "./templates/WelcomeHost";

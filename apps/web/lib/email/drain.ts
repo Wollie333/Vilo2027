@@ -1,0 +1,187 @@
+import { createElement } from "react";
+import { Resend } from "resend";
+
+import { createAdminClient } from "@/lib/supabase/admin";
+
+import { EMAIL_REGISTRY, type EmailRegistryEntry } from "./registry";
+
+const FROM_ADDRESS =
+  process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
+
+const BATCH_SIZE = 50;
+
+export type DrainResult = {
+  processed: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  details: Array<{
+    id: string;
+    type: string;
+    status: "sent" | "failed" | "skipped";
+    error?: string;
+  }>;
+};
+
+type QueueRow = {
+  id: string;
+  type: string;
+  host_id: string | null;
+  guest_id: string | null;
+  payload: Record<string, unknown> | null;
+};
+
+export async function drainEmailQueue(): Promise<DrainResult> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error("drainEmailQueue: RESEND_API_KEY is not set");
+  }
+
+  const resend = new Resend(apiKey);
+  const supabase = createAdminClient();
+
+  const { data: rows, error: fetchError } = await supabase
+    .from("notification_queue")
+    .select("id, type, host_id, guest_id, payload")
+    .is("sent_at", null)
+    .is("failed_at", null)
+    .order("created_at", { ascending: true })
+    .limit(BATCH_SIZE);
+
+  if (fetchError) {
+    throw new Error(`fetch queue failed: ${fetchError.message}`);
+  }
+
+  const result: DrainResult = {
+    processed: 0,
+    sent: 0,
+    failed: 0,
+    skipped: 0,
+    details: [],
+  };
+
+  if (!rows || rows.length === 0) return result;
+
+  for (const raw of rows as QueueRow[]) {
+    result.processed += 1;
+    const row = raw;
+    const payload = (row.payload as Record<string, unknown>) ?? {};
+    const entry: EmailRegistryEntry | undefined = EMAIL_REGISTRY[row.type];
+
+    if (!entry) {
+      await markFailed(supabase, row.id, `no_template:${row.type}`);
+      result.skipped += 1;
+      result.details.push({
+        id: row.id,
+        type: row.type,
+        status: "skipped",
+        error: `no_template:${row.type}`,
+      });
+      continue;
+    }
+
+    const recipientEmail = await resolveRecipientEmail(supabase, row, entry);
+    if (!recipientEmail) {
+      await markFailed(supabase, row.id, "no_recipient_email");
+      result.failed += 1;
+      result.details.push({
+        id: row.id,
+        type: row.type,
+        status: "failed",
+        error: "no_recipient_email",
+      });
+      continue;
+    }
+
+    try {
+      const { error: sendError } = await resend.emails.send({
+        from: FROM_ADDRESS,
+        to: recipientEmail,
+        subject: entry.subject(payload),
+        react: createElement(entry.Template, payload),
+      });
+
+      if (sendError) {
+        await markFailed(
+          supabase,
+          row.id,
+          `resend:${sendError.name}:${sendError.message}`,
+        );
+        result.failed += 1;
+        result.details.push({
+          id: row.id,
+          type: row.type,
+          status: "failed",
+          error: sendError.message,
+        });
+        continue;
+      }
+
+      await markSent(supabase, row.id);
+      result.sent += 1;
+      result.details.push({ id: row.id, type: row.type, status: "sent" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await markFailed(supabase, row.id, `exception:${msg.slice(0, 240)}`);
+      result.failed += 1;
+      result.details.push({
+        id: row.id,
+        type: row.type,
+        status: "failed",
+        error: msg,
+      });
+    }
+  }
+
+  return result;
+}
+
+async function resolveRecipientEmail(
+  supabase: ReturnType<typeof createAdminClient>,
+  row: QueueRow,
+  entry: EmailRegistryEntry,
+): Promise<string | null> {
+  if (entry.recipient === "guest") {
+    if (!row.guest_id) return null;
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("id", row.guest_id)
+      .maybeSingle();
+    if (error || !data?.email) return null;
+    return data.email;
+  }
+
+  if (!row.host_id) return null;
+  const { data, error } = await supabase
+    .from("hosts")
+    .select("user_id, user_profiles!hosts_user_id_fkey(email)")
+    .eq("id", row.host_id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const profile = data.user_profiles as unknown as {
+    email: string | null;
+  } | null;
+  return profile?.email ?? null;
+}
+
+async function markSent(
+  supabase: ReturnType<typeof createAdminClient>,
+  id: string,
+) {
+  await supabase
+    .from("notification_queue")
+    .update({ sent_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+async function markFailed(
+  supabase: ReturnType<typeof createAdminClient>,
+  id: string,
+  error: string,
+) {
+  await supabase
+    .from("notification_queue")
+    .update({ failed_at: new Date().toISOString(), error })
+    .eq("id", id);
+}
