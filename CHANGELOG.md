@@ -168,6 +168,9 @@ experience. This wave shipped the whole vertical slice.
 - `b36fc41` — fix(dashboard): wire up "New booking" + add admin toggle for staff
 - `c318b36` — fix(guest): experience-aware success page + /my-trips list & detail
 - `2eba3c0` — fix(book): block experience slot double-booking + sidebar polish
+- `f286b89` — fix(bookings): experience-aware list + detail (host + admin)
+- `a642051` — fix(listings,calendar): experience-aware admin list + filter calendar
+- `eb5a742` — fix(bookings,quotes): filter to accommodation-only for stay-shaped forms
 
 ---
 
