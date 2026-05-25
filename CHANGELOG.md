@@ -31,6 +31,146 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-25 — Email templates filled out (12 new) + /admin/emails control page
+
+Parallel-track session alongside the guest-experience booking work. Closed
+the 12-template gap left by the Phase 2/3 batch and added an admin tool to
+preview every template and send a test through Resend.
+
+### Built (Track 2)
+- 12 new React Email templates under `emails/templates/`:
+  - `StaffInvite`, `AccountSuspended`
+  - `SubscriptionExpiring`, `SubscriptionFailed`, `SubscriptionRestricted`
+  - `RefundRequestHost`, `RefundApprovedGuest`, `RefundDeclinedGuest`,
+    `RefundCompletedGuest`, `RefundEscalatedAdmin`,
+    `RefundAdminOverrideHost`, `EftRefundSentGuest`
+- Updated `emails/index.ts` barrel — all 24 React Email templates now
+  exported (Supabase auth emails stay configured in dashboard, not here).
+- `apps/web/lib/email/registry.ts` — registered the 12 new template types
+  with subject builders. Added new recipient kind `"custom"` for
+  `staff_invite` and `refund_escalated_admin` whose recipients are not
+  guests or hosts.
+- `apps/web/lib/email/drain.ts` — `resolveRecipientEmail` now honours
+  `payload.recipient_email` when the registry entry is `recipient:"custom"`.
+  Enqueueing code passes the invitee/admin mailbox in the payload.
+- **`/admin/emails`** (Platform → Email templates in sidebar):
+  - Index page lists every registered type with subject preview, recipient
+    pill, and 24h queue stats (pending / sent / failed).
+  - `[type]` detail page renders the template server-side via
+    `@react-email/render`, with an editable JSON payload textarea and a
+    `Send a test` form. Test sends go through Resend and are audited via
+    `withAdminAudit` (permission `platform.settings`, action
+    `email.test_send`).
+  - Sample payloads (`samplePayloads.ts`) cover every type so a single
+    click renders a realistic preview.
+
+### Changed
+- `apps/web/app/admin/_components/AdminSidebar.tsx` — added "Email
+  templates" link to the Platform nav group with a Mail icon.
+
+### Notes
+- **Build status:** my files pass `pnpm lint` and `tsc --noEmit` cleanly.
+  `pnpm build` currently fails on `app/booking/[id]/success/page.tsx`
+  (`isExperience` + `sessionLabel` unused vars) — that file is part of the
+  parallel-running guest-experience-booking session and is mid-edit. Not
+  touching it per parallel-track rules; it will compile once that session
+  finishes its detail page.
+- **Resend domain is still `onboarding@resend.dev`.** Test sends from the
+  admin page will deliver but Gmail flags them. Promote to verified
+  `vilo.co.za` / `viloplatform.com` before launch (existing follow-up).
+- Test-send uses `RESEND_API_KEY` from server env, same key the queue
+  worker uses — no new env var.
+
+---
+
+## 2026-05-25 — Experiences end-to-end (host + guest) + dashboard fixes
+
+Vilo's pitch is "accommodation hosts AND experience operators". The schema
+supported `listing_type='experience'` from day one but no surface — host
+editor, guest detail page, guest booking flow — actually handled them. A
+host could only create a stay; a guest could never see or book an
+experience. This wave shipped the whole vertical slice.
+
+### Built (host side)
+- `apps/web/app/dashboard/listings/[id]/edit/` — listing editor branches
+  on `listing_type`. Experience tabs: Basic / Photos / Location /
+  **Logistics** / **Schedule** / Pricing / Policies / Settings / Danger.
+  Rooms & capacity / Amenities / Add-ons hidden for experiences.
+- `LogisticsTab` — duration (with human-readable preview), max/min
+  participants, meeting point, what to bring.
+- `ScheduleTab` — recurring weekly slots (toggle days, add/remove times
+  per day) OR specific one-off date+time entries. Persists as
+  `listings.schedule` jsonb.
+- `PricingTab` — experience shows price-per-person + private group rate;
+  hides weekend rate + cleaning fee.
+- `PoliciesTab` — experience hides check-in/out, relabels House rules as
+  Guest expectations.
+
+### Built (guest side)
+- `/explore` — listing card subtitle + price label flip to experience
+  type ("Tour · Cape Town") and "per person" pricing.
+- `/listing/[slug]` — new `ExperienceBody` layout: quick-fact tiles
+  (Duration / Group size / Min to book / From), Logistics section
+  (Meeting point + What to bring), no accommodation-only sections.
+- `ExperienceBookingWidget` — dropdown of next 12 upcoming slots
+  (expanded from `listings.schedule` via `scheduleSlots.ts`),
+  participant picker, per-person total with private-group-rate
+  optimisation when the guest fills the session.
+- `/listing/[slug]/book` — `?slot=YYYY-MM-DDTHH:MM&participants=N`
+  short-circuits the accommodation path; renders
+  `ExperienceBookingForm` with session details, meeting point preview,
+  payment + cancellation ack, summary card.
+- `/booking/[id]/success` — branches on `listing_type`; shows
+  Session/Participants for experiences and renames "Go to dashboard" →
+  "View my trips".
+- `/my-trips` list — upcoming filter now treats experience bookings as
+  upcoming when `session_date >= now()` (previously they all fell into
+  Past because `check_out` was null).
+- `/my-trips/[id]` — Session header with When / Duration /
+  Participants + meeting-point card for experience bookings.
+
+### Server-side
+- `createBookingSchema` gains `scope="experience"` + optional
+  `session_date`. Refinements enforce session_date for experience and
+  check_in/check_out for accommodation.
+- `createBookingAction` branches on `listing.listing_type`:
+  - validates session is in the future + participant min/max;
+  - **enforces slot capacity** — sums `guests_count` across existing
+    pending/confirmed bookings for the same listing + session_date,
+    refuses if the new booking would push past `max_participants`
+    (closes the double-booking race);
+  - prices `base_price × participants` or `private_group_price` when
+    the guest fills the whole session;
+  - skips add-ons (per-night pricing models don't map to experiences);
+  - writes `bookings.session_date` and leaves check_in/out NULL (the
+    `nights` GENERATED column resolves to NULL).
+
+### Dashboard fixes
+- **"New booking" button** in the topbar was a `<button>` with no
+  handler. Wired to `/dashboard/bookings/new`.
+- **Admin toggle** added in the topbar for active `platform_staff`
+  members — mirrors the "Back to host dashboard" link on the admin
+  sidebar so staff can move both ways.
+- **Host profile card** in the sidebar dropped its dead ChevronsUpDown
+  icon and now links to `/dashboard/settings/host`.
+
+### Out of scope for this wave (tracked)
+- Email templates aren't experience-aware yet — `BookingConfirmedGuest`
+  still assumes `checkIn/checkOut` props. Bundled with the
+  email-worker + Resend domain verification ops item.
+- Slot-availability check is participant-count based, not duration
+  overlap. Two experiences starting close together that the host runs
+  back-to-back could collide — host can decline manually for now.
+
+### Commits
+- `2fdc586` — feat(listings): experience listing editor (host side)
+- `4fa5024` — feat(guest): experience listing discovery + detail + booking flow
+- `b36fc41` — fix(dashboard): wire up "New booking" + add admin toggle for staff
+- `c318b36` — fix(guest): experience-aware success page + /my-trips list & detail
+- `2eba3c0` — fix(book): block experience slot double-booking + sidebar polish
+
+---
+
 ## 2026-05-25 — Admin auto-redirect on login + AAL2 gate dropped (pre-MVP)
 
 Founder couldn't reach `/admin` even after being seeded into `platform_staff`
