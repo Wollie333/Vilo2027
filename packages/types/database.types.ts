@@ -912,6 +912,396 @@ export type Database = {
           },
         ]
       }
+      help_article_feedback: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          user_id: string | null
+          vote: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          vote: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+          vote?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_feedback_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_article_suggestions: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_suggestions_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_articles: {
+        Row: {
+          audience: string
+          author_id: string | null
+          body_html: string
+          body_json: Json
+          category_id: string | null
+          created_at: string
+          deleted_at: string | null
+          excerpt: string
+          featured_rank: number | null
+          has_video: boolean
+          helpful_count: number
+          id: string
+          last_editor_id: string | null
+          not_helpful_count: number
+          published_at: string | null
+          read_time_minutes: number
+          saved_count: number
+          search_tsv: unknown
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          audience?: string
+          author_id?: string | null
+          body_html?: string
+          body_json?: Json
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          excerpt?: string
+          featured_rank?: number | null
+          has_video?: boolean
+          helpful_count?: number
+          id?: string
+          last_editor_id?: string | null
+          not_helpful_count?: number
+          published_at?: string | null
+          read_time_minutes?: number
+          saved_count?: number
+          search_tsv?: unknown
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          audience?: string
+          author_id?: string | null
+          body_html?: string
+          body_json?: Json
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          excerpt?: string
+          featured_rank?: number | null
+          has_video?: boolean
+          helpful_count?: number
+          id?: string
+          last_editor_id?: string | null
+          not_helpful_count?: number
+          published_at?: string | null
+          read_time_minutes?: number
+          saved_count?: number
+          search_tsv?: unknown
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_articles_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "help_articles_last_editor_id_fkey"
+            columns: ["last_editor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_categories: {
+        Row: {
+          audience: string
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          icon: string
+          id: string
+          is_published: boolean
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_faqs: {
+        Row: {
+          answer_html: string
+          audience: string
+          category_id: string | null
+          created_at: string
+          deleted_at: string | null
+          id: string
+          is_featured: boolean
+          is_published: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer_html: string
+          audience?: string
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer_html?: string
+          audience?: string
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          is_featured?: boolean
+          is_published?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_faqs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      help_status_components: {
+        Row: {
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          note: string | null
+          sort_order: number
+          spark_values: Json
+          status: string
+          updated_at: string
+          uptime_pct: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          note?: string | null
+          sort_order?: number
+          spark_values?: Json
+          status?: string
+          updated_at?: string
+          uptime_pct?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          note?: string | null
+          sort_order?: number
+          spark_values?: Json
+          status?: string
+          updated_at?: string
+          uptime_pct?: number
+        }
+        Relationships: []
+      }
+      help_videos: {
+        Row: {
+          audience: string
+          category_id: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string
+          duration_seconds: number
+          embed_id: string
+          embed_provider: string
+          embed_url: string
+          featured_rank: number | null
+          id: string
+          is_new: boolean
+          sort_order: number
+          status: string
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          duration_seconds?: number
+          embed_id: string
+          embed_provider?: string
+          embed_url: string
+          featured_rank?: number | null
+          id?: string
+          is_new?: boolean
+          sort_order?: number
+          status?: string
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          category_id?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string
+          duration_seconds?: number
+          embed_id?: string
+          embed_provider?: string
+          embed_url?: string
+          featured_rank?: number | null
+          id?: string
+          is_new?: boolean
+          sort_order?: number
+          status?: string
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_videos_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       host_business_details: {
         Row: {
           billing_address_line1: string | null
@@ -3569,339 +3959,6 @@ export type Database = {
         }
         Relationships: []
       }
-      help_categories: {
-        Row: {
-          id: string
-          slug: string
-          name: string
-          description: string | null
-          icon: string
-          audience: string
-          sort_order: number
-          is_published: boolean
-          created_at: string
-          updated_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          slug: string
-          name: string
-          description?: string | null
-          icon?: string
-          audience?: string
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          slug?: string
-          name?: string
-          description?: string | null
-          icon?: string
-          audience?: string
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: []
-      }
-      help_articles: {
-        Row: {
-          id: string
-          slug: string
-          title: string
-          excerpt: string
-          body_html: string
-          body_json: Json
-          category_id: string | null
-          audience: string
-          status: string
-          featured_rank: number | null
-          read_time_minutes: number
-          view_count: number
-          helpful_count: number
-          not_helpful_count: number
-          saved_count: number
-          has_video: boolean
-          published_at: string | null
-          author_id: string | null
-          last_editor_id: string | null
-          created_at: string
-          updated_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          slug: string
-          title: string
-          excerpt?: string
-          body_html?: string
-          body_json?: Json
-          category_id?: string | null
-          audience?: string
-          status?: string
-          featured_rank?: number | null
-          read_time_minutes?: number
-          view_count?: number
-          helpful_count?: number
-          not_helpful_count?: number
-          saved_count?: number
-          has_video?: boolean
-          published_at?: string | null
-          author_id?: string | null
-          last_editor_id?: string | null
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          slug?: string
-          title?: string
-          excerpt?: string
-          body_html?: string
-          body_json?: Json
-          category_id?: string | null
-          audience?: string
-          status?: string
-          featured_rank?: number | null
-          read_time_minutes?: number
-          view_count?: number
-          helpful_count?: number
-          not_helpful_count?: number
-          saved_count?: number
-          has_video?: boolean
-          published_at?: string | null
-          author_id?: string | null
-          last_editor_id?: string | null
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: []
-      }
-      help_videos: {
-        Row: {
-          id: string
-          title: string
-          description: string
-          category_id: string | null
-          audience: string
-          embed_provider: string
-          embed_id: string
-          embed_url: string
-          thumbnail_url: string | null
-          duration_seconds: number
-          status: string
-          featured_rank: number | null
-          sort_order: number
-          is_new: boolean
-          created_at: string
-          updated_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          title: string
-          description?: string
-          category_id?: string | null
-          audience?: string
-          embed_provider?: string
-          embed_id: string
-          embed_url: string
-          thumbnail_url?: string | null
-          duration_seconds?: number
-          status?: string
-          featured_rank?: number | null
-          sort_order?: number
-          is_new?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          title?: string
-          description?: string
-          category_id?: string | null
-          audience?: string
-          embed_provider?: string
-          embed_id?: string
-          embed_url?: string
-          thumbnail_url?: string | null
-          duration_seconds?: number
-          status?: string
-          featured_rank?: number | null
-          sort_order?: number
-          is_new?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: []
-      }
-      help_faqs: {
-        Row: {
-          id: string
-          question: string
-          answer_html: string
-          category_id: string | null
-          audience: string
-          is_featured: boolean
-          sort_order: number
-          is_published: boolean
-          created_at: string
-          updated_at: string
-          deleted_at: string | null
-        }
-        Insert: {
-          id?: string
-          question: string
-          answer_html: string
-          category_id?: string | null
-          audience?: string
-          is_featured?: boolean
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Update: {
-          id?: string
-          question?: string
-          answer_html?: string
-          category_id?: string | null
-          audience?: string
-          is_featured?: boolean
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-          deleted_at?: string | null
-        }
-        Relationships: []
-      }
-      help_article_feedback: {
-        Row: {
-          id: string
-          article_id: string
-          user_id: string | null
-          vote: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          article_id: string
-          user_id?: string | null
-          vote: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          article_id?: string
-          user_id?: string | null
-          vote?: string
-          created_at?: string
-        }
-        Relationships: []
-      }
-      help_status_components: {
-        Row: {
-          id: string
-          name: string
-          icon: string
-          uptime_pct: number
-          status: string
-          note: string | null
-          spark_values: Json
-          sort_order: number
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          icon?: string
-          uptime_pct?: number
-          status?: string
-          note?: string | null
-          spark_values?: Json
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          icon?: string
-          uptime_pct?: number
-          status?: string
-          note?: string | null
-          spark_values?: Json
-          sort_order?: number
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      help_settings: {
-        Row: {
-          key: string
-          value: Json
-          updated_at: string
-        }
-        Insert: {
-          key: string
-          value: Json
-          updated_at?: string
-        }
-        Update: {
-          key?: string
-          value?: Json
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      help_article_suggestions: {
-        Row: {
-          id: string
-          user_id: string | null
-          email: string | null
-          message: string
-          status: string
-          resolved_at: string | null
-          resolved_by: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          email?: string | null
-          message: string
-          status?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          email?: string | null
-          message?: string
-          status?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       geography_columns: {
@@ -4272,10 +4329,6 @@ export type Database = {
       increment_help_article_view: {
         Args: { p_article_id: string }
         Returns: undefined
-      }
-      vote_help_article: {
-        Args: { p_article_id: string; p_vote: string }
-        Returns: { helpful_count: number; not_helpful_count: number }[]
       }
       is_super_admin: { Args: never; Returns: boolean }
       listing_is_available_whole: {
@@ -4948,6 +5001,13 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      vote_help_article: {
+        Args: { p_article_id: string; p_vote: string }
+        Returns: {
+          helpful_count: number
+          not_helpful_count: number
+        }[]
       }
     }
     Enums: {
