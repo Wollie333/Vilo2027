@@ -46,7 +46,7 @@ export default async function BookingsListPage({
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, payment_status, scope, origin, guest_name, guest_email, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( name ), guest:user_profiles!left ( full_name, email ), booking_rooms ( id )",
+        "id, reference, status, payment_status, scope, origin, guest_name, guest_email, check_in, check_out, nights, session_date, guests_count, total_amount, currency, created_at, listing:listings!inner ( name, listing_type ), guest:user_profiles!left ( full_name, email ), booking_rooms ( id )",
       )
       .order("created_at", { ascending: false });
 
@@ -130,7 +130,20 @@ export default async function BookingsListPage({
                   guest?.email ||
                   b.guest_email ||
                   "—";
-                const listing = b.listing as unknown as { name: string };
+                const listing = b.listing as unknown as {
+                  name: string;
+                  listing_type: "accommodation" | "experience";
+                };
+                const isExperience = listing.listing_type === "experience";
+                const sessionLabel =
+                  isExperience && b.session_date
+                    ? new Date(b.session_date).toLocaleString("en-ZA", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : null;
                 return (
                   <tr
                     key={b.id}
@@ -150,7 +163,13 @@ export default async function BookingsListPage({
                       </div>
                       <div className="text-[11px] text-brand-mute">
                         {b.guests_count}{" "}
-                        {b.guests_count === 1 ? "guest" : "guests"}
+                        {isExperience
+                          ? b.guests_count === 1
+                            ? "person"
+                            : "people"
+                          : b.guests_count === 1
+                            ? "guest"
+                            : "guests"}
                         {b.origin === "host_manual"
                           ? " · Manual"
                           : b.origin === "quote_converted"
@@ -162,7 +181,11 @@ export default async function BookingsListPage({
                       <div className="truncate font-medium text-brand-ink">
                         {listing.name}
                       </div>
-                      {b.scope === "rooms" ? (
+                      {isExperience ? (
+                        <div className="mt-0.5 text-[11px] text-brand-mute">
+                          Experience
+                        </div>
+                      ) : b.scope === "rooms" ? (
                         <div className="mt-0.5 text-[11px] text-brand-mute">
                           {(b.booking_rooms as Array<{ id: string }> | null)
                             ?.length ?? 0}{" "}
@@ -174,13 +197,23 @@ export default async function BookingsListPage({
                       ) : null}
                     </td>
                     <td className="px-4 py-3 align-top">
-                      <div className="text-brand-ink">{b.check_in ?? "—"}</div>
-                      <div className="text-[11px] text-brand-mute">
-                        → {b.check_out ?? "—"}
-                        {b.nights != null
-                          ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
-                          : ""}
-                      </div>
+                      {isExperience ? (
+                        <div className="text-brand-ink">
+                          {sessionLabel ?? "—"}
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-brand-ink">
+                            {b.check_in ?? "—"}
+                          </div>
+                          <div className="text-[11px] text-brand-mute">
+                            → {b.check_out ?? "—"}
+                            {b.nights != null
+                              ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
+                              : ""}
+                          </div>
+                        </>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right align-top">
                       <div className="font-medium text-brand-ink">

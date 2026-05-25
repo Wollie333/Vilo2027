@@ -32,7 +32,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
+      "id, reference, status, payment_status, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug, listing_type, meeting_point, duration_minutes ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -42,7 +42,25 @@ export default async function BookingDetailPage({
   const listing = booking.listing as unknown as {
     name: string;
     slug: string | null;
+    listing_type: "accommodation" | "experience";
+    meeting_point: string | null;
+    duration_minutes: number | null;
   };
+  const isExperience = listing.listing_type === "experience";
+  const sessionLabel = booking.session_date
+    ? new Date(booking.session_date).toLocaleString("en-ZA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const durationLabel =
+    listing.duration_minutes != null
+      ? formatExperienceDuration(listing.duration_minutes)
+      : null;
   const guestRaw = booking.guest as unknown as
     | { full_name: string | null; email: string | null; phone: string | null }
     | { full_name: string | null; email: string | null; phone: string | null }[]
@@ -93,20 +111,54 @@ export default async function BookingDetailPage({
         <div className="space-y-6">
           <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-              Trip
+              {isExperience ? "Session" : "Trip"}
             </div>
             <dl className="mt-3 grid grid-cols-2 gap-4 text-sm">
-              <Row label="Check in" value={booking.check_in ?? "—"} />
-              <Row label="Check out" value={booking.check_out ?? "—"} />
-              <Row label="Nights" value={booking.nights ?? "—"} />
-              <Row label="Guests" value={booking.guests_count} />
-              <Row
-                label="Payment method"
-                value={booking.payment_method ?? "—"}
-                mono
-              />
-              <Row label="Payment status" value={booking.payment_status} mono />
+              {isExperience ? (
+                <>
+                  <Row label="When" value={sessionLabel ?? "—"} />
+                  <Row label="Duration" value={durationLabel ?? "—"} />
+                  <Row label="Participants" value={booking.guests_count} />
+                  <Row
+                    label="Payment method"
+                    value={booking.payment_method ?? "—"}
+                    mono
+                  />
+                  <Row
+                    label="Payment status"
+                    value={booking.payment_status}
+                    mono
+                  />
+                </>
+              ) : (
+                <>
+                  <Row label="Check in" value={booking.check_in ?? "—"} />
+                  <Row label="Check out" value={booking.check_out ?? "—"} />
+                  <Row label="Nights" value={booking.nights ?? "—"} />
+                  <Row label="Guests" value={booking.guests_count} />
+                  <Row
+                    label="Payment method"
+                    value={booking.payment_method ?? "—"}
+                    mono
+                  />
+                  <Row
+                    label="Payment status"
+                    value={booking.payment_status}
+                    mono
+                  />
+                </>
+              )}
             </dl>
+            {isExperience && listing.meeting_point ? (
+              <div className="mt-5 rounded border border-brand-line bg-brand-light/60 p-3 text-sm text-brand-dark">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Meeting point (shared with guest)
+                </div>
+                <p className="mt-1 whitespace-pre-line leading-relaxed">
+                  {listing.meeting_point}
+                </p>
+              </div>
+            ) : null}
             {booking.special_requests ? (
               <div className="mt-5 rounded border border-brand-line bg-brand-light/60 p-3 text-sm text-brand-dark">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -309,6 +361,15 @@ function Row({
       </dd>
     </div>
   );
+}
+
+function formatExperienceDuration(minutes: number): string {
+  const m = Math.trunc(minutes);
+  if (m < 60) return `${m} min`;
+  const hours = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  return `${hours}h ${rem}min`;
 }
 
 function TimelineLine({ label, iso }: { label: string; iso: string | null }) {
