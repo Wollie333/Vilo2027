@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { EMAIL_REGISTRY, type EmailRegistryEntry } from "./registry";
+import { RESOLVERS } from "./resolvers";
 
 const FROM_ADDRESS =
   process.env.EMAIL_FROM_ADDRESS ?? "Vilo <onboarding@resend.dev>";
@@ -65,7 +66,7 @@ export async function drainEmailQueue(): Promise<DrainResult> {
   for (const raw of rows as QueueRow[]) {
     result.processed += 1;
     const row = raw;
-    const payload = (row.payload as Record<string, unknown>) ?? {};
+    const rawPayload = (row.payload as Record<string, unknown>) ?? {};
     const entry: EmailRegistryEntry | undefined = EMAIL_REGISTRY[row.type];
 
     if (!entry) {
@@ -80,7 +81,38 @@ export async function drainEmailQueue(): Promise<DrainResult> {
       continue;
     }
 
-    const recipientEmail = await resolveRecipientEmail(supabase, row, entry);
+    // Run the type's resolver (if any) and merge with the row's payload.
+    // The payload wins on conflicts so explicit overrides at enqueue time
+    // (and the admin preview tool's hand-crafted payloads) still work.
+    const resolver = RESOLVERS[row.type];
+    let resolved: Record<string, unknown> = {};
+    if (resolver) {
+      try {
+        resolved = await resolver(rawPayload, { supabase });
+      } catch (resolverErr) {
+        const msg =
+          resolverErr instanceof Error
+            ? resolverErr.message
+            : String(resolverErr);
+        await markFailed(supabase, row.id, `resolver:${msg.slice(0, 200)}`);
+        result.failed += 1;
+        result.details.push({
+          id: row.id,
+          type: row.type,
+          status: "failed",
+          error: msg,
+        });
+        continue;
+      }
+    }
+    const payload: Record<string, unknown> = { ...resolved, ...rawPayload };
+
+    const recipientEmail = await resolveRecipientEmail(
+      supabase,
+      row,
+      entry,
+      payload,
+    );
     if (!recipientEmail) {
       await markFailed(supabase, row.id, "no_recipient_email");
       result.failed += 1;
@@ -140,10 +172,10 @@ async function resolveRecipientEmail(
   supabase: ReturnType<typeof createAdminClient>,
   row: QueueRow,
   entry: EmailRegistryEntry,
+  mergedPayload: Record<string, unknown>,
 ): Promise<string | null> {
   if (entry.recipient === "custom") {
-    const payload = (row.payload as Record<string, unknown>) ?? {};
-    const explicit = payload.recipient_email;
+    const explicit = mergedPayload.recipient_email;
     if (typeof explicit === "string" && explicit.includes("@")) {
       return explicit;
     }
