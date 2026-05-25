@@ -60,9 +60,10 @@ export default async function MyTripsPage() {
     .select(
       `
       id, reference, status, payment_status,
-      check_in, check_out, nights, guests_count, total_amount, currency,
+      check_in, check_out, nights, session_date,
+      guests_count, total_amount, currency,
       created_at,
-      listing:listings ( name, slug ),
+      listing:listings ( name, slug, listing_type ),
       host:hosts ( handle, display_name )
     `,
     )
@@ -79,13 +80,14 @@ export default async function MyTripsPage() {
     check_in: string | null;
     check_out: string | null;
     nights: number | null;
+    session_date: string | null;
     guests_count: number;
     total_amount: number;
     currency: string;
     created_at: string;
     listing:
-      | { name: string; slug: string | null }
-      | { name: string; slug: string | null }[]
+      | { name: string; slug: string | null; listing_type: string }
+      | { name: string; slug: string | null; listing_type: string }[]
       | null;
     host:
       | { handle: string; display_name: string }
@@ -94,13 +96,20 @@ export default async function MyTripsPage() {
   };
 
   const list = (rows as Row[] | null) ?? [];
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = list.filter(
-    (b) =>
-      ["confirmed", "checked_in", "pending", "pending_eft"].includes(
-        b.status,
-      ) && (b.check_out ?? "") >= today,
-  );
+  const now = new Date();
+  const todayIso = now.toISOString().slice(0, 10);
+  // Upcoming = active status AND (accommodation: check_out in future; experience:
+  // session_date in future).
+  const isUpcoming = (b: Row): boolean => {
+    if (
+      !["confirmed", "checked_in", "pending", "pending_eft"].includes(b.status)
+    ) {
+      return false;
+    }
+    if (b.session_date) return new Date(b.session_date) >= now;
+    return (b.check_out ?? "") >= todayIso;
+  };
+  const upcoming = list.filter(isUpcoming);
   const past = list.filter((b) => !upcoming.includes(b));
 
   return (
@@ -164,6 +173,17 @@ export default async function MyTripsPage() {
             const statusCls =
               STATUS_STYLES[b.status] ??
               "bg-brand-light text-brand-mute border-brand-line";
+            const isExperience = listing?.listing_type === "experience";
+            const when =
+              isExperience && b.session_date
+                ? new Date(b.session_date).toLocaleString("en-ZA", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : null;
             return (
               <article
                 key={b.id}
@@ -188,10 +208,15 @@ export default async function MyTripsPage() {
                       {host?.display_name
                         ? `Hosted by ${host.display_name} · `
                         : ""}
-                      {fmtDate(b.check_in)} → {fmtDate(b.check_out)}
-                      {b.nights
-                        ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
-                        : ""}
+                      {isExperience
+                        ? `Session: ${when ?? "—"} · ${b.guests_count} ${
+                            b.guests_count === 1 ? "person" : "people"
+                          }`
+                        : `${fmtDate(b.check_in)} → ${fmtDate(b.check_out)}${
+                            b.nights
+                              ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
+                              : ""
+                          }`}
                     </div>
                   </div>
                   <div className="shrink-0 text-right">

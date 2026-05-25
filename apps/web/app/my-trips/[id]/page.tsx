@@ -63,11 +63,12 @@ export default async function MyTripDetailPage({
     .select(
       `
       id, reference, status, payment_status, payment_method, scope,
-      check_in, check_out, nights, guests_count, base_amount, cleaning_fee,
+      check_in, check_out, nights, session_date,
+      guests_count, base_amount, cleaning_fee,
       total_amount, currency, special_requests, created_at,
       confirmed_at, cancelled_at, checked_in_at, checked_out_at,
       has_open_refund,
-      listing:listings ( name, slug, city, province ),
+      listing:listings ( name, slug, city, province, listing_type, meeting_point, duration_minutes ),
       host:hosts ( handle, display_name )
     `,
     )
@@ -86,6 +87,7 @@ export default async function MyTripDetailPage({
     check_in: string | null;
     check_out: string | null;
     nights: number | null;
+    session_date: string | null;
     guests_count: number;
     base_amount: number;
     cleaning_fee: number | null;
@@ -103,9 +105,26 @@ export default async function MyTripDetailPage({
       slug: string | null;
       city: string | null;
       province: string | null;
+      listing_type: "accommodation" | "experience";
+      meeting_point: string | null;
+      duration_minutes: number | null;
     } | null;
     host: { handle: string; display_name: string } | null;
   };
+  const isExperience = booking.listing?.listing_type === "experience";
+  const sessionLabel = booking.session_date
+    ? new Date(booking.session_date).toLocaleString("en-ZA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const durationLabel = booking.listing?.duration_minutes
+    ? formatExperienceDuration(booking.listing.duration_minutes)
+    : null;
 
   // Fetch refund summary for this booking
   const { data: refunds } = await supabase
@@ -168,21 +187,44 @@ export default async function MyTripDetailPage({
           <div className="space-y-6">
             <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                Trip
+                {isExperience ? "Session" : "Trip"}
               </div>
               <dl className="mt-3 grid grid-cols-2 gap-4 text-sm">
-                <Row label="Check in" value={fmtDate(booking.check_in)} />
-                <Row label="Check out" value={fmtDate(booking.check_out)} />
-                <Row
-                  label="Length of stay"
-                  value={
-                    booking.nights
-                      ? `${booking.nights} ${booking.nights === 1 ? "night" : "nights"}`
-                      : "—"
-                  }
-                />
-                <Row label="Guests" value={String(booking.guests_count)} />
+                {isExperience ? (
+                  <>
+                    <Row label="When" value={sessionLabel ?? "—"} />
+                    <Row label="Duration" value={durationLabel ?? "—"} />
+                    <Row
+                      label="Participants"
+                      value={String(booking.guests_count)}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Row label="Check in" value={fmtDate(booking.check_in)} />
+                    <Row label="Check out" value={fmtDate(booking.check_out)} />
+                    <Row
+                      label="Length of stay"
+                      value={
+                        booking.nights
+                          ? `${booking.nights} ${booking.nights === 1 ? "night" : "nights"}`
+                          : "—"
+                      }
+                    />
+                    <Row label="Guests" value={String(booking.guests_count)} />
+                  </>
+                )}
               </dl>
+              {isExperience && booking.listing?.meeting_point ? (
+                <div className="mt-5 rounded border border-brand-line bg-brand-light/60 p-3 text-sm text-brand-dark">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Meeting point
+                  </div>
+                  <p className="mt-1 whitespace-pre-line leading-relaxed">
+                    {booking.listing.meeting_point}
+                  </p>
+                </div>
+              ) : null}
               {booking.special_requests ? (
                 <div className="mt-5 rounded border border-brand-line bg-brand-light/60 p-3 text-sm text-brand-dark">
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -315,4 +357,13 @@ function Row({ label, value }: { label: string; value: string | null }) {
       <dd className="mt-0.5 font-medium text-brand-ink">{value ?? "—"}</dd>
     </div>
   );
+}
+
+function formatExperienceDuration(minutes: number): string {
+  const m = Math.trunc(minutes);
+  if (m < 60) return `${m} min`;
+  const hours = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  return `${hours}h ${rem}min`;
 }

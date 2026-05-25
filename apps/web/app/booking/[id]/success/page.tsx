@@ -44,7 +44,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, check_in, check_out, nights, guests_count, total_amount, currency, listing:listings!inner ( name, slug, city, province )",
+      "id, reference, status, payment_status, check_in, check_out, nights, session_date, guests_count, total_amount, currency, listing:listings!inner ( name, slug, city, province, listing_type )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -101,7 +101,19 @@ export default async function BookingSuccessPage({
     slug: string | null;
     city: string | null;
     province: string | null;
+    listing_type: "accommodation" | "experience";
   };
+  const isExperience = listing.listing_type === "experience";
+  const sessionLabel = booking.session_date
+    ? new Date(booking.session_date).toLocaleString("en-ZA", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -149,26 +161,43 @@ export default async function BookingSuccessPage({
                 </span>
               </Row>
             ) : null}
-            <Row label="Check in">
-              <span className="font-medium text-brand-ink">
-                {booking.check_in ?? "—"}
-              </span>
-            </Row>
-            <Row label="Check out">
-              <span className="font-medium text-brand-ink">
-                {booking.check_out ?? "—"}
-              </span>
-            </Row>
-            <Row label="Nights">
-              <span className="font-medium text-brand-ink">
-                {booking.nights ?? "—"}
-              </span>
-            </Row>
-            <Row label="Guests">
-              <span className="font-medium text-brand-ink">
-                {booking.guests_count}
-              </span>
-            </Row>
+            {isExperience ? (
+              <>
+                <Row label="Session">
+                  <span className="font-medium text-brand-ink">
+                    {sessionLabel ?? "—"}
+                  </span>
+                </Row>
+                <Row label="Participants">
+                  <span className="font-medium text-brand-ink">
+                    {booking.guests_count}
+                  </span>
+                </Row>
+              </>
+            ) : (
+              <>
+                <Row label="Check in">
+                  <span className="font-medium text-brand-ink">
+                    {booking.check_in ?? "—"}
+                  </span>
+                </Row>
+                <Row label="Check out">
+                  <span className="font-medium text-brand-ink">
+                    {booking.check_out ?? "—"}
+                  </span>
+                </Row>
+                <Row label="Nights">
+                  <span className="font-medium text-brand-ink">
+                    {booking.nights ?? "—"}
+                  </span>
+                </Row>
+                <Row label="Guests">
+                  <span className="font-medium text-brand-ink">
+                    {booking.guests_count}
+                  </span>
+                </Row>
+              </>
+            )}
             <Row label="Total paid">
               <span className="font-display font-bold text-brand-ink">
                 {fmtR(Number(booking.total_amount), booking.currency)}
@@ -184,10 +213,10 @@ export default async function BookingSuccessPage({
               Back to listing
             </Link>
             <Link
-              href="/dashboard"
+              href="/my-trips"
               className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
             >
-              Go to dashboard
+              View my trips
             </Link>
           </div>
         </div>
