@@ -52,7 +52,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode",
+      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, listing_type, max_participants, min_participants, private_group_price",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -61,31 +61,68 @@ export async function createBookingAction(
     return { ok: false, error: "This listing isn't available." };
   }
 
-  // 3. Server-side date check (never trust the client per AGENT_RULES §1.2).
-  const nights = nightsBetween(d.check_in, d.check_out);
-  if (nights <= 0) {
-    return { ok: false, error: "Check-out must be after check-in." };
+  // 3. Listing-type vs scope sanity. Experience and accommodation paths share
+  // the same action but diverge on validation + pricing math.
+  const isExperience = listing.listing_type === "experience";
+  if (isExperience && d.scope !== "experience") {
+    return { ok: false, error: "This is an experience — pick a session slot." };
   }
-  const minNights = listing.min_nights ?? 1;
-  if (nights < minNights) {
+  if (!isExperience && d.scope === "experience") {
     return {
       ok: false,
-      error: `Minimum stay is ${minNights} ${minNights === 1 ? "night" : "nights"}.`,
+      error: "This listing isn't an experience.",
     };
   }
 
-  // 4. Mode compatibility.
-  if (d.scope === "whole_listing" && listing.booking_mode === "rooms_only") {
-    return {
-      ok: false,
-      error: "This listing only takes per-room bookings.",
-    };
-  }
-  if (d.scope === "rooms" && listing.booking_mode === "whole_listing") {
-    return {
-      ok: false,
-      error: "This listing books as a whole — no room selection.",
-    };
+  // 4. Path-specific date / mode validation.
+  let nights = 0;
+  if (!isExperience) {
+    nights = nightsBetween(d.check_in!, d.check_out!);
+    if (nights <= 0) {
+      return { ok: false, error: "Check-out must be after check-in." };
+    }
+    const minNights = listing.min_nights ?? 1;
+    if (nights < minNights) {
+      return {
+        ok: false,
+        error: `Minimum stay is ${minNights} ${minNights === 1 ? "night" : "nights"}.`,
+      };
+    }
+
+    if (d.scope === "whole_listing" && listing.booking_mode === "rooms_only") {
+      return {
+        ok: false,
+        error: "This listing only takes per-room bookings.",
+      };
+    }
+    if (d.scope === "rooms" && listing.booking_mode === "whole_listing") {
+      return {
+        ok: false,
+        error: "This listing books as a whole — no room selection.",
+      };
+    }
+  } else {
+    if (!d.session_date) {
+      return { ok: false, error: "Pick a session date and time." };
+    }
+    const sessionAt = new Date(`${d.session_date}:00`);
+    if (Number.isNaN(sessionAt.getTime()) || sessionAt < new Date()) {
+      return { ok: false, error: "That session is in the past." };
+    }
+    const min = Math.max(1, listing.min_participants ?? 1);
+    const max = listing.max_participants ?? 50;
+    if (d.guests < min) {
+      return {
+        ok: false,
+        error: `This experience needs at least ${min} ${min === 1 ? "person" : "people"}.`,
+      };
+    }
+    if (d.guests > max) {
+      return {
+        ok: false,
+        error: `This experience tops out at ${max} ${max === 1 ? "person" : "people"}.`,
+      };
+    }
   }
 
   const admin = createAdminClient();
@@ -100,7 +137,31 @@ export async function createBookingAction(
     cleaning_fee: number;
   }> = [];
 
-  if (d.scope === "rooms") {
+  if (d.scope === "experience") {
+    if (listing.base_price == null) {
+      return {
+        ok: false,
+        error: "This experience has no price set yet — message the host.",
+      };
+    }
+    const perPerson = Number(listing.base_price);
+    const headcountTotal = perPerson * d.guests;
+    const groupPrice =
+      listing.private_group_price != null
+        ? Number(listing.private_group_price)
+        : null;
+    // If the host set a private-group rate and the guest fills the session,
+    // honour the lower of (per-person * cap) vs the group rate.
+    const useGroupRate =
+      groupPrice != null &&
+      groupPrice > 0 &&
+      listing.max_participants != null &&
+      d.guests === listing.max_participants &&
+      groupPrice < headcountTotal;
+    baseAmount = useGroupRate ? groupPrice : headcountTotal;
+    cleaning = 0;
+    totalAmount = baseAmount;
+  } else if (d.scope === "rooms") {
     const roomIds = d.room_ids ?? [];
 
     // 5a. Validate every room_id belongs to this listing + is bookable.
@@ -198,78 +259,8 @@ export async function createBookingAction(
   }
 
   // 5e. Re-fetch eligible addons server-side and snapshot prices.
-  const roomIdScope =
-    d.scope === "rooms" ? roomRowsForBooking.map((r) => r.room_id) : [];
-  const { data: eligibleAddonRows } = await admin
-    .from("listing_addons")
-    .select(
-      "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
-    )
-    .eq("listing_id", listing.id);
-
-  type AddonJoinRow = {
-    addon_id: string;
-    room_id: string | null;
-    unit_price_override: number | null;
-    addons: {
-      id: string;
-      name: string;
-      pricing_model: PricingModel;
-      unit_price: number;
-      currency: string;
-      min_quantity: number;
-      max_quantity: number | null;
-      is_required: boolean;
-      is_active: boolean;
-      lead_time_days: number;
-    };
-  };
-
-  // Dedupe by addon_id — listing-wide row wins over room-scoped; lowest
-  // override price wins among room rows. Filter for: active, lead time
-  // satisfied, room scope matches (NULL = listing-wide, else in selected
-  // rooms).
-  const leadDays = daysUntil(d.check_in);
-  const eligibleMap = new Map<
-    string,
-    {
-      addon: AddonJoinRow["addons"];
-      effectiveUnitPrice: number;
-    }
-  >();
-  for (const raw of (eligibleAddonRows ?? []) as unknown as AddonJoinRow[]) {
-    const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
-    if (!a) continue;
-    if (!a.is_active) continue;
-    if (a.lead_time_days > leadDays) continue;
-    if (raw.room_id !== null) {
-      if (d.scope !== "rooms") continue;
-      if (!roomIdScope.includes(raw.room_id)) continue;
-    }
-    const effective =
-      raw.unit_price_override == null
-        ? Number(a.unit_price)
-        : Number(raw.unit_price_override);
-    const existing = eligibleMap.get(a.id);
-    if (!existing || effective < existing.effectiveUnitPrice) {
-      eligibleMap.set(a.id, { addon: a, effectiveUnitPrice: effective });
-    }
-  }
-
-  // Merge guest selection + auto-required addons.
-  const selectedQty = new Map<string, number>();
-  for (const sel of d.selected_addons ?? []) {
-    if (eligibleMap.has(sel.addon_id) && sel.quantity > 0) {
-      selectedQty.set(sel.addon_id, sel.quantity);
-    }
-  }
-  for (const [addonId, entry] of eligibleMap.entries()) {
-    if (entry.addon.is_required && !selectedQty.has(addonId)) {
-      selectedQty.set(addonId, Math.max(entry.addon.min_quantity, 1));
-    }
-  }
-
-  // Clamp quantities to min/max and compute snapshots.
+  // Experience bookings skip the addon catalog for MVP — addon pricing models
+  // (per_night, per_guest_per_night) assume an accommodation stay.
   const addonInserts: Array<{
     label: string;
     quantity: number;
@@ -281,49 +272,121 @@ export async function createBookingAction(
     addon_id: string;
     sort_order: number;
   }> = [];
-  let addonsTotal = 0;
-  let sortOrder = 0;
-  for (const [addonId, qty] of selectedQty.entries()) {
-    const entry = eligibleMap.get(addonId);
-    if (!entry) continue;
-    const a = entry.addon;
-    let clamped = qty;
-    if (clamped < a.min_quantity) clamped = a.min_quantity;
-    if (a.max_quantity != null && clamped > a.max_quantity) {
-      clamped = a.max_quantity;
-    }
-    if (clamped <= 0) continue;
-    const subtotal = computeAddonSubtotal(
-      a.pricing_model,
-      entry.effectiveUnitPrice,
-      clamped,
-      nights,
-      d.guests,
-    );
-    addonsTotal += subtotal;
-    addonInserts.push({
-      addon_id: a.id,
-      label: a.name,
-      quantity: clamped,
-      unit_price: entry.effectiveUnitPrice,
-      pricing_model: a.pricing_model,
-      currency: a.currency,
-      is_required: a.is_required,
-      subtotal,
-      sort_order: sortOrder++,
-    });
-  }
-  totalAmount = baseAmount + cleaning + addonsTotal;
 
-  // 6. Insert booking.
+  if (d.scope !== "experience") {
+    const roomIdScope =
+      d.scope === "rooms" ? roomRowsForBooking.map((r) => r.room_id) : [];
+    const { data: eligibleAddonRows } = await admin
+      .from("listing_addons")
+      .select(
+        "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
+      )
+      .eq("listing_id", listing.id);
+
+    type AddonJoinRow = {
+      addon_id: string;
+      room_id: string | null;
+      unit_price_override: number | null;
+      addons: {
+        id: string;
+        name: string;
+        pricing_model: PricingModel;
+        unit_price: number;
+        currency: string;
+        min_quantity: number;
+        max_quantity: number | null;
+        is_required: boolean;
+        is_active: boolean;
+        lead_time_days: number;
+      };
+    };
+
+    const leadDays = daysUntil(d.check_in!);
+    const eligibleMap = new Map<
+      string,
+      {
+        addon: AddonJoinRow["addons"];
+        effectiveUnitPrice: number;
+      }
+    >();
+    for (const raw of (eligibleAddonRows ?? []) as unknown as AddonJoinRow[]) {
+      const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
+      if (!a) continue;
+      if (!a.is_active) continue;
+      if (a.lead_time_days > leadDays) continue;
+      if (raw.room_id !== null) {
+        if (d.scope !== "rooms") continue;
+        if (!roomIdScope.includes(raw.room_id)) continue;
+      }
+      const effective =
+        raw.unit_price_override == null
+          ? Number(a.unit_price)
+          : Number(raw.unit_price_override);
+      const existing = eligibleMap.get(a.id);
+      if (!existing || effective < existing.effectiveUnitPrice) {
+        eligibleMap.set(a.id, { addon: a, effectiveUnitPrice: effective });
+      }
+    }
+
+    const selectedQty = new Map<string, number>();
+    for (const sel of d.selected_addons ?? []) {
+      if (eligibleMap.has(sel.addon_id) && sel.quantity > 0) {
+        selectedQty.set(sel.addon_id, sel.quantity);
+      }
+    }
+    for (const [addonId, entry] of eligibleMap.entries()) {
+      if (entry.addon.is_required && !selectedQty.has(addonId)) {
+        selectedQty.set(addonId, Math.max(entry.addon.min_quantity, 1));
+      }
+    }
+
+    let addonsTotal = 0;
+    let sortOrder = 0;
+    for (const [addonId, qty] of selectedQty.entries()) {
+      const entry = eligibleMap.get(addonId);
+      if (!entry) continue;
+      const a = entry.addon;
+      let clamped = qty;
+      if (clamped < a.min_quantity) clamped = a.min_quantity;
+      if (a.max_quantity != null && clamped > a.max_quantity) {
+        clamped = a.max_quantity;
+      }
+      if (clamped <= 0) continue;
+      const subtotal = computeAddonSubtotal(
+        a.pricing_model,
+        entry.effectiveUnitPrice,
+        clamped,
+        nights,
+        d.guests,
+      );
+      addonsTotal += subtotal;
+      addonInserts.push({
+        addon_id: a.id,
+        label: a.name,
+        quantity: clamped,
+        unit_price: entry.effectiveUnitPrice,
+        pricing_model: a.pricing_model,
+        currency: a.currency,
+        is_required: a.is_required,
+        subtotal,
+        sort_order: sortOrder++,
+      });
+    }
+    totalAmount = baseAmount + cleaning + addonsTotal;
+  }
+
+  // 6. Insert booking. Experience bookings use session_date and leave
+  // check_in/check_out NULL; the `nights` column on bookings is GENERATED and
+  // resolves to NULL when both dates are absent.
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
     .insert({
       listing_id: listing.id,
       host_id: listing.host_id,
       guest_id: user.id,
-      check_in: d.check_in,
-      check_out: d.check_out,
+      check_in: isExperience ? null : d.check_in,
+      check_out: isExperience ? null : d.check_out,
+      session_date: isExperience ? `${d.session_date}:00` : null,
       guests_count: d.guests,
       base_amount: baseAmount,
       cleaning_fee: cleaning,

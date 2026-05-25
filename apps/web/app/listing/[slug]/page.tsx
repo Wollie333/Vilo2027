@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { MapPin, Star, Users } from "lucide-react";
+import { Clock, MapPin, Star, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -10,12 +10,24 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { AmenitiesList } from "./AmenitiesList";
 import { BookingWidget } from "./BookingWidget";
+import { ExperienceBookingWidget } from "./ExperienceBookingWidget";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
+import { nextSlots } from "./scheduleSlots";
+
+type ScheduleRecurringDay = {
+  day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  times: string[];
+};
+type ScheduleSpecific = { date: string; time: string };
+type RawSchedule =
+  | { kind: "recurring"; days: ScheduleRecurringDay[] }
+  | { kind: "specific"; dates: ScheduleSpecific[] }
+  | null;
 
 type RawListing = {
   id: string;
@@ -42,6 +54,13 @@ type RawListing = {
   instant_booking: boolean;
   avg_rating: number | null;
   total_reviews: number | null;
+  duration_minutes: number | null;
+  max_participants: number | null;
+  min_participants: number | null;
+  meeting_point: string | null;
+  what_to_bring: string | null;
+  private_group_price: number | null;
+  schedule: RawSchedule;
   host: {
     display_name: string;
     handle: string;
@@ -100,6 +119,8 @@ async function loadListing(slug: string) {
         base_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         avg_rating, total_reviews,
+        duration_minutes, max_participants, min_participants,
+        meeting_point, what_to_bring, private_group_price, schedule,
         host:hosts!inner ( display_name, handle, bio, avatar_url, is_verified )
       `,
     )
@@ -229,6 +250,8 @@ export default async function ListingDetailPage({
   const { listing, photos, amenities, rooms } = data;
 
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
+  const isExperience = listing.listing_type === "experience";
+  const upcomingSlots = isExperience ? nextSlots(listing.schedule, 12) : [];
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -262,7 +285,22 @@ export default async function ListingDetailPage({
                 ({listing.total_reviews})
               </span>
             ) : null}
-            {listing.max_guests != null ? (
+            {isExperience ? (
+              <>
+                {listing.duration_minutes != null ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />{" "}
+                    {formatDurationLabel(listing.duration_minutes)}
+                  </span>
+                ) : null}
+                {listing.max_participants != null ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" /> Up to{" "}
+                    {listing.max_participants} people
+                  </span>
+                ) : null}
+              </>
+            ) : listing.max_guests != null ? (
               <span className="inline-flex items-center gap-1">
                 <Users className="h-3.5 w-3.5" /> Up to {listing.max_guests}{" "}
                 guests
@@ -276,7 +314,26 @@ export default async function ListingDetailPage({
           <PhotoGallery photos={photos} />
         </div>
 
-        {hasRoomsMode ? (
+        {isExperience ? (
+          <ExperienceBody
+            listing={listing}
+            sidebarNode={
+              <ExperienceBookingWidget
+                slug={listing.slug ?? params.slug}
+                basePrice={listing.base_price}
+                privateGroupPrice={listing.private_group_price}
+                currency={listing.currency}
+                durationMinutes={listing.duration_minutes}
+                maxParticipants={listing.max_participants}
+                minParticipants={listing.min_participants}
+                instantBooking={listing.instant_booking}
+                rating={listing.avg_rating}
+                reviewCount={listing.total_reviews}
+                slots={upcomingSlots}
+              />
+            }
+          />
+        ) : hasRoomsMode ? (
           <RoomsCartProvider mode={listing.booking_mode}>
             <ListingBody
               listing={listing}
@@ -488,6 +545,139 @@ function PolicyCard({
         {title}
       </div>
       {children}
+    </div>
+  );
+}
+
+function formatDurationLabel(minutes: number): string {
+  const m = Math.trunc(minutes);
+  if (m < 60) return `${m} min`;
+  const hours = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  return `${hours}h ${rem}min`;
+}
+
+function ExperienceBody({
+  listing,
+  sidebarNode,
+}: {
+  listing: RawListing;
+  sidebarNode: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
+      <div className="space-y-10">
+        {/* Quick facts — experience-specific */}
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Fact
+            label="Duration"
+            value={
+              listing.duration_minutes != null
+                ? formatDurationLabel(listing.duration_minutes)
+                : "—"
+            }
+          />
+          <Fact
+            label="Group size"
+            value={
+              listing.max_participants != null
+                ? `Up to ${listing.max_participants}`
+                : "—"
+            }
+          />
+          <Fact label="Min to book" value={listing.min_participants ?? 1} />
+          <Fact
+            label="From"
+            value={
+              listing.base_price != null
+                ? `${listing.currency === "ZAR" ? "R" : ""}${Math.round(
+                    Number(listing.base_price),
+                  )}`
+                : "—"
+            }
+          />
+        </section>
+
+        {listing.description ? (
+          <section>
+            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+              About this experience
+            </h2>
+            <div
+              className="text-sm leading-relaxed text-brand-dark [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{
+                __html: sanitiseListingHtml(listing.description),
+              }}
+            />
+          </section>
+        ) : null}
+
+        {/* Meeting point + what to bring */}
+        {listing.meeting_point || listing.what_to_bring ? (
+          <section>
+            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+              Logistics
+            </h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {listing.meeting_point ? (
+                <PolicyCard title="Meeting point">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                    {listing.meeting_point}
+                  </p>
+                </PolicyCard>
+              ) : null}
+              {listing.what_to_bring ? (
+                <PolicyCard title="What to bring">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                    {listing.what_to_bring}
+                  </p>
+                </PolicyCard>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {/* Host */}
+        <section>
+          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+            Hosted by {listing.host.display_name}
+          </h2>
+          <HostCard
+            displayName={listing.host.display_name}
+            handle={listing.host.handle}
+            bio={listing.host.bio}
+            avatarUrl={listing.host.avatar_url}
+            isVerified={listing.host.is_verified}
+          />
+        </section>
+
+        {/* Policies */}
+        <section>
+          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
+            Things to know
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <PolicyCard title="Cancellation policy">
+              <p className="text-sm text-brand-dark">
+                <span className="font-medium capitalize">
+                  {listing.cancellation_policy}.
+                </span>{" "}
+                {CANCELLATION_BLURB[listing.cancellation_policy]}
+              </p>
+            </PolicyCard>
+            {listing.house_rules ? (
+              <PolicyCard title="Guest expectations">
+                <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                  {listing.house_rules}
+                </p>
+              </PolicyCard>
+            ) : null}
+          </div>
+        </section>
+      </div>
+
+      <aside className="lg:pl-4">{sidebarNode}</aside>
     </div>
   );
 }

@@ -50,6 +50,14 @@ const TYPE_LABEL: Record<string, string> = {
   other: "Stay",
 };
 
+const EXP_LABEL: Record<string, string> = {
+  tour: "Tour",
+  activity: "Activity",
+  workshop: "Workshop",
+  transfer: "Transfer",
+  other: "Experience",
+};
+
 type SearchParams = {
   where?: string;
   guests?: string;
@@ -94,7 +102,7 @@ export default async function ExplorePage({
   let query = supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, experience_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)
@@ -274,8 +282,11 @@ export default async function ExplorePage({
                           {l.name}
                         </div>
                         <div className="mt-0.5 truncate text-xs text-brand-mute">
-                          {TYPE_LABEL[l.accommodation_type ?? "other"] ??
-                            "Stay"}
+                          {l.listing_type === "experience"
+                            ? (EXP_LABEL[l.experience_type ?? "other"] ??
+                              "Experience")
+                            : (TYPE_LABEL[l.accommodation_type ?? "other"] ??
+                              "Stay")}
                           {location ? ` · ${location}` : ""}
                         </div>
                       </div>
@@ -301,7 +312,12 @@ export default async function ExplorePage({
                         }> | null) ?? [];
                       let amount: number | null = null;
                       let fromLabel = false;
-                      if (l.booking_mode === "rooms_only") {
+                      let perLabel = "/ night";
+                      if (l.listing_type === "experience") {
+                        amount =
+                          l.base_price != null ? Number(l.base_price) : null;
+                        perLabel = "per person";
+                      } else if (l.booking_mode === "rooms_only") {
                         const prices = rooms
                           .filter(
                             (r) =>
@@ -322,7 +338,7 @@ export default async function ExplorePage({
                             {fmtR(amount, l.currency)}
                           </span>
                           <span className="text-xs text-brand-mute">
-                            / night
+                            {perLabel}
                           </span>
                         </div>
                       );

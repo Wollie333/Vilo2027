@@ -11,6 +11,7 @@ import {
   type AvailableAddon,
   type BookedRoom,
 } from "./BookingForm";
+import { ExperienceBookingForm } from "./ExperienceBookingForm";
 
 export const metadata: Metadata = {
   title: "Confirm and pay · Vilo",
@@ -46,6 +47,8 @@ export default async function BookingPage({
     to?: string;
     guests?: string;
     room_ids?: string;
+    slot?: string;
+    participants?: string;
   };
 }) {
   const supabase = createServerClient();
@@ -58,6 +61,9 @@ export default async function BookingPage({
   if (searchParams?.to) qs.set("to", searchParams.to);
   if (searchParams?.guests) qs.set("guests", searchParams.guests);
   if (searchParams?.room_ids) qs.set("room_ids", searchParams.room_ids);
+  if (searchParams?.slot) qs.set("slot", searchParams.slot);
+  if (searchParams?.participants)
+    qs.set("participants", searchParams.participants);
   const here = `/listing/${params.slug}/book?${qs.toString()}`;
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(here)}`);
@@ -67,12 +73,91 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode",
+      "id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, duration_minutes, max_participants, min_participants, meeting_point, private_group_price",
     )
     .eq("slug", params.slug)
     .maybeSingle();
 
   if (!listing) notFound();
+
+  // ── Experience path ────────────────────────────────────────────
+  if (listing.listing_type === "experience") {
+    const slotRaw = searchParams?.slot ?? "";
+    const slotOk = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(slotRaw);
+    const partRaw = parseInt(searchParams?.participants ?? "", 10);
+    const minP = Math.max(1, listing.min_participants ?? 1);
+    const maxP = listing.max_participants ?? 50;
+    const participants =
+      Number.isFinite(partRaw) && partRaw >= minP && partRaw <= maxP
+        ? partRaw
+        : minP;
+
+    if (!slotOk || listing.base_price == null) {
+      return (
+        <div className="bg-brand-light text-brand-ink">
+          <SiteHeader />
+          <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
+            <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+              <div className="font-display text-lg font-semibold text-brand-ink">
+                Pick a session first
+              </div>
+              <p className="mt-2 text-sm text-brand-mute">
+                We need a session date and time before we can take payment.
+              </p>
+              <a
+                href={`/listing/${params.slug}`}
+                className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+              >
+                Back to listing
+              </a>
+            </div>
+          </main>
+          <SiteFooter />
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-brand-light text-brand-ink">
+        <SiteHeader />
+        <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
+          <div className="mb-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
+              Confirm and pay
+            </div>
+            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+              {listing.name}
+            </h1>
+            <div className="mt-1 text-sm text-brand-mute">
+              {[listing.city, listing.province].filter(Boolean).join(", ")}
+            </div>
+          </div>
+
+          <ExperienceBookingForm
+            listingId={listing.id}
+            listingName={listing.name}
+            basePrice={Number(listing.base_price ?? 0)}
+            privateGroupPrice={
+              listing.private_group_price == null
+                ? null
+                : Number(listing.private_group_price)
+            }
+            currency={listing.currency}
+            cancellationPolicy={listing.cancellation_policy}
+            instantBooking={listing.instant_booking}
+            durationMinutes={listing.duration_minutes ?? null}
+            meetingPoint={listing.meeting_point ?? null}
+            sessionDate={slotRaw}
+            participants={participants}
+            minParticipants={minP}
+            maxParticipants={maxP}
+          />
+        </main>
+        <SiteFooter />
+      </div>
+    );
+  }
+  // ── End experience path ───────────────────────────────────────
 
   const checkIn = isIso(searchParams?.from) ? searchParams!.from! : "";
   const checkOut = isIso(searchParams?.to) ? searchParams!.to! : "";
