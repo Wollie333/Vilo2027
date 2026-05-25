@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -24,6 +25,7 @@ export type AuthActionResult =
 
 export async function loginAction(
   input: LoginInput,
+  next?: string | null,
 ): Promise<AuthActionResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) {
@@ -35,7 +37,7 @@ export async function loginAction(
   }
 
   const supabase = createServerClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
@@ -44,7 +46,11 @@ export async function loginAction(
     return { ok: false, error: friendlyAuthError(error.message) };
   }
 
-  redirect("/dashboard");
+  const destination = await resolvePostAuthDestination(
+    data.user?.id ?? null,
+    next,
+  );
+  redirect(destination);
 }
 
 export async function registerAction(
@@ -181,6 +187,35 @@ export async function resetPasswordAction(
   }
 
   redirect("/dashboard");
+}
+
+/**
+ * After a successful sign-in or password reset, route platform_staff to the
+ * admin control centre instead of the host dashboard. Respects an explicit
+ * `next` param (relative paths only — open-redirect guard).
+ *
+ * Uses the service-role client because the user-bound cookie/session may not
+ * be fully applied in time for an RLS-gated SELECT in the same Server Action
+ * tick.
+ */
+async function resolvePostAuthDestination(
+  userId: string | null,
+  next?: string | null,
+): Promise<string> {
+  const safeNext = next && next.startsWith("/") ? next : null;
+  if (safeNext) return safeNext;
+
+  if (userId) {
+    const service = createAdminClient();
+    const { data: staff } = await service
+      .from("platform_staff")
+      .select("user_id, is_active")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (staff?.is_active) return "/admin";
+  }
+
+  return "/dashboard";
 }
 
 function friendlyAuthError(message: string): string {

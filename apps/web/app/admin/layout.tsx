@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 
 import {
   AdminAccessDenied,
-  AdminMfaRequired,
   readImpersonationCookie,
   requireAdmin,
 } from "@/lib/admin";
@@ -24,9 +23,6 @@ export default async function AdminLayout({
   } catch (err) {
     if (err instanceof AdminAccessDenied) {
       redirect("/login?next=/admin&reason=admin_required");
-    }
-    if (err instanceof AdminMfaRequired) {
-      redirect("/account/mfa-enrol?next=/admin");
     }
     throw err;
   }

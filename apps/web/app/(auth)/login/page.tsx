@@ -10,8 +10,12 @@ export const metadata: Metadata = {
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams?: { verify?: string };
+  searchParams?: { verify?: string; next?: string };
 }) {
   const justRegistered = searchParams?.verify === "1";
-  return <LoginForm justRegistered={justRegistered} />;
+  const next =
+    searchParams?.next && searchParams.next.startsWith("/")
+      ? searchParams.next
+      : null;
+  return <LoginForm justRegistered={justRegistered} next={next} />;
 }

@@ -33,7 +33,13 @@ import {
   type MagicLinkInput,
 } from "../schemas";
 
-export function LoginForm({ justRegistered }: { justRegistered: boolean }) {
+export function LoginForm({
+  justRegistered,
+  next,
+}: {
+  justRegistered: boolean;
+  next?: string | null;
+}) {
   return (
     <Card className="rounded-card border-brand-line shadow-card">
       <CardHeader className="space-y-2 pb-4 text-center">
@@ -59,7 +65,7 @@ export function LoginForm({ justRegistered }: { justRegistered: boolean }) {
           </TabsList>
 
           <TabsContent value="password" className="mt-5">
-            <PasswordPane />
+            <PasswordPane next={next ?? null} />
           </TabsContent>
 
           <TabsContent value="magic" className="mt-5">
@@ -81,7 +87,7 @@ export function LoginForm({ justRegistered }: { justRegistered: boolean }) {
   );
 }
 
-function PasswordPane() {
+function PasswordPane({ next }: { next: string | null }) {
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<LoginInput>({
@@ -91,7 +97,7 @@ function PasswordPane() {
 
   function onSubmit(values: LoginInput) {
     startTransition(async () => {
-      const result = await loginAction(values);
+      const result = await loginAction(values, next);
       if (result && !result.ok) {
         toast.error(result.error);
       }
