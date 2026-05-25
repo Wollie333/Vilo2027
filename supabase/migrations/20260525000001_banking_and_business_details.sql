@@ -99,12 +99,12 @@ CREATE POLICY business_owner_all ON public.host_business_details
 -- check_feature_permission so it can be disabled per-plan later without
 -- code changes.
 INSERT INTO public.plan_features (plan, feature_key, is_enabled, limit_value, description)
-SELECT DISTINCT plan, 'banking_details', true, NULL,
+SELECT DISTINCT plan, 'banking_details', true, NULL::integer,
        'Banking accounts + tax/business details for EFT and invoicing'
 FROM public.plan_features
 ON CONFLICT (plan, feature_key) DO UPDATE
   SET is_enabled = true,
-      limit_value = NULL;
+      limit_value = NULL::integer;
 
 -- ─── 6. Invoice trigger — capture banking + business ──────────
 CREATE OR REPLACE FUNCTION on_booking_confirmed_create_invoice()

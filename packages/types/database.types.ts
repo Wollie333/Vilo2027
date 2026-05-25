@@ -1,5 +1,4 @@
-Initialising login role...
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -159,39 +158,123 @@ export type Database = {
           },
         ]
       }
+      admin_permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          domain: string
+          key: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          domain: string
+          key: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          domain?: string
+          key?: string
+        }
+        Relationships: []
+      }
+      admin_role_permissions: {
+        Row: {
+          granted_at: string
+          permission_key: string
+          role_id: string
+        }
+        Insert: {
+          granted_at?: string
+          permission_key: string
+          role_id: string
+        }
+        Update: {
+          granted_at?: string
+          permission_key?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_role_permissions_permission_key_fkey"
+            columns: ["permission_key"]
+            isOneToOne: false
+            referencedRelation: "admin_permissions"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "admin_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "admin_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id: string
+          is_system?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       blocked_dates: {
         Row: {
           booking_id: string | null
           created_at: string
           created_by: string | null
           date: string
+          ical_feed_id: string | null
           id: string
           listing_id: string
           quote_id: string | null
           reason: string | null
           room_id: string | null
+          source: string
         }
         Insert: {
           booking_id?: string | null
           created_at?: string
           created_by?: string | null
           date: string
+          ical_feed_id?: string | null
           id?: string
           listing_id: string
           quote_id?: string | null
           reason?: string | null
           room_id?: string | null
+          source?: string
         }
         Update: {
           booking_id?: string | null
           created_at?: string
           created_by?: string | null
           date?: string
+          ical_feed_id?: string | null
           id?: string
           listing_id?: string
           quote_id?: string | null
           reason?: string | null
           room_id?: string | null
+          source?: string
         }
         Relationships: [
           {
@@ -206,6 +289,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_dates_ical_feed_id_fkey"
+            columns: ["ical_feed_id"]
+            isOneToOne: false
+            referencedRelation: "ical_feeds"
             referencedColumns: ["id"]
           },
           {
@@ -626,6 +716,60 @@ export type Database = {
           },
         ]
       }
+      data_requests: {
+        Row: {
+          created_at: string
+          fulfilled_at: string | null
+          fulfilled_by: string | null
+          id: string
+          notes: string | null
+          rejected_reason: string | null
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          rejected_reason?: string | null
+          request_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fulfilled_at?: string | null
+          fulfilled_by?: string | null
+          id?: string
+          notes?: string | null
+          rejected_reason?: string | null
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_requests_fulfilled_by_fkey"
+            columns: ["fulfilled_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       directory_search_logs: {
         Row: {
           clicked_listing: string | null
@@ -723,6 +867,51 @@ export type Database = {
           },
         ]
       }
+      featured_listings: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          featured_by: string
+          id: string
+          listing_id: string
+          reason: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          featured_by: string
+          id?: string
+          listing_id: string
+          reason?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          featured_by?: string
+          id?: string
+          listing_id?: string
+          reason?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_listings_featured_by_fkey"
+            columns: ["featured_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "featured_listings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       host_business_details: {
         Row: {
           billing_address_line1: string | null
@@ -772,51 +961,6 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: true
             referencedRelation: "hosts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      featured_listings: {
-        Row: {
-          created_at: string
-          expires_at: string | null
-          featured_by: string
-          id: string
-          listing_id: string
-          reason: string | null
-          sort_order: number
-        }
-        Insert: {
-          created_at?: string
-          expires_at?: string | null
-          featured_by: string
-          id?: string
-          listing_id: string
-          reason?: string | null
-          sort_order?: number
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string | null
-          featured_by?: string
-          id?: string
-          listing_id?: string
-          reason?: string | null
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "featured_listings_featured_by_fkey"
-            columns: ["featured_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "featured_listings_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: true
-            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -974,6 +1118,53 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ical_feeds: {
+        Row: {
+          created_at: string
+          id: string
+          imported_count: number
+          last_error: string | null
+          last_sync_at: string | null
+          listing_id: string
+          source_label: string
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imported_count?: number
+          last_error?: string | null
+          last_sync_at?: string | null
+          listing_id: string
+          source_label: string
+          status?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imported_count?: number
+          last_error?: string | null
+          last_sync_at?: string | null
+          listing_id?: string
+          source_label?: string
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ical_feeds_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -1976,6 +2167,115 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_staff: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          invited_at: string | null
+          invited_by: string | null
+          is_active: boolean
+          last_active_at: string | null
+          mfa_enrolled_at: string | null
+          role_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          last_active_at?: string | null
+          mfa_enrolled_at?: string | null
+          role_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          is_active?: boolean
+          last_active_at?: string | null
+          mfa_enrolled_at?: string | null
+          role_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_staff_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_staff_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "admin_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_staff_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role_id: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role_id: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_staff_invites_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_staff_invites_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "admin_roles"
             referencedColumns: ["id"]
           },
         ]
@@ -3580,10 +3880,24 @@ export type Database = {
       get_my_host_id_as_staff: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
+      has_admin_permission: { Args: { p_key: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       listing_is_available_whole: {
         Args: { p_check_in: string; p_check_out: string; p_listing_id: string }
         Returns: boolean
+      }
+      log_subscription_event: {
+        Args: {
+          p_event: string
+          p_from_plan: string
+          p_from_status: string
+          p_host_id: string
+          p_notes?: string
+          p_subscription_id: string
+          p_to_plan: string
+          p_to_status: string
+        }
+        Returns: undefined
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
