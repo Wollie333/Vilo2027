@@ -49,7 +49,7 @@ const STEPS = [
   { key: "about", label: "About you", short: "Profile" },
   { key: "offer", label: "What you offer", short: "Offering" },
   { key: "listing", label: "First listing", short: "Listing" },
-  { key: "plan", label: "Subscription", short: "Plan" },
+  { key: "plan", label: "Your toolkit", short: "Toolkit" },
   { key: "welcome", label: "Welcome", short: "Done" },
 ] as const;
 type StepKey = (typeof STEPS)[number]["key"];
@@ -1335,7 +1335,7 @@ function StepPlan({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <StepHeading
           stepIndex={stepIndex}
-          title="Choose a plan"
+          title="Pick your toolkit"
           subtitle="Flat subscription — never a fee per booking. Cancel any time."
         />
         <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
