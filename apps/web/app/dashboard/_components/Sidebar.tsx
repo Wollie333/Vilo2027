@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   Calendar as CalendarIcon,
   CalendarRange,
-  ChevronsUpDown,
   CreditCard,
   Crown,
   FileText,
@@ -169,12 +168,13 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Workspace switcher */}
+      {/* Host profile card — links to the public-profile editor */}
       <div className="mb-2 px-3">
         {host ? (
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 rounded-md border border-brand-line px-3 py-2 text-left hover:bg-brand-light"
+          <Link
+            href="/dashboard/settings/host"
+            className="flex w-full items-center gap-2.5 rounded-md border border-brand-line px-3 py-2 text-left transition-colors hover:bg-brand-light"
+            title="Edit your public host profile"
           >
             <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-secondary font-display text-[10px] font-bold text-white">
               {host.display_name.slice(0, 2).toUpperCase()}
@@ -188,8 +188,7 @@ export function Sidebar({
                 {host.listingCount === 1 ? "listing" : "listings"} · {planLabel}
               </div>
             </div>
-            <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-brand-mute" />
-          </button>
+          </Link>
         ) : (
           <Link
             href="/signup/host"

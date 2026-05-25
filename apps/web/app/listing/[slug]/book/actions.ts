@@ -144,6 +144,41 @@ export async function createBookingAction(
         error: "This experience has no price set yet — message the host.",
       };
     }
+
+    // Capacity check: sum participants across existing pending/confirmed
+    // bookings for this listing at the same session_date, refuse if the new
+    // booking would push past max_participants. When max_participants is
+    // null, we treat the session as unlimited.
+    if (listing.max_participants != null) {
+      const sessionAtIso = `${d.session_date}:00`;
+      const { data: existing } = await admin
+        .from("bookings")
+        .select("guests_count")
+        .eq("listing_id", listing.id)
+        .eq("session_date", sessionAtIso)
+        .in("status", ["pending", "pending_eft", "confirmed", "checked_in"])
+        .is("deleted_at", null);
+      const filled = (existing ?? []).reduce(
+        (acc, b) => acc + (b.guests_count ?? 0),
+        0,
+      );
+      const remaining = listing.max_participants - filled;
+      if (remaining <= 0) {
+        return {
+          ok: false,
+          error: "This session is fully booked. Pick another date.",
+        };
+      }
+      if (d.guests > remaining) {
+        return {
+          ok: false,
+          error: `Only ${remaining} ${
+            remaining === 1 ? "spot" : "spots"
+          } left on that session.`,
+        };
+      }
+    }
+
     const perPerson = Number(listing.base_price);
     const headcountTotal = perPerson * d.guests;
     const groupPrice =
