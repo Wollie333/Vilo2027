@@ -1,4 +1,5 @@
-import { Calendar, ChevronDown, Plus } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 
 import { AvatarMenu } from "./AvatarMenu";
 import { EntitySearch } from "./EntitySearch";
@@ -17,9 +18,11 @@ function todayLabel(): string {
 export function Topbar({
   email,
   initials,
+  isPlatformStaff,
 }: {
   email: string;
   initials: string;
+  isPlatformStaff?: boolean;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-brand-line bg-brand-light/95 backdrop-blur">
@@ -49,27 +52,29 @@ export function Topbar({
           {/* Entity search */}
           <EntitySearch />
 
-          {/* Date range */}
-          <button
-            type="button"
-            className="hidden items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink transition-colors hover:bg-brand-light md:flex"
-          >
-            <Calendar className="h-4 w-4 text-brand-primary" />
-            <span>This month</span>
-            <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
-          </button>
+          {/* Switch to admin — only for active platform_staff */}
+          {isPlatformStaff ? (
+            <Link
+              href="/admin"
+              className="hidden items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent md:inline-flex"
+              title="Switch to the platform admin control centre"
+            >
+              <ShieldCheck className="h-4 w-4 text-brand-primary" />
+              Admin
+            </Link>
+          ) : null}
 
           {/* Notifications */}
           <NotificationBell />
 
           {/* New booking */}
-          <button
-            type="button"
+          <Link
+            href="/dashboard/bookings/new"
             className="hidden items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
           >
             <Plus className="h-4 w-4" />
             New booking
-          </button>
+          </Link>
 
           <AvatarMenu initials={initials} email={email} />
         </div>

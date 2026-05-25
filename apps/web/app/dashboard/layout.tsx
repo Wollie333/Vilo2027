@@ -46,6 +46,16 @@ export default async function DashboardLayout({
     plan = subscription?.plan ?? null;
   }
 
+  // If the user is an active Vilo staff member, surface a "Switch to admin"
+  // toggle in the topbar. Mirrors the existing "Back to host dashboard" link
+  // on the admin sidebar so staff can move both ways.
+  const { data: staff } = await supabase
+    .from("platform_staff")
+    .select("is_active")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const isPlatformStaff = staff?.is_active === true;
+
   const initials = (host?.display_name || user.email || "??")
     .slice(0, 2)
     .toUpperCase();
@@ -55,7 +65,11 @@ export default async function DashboardLayout({
       <div className="flex min-h-screen bg-brand-light text-brand-ink">
         <Sidebar host={host ? { ...host, listingCount } : null} plan={plan} />
         <main className="min-w-0 flex-1 pb-20 lg:pb-0">
-          <Topbar email={user.email ?? ""} initials={initials} />
+          <Topbar
+            email={user.email ?? ""}
+            initials={initials}
+            isPlatformStaff={isPlatformStaff}
+          />
           <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
         </main>
         <MobileBottomNav />
