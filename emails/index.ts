@@ -1,3 +1,4 @@
+export { default as AccountSuspended } from "./templates/AccountSuspended";
 export { default as BookingCancelledGuest } from "./templates/BookingCancelledGuest";
 export { default as BookingCancelledHost } from "./templates/BookingCancelledHost";
 export { default as BookingConfirmedGuest } from "./templates/BookingConfirmedGuest";
@@ -6,7 +7,18 @@ export { default as BookingDeclinedGuest } from "./templates/BookingDeclinedGues
 export { default as BookingRequestHost } from "./templates/BookingRequestHost";
 export { default as EftInstructionsGuest } from "./templates/EftInstructionsGuest";
 export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHost";
+export { default as EftRefundSentGuest } from "./templates/EftRefundSentGuest";
 export { default as NewReviewHost } from "./templates/NewReviewHost";
+export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverrideHost";
+export { default as RefundApprovedGuest } from "./templates/RefundApprovedGuest";
+export { default as RefundCompletedGuest } from "./templates/RefundCompletedGuest";
+export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";
+export { default as RefundEscalatedAdmin } from "./templates/RefundEscalatedAdmin";
+export { default as RefundRequestHost } from "./templates/RefundRequestHost";
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
+export { default as StaffInvite } from "./templates/StaffInvite";
+export { default as SubscriptionExpiring } from "./templates/SubscriptionExpiring";
+export { default as SubscriptionFailed } from "./templates/SubscriptionFailed";
+export { default as SubscriptionRestricted } from "./templates/SubscriptionRestricted";
 export { default as SubscriptionWelcome } from "./templates/SubscriptionWelcome";
 export { default as WelcomeHost } from "./templates/WelcomeHost";

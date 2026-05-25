@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import {
+  AccountSuspended,
   BookingCancelledGuest,
   BookingCancelledHost,
   BookingConfirmedGuest,
@@ -9,13 +10,24 @@ import {
   BookingRequestHost,
   EftInstructionsGuest,
   EftProofReceivedHost,
+  EftRefundSentGuest,
   NewReviewHost,
+  RefundAdminOverrideHost,
+  RefundApprovedGuest,
+  RefundCompletedGuest,
+  RefundDeclinedGuest,
+  RefundEscalatedAdmin,
+  RefundRequestHost,
   ReviewRequestGuest,
+  StaffInvite,
+  SubscriptionExpiring,
+  SubscriptionFailed,
+  SubscriptionRestricted,
   SubscriptionWelcome,
   WelcomeHost,
 } from "@vilo/emails";
 
-export type Recipient = "host" | "guest";
+export type Recipient = "host" | "guest" | "custom";
 
 export type EmailRegistryEntry = {
   Template: ComponentType<Record<string, unknown>>;
@@ -103,7 +115,99 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   subscription_welcome: {
     Template: SubscriptionWelcome as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: (p) => `Welcome to Vilo ${str(p.planName, "")} `.trim(),
+    subject: (p) => `Welcome to Vilo ${str(p.planName, "")}`.trim(),
+  },
+
+  subscription_expiring: {
+    Template: SubscriptionExpiring as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `Your Vilo ${str(p.planName, "")} subscription renews soon`.replace(
+        /\s+/g,
+        " ",
+      ),
+  },
+
+  subscription_failed: {
+    Template: SubscriptionFailed as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: () => "Action required: Your Vilo payment failed",
+  },
+
+  subscription_restricted: {
+    Template: SubscriptionRestricted as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: () => "Your Vilo account has been restricted",
+  },
+
+  account_suspended: {
+    Template: AccountSuspended as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: () => "Your Vilo account has been suspended",
+  },
+
+  refund_request_host: {
+    Template: RefundRequestHost as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) =>
+      `Refund request from ${str(p.guestName, "a guest")} — ${str(p.bookingReference, "")}`.trim(),
+  },
+
+  refund_approved_guest: {
+    Template: RefundApprovedGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your refund of ${str(p.refundAmount, "")} has been approved`.replace(
+        /\s+/g,
+        " ",
+      ),
+  },
+
+  refund_declined_guest: {
+    Template: RefundDeclinedGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Update on your refund request — ${str(p.bookingReference, "")}`.trim(),
+  },
+
+  refund_completed_guest: {
+    Template: RefundCompletedGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your refund of ${str(p.refundAmount, "")} is on its way`.replace(
+        /\s+/g,
+        " ",
+      ),
+  },
+
+  refund_admin_override_host: {
+    Template: RefundAdminOverrideHost as ComponentType<Record<string, unknown>>,
+    recipient: "host",
+    subject: (p) => `Refund override — ${str(p.bookingReference, "")}`.trim(),
+  },
+
+  eft_refund_sent_guest: {
+    Template: EftRefundSentGuest as ComponentType<Record<string, unknown>>,
+    recipient: "guest",
+    subject: (p) =>
+      `Your refund has been sent — ${str(p.bookingReference, "")}`.trim(),
+  },
+
+  // "custom" recipient: drain.ts reads payload.recipient_email rather than
+  // resolving via host_id / guest_id. Used when the recipient is neither a
+  // logged-in host nor an existing guest (or is an internal alert mailbox).
+  staff_invite: {
+    Template: StaffInvite as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `${str(p.hostName, "A host")} invited you to manage ${str(p.propertyName, "their property")} on Vilo`,
+  },
+
+  refund_escalated_admin: {
+    Template: RefundEscalatedAdmin as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `[Admin] Refund dispute escalated — ${str(p.bookingReference, "")}`.trim(),
   },
 };
 

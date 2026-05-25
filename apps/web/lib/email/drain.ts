@@ -141,6 +141,15 @@ async function resolveRecipientEmail(
   row: QueueRow,
   entry: EmailRegistryEntry,
 ): Promise<string | null> {
+  if (entry.recipient === "custom") {
+    const payload = (row.payload as Record<string, unknown>) ?? {};
+    const explicit = payload.recipient_email;
+    if (typeof explicit === "string" && explicit.includes("@")) {
+      return explicit;
+    }
+    return null;
+  }
+
   if (entry.recipient === "guest") {
     if (!row.guest_id) return null;
     const { data, error } = await supabase

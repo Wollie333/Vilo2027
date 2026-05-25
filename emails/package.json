@@ -10,10 +10,10 @@
     "./components/*": "./components/*.tsx"
   },
   "scripts": {
-    "dev": "email dev",
+    "dev": "node -e \"console.log('skip: @vilo/emails has no dev step; preview templates at /admin/emails inside the running web app')\"",
     "build": "node -e \"console.log('skip: @vilo/emails has no build step; consumers import .tsx directly via Next compiler')\"",
-    "preview": "email dev",
-    "export": "email export"
+    "preview": "node -e \"console.log('skip: @vilo/emails has no preview step; use /admin/emails inside the running web app')\"",
+    "export": "node -e \"console.log('skip: @vilo/emails has no export step')\""
   },
   "dependencies": {
     "@react-email/components": "^0.0.31",

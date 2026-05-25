@@ -10,6 +10,7 @@ import {
   Gauge,
   Home as HomeIcon,
   KeyRound,
+  Mail,
   ShieldAlert,
   Star,
   Users,
@@ -74,6 +75,12 @@ const MODERATION: Item[] = [
 const PLATFORM: Item[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
+  {
+    href: "/admin/emails",
+    label: "Email templates",
+    icon: Mail,
+    match: "prefix",
+  },
   {
     href: "/admin/platform/staff",
     label: "Vilo staff",
