@@ -236,13 +236,133 @@ If the task correctly requires touching something unlisted — stop, explain, wa
 
 ---
 
-## 8. When to Stop and Ask
+## 8. Multi-Agent Coordination & Anti-Wipe Safety
+
+**This repo is worked on by more than one agent at a time.** Other Claude Code sessions, autonomous-loop runs, the founder's own edits, and `--isolation worktree` branches all share the same tree. You are **never** alone in this workspace. Treat in-progress work that you did not create as another collaborator's session — not as noise to clean up.
+
+These rules exist because feature work has been silently wiped at least twice (notification system on 2026-05-25, help-centre on 2026-05-25 evening) — ~30+ files and hours of effort gone in a single sweep. Re-coding from scratch is a real cost. Don't be the cause of the next incident.
+
+### 8.1 Never wipe files you did not create
+
+If you encounter any of the following, **stop and ask the user before touching them**:
+- Untracked files or directories not listed in `CURRENT_TASK.md`
+- Modified files where the change isn't yours
+- Branches, stashes, worktrees, or commits you didn't create
+- New routes, components, migrations, or tables you don't recognise
+
+Pausing for 30 seconds beats wiping hours of someone else's work.
+
+### 8.2 Never run sweeping git operations unprompted
+
+The following commands wipe in-progress work across the tree. **They must never be run unless the user explicitly requested them in the current session**, with the scope clearly stated:
+
+- `git reset --hard`
+- `git checkout .` / `git checkout -- .` / `git restore .`
+- `git clean -fd` / `git clean -xfd`
+- `git stash drop` / `git stash clear`
+- `git branch -D <branch>` on a branch you didn't create
+- `git worktree remove --force`
+- `git push --force` (any variant) to a shared branch
+
+If you believe one of these is genuinely required, ask first and itemise what will be lost.
+
+### 8.3 Stage commits by name — never `git add -A` or `git add .`
+
+When committing, stage **only** the files your task produced. Other agents' unstaged or untracked work must stay outside your commit so they can resume where they left off.
+
+✅ Correct:
+```bash
+git add apps/web/app/admin/help apps/web/lib/help supabase/migrations/20260525000010_help_center.sql
+git commit -m "feat(help): …"
+```
+
+❌ Banned:
+```bash
+git add -A          # may sweep another agent's WIP into your commit
+git add .           # same problem
+git commit -am "…"  # same problem
+```
+
+If you must touch many paths, list them explicitly or use a narrow glob. When in doubt, run `git status --short` before staging and verify every line.
+
+### 8.4 Verify disk state before starting non-trivial work
+
+At the start of any task that will create or modify more than a handful of files, run:
+
+```bash
+git status
+git log --oneline -5
+ls apps/web/app/dashboard/<feature>/ 2>/dev/null
+ls apps/web/app/admin/<feature>/   2>/dev/null
+```
+
+If you see unfamiliar files in the area you're about to work in, surface them to the user before continuing. They are probably half-built work from another session that you'll either collide with or accidentally erase.
+
+### 8.5 Commit early, commit often
+
+Going more than ~30 minutes of feature work without a checkpoint commit is the single biggest source of loss in this repo. After every cohesive batch of files (a migration + its types, a component cluster, an admin CRUD surface), make a `wip:` commit:
+
+```bash
+git add <those-specific-files>
+git commit -m "wip(help): articles editor + tiptap toolbar"
+```
+
+You can squash later with `git rebase -i`. **Uncommitted changes are not safe** — another agent's `git checkout`, `git reset`, or worktree prune can erase them in one keystroke. Committed work is recoverable via reflog even after a hard reset.
+
+### 8.6 For large multi-file features, suggest a worktree
+
+When the user asks for a feature that will span 20+ files, touch shared infra (sidebars, migrations, generated types, RBAC, audit-log schemas, layout files), or take more than an hour, **proactively suggest running in an isolated worktree**:
+
+```bash
+git worktree add ../vilo-feature-help feat/help-center
+cd ../vilo-feature-help
+# do the work here; merge to main when ready
+```
+
+This physically isolates your changes from concurrent sessions on `main`. Skip this overhead for small targeted edits (<10 files, no shared-infra touches).
+
+### 8.7 If you discover your work has been wiped, stop and tell the user
+
+If files you previously wrote are gone from disk:
+1. **Do not silently re-create them.** Surface the incident to the user immediately — they need to know another agent is racing yours.
+2. **Try to recover first.** Wiped work often survives in git plumbing:
+
+```bash
+git reflog                      # find the commit that held the work
+git stash list                  # check for stashed snapshots
+git fsck --lost-found           # dangling commits/blobs from rolled-back work
+git worktree list               # the work may live in a sibling worktree
+git log --all --oneline -- <file>
+```
+
+3. Recovering from the reflog or a stash is usually faster than rebuilding from scratch. Only re-code from memory if recovery genuinely fails.
+
+### 8.8 Treat shared-infra files as contested
+
+These files are touched by almost every feature and are the most likely collision points:
+
+- `apps/web/app/admin/_components/AdminSidebar.tsx`
+- `apps/web/app/dashboard/_components/Sidebar.tsx`
+- `apps/web/lib/admin/requirePermission.ts` (the `PermissionKey` union)
+- `apps/web/lib/admin/withAdminAudit.ts` (the `AuditTargetType` union)
+- `packages/types/database.types.ts`
+- `apps/web/app/sitemap.ts`
+- The `supabase/migrations/` timestamp sequence
+- `CURRENT_TASK.md`, `CHANGELOG.md`
+
+When editing any of these, **re-read the file immediately before editing** (don't rely on a Read from earlier in the session — another agent may have added an entry in between). After committing, **verify on disk** with `git diff HEAD~1 -- <file>` that your additions survived.
+
+---
+
+## 9. When to Stop and Ask
 
 - Task requires a schema change not explicitly requested
 - About to write an Edge Function touching payments or bookings
 - Unsure which subscription plan a feature belongs to
 - Task involves deleting data
 - File to touch is not in `CURRENT_TASK.md`
+- You see unfamiliar files, branches, or untracked work in the area you're about to touch (§8.1)
+- About to run a sweeping git command (§8.2)
 - Something conflicts with a rule in this file
 
 Asking takes 30 seconds. Reverting a bad decision takes hours.
