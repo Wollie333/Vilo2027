@@ -46,10 +46,13 @@ export default async function CalendarPage({
 }) {
   const supabase = createServerClient();
 
-  // RLS host_manage_own_listings — only the host's rows.
+  // RLS host_manage_own_listings — only the host's rows. The calendar tracks
+  // blocked_dates which is accommodation-shaped; experience sessions live on
+  // bookings.session_date and surface in /dashboard/bookings instead.
   const { data: listings } = await supabase
     .from("listings")
     .select("id, name, booking_mode")
+    .eq("listing_type", "accommodation")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 

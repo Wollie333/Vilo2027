@@ -187,7 +187,7 @@ export default async function AdminListingsPage({
                         .toLocaleString("en-ZA")
                         .replace(/,/g, " ")}
                     </span>{" "}
-                    / night
+                    {l.listing_type === "experience" ? "per person" : "/ night"}
                   </div>
                   <div className="flex items-center gap-2">
                     {l.slug ? (
