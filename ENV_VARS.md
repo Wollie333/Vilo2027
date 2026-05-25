@@ -145,12 +145,20 @@ This file documents every environment variable used across the platform, what it
 - **Format:** 32+ random bytes — `openssl rand -hex 32`
 - **Where to set:**
   1. **Vercel** (Production + Preview env) — the route reads `process.env.EMAIL_WORKER_SECRET`.
-  2. **Supabase** — one-time SQL via the Dashboard SQL Editor:
+  2. **Supabase** — one-time SQL via the Dashboard SQL Editor, using Supabase Vault (managed-postgres blocks `ALTER DATABASE`):
      ```sql
-     ALTER DATABASE postgres SET app.email_worker_secret = '<the same value>';
-     ALTER DATABASE postgres SET app.email_worker_url = 'https://vilo2027.vercel.app/api/email-worker';
+     SELECT vault.create_secret(
+       'https://vilo2027.vercel.app/api/email-worker',
+       'email_worker_url',
+       'Public URL the drain-email-queue cron POSTs to'
+     );
+     SELECT vault.create_secret(
+       '<the same hex value as Vercel>',
+       'email_worker_secret',
+       'Shared bearer the /api/email-worker route requires'
+     );
      ```
-     (Migration `20260525000006_email_worker_cron.sql` reads both settings on every tick; missing settings are a no-op.)
+     (Migration `20260525000007_email_worker_use_vault.sql` reads both secrets on every tick; missing secrets = no-op with a NOTICE. Rotate via `vault.update_secret(<id>, <new_value>)`.)
 - **Used in:** Route handler (Next.js) + pg_cron job (Postgres).
 - **Environments:** Staging/Prod required. Local dev: omit to leave cron inert.
 
