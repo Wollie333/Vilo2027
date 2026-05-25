@@ -11,6 +11,7 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/types/package.json packages/types/package.json
+COPY emails/package.json emails/package.json
 RUN pnpm install --frozen-lockfile --filter web... --filter @vilo/types...
 
 FROM base AS builder
@@ -24,6 +25,7 @@ COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json* tsconfig.base.json ./
 COPY apps/web ./apps/web
 COPY packages ./packages
+COPY emails ./emails
 RUN pnpm --filter web build
 
 FROM node:20-alpine AS runner

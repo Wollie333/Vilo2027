@@ -6,6 +6,7 @@ on:
     paths:
       - "apps/web/**"
       - "packages/**"
+      - "emails/**"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "apps/web/Dockerfile"

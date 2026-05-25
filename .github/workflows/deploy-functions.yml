@@ -4,19 +4,35 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/functions/**'
+      - "supabase/functions/**"
 
 jobs:
   deploy-functions:
     runs-on: ubuntu-latest
     steps:
+      - name: Check for required secrets
+        id: secrets
+        env:
+          ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$ACCESS_TOKEN" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Supabase CI secrets not configured (SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID). Skipping CI function deploy — deploy manually with 'supabase functions deploy <name>'."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.secrets.outputs.configured == 'true'
 
       - uses: supabase/setup-cli@v1
+        if: steps.secrets.outputs.configured == 'true'
         with:
           version: latest
 
       - name: Deploy all Edge Functions
+        if: steps.secrets.outputs.configured == 'true'
         run: supabase functions deploy --all --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

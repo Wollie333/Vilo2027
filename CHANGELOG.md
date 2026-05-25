@@ -31,6 +31,65 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-25 — Admin auto-redirect on login + AAL2 gate dropped (pre-MVP)
+
+Founder couldn't reach `/admin` even after being seeded into `platform_staff`
+as `super_admin`: the layout required AAL2 (MFA) and the matching
+`/account/mfa-enrol` page was never built, so the redirect 404'd.
+Also: post-login always sent users to `/dashboard` regardless of role.
+
+### Built
+- `loginAction` now looks up `platform_staff` via the service-role client
+  immediately after `signInWithPassword` and routes active staff to
+  `/admin`. Honours `?next=` so the `/login?next=/admin&reason=admin_required`
+  deep-link from the admin layout completes correctly.
+- `LoginForm` + `(auth)/login/page.tsx` thread the `next` searchParam
+  through to the action.
+- One-off script (deleted after run) used the service-role key to:
+  - revoke `wollie333@gmail.com`'s `platform_staff` row (back to plain host)
+  - create new auth user `Wollie@ManaMarketing.co.za` (password set in chat,
+    rotate before launch)
+  - insert that user into `platform_staff` with `role_id = 'super_admin'`
+
+### Changed
+- `requireAdmin()` no longer throws `AdminMfaRequired`. The
+  `if (aal !== "aal2")` check is removed; only the `platform_staff` row +
+  `is_active` flag gate access.
+- `app/admin/layout.tsx` dropped the corresponding `AdminMfaRequired`
+  catch branch (no longer reachable).
+
+### Migrations
+- `20260525000009_relax_admin_aal_premvp.sql` — redefines
+  `is_super_admin()` and `has_admin_permission()` without the
+  `auth.jwt() ->> 'aal' = 'aal2'` clause. Applied to remote via
+  `supabase db push --linked`.
+
+### CI fixes
+- `apps/web/Dockerfile`: COPY `emails/package.json` (deps stage) and
+  `emails/` (builder stage). The `@vilo/emails` workspace package lives at
+  the repo root, not `packages/emails/`, so the Docker build couldn't
+  resolve it and webpack failed since commit `3eaa0e7`. Also added
+  `emails/**` to the path filter in `.github/workflows/docker-build.yml`.
+- `.github/workflows/db-migrate.yml` and `deploy-functions.yml`: added a
+  guard step that skips the job with a workflow warning when the
+  `SUPABASE_DB_URL` / `SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_ID`
+  secrets aren't configured (CI was failing on every push because these
+  were never set — migrations are applied manually for now).
+
+### Notes
+- **MUST restore MFA before public launch.** The migration header lists
+  the restore steps (build `/account/mfa-enrol`, revert this migration,
+  restore the AAL2 throw in `requireAdmin.ts` + matching layout branch).
+  Tracked in `project_admin_mfa_premvp_skip` memory.
+- The temp admin account (`Wollie@ManaMarketing.co.za` / `Admin123#`) is
+  for founder smoke-testing only — rotate or replace via `/admin/platform/staff`
+  before any external users see the system.
+
+### Commits
+- `a59a066` — feat(admin): auto-redirect platform_staff to /admin on login; drop AAL2 gate pre-MVP
+
+---
+
 ## 2026-05-25 — Email worker: drain notification_queue via Resend (live)
 
 End-to-end live: `welcome_host` test row enqueued, worker POST'd, row

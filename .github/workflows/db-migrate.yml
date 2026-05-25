@@ -4,24 +4,42 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase/migrations/**'
+      - "supabase/migrations/**"
 
 jobs:
   db-migrate:
     runs-on: ubuntu-latest
     steps:
+      - name: Check for required secrets
+        id: secrets
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$DB_URL" ] || [ -z "$ACCESS_TOKEN" ] || [ -z "$PROJECT_ID" ]; then
+            echo "::warning::Supabase CI secrets not configured (SUPABASE_DB_URL / SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID). Skipping CI migration — apply manually with 'supabase db push --linked'."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.secrets.outputs.configured == 'true'
 
       - uses: supabase/setup-cli@v1
+        if: steps.secrets.outputs.configured == 'true'
         with:
           version: latest
 
       - name: Run migrations
+        if: steps.secrets.outputs.configured == 'true'
         run: supabase db push --db-url ${{ secrets.SUPABASE_DB_URL }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Regenerate TypeScript types
+        if: steps.secrets.outputs.configured == 'true'
         run: |
           supabase gen types typescript \
             --project-id ${{ secrets.SUPABASE_PROJECT_ID }} \
@@ -30,7 +48,8 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Commit updated types
+        if: steps.secrets.outputs.configured == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'chore: regenerate database types [skip ci]'
-          file_pattern: 'packages/types/database.types.ts'
+          commit_message: "chore: regenerate database types [skip ci]"
+          file_pattern: "packages/types/database.types.ts"
