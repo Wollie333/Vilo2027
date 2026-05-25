@@ -21,9 +21,13 @@ export default async function NewBookingPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/dashboard/bookings/new");
 
+  // Manual booking entry is shaped for stays (check-in / check-out / nights).
+  // Experience bookings are session-based and only created via the guest
+  // booking flow at /listing/[slug]/book for now.
   const { data: listings } = await supabase
     .from("listings")
     .select("id, name, booking_mode, base_price, cleaning_fee, currency")
+    .eq("listing_type", "accommodation")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
