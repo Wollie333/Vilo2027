@@ -106,9 +106,62 @@ export const pricingSchema = z.object({
   base_price: numericString(),
   weekend_price: numericString(),
   cleaning_fee: numericString(),
+  private_group_price: numericString(),
   currency: z.string().trim().min(3, "Use a 3-letter code.").max(3),
 });
 export type PricingInput = z.infer<typeof pricingSchema>;
+
+export const logisticsSchema = z.object({
+  duration_minutes: numericString("Duration must be a number."),
+  max_participants: numericString(),
+  min_participants: numericString(),
+  meeting_point: z.string().trim().max(500).optional().or(z.literal("")),
+  what_to_bring: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+export type LogisticsInput = z.infer<typeof logisticsSchema>;
+
+// Schedule jsonb shape. Either recurring weekly slots (day_of_week 0-6 = Sun-Sat
+// + one or more HH:MM times per day) OR specific date+time entries.
+const dayOfWeekSchema = z.union([
+  z.literal(0),
+  z.literal(1),
+  z.literal(2),
+  z.literal(3),
+  z.literal(4),
+  z.literal(5),
+  z.literal(6),
+]);
+const timeSchema = z.string().regex(/^\d{2}:\d{2}$/, "Use HH:MM");
+
+export const scheduleRecurringSchema = z.object({
+  kind: z.literal("recurring"),
+  days: z
+    .array(
+      z.object({
+        day_of_week: dayOfWeekSchema,
+        times: z.array(timeSchema).min(1, "Add at least one time.").max(24),
+      }),
+    )
+    .max(7),
+});
+
+export const scheduleSpecificSchema = z.object({
+  kind: z.literal("specific"),
+  dates: z
+    .array(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
+        time: timeSchema,
+      }),
+    )
+    .max(365),
+});
+
+export const scheduleSchema = z.union([
+  scheduleRecurringSchema,
+  scheduleSpecificSchema,
+]);
+export type ScheduleInput = z.infer<typeof scheduleSchema>;
 
 export const policiesSchema = z.object({
   check_in_time: z
@@ -265,6 +318,7 @@ export const patchSchema = z.object({
   base_price: z.number().nullable().optional(),
   weekend_price: z.number().nullable().optional(),
   cleaning_fee: z.number().nullable().optional(),
+  private_group_price: z.number().nullable().optional(),
   currency: z.string().optional(),
 
   check_in_time: z.string().nullable().optional(),
@@ -273,5 +327,13 @@ export const patchSchema = z.object({
   house_rules: z.string().nullable().optional(),
 
   instant_booking: z.boolean().optional(),
+
+  // Experience-only — accommodation listings keep these null.
+  duration_minutes: z.number().int().nullable().optional(),
+  max_participants: z.number().int().nullable().optional(),
+  min_participants: z.number().int().nullable().optional(),
+  meeting_point: z.string().nullable().optional(),
+  what_to_bring: z.string().nullable().optional(),
+  schedule: z.union([scheduleSchema, z.null()]).optional(),
 });
 export type PatchInput = z.infer<typeof patchSchema>;

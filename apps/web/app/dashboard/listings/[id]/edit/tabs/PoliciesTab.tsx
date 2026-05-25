@@ -49,6 +49,7 @@ const CANCELLATION_OPTIONS = [
 
 export function PoliciesTab({ listing }: { listing: EditorListing }) {
   const [pending, start] = useTransition();
+  const isExperience = listing.listing_type === "experience";
   const form = useForm<PoliciesInput>({
     resolver: zodResolver(policiesSchema),
     defaultValues: {
@@ -62,12 +63,16 @@ export function PoliciesTab({ listing }: { listing: EditorListing }) {
   function onSubmit(values: PoliciesInput) {
     start(async () => {
       const result = await saveListingPatchAction(listing.id, {
-        check_in_time:
-          values.check_in_time && values.check_in_time.length > 0
+        // Experiences don't have check-in/out — clear those columns so a host
+        // who switched a draft from stay to experience doesn't leave stale data.
+        check_in_time: isExperience
+          ? null
+          : values.check_in_time && values.check_in_time.length > 0
             ? `${values.check_in_time}:00`
             : null,
-        check_out_time:
-          values.check_out_time && values.check_out_time.length > 0
+        check_out_time: isExperience
+          ? null
+          : values.check_out_time && values.check_out_time.length > 0
             ? `${values.check_out_time}:00`
             : null,
         cancellation_policy: values.cancellation_policy,
@@ -99,34 +104,36 @@ export function PoliciesTab({ listing }: { listing: EditorListing }) {
             className="space-y-4"
             noValidate
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="check_in_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Check-in time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="check_out_time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Check-out time</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {isExperience ? null : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="check_in_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Check-in time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="check_out_time"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Check-out time</FormLabel>
+                      <FormControl>
+                        <Input type="time" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -166,7 +173,7 @@ export function PoliciesTab({ listing }: { listing: EditorListing }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    House rules{" "}
+                    {isExperience ? "Guest expectations" : "House rules"}{" "}
                     <span className="font-normal text-brand-mute">
                       (optional)
                     </span>
@@ -174,7 +181,11 @@ export function PoliciesTab({ listing }: { listing: EditorListing }) {
                   <FormControl>
                     <Textarea
                       rows={5}
-                      placeholder="Quiet hours after 10pm, no smoking inside, etc."
+                      placeholder={
+                        isExperience
+                          ? "Be on time, follow safety briefing, no flash photography during the talk."
+                          : "Quiet hours after 10pm, no smoking inside, etc."
+                      }
                       {...field}
                     />
                   </FormControl>

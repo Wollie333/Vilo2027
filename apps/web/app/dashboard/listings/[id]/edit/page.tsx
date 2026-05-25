@@ -66,6 +66,13 @@ export default async function EditListingPage({
         "instant_booking",
         "is_published",
         "booking_mode",
+        "duration_minutes",
+        "max_participants",
+        "min_participants",
+        "meeting_point",
+        "what_to_bring",
+        "private_group_price",
+        "schedule",
       ].join(", "),
     )
     .eq("id", params.id)
