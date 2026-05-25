@@ -31,6 +31,78 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-25 — Email worker: drain notification_queue via Resend (live)
+
+End-to-end live: `welcome_host` test row enqueued, worker POST'd, row
+marked `sent_at` 2026-05-25T15:10:00. ADR-019 records the decision to
+ship as a Next.js Route Handler rather than a Deno Edge Function.
+
+### Built
+- **`/api/email-worker`** (Next.js, Node runtime, bearer-auth). Drains
+  up to 50 unsent `notification_queue` rows per POST. 12 registered
+  template types (booking_request_host → subscription_welcome).
+  Unknown types are marked `failed_at` with `error="no_template:<type>"`
+  so they don't loop forever.
+- **Cron migration** `20260525000006_email_worker_cron.sql` —
+  initial version read DB settings; rejected by managed-postgres
+  (42501 superuser only).
+- **Cron migration v2** `20260525000007_email_worker_use_vault.sql`
+  reads `email_worker_url` + `email_worker_secret` from
+  `vault.decrypted_secrets` instead. Missing secrets = no-op tick
+  with NOTICE.
+- **Smoke-test script** `apps/web/scripts/smoke-email-worker.mjs` —
+  inserts a test row, POSTs the worker, reads the row back, asserts
+  `sent_at`. Re-runnable.
+
+### Changed
+- **Vercel build pipeline.** `@vilo/emails`' `build` script was the
+  React Email CLI (`email build`) which exited 1 on Vercel and broke
+  the whole monorepo build. Replaced with a no-op `node -e console.log`
+  — consumers import the TSX directly via Next's compiler.
+- **`turbo.json`** now lists every env var the build is permitted to
+  read (Resend, Doppler, Supabase, Paystack, PayPal, Mapbox, banking
+  cipher, app config). Turbo 2.x rejects undeclared env access at
+  build time.
+- **`@vilo/emails`** package gains a single-file barrel
+  (`emails/index.ts`) and an `exports` map so `apps/web` can do
+  `import { BookingConfirmedGuest } from "@vilo/emails"` cleanly.
+- **`.env.local`** picked up the Resend key, sender, and worker
+  secret. Not committed.
+
+### Configuration applied
+- **Supabase Vault** (one-time SQL via Dashboard):
+  - `email_worker_url` → `00fc2803-c9c3-430b-9ae7-21e9af699081`
+  - `email_worker_secret` → `f26e7be5-641a-400d-8787-f1a4ba65cd62`
+- **Vercel** (Production + Preview): `RESEND_API_KEY`,
+  `EMAIL_FROM_ADDRESS` (= `Vilo <onboarding@resend.dev>`),
+  `EMAIL_WORKER_SECRET`. Manual paste — `prd → Vercel Production`
+  Doppler sync is blocked by the free plan.
+
+### Migrations applied
+- `20260525000006_email_worker_cron` — schedules drain-email-queue
+  job (later superseded mid-session by v7).
+- `20260525000007_email_worker_use_vault` — same cron, reads secrets
+  from Vault.
+
+### Notes
+- **Sender** is `Vilo <onboarding@resend.dev>` until the production
+  domain (`viloplatform.com` per spec, or `vilo.co.za` per founder
+  domain) verifies in Resend. Until then deliverability is best-effort
+  — gmail flags it. Promote to a verified domain before launch.
+- **pg_cron tick** runs every minute. If queue empty, no HTTP call
+  is made (the `SELECT COUNT(*)` gate is cheap and avoids waking
+  Vercel for nothing).
+- **ADR-019** in `DECISIONS.md` records the Edge-Function-vs-Route-Handler
+  decision. Templates are Node-only; copying them into
+  `supabase/functions/_shared/` would fork the source of truth.
+
+### Commits
+- `feat(emails): drain notification_queue via Resend (worker + cron)` — `3eaa0e7`
+- `fix(emails): cron reads worker URL + secret from supabase vault` — `637280d`
+- `fix(build): emails package skips real build; declare env in turbo.json` — `d7e2ca6`
+
+---
+
 ## 2026-05-25 — Wrap-up: push to origin, apply 5 migrations, smoke test
 
 Closed out the autonomous-run handoff from 2026-05-24. All 14 local
