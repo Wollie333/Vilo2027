@@ -22,6 +22,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_OUTPUT=standalone
 COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /repo/emails/node_modules ./emails/node_modules
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json* tsconfig.base.json ./
 COPY apps/web ./apps/web
 COPY packages ./packages
