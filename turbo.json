@@ -3,7 +3,33 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY",
+        "PAYSTACK_SECRET_KEY",
+        "PAYSTACK_WEBHOOK_SECRET",
+        "NEXT_PUBLIC_PAYPAL_CLIENT_ID",
+        "PAYPAL_CLIENT_SECRET",
+        "PAYPAL_WEBHOOK_ID",
+        "NEXT_PUBLIC_PAYPAL_ENV",
+        "ICAL_TOKEN_SECRET",
+        "RESEND_API_KEY",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_WORKER_SECRET",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_APP_NAME",
+        "NEXT_PUBLIC_MAPBOX_TOKEN",
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "NEXT_PUBLIC_POSTHOG_KEY",
+        "NEXT_PUBLIC_POSTHOG_HOST",
+        "BANKING_CIPHER_KEY",
+        "DOPPLER_PROJECT",
+        "DOPPLER_CONFIG",
+        "DOPPLER_ENVIRONMENT"
+      ]
     },
     "dev": {
       "cache": false,

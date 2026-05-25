@@ -11,7 +11,8 @@
   },
   "scripts": {
     "dev": "email dev",
-    "build": "email build",
+    "build": "node -e \"console.log('skip: @vilo/emails has no build step; consumers import .tsx directly via Next compiler')\"",
+    "preview": "email dev",
     "export": "email export"
   },
   "dependencies": {
