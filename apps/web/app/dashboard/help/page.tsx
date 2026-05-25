@@ -1,103 +1,162 @@
 import type { Metadata } from "next";
-import { ExternalLink, LifeBuoy, Mail } from "lucide-react";
-import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import {
+  fetchGettingStartedState,
+  fetchHelpArticles,
+  fetchHelpCategoriesWithCounts,
+  fetchHelpFaqs,
+  fetchHelpSettings,
+  fetchHelpStatus,
+  fetchHelpVideos,
+} from "@/lib/help/queries";
+import type { HelpAudience, HelpStatusComponentStatus } from "@/lib/help/types";
+import { createServerClient } from "@/lib/supabase/server";
+
+import { CommunityCard } from "./_components/CommunityCard";
+import { ContactSupport } from "./_components/ContactSupport";
+import { FAQAccordion } from "./_components/FAQAccordion";
+import { FeedbackStrip } from "./_components/FeedbackStrip";
+import { GettingStarted } from "./_components/GettingStarted";
+import { HelpHero } from "./_components/HelpHero";
+import { PopularArticles } from "./_components/PopularArticles";
+import { QuickActions } from "./_components/QuickActions";
+import { SystemStatusPanel } from "./_components/SystemStatusPanel";
+import { TopicsGrid } from "./_components/TopicsGrid";
+import { VideoTutorials } from "./_components/VideoTutorials";
 
 export const metadata: Metadata = {
   title: "Help & docs · Vilo",
 };
 
-const LINKS = [
-  {
-    label: "How Vilo works",
-    href: "/booking-management",
-    external: false,
-  },
-  {
-    label: "Pricing",
-    href: "/booking-management#pricing",
-    external: false,
-  },
-  {
-    label: "FAQ",
-    href: "/booking-management#faq",
-    external: false,
-  },
-  {
-    label: "Changelog",
-    href: "/change-log",
-    external: false,
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function HelpPage() {
+const BASE_PATH = "/dashboard/help";
+const SEARCH_PATH = "/dashboard/help/search";
+
+type SearchParams = { as?: string };
+
+function resolveAudience(value: string | undefined): HelpAudience {
+  return value === "guest" ? "guest" : "host";
+}
+
+function deriveOverallStatus(
+  components: { status: HelpStatusComponentStatus }[],
+): HelpStatusComponentStatus {
+  if (components.some((c) => c.status === "incident")) return "incident";
+  if (components.some((c) => c.status === "degraded")) return "degraded";
+  if (components.some((c) => c.status === "maintenance")) return "maintenance";
+  return "normal";
+}
+
+export default async function HelpPage({
+  searchParams,
+}: {
+  searchParams?: SearchParams;
+}) {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=${BASE_PATH}`);
+
+  const audience = resolveAudience(searchParams?.as);
+
+  const [
+    categories,
+    popular,
+    newest,
+    updated,
+    videos,
+    faqs,
+    statusComponents,
+    settings,
+    gettingStarted,
+    profile,
+  ] = await Promise.all([
+    fetchHelpCategoriesWithCounts(audience),
+    fetchHelpArticles({ audience, sort: "popular", limit: 6 }),
+    fetchHelpArticles({ audience, sort: "newest", limit: 6 }),
+    fetchHelpArticles({ audience, sort: "updated", limit: 6 }),
+    fetchHelpVideos(audience, 4),
+    fetchHelpFaqs(audience, true, 6),
+    fetchHelpStatus(),
+    fetchHelpSettings(),
+    fetchGettingStartedState(user.id),
+    supabase
+      .from("user_profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then((r) => r.data as { full_name?: string | null } | null),
+  ]);
+
+  const overall = deriveOverallStatus(statusComponents);
+  const greeting =
+    (profile?.full_name ?? "").split(" ")[0]?.trim() ||
+    user.email?.split("@")[0] ||
+    "host";
+
+  const categoryLabel = Object.fromEntries(
+    categories.map((c) => [c.id, c.name]),
+  );
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Help &amp; docs
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          The fastest way to get unstuck. The full help centre lands closer to
-          public launch.
-        </p>
-      </header>
+    <div className="mx-auto max-w-[1400px] space-y-6 lg:space-y-8">
+      <HelpHero
+        greeting={greeting}
+        audience={audience}
+        trending={settings.trending}
+        basePath={BASE_PATH}
+        searchPath={SEARCH_PATH}
+      />
 
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <Mail className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <div className="font-display text-base font-semibold text-brand-ink">
-              Email a real person
-            </div>
-            <p className="mt-1 text-sm text-brand-mute">
-              Beta-phase support is a single inbox we read every day. Reply
-              under one hour during SA business hours.
-            </p>
-            <a
-              href="mailto:hello@viloplatform.com"
-              className="mt-3 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-            >
-              <Mail className="h-4 w-4" />
-              hello@viloplatform.com
-            </a>
-          </div>
+      <QuickActions contact={settings.contact} overallStatus={overall} />
+
+      <TopicsGrid categories={categories} basePath={BASE_PATH} />
+
+      <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
+        <div className="lg:col-span-2">
+          <PopularArticles
+            basePath={BASE_PATH}
+            popular={popular}
+            newest={newest}
+            updated={updated}
+            categoryLabel={categoryLabel}
+          />
+        </div>
+        {audience === "host" ? (
+          <GettingStarted state={gettingStarted} />
+        ) : (
+          <CommunityCard threads={settings.community} />
+        )}
+      </section>
+
+      <VideoTutorials
+        videos={videos}
+        basePath={BASE_PATH}
+        categoryLabel={categoryLabel}
+      />
+
+      <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
+        <div className="lg:col-span-2">
+          <FAQAccordion faqs={faqs} basePath={BASE_PATH} />
+        </div>
+        <SystemStatusPanel components={statusComponents} overall={overall} />
+      </section>
+
+      <section className="grid gap-3 lg:grid-cols-5 lg:gap-4">
+        <div className="lg:col-span-3">
+          <ContactSupport contact={settings.contact} />
+        </div>
+        <div className="lg:col-span-2">
+          <CommunityCard threads={settings.community} />
         </div>
       </section>
 
-      <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <LifeBuoy className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <div className="font-display text-base font-semibold text-brand-ink">
-              Marketing pages &amp; the changelog
-            </div>
-            <p className="mt-1 text-sm text-brand-mute">
-              While the help centre is being written, the public site covers
-              most &ldquo;how does Vilo do X&rdquo; questions.
-            </p>
-            <ul className="mt-4 space-y-2">
-              {LINKS.map((l) => (
-                <li key={l.href}>
-                  <Link
-                    href={l.href}
-                    target={l.external ? "_blank" : undefined}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-primary hover:underline"
-                  >
-                    {l.label}
-                    {l.external ? (
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
+      <FeedbackStrip supportEmail={settings.contact.support_email} />
+
+      <div className="h-4" />
     </div>
   );
 }

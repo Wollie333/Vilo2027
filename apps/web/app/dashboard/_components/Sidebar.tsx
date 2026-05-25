@@ -100,7 +100,12 @@ const FOOTER_LINKS: Item[] = [
     icon: Settings,
     match: "prefix",
   },
-  { href: "/dashboard/help", label: "Help & docs", icon: LifeBuoy },
+  {
+    href: "/dashboard/help",
+    label: "Help & docs",
+    icon: LifeBuoy,
+    match: "prefix",
+  },
 ];
 
 function useIsActive(href: string, match: "exact" | "prefix" = "exact") {

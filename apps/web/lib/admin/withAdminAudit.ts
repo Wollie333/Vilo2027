@@ -20,7 +20,14 @@ type AuditTargetType =
   | "platform_setting"
   | "platform_staff"
   | "staff_member"
-  | "impersonation";
+  | "impersonation"
+  | "help_article"
+  | "help_video"
+  | "help_faq"
+  | "help_category"
+  | "help_status"
+  | "help_settings"
+  | "help_article_suggestion";
 
 export type AuditConfig<TArgs> = {
   /** Permission key the caller must hold. */

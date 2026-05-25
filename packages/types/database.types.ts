@@ -3569,6 +3569,339 @@ export type Database = {
         }
         Relationships: []
       }
+      help_categories: {
+        Row: {
+          id: string
+          slug: string
+          name: string
+          description: string | null
+          icon: string
+          audience: string
+          sort_order: number
+          is_published: boolean
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          slug: string
+          name: string
+          description?: string | null
+          icon?: string
+          audience?: string
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          slug?: string
+          name?: string
+          description?: string | null
+          icon?: string
+          audience?: string
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      help_articles: {
+        Row: {
+          id: string
+          slug: string
+          title: string
+          excerpt: string
+          body_html: string
+          body_json: Json
+          category_id: string | null
+          audience: string
+          status: string
+          featured_rank: number | null
+          read_time_minutes: number
+          view_count: number
+          helpful_count: number
+          not_helpful_count: number
+          saved_count: number
+          has_video: boolean
+          published_at: string | null
+          author_id: string | null
+          last_editor_id: string | null
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          slug: string
+          title: string
+          excerpt?: string
+          body_html?: string
+          body_json?: Json
+          category_id?: string | null
+          audience?: string
+          status?: string
+          featured_rank?: number | null
+          read_time_minutes?: number
+          view_count?: number
+          helpful_count?: number
+          not_helpful_count?: number
+          saved_count?: number
+          has_video?: boolean
+          published_at?: string | null
+          author_id?: string | null
+          last_editor_id?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          slug?: string
+          title?: string
+          excerpt?: string
+          body_html?: string
+          body_json?: Json
+          category_id?: string | null
+          audience?: string
+          status?: string
+          featured_rank?: number | null
+          read_time_minutes?: number
+          view_count?: number
+          helpful_count?: number
+          not_helpful_count?: number
+          saved_count?: number
+          has_video?: boolean
+          published_at?: string | null
+          author_id?: string | null
+          last_editor_id?: string | null
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      help_videos: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          category_id: string | null
+          audience: string
+          embed_provider: string
+          embed_id: string
+          embed_url: string
+          thumbnail_url: string | null
+          duration_seconds: number
+          status: string
+          featured_rank: number | null
+          sort_order: number
+          is_new: boolean
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string
+          category_id?: string | null
+          audience?: string
+          embed_provider?: string
+          embed_id: string
+          embed_url: string
+          thumbnail_url?: string | null
+          duration_seconds?: number
+          status?: string
+          featured_rank?: number | null
+          sort_order?: number
+          is_new?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          category_id?: string | null
+          audience?: string
+          embed_provider?: string
+          embed_id?: string
+          embed_url?: string
+          thumbnail_url?: string | null
+          duration_seconds?: number
+          status?: string
+          featured_rank?: number | null
+          sort_order?: number
+          is_new?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      help_faqs: {
+        Row: {
+          id: string
+          question: string
+          answer_html: string
+          category_id: string | null
+          audience: string
+          is_featured: boolean
+          sort_order: number
+          is_published: boolean
+          created_at: string
+          updated_at: string
+          deleted_at: string | null
+        }
+        Insert: {
+          id?: string
+          question: string
+          answer_html: string
+          category_id?: string | null
+          audience?: string
+          is_featured?: boolean
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Update: {
+          id?: string
+          question?: string
+          answer_html?: string
+          category_id?: string | null
+          audience?: string
+          is_featured?: boolean
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+          deleted_at?: string | null
+        }
+        Relationships: []
+      }
+      help_article_feedback: {
+        Row: {
+          id: string
+          article_id: string
+          user_id: string | null
+          vote: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          article_id: string
+          user_id?: string | null
+          vote: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          article_id?: string
+          user_id?: string | null
+          vote?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      help_status_components: {
+        Row: {
+          id: string
+          name: string
+          icon: string
+          uptime_pct: number
+          status: string
+          note: string | null
+          spark_values: Json
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          icon?: string
+          uptime_pct?: number
+          status?: string
+          note?: string | null
+          spark_values?: Json
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          icon?: string
+          uptime_pct?: number
+          status?: string
+          note?: string | null
+          spark_values?: Json
+          sort_order?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_settings: {
+        Row: {
+          key: string
+          value: Json
+          updated_at: string
+        }
+        Insert: {
+          key: string
+          value: Json
+          updated_at?: string
+        }
+        Update: {
+          key?: string
+          value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_article_suggestions: {
+        Row: {
+          id: string
+          user_id: string | null
+          email: string | null
+          message: string
+          status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          email?: string | null
+          message: string
+          status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          email?: string | null
+          message?: string
+          status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       geography_columns: {
@@ -3936,6 +4269,14 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
+      increment_help_article_view: {
+        Args: { p_article_id: string }
+        Returns: undefined
+      }
+      vote_help_article: {
+        Args: { p_article_id: string; p_vote: string }
+        Returns: { helpful_count: number; not_helpful_count: number }[]
+      }
       is_super_admin: { Args: never; Returns: boolean }
       listing_is_available_whole: {
         Args: { p_check_in: string; p_check_out: string; p_listing_id: string }

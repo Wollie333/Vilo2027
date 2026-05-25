@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  BookOpen,
   CalendarCheck,
   CreditCard,
   Crown,
@@ -10,11 +11,14 @@ import {
   Gauge,
   Home as HomeIcon,
   KeyRound,
+  LifeBuoy,
   Mail,
+  MessageSquarePlus,
   ShieldAlert,
   Star,
   Users,
   UsersRound,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -68,6 +72,57 @@ const MODERATION: Item[] = [
     href: "/admin/data-requests",
     label: "Data requests",
     icon: ShieldAlert,
+    match: "prefix",
+  },
+];
+
+const SUPPORT: Item[] = [
+  {
+    href: "/admin/help",
+    label: "Help overview",
+    icon: LifeBuoy,
+    match: "exact",
+  },
+  {
+    href: "/admin/help/articles",
+    label: "Articles",
+    icon: BookOpen,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/videos",
+    label: "Videos",
+    icon: Video,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/faqs",
+    label: "FAQs",
+    icon: MessageSquarePlus,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/categories",
+    label: "Categories",
+    icon: FileText,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/status",
+    label: "System status",
+    icon: Activity,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/settings",
+    label: "Help settings",
+    icon: KeyRound,
+    match: "prefix",
+  },
+  {
+    href: "/admin/help/suggestions",
+    label: "Suggestions",
+    icon: MessageSquarePlus,
     match: "prefix",
   },
 ];
@@ -175,6 +230,11 @@ export function AdminSidebar({ role, email }: { role: string; email: string }) {
 
         <SectionLabel>Moderation</SectionLabel>
         {MODERATION.map((item) => (
+          <NavLink key={item.href} item={item} />
+        ))}
+
+        <SectionLabel>Support</SectionLabel>
+        {SUPPORT.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
 
