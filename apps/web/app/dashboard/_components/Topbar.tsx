@@ -1,6 +1,8 @@
-import { Bell, Calendar, ChevronDown, Plus, Search } from "lucide-react";
+import { Calendar, ChevronDown, Plus } from "lucide-react";
 
 import { AvatarMenu } from "./AvatarMenu";
+import { EntitySearch } from "./EntitySearch";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { VLogo } from "./VLogo";
 
 function todayLabel(): string {
@@ -44,20 +46,8 @@ export function Topbar({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Search */}
-          <button
-            type="button"
-            className="hidden items-center gap-2 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-mute transition-shadow hover:shadow-card md:flex"
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden xl:inline">
-              Search bookings, guests, listings…
-            </span>
-            <span className="xl:hidden">Search</span>
-            <kbd className="ml-2 hidden rounded border border-brand-line bg-brand-light px-1.5 py-0.5 font-mono text-[10px] text-brand-mute xl:inline-block">
-              ⌘K
-            </kbd>
-          </button>
+          {/* Entity search */}
+          <EntitySearch />
 
           {/* Date range */}
           <button
@@ -70,16 +60,7 @@ export function Topbar({
           </button>
 
           {/* Notifications */}
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-          >
-            <span className="relative inline-flex">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-[2px] -top-[2px] h-2 w-2 rounded-full bg-status-cancelled ring-2 ring-white" />
-            </span>
-          </button>
+          <NotificationBell />
 
           {/* New booking */}
           <button

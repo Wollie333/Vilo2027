@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { MobileBottomNav } from "./_components/MobileBottomNav";
+import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { Sidebar } from "./_components/Sidebar";
 import { Topbar } from "./_components/Topbar";
 
@@ -50,13 +51,15 @@ export default async function DashboardLayout({
     .toUpperCase();
 
   return (
-    <div className="flex min-h-screen bg-brand-light text-brand-ink">
-      <Sidebar host={host ? { ...host, listingCount } : null} plan={plan} />
-      <main className="min-w-0 flex-1 pb-20 lg:pb-0">
-        <Topbar email={user.email ?? ""} initials={initials} />
-        <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
-      </main>
-      <MobileBottomNav />
-    </div>
+    <QuickNavProvider>
+      <div className="flex min-h-screen bg-brand-light text-brand-ink">
+        <Sidebar host={host ? { ...host, listingCount } : null} plan={plan} />
+        <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+          <Topbar email={user.email ?? ""} initials={initials} />
+          <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
+        </main>
+        <MobileBottomNav />
+      </div>
+    </QuickNavProvider>
   );
 }

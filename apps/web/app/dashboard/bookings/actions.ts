@@ -2,9 +2,72 @@
 
 import { revalidatePath } from "next/cache";
 
+import { enqueueInAppNotification } from "@/lib/notifications/enqueue";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type BookingActionResult = { ok: true } | { ok: false; error: string };
+
+type NotifyTarget = {
+  userId: string;
+  kind: string;
+  title: string;
+  body?: string | null;
+  link?: string;
+};
+
+const NOTIFY_AFTER: Partial<
+  Record<keyof typeof TRANSITIONS, (b: BookingRow) => NotifyTarget[]>
+> = {
+  confirm: (b) =>
+    b.guest_id
+      ? [
+          {
+            userId: b.guest_id,
+            kind: "booking_confirmed_guest",
+            title: "Your booking is confirmed",
+            body: b.reference
+              ? `Reference ${b.reference} — your stay is locked in.`
+              : "Your stay is locked in.",
+            link: `/my-trips/${b.id}`,
+          },
+        ]
+      : [],
+  decline: (b) =>
+    b.guest_id
+      ? [
+          {
+            userId: b.guest_id,
+            kind: "booking_declined_guest",
+            title: "Booking request declined",
+            body: b.reference
+              ? `Reference ${b.reference} — the host couldn't accept this stay.`
+              : "The host couldn't accept this stay.",
+            link: `/my-trips/${b.id}`,
+          },
+        ]
+      : [],
+  cancel: (b) =>
+    b.guest_id
+      ? [
+          {
+            userId: b.guest_id,
+            kind: "booking_cancelled_guest",
+            title: "Booking cancelled by the host",
+            body: b.reference
+              ? `Reference ${b.reference} — please check your refund email.`
+              : "Please check your refund email.",
+            link: `/my-trips/${b.id}`,
+          },
+        ]
+      : [],
+};
+
+type BookingRow = {
+  id: string;
+  status: string;
+  reference: string | null;
+  guest_id: string | null;
+};
 
 type Transition = {
   from: ReadonlyArray<string>;
@@ -52,7 +115,7 @@ async function applyTransition(
   // RLS host_manage_own_bookings — the SELECT enforces ownership.
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status")
+    .select("id, status, reference, guest_id")
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking) {
@@ -85,6 +148,12 @@ async function applyTransition(
     .eq("status", booking.status); // optimistic concurrency
   if (error) {
     return { ok: false, error: "Could not update booking. Try again." };
+  }
+
+  const notifyFn = NOTIFY_AFTER[kind];
+  if (notifyFn) {
+    const targets = notifyFn(booking as BookingRow);
+    await Promise.all(targets.map((t) => enqueueInAppNotification(t)));
   }
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);

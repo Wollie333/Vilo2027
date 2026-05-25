@@ -28,6 +28,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useQuickNav } from "./QuickNavPalette";
 import { VLogo } from "./VLogo";
 
 type Item = {
@@ -208,18 +209,7 @@ export function Sidebar({
       </div>
 
       {/* Quick search */}
-      <div className="mb-3 px-3">
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded border border-brand-line px-3 py-1.5 text-xs text-brand-mute transition-colors hover:bg-brand-light/60"
-        >
-          <Search className="h-3.5 w-3.5" />
-          <span className="flex-1 text-left">Quick search…</span>
-          <kbd className="rounded border border-brand-line bg-brand-light px-1.5 py-0.5 font-mono text-[10px] text-brand-mute">
-            ⌘K
-          </kbd>
-        </button>
-      </div>
+      <QuickSearchButton />
 
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-1">
@@ -288,6 +278,25 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
       {children}
+    </div>
+  );
+}
+
+function QuickSearchButton() {
+  const { setOpen } = useQuickNav();
+  return (
+    <div className="mb-3 px-3">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center gap-2 rounded border border-brand-line px-3 py-1.5 text-xs text-brand-mute transition-colors hover:bg-brand-light/60"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span className="flex-1 text-left">Quick search…</span>
+        <kbd className="rounded border border-brand-line bg-brand-light px-1.5 py-0.5 font-mono text-[10px] text-brand-mute">
+          ⌘K
+        </kbd>
+      </button>
     </div>
   );
 }

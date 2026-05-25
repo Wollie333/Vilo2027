@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { enqueueInAppNotification } from "@/lib/notifications/enqueue";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
@@ -107,6 +108,24 @@ export async function submitReviewAction(
     .from("review_request_queue")
     .update({ sent_at: new Date().toISOString() })
     .eq("booking_id", bookingId);
+
+  // Notify the host in-app. Look up hosts.user_id so we know who to ping.
+  const { data: hostRow } = await admin
+    .from("hosts")
+    .select("user_id")
+    .eq("id", booking.host_id)
+    .maybeSingle();
+  if (hostRow?.user_id) {
+    await enqueueInAppNotification({
+      userId: hostRow.user_id,
+      kind: "new_review_host",
+      title: `New ${parsed.data.rating}★ review`,
+      body: parsed.data.body
+        ? parsed.data.body.slice(0, 120)
+        : "A guest left a rating on one of your listings.",
+      link: "/dashboard/reviews",
+    });
+  }
 
   revalidatePath(`/review/${bookingId}`);
   return { ok: true, reviewId: inserted.id };

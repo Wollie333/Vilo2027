@@ -1211,6 +1211,50 @@ export type Database = {
           },
         ]
       }
+      in_app_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          kind: string
+          link: string | null
+          payload: Json
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          link?: string | null
+          payload?: Json
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          link?: string | null
+          payload?: Json
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "in_app_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           booking_id: string
@@ -3757,6 +3801,17 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      enqueue_in_app_notification: {
+        Args: {
+          p_body?: string
+          p_kind: string
+          p_link?: string
+          p_payload?: Json
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
