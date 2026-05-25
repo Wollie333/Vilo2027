@@ -1,6 +1,12 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ImageIcon, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ImageIcon,
+  LayoutGrid,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 export type GalleryPhoto = { id: string; url: string };
@@ -49,19 +55,20 @@ export function PhotoGallery({ photos }: { photos: GalleryPhoto[] }) {
 
   return (
     <>
-      <div className="relative grid gap-2 sm:grid-cols-2 sm:grid-rows-2">
+      <section className="relative grid h-[380px] grid-cols-4 grid-rows-2 gap-2 overflow-hidden rounded-card sm:h-[480px]">
         <button
           type="button"
           onClick={() => setOpenIdx(0)}
-          className="group relative aspect-[4/3] overflow-hidden rounded-card sm:row-span-2"
+          className="group relative col-span-4 row-span-2 overflow-hidden bg-brand-accent sm:col-span-2"
           aria-label="Open hero photo"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={hero.url}
             alt="Listing"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/5" />
         </button>
 
         {grid.map((p, i) => (
@@ -69,29 +76,31 @@ export function PhotoGallery({ photos }: { photos: GalleryPhoto[] }) {
             key={p.id}
             type="button"
             onClick={() => setOpenIdx(i + 1)}
-            className="group relative aspect-[4/3] overflow-hidden rounded-card"
+            className="group relative hidden overflow-hidden bg-brand-accent sm:block"
             aria-label={`Open photo ${i + 2}`}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={p.url}
               alt="Listing"
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </button>
         ))}
 
-        {photos.length > 5 ? (
-          <button
-            type="button"
-            onClick={() => setOpenIdx(0)}
-            className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-pill bg-white px-3 py-1.5 text-xs font-semibold text-brand-ink shadow-card hover:bg-brand-accent"
-          >
-            <ImageIcon className="h-3.5 w-3.5" />
-            Show all {photos.length} photos
-          </button>
-        ) : null}
-      </div>
+        <button
+          type="button"
+          onClick={() => setOpenIdx(0)}
+          className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink shadow-lift hover:bg-brand-light"
+        >
+          <LayoutGrid className="h-4 w-4" />
+          Show all {photos.length} photo{photos.length === 1 ? "" : "s"}
+        </button>
+
+        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white/95 px-3 py-1.5 text-xs font-medium text-brand-ink shadow-card backdrop-blur sm:hidden">
+          <ImageIcon className="h-3.5 w-3.5" /> 1 / {photos.length}
+        </span>
+      </section>
 
       {openIdx != null ? (
         <div

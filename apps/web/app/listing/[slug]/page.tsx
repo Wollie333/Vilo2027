@@ -1,5 +1,24 @@
 import type { Metadata } from "next";
-import { Clock, MapPin, Star, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Ban,
+  Clock,
+  Flag,
+  Heart,
+  Info,
+  Key,
+  LogOut,
+  MapPin,
+  RotateCcw,
+  Share2,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Users,
+  Zap,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -254,69 +273,21 @@ export default async function ListingDetailPage({
   const upcomingSlots = isExperience ? nextSlots(listing.schedule, 12) : [];
 
   return (
-    <div className="bg-brand-light text-brand-ink">
+    <div className="bg-white text-brand-ink">
       <UtilityBar />
       <SiteHeader />
 
-      <main className="mx-auto max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
-        {/* Title strip */}
-        <div className="mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            {typeLabel(listing)}
-          </div>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
-            {listing.name}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-brand-mute">
-            {locationLabel(listing) ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-brand-primary" />
-                {locationLabel(listing)}
-              </span>
-            ) : null}
-            {listing.avg_rating != null &&
-            listing.total_reviews != null &&
-            listing.total_reviews > 0 ? (
-              <span className="inline-flex items-center gap-1">
-                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-brand-ink">
-                  {listing.avg_rating.toFixed(1)}
-                </span>{" "}
-                ({listing.total_reviews})
-              </span>
-            ) : null}
-            {isExperience ? (
-              <>
-                {listing.duration_minutes != null ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Clock className="h-3.5 w-3.5" />{" "}
-                    {formatDurationLabel(listing.duration_minutes)}
-                  </span>
-                ) : null}
-                {listing.max_participants != null ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" /> Up to{" "}
-                    {listing.max_participants} people
-                  </span>
-                ) : null}
-              </>
-            ) : listing.max_guests != null ? (
-              <span className="inline-flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" /> Up to {listing.max_guests}{" "}
-                guests
-              </span>
-            ) : null}
-          </div>
-        </div>
+      <main className="mx-auto max-w-7xl px-5 pb-24 lg:px-8 lg:pb-12">
+        <TitleStrip listing={listing} />
 
-        {/* Gallery */}
-        <div className="mb-10">
+        <div className="mt-6">
           <PhotoGallery photos={photos} />
         </div>
 
         {isExperience ? (
           <ExperienceBody
             listing={listing}
+            amenities={amenities}
             sidebarNode={
               <ExperienceBookingWidget
                 slug={listing.slug ?? params.slug}
@@ -386,6 +357,111 @@ export default async function ListingDetailPage({
   );
 }
 
+function TitleStrip({ listing }: { listing: RawListing }) {
+  const hasReviews =
+    listing.avg_rating != null &&
+    listing.total_reviews != null &&
+    listing.total_reviews > 0;
+  const isFavourite =
+    hasReviews &&
+    (listing.avg_rating ?? 0) >= 4.8 &&
+    (listing.total_reviews ?? 0) >= 10;
+
+  return (
+    <div className="flex flex-col gap-4 pt-6 md:flex-row md:items-start lg:pt-8">
+      <div className="min-w-0 flex-1">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+            {typeLabel(listing)}
+          </span>
+          {listing.host.is_verified ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+              <BadgeCheck className="h-3 w-3" /> Verified host
+            </span>
+          ) : null}
+          {isFavourite ? (
+            <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+              <Sparkles className="h-3 w-3" /> Guest favourite
+            </span>
+          ) : null}
+          {listing.instant_booking ? (
+            <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+              <Zap className="h-3 w-3" /> Instant book
+            </span>
+          ) : null}
+        </div>
+
+        <h1 className="text-balance font-display text-[28px] font-bold leading-[1.05] tracking-tight text-brand-ink sm:text-[34px] lg:text-[40px]">
+          {listing.name}
+        </h1>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-brand-mute">
+          {hasReviews ? (
+            <span className="inline-flex items-center gap-1.5 text-brand-ink">
+              <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+              <span className="font-semibold">
+                {(listing.avg_rating ?? 0).toFixed(2)}
+              </span>
+              <span className="text-brand-mute">·</span>
+              <a
+                href="#sec-reviews"
+                className="underline underline-offset-2 hover:text-brand-primary"
+              >
+                {listing.total_reviews} review
+                {listing.total_reviews === 1 ? "" : "s"}
+              </a>
+            </span>
+          ) : null}
+          {locationLabel(listing) ? (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-4 w-4" />
+              <a
+                href="#sec-policies"
+                className="underline underline-offset-2 hover:text-brand-ink"
+              >
+                {locationLabel(listing)}
+              </a>
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 md:ml-auto md:self-end">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
+        >
+          <Share2 className="h-4 w-4" /> Share
+        </button>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
+        >
+          <Heart className="h-4 w-4" /> Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SubNav({ links }: { links: { id: string; label: string }[] }) {
+  return (
+    <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-brand-line bg-white/95 px-5 backdrop-blur lg:-mx-8 lg:px-8">
+      <div className="hscroll flex items-center gap-6 overflow-x-auto">
+        {links.map((l) => (
+          <a
+            key={l.id}
+            href={`#${l.id}`}
+            className="whitespace-nowrap border-b-2 border-transparent py-3.5 text-[13px] font-medium text-brand-mute transition-colors hover:border-brand-ink hover:text-brand-ink"
+          >
+            {l.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ListingBody({
   listing,
   amenities,
@@ -399,117 +475,572 @@ function ListingBody({
   roomsNode: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
-  return (
-    <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
-      <div className="space-y-10">
-        {/* Quick facts */}
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Fact label="Bedrooms" value={listing.bedrooms ?? "—"} />
-          <Fact label="Bathrooms" value={listing.bathrooms ?? "—"} />
-          <Fact label="Min nights" value={listing.min_nights ?? 1} />
-          <Fact
-            label="Check-in"
-            value={listing.check_in_time?.slice(0, 5) ?? "—"}
-          />
-        </section>
+  const hasReviews =
+    listing.avg_rating != null &&
+    listing.total_reviews != null &&
+    listing.total_reviews > 0;
+  const sectionLinks = [
+    { id: "sec-overview", label: "Overview" },
+    { id: "sec-amenities", label: "Amenities" },
+    ...(showRoomsGrid ? [{ id: "sec-rooms", label: "Rooms" }] : []),
+    ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
+    { id: "sec-host", label: "Host" },
+    { id: "sec-policies", label: "Things to know" },
+  ];
 
-        {/* Description — HTML produced by Tiptap in the host editor. Always
-            sanitised server-side via sanitiseListingHtml before render. */}
-        {listing.description ? (
-          <section>
-            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-              About this{" "}
-              {listing.listing_type === "accommodation" ? "stay" : "experience"}
-            </h2>
-            <div
-              className="text-sm leading-relaxed text-brand-dark [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
-              dangerouslySetInnerHTML={{
-                __html: sanitiseListingHtml(listing.description),
-              }}
+  return (
+    <>
+      <SubNav links={sectionLinks} />
+
+      <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="min-w-0 lg:col-span-7 xl:col-span-8">
+          {/* HOST STRIP */}
+          <section
+            id="sec-overview"
+            className="flex items-start justify-between gap-4 border-b border-brand-line pb-7"
+          >
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="relative shrink-0">
+                <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-brand-accent font-display text-base font-bold text-brand-secondary">
+                  {listing.host.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={listing.host.avatar_url}
+                      alt={listing.host.display_name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    listing.host.display_name.slice(0, 2).toUpperCase()
+                  )}
+                </div>
+                {listing.host.is_verified ? (
+                  <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
+                    <BadgeCheck className="h-3 w-3" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-display text-xl font-bold leading-tight text-brand-ink">
+                  {typeLabel(listing)} hosted by {listing.host.display_name}
+                </h2>
+                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-mute">
+                  {listing.bedrooms != null ? (
+                    <span>
+                      {listing.bedrooms} bedroom
+                      {listing.bedrooms === 1 ? "" : "s"}
+                    </span>
+                  ) : null}
+                  {listing.bathrooms != null ? (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {listing.bathrooms} bathroom
+                        {listing.bathrooms === 1 ? "" : "s"}
+                      </span>
+                    </>
+                  ) : null}
+                  {listing.max_guests != null ? (
+                    <>
+                      <span>·</span>
+                      <span>sleeps up to {listing.max_guests}</span>
+                    </>
+                  ) : null}
+                </div>
+                {listing.host.is_verified ? (
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
+                    <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
+                    Identity verified
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          {/* HIGHLIGHTS */}
+          <section className="space-y-5 border-b border-brand-line py-7">
+            {listing.instant_booking ? (
+              <Highlight
+                icon={<Zap className="h-5 w-5" />}
+                title="Instant book"
+                body="Confirm your stay immediately — no waiting on the host."
+              />
+            ) : null}
+            <Highlight
+              icon={<Key className="h-5 w-5" />}
+              title="Smooth check-in"
+              body={
+                listing.check_in_time
+                  ? `Check-in from ${listing.check_in_time.slice(0, 5)} — the host shares full directions ahead of arrival.`
+                  : "The host shares full directions ahead of arrival."
+              }
+            />
+            <Highlight
+              icon={<RotateCcw className="h-5 w-5" />}
+              title={`${listing.cancellation_policy[0].toUpperCase()}${listing.cancellation_policy.slice(1)} cancellation`}
+              body={
+                <>
+                  {CANCELLATION_BLURB[listing.cancellation_policy]}{" "}
+                  <a
+                    href="#sec-policies"
+                    className="text-brand-primary underline underline-offset-2"
+                  >
+                    See policy
+                  </a>
+                  .
+                </>
+              }
+            />
+            {listing.host.is_verified ? (
+              <Highlight
+                icon={<ShieldCheck className="h-5 w-5" />}
+                title="Verified host"
+                body="Identity and payment details verified by Vilo."
+              />
+            ) : null}
+          </section>
+
+          {/* ABOUT — HTML produced by Tiptap in the host editor. Always
+              sanitised server-side via sanitiseListingHtml before render. */}
+          {listing.description ? (
+            <section className="border-b border-brand-line py-7">
+              <h3 className="font-display text-xl font-bold text-brand-ink">
+                About this{" "}
+                {listing.listing_type === "accommodation"
+                  ? "place"
+                  : "experience"}
+              </h3>
+              <div
+                className="mt-4 space-y-4 text-[15px] leading-[1.65] text-brand-ink/85 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{
+                  __html: sanitiseListingHtml(listing.description),
+                }}
+              />
+            </section>
+          ) : null}
+
+          {/* AMENITIES */}
+          <section
+            id="sec-amenities"
+            className="border-b border-brand-line py-7"
+          >
+            <h3 className="font-display text-xl font-bold text-brand-ink">
+              What this place offers
+            </h3>
+            <div className="mt-5">
+              <AmenitiesList keys={amenities} />
+            </div>
+          </section>
+
+          {/* ROOMS */}
+          {showRoomsGrid ? (
+            <section id="sec-rooms" className="border-b border-brand-line py-7">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-xl font-bold text-brand-ink">
+                    {listing.booking_mode === "flexible"
+                      ? "Or pick specific rooms"
+                      : listing.booking_mode === "whole_listing"
+                        ? "Rooms in this place"
+                        : "Choose your room(s)"}
+                  </h3>
+                  {listing.booking_mode !== "whole_listing" ? (
+                    <p className="mt-1 text-sm text-brand-mute">
+                      Tap to select. Book one room or a few.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="mt-5">{roomsNode}</div>
+              {listing.booking_mode !== "whole_listing" ? (
+                <p className="mt-4 inline-flex items-start gap-1.5 text-[11.5px] leading-relaxed text-brand-mute">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  You can adjust your room selection again at checkout.
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
+          {/* REVIEWS — summary card only (full reviews list not loaded here) */}
+          {hasReviews ? (
+            <section
+              id="sec-reviews"
+              className="border-b border-brand-line py-7"
+            >
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
+                    Reviews
+                  </div>
+                  <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">
+                    What guests are saying
+                  </h3>
+                </div>
+              </div>
+
+              <div className="mt-6 grid items-center gap-8 rounded-card border border-brand-line bg-gradient-to-br from-brand-light to-white p-6 lg:grid-cols-12 lg:p-8">
+                <div className="text-center lg:col-span-5 lg:text-left">
+                  <div className="flex items-baseline justify-center gap-2 lg:justify-start">
+                    <span className="font-display text-[68px] font-extrabold leading-none tracking-tight text-brand-ink lg:text-[80px]">
+                      {(listing.avg_rating ?? 0).toFixed(2)}
+                    </span>
+                    <span className="font-display text-2xl text-brand-mute">
+                      / 5
+                    </span>
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-0.5">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <Star
+                        key={i}
+                        className="h-5 w-5 fill-brand-ink stroke-brand-ink"
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2.5 text-sm text-brand-mute">
+                    From{" "}
+                    <span className="font-mono font-semibold text-brand-ink">
+                      {listing.total_reviews}
+                    </span>{" "}
+                    verified stay
+                    {listing.total_reviews === 1 ? "" : "s"}
+                  </div>
+                </div>
+
+                <div className="lg:col-span-7">
+                  <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Rating trust
+                  </div>
+                  <div className="rounded border border-brand-line bg-white/70 p-4 text-sm leading-relaxed text-brand-dark">
+                    <p className="inline-flex items-start gap-2">
+                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                      <span>
+                        Vilo only lets guests who completed a stay leave a
+                        review. Every score above is from a verified booking.
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {/* HOST */}
+          <section id="sec-host" className="border-b border-brand-line py-7">
+            <h3 className="mb-4 font-display text-xl font-bold text-brand-ink">
+              Meet your host
+            </h3>
+            <HostCard
+              displayName={listing.host.display_name}
+              handle={listing.host.handle}
+              bio={listing.host.bio}
+              avatarUrl={listing.host.avatar_url}
+              isVerified={listing.host.is_verified}
+            />
+            <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
+              <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
+              For your safety, never transfer money or chat outside Vilo.
+            </p>
+          </section>
+
+          {/* THINGS TO KNOW */}
+          <section id="sec-policies" className="py-7">
+            <h3 className="font-display text-xl font-bold text-brand-ink">
+              Things to know
+            </h3>
+            <div className="mt-5 grid gap-6 md:grid-cols-3">
+              <div>
+                <div className="font-display font-semibold text-brand-ink">
+                  House rules
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-brand-ink/85">
+                  <li className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-brand-mute" /> Check-in after{" "}
+                    {listing.check_in_time?.slice(0, 5) ?? "—"}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <LogOut className="h-4 w-4 text-brand-mute" /> Check-out by{" "}
+                    {listing.check_out_time?.slice(0, 5) ?? "—"}
+                  </li>
+                  {listing.max_guests != null ? (
+                    <li className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-brand-mute" />{" "}
+                      {listing.max_guests} guests maximum
+                    </li>
+                  ) : null}
+                  {listing.min_nights != null ? (
+                    <li className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-brand-mute" />{" "}
+                      {listing.min_nights} night
+                      {listing.min_nights === 1 ? "" : "s"} minimum
+                    </li>
+                  ) : null}
+                </ul>
+                {listing.house_rules ? (
+                  <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                    {listing.house_rules}
+                  </p>
+                ) : null}
+              </div>
+              <div>
+                <div className="font-display font-semibold text-brand-ink">
+                  Safety &amp; property
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-brand-ink/85">
+                  <li className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-brand-mute" /> Vilo
+                    holds payments until check-in
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <BadgeCheck className="h-4 w-4 text-brand-mute" /> Host
+                    identity verified
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Ban className="h-4 w-4 text-brand-mute" /> No parties or
+                    events
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <div className="font-display font-semibold text-brand-ink">
+                  Cancellation
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-brand-dark">
+                  <span className="font-medium capitalize">
+                    {listing.cancellation_policy}.
+                  </span>{" "}
+                  {CANCELLATION_BLURB[listing.cancellation_policy]}
+                </p>
+                <a
+                  href="#"
+                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-primary underline underline-offset-2"
+                >
+                  Read full policy <ArrowRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="mt-7 inline-flex items-center gap-1.5 text-xs text-brand-mute underline underline-offset-2 hover:text-brand-ink"
+            >
+              <Flag className="h-3.5 w-3.5" /> Report this listing
+            </button>
+          </section>
+        </div>
+
+        <aside className="lg:col-span-5 xl:col-span-4">{sidebarNode}</aside>
+      </div>
+    </>
+  );
+}
+
+function Highlight({
+  icon,
+  title,
+  body,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-brand-accent text-brand-secondary">
+        {icon}
+      </div>
+      <div>
+        <div className="font-display font-semibold text-brand-ink">{title}</div>
+        <div className="mt-0.5 text-sm leading-relaxed text-brand-mute">
+          {body}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatDurationLabel(minutes: number): string {
+  const m = Math.trunc(minutes);
+  if (m < 60) return `${m} min`;
+  const hours = Math.floor(m / 60);
+  const rem = m % 60;
+  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  return `${hours}h ${rem}min`;
+}
+
+function ExperienceBody({
+  listing,
+  amenities,
+  sidebarNode,
+}: {
+  listing: RawListing;
+  amenities: string[];
+  sidebarNode: React.ReactNode;
+}) {
+  const hasReviews =
+    listing.avg_rating != null &&
+    listing.total_reviews != null &&
+    listing.total_reviews > 0;
+  const sectionLinks = [
+    { id: "sec-overview", label: "Overview" },
+    { id: "sec-amenities", label: "What's included" },
+    ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
+    { id: "sec-host", label: "Host" },
+    { id: "sec-policies", label: "Things to know" },
+  ];
+
+  return (
+    <>
+      <SubNav links={sectionLinks} />
+
+      <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="min-w-0 lg:col-span-7 xl:col-span-8">
+          {/* Quick facts — experience-specific */}
+          <section
+            id="sec-overview"
+            className="grid grid-cols-2 gap-3 border-b border-brand-line pb-7 sm:grid-cols-4"
+          >
+            <Fact
+              label="Duration"
+              value={
+                listing.duration_minutes != null
+                  ? formatDurationLabel(listing.duration_minutes)
+                  : "—"
+              }
+            />
+            <Fact
+              label="Group size"
+              value={
+                listing.max_participants != null
+                  ? `Up to ${listing.max_participants}`
+                  : "—"
+              }
+            />
+            <Fact label="Min to book" value={listing.min_participants ?? 1} />
+            <Fact
+              label="From"
+              value={
+                listing.base_price != null
+                  ? `${listing.currency === "ZAR" ? "R" : ""}${Math.round(
+                      Number(listing.base_price),
+                    )}`
+                  : "—"
+              }
             />
           </section>
-        ) : null}
 
-        {/* Rooms grid — bookable in rooms_only / flexible, info-only in whole_listing */}
-        {showRoomsGrid ? (
-          <section>
-            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-              {listing.booking_mode === "flexible"
-                ? "Or pick specific rooms"
-                : listing.booking_mode === "whole_listing"
-                  ? "Rooms in this place"
-                  : "Rooms"}
-            </h2>
-            {roomsNode}
+          {listing.description ? (
+            <section className="border-b border-brand-line py-7">
+              <h3 className="font-display text-xl font-bold text-brand-ink">
+                About this experience
+              </h3>
+              <div
+                className="mt-4 space-y-4 text-[15px] leading-[1.65] text-brand-ink/85 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{
+                  __html: sanitiseListingHtml(listing.description),
+                }}
+              />
+            </section>
+          ) : null}
+
+          {amenities.length > 0 ? (
+            <section
+              id="sec-amenities"
+              className="border-b border-brand-line py-7"
+            >
+              <h3 className="font-display text-xl font-bold text-brand-ink">
+                What&apos;s included
+              </h3>
+              <div className="mt-5">
+                <AmenitiesList keys={amenities} />
+              </div>
+            </section>
+          ) : null}
+
+          {listing.meeting_point || listing.what_to_bring ? (
+            <section className="border-b border-brand-line py-7">
+              <h3 className="font-display text-xl font-bold text-brand-ink">
+                Logistics
+              </h3>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                {listing.meeting_point ? (
+                  <PolicyCard title="Meeting point">
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                      {listing.meeting_point}
+                    </p>
+                  </PolicyCard>
+                ) : null}
+                {listing.what_to_bring ? (
+                  <PolicyCard title="What to bring">
+                    <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                      {listing.what_to_bring}
+                    </p>
+                  </PolicyCard>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          {hasReviews ? (
+            <section
+              id="sec-reviews"
+              className="border-b border-brand-line py-7"
+            >
+              <div className="rounded-card border border-brand-line bg-gradient-to-br from-brand-light to-white p-6">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-[56px] font-extrabold leading-none tracking-tight text-brand-ink">
+                    {(listing.avg_rating ?? 0).toFixed(2)}
+                  </span>
+                  <span className="font-display text-xl text-brand-mute">
+                    / 5
+                  </span>
+                </div>
+                <div className="mt-2 text-sm text-brand-mute">
+                  From {listing.total_reviews} verified guest
+                  {listing.total_reviews === 1 ? "" : "s"}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          <section id="sec-host" className="border-b border-brand-line py-7">
+            <h3 className="mb-4 font-display text-xl font-bold text-brand-ink">
+              Meet your host
+            </h3>
+            <HostCard
+              displayName={listing.host.display_name}
+              handle={listing.host.handle}
+              bio={listing.host.bio}
+              avatarUrl={listing.host.avatar_url}
+              isVerified={listing.host.is_verified}
+            />
           </section>
-        ) : null}
 
-        {/* Host */}
-        <section>
-          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-            Hosted by {listing.host.display_name}
-          </h2>
-          <HostCard
-            displayName={listing.host.display_name}
-            handle={listing.host.handle}
-            bio={listing.host.bio}
-            avatarUrl={listing.host.avatar_url}
-            isVerified={listing.host.is_verified}
-          />
-        </section>
-
-        {/* Amenities */}
-        <section>
-          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-            What this place offers
-          </h2>
-          <AmenitiesList keys={amenities} />
-        </section>
-
-        {/* Policies */}
-        <section>
-          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-            Things to know
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <PolicyCard title="Check-in / out">
-              <ul className="space-y-1 text-sm text-brand-dark">
-                <li>
-                  Check-in from{" "}
-                  <span className="font-medium">
-                    {listing.check_in_time?.slice(0, 5) ?? "—"}
-                  </span>
-                </li>
-                <li>
-                  Check-out by{" "}
-                  <span className="font-medium">
-                    {listing.check_out_time?.slice(0, 5) ?? "—"}
-                  </span>
-                </li>
-              </ul>
-            </PolicyCard>
-            <PolicyCard title="Cancellation policy">
-              <p className="text-sm text-brand-dark">
-                <span className="font-medium capitalize">
-                  {listing.cancellation_policy}.
-                </span>{" "}
-                {CANCELLATION_BLURB[listing.cancellation_policy]}
-              </p>
-            </PolicyCard>
-            {listing.house_rules ? (
-              <PolicyCard title="House rules" wide>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                  {listing.house_rules}
+          <section id="sec-policies" className="py-7">
+            <h3 className="font-display text-xl font-bold text-brand-ink">
+              Things to know
+            </h3>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <PolicyCard title="Cancellation policy">
+                <p className="text-sm text-brand-dark">
+                  <span className="font-medium capitalize">
+                    {listing.cancellation_policy}.
+                  </span>{" "}
+                  {CANCELLATION_BLURB[listing.cancellation_policy]}
                 </p>
               </PolicyCard>
-            ) : null}
-          </div>
-        </section>
-      </div>
+              {listing.house_rules ? (
+                <PolicyCard title="Guest expectations">
+                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
+                    {listing.house_rules}
+                  </p>
+                </PolicyCard>
+              ) : null}
+            </div>
+          </section>
+        </div>
 
-      {/* Booking widget / cart */}
-      <aside className="lg:pl-4">{sidebarNode}</aside>
-    </div>
+        <aside className="lg:col-span-5 xl:col-span-4">{sidebarNode}</aside>
+      </div>
+    </>
   );
 }
 
@@ -545,139 +1076,6 @@ function PolicyCard({
         {title}
       </div>
       {children}
-    </div>
-  );
-}
-
-function formatDurationLabel(minutes: number): string {
-  const m = Math.trunc(minutes);
-  if (m < 60) return `${m} min`;
-  const hours = Math.floor(m / 60);
-  const rem = m % 60;
-  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${rem}min`;
-}
-
-function ExperienceBody({
-  listing,
-  sidebarNode,
-}: {
-  listing: RawListing;
-  sidebarNode: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-10 lg:grid-cols-[1.7fr_1fr]">
-      <div className="space-y-10">
-        {/* Quick facts — experience-specific */}
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Fact
-            label="Duration"
-            value={
-              listing.duration_minutes != null
-                ? formatDurationLabel(listing.duration_minutes)
-                : "—"
-            }
-          />
-          <Fact
-            label="Group size"
-            value={
-              listing.max_participants != null
-                ? `Up to ${listing.max_participants}`
-                : "—"
-            }
-          />
-          <Fact label="Min to book" value={listing.min_participants ?? 1} />
-          <Fact
-            label="From"
-            value={
-              listing.base_price != null
-                ? `${listing.currency === "ZAR" ? "R" : ""}${Math.round(
-                    Number(listing.base_price),
-                  )}`
-                : "—"
-            }
-          />
-        </section>
-
-        {listing.description ? (
-          <section>
-            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-              About this experience
-            </h2>
-            <div
-              className="text-sm leading-relaxed text-brand-dark [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
-              dangerouslySetInnerHTML={{
-                __html: sanitiseListingHtml(listing.description),
-              }}
-            />
-          </section>
-        ) : null}
-
-        {/* Meeting point + what to bring */}
-        {listing.meeting_point || listing.what_to_bring ? (
-          <section>
-            <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-              Logistics
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {listing.meeting_point ? (
-                <PolicyCard title="Meeting point">
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                    {listing.meeting_point}
-                  </p>
-                </PolicyCard>
-              ) : null}
-              {listing.what_to_bring ? (
-                <PolicyCard title="What to bring">
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                    {listing.what_to_bring}
-                  </p>
-                </PolicyCard>
-              ) : null}
-            </div>
-          </section>
-        ) : null}
-
-        {/* Host */}
-        <section>
-          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-            Hosted by {listing.host.display_name}
-          </h2>
-          <HostCard
-            displayName={listing.host.display_name}
-            handle={listing.host.handle}
-            bio={listing.host.bio}
-            avatarUrl={listing.host.avatar_url}
-            isVerified={listing.host.is_verified}
-          />
-        </section>
-
-        {/* Policies */}
-        <section>
-          <h2 className="mb-3 font-display text-xl font-bold text-brand-ink">
-            Things to know
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <PolicyCard title="Cancellation policy">
-              <p className="text-sm text-brand-dark">
-                <span className="font-medium capitalize">
-                  {listing.cancellation_policy}.
-                </span>{" "}
-                {CANCELLATION_BLURB[listing.cancellation_policy]}
-              </p>
-            </PolicyCard>
-            {listing.house_rules ? (
-              <PolicyCard title="Guest expectations">
-                <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                  {listing.house_rules}
-                </p>
-              </PolicyCard>
-            ) : null}
-          </div>
-        </section>
-      </div>
-
-      <aside className="lg:pl-4">{sidebarNode}</aside>
     </div>
   );
 }

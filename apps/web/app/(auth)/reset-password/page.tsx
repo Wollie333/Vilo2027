@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AuthShell } from "../_components/AuthShell";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
@@ -23,5 +24,9 @@ export default async function ResetPasswordPage() {
     redirect("/forgot-password");
   }
 
-  return <ResetPasswordForm />;
+  return (
+    <AuthShell>
+      <ResetPasswordForm />
+    </AuthShell>
+  );
 }

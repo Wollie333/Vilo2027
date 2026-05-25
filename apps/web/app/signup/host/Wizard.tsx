@@ -25,6 +25,7 @@ import {
   RotateCcw,
   ShieldCheck,
   Star,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
@@ -434,41 +435,53 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1280px] px-3 py-4 lg:px-6 lg:py-8">
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="grid min-h-[760px] lg:grid-cols-[400px_1fr]">
-            <SideRail stepKey={current.key} current={currentIndex} />
+      {/* Full-bleed shell */}
+      <div className="grid min-h-screen lg:grid-cols-[440px_1fr] xl:grid-cols-[520px_1fr]">
+        <SideRail stepKey={current.key} current={currentIndex} />
 
-            <div className="flex flex-col bg-white">
-              <div className="flex flex-wrap items-center gap-4 border-b border-brand-line px-6 py-5 lg:px-10">
-                <div className="min-w-0 flex-1">
-                  <Stepper current={currentIndex} onJump={jumpBack} />
-                </div>
-                <Link
-                  href="/login"
-                  className="hidden shrink-0 text-xs text-brand-mute hover:text-brand-ink lg:inline-flex"
+        <div className="flex min-w-0 flex-col bg-white">
+          {/* Sticky stepper bar */}
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-4 border-b border-brand-line bg-white/95 px-6 py-5 backdrop-blur lg:px-12 lg:py-6">
+            <div className="min-w-0 flex-1">
+              <Stepper current={currentIndex} onJump={jumpBack} />
+            </div>
+            <Link
+              href="/login"
+              className="hidden shrink-0 text-xs text-brand-mute hover:text-brand-ink lg:inline-flex"
+            >
+              Already a host?{" "}
+              <span className="ml-1 font-medium text-brand-primary">
+                Sign in
+              </span>
+            </Link>
+          </div>
+
+          {/* Step body */}
+          <div className="flex-1 px-6 py-10 lg:px-12 lg:py-14 xl:px-16">
+            <div className="mx-auto w-full max-w-3xl">{stepBody}</div>
+          </div>
+
+          {/* Sticky footer */}
+          {!isLast ? (
+            <div className="sticky bottom-0 z-10 border-t border-brand-line bg-brand-light/40 px-6 py-4 lg:px-12 xl:px-16">
+              <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={goBack}
+                  disabled={currentIndex === 0 || nextDisabled}
+                  className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink disabled:opacity-40 disabled:hover:text-brand-mute"
                 >
-                  Already a host?{" "}
-                  <span className="ml-1 font-medium text-brand-primary">
-                    Sign in
-                  </span>
-                </Link>
-              </div>
-
-              <div className="flex-1 px-6 py-8 lg:px-10 lg:py-10">
-                {stepBody}
-              </div>
-
-              {!isLast ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-line bg-brand-light/40 px-6 py-4 lg:px-10">
-                  <button
-                    type="button"
-                    onClick={goBack}
-                    disabled={currentIndex === 0 || nextDisabled}
-                    className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink disabled:opacity-40"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Back
-                  </button>
+                  <ArrowLeft className="h-4 w-4" /> Back
+                </button>
+                <div className="flex items-center gap-2">
+                  {currentIndex > 0 && currentIndex < STEPS.length - 1 ? (
+                    <Link
+                      href="/dashboard"
+                      className="rounded border border-brand-line bg-white px-4 py-2 text-sm text-brand-ink transition hover:bg-white/90"
+                    >
+                      Save &amp; finish later
+                    </Link>
+                  ) : null}
                   <button
                     type="button"
                     onClick={onNext}
@@ -479,14 +492,13 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </div>
-              ) : null}
+              </div>
+              <div className="mx-auto mt-3 w-full max-w-3xl text-center text-[11px] text-brand-mute lg:text-left">
+                By continuing, you agree to Vilo&apos;s Terms of Service.
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-brand-mute">
-          By continuing, you agree to Vilo&apos;s Terms of Service.
-        </p>
       </div>
     </div>
   );
@@ -497,7 +509,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
 function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
   const c = SIDE_RAIL[stepKey];
   return (
-    <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:rounded-l-card lg:p-10">
+    <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:h-screen lg:p-12 xl:p-14">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-dot-grid opacity-30"
@@ -673,6 +685,9 @@ function StepAccount({
   pending: boolean;
   stepIndex: number;
 }) {
+  function notifyOAuthSoon() {
+    toast.info("Email signup is the only option during the MVP build.");
+  }
   return (
     <div className="vilo-step-enter">
       <StepHeading
@@ -682,10 +697,55 @@ function StepAccount({
       />
 
       <div className="mt-7 space-y-5">
+        {/* OAuth — visual only during MVP build */}
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={notifyOAuthSoon}
+            disabled={pending}
+            className="inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light/60 disabled:opacity-60"
+          >
+            <svg viewBox="0 0 48 48" className="h-4 w-4" aria-hidden>
+              <path
+                fill="#FFC107"
+                d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"
+              />
+              <path
+                fill="#FF3D00"
+                d="M6.3 14.7l6.6 4.8C14.7 16.1 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 7.1 29.3 5 24 5 16.3 5 9.7 9.3 6.3 14.7z"
+              />
+              <path
+                fill="#4CAF50"
+                d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.4 26.7 36 24 36c-5.3 0-9.7-3.5-11.3-8.4l-6.6 5.1C9.6 38.6 16.2 44 24 44z"
+              />
+              <path
+                fill="#1976D2"
+                d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.1 5.6l6.2 5.2C40.5 35.9 44 30.5 44 24c0-1.2-.1-2.3-.4-3.5z"
+              />
+            </svg>
+            Continue with Google
+          </button>
+          <button
+            type="button"
+            onClick={notifyOAuthSoon}
+            disabled={pending}
+            className="inline-flex items-center justify-center gap-2 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light/60 disabled:opacity-60"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4 fill-current"
+              aria-hidden
+            >
+              <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.95 1.57-2.96 1.49-.12-1.1.486-2.27 1.16-3.05.755-.88 2.05-1.55 2.97-1.52zM20.5 17.16c-.39.9-.86 1.76-1.41 2.55-.74 1.07-1.74 2.4-2.97 2.42-1.1.02-1.39-.71-2.88-.7-1.49.01-1.81.72-2.91.71-1.24-.01-2.18-1.19-2.92-2.26-2.08-3.01-3.69-8.53-1.54-12.26.93-1.6 2.6-2.62 4.4-2.65 1.21-.02 2.35.81 3.09.81.74 0 2.13-1 3.6-.85.61.03 2.31.25 3.4 1.86-.09.05-2.04 1.2-2.02 3.56.02 2.82 2.47 3.76 2.5 3.78-.02.06-.39 1.34-1.34 2.74z" />
+            </svg>
+            Continue with Apple
+          </button>
+        </div>
+
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-brand-line" />
           <span className="text-[11px] uppercase tracking-wider text-brand-mute">
-            Sign up with email
+            or with email
           </span>
           <div className="h-px flex-1 bg-brand-line" />
         </div>
@@ -814,9 +874,12 @@ function StepAbout({
             </div>
             <button
               type="button"
-              disabled
-              title="Photo upload coming soon"
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-not-allowed items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink opacity-60 shadow-card"
+              onClick={() =>
+                toast.info(
+                  "Photo upload is enabled from settings after onboarding.",
+                )
+              }
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink shadow-card hover:bg-brand-accent"
             >
               <Camera className="h-3.5 w-3.5" />
             </button>
@@ -824,8 +887,19 @@ function StepAbout({
           <div className="text-sm">
             <div className="font-medium text-brand-ink">Profile photo</div>
             <div className="mt-0.5 text-xs text-brand-mute">
-              Upload lands shortly — add yours from settings after onboarding.
+              Square, at least 400×400. JPG or PNG.
             </div>
+            <button
+              type="button"
+              onClick={() =>
+                toast.info(
+                  "Photo upload is enabled from settings after onboarding.",
+                )
+              }
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+            >
+              <Upload className="h-3 w-3" /> Upload photo
+            </button>
           </div>
         </div>
 

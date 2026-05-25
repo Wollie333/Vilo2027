@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AuthShell } from "../_components/AuthShell";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { SentNotice } from "./SentNotice";
 
@@ -13,8 +14,9 @@ export default function ForgotPasswordPage({
 }: {
   searchParams?: { sent?: string };
 }) {
-  if (searchParams?.sent === "1") {
-    return <SentNotice />;
-  }
-  return <ForgotPasswordForm />;
+  return (
+    <AuthShell>
+      {searchParams?.sent === "1" ? <SentNotice /> : <ForgotPasswordForm />}
+    </AuthShell>
+  );
 }

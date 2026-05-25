@@ -356,6 +356,92 @@
   scrollbar-width: none;
 }
 
+/* ─── Auth / login animations ────────────────────────────────── */
+@keyframes vilo-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.vilo-fade-up {
+  animation: vilo-fade-up 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.vilo-delay-1 {
+  animation-delay: 0.05s;
+}
+.vilo-delay-2 {
+  animation-delay: 0.12s;
+}
+.vilo-delay-3 {
+  animation-delay: 0.2s;
+}
+
+@keyframes vilo-orb-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(40px, -30px) scale(1.1);
+  }
+}
+@keyframes vilo-orb-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-30px, 40px) scale(1.15);
+  }
+}
+.vilo-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  pointer-events: none;
+}
+.vilo-orb-1 {
+  width: 380px;
+  height: 380px;
+  background: rgba(16, 185, 129, 0.32);
+  top: -80px;
+  left: -100px;
+  animation: vilo-orb-drift-1 12s ease-in-out infinite;
+}
+.vilo-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: rgba(6, 78, 59, 0.55);
+  bottom: -60px;
+  right: -80px;
+  animation: vilo-orb-drift-2 14s ease-in-out infinite;
+}
+.vilo-orb-3 {
+  width: 220px;
+  height: 220px;
+  background: rgba(16, 185, 129, 0.18);
+  top: 40%;
+  right: -40px;
+  animation: vilo-orb-drift-1 16s ease-in-out infinite;
+}
+
+@keyframes vilo-logo-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(16, 185, 129, 0.6));
+  }
+}
+.vilo-logo-pulse {
+  animation: vilo-logo-pulse 3.5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
