@@ -10,12 +10,7 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { href: "/dashboard/settings", label: "Your profile", match: "exact" },
-  {
-    href: "/dashboard/settings/host",
-    label: "Public host page",
-    match: "prefix",
-  },
+  { href: "/dashboard/settings", label: "Profile", match: "exact" },
   {
     href: "/dashboard/settings/banking",
     label: "Banking & business",

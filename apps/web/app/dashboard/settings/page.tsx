@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ProfileForm } from "./ProfileForm";
 
 export const metadata: Metadata = {
-  title: "Your profile · Settings · Vilo",
+  title: "Profile · Settings · Vilo",
 };
 
 export const dynamic = "force-dynamic";
@@ -16,23 +16,41 @@ export default async function SettingsProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("full_name, phone, email")
-    .eq("id", user!.id)
-    .maybeSingle();
+  const [{ data: profile }, { data: host }] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("full_name, phone, email, avatar_url")
+      .eq("id", user!.id)
+      .maybeSingle(),
+    supabase
+      .from("hosts")
+      .select("display_name, handle, bio, website_url, is_verified, avatar_url")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
+  ]);
+
+  const avatarUrl = profile?.avatar_url ?? host?.avatar_url ?? "";
 
   return (
     <section>
       <h2 className="mb-3 font-display text-lg font-bold text-brand-ink">
-        Your profile
+        Profile
       </h2>
       <ProfileForm
         defaults={{
           full_name: profile?.full_name ?? "",
           phone: profile?.phone ?? "",
+          avatar_url: avatarUrl,
+          display_name: host?.display_name ?? "",
+          bio: host?.bio ?? "",
+          website_url: host?.website_url ?? "",
         }}
         email={profile?.email ?? user?.email ?? ""}
+        host={
+          host
+            ? { handle: host.handle, isVerified: host.is_verified ?? false }
+            : null
+        }
       />
     </section>
   );

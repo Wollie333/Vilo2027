@@ -105,17 +105,22 @@ export async function uploadHostAvatarAction(
     };
   }
 
+  // Use the admin storage client so the upload doesn't depend on session
+  // cookies being readable inside this server-action context. The path is
+  // still scoped to user.id from the authenticated session above.
+  const admin = createAdminClient();
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${user.id}/avatar-${Date.now()}.${ext}`;
 
-  const { error: uploadErr } = await supabase.storage
+  const { error: uploadErr } = await admin.storage
     .from("avatars")
     .upload(path, file, { upsert: true, contentType: file.type });
   if (uploadErr) {
-    return { ok: false, error: "Upload failed. Try again." };
+    console.error("[host-onboarding:uploadAvatar] failed", uploadErr);
+    return { ok: false, error: `Upload failed: ${uploadErr.message}` };
   }
 
-  const { data: pub } = supabase.storage.from("avatars").getPublicUrl(path);
+  const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
   return { ok: true, data: { url: pub.publicUrl } };
 }
 

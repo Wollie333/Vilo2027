@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Unified profile form — covers user_profiles + hosts in one save.
+// host_* fields are optional because a user without a hosts row (yet)
+// should still be able to save name/phone/avatar.
 export const profileSchema = z.object({
   full_name: z
     .string()
@@ -12,15 +15,19 @@ export const profileSchema = z.object({
     .max(40, "Phone number is too long.")
     .optional()
     .or(z.literal("")),
-});
-export type ProfileInput = z.infer<typeof profileSchema>;
-
-export const hostSchema = z.object({
+  avatar_url: z
+    .string()
+    .trim()
+    .max(2000, "Avatar URL is too long.")
+    .optional()
+    .or(z.literal("")),
+  // Host-page fields (apply only if the user has a hosts row).
   display_name: z
     .string()
     .trim()
-    .min(2, "Display name is too short.")
-    .max(120, "Display name is too long."),
+    .max(120, "Display name is too long.")
+    .optional()
+    .or(z.literal("")),
   bio: z
     .string()
     .trim()
@@ -34,4 +41,4 @@ export const hostSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
-export type HostInput = z.infer<typeof hostSchema>;
+export type ProfileInput = z.infer<typeof profileSchema>;
