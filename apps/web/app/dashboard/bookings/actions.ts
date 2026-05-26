@@ -21,13 +21,6 @@ const NOTIFY_KIND = {
   cancel: "booking_cancelled_guest",
 } as const;
 
-type BookingRow = {
-  id: string;
-  status: string;
-  reference: string | null;
-  guest_id: string | null;
-};
-
 type Transition = {
   from: ReadonlyArray<string>;
   to: string;
