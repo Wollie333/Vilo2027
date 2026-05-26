@@ -29,13 +29,19 @@ export default async function DashboardLayout({
     .is("deleted_at", null)
     .maybeSingle();
 
-  // Non-hosts landing on /dashboard get rerouted intelligently:
-  //  - Platform staff: allowed through (Sidebar accepts host=null) so they
-  //    can QA host-facing features.
-  //  - role='host' but no hosts row (signup never finished): back to
-  //    /signup/host so they can complete onboarding — NOT to /portal
-  //    which has nothing for them.
-  //  - role='guest' (or unknown): to /portal where the guest UI lives.
+  // Routing priority (highest → lowest):
+  //   3. Platform staff           → /admin entry point (allowed through
+  //                                  here so they can QA the host surface).
+  //   2. Hosts row OR
+  //      user_profiles.role='host' → /dashboard (allow through; the page
+  //                                  itself renders an onboarding empty
+  //                                  state when host is null).
+  //   1. Plain guest               → /portal.
+  //
+  // The dashboard PAGE handles host = null gracefully ("Welcome to Vilo.
+  // Finish onboarding to take your first booking."), so we don't bounce
+  // hosts mid-onboarding away. We only redirect users who are clearly
+  // not hosts at all.
   if (!host) {
     const [{ data: staffRow }, { data: profileRow }] = await Promise.all([
       supabase
@@ -50,11 +56,9 @@ export default async function DashboardLayout({
         .maybeSingle(),
     ]);
     const isStaff = staffRow?.is_active === true;
-    const role = profileRow?.role as string | undefined;
-    if (!isStaff) {
-      if (role === "host") {
-        redirect("/signup/host");
-      }
+    const role = (profileRow?.role as string | undefined) ?? "guest";
+    const isHostByRole = role === "host";
+    if (!isStaff && !isHostByRole) {
       redirect("/portal");
     }
   }
