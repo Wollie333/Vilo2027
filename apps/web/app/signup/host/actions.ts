@@ -193,6 +193,9 @@ export async function finalizeOnboardingAction(
       display_name: d.full_name,
       bio: d.bio && d.bio.length > 0 ? d.bio : null,
       languages_spoken: d.languages,
+      // Mirror avatar onto hosts so the public host page + listing cards
+      // can render it without joining user_profiles.
+      avatar_url: d.avatar_url && d.avatar_url.length > 0 ? d.avatar_url : null,
     })
     .select("id, handle")
     .single();

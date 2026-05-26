@@ -24,6 +24,7 @@ export function Topbar({
   canHost = false,
   hostDisplayName = null,
   hostBlurb = null,
+  avatarUrl = null,
 }: {
   email: string;
   initials: string;
@@ -31,6 +32,7 @@ export function Topbar({
   canHost?: boolean;
   hostDisplayName?: string | null;
   hostBlurb?: string | null;
+  avatarUrl?: string | null;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-brand-line bg-brand-light/95 backdrop-blur">
@@ -83,7 +85,7 @@ export function Topbar({
             New booking
           </Link>
 
-          <AvatarMenu initials={initials} email={email} />
+          <AvatarMenu initials={initials} email={email} avatarUrl={avatarUrl} />
         </div>
       </div>
     </header>

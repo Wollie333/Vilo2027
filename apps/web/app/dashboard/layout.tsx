@@ -32,7 +32,7 @@ export default async function DashboardLayout({
         .maybeSingle(),
       supabase
         .from("user_profiles")
-        .select("role")
+        .select("role, avatar_url")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -111,6 +111,7 @@ export default async function DashboardLayout({
             canHost={canHost}
             hostDisplayName={host?.display_name ?? null}
             hostBlurb={hostBlurb}
+            avatarUrl={(profileRow?.avatar_url as string | null) ?? null}
           />
           <BroadcastBanner />
           <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>

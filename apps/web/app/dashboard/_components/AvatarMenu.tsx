@@ -18,9 +18,11 @@ import { signOutAction } from "../../(auth)/actions";
 export function AvatarMenu({
   initials,
   email,
+  avatarUrl = null,
 }: {
   initials: string;
   email: string;
+  avatarUrl?: string | null;
 }) {
   const [pending, start] = useTransition();
 
@@ -35,9 +37,18 @@ export function AvatarMenu({
           type="button"
           className="flex items-center gap-2 rounded py-1 pl-1 pr-2 hover:bg-brand-light"
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-secondary text-[11px] font-bold text-white">
-            {initials}
-          </div>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={email}
+              className="h-7 w-7 rounded-full border border-brand-line object-cover"
+            />
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-secondary text-[11px] font-bold text-white">
+              {initials}
+            </div>
+          )}
           <ChevronDown className="hidden h-3.5 w-3.5 text-brand-mute md:inline" />
         </button>
       </DropdownMenuTrigger>
