@@ -19,9 +19,7 @@ import {
   ImagePlus,
   Info,
   Layers,
-  Minus,
   PartyPopper,
-  Plus,
   RotateCcw,
   ShieldCheck,
   Star,
@@ -68,7 +66,8 @@ type WizardData = {
   languages: string[];
   // offer
   offering: "accommodation" | "experiences" | "both";
-  // listing
+  // listing — only the bare minimum to seed a draft; capacity, pricing,
+  // duration, photos, amenities all happen in the listing editor after.
   listingName: string;
   listingKind: "accommodation" | "experience";
   accommodationType:
@@ -78,14 +77,11 @@ type WizardData = {
     | "lodge"
     | "hotel"
     | "cottage"
-    | "villa";
+    | "villa"
+    | "other";
   experienceType: "tour" | "activity" | "workshop" | "transfer" | "other";
   city: string;
   region: string;
-  maxGuests: number;
-  durationHours: number;
-  rate: string;
-  coverUploaded: boolean;
   // plan
   plan: "free" | "basic" | "pro" | "business";
   billingCycle: "monthly" | "annual";
@@ -109,10 +105,6 @@ function initialData(prefilledEmail: string | null): WizardData {
     experienceType: "tour",
     city: "",
     region: "Western Cape",
-    maxGuests: 4,
-    durationHours: 3,
-    rate: "",
-    coverUploaded: false,
     plan: "pro",
     billingCycle: "monthly",
   };
@@ -291,10 +283,6 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
         inferredKind === "experience" ? data.experienceType : undefined,
       city: data.city,
       region: data.region,
-      max_guests: inferredKind === "accommodation" ? data.maxGuests : undefined,
-      duration_hours:
-        inferredKind === "experience" ? data.durationHours : undefined,
-      rate: Number((data.rate || "").replace(/\s/g, "")),
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
@@ -327,11 +315,6 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
           inferredKind === "experience" ? data.experienceType : undefined,
         city: data.city,
         region: data.region,
-        max_guests:
-          inferredKind === "accommodation" ? data.maxGuests : undefined,
-        duration_hours:
-          inferredKind === "experience" ? data.durationHours : undefined,
-        rate: Number((data.rate || "").replace(/\s/g, "")),
         plan: data.plan,
         billing_cycle: data.billingCycle,
       });
@@ -1184,135 +1167,20 @@ function StepListing({
               ))}
             </SelectInput>
           </FormField>
-
-          {!isExperience ? (
-            <>
-              <FormField label="Max guests">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      patch({ maxGuests: Math.max(1, data.maxGuests - 1) })
-                    }
-                    className="inline-flex h-10 w-10 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent"
-                  >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <div className="flex-1 text-center font-display text-xl font-semibold text-brand-ink">
-                    {data.maxGuests}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      patch({ maxGuests: Math.min(20, data.maxGuests + 1) })
-                    }
-                    className="inline-flex h-10 w-10 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </FormField>
-
-              <FormField
-                label="Starting nightly rate"
-                hint="ZAR. You can set weekend & seasonal overrides later."
-                error={errors.rate}
-              >
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
-                    R
-                  </span>
-                  <TextInput
-                    value={data.rate}
-                    onChange={(e) =>
-                      patch({ rate: e.target.value.replace(/[^\d\s]/g, "") })
-                    }
-                    placeholder="1 200"
-                    className="pl-8"
-                    inputMode="numeric"
-                  />
-                </div>
-              </FormField>
-            </>
-          ) : (
-            <>
-              <FormField label="Duration (hours)">
-                <TextInput
-                  value={String(data.durationHours)}
-                  onChange={(e) => {
-                    const n = parseFloat(e.target.value);
-                    patch({
-                      durationHours: Number.isFinite(n) ? n : 0,
-                    });
-                  }}
-                  placeholder="3"
-                  inputMode="decimal"
-                />
-              </FormField>
-              <FormField
-                label="Price per person"
-                hint="ZAR."
-                error={errors.rate}
-              >
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-brand-mute">
-                    R
-                  </span>
-                  <TextInput
-                    value={data.rate}
-                    onChange={(e) =>
-                      patch({ rate: e.target.value.replace(/[^\d\s]/g, "") })
-                    }
-                    placeholder="450"
-                    className="pl-8"
-                    inputMode="numeric"
-                  />
-                </div>
-              </FormField>
-            </>
-          )}
         </div>
 
-        <FormField
-          label="Cover photo"
-          optional
-          hint="One photo gets you live. Add up to 20 more later. (Upload lands after onboarding for now.)"
-        >
-          <button
-            type="button"
-            onClick={() => patch({ coverUploaded: !data.coverUploaded })}
-            className={`flex w-full flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed py-8 transition ${
-              data.coverUploaded
-                ? "border-brand-primary bg-brand-accent/30"
-                : "border-brand-line bg-brand-light/40 hover:bg-brand-accent/30"
-            }`}
-          >
-            {data.coverUploaded ? (
-              <>
-                <div className="flex h-24 w-40 items-center justify-center rounded-md bg-brand-accent/50 font-mono text-[11px] text-brand-secondary">
-                  cover-photo.jpg
-                </div>
-                <div className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary">
-                  <CheckCircle2 className="h-4 w-4" /> Photo selected · click to
-                  clear
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex h-10 w-10 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-primary">
-                  <ImagePlus className="h-5 w-5" />
-                </div>
-                <div className="text-sm font-medium text-brand-ink">
-                  Drag &amp; drop or{" "}
-                  <span className="text-brand-primary">browse</span>
-                </div>
-                <div className="text-xs text-brand-mute">
-                  JPG or PNG · 16:9 recommended
-                </div>
-              </>
-            )}
-          </button>
-        </FormField>
+        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4 text-xs text-brand-mute">
+          <p className="font-medium text-brand-ink">
+            Capacity, pricing, photos &amp; the rest — added next.
+          </p>
+          <p className="mt-1">
+            We seed your listing as a{" "}
+            <span className="font-semibold">draft</span>. Once onboarding
+            finishes you&rsquo;ll land in the listing editor where you add cover
+            photos, set your rate, capacity / duration, cancellation policy,
+            amenities and house rules — and publish when you&rsquo;re ready.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -1576,9 +1444,13 @@ function StepWelcome({
           Welcome to Vilo, {(data.fullName || "host").split(" ")[0]}.
         </h2>
         <p className="mt-2 max-w-xl text-sm text-brand-mute md:text-base">
-          Your <span className="font-medium text-brand-ink">Free</span> account
-          is live. Here&apos;s everything you need to start taking direct
-          bookings.
+          Your account is live on the{" "}
+          <span className="font-medium text-brand-ink">Free</span> plan — paid
+          tiers are coming soon, so for now everyone&rsquo;s on Free with all
+          features unlocked. Your first listing is saved as a{" "}
+          <span className="font-medium text-brand-ink">draft</span> — finish
+          photos, pricing and capacity in the editor below, then publish to
+          start taking direct bookings.
         </p>
 
         <div className="mt-6 rounded-card border border-brand-line bg-white p-5">

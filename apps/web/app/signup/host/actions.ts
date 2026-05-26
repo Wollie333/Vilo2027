@@ -148,6 +148,10 @@ export async function finalizeOnboardingAction(
   // override (e.g. offering=both with kind=experience).
   const finalKind = d.listing_kind ?? listingType;
 
+  // Seed a DRAFT listing — host fills in capacity / pricing / duration /
+  // photos / amenities via the listing editor before publishing.
+  // is_published defaults to false, base_price / max_guests / duration_minutes
+  // stay NULL until the host completes the editor.
   const { error: listingErr } = await supabase.from("listings").insert({
     host_id: host.id,
     listing_type: finalKind,
@@ -158,9 +162,6 @@ export async function finalizeOnboardingAction(
     name: d.listing_name,
     city: d.city,
     province: d.region,
-    max_guests: finalKind === "accommodation" ? (d.max_guests ?? null) : null,
-    base_price: d.rate,
-    currency: "ZAR",
   });
   if (listingErr) {
     // Best-effort cleanup so the user can retry the wizard.

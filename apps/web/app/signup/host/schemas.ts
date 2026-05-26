@@ -152,6 +152,10 @@ export const offerSchema = z.object({
 });
 export type OfferInput = z.infer<typeof offerSchema>;
 
+// Signup wizard listing fields. Kept intentionally lean — capacity,
+// pricing, duration, photos and amenities all live in the listing editor
+// once onboarding completes. We only ask here for the bare minimum needed
+// to seed a draft listing the host can finish later.
 export const listingSchema = z
   .object({
     listing_name: z
@@ -169,6 +173,7 @@ export const listingSchema = z
         "hotel",
         "cottage",
         "villa",
+        "other",
       ])
       .optional(),
     experience_type: z
@@ -176,9 +181,6 @@ export const listingSchema = z
       .optional(),
     city: z.string().trim().min(2, "Which city?").max(120),
     region: z.string().trim().min(2).max(80),
-    max_guests: z.number().int().min(1).max(50).optional(),
-    duration_hours: z.number().min(0).max(48).optional(),
-    rate: z.number().min(1, "Enter a starting rate.").max(1_000_000),
   })
   .refine((d) => d.listing_kind !== "accommodation" || !!d.accommodation_type, {
     path: ["accommodation_type"],
@@ -211,7 +213,8 @@ export const finalizeOnboardingSchema = z
     // Offer
     offering: z.enum(["accommodation", "experiences", "both"]),
 
-    // Listing
+    // Listing — only the bare minimum to seed a draft. Capacity, pricing,
+    // duration, photos etc. live in the listing editor post-onboarding.
     listing_name: z.string().trim().min(2).max(200),
     listing_kind: z.enum(["accommodation", "experience"]),
     accommodation_type: z
@@ -223,6 +226,7 @@ export const finalizeOnboardingSchema = z
         "hotel",
         "cottage",
         "villa",
+        "other",
       ])
       .optional(),
     experience_type: z
@@ -230,12 +234,10 @@ export const finalizeOnboardingSchema = z
       .optional(),
     city: z.string().trim().min(2).max(120),
     region: z.string().trim().min(2).max(80),
-    max_guests: z.number().int().min(1).max(50).optional(),
-    duration_hours: z.number().min(0).max(48).optional(),
-    rate: z.number().min(1).max(1_000_000),
 
     // Plan — accepted but always forced to "free" server-side for now (payment
-    // wiring lands later).
+    // wiring lands later). Surfaced as an early preview so the host knows
+    // what they're getting; no money moves.
     plan: z.enum(["free", "basic", "pro", "business"]),
     billing_cycle: z.enum(["monthly", "annual"]),
   })
