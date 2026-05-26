@@ -48,3 +48,17 @@ export const profileSchema = z.object({
     .or(z.literal("")),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
+
+export const passwordSchema = z
+  .object({
+    new_password: z
+      .string()
+      .min(8, "Password must be at least 8 characters.")
+      .max(72, "Password is too long."),
+    confirm_password: z.string(),
+  })
+  .refine((d) => d.new_password === d.confirm_password, {
+    path: ["confirm_password"],
+    message: "Passwords don't match.",
+  });
+export type PasswordInput = z.infer<typeof passwordSchema>;

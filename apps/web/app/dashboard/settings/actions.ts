@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { profileSchema, type ProfileInput } from "./schemas";
+import {
+  passwordSchema,
+  profileSchema,
+  type PasswordInput,
+  type ProfileInput,
+} from "./schemas";
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 
@@ -154,4 +159,39 @@ export async function uploadAvatarAction(
 
   const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
   return { ok: true, url: pub.publicUrl };
+}
+
+// Changes the signed-in user's password via the admin client. Pre-MVP we
+// don't require the current password — the user is already authenticated
+// in this session. When real users land, gate this behind a re-auth step.
+export async function changePasswordAction(
+  input: PasswordInput,
+): Promise<SettingsActionResult> {
+  const parsed = passwordSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in to change your password." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(user.id, {
+    password: parsed.data.new_password,
+  });
+  if (error) {
+    console.error("[settings:changePassword] update failed", error);
+    return {
+      ok: false,
+      error: `Could not change your password: ${error.message}`,
+    };
+  }
+  return { ok: true };
 }

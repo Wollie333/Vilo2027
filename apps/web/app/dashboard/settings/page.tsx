@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { PasswordCard } from "./PasswordCard";
 import { ProfileForm } from "./ProfileForm";
 
 export const metadata: Metadata = {
@@ -32,10 +33,8 @@ export default async function SettingsProfilePage() {
   const avatarUrl = profile?.avatar_url ?? host?.avatar_url ?? "";
 
   return (
-    <section>
-      <h2 className="mb-3 font-display text-lg font-bold text-brand-ink">
-        Profile
-      </h2>
+    <section className="space-y-5">
+      <h2 className="font-display text-lg font-bold text-brand-ink">Profile</h2>
       <ProfileForm
         defaults={{
           full_name: profile?.full_name ?? "",
@@ -52,6 +51,7 @@ export default async function SettingsProfilePage() {
             : null
         }
       />
+      <PasswordCard />
     </section>
   );
 }
