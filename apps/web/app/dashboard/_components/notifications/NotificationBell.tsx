@@ -11,7 +11,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+import { ackBroadcastAction } from "@/app/_components/broadcast-ack-action";
+
 import { useNotifications, type AppNotification } from "./useNotifications";
+
+function broadcastIdOf(n: AppNotification): string | null {
+  if (n.kind !== "admin_broadcast") return null;
+  const id = (n.payload as { broadcast_id?: unknown } | null)?.broadcast_id;
+  return typeof id === "string" ? id : null;
+}
 
 // Human labels for the in-dropdown category tabs. Falls back to the raw
 // id (e.g. "marketing_tips" → "Marketing tips") if a category isn't
@@ -74,6 +82,11 @@ export function NotificationBell() {
 
   const onItemClick = async (n: AppNotification) => {
     if (!n.read_at) await markRead(n.id);
+    const bid = broadcastIdOf(n);
+    if (bid && n.link) {
+      // Fire click-tracking for broadcasts before navigating.
+      void ackBroadcastAction({ broadcastId: bid, mode: "click" });
+    }
     if (n.link) {
       setOpen(false);
       router.push(n.link);
@@ -216,11 +229,11 @@ export function NotificationBell() {
 
         <div className="border-t border-brand-line px-3 py-2 text-center">
           <Link
-            href="/dashboard/inbox"
+            href="/dashboard/notifications"
             onClick={() => setOpen(false)}
             className="text-[11px] font-medium text-brand-primary hover:underline"
           >
-            View all activity →
+            View all notifications →
           </Link>
         </div>
       </PopoverContent>

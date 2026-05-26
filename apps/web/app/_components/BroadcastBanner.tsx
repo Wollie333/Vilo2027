@@ -1,9 +1,9 @@
 import { AlertTriangle, Info } from "lucide-react";
-import Link from "next/link";
 
 import { createServerClient } from "@/lib/supabase/server";
 
 import { BroadcastAckButton } from "./BroadcastAckButton";
+import { BroadcastLink, isExternalUrl } from "./BroadcastLink";
 
 type ActiveBroadcast = {
   id: string;
@@ -91,12 +91,14 @@ function BroadcastRow({ b }: { b: ActiveBroadcast }) {
             {b.body}
           </p>
           {b.link_url ? (
-            <Link
+            <BroadcastLink
+              broadcastId={b.id}
               href={b.link_url}
+              external={isExternalUrl(b.link_url)}
               className="mt-2 inline-block text-sm font-semibold text-red-900 underline"
             >
               {b.link_label ?? "Read more"}
-            </Link>
+            </BroadcastLink>
           ) : null}
         </div>
         <BroadcastAckButton id={b.id} mode="acknowledge" />
@@ -115,12 +117,14 @@ function BroadcastRow({ b }: { b: ActiveBroadcast }) {
           {b.body}
         </p>
         {b.link_url ? (
-          <Link
+          <BroadcastLink
+            broadcastId={b.id}
             href={b.link_url}
+            external={isExternalUrl(b.link_url)}
             className="mt-1 inline-block text-sm font-semibold text-amber-900 underline"
           >
             {b.link_label ?? "Read more"}
-          </Link>
+          </BroadcastLink>
         ) : null}
       </div>
       <BroadcastAckButton id={b.id} mode="dismiss" />

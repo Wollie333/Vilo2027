@@ -14,6 +14,7 @@ export type AppNotification = {
   created_at: string;
   category_id: string;
   severity: "info" | "default" | "high" | "critical";
+  payload: Record<string, unknown> | null;
 };
 
 const LIST_LIMIT = 30;
@@ -30,7 +31,7 @@ export function useNotifications() {
     const { data, error } = await supabase
       .from("in_app_notifications")
       .select(
-        "id, kind, title, body, link, read_at, created_at, category_id, severity",
+        "id, kind, title, body, link, read_at, created_at, category_id, severity, payload",
       )
       .order("created_at", { ascending: false })
       .limit(LIST_LIMIT);

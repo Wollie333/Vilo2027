@@ -49,7 +49,12 @@ export default async function BroadcastDetailPage({
   if (!broadcast) notFound();
   const b = broadcast as Broadcast;
 
-  const [{ count: ackedCount }, { count: dismissedCount }] = await Promise.all([
+  const [
+    { count: ackedCount },
+    { count: dismissedCount },
+    { count: clickedCount },
+    audienceSize,
+  ] = await Promise.all([
     service
       .from("broadcast_acknowledgements")
       .select("user_id", { count: "exact", head: true })
@@ -60,7 +65,17 @@ export default async function BroadcastDetailPage({
       .select("user_id", { count: "exact", head: true })
       .eq("broadcast_id", b.id)
       .not("dismissed_at", "is", null),
+    service
+      .from("broadcast_acknowledgements")
+      .select("user_id", { count: "exact", head: true })
+      .eq("broadcast_id", b.id)
+      .not("link_clicked_at", "is", null),
+    countAudience(service, b.audience),
   ]);
+
+  const clicks = clickedCount ?? 0;
+  const audience = audienceSize ?? 0;
+  const ctrPct = audience > 0 ? ((clicks / audience) * 100).toFixed(1) : null;
 
   const isActive =
     !b.cancelled_at &&
@@ -124,8 +139,11 @@ export default async function BroadcastDetailPage({
               Stats
             </div>
             <dl className="mt-3 space-y-2 text-sm">
+              <Stat label="Audience size" value={audience} />
               <Stat label="Acknowledged" value={ackedCount ?? 0} />
               <Stat label="Dismissed" value={dismissedCount ?? 0} />
+              <Stat label="Link clicks" value={clicks} />
+              <Stat label="CTR" value={ctrPct !== null ? `${ctrPct}%` : "—"} />
               <Stat
                 label="Requires ack"
                 value={b.requires_ack ? "yes" : "no"}
@@ -177,4 +195,34 @@ function severityClass(severity: string): string {
   if (severity === "critical") return "bg-red-100 text-red-800";
   if (severity === "warning") return "bg-amber-100 text-amber-800";
   return "bg-blue-100 text-blue-800";
+}
+
+// Computes audience size at view time. Same role-filter shape as the
+// broadcast-fanout worker (lib/notifications/broadcast-fanout.ts) so the
+// CTR denominator matches who actually got notified.
+async function countAudience(
+  service: ReturnType<typeof createAdminClient>,
+  audience: string,
+): Promise<number> {
+  const roleFilter: string | null =
+    audience === "all"
+      ? null
+      : audience === "hosts"
+        ? "host"
+        : audience === "guests"
+          ? "guest"
+          : audience === "staff"
+            ? "staff"
+            : audience === "super_admins"
+              ? "super_admin"
+              : null;
+
+  let q = service
+    .from("user_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true)
+    .is("deleted_at", null);
+  if (roleFilter) q = q.eq("role", roleFilter);
+  const { count } = await q;
+  return count ?? 0;
 }
