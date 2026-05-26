@@ -6,6 +6,7 @@ import {
   readImpersonationCookie,
   requireAdmin,
 } from "@/lib/admin";
+import { createServerClient } from "@/lib/supabase/server";
 
 import { AdminSidebar } from "./_components/AdminSidebar";
 import { AdminTopbar } from "./_components/AdminTopbar";
@@ -30,9 +31,20 @@ export default async function AdminLayout({
 
   const impersonation = readImpersonationCookie();
 
+  // Does this admin user also have a hosts row? Drives whether the
+  // WorkspaceSwitcher offers "Host workspace" as an option.
+  const supabase = createServerClient();
+  const { data: hostRow } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", admin.userId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  const canHost = Boolean(hostRow?.id);
+
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">
-      <AdminSidebar role={admin.roleId} email={admin.email} />
+      <AdminSidebar role={admin.roleId} email={admin.email} canHost={canHost} />
       <main className="min-w-0 flex-1">
         <AdminTopbar email={admin.email} role={admin.roleId} />
         {impersonation ? (

@@ -27,6 +27,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
+
 import { useQuickNav } from "./QuickNavPalette";
 import { VLogo } from "./VLogo";
 
@@ -149,9 +151,11 @@ function NavLink({ item }: { item: Item }) {
 export function Sidebar({
   host,
   plan,
+  canAdmin = false,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
+  canAdmin?: boolean;
 }) {
   const planLabel =
     plan === "free"
@@ -172,6 +176,12 @@ export function Sidebar({
           <div className="mt-1 text-[10px] text-brand-mute">Host dashboard</div>
         </div>
       </div>
+
+      <WorkspaceSwitcher
+        current="host"
+        canHost={Boolean(host)}
+        canAdmin={canAdmin}
+      />
 
       {/* Host profile card — links to the public-profile editor */}
       <div className="mb-2 px-3">

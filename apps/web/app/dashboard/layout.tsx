@@ -95,7 +95,11 @@ export default async function DashboardLayout({
   return (
     <QuickNavProvider>
       <div className="flex min-h-screen bg-brand-light text-brand-ink">
-        <Sidebar host={host ? { ...host, listingCount } : null} plan={plan} />
+        <Sidebar
+          host={host ? { ...host, listingCount } : null}
+          plan={plan}
+          canAdmin={isPlatformStaff}
+        />
         <main className="min-w-0 flex-1 pb-20 lg:pb-0">
           <Topbar
             email={user.email ?? ""}

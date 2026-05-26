@@ -18,9 +18,10 @@ export default async function PortalLayout({
     redirect("/login?next=/portal");
   }
 
-  // Bounce hosts to /dashboard and active staff to /admin. /portal is for
-  // guests only; the alternative surfaces have richer chrome that's not
-  // useful for plain bookings.
+  // Anyone authenticated can use /portal — it's the guest-side
+  // experience. Hosts who want to act as guests (browse listings, view
+  // their own bookings as a traveller) hop in via the WorkspaceSwitcher
+  // at the top of the sidebar. Platform staff get the same toggle.
   const [{ data: host }, { data: staff }, { data: profile }] =
     await Promise.all([
       supabase
@@ -41,9 +42,6 @@ export default async function PortalLayout({
         .maybeSingle(),
     ]);
 
-  if (host) redirect("/dashboard");
-  if (staff?.is_active) redirect("/admin");
-
   const displayName = profile?.full_name ?? user.email ?? "Guest";
 
   return (
@@ -52,6 +50,8 @@ export default async function PortalLayout({
         displayName={displayName}
         avatarUrl={profile?.avatar_url ?? null}
         email={user.email ?? ""}
+        canHost={Boolean(host?.id)}
+        canAdmin={staff?.is_active === true}
       />
       <main className="min-w-0 flex-1 pb-20 lg:pb-0">
         <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>

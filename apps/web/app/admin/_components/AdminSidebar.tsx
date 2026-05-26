@@ -26,6 +26,8 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
+
 import { VLogo } from "../../dashboard/_components/VLogo";
 
 type Item = {
@@ -201,7 +203,15 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function AdminSidebar({ role, email }: { role: string; email: string }) {
+export function AdminSidebar({
+  role,
+  email,
+  canHost = false,
+}: {
+  role: string;
+  email: string;
+  canHost?: boolean;
+}) {
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
@@ -215,6 +225,8 @@ export function AdminSidebar({ role, email }: { role: string; email: string }) {
           </div>
         </div>
       </div>
+
+      <WorkspaceSwitcher current="admin" canHost={canHost} canAdmin={true} />
 
       <div className="mb-3 px-3">
         <div className="flex w-full items-center gap-2.5 rounded-md border border-brand-line bg-brand-light px-3 py-2">

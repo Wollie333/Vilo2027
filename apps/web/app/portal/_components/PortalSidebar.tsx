@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 
 import { VLogo } from "@/app/dashboard/_components/VLogo";
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 type Item = {
   href: string;
@@ -76,10 +77,14 @@ export function PortalSidebar({
   displayName,
   avatarUrl,
   email,
+  canHost = false,
+  canAdmin = false,
 }: {
   displayName: string;
   avatarUrl: string | null;
   email: string;
+  canHost?: boolean;
+  canAdmin?: boolean;
 }) {
   const initials = displayName.slice(0, 2).toUpperCase();
   return (
@@ -93,6 +98,12 @@ export function PortalSidebar({
           <div className="mt-1 text-[10px] text-brand-mute">Guest portal</div>
         </div>
       </div>
+
+      <WorkspaceSwitcher
+        current="guest"
+        canHost={canHost}
+        canAdmin={canAdmin}
+      />
 
       <div className="mb-2 px-3">
         <Link
