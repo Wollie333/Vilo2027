@@ -29,17 +29,32 @@ export default async function DashboardLayout({
     .is("deleted_at", null)
     .maybeSingle();
 
-  // Non-hosts landing on /dashboard get rerouted: plain guests go to /portal.
-  // Platform staff are allowed through (Sidebar accepts host=null) — they
-  // need this path to QA host-facing features and the BroadcastBanner. They
-  // keep their "Switch to admin" toggle in the topbar to go back.
+  // Non-hosts landing on /dashboard get rerouted intelligently:
+  //  - Platform staff: allowed through (Sidebar accepts host=null) so they
+  //    can QA host-facing features.
+  //  - role='host' but no hosts row (signup never finished): back to
+  //    /signup/host so they can complete onboarding — NOT to /portal
+  //    which has nothing for them.
+  //  - role='guest' (or unknown): to /portal where the guest UI lives.
   if (!host) {
-    const { data: staffRow } = await supabase
-      .from("platform_staff")
-      .select("is_active")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (!staffRow?.is_active) {
+    const [{ data: staffRow }, { data: profileRow }] = await Promise.all([
+      supabase
+        .from("platform_staff")
+        .select("is_active")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
+    const isStaff = staffRow?.is_active === true;
+    const role = profileRow?.role as string | undefined;
+    if (!isStaff) {
+      if (role === "host") {
+        redirect("/signup/host");
+      }
       redirect("/portal");
     }
   }

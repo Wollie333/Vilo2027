@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccountSection";
 import { uploadAvatarAction } from "@/app/signup/guest/actions";
 import {
   COUNTRIES,
@@ -42,6 +43,7 @@ export function SettingsForms({
       <ContactSection initial={initial} />
       <PrefsSection initial={initial} />
       <AccountSection email={email} />
+      <DeleteAccountSection email={email} />
     </div>
   );
 }
