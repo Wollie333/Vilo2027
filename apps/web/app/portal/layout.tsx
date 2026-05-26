@@ -26,7 +26,7 @@ export default async function PortalLayout({
     await Promise.all([
       supabase
         .from("hosts")
-        .select("id")
+        .select("id, display_name")
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .maybeSingle(),
@@ -49,6 +49,20 @@ export default async function PortalLayout({
   const canHost =
     Boolean(host?.id) || (profile?.role as string | undefined) === "host";
 
+  // For the switcher pill: count listings so the host-workspace blurb
+  // shows their actual identity ("2 listings") instead of the generic.
+  let listingCount = 0;
+  if (host?.id) {
+    const { count } = await supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", host.id);
+    listingCount = count ?? 0;
+  }
+  const hostBlurb = host
+    ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"}`
+    : null;
+
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">
       <PortalSidebar
@@ -57,6 +71,8 @@ export default async function PortalLayout({
         email={user.email ?? ""}
         canHost={canHost}
         canAdmin={staff?.is_active === true}
+        hostDisplayName={host?.display_name ?? null}
+        hostBlurb={hostBlurb}
       />
       <main className="min-w-0 flex-1 pb-20 lg:pb-0">
         <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>

@@ -207,10 +207,14 @@ export function AdminSidebar({
   role,
   email,
   canHost = false,
+  hostDisplayName = null,
+  hostBlurb = null,
 }: {
   role: string;
   email: string;
   canHost?: boolean;
+  hostDisplayName?: string | null;
+  hostBlurb?: string | null;
 }) {
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
@@ -226,7 +230,15 @@ export function AdminSidebar({
         </div>
       </div>
 
-      <WorkspaceSwitcher current="admin" canHost={canHost} canAdmin={true} />
+      <WorkspaceSwitcher
+        current="admin"
+        canHost={canHost}
+        canAdmin={true}
+        hostDisplayName={hostDisplayName}
+        hostBlurb={hostBlurb}
+        adminLabel={prettyRole(role)}
+        adminBlurb={email}
+      />
 
       <div className="mb-3 px-3">
         <div className="flex w-full items-center gap-2.5 rounded-md border border-brand-line bg-brand-light px-3 py-2">

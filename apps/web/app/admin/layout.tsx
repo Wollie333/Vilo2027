@@ -32,12 +32,14 @@ export default async function AdminLayout({
   const impersonation = readImpersonationCookie();
 
   // canHost for the WorkspaceSwitcher: hosts row OR user_profiles.role='host'.
-  // Mid-signup hosts get the toggle too.
+  // Mid-signup hosts get the toggle too. If a hosts row exists, also pass
+  // the display_name + listing count so the switcher pill is identity-rich
+  // ("Featherstone Guesthouse · 3 listings") instead of generic.
   const supabase = createServerClient();
   const [{ data: hostRow }, { data: profileRow }] = await Promise.all([
     supabase
       .from("hosts")
-      .select("id")
+      .select("id, display_name")
       .eq("user_id", admin.userId)
       .is("deleted_at", null)
       .maybeSingle(),
@@ -50,9 +52,27 @@ export default async function AdminLayout({
   const canHost =
     Boolean(hostRow?.id) || (profileRow?.role as string | undefined) === "host";
 
+  let listingCount = 0;
+  if (hostRow?.id) {
+    const { count } = await supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", hostRow.id);
+    listingCount = count ?? 0;
+  }
+  const hostBlurb = hostRow
+    ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"}`
+    : null;
+
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">
-      <AdminSidebar role={admin.roleId} email={admin.email} canHost={canHost} />
+      <AdminSidebar
+        role={admin.roleId}
+        email={admin.email}
+        canHost={canHost}
+        hostDisplayName={hostRow?.display_name ?? null}
+        hostBlurb={hostBlurb}
+      />
       <main className="min-w-0 flex-1">
         <AdminTopbar email={admin.email} role={admin.roleId} />
         {impersonation ? (

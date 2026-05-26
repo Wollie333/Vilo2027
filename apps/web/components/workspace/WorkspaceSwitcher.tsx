@@ -26,7 +26,7 @@ type Option = {
   blurb: string;
 };
 
-const OPTIONS: Record<Workspace, Option> = {
+const DEFAULTS: Record<Workspace, Option> = {
   host: {
     id: "host",
     label: "Host workspace",
@@ -54,12 +54,46 @@ type Props = {
   current: Workspace;
   canHost: boolean;
   canAdmin: boolean;
-  /** Guest is implicit: any authenticated user can visit /portal. */
+  /**
+   * Override the Host workspace label/blurb with the host's actual
+   * identity (e.g. display_name + listing count). Makes the pill say
+   * "Featherstone Guesthouse · 3 listings" instead of the generic
+   * "Host workspace". Falls back to defaults when null/undefined.
+   */
+  hostDisplayName?: string | null;
+  hostBlurb?: string | null;
+  /** Same idea for admin: override label/blurb (e.g. role name). */
+  adminLabel?: string | null;
+  adminBlurb?: string | null;
 };
 
-export function WorkspaceSwitcher({ current, canHost, canAdmin }: Props) {
+export function WorkspaceSwitcher({
+  current,
+  canHost,
+  canAdmin,
+  hostDisplayName,
+  hostBlurb,
+  adminLabel,
+  adminBlurb,
+}: Props) {
   const [open, setOpen] = useState(false);
-  const cur = OPTIONS[current];
+
+  // Build the per-workspace options with any caller overrides applied.
+  const options: Record<Workspace, Option> = {
+    ...DEFAULTS,
+    host: {
+      ...DEFAULTS.host,
+      label: hostDisplayName?.trim() || DEFAULTS.host.label,
+      blurb: hostBlurb?.trim() || DEFAULTS.host.blurb,
+    },
+    admin: {
+      ...DEFAULTS.admin,
+      label: adminLabel?.trim() || DEFAULTS.admin.label,
+      blurb: adminBlurb?.trim() || DEFAULTS.admin.blurb,
+    },
+  };
+
+  const cur = options[current];
   const CurIcon = cur.icon;
 
   // Always include the CURRENT workspace in the list — the user is by
@@ -111,7 +145,7 @@ export function WorkspaceSwitcher({ current, canHost, canAdmin }: Props) {
         >
           <ul className="space-y-0.5">
             {available.map((id) => {
-              const opt = OPTIONS[id];
+              const opt = options[id];
               const Icon = opt.icon;
               const isCurrent = id === current;
               return (

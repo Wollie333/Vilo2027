@@ -79,12 +79,16 @@ export function PortalSidebar({
   email,
   canHost = false,
   canAdmin = false,
+  hostDisplayName = null,
+  hostBlurb = null,
 }: {
   displayName: string;
   avatarUrl: string | null;
   email: string;
   canHost?: boolean;
   canAdmin?: boolean;
+  hostDisplayName?: string | null;
+  hostBlurb?: string | null;
 }) {
   const initials = displayName.slice(0, 2).toUpperCase();
   return (
@@ -103,6 +107,8 @@ export function PortalSidebar({
         current="guest"
         canHost={canHost}
         canAdmin={canAdmin}
+        hostDisplayName={hostDisplayName}
+        hostBlurb={hostBlurb}
       />
 
       <div className="mb-2 px-3">

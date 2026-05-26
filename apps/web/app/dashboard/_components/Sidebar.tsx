@@ -184,6 +184,14 @@ export function Sidebar({
         current="host"
         canHost={canHost ?? Boolean(host)}
         canAdmin={canAdmin}
+        hostDisplayName={host?.display_name ?? null}
+        hostBlurb={
+          host
+            ? `${host.listingCount} ${
+                host.listingCount === 1 ? "listing" : "listings"
+              } · ${planLabel}`
+            : null
+        }
       />
 
       {/* Host profile card — links to the public-profile editor */}
