@@ -29,16 +29,19 @@ export default async function DashboardLayout({
     .is("deleted_at", null)
     .maybeSingle();
 
-  // Non-hosts landing on /dashboard get rerouted: active platform staff go to
-  // /admin, everyone else (plain guests) go to /portal. Keeps the dashboard
-  // strictly host-only so the sidebar / data assumptions don't break.
+  // Non-hosts landing on /dashboard get rerouted: plain guests go to /portal.
+  // Platform staff are allowed through (Sidebar accepts host=null) — they
+  // need this path to QA host-facing features and the BroadcastBanner. They
+  // keep their "Switch to admin" toggle in the topbar to go back.
   if (!host) {
     const { data: staffRow } = await supabase
       .from("platform_staff")
       .select("is_active")
       .eq("user_id", user.id)
       .maybeSingle();
-    redirect(staffRow?.is_active ? "/admin" : "/portal");
+    if (!staffRow?.is_active) {
+      redirect("/portal");
+    }
   }
 
   let listingCount = 0;
