@@ -135,27 +135,22 @@ export const aboutSchema = z.object({
   phone: z
     .string()
     .trim()
-    .max(40)
-    .optional()
-    .or(z.literal(""))
-    .refine((v) => !v || /^[\d\s+]{6,}$/.test(v), {
-      message: "Use digits and spaces only.",
+    .min(6, "Phone is required.")
+    .max(40, "Phone is too long.")
+    .refine((v) => /^[\d\s+]{6,}$/.test(v), {
+      message: "Use digits, spaces and an optional + prefix.",
     }),
   country: z.string().trim().min(2).max(60),
   bio: z.string().trim().max(240, "Keep it under 240 characters.").optional(),
   languages: z.array(z.string().min(1).max(40)).max(20).default([]),
+  avatar_url: z.string().url().optional().or(z.literal("")),
 });
 export type AboutInput = z.infer<typeof aboutSchema>;
 
-export const offerSchema = z.object({
-  offering: z.enum(["accommodation", "experiences", "both"]),
-});
-export type OfferInput = z.infer<typeof offerSchema>;
-
 // Signup wizard listing fields. Kept intentionally lean — capacity,
 // pricing, duration, photos and amenities all live in the listing editor
-// once onboarding completes. We only ask here for the bare minimum needed
-// to seed a draft listing the host can finish later.
+// once onboarding completes. We collect: name, kind (accommodation vs
+// experience), the type within that kind, and the full address.
 export const listingSchema = z
   .object({
     listing_name: z
@@ -179,8 +174,15 @@ export const listingSchema = z
     experience_type: z
       .enum(["tour", "activity", "workshop", "transfer", "other"])
       .optional(),
+    address_line1: z
+      .string()
+      .trim()
+      .min(3, "Street address is required.")
+      .max(200),
+    address_line2: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().min(2, "Which city?").max(120),
     region: z.string().trim().min(2).max(80),
+    postal_code: z.string().trim().min(3, "Postal code is required.").max(20),
   })
   .refine((d) => d.listing_kind !== "accommodation" || !!d.accommodation_type, {
     path: ["accommodation_type"],
@@ -198,20 +200,26 @@ export const planSchema = z.object({
 });
 export type PlanInput = z.infer<typeof planSchema>;
 
-// Full payload sent to finalizeOnboardingAction. The Account step is its own
-// action (creates auth user); finalize collects everything else and creates
-// the host profile + first listing + free subscription.
+// Full payload sent to finalizeOnboardingAction. The Account step is its
+// own action (creates auth user); finalize collects everything else and
+// creates the host profile + first listing + free subscription.
+//
+// No `offering` field — that step was removed; we go straight from About
+// to the Listing step where the host picks accommodation vs experience
+// for their FIRST listing. They can add the other kind from the dashboard.
 export const finalizeOnboardingSchema = z
   .object({
-    // Profile (from Account + About steps)
+    // Profile (from Account + About steps) — all persisted on user_profiles
     full_name: z.string().trim().min(2).max(120),
-    phone: z.string().trim().max(40).optional(),
+    phone: z
+      .string()
+      .trim()
+      .min(6, "Phone is required.")
+      .max(40, "Phone is too long."),
     country: z.string().trim().min(2).max(60),
     bio: z.string().trim().max(240).optional(),
     languages: z.array(z.string().min(1).max(40)).max(20).default([]),
-
-    // Offer
-    offering: z.enum(["accommodation", "experiences", "both"]),
+    avatar_url: z.string().url().optional().or(z.literal("")),
 
     // Listing — only the bare minimum to seed a draft. Capacity, pricing,
     // duration, photos etc. live in the listing editor post-onboarding.
@@ -232,12 +240,14 @@ export const finalizeOnboardingSchema = z
     experience_type: z
       .enum(["tour", "activity", "workshop", "transfer", "other"])
       .optional(),
+    address_line1: z.string().trim().min(3).max(200),
+    address_line2: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().min(2).max(120),
     region: z.string().trim().min(2).max(80),
+    postal_code: z.string().trim().min(3).max(20),
 
-    // Plan — accepted but always forced to "free" server-side for now (payment
-    // wiring lands later). Surfaced as an early preview so the host knows
-    // what they're getting; no money moves.
+    // Plan — accepted but always forced to "free" server-side for now
+    // (payment wiring lands later). Surfaced for visibility only.
     plan: z.enum(["free", "basic", "pro", "business"]),
     billing_cycle: z.enum(["monthly", "annual"]),
   })

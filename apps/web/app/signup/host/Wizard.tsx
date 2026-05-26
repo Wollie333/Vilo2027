@@ -9,16 +9,13 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
-  Compass,
   Copy,
   CreditCard,
   ExternalLink,
   Eye,
   EyeOff,
-  Home,
   ImagePlus,
-  Info,
-  Layers,
+  Mail,
   PartyPopper,
   RotateCcw,
   ShieldCheck,
@@ -26,7 +23,7 @@ import {
   Upload,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -38,14 +35,20 @@ import {
   aboutSchema,
   listingSchema,
 } from "./schemas";
-import { createAccountAction, finalizeOnboardingAction } from "./actions";
+import {
+  createAccountAction,
+  finalizeOnboardingAction,
+  uploadHostAvatarAction,
+} from "./actions";
 
 // ─── Step machinery ───────────────────────────────────────────────
 
+// 5-step host onboarding. The old "What you offer" step was removed —
+// every host can list both accommodation AND experiences from day one;
+// the kind picker for the FIRST listing happens inline in step 4.
 const STEPS = [
   { key: "account", label: "Account", short: "Account" },
   { key: "about", label: "About you", short: "Profile" },
-  { key: "offer", label: "What you offer", short: "Offering" },
   { key: "listing", label: "First listing", short: "Listing" },
   { key: "plan", label: "Your toolkit", short: "Toolkit" },
   { key: "welcome", label: "Welcome", short: "Done" },
@@ -64,10 +67,9 @@ type WizardData = {
   country: string;
   bio: string;
   languages: string[];
-  // offer
-  offering: "accommodation" | "experiences" | "both";
-  // listing — only the bare minimum to seed a draft; capacity, pricing,
-  // duration, photos, amenities all happen in the listing editor after.
+  avatarUrl: string;
+  // listing — bare minimum to seed a draft. Capacity, pricing, duration,
+  // photos and amenities all live in the listing editor post-onboarding.
   listingName: string;
   listingKind: "accommodation" | "experience";
   accommodationType:
@@ -80,8 +82,11 @@ type WizardData = {
     | "villa"
     | "other";
   experienceType: "tour" | "activity" | "workshop" | "transfer" | "other";
+  addressLine1: string;
+  addressLine2: string;
   city: string;
   region: string;
+  postalCode: string;
   // plan
   plan: "free" | "basic" | "pro" | "business";
   billingCycle: "monthly" | "annual";
@@ -98,14 +103,17 @@ function initialData(prefilledEmail: string | null): WizardData {
     country: "South Africa",
     bio: "",
     languages: ["English"],
-    offering: "accommodation",
+    avatarUrl: "",
     listingName: "",
     listingKind: "accommodation",
     accommodationType: "guesthouse",
     experienceType: "tour",
+    addressLine1: "",
+    addressLine2: "",
     city: "",
     region: "Western Cape",
-    plan: "pro",
+    postalCode: "",
+    plan: "free",
     billingCycle: "monthly",
   };
 }
@@ -136,20 +144,15 @@ const SIDE_RAIL: Record<
     title: "A profile guests trust.",
     body: "Hosts with a photo and bio get 2.3× more enquiries on average. It takes 60 seconds.",
   },
-  offer: {
-    eyebrow: "Built for SA",
-    title: "Stays & experiences, one inbox.",
-    body: "Whether you run a guesthouse, lead canoe tours, or both — every booking and message lives in a single dashboard.",
-  },
   listing: {
     eyebrow: "Step by step",
-    title: "The basics now. Polish later.",
-    body: "We only ask for the minimum to get you live. Photos, seasonal pricing, house rules and amenities all live in the full editor — no rush.",
+    title: "Stays or experiences — pick one to start.",
+    body: "We seed your first listing here. You can add a second listing of either kind from your dashboard, and finish photos, pricing and amenities in the listing editor.",
   },
   plan: {
-    eyebrow: "No lock-in",
-    title: "Pick a plan to test with.",
-    body: "Billing isn't live yet — every signup goes through as free for now. You'll be able to upgrade from settings once payments ship.",
+    eyebrow: "Currently free",
+    title: "Every host starts on Free.",
+    body: "Paid tiers are coming — you'll be able to upgrade from settings once payments ship. No card needed today.",
   },
   welcome: {
     eyebrow: "You're live",
@@ -262,67 +265,72 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
       country: data.country,
       bio: data.bio,
       languages: data.languages,
-    });
-    if (!parsed.success) {
-      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
-      return;
-    }
-    advance();
-  }
-
-  function handleListingNext() {
-    // Mirror offer choice into listingKind if not already aligned.
-    const inferredKind: "accommodation" | "experience" =
-      data.offering === "experiences" ? "experience" : "accommodation";
-    const parsed = listingSchema.safeParse({
-      listing_name: data.listingName,
-      listing_kind: inferredKind,
-      accommodation_type:
-        inferredKind === "accommodation" ? data.accommodationType : undefined,
-      experience_type:
-        inferredKind === "experience" ? data.experienceType : undefined,
-      city: data.city,
-      region: data.region,
+      avatar_url: data.avatarUrl,
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
       return;
     }
     setErrors({});
-    patch({ listingKind: inferredKind });
+    advance();
+  }
+
+  function handleListingNext() {
+    const parsed = listingSchema.safeParse({
+      listing_name: data.listingName,
+      listing_kind: data.listingKind,
+      accommodation_type:
+        data.listingKind === "accommodation"
+          ? data.accommodationType
+          : undefined,
+      experience_type:
+        data.listingKind === "experience" ? data.experienceType : undefined,
+      address_line1: data.addressLine1,
+      address_line2: data.addressLine2,
+      city: data.city,
+      region: data.region,
+      postal_code: data.postalCode,
+    });
+    if (!parsed.success) {
+      setErrors(zodIssuesToFieldErrors(parsed.error.issues));
+      return;
+    }
+    setErrors({});
     advance();
   }
 
   function handlePlanNext() {
-    // Any plan choice → free for now (payment wiring lands later).
-    // Just advance to welcome where finalize runs.
+    // Plan is always 'free' on submit — every signup goes through as Free
+    // for now. Step 5 is presented as an upsell preview of paid tiers.
     advance();
     startFinalize(async () => {
-      const inferredKind: "accommodation" | "experience" =
-        data.offering === "experiences" ? "experience" : "accommodation";
       const result = await finalizeOnboardingAction({
         full_name: data.fullName,
         phone: data.phone,
         country: data.country,
         bio: data.bio,
         languages: data.languages,
-        offering: data.offering,
+        avatar_url: data.avatarUrl,
         listing_name: data.listingName,
-        listing_kind: inferredKind,
+        listing_kind: data.listingKind,
         accommodation_type:
-          inferredKind === "accommodation" ? data.accommodationType : undefined,
+          data.listingKind === "accommodation"
+            ? data.accommodationType
+            : undefined,
         experience_type:
-          inferredKind === "experience" ? data.experienceType : undefined,
+          data.listingKind === "experience" ? data.experienceType : undefined,
+        address_line1: data.addressLine1,
+        address_line2: data.addressLine2,
         city: data.city,
         region: data.region,
+        postal_code: data.postalCode,
         plan: data.plan,
         billing_cycle: data.billingCycle,
       });
       if (!result.ok) {
         toast.error(result.error);
       }
-      // On success, the action redirects to /dashboard?welcome=1, so the
-      // welcome step is briefly visible before the redirect lands.
+      // On success the action redirects to /dashboard?welcome=1.
     });
   }
 
@@ -333,9 +341,6 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
         break;
       case "about":
         handleAboutNext();
-        break;
-      case "offer":
-        advance();
         break;
       case "listing":
         handleListingNext();
@@ -381,8 +386,6 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
             stepIndex={currentIndex}
           />
         );
-      case "offer":
-        return <StepOffer data={data} patch={patch} stepIndex={currentIndex} />;
       case "listing":
         return (
           <StepListing
@@ -393,7 +396,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
           />
         );
       case "plan":
-        return <StepPlan data={data} patch={patch} stepIndex={currentIndex} />;
+        return <StepPlan stepIndex={currentIndex} />;
       case "welcome":
         return <StepWelcome data={data} finalizePending={finalizePending} />;
     }
@@ -840,6 +843,36 @@ function StepAbout({
       .slice(0, 2)
       .join("")
       .toUpperCase() || "V";
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadPending, setUploadPending] = useState(false);
+
+  async function onFileChosen(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image is too large — max 5MB.");
+      e.target.value = "";
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Only image files are allowed.");
+      e.target.value = "";
+      return;
+    }
+    setUploadPending(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const result = await uploadHostAvatarAction(fd);
+    setUploadPending(false);
+    e.target.value = "";
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    patch({ avatarUrl: result.data?.url ?? "" });
+    toast.success("Photo uploaded");
+  }
+
   return (
     <div className="vilo-step-enter">
       <StepHeading
@@ -849,20 +882,27 @@ function StepAbout({
       />
 
       <div className="mt-7 space-y-5">
-        {/* Avatar placeholder — upload wiring lands later */}
+        {/* Real avatar upload — goes to the `avatars` Storage bucket. */}
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-accent text-base font-semibold text-brand-secondary">
-              {initials}
-            </div>
+            {data.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.avatarUrl}
+                alt="Your profile photo"
+                className="h-16 w-16 rounded-pill border border-brand-line object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-accent text-base font-semibold text-brand-secondary">
+                {initials}
+              </div>
+            )}
             <button
               type="button"
-              onClick={() =>
-                toast.info(
-                  "Photo upload is enabled from settings after onboarding.",
-                )
-              }
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink shadow-card hover:bg-brand-accent"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadPending}
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line bg-white text-brand-ink shadow-card hover:bg-brand-accent disabled:opacity-50"
+              aria-label="Upload profile photo"
             >
               <Camera className="h-3.5 w-3.5" />
             </button>
@@ -870,26 +910,35 @@ function StepAbout({
           <div className="text-sm">
             <div className="font-medium text-brand-ink">Profile photo</div>
             <div className="mt-0.5 text-xs text-brand-mute">
-              Square, at least 400×400. JPG or PNG.
+              Square, at least 400×400. JPG or PNG. Max 5MB.
             </div>
             <button
               type="button"
-              onClick={() =>
-                toast.info(
-                  "Photo upload is enabled from settings after onboarding.",
-                )
-              }
-              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadPending}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline disabled:opacity-50"
             >
-              <Upload className="h-3 w-3" /> Upload photo
+              <Upload className="h-3 w-3" />
+              {uploadPending
+                ? "Uploading…"
+                : data.avatarUrl
+                  ? "Replace photo"
+                  : "Upload photo"}
             </button>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onFileChosen}
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             label="Phone number"
-            hint="Used for booking-critical SMS only."
+            hint="Required — used for booking-critical SMS."
             error={errors.phone}
           >
             <div className="flex">
@@ -970,105 +1019,7 @@ function StepAbout({
   );
 }
 
-// ─── Step 3: What you offer ────────────────────────────────────────
-
-function StepOffer({
-  data,
-  patch,
-  stepIndex,
-}: {
-  data: WizardData;
-  patch: (p: Partial<WizardData>) => void;
-  stepIndex: number;
-}) {
-  const choices: {
-    id: "accommodation" | "experiences" | "both";
-    icon: typeof Home;
-    title: string;
-    desc: string;
-  }[] = [
-    {
-      id: "accommodation",
-      icon: Home,
-      title: "Accommodation",
-      desc: "Guesthouses, B&Bs, lodges, self-catering, hotels.",
-    },
-    {
-      id: "experiences",
-      icon: Compass,
-      title: "Experiences",
-      desc: "Tours, activities, classes, day trips.",
-    },
-    {
-      id: "both",
-      icon: Layers,
-      title: "Both",
-      desc: "I do both — let's set up accommodation first.",
-    },
-  ];
-  return (
-    <div className="vilo-step-enter">
-      <StepHeading
-        stepIndex={stepIndex}
-        title="What are you offering?"
-        subtitle="Don't worry — you can add experiences later if you start with accommodation, and vice versa."
-      />
-
-      <div className="mt-7 grid gap-3 md:grid-cols-3">
-        {choices.map((c) => {
-          const on = data.offering === c.id;
-          const Icon = c.icon;
-          return (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => patch({ offering: c.id })}
-              className={`rounded-card border p-5 text-left transition-all hover:-translate-y-px ${
-                on
-                  ? "border-brand-primary bg-brand-accent/40 shadow-card"
-                  : "border-brand-line bg-white hover:border-brand-primary/50"
-              }`}
-            >
-              <div
-                className={`mb-4 flex h-10 w-10 items-center justify-center rounded-md ${
-                  on
-                    ? "bg-brand-primary text-white"
-                    : "bg-brand-accent text-brand-primary"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-              </div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-display font-semibold text-brand-ink">
-                  {c.title}
-                </h3>
-                {on ? (
-                  <CheckCircle2 className="h-4 w-4 text-brand-primary" />
-                ) : null}
-              </div>
-              <p className="mt-1 text-xs leading-relaxed text-brand-mute">
-                {c.desc}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 flex items-start gap-3 rounded-card border border-brand-line bg-brand-light/60 p-4">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-          <Info className="h-4 w-4" />
-        </div>
-        <div className="text-xs leading-relaxed text-brand-mute">
-          Your choice changes which fields we ask for next. Accommodation asks
-          for rooms &amp; rates. Experiences asks for duration &amp; price per
-          person.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 4: First listing ─────────────────────────────────────────
+// ─── Step 3: First listing ─────────────────────────────────────────
 
 function StepListing({
   data,
@@ -1081,20 +1032,56 @@ function StepListing({
   errors: Record<string, string>;
   stepIndex: number;
 }) {
-  const isExperience = data.offering === "experiences";
+  const isExperience = data.listingKind === "experience";
   return (
     <div className="vilo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
-        title={
-          isExperience
-            ? "Tell us about your first experience"
-            : "Tell us about your first listing"
-        }
-        subtitle="The basics now. Photos, amenities, and pricing rules come in the full editor."
+        title="Tell us about your first listing"
+        subtitle="The basics now — name, kind, and address. Photos, amenities, and pricing come in the listing editor right after."
       />
 
-      <div className="mt-7 space-y-5">
+      <div className="mt-7 space-y-6">
+        {/* Listing kind toggle — host can list both kinds; pick which one
+            to start with. The other can be added from the dashboard. */}
+        <FormField label="Is this an accommodation or an experience?">
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              {
+                v: "accommodation" as const,
+                label: "Accommodation",
+                sub: "Guesthouse, lodge, villa, cottage…",
+              },
+              {
+                v: "experience" as const,
+                label: "Experience",
+                sub: "Tour, activity, workshop, transfer…",
+              },
+            ].map((opt) => {
+              const on = data.listingKind === opt.v;
+              return (
+                <button
+                  key={opt.v}
+                  type="button"
+                  onClick={() => patch({ listingKind: opt.v })}
+                  className={`rounded-card border p-3 text-left transition-colors ${
+                    on
+                      ? "border-brand-primary bg-brand-accent/40"
+                      : "border-brand-line bg-white hover:border-brand-primary/40"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-brand-ink">
+                    {opt.label}
+                  </div>
+                  <div className="mt-0.5 text-xs text-brand-mute">
+                    {opt.sub}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </FormField>
+
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             label={isExperience ? "Experience name" : "Listing name"}
@@ -1109,7 +1096,7 @@ function StepListing({
             />
           </FormField>
 
-          <FormField label={isExperience ? "Experience type" : "Listing type"}>
+          <FormField label={isExperience ? "Experience type" : "Property type"}>
             {isExperience ? (
               <SelectInput
                 value={data.experienceType}
@@ -1143,30 +1130,80 @@ function StepListing({
                 <option value="hotel">Hotel</option>
                 <option value="cottage">Cottage</option>
                 <option value="villa">Villa</option>
+                <option value="other">Other</option>
               </SelectInput>
             )}
           </FormField>
+        </div>
 
-          <FormField label="City" error={errors.city}>
+        {/* Address block */}
+        <div className="space-y-3 rounded-card border border-brand-line bg-white p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-brand-mute">
+            {isExperience ? "Meeting point address" : "Property address"}
+          </div>
+
+          <FormField
+            label={isExperience ? "Street / location" : "Street address"}
+            error={errors.addressLine1}
+          >
             <TextInput
-              value={data.city}
-              onChange={(e) => patch({ city: e.target.value })}
-              placeholder="Cape Town"
+              value={data.addressLine1}
+              onChange={(e) => patch({ addressLine1: e.target.value })}
+              placeholder={
+                isExperience
+                  ? "Slipway entrance, V&A Waterfront"
+                  : "12 Main Road"
+              }
             />
           </FormField>
 
-          <FormField label="Province / region">
-            <SelectInput
-              value={data.region}
-              onChange={(e) => patch({ region: e.target.value })}
-            >
-              {SA_REGIONS.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </SelectInput>
+          <FormField
+            label="Suite / unit / building (optional)"
+            error={errors.addressLine2}
+          >
+            <TextInput
+              value={data.addressLine2}
+              onChange={(e) => patch({ addressLine2: e.target.value })}
+              placeholder="Unit 3 / The Oak Cottage / Building B"
+            />
           </FormField>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <FormField label="City / town" error={errors.city}>
+              <TextInput
+                value={data.city}
+                onChange={(e) => patch({ city: e.target.value })}
+                placeholder="Cape Town"
+              />
+            </FormField>
+
+            <FormField label="Province / region">
+              <SelectInput
+                value={data.region}
+                onChange={(e) => patch({ region: e.target.value })}
+              >
+                {SA_REGIONS.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </SelectInput>
+            </FormField>
+
+            <FormField label="Postal code" error={errors.postalCode}>
+              <TextInput
+                value={data.postalCode}
+                onChange={(e) => patch({ postalCode: e.target.value })}
+                placeholder="8001"
+                inputMode="numeric"
+              />
+            </FormField>
+          </div>
+
+          <p className="text-[11px] text-brand-mute">
+            Only the city &amp; region are shown publicly. The full address is
+            shared with confirmed guests after booking.
+          </p>
         </div>
 
         <div className="rounded-card border border-brand-line bg-brand-light/40 p-4 text-xs text-brand-mute">
@@ -1188,104 +1225,46 @@ function StepListing({
 
 // ─── Step 5: Subscription ──────────────────────────────────────────
 
-function StepPlan({
-  data,
-  patch,
-  stepIndex,
-}: {
-  data: WizardData;
-  patch: (p: Partial<WizardData>) => void;
-  stepIndex: number;
-}) {
-  const cycle = data.billingCycle;
+function StepPlan({ stepIndex }: { stepIndex: number }) {
   return (
     <div className="vilo-step-enter">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <StepHeading
-          stepIndex={stepIndex}
-          title="Pick your toolkit"
-          subtitle="Flat subscription — never a fee per booking. Cancel any time."
-        />
-        <div className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white p-1">
-          <button
-            type="button"
-            onClick={() => patch({ billingCycle: "monthly" })}
-            className={`rounded-pill px-3 py-1 text-xs font-semibold transition ${
-              cycle === "monthly"
-                ? "bg-brand-primary text-white"
-                : "text-brand-mute hover:text-brand-ink"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            type="button"
-            onClick={() => patch({ billingCycle: "annual" })}
-            className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-xs font-semibold transition ${
-              cycle === "annual"
-                ? "bg-brand-primary text-white"
-                : "text-brand-mute hover:text-brand-ink"
-            }`}
-          >
-            Annual
-            <span
-              className={`rounded-pill px-1.5 py-0 text-[10px] font-medium ${
-                cycle === "annual"
-                  ? "bg-white/20 text-white"
-                  : "bg-brand-accent text-brand-primary"
-              }`}
-            >
-              −2 mo
-            </span>
-          </button>
-        </div>
-      </div>
+      <StepHeading
+        stepIndex={stepIndex}
+        title="You're on the Free plan"
+        subtitle="Every host starts here with full access to all features while we finalise billing. Paid tiers below are coming — you'll be able to upgrade from settings once payments ship."
+      />
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((p) => {
-          const on = data.plan === p.value;
-          const price =
-            cycle === "annual"
-              ? p.annual === 0
-                ? 0
-                : Math.round(p.annual / 12)
-              : p.monthly;
-          const showStrike = cycle === "annual" && p.monthly > 0;
+          const isCurrent = p.value === "free";
           return (
-            <button
+            <div
               key={p.value}
-              type="button"
-              onClick={() => patch({ plan: p.value })}
-              className={`relative flex flex-col rounded-card border p-5 text-left transition-all hover:-translate-y-px ${
-                on
+              className={`relative flex flex-col rounded-card border p-5 ${
+                isCurrent
                   ? "border-brand-primary bg-white shadow-glow"
-                  : "border-brand-line bg-white hover:border-brand-primary/50"
+                  : "border-brand-line bg-white opacity-90"
               }`}
             >
-              {p.tag ? (
-                <span
-                  className={`absolute -top-2 right-4 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
-                    p.value === "pro"
-                      ? "bg-brand-secondary text-white"
-                      : "border border-brand-primary/30 bg-brand-accent text-brand-secondary"
-                  }`}
-                >
-                  {p.tag}
-                </span>
-              ) : null}
+              <span
+                className={`absolute -top-2 right-4 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
+                  isCurrent
+                    ? "bg-brand-primary text-white"
+                    : "border border-brand-line bg-brand-light text-brand-mute"
+                }`}
+              >
+                {isCurrent ? "Your plan today" : "Coming soon"}
+              </span>
+
               <div className="flex items-center justify-between">
                 <div className="font-display text-lg font-bold text-brand-ink">
                   {p.name}
                 </div>
-                <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-pill border-2 ${
-                    on
-                      ? "border-brand-primary bg-brand-primary text-white"
-                      : "border-brand-line"
-                  }`}
-                >
-                  {on ? <Check className="h-3 w-3" /> : null}
-                </div>
+                {isCurrent ? (
+                  <div className="flex h-5 w-5 items-center justify-center rounded-pill bg-brand-primary text-white">
+                    <Check className="h-3 w-3" />
+                  </div>
+                ) : null}
               </div>
               <p className="mt-1.5 min-h-[32px] text-xs text-brand-mute">
                 {p.blurb}
@@ -1293,18 +1272,12 @@ function StepPlan({
 
               <div className="mt-4 flex items-baseline gap-1.5">
                 <span className="font-display text-3xl font-bold text-brand-ink">
-                  R{price.toLocaleString("en-ZA")}
+                  R{p.monthly.toLocaleString("en-ZA")}
                 </span>
                 <span className="text-xs text-brand-mute">
                   {p.value === "free" ? "" : "/month"}
                 </span>
               </div>
-              {showStrike ? (
-                <div className="mt-0.5 text-[11px] text-brand-mute">
-                  <span className="line-through">R{p.monthly}</span> billed
-                  annually
-                </div>
-              ) : null}
 
               <ul className="mt-4 space-y-2">
                 {p.features.map((f) => (
@@ -1320,18 +1293,14 @@ function StepPlan({
 
               <div
                 className={`mt-5 rounded py-2 text-center text-xs font-semibold ${
-                  on
+                  isCurrent
                     ? "bg-brand-primary text-white"
-                    : "border border-brand-line bg-brand-light text-brand-secondary"
+                    : "border border-brand-line bg-brand-light text-brand-mute"
                 }`}
               >
-                {on
-                  ? "Selected"
-                  : p.value === "free"
-                    ? "Start with Free"
-                    : "Start 14-day trial"}
+                {isCurrent ? "Active" : "Notify me at launch"}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -1341,9 +1310,9 @@ function StepPlan({
           <ShieldCheck className="h-4 w-4" />
         </div>
         <div className="text-xs leading-relaxed text-brand-mute">
-          Billing isn&apos;t wired up yet, so every sign-up goes through on the
-          free plan for now. You&apos;ll be able to upgrade from settings once
-          payments ship — your data carries over.
+          No card required today. When paid tiers launch you&rsquo;ll see an
+          upgrade prompt in your dashboard — your data, listings and bookings
+          carry over.
         </div>
       </div>
     </div>
@@ -1400,8 +1369,14 @@ function StepWelcome({
   data: WizardData;
   finalizePending: boolean;
 }) {
+  // The DB's trigger_host_handle generates the public handle from
+  // display_name (= full_name). Mirror that here so the preview link
+  // routes to the right /{handle}. Edge case: if the trigger appended a
+  // numeric suffix because of a collision, the preview will miss — but
+  // for an MVP test base that's vanishingly rare and the host can grab
+  // their real URL from /dashboard/settings/host afterwards.
   const handle =
-    (data.listingName || "my-listing")
+    (data.fullName || "my-vilo")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")
@@ -1452,6 +1427,54 @@ function StepWelcome({
           photos, pricing and capacity in the editor below, then publish to
           start taking direct bookings.
         </p>
+
+        {/* Top action cards — two things every new host should do first. */}
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="flex items-start gap-3 rounded-card border border-brand-primary/30 bg-brand-accent/40 p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-brand-primary">
+              <Mail className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-sm font-semibold text-brand-ink">
+                Verify your email
+              </div>
+              <p className="mt-0.5 text-xs leading-relaxed text-brand-mute">
+                We sent a confirmation link to{" "}
+                <span className="font-medium text-brand-ink">
+                  {data.email || "your inbox"}
+                </span>
+                . Verifying unlocks payouts &amp; guest messaging.
+              </p>
+              <Link
+                href="/dashboard/settings"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
+              >
+                Resend / change email <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+              <ShieldCheck className="h-4.5 w-4.5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-display text-sm font-semibold text-brand-ink">
+                Complete your profile
+              </div>
+              <p className="mt-0.5 text-xs leading-relaxed text-brand-mute">
+                Add banking, business details and your cancellation policy so
+                guests can book with confidence.
+              </p>
+              <Link
+                href="/dashboard/settings"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
+              >
+                Open settings <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-6 rounded-card border border-brand-line bg-white p-5">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
