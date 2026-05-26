@@ -26,7 +26,20 @@ export default async function DashboardLayout({
     .from("hosts")
     .select("id, display_name, handle")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .maybeSingle();
+
+  // Non-hosts landing on /dashboard get rerouted: active platform staff go to
+  // /admin, everyone else (plain guests) go to /portal. Keeps the dashboard
+  // strictly host-only so the sidebar / data assumptions don't break.
+  if (!host) {
+    const { data: staffRow } = await supabase
+      .from("platform_staff")
+      .select("is_active")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    redirect(staffRow?.is_active ? "/admin" : "/portal");
+  }
 
   let listingCount = 0;
   let plan: string | null = null;

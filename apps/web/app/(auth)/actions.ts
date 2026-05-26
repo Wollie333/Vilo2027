@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { createAdminClient } from "@/lib/supabase/admin";
+import { resolvePostAuthDestination } from "@/lib/auth/postAuth";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -186,36 +186,8 @@ export async function resetPasswordAction(
     return { ok: false, error: friendlyAuthError(error.message) };
   }
 
-  redirect("/dashboard");
-}
-
-/**
- * After a successful sign-in or password reset, route platform_staff to the
- * admin control centre instead of the host dashboard. Respects an explicit
- * `next` param (relative paths only — open-redirect guard).
- *
- * Uses the service-role client because the user-bound cookie/session may not
- * be fully applied in time for an RLS-gated SELECT in the same Server Action
- * tick.
- */
-async function resolvePostAuthDestination(
-  userId: string | null,
-  next?: string | null,
-): Promise<string> {
-  const safeNext = next && next.startsWith("/") ? next : null;
-  if (safeNext) return safeNext;
-
-  if (userId) {
-    const service = createAdminClient();
-    const { data: staff } = await service
-      .from("platform_staff")
-      .select("user_id, is_active")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (staff?.is_active) return "/admin";
-  }
-
-  return "/dashboard";
+  const destination = await resolvePostAuthDestination(user.id, null);
+  redirect(destination);
 }
 
 function friendlyAuthError(message: string): string {

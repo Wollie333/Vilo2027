@@ -2,7 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const AUTH_ROUTES = ["/login", "/register", "/forgot-password"];
-const PROTECTED_PREFIXES = ["/dashboard", "/admin"];
+const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/portal"];
+
+// /signup is intentionally NOT in AUTH_ROUTES: the host wizard signs the
+// user in mid-flow (after step 1) and must keep rendering the rest of the
+// wizard while logged in. Each /signup/* page handles "already onboarded"
+// itself and redirects to the right destination.
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
