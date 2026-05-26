@@ -1,5 +1,7 @@
-import { Plus, ShieldCheck } from "lucide-react";
+import { Plus } from "lucide-react";
 import Link from "next/link";
+
+import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 import { AvatarMenu } from "./AvatarMenu";
 import { EntitySearch } from "./EntitySearch";
@@ -19,10 +21,16 @@ export function Topbar({
   email,
   initials,
   isPlatformStaff,
+  canHost = false,
+  hostDisplayName = null,
+  hostBlurb = null,
 }: {
   email: string;
   initials: string;
   isPlatformStaff?: boolean;
+  canHost?: boolean;
+  hostDisplayName?: string | null;
+  hostBlurb?: string | null;
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-brand-line bg-brand-light/95 backdrop-blur">
@@ -52,17 +60,16 @@ export function Topbar({
           {/* Entity search */}
           <EntitySearch />
 
-          {/* Switch to admin — only for active platform_staff */}
-          {isPlatformStaff ? (
-            <Link
-              href="/admin"
-              className="hidden items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent md:inline-flex"
-              title="Switch to the platform admin control centre"
-            >
-              <ShieldCheck className="h-4 w-4 text-brand-primary" />
-              Admin
-            </Link>
-          ) : null}
+          {/* Workspace switcher — visible on all viewports. Replaces the
+              old "Switch to admin" link and works for host↔guest too. */}
+          <WorkspaceSwitcher
+            current="host"
+            canHost={canHost}
+            canAdmin={isPlatformStaff === true}
+            hostDisplayName={hostDisplayName}
+            hostBlurb={hostBlurb}
+            compact
+          />
 
           {/* Notifications */}
           <NotificationBell />

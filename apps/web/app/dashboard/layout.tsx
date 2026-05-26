@@ -80,6 +80,16 @@ export default async function DashboardLayout({
   // finish onboarding). Either way they belong on /dashboard.
   const canHost = Boolean(host) || isHostByRole;
 
+  const planLabel =
+    plan === "free"
+      ? "Free"
+      : plan
+        ? plan[0].toUpperCase() + plan.slice(1)
+        : "—";
+  const hostBlurb = host
+    ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"} · ${planLabel}`
+    : null;
+
   const initials = (host?.display_name || user.email || "??")
     .slice(0, 2)
     .toUpperCase();
@@ -98,6 +108,9 @@ export default async function DashboardLayout({
             email={user.email ?? ""}
             initials={initials}
             isPlatformStaff={isPlatformStaff}
+            canHost={canHost}
+            hostDisplayName={host?.display_name ?? null}
+            hostBlurb={hostBlurb}
           />
           <BroadcastBanner />
           <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
