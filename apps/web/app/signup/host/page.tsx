@@ -19,6 +19,13 @@ export default async function HostSignupPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let prefilledFullName: string | null = null;
+  let prefilledPhone: string | null = null;
+  let prefilledBio: string | null = null;
+  let prefilledAvatar: string | null = null;
+  let prefilledLanguages: string[] | null = null;
+  let prefilledCountry: string | null = null;
+
   // If they're already a host, send them home — no point re-onboarding.
   if (user) {
     const { data: existingHost } = await supabase
@@ -29,10 +36,38 @@ export default async function HostSignupPage() {
     if (existingHost) {
       redirect("/dashboard");
     }
+
+    // Pre-seed any About-step fields they've already entered (full_name
+    // gets set on signup or via prior wizard runs). Without this, a user
+    // resuming the wizard would land on step 2 with empty fields and
+    // finalize would fail Zod validation on full_name (min 2).
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("full_name, phone, bio, avatar_url, languages, country")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile) {
+      prefilledFullName = (profile.full_name as string | null) ?? null;
+      prefilledPhone = (profile.phone as string | null) ?? null;
+      prefilledBio = (profile.bio as string | null) ?? null;
+      prefilledAvatar = (profile.avatar_url as string | null) ?? null;
+      prefilledLanguages = (profile.languages as string[] | null) ?? null;
+      prefilledCountry = (profile.country as string | null) ?? null;
+    }
   }
 
   // Unsigned users can land here directly — Step 1 (Account) creates the
   // auth user. If a signed-in user (no host row yet) comes back to finish,
-  // we just skip Step 1 client-side using the prefilledEmail prop.
-  return <Wizard prefilledEmail={user?.email ?? null} />;
+  // we skip Step 1 and seed every About-step field we already have.
+  return (
+    <Wizard
+      prefilledEmail={user?.email ?? null}
+      prefilledFullName={prefilledFullName}
+      prefilledPhone={prefilledPhone}
+      prefilledBio={prefilledBio}
+      prefilledAvatar={prefilledAvatar}
+      prefilledLanguages={prefilledLanguages}
+      prefilledCountry={prefilledCountry}
+    />
+  );
 }

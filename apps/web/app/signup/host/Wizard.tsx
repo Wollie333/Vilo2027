@@ -92,18 +92,31 @@ type WizardData = {
   billingCycle: "monthly" | "annual";
 };
 
-function initialData(prefilledEmail: string | null): WizardData {
+type Prefilled = {
+  email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  languages: string[] | null;
+  country: string | null;
+};
+
+function initialData(prefilled: Prefilled): WizardData {
   return {
-    fullName: "",
-    email: prefilledEmail ?? "",
+    fullName: prefilled.fullName ?? "",
+    email: prefilled.email ?? "",
     password: "",
     showPassword: false,
-    terms: false,
-    phone: "",
-    country: "South Africa",
-    bio: "",
-    languages: ["English"],
-    avatarUrl: "",
+    terms: prefilled.email !== null, // returning user → terms already accepted at first signup
+    phone: prefilled.phone ?? "",
+    country: prefilled.country ?? "South Africa",
+    bio: prefilled.bio ?? "",
+    languages:
+      prefilled.languages && prefilled.languages.length > 0
+        ? prefilled.languages
+        : ["English"],
+    avatarUrl: prefilled.avatarUrl ?? "",
     listingName: "",
     listingKind: "accommodation",
     accommodationType: "guesthouse",
@@ -185,11 +198,36 @@ function zodIssuesToFieldErrors(
   return out;
 }
 
-export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
+export function Wizard({
+  prefilledEmail,
+  prefilledFullName = null,
+  prefilledPhone = null,
+  prefilledBio = null,
+  prefilledAvatar = null,
+  prefilledLanguages = null,
+  prefilledCountry = null,
+}: {
+  prefilledEmail: string | null;
+  prefilledFullName?: string | null;
+  prefilledPhone?: string | null;
+  prefilledBio?: string | null;
+  prefilledAvatar?: string | null;
+  prefilledLanguages?: string[] | null;
+  prefilledCountry?: string | null;
+}) {
+  // Returning users (already signed in) skip Step 1.
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [data, setData] = useState<WizardData>(() =>
-    initialData(prefilledEmail),
+    initialData({
+      email: prefilledEmail,
+      fullName: prefilledFullName,
+      phone: prefilledPhone,
+      bio: prefilledBio,
+      avatarUrl: prefilledAvatar,
+      languages: prefilledLanguages,
+      country: prefilledCountry,
+    }),
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createPending, startCreate] = useTransition();
