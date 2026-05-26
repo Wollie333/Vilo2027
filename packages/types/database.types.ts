@@ -1,4 +1,5 @@
-﻿export type Json =
+Initialising login role...
+export type Json =
   | string
   | number
   | boolean
@@ -152,6 +153,56 @@ export type Database = {
           {
             foreignKeyName: "admin_audit_log_impersonating_fkey"
             columns: ["impersonating"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_message_batches: {
+        Row: {
+          body: string
+          channels: Json
+          created_at: string
+          created_by: string
+          id: string
+          link_label: string | null
+          link_url: string | null
+          recipient_count: number | null
+          recipient_ids: string[]
+          severity: string
+          title: string
+        }
+        Insert: {
+          body: string
+          channels?: Json
+          created_at?: string
+          created_by: string
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          recipient_count?: number | null
+          recipient_ids: string[]
+          severity?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          channels?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          recipient_count?: number | null
+          recipient_ids?: string[]
+          severity?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_message_batches_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -635,6 +686,101 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_acknowledgements: {
+        Row: {
+          acknowledged_at: string | null
+          broadcast_id: string
+          dismissed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          broadcast_id: string
+          dismissed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          broadcast_id?: string
+          dismissed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_acknowledgements_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_announcements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_acknowledgements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_announcements: {
+        Row: {
+          audience: string
+          body: string
+          cancelled_at: string | null
+          created_at: string
+          created_by: string
+          email_fanout_completed_at: string | null
+          ends_at: string | null
+          id: string
+          link_label: string | null
+          link_url: string | null
+          requires_ack: boolean
+          severity: string
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by: string
+          email_fanout_completed_at?: string | null
+          ends_at?: string | null
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          requires_ack?: boolean
+          severity: string
+          starts_at?: string
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          cancelled_at?: string | null
+          created_at?: string
+          created_by?: string
+          email_fanout_completed_at?: string | null
+          ends_at?: string | null
+          id?: string
+          link_label?: string | null
+          link_url?: string | null
+          requires_ack?: boolean
+          severity?: string
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1604,34 +1750,40 @@ export type Database = {
       in_app_notifications: {
         Row: {
           body: string | null
+          category_id: string
           created_at: string
           id: string
           kind: string
           link: string | null
           payload: Json
           read_at: string | null
+          severity: string
           title: string
           user_id: string
         }
         Insert: {
           body?: string | null
+          category_id?: string
           created_at?: string
           id?: string
           kind: string
           link?: string | null
           payload?: Json
           read_at?: string | null
+          severity?: string
           title: string
           user_id: string
         }
         Update: {
           body?: string | null
+          category_id?: string
           created_at?: string
           id?: string
           kind?: string
           link?: string | null
           payload?: Json
           read_at?: string | null
+          severity?: string
           title?: string
           user_id?: string
         }
@@ -2419,9 +2571,138 @@ export type Database = {
           },
         ]
       }
-      notification_queue: {
+      notification_categories: {
         Row: {
           created_at: string
+          default_for_role: Json
+          description: string
+          display_order: number
+          icon_name: string
+          id: string
+          is_locked: boolean
+          label: string
+          supports_digest: boolean
+        }
+        Insert: {
+          created_at?: string
+          default_for_role?: Json
+          description: string
+          display_order?: number
+          icon_name: string
+          id: string
+          is_locked?: boolean
+          label: string
+          supports_digest?: boolean
+        }
+        Update: {
+          created_at?: string
+          default_for_role?: Json
+          description?: string
+          display_order?: number
+          icon_name?: string
+          id?: string
+          is_locked?: boolean
+          label?: string
+          supports_digest?: boolean
+        }
+        Relationships: []
+      }
+      notification_delivery_log: {
+        Row: {
+          category_id: string | null
+          channel: string
+          created_at: string
+          dedupe_key: string | null
+          event_kind: string
+          id: string
+          read_at: string | null
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id?: string | null
+          channel: string
+          created_at?: string
+          dedupe_key?: string | null
+          event_kind: string
+          id?: string
+          read_at?: string | null
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string | null
+          channel?: string
+          created_at?: string
+          dedupe_key?: string | null
+          event_kind?: string
+          id?: string
+          read_at?: string | null
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_delivery_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_events: {
+        Row: {
+          category_id: string
+          created_at: string
+          email_template_key: string | null
+          feature: string
+          human_description: string | null
+          human_label: string
+          in_app_supported: boolean
+          kind: string
+          push_supported: boolean
+          severity: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          email_template_key?: string | null
+          feature: string
+          human_description?: string | null
+          human_label: string
+          in_app_supported?: boolean
+          kind: string
+          push_supported?: boolean
+          severity?: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          email_template_key?: string | null
+          feature?: string
+          human_description?: string | null
+          human_label?: string
+          in_app_supported?: boolean
+          kind?: string
+          push_supported?: boolean
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "notification_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_queue: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          dedupe_key: string | null
           error: string | null
           failed_at: string | null
           guest_id: string | null
@@ -2430,9 +2711,12 @@ export type Database = {
           payload: Json
           sent_at: string | null
           type: string
+          user_id: string | null
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           error?: string | null
           failed_at?: string | null
           guest_id?: string | null
@@ -2441,9 +2725,12 @@ export type Database = {
           payload?: Json
           sent_at?: string | null
           type: string
+          user_id?: string | null
         }
         Update: {
+          category_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           error?: string | null
           failed_at?: string | null
           guest_id?: string | null
@@ -2452,6 +2739,7 @@ export type Database = {
           payload?: Json
           sent_at?: string | null
           type?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2466,6 +2754,13 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2528,6 +2823,97 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_digest_items: {
+        Row: {
+          body: string | null
+          category_id: string
+          created_at: string
+          event_kind: string
+          id: string
+          link: string | null
+          payload: Json
+          sent_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category_id: string
+          created_at?: string
+          event_kind: string
+          id?: string
+          link?: string | null
+          payload?: Json
+          sent_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category_id?: string
+          created_at?: string
+          event_kind?: string
+          id?: string
+          link?: string | null
+          payload?: Json
+          sent_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_digest_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_push_queue: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_kind: string
+          failed_at: string | null
+          id: string
+          payload: Json
+          release_at: string
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_kind: string
+          failed_at?: string | null
+          id?: string
+          payload: Json
+          release_at?: string
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_kind?: string
+          failed_at?: string | null
+          id?: string
+          payload?: Json
+          release_at?: string
+          sent_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_push_queue_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3920,6 +4306,92 @@ export type Database = {
           },
         ]
       }
+      user_notification_preferences: {
+        Row: {
+          category_id: string
+          digest_mode: string
+          email_enabled: boolean
+          in_app_enabled: boolean
+          push_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          digest_mode?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          digest_mode?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          push_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_preferences_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "notification_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notification_settings: {
+        Row: {
+          dedupe_enabled: boolean
+          digest_send_hour: number
+          quiet_hours_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          quiet_hours_timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dedupe_enabled?: boolean
+          digest_send_hour?: number
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dedupe_enabled?: boolean
+          digest_send_hour?: number
+          quiet_hours_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          quiet_hours_timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notification_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_profiles: {
         Row: {
           avatar_url: string | null
@@ -4194,9 +4666,11 @@ export type Database = {
       enqueue_in_app_notification: {
         Args: {
           p_body?: string
+          p_category_id?: string
           p_kind: string
           p_link?: string
           p_payload?: Json
+          p_severity?: string
           p_title: string
           p_user_id: string
         }
@@ -4349,6 +4823,7 @@ export type Database = {
         Returns: undefined
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mark_delivery_read: { Args: { p_log_id: string }; Returns: undefined }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
       next_quote_number: { Args: { p_host_id: string }; Returns: string }
       populate_geometry_columns:
@@ -4394,6 +4869,16 @@ export type Database = {
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      resolve_notification_prefs: {
+        Args: { p_category_id: string; p_user_id: string }
+        Returns: {
+          digest_mode: string
+          email_enabled: boolean
+          in_app_enabled: boolean
+          is_locked: boolean
+          push_enabled: boolean
+        }[]
       }
       room_is_available: {
         Args: {
