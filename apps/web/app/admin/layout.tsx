@@ -31,16 +31,24 @@ export default async function AdminLayout({
 
   const impersonation = readImpersonationCookie();
 
-  // Does this admin user also have a hosts row? Drives whether the
-  // WorkspaceSwitcher offers "Host workspace" as an option.
+  // canHost for the WorkspaceSwitcher: hosts row OR user_profiles.role='host'.
+  // Mid-signup hosts get the toggle too.
   const supabase = createServerClient();
-  const { data: hostRow } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", admin.userId)
-    .is("deleted_at", null)
-    .maybeSingle();
-  const canHost = Boolean(hostRow?.id);
+  const [{ data: hostRow }, { data: profileRow }] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("id")
+      .eq("user_id", admin.userId)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", admin.userId)
+      .maybeSingle(),
+  ]);
+  const canHost =
+    Boolean(hostRow?.id) || (profileRow?.role as string | undefined) === "host";
 
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">

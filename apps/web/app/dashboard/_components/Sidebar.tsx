@@ -151,10 +151,13 @@ function NavLink({ item }: { item: Item }) {
 export function Sidebar({
   host,
   plan,
+  canHost,
   canAdmin = false,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
+  /** True if the user has a hosts row OR user_profiles.role='host'. */
+  canHost?: boolean;
   canAdmin?: boolean;
 }) {
   const planLabel =
@@ -179,7 +182,7 @@ export function Sidebar({
 
       <WorkspaceSwitcher
         current="host"
-        canHost={Boolean(host)}
+        canHost={canHost ?? Boolean(host)}
         canAdmin={canAdmin}
       />
 

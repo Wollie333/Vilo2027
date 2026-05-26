@@ -22,45 +22,38 @@ export default async function DashboardLayout({
     redirect("/login?next=/dashboard");
   }
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id, display_name, handle")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .maybeSingle();
-
-  // Routing priority (highest → lowest):
-  //   3. Platform staff           → /admin entry point (allowed through
-  //                                  here so they can QA the host surface).
-  //   2. Hosts row OR
-  //      user_profiles.role='host' → /dashboard (allow through; the page
-  //                                  itself renders an onboarding empty
-  //                                  state when host is null).
-  //   1. Plain guest               → /portal.
-  //
-  // The dashboard PAGE handles host = null gracefully ("Welcome to Vilo.
-  // Finish onboarding to take your first booking."), so we don't bounce
-  // hosts mid-onboarding away. We only redirect users who are clearly
-  // not hosts at all.
-  if (!host) {
-    const [{ data: staffRow }, { data: profileRow }] = await Promise.all([
+  const [{ data: host }, { data: profileRow }, { data: staffRow }] =
+    await Promise.all([
       supabase
-        .from("platform_staff")
-        .select("is_active")
+        .from("hosts")
+        .select("id, display_name, handle")
         .eq("user_id", user.id)
+        .is("deleted_at", null)
         .maybeSingle(),
       supabase
         .from("user_profiles")
         .select("role")
         .eq("id", user.id)
         .maybeSingle(),
+      supabase
+        .from("platform_staff")
+        .select("is_active")
+        .eq("user_id", user.id)
+        .maybeSingle(),
     ]);
-    const isStaff = staffRow?.is_active === true;
-    const role = (profileRow?.role as string | undefined) ?? "guest";
-    const isHostByRole = role === "host";
-    if (!isStaff && !isHostByRole) {
-      redirect("/portal");
-    }
+
+  const role = (profileRow?.role as string | undefined) ?? "guest";
+  const isPlatformStaff = staffRow?.is_active === true;
+  const isHostByRole = role === "host";
+
+  // Routing priority (highest → lowest):
+  //   3. Platform staff           → allowed through (so they can QA).
+  //   2. Hosts row OR role='host' → /dashboard (the page renders an empty
+  //                                  "Finish onboarding" state for hosts
+  //                                  mid-signup).
+  //   1. Plain guest               → /portal.
+  if (!host && !isPlatformStaff && !isHostByRole) {
+    redirect("/portal");
   }
 
   let listingCount = 0;
@@ -82,15 +75,10 @@ export default async function DashboardLayout({
     plan = subscription?.plan ?? null;
   }
 
-  // If the user is an active Vilo staff member, surface a "Switch to admin"
-  // toggle in the topbar. Mirrors the existing "Back to host dashboard" link
-  // on the admin sidebar so staff can move both ways.
-  const { data: staff } = await supabase
-    .from("platform_staff")
-    .select("is_active")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const isPlatformStaff = staff?.is_active === true;
+  // canHost for the workspace switcher: true if they have a hosts row OR
+  // their user_profiles.role is 'host' (signed up as a host but didn't
+  // finish onboarding). Either way they belong on /dashboard.
+  const canHost = Boolean(host) || isHostByRole;
 
   const initials = (host?.display_name || user.email || "??")
     .slice(0, 2)
@@ -102,6 +90,7 @@ export default async function DashboardLayout({
         <Sidebar
           host={host ? { ...host, listingCount } : null}
           plan={plan}
+          canHost={canHost}
           canAdmin={isPlatformStaff}
         />
         <main className="min-w-0 flex-1 pb-20 lg:pb-0">

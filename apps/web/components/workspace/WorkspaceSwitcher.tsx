@@ -62,14 +62,20 @@ export function WorkspaceSwitcher({ current, canHost, canAdmin }: Props) {
   const cur = OPTIONS[current];
   const CurIcon = cur.icon;
 
-  const available: Workspace[] = ["host", "guest", "admin"].filter((w) => {
+  // Always include the CURRENT workspace in the list — the user is by
+  // definition able to access it (they're on it right now). The other
+  // workspaces are gated on canHost / canAdmin / always-guest.
+  const available: Workspace[] = (
+    ["host", "guest", "admin"] as Workspace[]
+  ).filter((w) => {
+    if (w === current) return true;
     if (w === "guest") return true; // anyone can be a guest
     if (w === "host") return canHost;
     return canAdmin;
-  }) as Workspace[];
+  });
 
-  // If the user can only access one workspace (the one they're on), no
-  // need to render a switcher at all.
+  // If only one workspace is available (and that's the current one), no
+  // switcher needed — plain guests on /portal don't see anything.
   if (available.length <= 1) return null;
 
   return (

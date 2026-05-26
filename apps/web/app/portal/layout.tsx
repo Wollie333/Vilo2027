@@ -37,12 +37,17 @@ export default async function PortalLayout({
         .maybeSingle(),
       supabase
         .from("user_profiles")
-        .select("full_name, avatar_url")
+        .select("full_name, avatar_url, role")
         .eq("id", user.id)
         .maybeSingle(),
     ]);
 
   const displayName = profile?.full_name ?? user.email ?? "Guest";
+  // canHost = hosts row OR user_profiles.role='host'. Lets the switcher
+  // surface "Host workspace" for mid-signup hosts whose hosts row wasn't
+  // created yet.
+  const canHost =
+    Boolean(host?.id) || (profile?.role as string | undefined) === "host";
 
   return (
     <div className="flex min-h-screen bg-brand-light text-brand-ink">
@@ -50,7 +55,7 @@ export default async function PortalLayout({
         displayName={displayName}
         avatarUrl={profile?.avatar_url ?? null}
         email={user.email ?? ""}
-        canHost={Boolean(host?.id)}
+        canHost={canHost}
         canAdmin={staff?.is_active === true}
       />
       <main className="min-w-0 flex-1 pb-20 lg:pb-0">
