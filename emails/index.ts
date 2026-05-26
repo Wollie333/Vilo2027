@@ -1,4 +1,6 @@
 export { default as AccountSuspended } from "./templates/AccountSuspended";
+export { default as AdminMessageGeneric } from "./templates/AdminMessageGeneric";
+export { default as BroadcastCritical } from "./templates/BroadcastCritical";
 export { default as BookingCancelledGuest } from "./templates/BookingCancelledGuest";
 export { default as BookingCancelledHost } from "./templates/BookingCancelledHost";
 export { default as BookingConfirmedGuest } from "./templates/BookingConfirmedGuest";
@@ -9,6 +11,7 @@ export { default as EftInstructionsGuest } from "./templates/EftInstructionsGues
 export { default as EftProofReceivedHost } from "./templates/EftProofReceivedHost";
 export { default as EftRefundSentGuest } from "./templates/EftRefundSentGuest";
 export { default as NewReviewHost } from "./templates/NewReviewHost";
+export { default as NotificationDigest } from "./templates/NotificationDigest";
 export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverrideHost";
 export { default as RefundApprovedGuest } from "./templates/RefundApprovedGuest";
 export { default as RefundCompletedGuest } from "./templates/RefundCompletedGuest";

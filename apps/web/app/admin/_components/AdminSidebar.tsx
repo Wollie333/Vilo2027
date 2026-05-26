@@ -13,7 +13,9 @@ import {
   KeyRound,
   LifeBuoy,
   Mail,
+  Megaphone,
   MessageSquarePlus,
+  Send,
   ShieldAlert,
   Star,
   Users,
@@ -130,6 +132,18 @@ const SUPPORT: Item[] = [
 const PLATFORM: Item[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
+  {
+    href: "/admin/broadcasts",
+    label: "Broadcasts",
+    icon: Megaphone,
+    match: "prefix",
+  },
+  {
+    href: "/admin/notifications/sent",
+    label: "Send to users",
+    icon: Send,
+    match: "prefix",
+  },
   {
     href: "/admin/emails",
     label: "Email templates",

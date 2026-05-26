@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { MobileBottomNav } from "./_components/MobileBottomNav";
@@ -70,6 +71,7 @@ export default async function DashboardLayout({
             initials={initials}
             isPlatformStaff={isPlatformStaff}
           />
+          <BroadcastBanner />
           <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
         </main>
         <MobileBottomNav />

@@ -2,7 +2,10 @@ import type { ComponentType } from "react";
 
 import {
   AccountSuspended,
+  AdminMessageGeneric,
   BookingCancelledGuest,
+  BroadcastCritical,
+  NotificationDigest,
   BookingCancelledHost,
   BookingConfirmedGuest,
   BookingConfirmedHost,
@@ -208,6 +211,32 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "custom",
     subject: (p) =>
       `[Admin] Refund dispute escalated — ${str(p.bookingReference, "")}`.trim(),
+  },
+
+  // Broadcast fan-out worker pre-fills payload.recipient_email per user
+  // before inserting into notification_queue — so this is a "custom" recipient.
+  broadcast_critical: {
+    Template: BroadcastCritical as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) => str(p.title, "Important announcement from Vilo"),
+  },
+
+  // Admin individual sends. The send action loops per recipient and writes
+  // one queue row per recipient with guest_id or host_id set (so recipient
+  // resolution happens via the normal guest/host path).
+  admin_message_generic: {
+    Template: AdminMessageGeneric as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) => str(p.title, "A message from Vilo"),
+  },
+
+  // Digest drain inserts one queue row per (user, cadence) with
+  // recipient_email pre-filled and the grouped items in payload.
+  notification_digest: {
+    Template: NotificationDigest as ComponentType<Record<string, unknown>>,
+    recipient: "custom",
+    subject: (p) =>
+      `Your ${str(p.cadence, "daily")} Vilo digest`.replace(/\s+/g, " "),
   },
 };
 

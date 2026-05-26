@@ -27,7 +27,9 @@ type AuditTargetType =
   | "help_category"
   | "help_status"
   | "help_settings"
-  | "help_article_suggestion";
+  | "help_article_suggestion"
+  | "broadcast"
+  | "notification_send";
 
 export type AuditConfig<TArgs> = {
   /** Permission key the caller must hold. */

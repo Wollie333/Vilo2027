@@ -527,3 +527,100 @@ All jobs call their respective Edge Functions via `net.http_post`.
 - **Batch multi-device sends.** Use the Expo chunking helper — don't send 100 individual requests.
 - **In-app badges must match reality.** Unread count must update in real-time via Realtime — never show a stale badge count.
 - **Mobile Realtime subscriptions must be cleaned up** on component unmount (see `AGENT_RULES.md` Section 5).
+
+---
+
+## 9. Enterprise dispatcher (v2 — 2026-05-25 onward)
+
+Every notification now flows through a single entry point:
+
+```ts
+import { dispatchEvent } from "@/lib/notifications/dispatch";
+
+await dispatchEvent({
+  kind: "booking_confirmed_guest",      // typed event kind from the registry
+  recipientUserId: guest.user_id,
+  guestId: guest.id,                    // for email recipient resolution
+  refs: { booking_id: booking.id },     // thin refs — email resolver hydrates
+});
+```
+
+The dispatcher handles:
+
+1. Locked categories (account_security) — channels forced on regardless of prefs.
+2. User preferences (`user_notification_preferences`) — per category × per channel.
+3. Quiet hours — defers non-critical push to `pending_push_queue`.
+4. Digest mode — routes info / default events in `reviews` / `marketing_tips` to `pending_digest_items` for daily / weekly bundling.
+5. Cross-channel dedupe — skips email when a recent push for the same `dedupe_key` was already read.
+6. Email enqueue → `notification_queue` (thin payload; `apps/web/lib/email/resolvers/*` hydrates at drain time, caller-supplied keys still win).
+7. Push enqueue → `pending_push_queue` (Expo HTTP API, drained by `/api/push-worker`).
+8. In-app enqueue → `in_app_notifications` (Realtime → bell).
+9. Audit row in `notification_delivery_log` per dispatched channel.
+
+The dispatcher **MUST NOT throw** — a failed delivery never blocks the caller's main flow.
+
+### 9.1 Categories + events (taxonomy)
+
+`notification_categories` (9 rows seeded in `20260525000012`) drives the settings UI and the bell category-filter tabs. Each row carries a `lucide-react` icon name + per-role channel defaults + `is_locked` flag + `supports_digest` flag.
+
+`notification_events` (~30 rows) mirrors `apps/web/lib/notifications/registry.ts`. Two-axis tagging:
+
+- `category_id` → user-facing grouping (settings UI, bell tabs).
+- `feature` → admin-facing grouping (audit log filter, send history breakdown).
+
+Both tables are seed-driven — adding a category / event is INSERT only, no UI code change.
+
+### 9.2 Admin broadcasts (audience-based, severity-tiered)
+
+Composer at `/admin/broadcasts/new`. Severity drives presentation:
+
+- `info` → bell entry only (with 📢 Announcement pill).
+- `warning` → yellow dismissable banner via `BroadcastBanner`.
+- `critical` → red sticky banner with `Acknowledge` CTA + email blast (per-recipient via `broadcast-fanout-worker`).
+
+Audience picker: `all` / `hosts` / `guests` / `staff` / `super_admins`. RLS on `broadcast_announcements` filters to the recipient's role + active window.
+
+### 9.3 Admin individual sends (NEW)
+
+Composer at `/admin/notifications/send`. Multi-select user picker (cmdk `Command` + chip strip + role filter), title + body + optional deep link + severity (`info` / `default` / `high`, NOT `critical` — that's reserved for broadcasts). Channels picker: in-app always on, email + push opt-in per send.
+
+Each send creates one `admin_message_batches` row (visible at `/admin/notifications/sent`) and loops `dispatchEvent('admin_individual_message')` per recipient. `overrideChannels` makes the admin's per-batch channel picks take priority over per-user prefs (locked categories are still respected).
+
+---
+
+## 10. How to add a new notification type (3-step checklist)
+
+Adding a new event kind is fully additive — no schema migration is required unless the email body needs DB hydration via a new resolver.
+
+**Step 1 — Add a registry entry** in `apps/web/lib/notifications/registry.ts`:
+
+```ts
+my_new_event: {
+  category: "bookings",            // existing category id
+  feature: "booking",              // 'booking'|'refund'|'subscription'|'message'|'review'|'calendar'|'account'|'admin'
+  severity: "default",
+  emailTemplate: "my_new_event",   // OR omit — push/in-app-only events skip email
+  refKeys: ["booking_id"],         // docs only — the resolver expects these
+  push: (r) => ({ title: "…", body: "…", data: { screen: "/…" } }),
+  inApp: (r) => ({ title: "…", body: "…", link: "/…" }),
+  dedupeKey: (r) => `my_new_event:${r.booking_id}`,
+} satisfies EventBuilder<MyNewEventRefs>,
+```
+
+**Step 2 — Seed the event in the DB** (new migration under `supabase/migrations/`):
+
+```sql
+INSERT INTO public.notification_events
+  (kind, category_id, feature, severity, email_template_key,
+   push_supported, in_app_supported, human_label, human_description)
+VALUES
+  ('my_new_event', 'bookings', 'booking', 'default', 'my_new_event',
+   true, true, 'My new event', 'Human-readable description.');
+```
+
+The settings UI, bell filter tabs, and admin send-history view pick the new event up automatically because they read `notification_events` + `notification_categories` rather than hardcoded lists.
+
+**Step 3 — (Optional) Add an email resolver** if the email body needs DB lookup (`apps/web/lib/email/resolvers/`). If the caller passes the full payload OR there's no email channel, skip.
+
+Adding a new **category** is a pure seed INSERT into `notification_categories` (with an `icon_name` from `lucide-react`). The settings UI auto-groups by `display_order` (`<70` Activity, `=70` Account & security, `>70` Other).
+

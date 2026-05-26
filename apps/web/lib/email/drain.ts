@@ -30,6 +30,8 @@ type QueueRow = {
   host_id: string | null;
   guest_id: string | null;
   payload: Record<string, unknown> | null;
+  user_id: string | null;
+  category_id: string | null;
 };
 
 export async function drainEmailQueue(): Promise<DrainResult> {
@@ -43,7 +45,7 @@ export async function drainEmailQueue(): Promise<DrainResult> {
 
   const { data: rows, error: fetchError } = await supabase
     .from("notification_queue")
-    .select("id, type, host_id, guest_id, payload")
+    .select("id, type, host_id, guest_id, payload, user_id, category_id")
     .is("sent_at", null)
     .is("failed_at", null)
     .order("created_at", { ascending: true })
@@ -106,6 +108,28 @@ export async function drainEmailQueue(): Promise<DrainResult> {
       }
     }
     const payload: Record<string, unknown> = { ...resolved, ...rawPayload };
+
+    // Defense-in-depth: re-check the recipient's preference at send time.
+    // The dispatcher already gated at enqueue, but a category toggled off
+    // between enqueue and send shouldn't leak through.
+    if (row.user_id && row.category_id) {
+      const disabled = await emailDisabledForUser(
+        supabase,
+        row.user_id,
+        row.category_id,
+      );
+      if (disabled) {
+        await markFailed(supabase, row.id, "disabled_by_user");
+        result.skipped += 1;
+        result.details.push({
+          id: row.id,
+          type: row.type,
+          status: "skipped",
+          error: "disabled_by_user",
+        });
+        continue;
+      }
+    }
 
     const recipientEmail = await resolveRecipientEmail(
       supabase,
@@ -204,6 +228,23 @@ async function resolveRecipientEmail(
     email: string | null;
   } | null;
   return profile?.email ?? null;
+}
+
+async function emailDisabledForUser(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  categoryId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .rpc("resolve_notification_prefs", {
+      p_user_id: userId,
+      p_category_id: categoryId,
+    })
+    .single();
+  if (!data) return false;
+  const row = data as { email_enabled: boolean; is_locked: boolean };
+  if (row.is_locked) return false;
+  return row.email_enabled === false;
 }
 
 async function markSent(

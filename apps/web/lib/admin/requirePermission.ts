@@ -26,7 +26,10 @@ export type PermissionKey =
   | "platform.features"
   | "platform.staff"
   | "audit.view"
-  | "help.manage";
+  | "help.manage"
+  | "notifications.broadcast"
+  | "notifications.send_individual"
+  | "notifications.view_history";
 
 /**
  * Resolves to the admin context if the caller holds `permissionKey`. On denial,

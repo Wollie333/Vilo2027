@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { enqueueInAppNotification } from "@/lib/notifications/enqueue";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
@@ -109,21 +109,25 @@ export async function submitReviewAction(
     .update({ sent_at: new Date().toISOString() })
     .eq("booking_id", bookingId);
 
-  // Notify the host in-app. Look up hosts.user_id so we know who to ping.
+  // Notify the host across all enabled channels (email + in-app, push if
+  // they have a token). Email payload is hydrated by newReviewHostResolver
+  // from review_id.
   const { data: hostRow } = await admin
     .from("hosts")
     .select("user_id")
     .eq("id", booking.host_id)
     .maybeSingle();
   if (hostRow?.user_id) {
-    await enqueueInAppNotification({
-      userId: hostRow.user_id,
+    await dispatchEvent({
       kind: "new_review_host",
-      title: `New ${parsed.data.rating}★ review`,
-      body: parsed.data.body
-        ? parsed.data.body.slice(0, 120)
-        : "A guest left a rating on one of your listings.",
-      link: "/dashboard/reviews",
+      recipientUserId: hostRow.user_id,
+      hostId: booking.host_id,
+      refs: {
+        review_id: inserted.id,
+        booking_id: bookingId,
+        rating: parsed.data.rating,
+        excerpt: parsed.data.body ? parsed.data.body.slice(0, 120) : undefined,
+      },
     });
   }
 

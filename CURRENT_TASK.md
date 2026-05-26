@@ -2,12 +2,14 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
-**Date:** 2026-05-25 (post wave 3)
-**Phase:** Pre-MVP launch path. Code-side of host + guest experiences is
-substantially complete. Remaining work is operational — credentials,
-domain verification, region migration.
-**Session Goal (next):** Pick one of the launch-ops items below OR a
-deferred polish item if launch-ops are blocked.
+**Date:** 2026-05-26 (post enterprise notification system)
+**Phase:** Pre-MVP launch path. Notification system shipped on
+`feat/notifications` (8 commits, type-clean, awaiting merge to main).
+Code-side of host + guest experiences is substantially complete.
+Remaining work is operational — credentials, domain verification,
+region migration.
+**Session Goal (next):** Merge `feat/notifications` to main (after
+review) then pick one of the launch-ops items below.
 
 ---
 
@@ -29,6 +31,29 @@ deferred polish item if launch-ops are blocked.
 
 See `CHANGELOG.md` 2026-05-25 wave 3 entry for full detail + the five
 commits (`2fdc586` → `2eba3c0`).
+
+### Enterprise notification system (2026-05-26 — on `feat/notifications`)
+
+8 commits, ~6,500 LOC. Not merged yet. See `NOTIFICATIONS.md` §9–§10 and
+`supabase_database.md` Domain 13 for the full architecture.
+
+Shipped: single `dispatchEvent()` entry point cooperating with the email
+resolver pattern, 9-category taxonomy with lucide icons + per-role
+defaults, host + guest preferences UI with quiet hours / digest /
+dedupe, super-admin broadcasts (info / warning / critical) with
+audience targeting and acknowledgement tracking, admin individual sends
+to selected users via multi-pick + chip strip with history view at
+`/admin/notifications/sent`, digest worker (daily + weekly cadences),
+bell with category filter tabs + severity styling.
+
+**Before merging:**
+- Run `vault.create_secret` for `push_worker_url`, `digest_worker_url`,
+  `broadcast_worker_url` in each env's Supabase SQL Editor (all three
+  share the existing `email_worker_secret`).
+- `supabase db reset` + `supabase gen types typescript --local >
+  packages/types/database.types.ts`.
+- Smoke: send one broadcast (warning) to `all`; confirm BroadcastBanner
+  renders on dashboard / admin / account pages.
 
 ---
 

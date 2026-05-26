@@ -27,6 +27,11 @@ const TABS: Tab[] = [
     match: "prefix",
   },
   {
+    href: "/dashboard/settings/notifications",
+    label: "Notifications",
+    match: "prefix",
+  },
+  {
     href: "/dashboard/settings/data",
     label: "Data & privacy",
     match: "prefix",

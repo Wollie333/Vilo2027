@@ -2,65 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 
-import { enqueueInAppNotification } from "@/lib/notifications/enqueue";
+import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type BookingActionResult = { ok: true } | { ok: false; error: string };
 
-type NotifyTarget = {
-  userId: string;
-  kind: string;
-  title: string;
-  body?: string | null;
-  link?: string;
-};
-
-const NOTIFY_AFTER: Partial<
-  Record<keyof typeof TRANSITIONS, (b: BookingRow) => NotifyTarget[]>
-> = {
-  confirm: (b) =>
-    b.guest_id
-      ? [
-          {
-            userId: b.guest_id,
-            kind: "booking_confirmed_guest",
-            title: "Your booking is confirmed",
-            body: b.reference
-              ? `Reference ${b.reference} — your stay is locked in.`
-              : "Your stay is locked in.",
-            link: `/my-trips/${b.id}`,
-          },
-        ]
-      : [],
-  decline: (b) =>
-    b.guest_id
-      ? [
-          {
-            userId: b.guest_id,
-            kind: "booking_declined_guest",
-            title: "Booking request declined",
-            body: b.reference
-              ? `Reference ${b.reference} — the host couldn't accept this stay.`
-              : "The host couldn't accept this stay.",
-            link: `/my-trips/${b.id}`,
-          },
-        ]
-      : [],
-  cancel: (b) =>
-    b.guest_id
-      ? [
-          {
-            userId: b.guest_id,
-            kind: "booking_cancelled_guest",
-            title: "Booking cancelled by the host",
-            body: b.reference
-              ? `Reference ${b.reference} — please check your refund email.`
-              : "Please check your refund email.",
-            link: `/my-trips/${b.id}`,
-          },
-        ]
-      : [],
-};
+// Per-transition mapping: which registry event kind fires for which
+// transition. The dispatcher routes through email + push + in-app per the
+// guest's category preferences; the email side hydrates listing_name etc.
+// from booking_id via apps/web/lib/email/resolvers/booking.ts.
+//
+// `as const` narrows the value type to the union of these three literal
+// event kinds so dispatchEvent's RefsFor<K> narrows to BookingRefs (rather
+// than the intersection of all event refs).
+const NOTIFY_KIND = {
+  confirm: "booking_confirmed_guest",
+  decline: "booking_declined_guest",
+  cancel: "booking_cancelled_guest",
+} as const;
 
 type BookingRow = {
   id: string;
@@ -150,10 +109,16 @@ async function applyTransition(
     return { ok: false, error: "Could not update booking. Try again." };
   }
 
-  const notifyFn = NOTIFY_AFTER[kind];
-  if (notifyFn) {
-    const targets = notifyFn(booking as BookingRow);
-    await Promise.all(targets.map((t) => enqueueInAppNotification(t)));
+  const notifyKind = NOTIFY_KIND[kind as keyof typeof NOTIFY_KIND];
+  if (notifyKind && booking.guest_id) {
+    await dispatchEvent({
+      kind: notifyKind,
+      recipientUserId: booking.guest_id,
+      guestId: booking.guest_id,
+      // Thin refs: drain.ts → bookingResolver hydrates the rest for email.
+      // In-app/push builders gracefully fall back when listing_name is absent.
+      refs: { booking_id: booking.id },
+    });
   }
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);

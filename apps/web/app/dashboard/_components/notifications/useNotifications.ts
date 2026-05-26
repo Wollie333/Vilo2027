@@ -12,9 +12,11 @@ export type AppNotification = {
   link: string | null;
   read_at: string | null;
   created_at: string;
+  category_id: string;
+  severity: "info" | "default" | "high" | "critical";
 };
 
-const LIST_LIMIT = 20;
+const LIST_LIMIT = 30;
 
 export function useNotifications() {
   const supabase = React.useMemo(() => createClient(), []);
@@ -27,7 +29,9 @@ export function useNotifications() {
     setError(null);
     const { data, error } = await supabase
       .from("in_app_notifications")
-      .select("id, kind, title, body, link, read_at, created_at")
+      .select(
+        "id, kind, title, body, link, read_at, created_at, category_id, severity",
+      )
       .order("created_at", { ascending: false })
       .limit(LIST_LIMIT);
     if (error) {
@@ -76,6 +80,26 @@ export function useNotifications() {
 
   const unreadCount = items.filter((item) => !item.read_at).length;
 
+  // Derive the category tabs from the loaded items, preserving order and
+  // showing per-category unread counts. The "all" tab is always present.
+  const categories = React.useMemo(() => {
+    const seen = new Map<
+      string,
+      { id: string; unread: number; total: number }
+    >();
+    for (const it of items) {
+      const cur = seen.get(it.category_id) ?? {
+        id: it.category_id,
+        unread: 0,
+        total: 0,
+      };
+      cur.total += 1;
+      if (!it.read_at) cur.unread += 1;
+      seen.set(it.category_id, cur);
+    }
+    return Array.from(seen.values());
+  }, [items]);
+
   const markRead = React.useCallback(
     async (id: string) => {
       setItems((prev) =>
@@ -104,5 +128,14 @@ export function useNotifications() {
       .is("read_at", null);
   }, [supabase]);
 
-  return { items, unreadCount, loading, error, refresh, markRead, markAllRead };
+  return {
+    items,
+    categories,
+    unreadCount,
+    loading,
+    error,
+    refresh,
+    markRead,
+    markAllRead,
+  };
 }

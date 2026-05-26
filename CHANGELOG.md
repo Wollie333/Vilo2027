@@ -31,6 +31,110 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-26 — Enterprise notification system (5 phases on feat/notifications)
+
+Built the coordinating brain on top of the existing notification plumbing
+(notification_queue + in_app_notifications + push_tokens + email resolvers
+from 8ae439f). Single dispatcher, seed-driven taxonomy, modern preferences
+UI, super-admin broadcasts, and admin individual sends. All work on a
+feature branch (`feat/notifications`) per `AGENT_RULES.md` §8 anti-wipe
+protocol; never on `main`. 8 wip commits, `pnpm tsc --noEmit` clean.
+
+### Shipped (Phases A–E)
+
+- **Phase A — Foundation**
+  - 3 migrations (`20260525000011/12/13`): 8 new tables, ALTERs on
+    notification_queue + in_app_notifications, 3 RPCs (8-arg
+    enqueue_in_app_notification, resolve_notification_prefs,
+    mark_delivery_read), 4 cron jobs (push drain / digest / broadcast
+    fanout / expire).
+  - 3 new `PermissionKey`s + 2 new `AuditTargetType`s.
+  - `apps/web/lib/notifications/{types,registry,dispatch,push,push-queue}.ts`:
+    single `dispatchEvent()` entry point. Cooperates with the resolver
+    pattern — writes THIN refs to notification_queue, drain.ts hydrates.
+    9-step flow: lookup → prefs → quiet hours → digest → dedupe → email →
+    push → in-app → log.
+  - `/api/push-worker` + `/api/register-push-token` (Expo HTTP, no SDK).
+  - Migrated `bookings/actions.ts` + `review/[bookingId]/actions.ts` to
+    `dispatchEvent`.
+
+- **Phase B — User preferences**
+  - `/dashboard/settings/notifications` (host) + `/account/settings/
+    notifications` (guest) + minimal guest settings shell.
+  - `PreferencesForm` — card-per-category UI with `lucide-react` icons
+    looked up by `notification_categories.icon_name`. Three visual groups
+    (Activity / Account & security / Other) derived from `display_order`.
+    Per-channel checkboxes, digest mode select for supports_digest
+    categories, quiet hours + dedupe + digest delivery hour, sticky save
+    bar.
+  - `drain.ts` defense-in-depth pref re-check via `resolve_notification_prefs`.
+
+- **Phase C — Admin broadcasts**
+  - `/admin/broadcasts` list + new + detail + `CancelButton` (reason
+    required). `withAdminAudit`-wrapped actions.
+  - `BroadcastBanner` (server component) mounted in dashboard / admin /
+    account/settings layouts. Critical → red sticky + Acknowledge.
+    Warning → yellow dismissable. Info → bell only.
+  - `BroadcastCritical.tsx` email template + `broadcast-fanout.ts` worker
+    that fans the body out per recipient with `recipient_email` pre-filled.
+    Idempotent via `email_fanout_completed_at`.
+
+- **Phase D — Admin individual sends (NEW v2 feature)**
+  - `/admin/notifications/send` composer + `/admin/notifications/sent`
+    history.
+  - `UserMultiPicker.tsx` — cmdk `Command` + `Popover` + chip strip,
+    200ms debounced typeahead via `searchUsersAction`, role filter.
+  - `sendIndividualNotificationAction` persists a row in
+    `admin_message_batches`, then loops
+    `dispatchEvent('admin_individual_message')` per recipient with
+    `overrideChannels` so the admin's per-batch channel picks win.
+  - `AdminMessageGeneric.tsx` email template.
+
+- **Phase E — Digest + bell category tabs + docs**
+  - `lib/notifications/digest.ts` + `/api/digest-worker` route +
+    `NotificationDigest.tsx` template. Hourly drain groups
+    `pending_digest_items` by category and fires when local hour matches
+    the user's `digest_send_hour` (weekly mode = Monday only).
+  - `useNotifications.ts` + `NotificationBell.tsx` extended: surfaces
+    `category_id` + `severity`, shows per-severity dot colors (red
+    critical / amber high / brand default), renders category filter tabs
+    derived from loaded items, 📢 Announcement pill on broadcast entries.
+  - `NOTIFICATIONS.md` v2: §9 architecture + §10 three-step "How to add a
+    new notification type" checklist.
+  - `supabase_database.md` Domain 13 appended with full schema reference.
+
+### What's NOT done
+
+- Branch is still on `feat/notifications`; not merged to `main`.
+- Cron Vault secrets (`push_worker_url`, `digest_worker_url`,
+  `broadcast_worker_url`) need a one-time `vault.create_secret` per env
+  before the workers fire.
+- Mobile push registration (Expo app calling `/api/register-push-token`
+  on login) is the dispatch endpoint's counterpart — separate task.
+
+### Anti-wipe protocol observed
+
+- Feature branch from the start (`git checkout -b feat/notifications`).
+- Explicit-file staging only — no `git add .` or `git add -A`.
+- Contested files (`requirePermission.ts`, `withAdminAudit.ts`,
+  `AdminSidebar.tsx`, `drain.ts`, `EMAIL_REGISTRY`, settings tabs,
+  dashboard/admin/account layouts) re-read immediately before edit.
+- 8 wip commits — never more than ~30 min between checkpoints.
+- `pnpm tsc --noEmit` clean after every phase.
+
+### Commits
+
+- `wip(notifications): phase a.1 schema + seed migrations + permission keys` — `713b64f`
+- `wip(notifications): phase a.2 dispatcher + push channel + cron` — `fd1b877`
+- `wip(notifications): phase a.3 migrate booking + review actions to dispatchEvent` — `59917f0`
+- `fix(notifications): type narrowing in dispatcher + booking action` — `879b5b1`
+- `wip(notifications): phase b — preferences ui for host + guest` — `86b7115`
+- `wip(notifications): phase c — admin broadcasts (composer + banner + fanout)` — `f0443a8`
+- `wip(notifications): phase d — admin individual sends (multi-pick + history)` — `7c7ae69`
+- `wip(notifications): phase e — digest + bell category tabs + docs` — `(pending this commit)`
+
+---
+
 ## 2026-05-25 — Email templates filled out (12 new) + /admin/emails control page
 
 Parallel-track session alongside the guest-experience booking work. Closed

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import {
   AdminAccessDenied,
   readImpersonationCookie,
@@ -40,6 +41,7 @@ export default async function AdminLayout({
             startedAt={impersonation.startedAt}
           />
         ) : null}
+        <BroadcastBanner />
         <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
       </main>
     </div>

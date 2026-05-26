@@ -3706,4 +3706,62 @@ ON CONFLICT (key) DO NOTHING;
 
 ---
 
+## Domain 13 — Enterprise notification system (2026-05-25)
+
+Schema added in `20260525000011_notification_system_schema.sql` + seeded in `..._seed.sql` + crons in `..._cron.sql`.
+
+### Taxonomy (seed-driven, additive)
+
+- **`notification_categories`** — 9 rows. `id` PK, `label`, `description`, `icon_name` (lucide), `is_locked`, `default_for_role` (jsonb per-role channel defaults), `supports_digest`, `display_order`. RLS: authenticated SELECT.
+- **`notification_events`** — ~30 rows. `kind` PK matches `apps/web/lib/notifications/registry.ts` keys. `category_id`, `feature`, `severity`, `email_template_key`, `push_supported`, `in_app_supported`, `human_label`, `human_description`. RLS: authenticated SELECT.
+
+### User preferences
+
+- **`user_notification_preferences`** — PK `(user_id, category_id)`. `email_enabled`, `push_enabled`, `in_app_enabled`, `digest_mode ('off'|'daily'|'weekly')`. RLS: owner-only ALL + service_role SELECT.
+- **`user_notification_settings`** — PK `user_id`. `quiet_hours_enabled`, `quiet_hours_start`, `quiet_hours_end`, `quiet_hours_timezone`, `dedupe_enabled`, `digest_send_hour`. RLS: owner-only ALL.
+
+### Admin broadcasts (audience-based)
+
+- **`broadcast_announcements`** — `severity` ('info'|'warning'|'critical'), `audience` ('all'|'hosts'|'guests'|'staff'|'super_admins'), `title`, `body`, `link_url`, `link_label`, `requires_ack`, `starts_at`, `ends_at`, `cancelled_at`, `email_fanout_completed_at`. RLS: recipients SELECT active + matching `get_my_role()`; super_admin ALL.
+- **`broadcast_acknowledgements`** — PK `(broadcast_id, user_id)`. `dismissed_at` (warning tier), `acknowledged_at` (critical tier). RLS: owner ALL + super_admin SELECT.
+
+### Admin individual sends
+
+- **`admin_message_batches`** — `id`, `created_by`, `title`, `body`, `link_url`, `link_label`, `severity` ('info'|'default'|'high'), `channels` jsonb, `recipient_ids` uuid[], `recipient_count` (generated). RLS: super_admin SELECT + holders of `notifications.view_history`.
+
+### Channel buffers
+
+- **`notification_queue`** (existing) — extended with `user_id`, `category_id`, `dedupe_key`. Drained by `/api/email-worker`.
+- **`pending_push_queue`** — `payload jsonb`, `release_at` (quiet-hours defer). Drained by `/api/push-worker` every minute.
+- **`pending_digest_items`** — buffer for `supports_digest` categories. Drained by `/api/digest-worker` hourly; groups by `(user_id, category_id)` and fires when local hour matches `user_notification_settings.digest_send_hour`.
+- **`notification_delivery_log`** (INSERT-only) — per-channel audit + dedupe lookup substrate.
+
+### RPCs
+
+- `enqueue_in_app_notification(p_user_id, p_kind, p_title, p_body?, p_link?, p_payload?, p_category_id?, p_severity?)` → uuid. SECURITY DEFINER, service_role grant.
+- `resolve_notification_prefs(p_user_id, p_category_id)` → TABLE(email_enabled, push_enabled, in_app_enabled, digest_mode, is_locked). Handles locked-override + role-default fallback.
+- `mark_delivery_read(p_log_id)` → void. Lets the in-app + mobile layers update `notification_delivery_log.read_at` for their own rows.
+
+### Admin RBAC additions
+
+Three new permission keys via `INSERT INTO admin_permissions`:
+- `notifications.broadcast` — super_admin
+- `notifications.send_individual` — super_admin + support_agent
+- `notifications.view_history` — super_admin + support_agent
+
+Two new `admin_audit_log.target_type` values: `broadcast`, `notification_send`.
+
+### Cron jobs (all Vault-secret pattern from `20260525000007`)
+
+| Job | Schedule | Effect |
+|---|---|---|
+| `drain-push-queue` | every 1 min | POST `/api/push-worker` if due rows exist |
+| `drain-digest-queue` | hourly at `:05` | POST `/api/digest-worker` (worker filters per-user hour) |
+| `broadcast-fanout` | every 1 min | POST `/api/broadcast-fanout-worker` if critical broadcasts pending |
+| `deactivate-expired-broadcasts` | hourly at `:15` | pure SQL — sets `cancelled_at = ends_at` for expired rows |
+
+Required Vault secrets per env: `push_worker_url`, `digest_worker_url`, `broadcast_worker_url` (one-time SQL Editor create). All three share the existing `email_worker_secret`.
+
+---
+
 *This document is the single source of truth for the Vilo database architecture. All schema changes must be reflected here before implementation. Reference alongside `vilo-platform-mvp.md` (v1.2) and `customer_journey.md` (v1.0).*
