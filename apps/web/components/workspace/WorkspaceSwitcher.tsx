@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Compass,
   LayoutDashboard,
+  PlusCircle,
   ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
@@ -119,6 +120,24 @@ export function WorkspaceSwitcher({
   // switcher needed — plain guests on /portal don't see anything.
   if (available.length <= 1) return null;
 
+  // Per-workspace quick actions shown under a divider in the dropdown.
+  // For host: "Create another listing" so the host can spin up a second
+  // accommodation/experience without leaving the toggle.
+  const quickActions: Array<{
+    href: string;
+    label: string;
+    icon: typeof PlusCircle;
+    show: boolean;
+  }> = [
+    {
+      href: "/dashboard/listings/new",
+      label: "Create another listing",
+      icon: PlusCircle,
+      show: canHost,
+    },
+  ];
+  const visibleQuickActions = quickActions.filter((a) => a.show);
+
   const dropdown = (
     <PopoverContent
       align="end"
@@ -160,6 +179,33 @@ export function WorkspaceSwitcher({
           );
         })}
       </ul>
+
+      {visibleQuickActions.length > 0 ? (
+        <>
+          <div className="my-1 border-t border-brand-line" />
+          <ul className="space-y-0.5">
+            {visibleQuickActions.map((a) => {
+              const Icon = a.icon;
+              return (
+                <li key={a.href}>
+                  <Link
+                    href={a.href}
+                    onClick={() => setOpen(false)}
+                    className="flex items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-brand-light"
+                  >
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-primary/10 text-brand-primary">
+                      <Icon className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-[12px] font-semibold text-brand-ink">
+                      {a.label}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : null}
     </PopoverContent>
   );
 

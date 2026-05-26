@@ -194,28 +194,11 @@ export function Sidebar({
         }
       />
 
-      {/* Host profile card — links to the public-profile editor */}
-      <div className="mb-2 px-3">
-        {host ? (
-          <Link
-            href="/dashboard/settings/host"
-            className="flex w-full items-center gap-2.5 rounded-md border border-brand-line px-3 py-2 text-left transition-colors hover:bg-brand-light"
-            title="Edit your public host profile"
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-secondary font-display text-[10px] font-bold text-white">
-              {host.display_name.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[12px] font-semibold text-brand-ink">
-                {host.display_name}
-              </div>
-              <div className="text-[10px] text-brand-mute">
-                {host.listingCount}{" "}
-                {host.listingCount === 1 ? "listing" : "listings"} · {planLabel}
-              </div>
-            </div>
-          </Link>
-        ) : (
+      {/* Empty-state nudge for users who haven't completed host signup yet.
+          Real hosts get their identity from the WorkspaceSwitcher above —
+          no need for a duplicate "host profile card" here. */}
+      {!host ? (
+        <div className="mb-2 px-3">
           <Link
             href="/signup/host"
             className="flex w-full items-center gap-2.5 rounded-md border border-dashed border-brand-primary/40 bg-brand-accent/40 px-3 py-2 text-left transition-colors hover:bg-brand-accent"
@@ -230,8 +213,8 @@ export function Sidebar({
               <div className="text-[10px] text-brand-mute">5 quick steps</div>
             </div>
           </Link>
-        )}
-      </div>
+        </div>
+      ) : null}
 
       {/* Quick search */}
       <QuickSearchButton />
