@@ -26,7 +26,7 @@ export default async function DashboardLayout({
     await Promise.all([
       supabase
         .from("hosts")
-        .select("id, display_name, handle")
+        .select("id, display_name, handle, avatar_url")
         .eq("user_id", user.id)
         .is("deleted_at", null)
         .maybeSingle(),
@@ -111,7 +111,13 @@ export default async function DashboardLayout({
             canHost={canHost}
             hostDisplayName={host?.display_name ?? null}
             hostBlurb={hostBlurb}
-            avatarUrl={(profileRow?.avatar_url as string | null) ?? null}
+            avatarUrl={
+              ((profileRow?.avatar_url as string | null) ||
+                ((host as { avatar_url?: string | null } | null)?.avatar_url as
+                  | string
+                  | null)) ??
+              null
+            }
           />
           <BroadcastBanner />
           <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
