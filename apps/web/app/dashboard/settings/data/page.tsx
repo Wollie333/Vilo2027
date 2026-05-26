@@ -4,6 +4,7 @@ import { History } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { DeleteAccountSection } from "./DeleteAccountSection";
 import { RequestSection } from "./RequestForm";
 
 export const metadata: Metadata = {
@@ -103,6 +104,8 @@ export default async function SettingsDataPage() {
             : null
         }
       />
+
+      <DeleteAccountSection email={user.email ?? ""} />
 
       {rows.length > 0 ? (
         <section>
