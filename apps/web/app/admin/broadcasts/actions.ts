@@ -118,6 +118,22 @@ async function runCreateBroadcast(
     return { ok: false, error: error?.message ?? "Insert failed." };
   }
 
+  // Fan out to in_app_notifications synchronously so the bell sees the
+  // broadcast immediately (via Realtime). Without this, info-tier
+  // broadcasts have no visible surface and warning/critical only show
+  // as a banner until dismissed (no historical record in the bell).
+  // Fire-and-forget — never roll back the broadcast if fan-out fails.
+  const { fanoutBroadcastToInApp } =
+    await import("@/lib/notifications/broadcast-fanout");
+  await fanoutBroadcastToInApp({
+    id: data.id as string,
+    severity: data.severity as string,
+    audience: data.audience as string,
+    title: data.title as string,
+    body: data.body as string,
+    link_url: (data.link_url as string | null) ?? null,
+  });
+
   // Now call the wrapper purely for its audit-log side effect (the row is
   // already inserted; the wrapper just needs the after state + target id).
   try {
