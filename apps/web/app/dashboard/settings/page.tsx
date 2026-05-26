@@ -39,13 +39,13 @@ export default async function SettingsProfilePage() {
       <ProfileForm
         defaults={{
           full_name: profile?.full_name ?? "",
+          email: profile?.email ?? user?.email ?? "",
           phone: profile?.phone ?? "",
           avatar_url: avatarUrl,
           display_name: host?.display_name ?? "",
           bio: host?.bio ?? "",
           website_url: host?.website_url ?? "",
         }}
-        email={profile?.email ?? user?.email ?? ""}
         host={
           host
             ? { handle: host.handle, isVerified: host.is_verified ?? false }

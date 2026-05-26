@@ -31,11 +31,9 @@ import { profileSchema, type ProfileInput } from "./schemas";
 
 export function ProfileForm({
   defaults,
-  email,
   host,
 }: {
   defaults: ProfileInput;
-  email: string;
   host: { handle: string; isVerified: boolean } | null;
 }) {
   const [pending, start] = useTransition();
@@ -49,7 +47,8 @@ export function ProfileForm({
 
   const avatarUrl = form.watch("avatar_url");
   const fullName = form.watch("full_name");
-  const initials = (fullName || email || "??").slice(0, 2).toUpperCase();
+  const watchedEmail = form.watch("email");
+  const initials = (fullName || watchedEmail || "??").slice(0, 2).toUpperCase();
 
   function onSubmit(values: ProfileInput) {
     start(async () => {
@@ -103,9 +102,7 @@ export function ProfileForm({
             <CardTitle className="font-display text-base">You</CardTitle>
             <CardDescription className="text-brand-mute">
               Your name and photo appear in the header, on bookings, and on your
-              public host page. Email is{" "}
-              <span className="font-mono text-brand-ink">{email}</span> — change
-              it via the auth flow.
+              public host page.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -176,6 +173,29 @@ export function ProfileForm({
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      disabled={pending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-brand-mute">
+                    Used for sign-in and all account notifications.
+                  </p>
                 </FormItem>
               )}
             />

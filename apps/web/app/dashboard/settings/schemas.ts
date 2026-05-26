@@ -9,6 +9,12 @@ export const profileSchema = z.object({
     .trim()
     .min(2, "Enter your name.")
     .max(120, "Name is too long."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Enter a valid email address.")
+    .max(254, "Email is too long."),
   phone: z
     .string()
     .trim()

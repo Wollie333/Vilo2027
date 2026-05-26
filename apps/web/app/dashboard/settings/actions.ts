@@ -34,11 +34,40 @@ export async function saveProfileAction(
   const websiteUrl =
     d.website_url && d.website_url.length > 0 ? d.website_url : null;
 
+  // Email change — pre-MVP we update both auth.users and user_profiles via
+  // the admin client (immediate, no confirmation email). When real users
+  // land switch to supabase.auth.updateUser({ email }) for the standard
+  // confirm-via-email flow.
+  const currentEmail = (user.email ?? "").toLowerCase();
+  const nextEmail = d.email.toLowerCase();
+  if (nextEmail !== currentEmail) {
+    const admin = createAdminClient();
+    const { error: emailErr } = await admin.auth.admin.updateUserById(user.id, {
+      email: nextEmail,
+      email_confirm: true,
+    });
+    if (emailErr) {
+      const msg = emailErr.message.toLowerCase();
+      if (msg.includes("already") || msg.includes("registered")) {
+        return {
+          ok: false,
+          error: "That email is already in use by another account.",
+        };
+      }
+      console.error("[settings:saveProfile] email update failed", emailErr);
+      return {
+        ok: false,
+        error: `Could not change your email: ${emailErr.message}`,
+      };
+    }
+  }
+
   // Always update user_profiles. Avatar lives here too — the layout reads it.
   const { error: profileErr } = await supabase
     .from("user_profiles")
     .update({
       full_name: d.full_name,
+      email: nextEmail,
       phone,
       avatar_url: avatarUrl,
     })
