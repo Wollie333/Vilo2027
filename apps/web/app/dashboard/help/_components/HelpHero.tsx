@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, LifeBuoy, Luggage, Search } from "lucide-react";
+import { ArrowRight, Clock, Home, Luggage, Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -14,6 +14,9 @@ type Props = {
   searchPath: string;
 };
 
+// Dark hero card — mirrors the FirstLoginHero "Welcome to Vilo, Thandi." shell
+// (gradient left panel with badge + heading + CTAs, darker right panel with a
+// stat + list). This is the canonical hero pattern for primary pages.
 export function HelpHero({
   greeting,
   audience,
@@ -42,123 +45,160 @@ export function HelpHero({
     router.push(`${searchPath}?${sp.toString()}`);
   }
 
+  function quickSearch(label: string) {
+    setQuery(label);
+    const sp = new URLSearchParams({ q: label });
+    if (audience !== "host") sp.set("as", audience);
+    router.push(`${searchPath}?${sp.toString()}`);
+  }
+
   return (
-    <section className="relative overflow-hidden rounded-card border border-brand-line bg-white">
-      <div
-        className="relative px-6 py-10 sm:px-10 lg:px-14 lg:py-14"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle at 12% 18%, rgba(16,185,129,0.18) 0, transparent 38%), radial-gradient(circle at 88% 82%, rgba(6,78,59,0.10) 0, transparent 42%)",
-        }}
-      >
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-secondary">
-            <LifeBuoy className="h-3 w-3" /> Help center
-          </div>
-          <h2 className="mt-4 font-display text-3xl font-bold leading-[1.05] tracking-tight text-brand-ink sm:text-4xl lg:text-[44px]">
-            {greeting ? (
-              <>
-                How can we help,{" "}
-                <span className="text-brand-secondary">{greeting}</span>?
-              </>
-            ) : (
-              <>How can we help?</>
-            )}
-          </h2>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-brand-mute sm:text-base">
-            Search articles, watch quick tutorials, or chat with a human. Most
-            hosts get an answer in under 4 minutes.
-          </p>
-
-          <form onSubmit={submit} className="relative mt-6">
-            <div className="flex items-center gap-2 rounded-pill border-2 border-brand-line bg-white px-4 py-2 transition-all focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]">
-              <Search className="h-5 w-5 shrink-0 text-brand-mute" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder='Try "refund a guest" or "sync iCal"'
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-brand-mute sm:text-base"
-                aria-label="Search help articles"
-              />
-              <kbd className="hidden rounded border border-brand-line bg-brand-light px-1.5 py-0.5 font-mono text-[10px] text-brand-mute sm:inline-block">
-                ⌘K
-              </kbd>
-              <button
-                type="submit"
-                className="rounded-pill bg-brand-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-              >
-                Search
-              </button>
-            </div>
-            {trending.length > 0 ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-brand-mute">Trending:</span>
-                {trending.map((label) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      setQuery(label);
-                      const sp = new URLSearchParams({ q: label });
-                      if (audience !== "host") sp.set("as", audience);
-                      router.push(`${searchPath}?${sp.toString()}`);
-                    }}
-                    className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-secondary transition-colors hover:bg-brand-accent"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </form>
-
+    <section className="relative overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="grid gap-0 md:grid-cols-[1.5fr_1fr]">
+        {/* Left: greeting + search + tabs */}
+        <div
+          className="relative p-7 text-white md:p-8"
+          style={{
+            backgroundImage:
+              "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
+          }}
+        >
           <div
-            className={`mt-7 inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light p-1 text-sm ${pending ? "opacity-70" : ""}`}
-            role="tablist"
-            aria-label="Audience"
-          >
-            <AudienceTab
-              active={audience === "host"}
-              onClick={() => setAudience("host")}
-              icon={<Home className="h-3.5 w-3.5" />}
-              label="I'm a host"
-            />
-            <AudienceTab
-              active={audience === "guest"}
-              onClick={() => setAudience("guest")}
-              icon={<Luggage className="h-3.5 w-3.5" />}
-              label="I'm a guest"
-            />
+            aria-hidden
+            className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-brand-primary/30 blur-3xl"
+          />
+          <div className="relative">
+            <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              Help center
+            </div>
+            <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
+              {greeting ? (
+                <>How can we help, {greeting}?</>
+              ) : (
+                <>How can we help?</>
+              )}
+            </h2>
+            <p className="mt-2 max-w-md text-[14px] leading-relaxed text-brand-accent/80">
+              Search articles, watch quick tutorials, or chat with a human. Most
+              hosts get an answer in under 4 minutes.
+            </p>
+
+            <form onSubmit={submit} className="mt-6">
+              <div className="flex items-center gap-2 rounded-[10px] border border-white/15 bg-black/20 px-3 py-2 backdrop-blur transition-all focus-within:border-brand-primary/60 focus-within:bg-black/30 focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]">
+                <Search className="h-4 w-4 shrink-0 text-brand-accent/70" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder='Try "refund a guest" or "sync iCal"'
+                  className="flex-1 bg-transparent text-[13px] text-white outline-none placeholder:text-white/40"
+                  aria-label="Search help articles"
+                />
+                <kbd className="hidden rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-white/60 sm:inline-block">
+                  ⌘K
+                </kbd>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1 rounded-[8px] bg-brand-primary px-3 py-1.5 text-[13px] font-semibold text-white shadow-[0_12px_32px_-10px_rgba(16,185,129,0.35)] transition-colors hover:bg-white hover:text-brand-secondary"
+                >
+                  Search
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </form>
+
+            <div
+              className={`mt-5 inline-flex items-center gap-1 rounded-pill border border-white/15 bg-black/20 p-1 text-[13px] backdrop-blur ${
+                pending ? "opacity-70" : ""
+              }`}
+              role="tablist"
+              aria-label="Audience"
+            >
+              <AudienceTab
+                active={audience === "host"}
+                onClick={() => setAudience("host")}
+                icon={<Home className="h-3.5 w-3.5" />}
+                label="I'm a host"
+              />
+              <AudienceTab
+                active={audience === "guest"}
+                onClick={() => setAudience("guest")}
+                icon={<Luggage className="h-3.5 w-3.5" />}
+                label="I'm a guest"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="absolute right-10 top-1/2 hidden -translate-y-1/2 xl:block">
-          <div className="relative h-[220px] w-[220px]">
-            <div className="absolute inset-0 rotate-6 rounded-card bg-brand-accent/60" />
-            <div className="absolute inset-2 flex -rotate-3 flex-col rounded-card border border-brand-line bg-white p-3">
-              <div className="mb-2 flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-line" />
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-line" />
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-line" />
-              </div>
-              <div className="font-mono text-[10px] text-brand-mute">
-                vilo.help/articles
-              </div>
-              <div className="mt-2 space-y-1.5">
-                <div className="h-2 w-3/4 rounded bg-brand-line" />
-                <div className="h-2 w-full rounded bg-brand-line" />
-                <div className="h-2 w-5/6 rounded bg-brand-line" />
-              </div>
-              <div className="mt-3 flex flex-1 flex-col justify-end rounded bg-brand-accent p-2">
-                <div className="h-1.5 w-1/2 rounded bg-brand-primary/40" />
-                <div className="mt-1 h-1.5 w-3/4 rounded bg-brand-primary/40" />
-              </div>
+        {/* Right: support stat + trending */}
+        <div className="flex flex-col justify-center bg-brand-dark/95 p-7 text-white md:p-8">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center">
+              <svg
+                viewBox="0 0 120 120"
+                className="absolute inset-0 h-full w-full -rotate-90"
+              >
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.20)"
+                  strokeWidth="10"
+                />
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="52"
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray="326.7"
+                  strokeDashoffset="49"
+                />
+              </svg>
+              <Clock className="relative h-7 w-7 text-brand-primary" />
             </div>
-            <div className="absolute -bottom-2 -right-2 flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary text-white shadow-lift">
-              <LifeBuoy className="h-6 w-6" />
+            <div className="min-w-0">
+              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary">
+                Avg first reply
+              </div>
+              <div className="mt-1 font-display text-[22px] font-bold leading-none">
+                Under 4 min
+              </div>
+              <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11.5px] text-brand-accent/70">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                </span>
+                Support online now
+              </div>
             </div>
           </div>
+
+          {trending.length > 0 ? (
+            <div className="mt-6">
+              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/70">
+                Trending
+              </div>
+              <ul className="mt-2 space-y-1.5">
+                {trending.slice(0, 4).map((label) => (
+                  <li key={label}>
+                    <button
+                      type="button"
+                      onClick={() => quickSearch(label)}
+                      className="group flex w-full items-center justify-between gap-2 rounded-[8px] border border-white/10 bg-white/5 px-2.5 py-1.5 text-left text-[12.5px] font-medium text-white/90 transition-colors hover:border-brand-primary/40 hover:bg-white/10"
+                    >
+                      <span className="truncate">{label}</span>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-brand-primary opacity-0 transition-opacity group-hover:opacity-100" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </div>
     </section>
@@ -180,12 +220,12 @@ function AudienceTab({
     <button
       type="button"
       role="tab"
-      aria-pressed={active}
+      aria-selected={active}
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-pill px-4 py-1.5 font-medium transition-colors ${
+      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 font-medium transition-colors ${
         active
-          ? "bg-white text-brand-ink shadow-card"
-          : "text-brand-mute hover:text-brand-ink"
+          ? "bg-brand-primary text-white shadow-[0_6px_16px_-6px_rgba(16,185,129,0.5)]"
+          : "text-white/70 hover:text-white"
       }`}
     >
       {icon}
