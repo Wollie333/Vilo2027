@@ -1,9 +1,23 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { SetupWizard } from "./SetupWizard";
+
+// eft_banking_details stores account_number encrypted at rest. We only
+// need the last 4 digits for display, so decrypt server-side and ship the
+// last4 down to the client.
+function last4FromCipher(stored: string | null): string {
+  if (!stored) return "????";
+  try {
+    const plain = decryptAccountNumber(stored).replace(/\D/g, "");
+    return plain.length >= 4 ? plain.slice(-4) : plain.padStart(4, "•");
+  } catch {
+    return "????";
+  }
+}
 
 export const metadata: Metadata = {
   title: "Finish setting up · Vilo",
@@ -29,7 +43,7 @@ export default async function SetupPage({
   const { data: host } = await supabase
     .from("hosts")
     .select(
-      "id, handle, display_name, bio, avatar_url, languages_spoken, website_url, paystack_subaccount_code, default_policy_id",
+      "id, handle, display_name, bio, avatar_url, languages_spoken, website_url",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -56,12 +70,13 @@ export default async function SetupPage({
   if (!listing) redirect("/dashboard/listings/new");
 
   // Banking + business — both nullable; the wizard handles "no row yet".
+  // No deleted_at on this table — soft delete is via is_archived.
   const { data: bankAccounts } = await supabase
     .from("eft_banking_details")
     .select(
-      "id, label, bank_name, account_holder, account_last4, branch_code, account_type, is_default",
+      "id, label, bank_name, account_holder, account_number, branch_code, account_type, is_default",
     )
-    .is("deleted_at", null)
+    .eq("host_id", host.id)
     .eq("is_archived", false)
     .order("is_default", { ascending: false });
 
@@ -97,7 +112,9 @@ export default async function SetupPage({
         avatar_url: host.avatar_url ?? "",
         languages_spoken: host.languages_spoken ?? [],
         website_url: host.website_url ?? "",
-        paystack_connected: Boolean(host.paystack_subaccount_code),
+        // Paystack subaccount isn't wired up yet (no column on hosts).
+        // EFT banking is the live payout path — treat that as "connected".
+        paystack_connected: false,
       }}
       profile={{
         full_name: profile?.full_name ?? host.display_name,
@@ -144,7 +161,7 @@ export default async function SetupPage({
         label: b.label as string,
         bank_name: b.bank_name as string,
         account_holder: b.account_holder as string,
-        account_last4: b.account_last4 as string,
+        account_last4: last4FromCipher(b.account_number as string | null),
         branch_code: b.branch_code as string,
         account_type: b.account_type as string,
         is_default: Boolean(b.is_default),

@@ -269,6 +269,13 @@ export async function fetchGettingStartedState(
 ): Promise<GettingStartedState> {
   const supabase = createServerClient();
 
+  // hosts table doesn't carry paystack_subaccount_code / default_policy_id
+  // — those are forward-looking field names that aren't in the schema yet.
+  // Until they ship we proxy them off other signals:
+  //   paystack_verified → host has a default EFT bank account
+  //   policies_set      → host's first listing has a non-null check_in_time
+  //                        (default cancellation_policy is 'moderate' so we
+  //                         can't use that alone to detect "the host chose")
   const [{ data: authUserRes }, { data: profile }, { data: host }] =
     await Promise.all([
       supabase.auth.getUser(),
@@ -279,9 +286,7 @@ export async function fetchGettingStartedState(
         .maybeSingle(),
       supabase
         .from("hosts")
-        .select(
-          "id, bio, avatar_url, languages_spoken, paystack_subaccount_code, default_policy_id",
-        )
+        .select("id, bio, avatar_url, languages_spoken")
         .eq("user_id", userId)
         .maybeSingle(),
     ]);
@@ -295,12 +300,20 @@ export async function fetchGettingStartedState(
     bio?: string | null;
     avatar_url?: string | null;
     languages_spoken?: string[] | null;
-    paystack_subaccount_code?: string | null;
-    default_policy_id?: string | null;
   } | null;
   const hostId = hostRow?.id;
-  const paystack = hostRow?.paystack_subaccount_code;
-  const defaultPolicy = hostRow?.default_policy_id;
+
+  // EFT bank account stands in for "payout method connected" until the real
+  // Paystack subaccount flow ships.
+  let hasBankAccount = false;
+  if (hostId) {
+    const { count: bankCount } = await supabase
+      .from("eft_banking_details")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", hostId)
+      .eq("is_archived", false);
+    hasBankAccount = (bankCount ?? 0) > 0;
+  }
 
   // Profile is "complete" when bio, avatar and at least one language are
   // all populated on the hosts row — these are what the public host page
@@ -319,10 +332,11 @@ export async function fetchGettingStartedState(
   let listingPublished: GettingStartedState["listing_published"] = {
     done: false,
   };
+  let policiesSet = false;
   if (hostId) {
     const { data: firstL } = await supabase
       .from("listings")
-      .select("name, status, is_published")
+      .select("name, status, is_published, check_in_time")
       .eq("host_id", hostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
@@ -332,6 +346,9 @@ export async function fetchGettingStartedState(
       const name = (firstL as { name?: string }).name ?? "First listing";
       const status = (firstL as { status?: string }).status ?? "draft";
       firstListing = { done: true, meta: `${name} · ${status}` };
+      policiesSet = Boolean(
+        (firstL as { check_in_time?: string | null }).check_in_time,
+      );
     }
 
     const { data: listings } = await supabase
@@ -386,17 +403,15 @@ export async function fetchGettingStartedState(
     },
     first_listing: firstListing,
     paystack_verified: {
-      done: Boolean(paystack),
-      meta: paystack
-        ? "Paystack subaccount linked"
+      done: hasBankAccount,
+      meta: hasBankAccount
+        ? "EFT bank account on file"
         : "2 min · so we can pay you out",
     },
     ical_connected: icalConnected,
     policies_set: {
-      done: Boolean(defaultPolicy),
-      meta: defaultPolicy
-        ? "Default policy attached"
-        : "Tell guests what to expect",
+      done: policiesSet,
+      meta: policiesSet ? "Check-in time set" : "Tell guests what to expect",
     },
     listing_published: listingPublished,
   };
