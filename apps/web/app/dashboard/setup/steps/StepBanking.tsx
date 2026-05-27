@@ -73,8 +73,35 @@ export function StepBanking({
   const [businessPending, startBusiness] = useTransition();
 
   function onSaveAccount() {
-    if (!accountHolder.trim() || !accountNumber.trim() || !branchCode.trim()) {
-      toast.error("Fill in account holder, number and branch code.");
+    // Validate locally with the same rules the server schema enforces, so
+    // the user sees the specific field that's wrong instead of a generic
+    // "please check the form" toast.
+    if (!label.trim()) {
+      toast.error("Give this account a label.");
+      return;
+    }
+    if (bankSelect === "Other" && !bankNameOther.trim()) {
+      toast.error("Enter the bank name.");
+      return;
+    }
+    if (accountHolder.trim().length < 2) {
+      toast.error("Enter the account holder name (at least 2 characters).");
+      return;
+    }
+    if (!/^\d{6,16}$/.test(accountNumber.trim())) {
+      toast.error("Account number must be 6 to 16 digits.");
+      return;
+    }
+    if (!/^\d{6}$/.test(branchCode.trim())) {
+      toast.error("Branch code must be exactly 6 digits.");
+      return;
+    }
+    if (swiftCode.trim() && swiftCode.trim().length > 11) {
+      toast.error("SWIFT / BIC is at most 11 characters.");
+      return;
+    }
+    if (!referenceFormat.trim()) {
+      toast.error("Reference format is required.");
       return;
     }
     startAccount(async () => {

@@ -22,7 +22,11 @@ export async function saveProfileAction(
 ): Promise<SettingsActionResult> {
   const parsed = profileSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
   }
   const d = parsed.data;
 

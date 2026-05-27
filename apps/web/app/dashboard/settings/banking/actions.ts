@@ -77,7 +77,13 @@ export async function createBankAccountAction(
 ): Promise<ActionResult> {
   const parsed = bankAccountSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    // Surface the first Zod issue so callers (and the user) see the
+    // specific field that failed, not a generic catch-all.
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
   }
   if (!parsed.data.account_number) {
     return { ok: false, error: "Enter the account number." };
@@ -137,7 +143,11 @@ export async function updateBankAccountAction(
 ): Promise<ActionResult> {
   const parsed = bankAccountSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
   }
 
   const host = await resolveHost();
@@ -261,7 +271,11 @@ export async function saveBusinessDetailsAction(
 ): Promise<ActionResult> {
   const parsed = businessDetailsSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: "Please check the form and try again." };
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
   }
 
   const host = await resolveHost();
