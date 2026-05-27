@@ -252,11 +252,16 @@ export async function searchHelpArticles(
 }
 
 export type GettingStartedState = {
+  // Original five — consumed by /dashboard/help. Keep their keys + shape.
   account_created: { done: boolean; meta?: string };
   first_listing: { done: boolean; meta?: string };
   paystack_verified: { done: boolean; meta?: string };
   ical_connected: { done: boolean; meta?: string };
   policies_set: { done: boolean; meta?: string };
+  // Extras for the dashboard first-login experience.
+  email_verified: { done: boolean; meta?: string };
+  profile_completed: { done: boolean; meta?: string };
+  listing_published: { done: boolean; meta?: string };
 };
 
 export async function fetchGettingStartedState(
@@ -264,33 +269,60 @@ export async function fetchGettingStartedState(
 ): Promise<GettingStartedState> {
   const supabase = createServerClient();
 
-  const [{ data: profile }, { data: host }] = await Promise.all([
-    supabase
-      .from("user_profiles")
-      .select("id, created_at, full_name")
-      .eq("id", userId)
-      .maybeSingle(),
-    supabase
-      .from("hosts")
-      .select("id, paystack_subaccount_code, default_policy_id")
-      .eq("user_id", userId)
-      .maybeSingle(),
-  ]);
+  const [{ data: authUserRes }, { data: profile }, { data: host }] =
+    await Promise.all([
+      supabase.auth.getUser(),
+      supabase
+        .from("user_profiles")
+        .select("id, created_at, full_name, email")
+        .eq("id", userId)
+        .maybeSingle(),
+      supabase
+        .from("hosts")
+        .select(
+          "id, bio, avatar_url, languages_spoken, paystack_subaccount_code, default_policy_id",
+        )
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
 
   const accountCreatedAt = (profile as { created_at?: string } | null)
     ?.created_at;
-  const hostId = (host as { id?: string } | null)?.id;
-  const paystack = (host as { paystack_subaccount_code?: string | null } | null)
-    ?.paystack_subaccount_code;
-  const defaultPolicy = (host as { default_policy_id?: string | null } | null)
-    ?.default_policy_id;
+  const profileEmail = (profile as { email?: string | null } | null)?.email;
+  const emailConfirmedAt = authUserRes?.user?.email_confirmed_at ?? null;
+  const hostRow = host as {
+    id?: string;
+    bio?: string | null;
+    avatar_url?: string | null;
+    languages_spoken?: string[] | null;
+    paystack_subaccount_code?: string | null;
+    default_policy_id?: string | null;
+  } | null;
+  const hostId = hostRow?.id;
+  const paystack = hostRow?.paystack_subaccount_code;
+  const defaultPolicy = hostRow?.default_policy_id;
+
+  // Profile is "complete" when bio, avatar and at least one language are
+  // all populated on the hosts row — these are what the public host page
+  // renders so they're the meaningful signals.
+  const profileBioOk = Boolean(hostRow?.bio && hostRow.bio.trim().length > 0);
+  const profileAvatarOk = Boolean(
+    hostRow?.avatar_url && hostRow.avatar_url.length > 0,
+  );
+  const profileLangsOk = Boolean(
+    hostRow?.languages_spoken && hostRow.languages_spoken.length > 0,
+  );
+  const profileCompleted = profileBioOk && profileAvatarOk && profileLangsOk;
 
   let firstListing: GettingStartedState["first_listing"] = { done: false };
   let icalConnected: GettingStartedState["ical_connected"] = { done: false };
+  let listingPublished: GettingStartedState["listing_published"] = {
+    done: false,
+  };
   if (hostId) {
     const { data: firstL } = await supabase
       .from("listings")
-      .select("name, status")
+      .select("name, status, is_published")
       .eq("host_id", hostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
@@ -304,11 +336,22 @@ export async function fetchGettingStartedState(
 
     const { data: listings } = await supabase
       .from("listings")
-      .select("id")
+      .select("id, is_published")
       .eq("host_id", hostId)
       .is("deleted_at", null);
-    const listingIds =
-      (listings as { id: string }[] | null)?.map((l) => l.id) ?? [];
+    const listingRows =
+      (listings as { id: string; is_published: boolean }[] | null) ?? [];
+    const listingIds = listingRows.map((l) => l.id);
+
+    const publishedCount = listingRows.filter((l) => l.is_published).length;
+    listingPublished = {
+      done: publishedCount > 0,
+      meta:
+        publishedCount > 0
+          ? `${publishedCount} listing${publishedCount === 1 ? "" : "s"} live`
+          : "Share viloplatform.com/your-handle",
+    };
+
     if (listingIds.length > 0) {
       const { count: feedCount } = await supabase
         .from("ical_feeds")
@@ -329,6 +372,18 @@ export async function fetchGettingStartedState(
       done: Boolean(accountCreatedAt),
       meta: accountCreatedAt ? formatRelativeDate(accountCreatedAt) : undefined,
     },
+    email_verified: {
+      done: Boolean(emailConfirmedAt),
+      meta: emailConfirmedAt
+        ? `${profileEmail ?? "Email"} · verified`
+        : `Check ${profileEmail ?? "your inbox"} for the link`,
+    },
+    profile_completed: {
+      done: profileCompleted,
+      meta: profileCompleted
+        ? "Photo, bio and languages set"
+        : "Profile photo, short bio, languages spoken",
+    },
     first_listing: firstListing,
     paystack_verified: {
       done: Boolean(paystack),
@@ -343,6 +398,7 @@ export async function fetchGettingStartedState(
         ? "Default policy attached"
         : "Tell guests what to expect",
     },
+    listing_published: listingPublished,
   };
 }
 

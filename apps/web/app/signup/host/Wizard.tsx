@@ -4,20 +4,12 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  BookOpen,
   Camera,
   Check,
-  CheckCircle2,
   ChevronDown,
-  Copy,
-  CreditCard,
-  ExternalLink,
   Eye,
   EyeOff,
-  ImagePlus,
-  Mail,
   PartyPopper,
-  RotateCcw,
   ShieldCheck,
   Star,
   Upload,
@@ -39,6 +31,7 @@ import {
   createAccountAction,
   finalizeOnboardingAction,
   uploadHostAvatarAction,
+  type FinalizeOnboardingData,
 } from "./actions";
 
 // ─── Step machinery ───────────────────────────────────────────────
@@ -232,6 +225,10 @@ export function Wizard({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
+  // Returned by finalizeOnboardingAction — drives the receipt on the
+  // Welcome step (host id for the order reference + confirmed plan).
+  const [finalizeResult, setFinalizeResult] =
+    useState<FinalizeOnboardingData | null>(null);
 
   const current = STEPS[currentIndex];
   const isLast = currentIndex === STEPS.length - 1;
@@ -339,8 +336,9 @@ export function Wizard({
 
   function handlePlanNext() {
     // Plan is always 'free' on submit — every signup goes through as Free
-    // for now. Step 5 is presented as an upsell preview of paid tiers.
-    advance();
+    // for now. We finalize first (write host row + subscription) and only
+    // advance to the Welcome / receipt step on success, so the user never
+    // lands on a thank-you page for an order that didn't actually persist.
     startFinalize(async () => {
       const result = await finalizeOnboardingAction({
         full_name: data.fullName,
@@ -367,8 +365,10 @@ export function Wizard({
       });
       if (!result.ok) {
         toast.error(result.error);
+        return;
       }
-      // On success the action redirects to /dashboard?welcome=1.
+      setFinalizeResult(result.data ?? null);
+      advance();
     });
   }
 
@@ -436,7 +436,13 @@ export function Wizard({
       case "plan":
         return <StepPlan stepIndex={currentIndex} />;
       case "welcome":
-        return <StepWelcome data={data} finalizePending={finalizePending} />;
+        return (
+          <StepWelcome
+            data={data}
+            finalizePending={finalizePending}
+            finalizeResult={finalizeResult}
+          />
+        );
     }
   })();
 
@@ -1403,46 +1409,37 @@ function Confetti() {
 function StepWelcome({
   data,
   finalizePending,
+  finalizeResult,
 }: {
   data: WizardData;
   finalizePending: boolean;
+  finalizeResult: FinalizeOnboardingData | null;
 }) {
-  // The DB's trigger_host_handle generates the public handle from
-  // display_name (= full_name). Mirror that here so the preview link
-  // routes to the right /{handle}. Edge case: if the trigger appended a
-  // numeric suffix because of a collision, the preview will miss — but
-  // for an MVP test base that's vanishingly rare and the host can grab
-  // their real URL from /dashboard/settings/host afterwards.
-  const handle =
-    (data.fullName || "my-vilo")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 24) || "my-vilo";
+  // Resolve the plan the user picked. PLANS is the source of truth for
+  // pricing + features so the receipt always matches what was shown on
+  // the Plan step.
+  const plan = PLANS.find((p) => p.value === data.plan) ?? PLANS[0];
+  const isFree = plan.value === "free";
+  const cycle = data.billingCycle;
+  const baseAmount = cycle === "annual" ? plan.annual : plan.monthly;
+  // 15% VAT is South Africa's standard rate. We assume the displayed plan
+  // price is VAT-inclusive (industry standard for consumer SaaS in SA), so
+  // we split it out on the receipt for transparency.
+  const vatRate = 0.15;
+  const subtotal = Math.round((baseAmount / (1 + vatRate)) * 100) / 100;
+  const vat = Math.round((baseAmount - subtotal) * 100) / 100;
+  const total = baseAmount;
 
-  const checklist = [
-    { id: 1, label: "Account created", done: true },
-    { id: 2, label: "First listing added", done: true },
-    { id: 3, label: "Add 5+ photos", done: false },
-    { id: 4, label: "Set check-in / check-out times", done: false },
-    { id: 5, label: "Connect Paystack to accept payments", done: false },
-    { id: 6, label: "Publish your listing", done: false },
-  ];
-  const doneCount = checklist.filter((c) => c.done).length;
-  const pct = Math.round((doneCount / checklist.length) * 100);
-  const [copied, setCopied] = useState(false);
-
-  function copyHandle() {
-    const url = `viloplatform.com/${handle}`;
-    navigator.clipboard.writeText(url).then(
-      () => {
-        setCopied(true);
-        toast.success("Profile URL copied");
-        setTimeout(() => setCopied(false), 2000);
-      },
-      () => toast.error("Couldn't copy — copy it manually."),
-    );
-  }
+  // Order reference: VILO-{yyyymmdd}-{first6OfHostId}. Falls back to a
+  // session-stable placeholder while finalize is in flight.
+  const today = new Date();
+  const yyyymmdd =
+    `${today.getFullYear()}` +
+    `${String(today.getMonth() + 1).padStart(2, "0")}` +
+    `${String(today.getDate()).padStart(2, "0")}`;
+  const ref = finalizeResult
+    ? `VILO-${yyyymmdd}-${finalizeResult.host_id.replace(/-/g, "").slice(0, 6).toUpperCase()}`
+    : `VILO-${yyyymmdd}-……`;
 
   return (
     <div className="vilo-step-enter relative">
@@ -1451,214 +1448,152 @@ function StepWelcome({
       <div className="relative">
         <div className="inline-flex items-center gap-2 rounded-pill bg-brand-accent px-3 py-1 text-[11px] font-semibold text-brand-secondary">
           <PartyPopper className="h-3.5 w-3.5" />{" "}
-          {finalizePending ? "Wrapping up…" : "You're in"}
+          {finalizePending ? "Wrapping up…" : "Order confirmed"}
         </div>
         <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-brand-ink md:text-4xl">
-          Welcome to Vilo, {(data.fullName || "host").split(" ")[0]}.
+          Thanks, {(data.fullName || "host").split(" ")[0]}. You&rsquo;re in.
         </h2>
         <p className="mt-2 max-w-xl text-sm text-brand-mute md:text-base">
-          Your account is live on the{" "}
-          <span className="font-medium text-brand-ink">Free</span> plan — paid
-          tiers are coming soon, so for now everyone&rsquo;s on Free with all
-          features unlocked. Your first listing is saved as a{" "}
-          <span className="font-medium text-brand-ink">draft</span> — finish
-          photos, pricing and capacity in the editor below, then publish to
-          start taking direct bookings.
+          Here&rsquo;s a summary of your Vilo membership. A copy has been sent
+          to{" "}
+          <span className="font-medium text-brand-ink">
+            {data.email || "your email"}
+          </span>
+          .
         </p>
 
-        {/* Top action cards — two things every new host should do first. */}
-        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <div className="flex items-start gap-3 rounded-card border border-brand-primary/30 bg-brand-accent/40 p-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-brand-primary">
-              <Mail className="h-4.5 w-4.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-display text-sm font-semibold text-brand-ink">
-                Verify your email
-              </div>
-              <p className="mt-0.5 text-xs leading-relaxed text-brand-mute">
-                We sent a confirmation link to{" "}
-                <span className="font-medium text-brand-ink">
-                  {data.email || "your inbox"}
-                </span>
-                . Verifying unlocks payouts &amp; guest messaging.
-              </p>
-              <Link
-                href="/dashboard/settings"
-                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
-              >
-                Resend / change email <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-              <ShieldCheck className="h-4.5 w-4.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-display text-sm font-semibold text-brand-ink">
-                Complete your profile
-              </div>
-              <p className="mt-0.5 text-xs leading-relaxed text-brand-mute">
-                Add banking, business details and your cancellation policy so
-                guests can book with confidence.
-              </p>
-              <Link
-                href="/dashboard/settings"
-                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
-              >
-                Open settings <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-card border border-brand-line bg-white p-5">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Your public profile
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <div className="flex items-center font-mono text-base text-brand-ink md:text-lg">
-              <span className="text-brand-mute">viloplatform.com/</span>
-              <span className="font-semibold">{handle}</span>
-            </div>
-            <button
-              type="button"
-              onClick={copyHandle}
-              className="ml-auto inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:underline"
-            >
-              {copied ? (
-                <CheckCircle2 className="h-3.5 w-3.5" />
-              ) : (
-                <Copy className="h-3.5 w-3.5" />
-              )}
-              {copied ? "Copied" : "Copy"}
-            </button>
-            <Link
-              href={`/${handle}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-primary hover:underline"
-            >
-              <ExternalLink className="h-3.5 w-3.5" /> Preview
-            </Link>
-          </div>
-          <div className="mt-3 text-xs text-brand-mute">
-            Share this with anyone — your existing guests, your Instagram, your
-            WhatsApp footer. Direct bookings are now possible.
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-card border border-brand-line bg-white p-5">
-          <div className="flex items-center justify-between gap-3">
+        {/* Receipt */}
+        <div className="mt-6 overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+          {/* Receipt header */}
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-line bg-brand-light/50 px-5 py-4">
             <div>
-              <div className="font-display font-semibold text-brand-ink">
-                Setup checklist
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Membership
               </div>
-              <div className="mt-0.5 text-xs text-brand-mute">
-                {doneCount} of {checklist.length} complete
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-display text-xl font-bold text-brand-ink">
+                  {plan.name}
+                </span>
+                {plan.tag ? (
+                  <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-secondary">
+                    {plan.tag}
+                  </span>
+                ) : null}
               </div>
+              <div className="mt-1 text-xs text-brand-mute">{plan.blurb}</div>
             </div>
             <div className="text-right">
-              <div className="font-display text-2xl font-bold text-brand-primary">
-                {pct}%
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Order reference
+              </div>
+              <div className="num mt-1 font-mono text-sm font-semibold text-brand-ink">
+                {ref}
+              </div>
+              <div className="mt-1 text-xs text-brand-mute">
+                {today.toLocaleDateString("en-ZA", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
               </div>
             </div>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-pill bg-brand-light">
-            <div
-              className="h-full bg-brand-primary transition-all duration-700"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <ul className="mt-4 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
-            {checklist.map((c) => (
-              <li key={c.id} className="flex items-center gap-2.5 text-sm">
-                <div
-                  className={`flex h-5 w-5 items-center justify-center rounded-pill ${
-                    c.done
-                      ? "bg-brand-primary text-white"
-                      : "border border-brand-line bg-white text-brand-mute"
-                  }`}
-                >
-                  {c.done ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <span className="h-1 w-1 rounded-pill bg-brand-mute" />
-                  )}
+
+          {/* Line items */}
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between border-b border-brand-line pb-3">
+              <div>
+                <div className="text-sm font-semibold text-brand-ink">
+                  {plan.name} plan · {cycle === "annual" ? "Annual" : "Monthly"}
                 </div>
-                <span
-                  className={
-                    c.done
-                      ? "text-brand-ink line-through decoration-brand-line"
-                      : "text-brand-ink"
-                  }
+                <div className="mt-0.5 text-xs text-brand-mute">
+                  Billed {cycle === "annual" ? "yearly" : "monthly"} · cancel
+                  anytime from settings
+                </div>
+              </div>
+              <div className="num font-display text-base font-bold text-brand-ink">
+                {isFree
+                  ? "R 0"
+                  : `R ${baseAmount.toLocaleString("en-ZA").replace(/,/g, " ")}`}
+              </div>
+            </div>
+
+            <ul className="mt-3 space-y-1.5">
+              {plan.features.map((f) => (
+                <li
+                  key={f}
+                  className="flex items-start gap-2 text-xs text-brand-mute"
                 >
-                  {c.label}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Totals */}
+          <div className="border-t border-brand-line bg-brand-light/40 px-5 py-4">
+            {isFree ? (
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold text-brand-ink">
+                  Total
+                </div>
+                <div className="num font-display text-lg font-bold text-brand-primary">
+                  R 0 · No payment required
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-xs text-brand-mute">
+                  <span>Subtotal</span>
+                  <span className="num font-mono text-brand-ink">
+                    R{" "}
+                    {subtotal
+                      .toLocaleString("en-ZA", { minimumFractionDigits: 2 })
+                      .replace(/,/g, " ")}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between text-xs text-brand-mute">
+                  <span>VAT · 15%</span>
+                  <span className="num font-mono text-brand-ink">
+                    R{" "}
+                    {vat
+                      .toLocaleString("en-ZA", { minimumFractionDigits: 2 })
+                      .replace(/,/g, " ")}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-brand-line pt-3">
+                  <div className="text-sm font-semibold text-brand-ink">
+                    Total
+                  </div>
+                  <div className="num font-display text-lg font-bold text-brand-ink">
+                    R{" "}
+                    {total
+                      .toLocaleString("en-ZA", { minimumFractionDigits: 2 })
+                      .replace(/,/g, " ")}{" "}
+                    <span className="text-xs font-normal text-brand-mute">
+                      /{cycle === "annual" ? "yr" : "mo"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-2 text-[11px] text-brand-mute">
+                  Paid plans are not yet billable — every account starts on Free
+                  until payments ship. You&rsquo;ll be asked to confirm before
+                  any charge.
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {(
-            [
-              {
-                icon: ImagePlus,
-                title: "Complete your listing",
-                desc: "Add photos, amenities, pricing.",
-                cta: "Open editor",
-                href: "/dashboard/listings",
-              },
-              {
-                icon: CreditCard,
-                title: "Connect Paystack",
-                desc: "Accept card payments instantly.",
-                cta: "Connect",
-                href: "/dashboard/settings",
-              },
-              {
-                icon: BookOpen,
-                title: "Read the host guide",
-                desc: "6-min read · best-practice tips.",
-                cta: "Open guide",
-                href: "/help",
-              },
-            ] as const
-          ).map((t) => {
-            const Icon = t.icon;
-            return (
-              <Link
-                key={t.title}
-                href={t.href}
-                className="group rounded-card border border-brand-line bg-white p-4 transition hover:border-brand-primary/50 hover:shadow-card"
-              >
-                <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="font-display text-sm font-semibold text-brand-ink">
-                  {t.title}
-                </div>
-                <div className="mt-1 text-xs leading-relaxed text-brand-mute">
-                  {t.desc}
-                </div>
-                <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-primary transition-all group-hover:gap-2">
-                  {t.cta} <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex items-center gap-1.5 text-xs text-brand-mute">
-            <RotateCcw className="h-3.5 w-3.5" />
-            We&apos;ll redirect you to the dashboard automatically.
-          </div>
+        {/* CTA */}
+        <div className="mt-6 flex justify-end">
           <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-secondary"
+            href="/dashboard?welcome=1"
+            className={`inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-brand-secondary ${
+              finalizePending ? "pointer-events-none opacity-60" : ""
+            }`}
+            aria-disabled={finalizePending}
           >
             Go to dashboard <ArrowUpRight className="h-4 w-4" />
           </Link>

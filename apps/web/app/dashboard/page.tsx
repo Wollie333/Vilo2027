@@ -11,8 +11,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { fetchGettingStartedState } from "@/lib/help/queries";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AcademyCards } from "./_components/AcademyCards";
+import { DashboardPreview } from "./_components/DashboardPreview";
+import { FirstListingTeaser } from "./_components/FirstListingTeaser";
+import { FirstLoginHero } from "./_components/FirstLoginHero";
+import { SetupChecklist } from "./_components/SetupChecklist";
+import { SetupSidePanel } from "./_components/SetupSidePanel";
+import { buildSetupSteps } from "./_components/setupSteps";
 import { WelcomeToast } from "./WelcomeToast";
 
 export const metadata: Metadata = {
@@ -147,27 +155,87 @@ export default async function DashboardPage({
     ? host.display_name.split(" ")[0]
     : (user?.email ?? "").split("@")[0];
 
+  // Setup state powers the first-login experience (hero + checklist + side
+  // panel). Only fetched once the host row exists — without it there's
+  // nothing to gate on. Falls back to redirecting back to onboarding.
+  const setupState = host ? await fetchGettingStartedState(user!.id) : null;
+  const setupSteps = setupState ? buildSetupSteps(setupState) : [];
+  const setupComplete =
+    setupSteps.length > 0 && setupSteps.every((s) => s.done);
+  const hasFirstListing = (listings ?? []).length > 0;
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 lg:space-y-7">
       {justOnboarded ? <WelcomeToast /> : null}
 
-      {/* Welcome strip */}
-      <section className="-mt-1 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-        <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            {host ? `Welcome back, ${firstName}.` : "Welcome to Vilo."}
-          </h2>
-          <p className="mt-1 text-sm text-brand-mute">
-            {host
-              ? pendingCount && pendingCount > 0
+      {needsOnboarding ? (
+        <>
+          <section className="-mt-1">
+            <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+              Welcome to Vilo.
+            </h2>
+            <p className="mt-1 text-sm text-brand-mute">
+              Finish onboarding to take your first booking.
+            </p>
+          </section>
+          <Link
+            href="/signup/host"
+            className="flex items-start gap-4 rounded-card border border-brand-primary/40 bg-brand-accent/60 p-5 shadow-card transition-colors hover:bg-brand-accent"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-white text-brand-primary">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-display font-semibold text-brand-dark">
+                Finish setting up your host profile
+              </div>
+              <p className="mt-0.5 text-sm text-brand-mute">
+                Five quick steps — handle, listing type, first listing, plan.
+                Until then your guests can&rsquo;t book you.
+              </p>
+            </div>
+            <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-brand-primary" />
+          </Link>
+        </>
+      ) : null}
+
+      {host && !setupComplete ? (
+        <>
+          <FirstLoginHero
+            firstName={firstName}
+            handle={host.handle}
+            steps={setupSteps}
+          />
+
+          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+            <SetupChecklist steps={setupSteps} />
+            <SetupSidePanel
+              firstName={firstName}
+              handle={host.handle}
+              email={user?.email ?? ""}
+              emailVerified={setupState?.email_verified.done ?? false}
+              steps={setupSteps}
+            />
+          </div>
+
+          {!hasFirstListing ? <FirstListingTeaser /> : null}
+        </>
+      ) : null}
+
+      {host && setupComplete ? (
+        <section className="-mt-1 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
+          <div>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+              Welcome back, {firstName}.
+            </h2>
+            <p className="mt-1 text-sm text-brand-mute">
+              {pendingCount && pendingCount > 0
                 ? `You have ${pendingCount} pending booking${
                     pendingCount === 1 ? "" : "s"
                   } to review.`
-                : "Nothing pending. Your inbox is empty."
-              : "Finish onboarding to take your first booking."}
-          </p>
-        </div>
-        {host ? (
+                : "Nothing pending. Your inbox is empty."}
+            </p>
+          </div>
           <div className="flex flex-wrap items-center gap-2 md:ml-auto">
             <Link
               href={`/${host.handle}`}
@@ -185,28 +253,7 @@ export default async function DashboardPage({
               New listing
             </Link>
           </div>
-        ) : null}
-      </section>
-
-      {needsOnboarding ? (
-        <Link
-          href="/signup/host"
-          className="flex items-start gap-4 rounded-card border border-brand-primary/40 bg-brand-accent/60 p-5 shadow-card transition-colors hover:bg-brand-accent"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-white text-brand-primary">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <div className="font-display font-semibold text-brand-dark">
-              Finish setting up your host profile
-            </div>
-            <p className="mt-0.5 text-sm text-brand-mute">
-              Five quick steps — handle, listing type, first listing, plan.
-              Until then your guests can&rsquo;t book you.
-            </p>
-          </div>
-          <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-brand-primary" />
-        </Link>
+        </section>
       ) : null}
 
       {host ? (
@@ -448,6 +495,16 @@ export default async function DashboardPage({
           ) : (
             <EmptyListings />
           )}
+
+          {/* While setup is in progress, surface educational content and a
+              preview of what the dashboard will look like once they have a
+              live listing. Both auto-hide once setup is complete. */}
+          {!setupComplete ? (
+            <>
+              <AcademyCards />
+              <DashboardPreview />
+            </>
+          ) : null}
         </>
       ) : null}
     </div>

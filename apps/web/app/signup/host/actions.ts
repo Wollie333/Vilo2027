@@ -1,7 +1,5 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -126,9 +124,16 @@ export async function uploadHostAvatarAction(
 
 // ─── Final step: create profile + host + listing + free subscription ─
 
+export type FinalizeOnboardingData = {
+  host_id: string;
+  handle: string;
+  plan: "free" | "basic" | "pro" | "business";
+  billing_cycle: "monthly" | "annual";
+};
+
 export async function finalizeOnboardingAction(
   input: FinalizeOnboardingInput,
-): Promise<ActionResult> {
+): Promise<ActionResult<FinalizeOnboardingData>> {
   const parsed = finalizeOnboardingSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
@@ -161,13 +166,24 @@ export async function finalizeOnboardingAction(
   const admin = createAdminClient();
 
   // Bail if onboarding already ran (e.g. double-submit, duplicate tab).
+  // Return the existing host so the wizard can still render the receipt
+  // (with `data.plan`/`data.billing_cycle` from the current submission).
   const { data: existingHost } = await admin
     .from("hosts")
-    .select("id")
+    .select("id, handle")
     .eq("user_id", user.id)
     .maybeSingle();
   if (existingHost) {
-    redirect("/dashboard?welcome=1");
+    const eh = existingHost as { id: string; handle: string };
+    return {
+      ok: true,
+      data: {
+        host_id: eh.id,
+        handle: eh.handle,
+        plan: d.plan,
+        billing_cycle: d.billing_cycle,
+      },
+    };
   }
 
   // 1. Profile — every field collected in the About step persisted on
@@ -247,5 +263,16 @@ export async function finalizeOnboardingAction(
     status: "active",
   });
 
-  redirect("/dashboard?welcome=1");
+  // Return the host id + chosen plan so the wizard can render a
+  // thank-you / receipt step. The user clicks through to /dashboard
+  // themselves — no server-side redirect.
+  return {
+    ok: true,
+    data: {
+      host_id: host.id,
+      handle: host.handle,
+      plan: d.plan,
+      billing_cycle: d.billing_cycle,
+    },
+  };
 }
