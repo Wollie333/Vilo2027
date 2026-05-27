@@ -120,7 +120,9 @@ export default async function DashboardLayout({
             }
           />
           <BroadcastBanner />
-          <div className="px-5 py-6 lg:px-8 lg:py-8">{children}</div>
+          <div className="px-5 py-6 lg:px-8 lg:py-8">
+            <div className="mx-auto max-w-[1280px]">{children}</div>
+          </div>
         </main>
         <MobileBottomNav />
       </div>

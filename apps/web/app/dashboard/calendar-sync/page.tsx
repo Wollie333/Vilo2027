@@ -40,7 +40,7 @@ export default async function CalendarSyncPage() {
 
   if (!host) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <Empty body="Finish onboarding before connecting external calendars." />
       </div>
     );
@@ -71,7 +71,7 @@ export default async function CalendarSyncPage() {
   const listingList = listings ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
           Calendar sync

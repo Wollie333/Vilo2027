@@ -12,7 +12,7 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <header className="mb-5">
         <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
           Settings

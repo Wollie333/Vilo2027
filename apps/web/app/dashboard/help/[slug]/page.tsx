@@ -66,7 +66,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
   );
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div>
       <ArticleView articleId={article.id} />
 
       <Link

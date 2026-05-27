@@ -71,7 +71,7 @@ export default async function BookingsListPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">

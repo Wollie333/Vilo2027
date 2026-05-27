@@ -58,7 +58,7 @@ export default async function PaymentsPage() {
     .reduce((acc, p) => acc + Number(p.amount), 0);
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
           Payments

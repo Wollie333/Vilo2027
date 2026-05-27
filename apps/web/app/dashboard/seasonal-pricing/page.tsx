@@ -33,7 +33,7 @@ export default async function SeasonalPricingPage() {
 
   if (!host) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
             <CalendarRange className="h-6 w-6" />
@@ -76,7 +76,7 @@ export default async function SeasonalPricingPage() {
 
   if (!enabled) {
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-6">
         <Header />
         <UpgradeCard />
       </div>
@@ -139,7 +139,7 @@ export default async function SeasonalPricingPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <Header />
       {listings.length === 0 ? (
         <EmptyStateNoListings />

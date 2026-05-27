@@ -42,7 +42,7 @@ export default async function DashboardNotificationsPage() {
   const initial = (data ?? []) as ListNotification[];
 
   return (
-    <section className="mx-auto max-w-3xl">
+    <section>
       <header className="mb-6">
         <h1 className="font-display text-2xl font-bold text-brand-ink md:text-3xl">
           Notifications

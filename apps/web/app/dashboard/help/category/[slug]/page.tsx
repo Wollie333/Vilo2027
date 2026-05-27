@@ -79,7 +79,7 @@ export default async function HelpCategoryPage({
   const Icon = resolveHelpIcon((cat as { icon?: string }).icon ?? null);
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-6">
+    <div className="space-y-6">
       <Link
         href="/dashboard/help"
         className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"

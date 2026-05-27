@@ -38,7 +38,7 @@ export default async function HelpSearchPage({
   const results = q ? await searchHelpArticles(q, audience, 30) : [];
 
   return (
-    <div className="mx-auto max-w-[1000px] space-y-6">
+    <div className="space-y-6">
       <Link
         href="/dashboard/help"
         className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"

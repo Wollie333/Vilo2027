@@ -102,7 +102,7 @@ export default async function HelpPage({
   );
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6 lg:space-y-8">
+    <div className="space-y-6 lg:space-y-8">
       <HelpHero
         greeting={greeting}
         audience={audience}

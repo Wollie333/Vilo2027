@@ -30,7 +30,7 @@ export default async function StaffPage() {
 
   if (!host) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
             <Users className="h-6 w-6" />
@@ -84,7 +84,7 @@ export default async function StaffPage() {
   const inviteBase = `${proto}://${hostUrl}/staff/accept/`;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
           Staff &amp; co-hosts

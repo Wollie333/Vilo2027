@@ -80,7 +80,7 @@ export default async function QuoteDetailPage({
     : (quote.listing as { name?: string } | null)?.name;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">

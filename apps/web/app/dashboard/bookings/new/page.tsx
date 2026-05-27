@@ -42,7 +42,7 @@ export default async function NewBookingPage() {
 
   if (list.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="space-y-4">
         <h1 className="font-display text-2xl font-bold text-brand-ink">
           New booking
         </h1>
@@ -62,7 +62,7 @@ export default async function NewBookingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <header>
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
           Manual booking

@@ -165,7 +165,7 @@ export default async function DashboardPage({
   const hasFirstListing = (listings ?? []).length > 0;
 
   return (
-    <div className="mx-auto max-w-[1280px] space-y-6 lg:space-y-7">
+    <div className="space-y-6 lg:space-y-7">
       {justOnboarded ? <WelcomeToast /> : null}
 
       {needsOnboarding ? (

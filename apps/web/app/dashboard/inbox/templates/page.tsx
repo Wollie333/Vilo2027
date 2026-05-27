@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function TemplatesComingSoonPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <Link
         href="/dashboard/inbox"
         className="inline-flex items-center gap-1 text-[12px] text-brand-mute hover:text-brand-ink"

@@ -54,7 +54,7 @@ export default async function InboxPage({
 
   if (!host) {
     return (
-      <div className="mx-auto max-w-2xl">
+      <div>
         <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
             <MessageSquare className="h-6 w-6" />
