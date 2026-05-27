@@ -70,7 +70,7 @@ export default async function PortalReviewsPage() {
   const pending = completed.filter((b) => !writtenIds.has(b.id));
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <header className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
           Reviews

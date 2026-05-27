@@ -105,7 +105,7 @@ export default async function PortalTripsPage() {
   const past = list.filter((b) => !upcoming.includes(b));
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <header className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
           My trips

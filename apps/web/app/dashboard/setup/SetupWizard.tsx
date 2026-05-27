@@ -103,7 +103,7 @@ export function SetupWizard(props: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-[1100px] py-2">
+    <div className="py-2">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>

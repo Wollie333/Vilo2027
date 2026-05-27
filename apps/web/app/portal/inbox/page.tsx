@@ -69,7 +69,7 @@ export default async function PortalInboxPage() {
   const list = (rows as Row[] | null) ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div>
       <header className="mb-8">
         <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
           Messages
