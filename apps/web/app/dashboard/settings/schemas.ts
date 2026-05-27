@@ -46,6 +46,12 @@ export const profileSchema = z.object({
     .max(300, "URL is too long.")
     .optional()
     .or(z.literal("")),
+  // Optional — set only by the post-onboarding setup wizard. The settings
+  // ProfileForm omits it, which is fine: undefined means "leave as is".
+  languages_spoken: z
+    .array(z.string().trim().min(1).max(40))
+    .max(20, "Pick up to 20 languages.")
+    .optional(),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 

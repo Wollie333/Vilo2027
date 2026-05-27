@@ -80,7 +80,7 @@ export function FirstLoginHero({ firstName, handle, steps }: Props) {
 
             <div className="mt-6 flex flex-wrap gap-2.5">
               <Link
-                href={nextStep?.href ?? "#setup"}
+                href="/dashboard/setup"
                 className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_32px_-10px_rgba(16,185,129,0.35)] transition-colors hover:bg-white hover:text-brand-secondary"
               >
                 Finish setting up

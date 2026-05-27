@@ -94,14 +94,21 @@ export async function saveProfileAction(
       d.display_name && d.display_name.length > 0
         ? d.display_name
         : d.full_name;
+    const hostPatch: Record<string, unknown> = {
+      display_name: displayName,
+      bio,
+      website_url: websiteUrl,
+      avatar_url: avatarUrl,
+    };
+    // languages_spoken is optional — only set when the wizard sends it,
+    // so the settings ProfileForm (which doesn't collect it) doesn't wipe
+    // the host's existing languages on every save.
+    if (d.languages_spoken !== undefined) {
+      hostPatch.languages_spoken = d.languages_spoken;
+    }
     const { error: hostErr } = await supabase
       .from("hosts")
-      .update({
-        display_name: displayName,
-        bio,
-        website_url: websiteUrl,
-        avatar_url: avatarUrl,
-      })
+      .update(hostPatch)
       .eq("user_id", user.id);
     if (hostErr) {
       return { ok: false, error: "Could not save your host page." };
