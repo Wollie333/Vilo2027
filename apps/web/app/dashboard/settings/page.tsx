@@ -25,7 +25,9 @@ export default async function SettingsProfilePage() {
       .maybeSingle(),
     supabase
       .from("hosts")
-      .select("display_name, handle, bio, website_url, is_verified, avatar_url")
+      .select(
+        "display_name, handle, bio, website_url, is_verified, avatar_url, languages_spoken",
+      )
       .eq("user_id", user!.id)
       .maybeSingle(),
   ]);
@@ -44,6 +46,7 @@ export default async function SettingsProfilePage() {
           display_name: host?.display_name ?? "",
           bio: host?.bio ?? "",
           website_url: host?.website_url ?? "",
+          languages_spoken: host?.languages_spoken ?? [],
         }}
         host={
           host

@@ -1,12 +1,20 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BadgeCheck, Camera, ExternalLink, Save, Upload } from "lucide-react";
+import {
+  BadgeCheck,
+  Camera,
+  Check,
+  ExternalLink,
+  Save,
+  Upload,
+} from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { LANGUAGE_OPTIONS } from "@/app/signup/host/schemas";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -322,6 +330,54 @@ export function ProfileForm({
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <FormField
+                control={form.control}
+                name="languages_spoken"
+                render={({ field }) => {
+                  const selected = field.value ?? [];
+                  function toggle(lang: string) {
+                    const set = new Set(selected);
+                    if (set.has(lang)) set.delete(lang);
+                    else set.add(lang);
+                    field.onChange(Array.from(set));
+                  }
+                  return (
+                    <FormItem>
+                      <FormLabel>
+                        Languages you speak{" "}
+                        <span className="font-normal text-brand-mute">
+                          (shown on your public page; guests filter by these)
+                        </span>
+                      </FormLabel>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-2">
+                          {LANGUAGE_OPTIONS.map((lang) => {
+                            const on = selected.includes(lang);
+                            return (
+                              <button
+                                key={lang}
+                                type="button"
+                                onClick={() => toggle(lang)}
+                                disabled={pending}
+                                className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-xs font-medium transition ${
+                                  on
+                                    ? "border-brand-primary bg-brand-primary text-white"
+                                    : "border-brand-line bg-white text-brand-ink hover:bg-brand-accent"
+                                }`}
+                              >
+                                {on ? <Check className="h-3 w-3" /> : null}
+                                {lang}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </CardContent>
           </Card>

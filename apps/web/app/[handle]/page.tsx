@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BadgeCheck, MapPin, Star } from "lucide-react";
+import { BadgeCheck, Languages, MapPin, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -72,7 +72,7 @@ async function loadHost(handle: string) {
   const { data: host } = await supabase
     .from("hosts")
     .select(
-      "id, display_name, handle, bio, avatar_url, cover_photo_url, is_verified, avg_rating, total_reviews",
+      "id, display_name, handle, bio, avatar_url, cover_photo_url, is_verified, avg_rating, total_reviews, languages_spoken, website_url",
     )
     .eq("handle", handle)
     .eq("is_active", true)
@@ -200,6 +200,23 @@ export default async function HostProfilePage({
             <p className="mt-6 max-w-2xl whitespace-pre-line text-sm leading-relaxed text-brand-dark">
               {host.bio}
             </p>
+          ) : null}
+
+          {host.languages_spoken && host.languages_spoken.length > 0 ? (
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <Languages className="h-3.5 w-3.5 text-brand-mute" />
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Speaks
+              </span>
+              {host.languages_spoken.map((lang: string) => (
+                <span
+                  key={lang}
+                  className="rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-xs font-medium text-brand-ink"
+                >
+                  {lang}
+                </span>
+              ))}
+            </div>
           ) : null}
         </div>
       </section>
