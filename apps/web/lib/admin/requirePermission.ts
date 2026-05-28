@@ -50,6 +50,17 @@ export async function requirePermission(
   });
 
   if (error || data !== true) {
+    // Surface the RPC failure in server logs so a misconfigured DB
+    // (missing function, AAL2 still enforced, missing seed row) doesn't
+    // silently look like "permission denied". The user-facing UX is the
+    // same — they hit the admin error boundary either way.
+    if (error) {
+      console.error("[admin:requirePermission] RPC failed", {
+        permissionKey,
+        adminUserId: admin.userId,
+        rpcError: error.message,
+      });
+    }
     await logDeniedAttempt(admin.userId, permissionKey);
     throw new AdminPermissionDenied(permissionKey);
   }
