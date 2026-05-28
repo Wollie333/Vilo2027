@@ -6,23 +6,21 @@ import {
   CalendarDays,
   Camera,
   ExternalLink,
-  Globe,
   Home,
   Image as ImageIcon,
   ListChecks,
+  Link2,
   MapPin,
   PackagePlus,
+  Play,
   Receipt,
   Settings as SettingsIcon,
-  Sparkles,
   Users,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
 
 import { togglePublishAction } from "./actions";
 import {
@@ -221,149 +219,352 @@ export function Editor({
     });
   }
 
+  const typeLabel =
+    listing.listing_type === "accommodation"
+      ? listing.accommodation_type
+        ? listing.accommodation_type.charAt(0).toUpperCase() +
+          listing.accommodation_type.slice(1)
+        : "Accommodation"
+      : listing.experience_type
+        ? listing.experience_type.charAt(0).toUpperCase() +
+          listing.experience_type.slice(1)
+        : "Experience";
+
+  const locationLabel = [listing.city, listing.province]
+    .filter(Boolean)
+    .join(", ");
+
+  const heroPhotos = photos.slice(0, 5);
+  const remainingPhotoCount = Math.max(0, photos.length - 5);
+
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            Listing editor
-          </div>
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            {listing.name}
-          </h1>
-          <div className="mt-1 text-xs text-brand-mute">
-            {listing.listing_type === "accommodation"
-              ? "Accommodation"
-              : "Experience"}{" "}
-            ·{" "}
-            <span
-              className={
-                isPublished
-                  ? "font-medium text-status-confirmed"
-                  : "font-medium text-brand-mute"
-              }
-            >
-              {isPublished ? "Published" : "Draft"}
-            </span>
-          </div>
-        </div>
+    <div className="space-y-6 lg:space-y-7">
+      {/* ============ DARK HERO ============ */}
+      <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
+        <div className="grid gap-0 md:grid-cols-[1.45fr_1fr]">
+          {/* Left: identity + actions */}
+          <div className="relative bg-brand-gradient-dark p-7 text-white md:p-8">
+            <div aria-hidden className="dotgrid absolute inset-0 opacity-30" />
+            <div
+              aria-hidden
+              className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/30 blur-3xl"
+            />
+            <div
+              aria-hidden
+              className="absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-brand-secondary/40 blur-3xl"
+            />
 
-        <div className="flex items-center gap-2">
-          {isPublished && listing.slug ? (
-            <Link
-              href={`/listing/${listing.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-            >
-              View public
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          ) : null}
-          <Button
-            type="button"
-            onClick={togglePublish}
-            disabled={publishPending}
-            variant={isPublished ? "outline" : "default"}
-            className="gap-1.5"
-          >
-            {isPublished ? (
-              "Unpublish"
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Publish
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
+            <div className="relative">
+              {/* Top row: eyebrow + status */}
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
+                  Listing editor
+                </div>
+                <div
+                  className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider backdrop-blur ${
+                    isPublished
+                      ? "bg-brand-primary/15 text-brand-primary"
+                      : "bg-white/10 text-brand-accent/80"
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      isPublished
+                        ? "pulse-soft bg-brand-primary"
+                        : "bg-brand-accent/60"
+                    }`}
+                  />
+                  {isPublished ? "Published · live" : "Draft · not live"}
+                </div>
+              </div>
 
-      <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        <nav
-          aria-label="Editor sections"
-          className="lg:sticky lg:top-6 lg:self-start"
-        >
-          <ul className="hscroll flex gap-1 overflow-x-auto lg:flex-col lg:overflow-x-visible">
-            {TABS.map(({ key, label, icon: Icon }) => {
-              const isActive = active === key;
-              return (
-                <li key={key} className="shrink-0 lg:shrink">
+              {/* Title */}
+              <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
+                {listing.name}
+              </h2>
+
+              {/* Type + slug */}
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-brand-accent/80">
+                <span className="inline-flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5" />
+                  {typeLabel}
+                  {locationLabel ? ` · ${locationLabel}` : null}
+                </span>
+                {listing.slug ? (
+                  <>
+                    <span className="text-brand-accent/40">·</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5" />
+                      <span className="font-mono text-brand-accent/70">
+                        viloplatform.com/listing/
+                      </span>
+                      <span className="font-mono font-semibold text-white">
+                        {listing.slug}
+                      </span>
+                    </span>
+                  </>
+                ) : null}
+              </div>
+
+              {/* Performance ribbon */}
+              <div className="mt-6 grid max-w-md grid-cols-4 gap-3">
+                <div>
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+                    Lifetime
+                  </div>
+                  <div className="num mt-1 font-display text-xl font-bold text-white">
+                    —
+                  </div>
+                  <div className="text-[10px] text-brand-accent/60">
+                    bookings
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+                    Occupancy
+                  </div>
+                  <div className="num mt-1 font-display text-xl font-bold text-white">
+                    —
+                  </div>
+                  <div className="text-[10px] text-brand-accent/60">
+                    coming soon
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+                    Rating
+                  </div>
+                  <div className="num mt-1 flex items-baseline gap-0.5 font-display text-xl font-bold text-white">
+                    —
+                  </div>
+                  <div className="text-[10px] text-brand-accent/60">
+                    no reviews
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+                    Page views
+                  </div>
+                  <div className="num mt-1 font-display text-xl font-bold text-white">
+                    —
+                  </div>
+                  <div className="text-[10px] text-brand-accent/60">
+                    coming soon
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                {isPublished && listing.slug ? (
+                  <Link
+                    href={`/listing/${listing.slug}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow hover:bg-brand-accent"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View public page
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-4 py-2.5 text-sm font-medium text-white/60">
+                    <ExternalLink className="h-4 w-4" />
+                    View public page
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setActive("photos")}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
+                >
+                  <Play className="h-4 w-4" />
+                  Preview booking flow
+                </button>
+
+                {/* Publish toggle pill */}
+                <div className="ml-auto flex items-center gap-2 rounded-pill border border-white/15 bg-black/30 px-2.5 py-1.5 backdrop-blur">
+                  <span className="text-[11.5px] font-medium text-white/90">
+                    {publishPending
+                      ? "Publishing…"
+                      : isPublished
+                        ? "Published"
+                        : "Draft"}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setActive(key)}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`flex w-full items-center gap-2 rounded px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-brand-accent text-brand-primary"
-                        : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+                    role="switch"
+                    aria-checked={isPublished}
+                    aria-label="Toggle published"
+                    onClick={togglePublish}
+                    disabled={publishPending}
+                    className={`relative h-5 w-9 rounded-pill transition-colors disabled:opacity-50 ${
+                      isPublished ? "bg-brand-primary" : "bg-white/20"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="whitespace-nowrap">{label}</span>
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
+                        isPublished ? "left-4" : "left-0.5"
+                      }`}
+                    />
                   </button>
-                </li>
-              );
-            })}
-          </ul>
-
-          <div className="mt-4 hidden rounded border border-brand-line bg-white p-3 text-xs text-brand-mute lg:block">
-            <div className="font-semibold text-brand-ink">Save per tab</div>
-            <p className="mt-1 leading-relaxed">
-              Each tab saves on its own. Publish only enables once name, base
-              price and max guests are set.
-            </p>
+                </div>
+              </div>
+            </div>
           </div>
-        </nav>
 
-        <div>
-          {active === "basic" ? <BasicTab listing={listing} /> : null}
-          {active === "photos" ? (
-            <PhotosTab
-              listingId={listing.id}
-              photos={photos}
-              rooms={rooms}
-              onChange={setPhotos}
-            />
-          ) : null}
-          {active === "location" ? <LocationTab listing={listing} /> : null}
-          {active === "rooms" ? (
-            <RoomsTab
-              listing={listing}
-              rooms={rooms}
-              onRoomsChange={setRooms}
-            />
-          ) : null}
-          {active === "amenities" ? (
-            <AmenitiesTab
-              listingId={listing.id}
-              initial={amenities}
-              rooms={rooms}
-            />
-          ) : null}
-          {active === "addons" ? (
-            <AddonsTab
-              listingId={listing.id}
-              available={availableAddons}
-              rooms={rooms}
-              initialAssigned={assignedAddons}
-            />
-          ) : null}
-          {active === "logistics" ? <LogisticsTab listing={listing} /> : null}
-          {active === "schedule" ? <ScheduleTab listing={listing} /> : null}
-          {active === "pricing" ? <PricingTab listing={listing} /> : null}
-          {active === "policies" ? <PoliciesTab listing={listing} /> : null}
-          {active === "settings" ? <SettingsTab listing={listing} /> : null}
-          {active === "danger" ? (
-            <DangerTab listingId={listing.id} listingName={listing.name} />
-          ) : null}
+          {/* Right: photo grid */}
+          <div className="relative bg-brand-dark">
+            <div className="grid h-full min-h-[300px] grid-cols-3 grid-rows-3 gap-1 p-2">
+              {heroPhotos.length === 0 ? (
+                <>
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`overflow-hidden rounded-[10px] bg-brand-accent/20 ${
+                        i === 0 ? "col-span-2 row-span-2" : ""
+                      }`}
+                    />
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setActive("photos")}
+                    className="col-span-3 mt-1 rounded-[10px] bg-brand-accent/10 py-2 text-[11px] font-semibold text-brand-accent hover:bg-brand-accent/20"
+                  >
+                    Add photos →
+                  </button>
+                </>
+              ) : (
+                <>
+                  {heroPhotos.map((p, i) => (
+                    <div
+                      key={p.id}
+                      className={`overflow-hidden rounded-[10px] ${
+                        i === 0 ? "col-span-2 row-span-2" : ""
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.url}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                  {/* 6th cell: "view all" overlay or fill placeholder */}
+                  {photos.length > 5 ? (
+                    <div className="relative overflow-hidden rounded-[10px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photos[5].url}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setActive("photos")}
+                        className="absolute inset-0 flex items-center justify-center bg-brand-dark/70 text-[11px] font-semibold text-white hover:bg-brand-dark/85"
+                      >
+                        +{remainingPhotoCount} more
+                      </button>
+                    </div>
+                  ) : (
+                    // Fewer than 6 photos — fill remaining cells then show "View all"
+                    Array.from({
+                      length: Math.max(0, 5 - heroPhotos.length),
+                    }).map((_, i) => (
+                      <button
+                        key={`empty-${i}`}
+                        type="button"
+                        onClick={() => setActive("photos")}
+                        className="overflow-hidden rounded-[10px] bg-brand-accent/10 text-[10px] font-semibold text-brand-accent hover:bg-brand-accent/20"
+                      >
+                        +
+                      </button>
+                    ))
+                  )}
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="mt-8 rounded border border-brand-line bg-white p-4 text-xs text-brand-mute">
-        <Globe className="mr-1.5 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
-        Each tab saves on its own. The Mapbox picker on Location and the
-        rich-text editor on Basic info activate when their env vars are set —
-        without them the editor falls back to plain address + text fields.
+      {/* ============ STICKY TAB BAR ============ */}
+      <section className="sticky top-16 z-10 rounded-card border border-brand-line bg-white shadow-card">
+        <div className="hscroll flex items-center gap-0.5 overflow-x-auto px-2 py-1.5">
+          {TABS.map(({ key, label, icon: Icon }) => {
+            const isActive = active === key;
+            const isDanger = key === "danger";
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setActive(key)}
+                aria-current={isActive ? "page" : undefined}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] transition-colors ${
+                  isDanger ? "ml-auto" : ""
+                } ${
+                  isActive
+                    ? isDanger
+                      ? "bg-status-cancelled/10 font-semibold text-status-cancelled"
+                      : "bg-brand-accent font-semibold text-brand-secondary"
+                    : isDanger
+                      ? "font-medium text-status-cancelled hover:bg-status-cancelled/5"
+                      : "font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+                {key === "photos" && photos.length > 0 ? (
+                  <span className="num rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
+                    {photos.length}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ============ ACTIVE TAB CONTENT ============ */}
+      <div>
+        {active === "basic" ? <BasicTab listing={listing} /> : null}
+        {active === "photos" ? (
+          <PhotosTab
+            listingId={listing.id}
+            photos={photos}
+            rooms={rooms}
+            onChange={setPhotos}
+          />
+        ) : null}
+        {active === "location" ? <LocationTab listing={listing} /> : null}
+        {active === "rooms" ? (
+          <RoomsTab listing={listing} rooms={rooms} onRoomsChange={setRooms} />
+        ) : null}
+        {active === "amenities" ? (
+          <AmenitiesTab
+            listingId={listing.id}
+            initial={amenities}
+            rooms={rooms}
+          />
+        ) : null}
+        {active === "addons" ? (
+          <AddonsTab
+            listingId={listing.id}
+            available={availableAddons}
+            rooms={rooms}
+            initialAssigned={assignedAddons}
+          />
+        ) : null}
+        {active === "logistics" ? <LogisticsTab listing={listing} /> : null}
+        {active === "schedule" ? <ScheduleTab listing={listing} /> : null}
+        {active === "pricing" ? <PricingTab listing={listing} /> : null}
+        {active === "policies" ? <PoliciesTab listing={listing} /> : null}
+        {active === "settings" ? <SettingsTab listing={listing} /> : null}
+        {active === "danger" ? (
+          <DangerTab listingId={listing.id} listingName={listing.name} />
+        ) : null}
       </div>
     </div>
   );
