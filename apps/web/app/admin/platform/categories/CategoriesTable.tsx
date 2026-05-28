@@ -1,12 +1,56 @@
 "use client";
 
-import { AlertCircle, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Building2,
+  Car,
+  CheckCircle2,
+  Coffee,
+  DoorOpen,
+  ExternalLink,
+  Home,
+  Hotel,
+  House,
+  Map,
+  MoreHorizontal,
+  Mountain,
+  Palette,
+  Pencil,
+  Search,
+  Sparkles,
+  Tent,
+  Trash2,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 
+import { Input } from "@/components/ui/input";
 import type { CategoryKind, ListingCategoryRow } from "@/lib/taxonomy/types";
 
 import { deleteCategory } from "./actions";
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  home: Home,
+  house: House,
+  "building-2": Building2,
+  hotel: Hotel,
+  tent: Tent,
+  coffee: Coffee,
+  "door-open": DoorOpen,
+  utensils: Utensils,
+  sparkles: Sparkles,
+  map: Map,
+  mountain: Mountain,
+  palette: Palette,
+  car: Car,
+  "more-horizontal": MoreHorizontal,
+};
+
+function resolveIcon(name: string): LucideIcon {
+  return ICON_MAP[name] ?? CheckCircle2;
+}
 
 type GroupedRow = {
   parent: ListingCategoryRow;
@@ -44,10 +88,36 @@ function groupByParent(rows: ListingCategoryRow[]): {
 
 export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
   const [list, setList] = useState<ListingCategoryRow[]>(rows);
+  const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const groups = useMemo(() => groupByParent(list), [list]);
+  const filteredList = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    // Keep parents whose label/slug matches AND their children; OR keep
+    // children that match and include their parent for context.
+    const matchedIds = new Set(
+      list
+        .filter(
+          (r) =>
+            r.label.toLowerCase().includes(q) ||
+            r.slug.toLowerCase().includes(q),
+        )
+        .map((r) => r.id),
+    );
+    return list.filter((r) => {
+      if (matchedIds.has(r.id)) return true;
+      if (r.parent_id && matchedIds.has(r.parent_id)) return true;
+      // Include parent of any matched child.
+      const hasMatchedChild = list.some(
+        (other) => other.parent_id === r.id && matchedIds.has(other.id),
+      );
+      return hasMatchedChild;
+    });
+  }, [list, query]);
+
+  const groups = useMemo(() => groupByParent(filteredList), [filteredList]);
 
   function removeRow(row: ListingCategoryRow) {
     const isParent = list.some((r) => r.parent_id === row.id);
@@ -57,7 +127,9 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
       );
       return;
     }
-    const reason = window.prompt("Reason for deleting (min 5 chars):");
+    const reason = window.prompt(
+      `Delete "${row.label}"? Reason (min 5 chars):`,
+    );
     if (!reason || reason.trim().length < 5) return;
     setError(null);
     startTransition(async () => {
@@ -70,98 +142,151 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
     });
   }
 
+  const totalLeaves = list.filter((r) => r.parent_id !== null).length;
+  const visibleLeaves = filteredList.filter((r) => r.parent_id !== null).length;
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
+      {/* Toolbar */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search categories by label or slug…"
+            className="pl-9"
+          />
+        </div>
+        <div className="text-[12px] text-brand-mute">
+          <span className="num font-semibold text-brand-ink">
+            {query ? visibleLeaves : totalLeaves}
+          </span>
+          {query ? ` of ${totalLeaves}` : ""} categor
+          {totalLeaves === 1 ? "y" : "ies"}
+        </div>
+      </div>
+
       {error ? (
-        <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-start gap-2 rounded-card border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
       ) : null}
 
       {(["accommodation", "experience"] as const).map((kind) => (
-        <section key={kind} className="space-y-3">
-          <h2 className="font-display text-base font-semibold capitalize text-brand-ink">
-            {kind === "accommodation" ? "Accommodation" : "Experiences"}
-          </h2>
+        <section
+          key={kind}
+          className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card"
+        >
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-line bg-brand-light/40 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+                {kind === "accommodation" ? (
+                  <Building2 className="h-4.5 w-4.5" />
+                ) : (
+                  <Sparkles className="h-4.5 w-4.5" />
+                )}
+              </span>
+              <div>
+                <div className="font-display text-[15px] font-semibold text-brand-ink">
+                  {kind === "accommodation" ? "Accommodation" : "Experiences"}
+                </div>
+                <div className="text-[11.5px] text-brand-mute">
+                  {groups[kind].reduce((acc, g) => acc + g.children.length, 0)}{" "}
+                  categories across {groups[kind].length} root
+                  {groups[kind].length === 1 ? "" : "s"}
+                </div>
+              </div>
+            </div>
+          </header>
 
           {groups[kind].length === 0 ? (
-            <div className="rounded-card border border-dashed border-brand-line bg-white/60 px-6 py-8 text-center text-sm text-brand-mute">
-              No {kind} categories yet.
+            <div className="px-5 py-12 text-center text-[13px] text-brand-mute">
+              {query ? "No matches in this section." : "No categories yet."}
             </div>
           ) : null}
 
-          {groups[kind].map(({ parent, children }) => (
-            <div
-              key={parent.id}
-              className="overflow-hidden rounded-card border border-brand-line bg-white"
-            >
-              <table className="w-full table-fixed text-sm">
-                <thead className="bg-brand-light/60 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                  <tr>
-                    <th className="w-[28%] px-4 py-2 text-left">Category</th>
-                    <th className="w-[18%] px-4 py-2 text-left">Slug</th>
-                    <th className="w-[24%] px-4 py-2 text-left">SEO title</th>
-                    <th className="w-16 px-4 py-2 text-left">Sort</th>
-                    <th className="w-24 px-4 py-2 text-left">Visibility</th>
-                    <th className="w-40 px-4 py-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-brand-line">
-                  <CategoryRow
-                    row={parent}
-                    isParent
-                    pending={pending}
-                    onDelete={removeRow}
-                  />
-                  {children.map((c) => (
-                    <CategoryRow
-                      key={c.id}
-                      row={c}
-                      isParent={false}
-                      pending={pending}
-                      onDelete={removeRow}
-                    />
-                  ))}
-                  {children.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-4 py-4 text-[12px] text-brand-mute"
-                      >
-                        No sub-categories. Add one to break this root into
-                        sub-types.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
-          ))}
+          {groups[kind].map(({ parent, children }) => {
+            const ParentIcon = resolveIcon(parent.icon);
+            return (
+              <div
+                key={parent.id}
+                className="border-t border-brand-line first:border-t-0"
+              >
+                {/* Parent row */}
+                <Row
+                  row={parent}
+                  isParent
+                  icon={ParentIcon}
+                  pending={pending}
+                  onDelete={removeRow}
+                />
+
+                {/* Children */}
+                {children.length === 0 ? (
+                  <div className="px-5 py-3 pl-16 text-[12px] italic text-brand-mute">
+                    No sub-categories under {parent.label}.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-brand-line">
+                    {children.map((c) => {
+                      const Icon = resolveIcon(c.icon);
+                      return (
+                        <Row
+                          key={c.id}
+                          row={c}
+                          isParent={false}
+                          icon={Icon}
+                          pending={pending}
+                          onDelete={removeRow}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </section>
       ))}
     </div>
   );
 }
 
-function CategoryRow({
+function Row({
   row,
   isParent,
+  icon: Icon,
   pending,
   onDelete,
 }: {
   row: ListingCategoryRow;
   isParent: boolean;
+  icon: LucideIcon;
   pending: boolean;
   onDelete: (row: ListingCategoryRow) => void;
 }) {
   return (
-    <tr className={isParent ? "bg-brand-accent/20" : ""}>
-      <td className="px-4 py-3">
+    <div
+      className={`group flex items-center gap-4 px-5 py-3 transition-colors hover:bg-brand-light/40 ${
+        isParent ? "bg-brand-accent/15" : "pl-14"
+      }`}
+    >
+      <span
+        className={`flex shrink-0 items-center justify-center rounded-full ${
+          isParent
+            ? "h-9 w-9 bg-brand-secondary/15 text-brand-secondary"
+            : "h-8 w-8 bg-brand-accent/60 text-brand-secondary"
+        }`}
+      >
+        <Icon className={isParent ? "h-4.5 w-4.5" : "h-4 w-4"} />
+      </span>
+
+      <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          {!isParent ? <span className="text-brand-mute">↳</span> : null}
           <span
-            className={`text-[13.5px] ${
+            className={`truncate text-[13.5px] ${
               isParent
                 ? "font-semibold text-brand-ink"
                 : "font-medium text-brand-ink"
@@ -169,64 +294,69 @@ function CategoryRow({
           >
             {row.label}
           </span>
+          {isParent ? (
+            <span className="rounded-pill bg-brand-line/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+              Root
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-brand-mute">
+          <span className="font-mono">/{row.slug}</span>
+          <span className="num">sort {row.sort_order}</span>
+          {row.meta_title ? (
+            <span className="hidden truncate sm:inline-block sm:max-w-[18ch]">
+              SEO: {row.meta_title}
+            </span>
+          ) : (
+            <span className="hidden italic sm:inline">SEO auto from label</span>
+          )}
         </div>
         {row.description ? (
           <div className="mt-0.5 line-clamp-1 text-[11.5px] text-brand-mute">
             {row.description}
           </div>
         ) : null}
-      </td>
-      <td className="px-4 py-3 font-mono text-[11.5px] text-brand-mute">
-        {row.slug}
-      </td>
-      <td className="px-4 py-3 text-[12.5px] text-brand-mute">
-        {row.meta_title ? (
-          <span className="line-clamp-1">{row.meta_title}</span>
-        ) : (
-          <span className="italic text-brand-mute/60">Auto from label</span>
-        )}
-      </td>
-      <td className="px-4 py-3 font-mono text-[12px] text-brand-mute">
-        {row.sort_order}
-      </td>
-      <td className="px-4 py-3">
+      </div>
+
+      {row.is_published ? (
+        <span className="hidden items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-status-confirmed sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+          Published
+        </span>
+      ) : (
+        <span className="hidden items-center rounded-pill bg-brand-line/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute sm:inline-flex">
+          Hidden
+        </span>
+      )}
+
+      <div className="flex items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
         {row.is_published ? (
-          <span className="inline-flex items-center rounded bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-status-confirmed">
-            Published
-          </span>
-        ) : (
-          <span className="inline-flex items-center rounded bg-brand-line/60 px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-brand-mute">
-            Hidden
-          </span>
-        )}
-      </td>
-      <td className="px-4 py-3 text-right">
-        <div className="inline-flex items-center gap-1">
-          {row.is_published ? (
-            <Link
-              href={`/c/${row.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-2 py-1 text-[11px] font-semibold text-brand-mute hover:bg-brand-light"
-            >
-              <ExternalLink className="h-3 w-3" /> View
-            </Link>
-          ) : null}
           <Link
-            href={`/admin/platform/categories/${row.id}`}
-            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1 text-[11px] font-semibold text-white hover:bg-brand-secondary"
+            href={`/c/${row.slug}`}
+            target="_blank"
+            className="rounded-md border border-brand-line bg-white p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+            aria-label={`Preview /c/${row.slug}`}
           >
-            <Pencil className="h-3 w-3" /> Edit
+            <ExternalLink className="h-3.5 w-3.5" />
           </Link>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => onDelete(row)}
-            className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        </div>
-      </td>
-    </tr>
+        ) : null}
+        <Link
+          href={`/admin/platform/categories/${row.id}`}
+          className="rounded-md bg-brand-primary px-2 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-secondary"
+        >
+          <Pencil className="inline h-3.5 w-3.5" />
+          <span className="ml-1 hidden sm:inline">Edit</span>
+        </Link>
+        <button
+          type="button"
+          onClick={() => onDelete(row)}
+          disabled={pending}
+          className="rounded-md border border-red-100 bg-red-50 p-1.5 text-red-600 hover:bg-red-100 disabled:opacity-50"
+          aria-label={`Delete ${row.label}`}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
