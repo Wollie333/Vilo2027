@@ -31,6 +31,81 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-28 — Manual booking form redesign + backend wiring
+
+Rebuilt `/dashboard/bookings/new` to the "New Booking Page" design — a
+9-section numbered form with a sticky dark summary sidebar — and wired it
+to the real backends instead of free-text fields.
+
+### Built
+- **Listing picker** — image radio cards (cover photo from
+  `listing_photos.url`, city + sleeps subtitle, nightly price).
+- **Room picker** — `listing_rooms` cards (photo, bed type, view/en-suite
+  chips) shown only for listings with rooms; per-room availability is
+  computed from `blocked_dates` for the chosen range (booked rooms are
+  disabled). "Reserve the whole listing" toggle → `scope = whole_listing`.
+- **Two-month range calendar** — hatched blocked nights (room-aware),
+  range highlight, today marker, prev/next paging (can't page before the
+  current month), and Tonight / This weekend / Next-7-nights quick chips.
+  Picking a range that crosses a blocked night is rejected client-side.
+- **Guest party** — Adults + Children steppers summed into `guests_count`.
+- **Lead guest** — returning-guest search over past `bookings` (dedup by
+  email, stay count + last stay) with a "use details" banner that
+  prefills name/email/phone.
+- **Pricing** — nightly rate + cleaning fee auto-filled from the room or
+  listing, editable for friends-and-family rates, plus a discount field
+  (folded into `base_amount`) and "add a custom fee" lines.
+- **Add-ons** — real `listing_addons` ⨝ `addons` as toggle cards with
+  quantity steppers, min/max + pricing-model labels; subtotals mirror the
+  server via the shared `computeAddonSubtotal` helper.
+- **Payment** — three method cards mapped to the existing `payment_state`
+  enum (send link / already paid / pay at check-in).
+- **Notes** — guest message → `special_requests`; internal note →
+  `booking_notes` (host/staff only).
+- **Summary sidebar** — canonical dark-hero card with listing thumbnail,
+  date block, guest pill, full price breakdown, add-ons sub-block,
+  "guest pays" total + avg/night, and a payment-state-aware "what happens
+  next" list.
+
+### Changed
+- `createManualBookingAction` now: re-prices configured add-ons
+  server-side from the catalog (never trusts client add-on prices),
+  threads `addon_id`/`pricing_model`/`subtotal` into `booking_addons`,
+  recomputes the total, guards availability via the `room_is_available` /
+  `listing_is_available_whole` RPCs for bookings that land confirmed, and
+  **explicitly writes `blocked_dates`** for confirmed bookings (the
+  `on_booking_confirmed` trigger fires on status UPDATE, so a direct
+  confirmed INSERT was previously leaving the calendar un-blocked — latent
+  bug, now fixed), and saves the internal note to `booking_notes`.
+- `addonLineSchema` gained optional `addon_id` + `pricing_model`;
+  `manualBookingSchema` gained optional `internal_note` (additive — the
+  shared quote create/update path is unaffected).
+- Removed a dead `daysInMonth` var in `bookings/page.tsx` that was failing
+  a fresh `next build` lint pass.
+
+### Migrations
+- None. No schema change — only additive optional Zod fields, so no type
+  regen needed.
+
+### Notes
+- **Deliberately omitted (no backing column — documented, not built):**
+  infants/pets steppers & pet pricing, country select, "send confirmation
+  email" toggle (manual-booking email isn't wired — see notification
+  deferral), deposit / damage pre-auth toggles, payout & Paystack-fee
+  estimate, booking tags, Save-draft / Preview-email buttons, and the
+  Nights/Hours segmented control (this form is accommodation-only). Add
+  these when their backends land.
+- Room selection is single-room (radio) per the design; the schema/action
+  already support multiple `booking_rooms`, so multi-room is a small
+  follow-up if needed.
+- `send_paystack_link` still creates a `pending` booking and does NOT
+  block the calendar (hosted-link emailing remains the existing follow-up
+  TODO).
+- `pnpm build` + `pnpm lint` both pass.
+
+### Commit
+- _pending_
+
 ## 2026-05-28 — Listing taxonomy (super-admin CRUD + SEO landing pages)
 
 Replaced the hardcoded `accommodation_type`/`experience_type` CHECK enums

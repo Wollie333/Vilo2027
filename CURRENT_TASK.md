@@ -8,6 +8,17 @@ categories + amenities + per-category SEO landing pages at /c/[slug])
 shipped on `main` this session. Notification system still on
 `feat/notifications` (8 commits, awaiting merge). Remaining work is
 operational + the deferred host-side wire-ups below.
+**Session note (2026-05-28b):** Rebuilt `/dashboard/bookings/new`
+(ManualBookingForm) to the "New Booking Page" design and wired it to real
+backends — `listing_rooms`, `listing_addons`⨝`addons`, `blocked_dates`
+(two-month range calendar + per-room availability), past-guest search,
+`booking_notes` for the internal note. Action now re-prices add-ons
+server-side, guards availability via RPCs, and explicitly writes
+`blocked_dates` on confirmed bookings (the status-UPDATE trigger doesn't
+fire on a direct confirmed INSERT — latent bug fixed). See `CHANGELOG.md`
+top entry for the full list + deliberately-omitted (no-backend) bits.
+Build + lint green. **Not committed yet.**
+
 **Session Goal (next):** **First**: apply the taxonomy migration when
 Docker is up — `supabase start && supabase db reset && supabase gen types
 typescript --local > packages/types/database.types.ts`. Then pick:
