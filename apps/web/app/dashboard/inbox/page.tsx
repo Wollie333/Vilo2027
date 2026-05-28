@@ -53,18 +53,22 @@ export default async function InboxPage({
     .maybeSingle();
 
   if (!host) {
+    // /dashboard/inbox is rendered in the full-bleed shell (no padding,
+    // no max-w cap) so the empty state needs to bring its own framing.
     return (
-      <div>
-        <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <MessageSquare className="h-6 w-6" />
+      <div className="flex-1 px-5 py-6 lg:px-8 lg:py-8">
+        <div className="mx-auto max-w-[1280px]">
+          <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+              <MessageSquare className="h-6 w-6" />
+            </div>
+            <h1 className="font-display text-lg font-bold text-brand-ink">
+              Set up your host profile first
+            </h1>
+            <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
+              Guest messages land in your inbox once you have a listing live.
+            </p>
           </div>
-          <h1 className="font-display text-lg font-bold text-brand-ink">
-            Set up your host profile first
-          </h1>
-          <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-            Guest messages land in your inbox once you have a listing live.
-          </p>
         </div>
       </div>
     );

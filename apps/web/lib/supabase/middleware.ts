@@ -10,6 +10,11 @@ const PROTECTED_PREFIXES = ["/dashboard", "/admin", "/portal"];
 // itself and redirects to the right destination.
 
 export async function updateSession(request: NextRequest) {
+  // Mirror the current pathname to a request header so server layouts can
+  // branch on it (next/headers can read this in RSC). Used by the dashboard
+  // layout to give /dashboard/inbox a full-bleed shell while every other
+  // dashboard page stays capped at max-w-[1280px].
+  request.headers.set("x-pathname", request.nextUrl.pathname);
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(

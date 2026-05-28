@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
@@ -7,6 +8,18 @@ import { MobileBottomNav } from "./_components/MobileBottomNav";
 import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { Sidebar } from "./_components/Sidebar";
 import { Topbar } from "./_components/Topbar";
+
+// Pages allowed to break out of the standard padded + max-w-[1280px]
+// content shell and fill the whole content area edge-to-edge instead.
+// Inbox is the only such page today — message-center UI needs every
+// pixel of width and height. Exact-match only so child routes like
+// /dashboard/inbox/templates still get the normal padded shell.
+const FULL_BLEED_ROUTES = new Set(["/dashboard/inbox"]);
+
+function isFullBleedRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return FULL_BLEED_ROUTES.has(pathname);
+}
 
 export default async function DashboardLayout({
   children,
@@ -103,7 +116,7 @@ export default async function DashboardLayout({
           canHost={canHost}
           canAdmin={isPlatformStaff}
         />
-        <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+        <main className="flex min-w-0 flex-1 flex-col pb-20 lg:pb-0">
           <Topbar
             email={user.email ?? ""}
             initials={initials}
@@ -120,9 +133,17 @@ export default async function DashboardLayout({
             }
           />
           <BroadcastBanner />
-          <div className="px-5 py-6 lg:px-8 lg:py-8">
-            <div className="mx-auto max-w-[1280px]">{children}</div>
-          </div>
+          {isFullBleedRoute(headers().get("x-pathname")) ? (
+            // Full-bleed: no padding, no max-w cap. The page is responsible
+            // for filling the content area; ensure it returns a flex/grid
+            // root with `h-full` (or similar) so it actually claims the
+            // available height.
+            <div className="flex-1">{children}</div>
+          ) : (
+            <div className="px-5 py-6 lg:px-8 lg:py-8">
+              <div className="mx-auto max-w-[1280px]">{children}</div>
+            </div>
+          )}
         </main>
         <MobileBottomNav />
       </div>
