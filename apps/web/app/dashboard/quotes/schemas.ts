@@ -1,10 +1,16 @@
 import { z } from "zod";
 
-// Free-form addon line item: label + qty * unit_price.
+// A booking/quote line item. Two flavours share the shape:
+//  - configured add-on  → addon_id set; server re-prices from the catalog
+//    (unit_price/label/pricing_model the client sends are advisory only).
+//  - custom fee/charge   → addon_id null; host-entered label + price are trusted
+//    (it's the host's own listing — e.g. early check-in, pet deposit).
 export const addonLineSchema = z.object({
   label: z.string().trim().min(1, "Label is required.").max(200),
   quantity: z.coerce.number().min(0.01, "Must be > 0").max(10000),
   unit_price: z.coerce.number().min(0, "Must be ≥ 0").max(1000000),
+  addon_id: z.string().uuid().nullable().optional(),
+  pricing_model: z.string().max(40).optional(),
 });
 export type AddonLineInput = z.infer<typeof addonLineSchema>;
 
@@ -81,6 +87,10 @@ export const manualBookingSchema = z
 
     payment_state: z.enum(["paid", "unpaid", "send_paystack_link"]),
     payment_note: z.string().trim().max(400).optional().or(z.literal("")),
+
+    // Notes & extras. special_requests → guest-facing; internal_note →
+    // booking_notes (host/staff only).
+    internal_note: z.string().trim().max(4000).optional().or(z.literal("")),
   })
   .refine((v) => v.check_out > v.check_in, {
     message: "Check-out must be after check-in.",

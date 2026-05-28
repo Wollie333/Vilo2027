@@ -34,6 +34,7 @@ const config: Config = {
           cancelled: "#EF4444",
           completed: "#6366F1",
           draft: "#94A3B8",
+          inhouse: "#0EA5E9",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

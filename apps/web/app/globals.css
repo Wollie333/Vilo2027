@@ -202,6 +202,31 @@
   .pulse-soft {
     animation: pulse-soft 2.2s ease-in-out infinite;
   }
+
+  /* Branded checkbox — used in the bookings table (per Bookings Page.html) */
+  input[type="checkbox"].vilo-check {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid #dceae0;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    transition:
+      border-color 120ms,
+      background 120ms;
+  }
+  input[type="checkbox"].vilo-check:hover {
+    border-color: #10b981;
+  }
+  input[type="checkbox"].vilo-check:checked {
+    background: #10b981;
+    border-color: #10b981;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5 9-11'/></svg>");
+    background-size: 12px;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
 }
 
 @layer components {
