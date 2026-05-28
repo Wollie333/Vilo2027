@@ -363,6 +363,36 @@ async function onSubmit(data: FormData) {
 }
 ```
 
+### 6.4 Saved-data card pattern
+Every settings section and wizard step that persists structured data
+follows the same two-state shape:
+
+- **Empty** → render the form expanded.
+- **Populated** → render a read-only summary **card** with a small
+  Edit button (and a Delete button when the underlying record
+  supports deletion). Editing swaps the card body for the form
+  prefilled with current values; saving collapses back to the card.
+
+For **collections** (multiple rows allowed — bank accounts, payout
+methods, staff invites, listings…) repeat the card per row, plus an
+`+ Add another …` outline button below the list. Exactly one row is
+marked **Default** with an emerald badge; other rows surface a
+`Set as default` action.
+
+Visual baseline:
+```tsx
+<section className="rounded-card border border-brand-line bg-white shadow-card">
+  <header className="border-b border-brand-line bg-brand-light/50 px-5 py-3">…</header>
+  <div className="p-5">…</div>
+</section>
+```
+Default badge: `bg-emerald-500/10 text-emerald-700`. Edit icon:
+`Pencil`. Delete icon: `Trash2`. Use ghost-style icon buttons flush
+right.
+
+Reference implementation:
+[`apps/web/app/dashboard/setup/steps/StepBanking.tsx`](apps/web/app/dashboard/setup/steps/StepBanking.tsx).
+
 ---
 
 ## 7. Styling

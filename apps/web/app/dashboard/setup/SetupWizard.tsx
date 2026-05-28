@@ -216,6 +216,19 @@ export function SetupWizard(props: Props) {
             bankAccounts={bankAccounts}
             businessDetails={businessDetails}
             onAccountSaved={(acc) => setBankAccounts((list) => [...list, acc])}
+            onAccountUpdated={(id, patch) =>
+              setBankAccounts((list) =>
+                list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+              )
+            }
+            onAccountDeleted={(id) =>
+              setBankAccounts((list) => list.filter((a) => a.id !== id))
+            }
+            onDefaultChanged={(id) =>
+              setBankAccounts((list) =>
+                list.map((a) => ({ ...a, is_default: a.id === id })),
+              )
+            }
             onBusinessSaved={(b) => setBusinessDetails(b)}
             onContinue={advance}
           />
