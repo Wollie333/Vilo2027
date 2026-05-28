@@ -13,24 +13,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
 import { assignAmenityToRoomAction, replaceAmenitiesAction } from "../actions";
 import type { EditorAmenity, EditorRoom } from "../Editor";
-import { AMENITY_OPTIONS } from "../schemas";
 
 export function AmenitiesTab({
   listingId,
   initial,
   rooms,
+  groups,
 }: {
   listingId: string;
   initial: EditorAmenity[];
   rooms: EditorRoom[];
+  groups: AmenityGroupWithItems[];
 }) {
   const [items, setItems] = useState<EditorAmenity[]>(initial);
   const [pending, start] = useTransition();
 
-  // Index by key for quick toggling.
   const keysSelected = useMemo(() => new Set(items.map((i) => i.key)), [items]);
 
   function toggle(key: string) {
@@ -51,8 +52,6 @@ export function AmenitiesTab({
         toast.error(result.error);
         return;
       }
-      // Replace local state with the DB rows so the per-room picker has real
-      // IDs (and room_id assignments preserved across the wipe+reinsert).
       setItems(
         (result.data ?? []).map((r) => ({
           id: r.id,
@@ -97,49 +96,65 @@ export function AmenitiesTab({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {AMENITY_OPTIONS.map((a) => {
-            const checked = keysSelected.has(a.key);
-            const item = items.find((i) => i.key === a.key);
-            return (
-              <div
-                key={a.key}
-                className={`flex items-center gap-2 rounded border px-3 py-2 text-sm transition-colors ${
-                  checked
-                    ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                    : "border-brand-line bg-white text-brand-ink hover:bg-brand-light/60"
-                }`}
-              >
-                <label className="flex flex-1 cursor-pointer items-center gap-2">
-                  <Checkbox
-                    checked={checked}
-                    onCheckedChange={() => toggle(a.key)}
-                  />
-                  {a.label}
-                </label>
-                {checked && rooms.length > 0 && item ? (
-                  <select
-                    value={item.roomId ?? ""}
-                    onChange={(e) =>
-                      assign(
-                        item.id,
-                        e.target.value === "" ? null : e.target.value,
-                      )
-                    }
-                    className="rounded border border-brand-line bg-white px-2 py-1 text-[11px] text-brand-mute"
-                    aria-label="Assign amenity to room"
-                  >
-                    <option value="">Listing-wide</option>
-                    {rooms.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                ) : null}
+        {groups.length === 0 ? (
+          <p className="rounded border border-dashed border-brand-line bg-brand-light/40 px-3 py-3 text-[12.5px] text-brand-mute">
+            No amenities available. Ask an admin to add some in{" "}
+            <span className="font-mono">/admin/platform/amenities</span>.
+          </p>
+        ) : null}
+
+        <div className="space-y-6">
+          {groups.map((g) => (
+            <section key={g.id}>
+              <h3 className="mb-2 font-display text-sm font-semibold text-brand-dark">
+                {g.label}
+              </h3>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {g.items.map((a) => {
+                  const checked = keysSelected.has(a.slug);
+                  const item = items.find((i) => i.key === a.slug);
+                  return (
+                    <div
+                      key={a.id}
+                      className={`flex items-center gap-2 rounded border px-3 py-2 text-sm transition-colors ${
+                        checked
+                          ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
+                          : "border-brand-line bg-white text-brand-ink hover:bg-brand-light/60"
+                      }`}
+                    >
+                      <label className="flex flex-1 cursor-pointer items-center gap-2">
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggle(a.slug)}
+                        />
+                        {a.label}
+                      </label>
+                      {checked && rooms.length > 0 && item ? (
+                        <select
+                          value={item.roomId ?? ""}
+                          onChange={(e) =>
+                            assign(
+                              item.id,
+                              e.target.value === "" ? null : e.target.value,
+                            )
+                          }
+                          className="rounded border border-brand-line bg-white px-2 py-1 text-[11px] text-brand-mute"
+                          aria-label="Assign amenity to room"
+                        >
+                          <option value="">Listing-wide</option>
+                          {rooms.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+            </section>
+          ))}
         </div>
 
         <div className="mt-5 flex items-center justify-between">

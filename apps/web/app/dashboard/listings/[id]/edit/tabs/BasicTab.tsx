@@ -24,42 +24,51 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  CategoryPicker,
+  type CategoryPickerLeaf,
+} from "@/lib/taxonomy/CategoryPicker";
 
 import { saveListingPatchAction, setBookingModeAction } from "../actions";
 import type { EditorListing } from "../Editor";
-import {
-  ACCOMMODATION_TYPES,
-  BOOKING_MODES,
-  EXPERIENCE_TYPES,
-  basicSchema,
-  type BasicInput,
-} from "../schemas";
+import { BOOKING_MODES, basicSchema, type BasicInput } from "../schemas";
 
-export function BasicTab({ listing }: { listing: EditorListing }) {
+export function BasicTab({
+  listing,
+  categoryLeaves,
+}: {
+  listing: EditorListing;
+  categoryLeaves: CategoryPickerLeaf[];
+}) {
   const [pending, start] = useTransition();
   const form = useForm<BasicInput>({
     resolver: zodResolver(basicSchema),
     defaultValues: {
       name: listing.name,
-      accommodation_type:
-        listing.accommodation_type as BasicInput["accommodation_type"],
-      experience_type: listing.experience_type as BasicInput["experience_type"],
+      category_id: listing.category_id ?? null,
+      accommodation_type: listing.accommodation_type,
+      experience_type: listing.experience_type,
       description: listing.description ?? "",
     },
   });
 
+  const selectedCategoryId = form.watch("category_id") ?? null;
+
   function onSubmit(values: BasicInput) {
+    // Resolve the chosen leaf so we can keep the legacy column populated.
+    const leaf = categoryLeaves.find((l) => l.id === values.category_id);
     start(async () => {
       const patch = {
         name: values.name,
+        category_id: values.category_id ?? null,
+        // Mirror the leaf slug into the legacy text column so old read paths
+        // (and the explore page's legacy fallback) keep working.
         accommodation_type:
           listing.listing_type === "accommodation"
-            ? (values.accommodation_type ?? null)
+            ? (leaf?.slug ?? null)
             : null,
         experience_type:
-          listing.listing_type === "experience"
-            ? (values.experience_type ?? null)
-            : null,
+          listing.listing_type === "experience" ? (leaf?.slug ?? null) : null,
         description:
           values.description && values.description.length > 0
             ? values.description
@@ -71,15 +80,6 @@ export function BasicTab({ listing }: { listing: EditorListing }) {
     });
   }
 
-  const options =
-    listing.listing_type === "accommodation"
-      ? ACCOMMODATION_TYPES
-      : EXPERIENCE_TYPES;
-  const typeField =
-    listing.listing_type === "accommodation"
-      ? ("accommodation_type" as const)
-      : ("experience_type" as const);
-
   return (
     <div className="space-y-6">
       <Card className="rounded-card border-brand-line shadow-card">
@@ -88,7 +88,7 @@ export function BasicTab({ listing }: { listing: EditorListing }) {
             Basic info
           </CardTitle>
           <CardDescription className="text-brand-mute">
-            Name, type and description guests will read first.
+            Name, category and description guests will read first.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -114,30 +114,23 @@ export function BasicTab({ listing }: { listing: EditorListing }) {
 
               <FormField
                 control={form.control}
-                name={typeField}
-                render={({ field }) => (
+                name="category_id"
+                render={() => (
                   <FormItem>
                     <FormLabel>
                       {listing.listing_type === "accommodation"
                         ? "Accommodation type"
                         : "Experience type"}
                     </FormLabel>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {options.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => field.onChange(opt.value)}
-                          className={`rounded border px-3 py-2 text-left text-sm transition-colors ${
-                            field.value === opt.value
-                              ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                              : "border-brand-line bg-white text-brand-mute hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
+                    <CategoryPicker
+                      leaves={categoryLeaves}
+                      value={selectedCategoryId}
+                      onChange={(leaf) => {
+                        form.setValue("category_id", leaf.id, {
+                          shouldDirty: true,
+                        });
+                      }}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -200,7 +193,6 @@ function BookingModeCard({ listing }: { listing: EditorListing }) {
         toast.success("Booking mode saved");
       } else {
         toast.error(result.error);
-        // Revert local state on rejection.
         setMode(listing.booking_mode);
       }
     });

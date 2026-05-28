@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
 import { Wizard } from "./Wizard";
 
@@ -56,6 +57,21 @@ export default async function HostSignupPage() {
     }
   }
 
+  // Flatten the category tree to leaves only (skip the Accommodation /
+  // Experiences roots). The Wizard picks accommodation vs experience first
+  // then filters this list by kind.
+  const tree = await getCategoryTree();
+  const categoryLeaves = [...tree.accommodation, ...tree.experience].flatMap(
+    (root) =>
+      root.children.map((c) => ({
+        id: c.id,
+        label: c.label,
+        slug: c.slug,
+        kind: c.kind,
+        description: c.description,
+      })),
+  );
+
   // Unsigned users can land here directly — Step 1 (Account) creates the
   // auth user. If a signed-in user (no host row yet) comes back to finish,
   // we skip Step 1 and seed every About-step field we already have.
@@ -68,6 +84,7 @@ export default async function HostSignupPage() {
       prefilledAvatar={prefilledAvatar}
       prefilledLanguages={prefilledLanguages}
       prefilledCountry={prefilledCountry}
+      categoryLeaves={categoryLeaves}
     />
   );
 }

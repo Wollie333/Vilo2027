@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
+import { getCategoriesForKind } from "@/lib/taxonomy/getCategories";
 
 import {
   Editor,
@@ -40,6 +42,7 @@ export default async function EditListingPage({
         "listing_type",
         "accommodation_type",
         "experience_type",
+        "category_id",
         "name",
         "slug",
         "description",
@@ -181,6 +184,21 @@ export default async function EditListingPage({
       r.unit_price_override == null ? null : Number(r.unit_price_override),
   }));
 
+  const [categoryLeavesAll, amenityGroups] = await Promise.all([
+    getCategoriesForKind(listing.listing_type),
+    getAmenityCatalog(),
+  ]);
+  // Picker only renders leaves (skip roots like Accommodation / Experiences).
+  const categoryLeaves = categoryLeavesAll
+    .filter((c) => c.parent_id !== null)
+    .map((c) => ({
+      id: c.id,
+      label: c.label,
+      description: c.description,
+      slug: c.slug,
+      kind: c.kind,
+    }));
+
   return (
     <Editor
       listing={listing}
@@ -189,6 +207,8 @@ export default async function EditListingPage({
       rooms={rooms}
       availableAddons={availableAddons}
       assignedAddons={assignedAddons}
+      categoryLeaves={categoryLeaves}
+      amenityGroups={amenityGroups}
     />
   );
 }

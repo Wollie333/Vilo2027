@@ -44,6 +44,7 @@ export async function createListingAction(
     .insert({
       host_id: host.id,
       listing_type: d.listing_type,
+      category_id: d.category_id,
       accommodation_type:
         d.listing_type === "accommodation"
           ? (d.accommodation_type ?? null)

@@ -65,16 +65,12 @@ type WizardData = {
   // photos and amenities all live in the listing editor post-onboarding.
   listingName: string;
   listingKind: "accommodation" | "experience";
-  accommodationType:
-    | "guesthouse"
-    | "bb"
-    | "self_catering"
-    | "lodge"
-    | "hotel"
-    | "cottage"
-    | "villa"
-    | "other";
-  experienceType: "tour" | "activity" | "workshop" | "transfer" | "other";
+  categoryId: string | null;
+  // Legacy text columns — derived from the chosen category slug; the
+  // picker writes both so the listings INSERT keeps the old columns
+  // populated for backwards-compatible reads.
+  accommodationType: string;
+  experienceType: string;
   addressLine1: string;
   addressLine2: string;
   city: string;
@@ -112,8 +108,9 @@ function initialData(prefilled: Prefilled): WizardData {
     avatarUrl: prefilled.avatarUrl ?? "",
     listingName: "",
     listingKind: "accommodation",
-    accommodationType: "guesthouse",
-    experienceType: "tour",
+    categoryId: null,
+    accommodationType: "",
+    experienceType: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -199,6 +196,7 @@ export function Wizard({
   prefilledAvatar = null,
   prefilledLanguages = null,
   prefilledCountry = null,
+  categoryLeaves = [],
 }: {
   prefilledEmail: string | null;
   prefilledFullName?: string | null;
@@ -207,6 +205,13 @@ export function Wizard({
   prefilledAvatar?: string | null;
   prefilledLanguages?: string[] | null;
   prefilledCountry?: string | null;
+  categoryLeaves?: Array<{
+    id: string;
+    label: string;
+    slug: string;
+    kind: "accommodation" | "experience";
+    description: string | null;
+  }>;
 }) {
   // Returning users (already signed in) skip Step 1.
   const startIndex = prefilledEmail ? 1 : 0;
@@ -314,12 +319,15 @@ export function Wizard({
     const parsed = listingSchema.safeParse({
       listing_name: data.listingName,
       listing_kind: data.listingKind,
+      category_id: data.categoryId,
       accommodation_type:
         data.listingKind === "accommodation"
-          ? data.accommodationType
+          ? data.accommodationType || undefined
           : undefined,
       experience_type:
-        data.listingKind === "experience" ? data.experienceType : undefined,
+        data.listingKind === "experience"
+          ? data.experienceType || undefined
+          : undefined,
       address_line1: data.addressLine1,
       address_line2: data.addressLine2,
       city: data.city,
@@ -349,12 +357,15 @@ export function Wizard({
         avatar_url: data.avatarUrl,
         listing_name: data.listingName,
         listing_kind: data.listingKind,
+        category_id: data.categoryId,
         accommodation_type:
           data.listingKind === "accommodation"
-            ? data.accommodationType
+            ? data.accommodationType || undefined
             : undefined,
         experience_type:
-          data.listingKind === "experience" ? data.experienceType : undefined,
+          data.listingKind === "experience"
+            ? data.experienceType || undefined
+            : undefined,
         address_line1: data.addressLine1,
         address_line2: data.addressLine2,
         city: data.city,
@@ -431,6 +442,7 @@ export function Wizard({
             patch={patch}
             errors={errors}
             stepIndex={currentIndex}
+            categoryLeaves={categoryLeaves}
           />
         );
       case "plan":
@@ -1070,13 +1082,24 @@ function StepListing({
   patch,
   errors,
   stepIndex,
+  categoryLeaves,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
   errors: Record<string, string>;
   stepIndex: number;
+  categoryLeaves: Array<{
+    id: string;
+    label: string;
+    slug: string;
+    kind: "accommodation" | "experience";
+    description: string | null;
+  }>;
 }) {
   const isExperience = data.listingKind === "experience";
+  const kindLeaves = categoryLeaves.filter((l) =>
+    isExperience ? l.kind === "experience" : l.kind === "accommodation",
+  );
   return (
     <div className="vilo-step-enter">
       <StepHeading
@@ -1107,7 +1130,17 @@ function StepListing({
                 <button
                   key={opt.v}
                   type="button"
-                  onClick={() => patch({ listingKind: opt.v })}
+                  onClick={() =>
+                    patch({
+                      listingKind: opt.v,
+                      // Different kind = different leaf set. Clear the
+                      // previous pick so the host re-selects from the
+                      // matching options.
+                      categoryId: null,
+                      accommodationType: "",
+                      experienceType: "",
+                    })
+                  }
                   className={`rounded-card border p-3 text-left transition-colors ${
                     on
                       ? "border-brand-primary bg-brand-accent/40"
@@ -1140,43 +1173,36 @@ function StepListing({
             />
           </FormField>
 
-          <FormField label={isExperience ? "Experience type" : "Property type"}>
-            {isExperience ? (
-              <SelectInput
-                value={data.experienceType}
-                onChange={(e) =>
-                  patch({
-                    experienceType: e.target
-                      .value as WizardData["experienceType"],
-                  })
+          <FormField
+            label={isExperience ? "Experience type" : "Property type"}
+            error={errors.category_id}
+          >
+            <SelectInput
+              value={data.categoryId ?? ""}
+              onChange={(e) => {
+                const id = e.target.value;
+                const leaf = kindLeaves.find((l) => l.id === id);
+                if (!leaf) {
+                  patch({ categoryId: null });
+                  return;
                 }
-              >
-                <option value="tour">Tour</option>
-                <option value="activity">Activity</option>
-                <option value="workshop">Class</option>
-                <option value="transfer">Transfer</option>
-                <option value="other">Other</option>
-              </SelectInput>
-            ) : (
-              <SelectInput
-                value={data.accommodationType}
-                onChange={(e) =>
-                  patch({
-                    accommodationType: e.target
-                      .value as WizardData["accommodationType"],
-                  })
-                }
-              >
-                <option value="guesthouse">Guesthouse</option>
-                <option value="bb">B&amp;B</option>
-                <option value="self_catering">Self-catering</option>
-                <option value="lodge">Lodge</option>
-                <option value="hotel">Hotel</option>
-                <option value="cottage">Cottage</option>
-                <option value="villa">Villa</option>
-                <option value="other">Other</option>
-              </SelectInput>
-            )}
+                patch({
+                  categoryId: leaf.id,
+                  // Mirror onto the legacy column so the listings INSERT
+                  // populates both. Cleared for the opposite kind in the
+                  // server action.
+                  accommodationType: isExperience ? "" : leaf.slug,
+                  experienceType: isExperience ? leaf.slug : "",
+                });
+              }}
+            >
+              <option value="">Pick a category…</option>
+              {kindLeaves.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.label}
+                </option>
+              ))}
+            </SelectInput>
           </FormField>
         </div>
 

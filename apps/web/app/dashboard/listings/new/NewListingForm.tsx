@@ -17,44 +17,50 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  CategoryPicker,
+  type CategoryPickerLeaf,
+} from "@/lib/taxonomy/CategoryPicker";
 
 import { createListingAction } from "./actions";
 import { newListingSchema, type NewListingInput } from "./schemas";
 
-const ACCOMMODATION_TYPES = [
-  { value: "self_catering", label: "Self-catering" },
-  { value: "bb", label: "B&B" },
-  { value: "guesthouse", label: "Guesthouse" },
-  { value: "lodge", label: "Lodge" },
-  { value: "hotel", label: "Hotel" },
-  { value: "other", label: "Other" },
-] as const;
-
-const EXPERIENCE_TYPES = [
-  { value: "tour", label: "Tour" },
-  { value: "activity", label: "Activity" },
-  { value: "workshop", label: "Workshop" },
-  { value: "transfer", label: "Transfer" },
-  { value: "other", label: "Other" },
-] as const;
-
-export function NewListingForm() {
+export function NewListingForm({
+  categoryLeaves,
+}: {
+  categoryLeaves: CategoryPickerLeaf[];
+}) {
   const [pending, start] = useTransition();
   const form = useForm<NewListingInput>({
     resolver: zodResolver(newListingSchema),
     defaultValues: {
       name: "",
       listing_type: "accommodation",
+      category_id: undefined,
       accommodation_type: undefined,
       experience_type: undefined,
     },
   });
 
   const listingType = form.watch("listing_type");
+  const selectedCategoryId = form.watch("category_id") ?? null;
+
+  const leavesForKind = categoryLeaves.filter((l) => l.kind === listingType);
 
   function onSubmit(values: NewListingInput) {
+    const leaf = categoryLeaves.find((l) => l.id === values.category_id);
     start(async () => {
-      const result = await createListingAction(values);
+      const result = await createListingAction({
+        ...values,
+        accommodation_type:
+          values.listing_type === "accommodation"
+            ? (leaf?.slug ?? undefined)
+            : undefined,
+        experience_type:
+          values.listing_type === "experience"
+            ? (leaf?.slug ?? undefined)
+            : undefined,
+      });
       if (result && !result.ok) {
         toast.error(result.error);
       }
@@ -105,7 +111,11 @@ export function NewListingForm() {
                       <button
                         key={t}
                         type="button"
-                        onClick={() => field.onChange(t)}
+                        onClick={() => {
+                          field.onChange(t);
+                          // Different kind = different leaves. Reset.
+                          form.setValue("category_id", undefined as never);
+                        }}
                         disabled={pending}
                         className={`rounded-card border p-4 text-left transition-colors ${
                           field.value === t
@@ -131,65 +141,26 @@ export function NewListingForm() {
               )}
             />
 
-            {listingType === "accommodation" ? (
-              <FormField
-                control={form.control}
-                name="accommodation_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {ACCOMMODATION_TYPES.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => field.onChange(opt.value)}
-                          disabled={pending}
-                          className={`rounded border px-3 py-2 text-left text-sm transition-colors ${
-                            field.value === opt.value
-                              ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                              : "border-brand-line bg-white text-brand-mute hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-
-            {listingType === "experience" ? (
-              <FormField
-                control={form.control}
-                name="experience_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {EXPERIENCE_TYPES.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => field.onChange(opt.value)}
-                          disabled={pending}
-                          className={`rounded border px-3 py-2 text-left text-sm transition-colors ${
-                            field.value === opt.value
-                              ? "border-brand-primary bg-brand-accent/50 text-brand-dark"
-                              : "border-brand-line bg-white text-brand-mute hover:bg-brand-light/60"
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
+            <FormField
+              control={form.control}
+              name="category_id"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <CategoryPicker
+                    leaves={leavesForKind}
+                    value={selectedCategoryId}
+                    onChange={(leaf) => {
+                      form.setValue("category_id", leaf.id, {
+                        shouldValidate: true,
+                      });
+                    }}
+                    disabled={pending}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="flex justify-end pt-2">
               <Button

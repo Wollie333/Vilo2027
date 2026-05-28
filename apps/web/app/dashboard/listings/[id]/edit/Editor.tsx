@@ -22,6 +22,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
+import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
+
 import { togglePublishAction } from "./actions";
 import {
   AddonsTab,
@@ -55,6 +58,7 @@ export type EditorListing = {
   listing_type: "accommodation" | "experience";
   accommodation_type: string | null;
   experience_type: string | null;
+  category_id: string | null;
   name: string;
   slug: string | null;
   description: string | null;
@@ -187,6 +191,8 @@ export function Editor({
   rooms: initialRooms,
   availableAddons,
   assignedAddons,
+  categoryLeaves,
+  amenityGroups,
 }: {
   listing: EditorListing;
   amenities: EditorAmenity[];
@@ -194,6 +200,8 @@ export function Editor({
   rooms: EditorRoom[];
   availableAddons: AvailableAddon[];
   assignedAddons: AssignedAddon[];
+  categoryLeaves: CategoryPickerLeaf[];
+  amenityGroups: AmenityGroupWithItems[];
 }) {
   const TABS =
     listing.listing_type === "experience"
@@ -529,7 +537,9 @@ export function Editor({
 
       {/* ============ ACTIVE TAB CONTENT ============ */}
       <div>
-        {active === "basic" ? <BasicTab listing={listing} /> : null}
+        {active === "basic" ? (
+          <BasicTab listing={listing} categoryLeaves={categoryLeaves} />
+        ) : null}
         {active === "photos" ? (
           <PhotosTab
             listingId={listing.id}
@@ -547,6 +557,7 @@ export function Editor({
             listingId={listing.id}
             initial={amenities}
             rooms={rooms}
+            groups={amenityGroups}
           />
         ) : null}
         {active === "addons" ? (

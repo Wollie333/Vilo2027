@@ -56,14 +56,12 @@ export const AMENITY_OPTIONS: { key: string; label: string }[] = [
 
 export const basicSchema = z.object({
   name: z.string().trim().min(3, "Name is too short.").max(200),
-  accommodation_type: z
-    .enum(["hotel", "guesthouse", "bb", "self_catering", "lodge", "other"])
-    .nullable()
-    .optional(),
-  experience_type: z
-    .enum(["tour", "activity", "workshop", "transfer", "other"])
-    .nullable()
-    .optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  // Legacy text columns — written server-side from the chosen leaf slug,
+  // not edited by the host. Kept in the schema so the patch payload is
+  // accepted without a strict enum after the taxonomy cutover.
+  accommodation_type: z.string().nullable().optional(),
+  experience_type: z.string().nullable().optional(),
   description: z.string().trim().max(4000).optional().or(z.literal("")),
 });
 export type BasicInput = z.infer<typeof basicSchema>;
@@ -297,6 +295,7 @@ export type RoomPatch = z.infer<typeof roomPatchSchema>;
 // What the saveListingPatch action accepts — a subset of listings columns.
 export const patchSchema = z.object({
   name: z.string().trim().min(3).max(200).optional(),
+  category_id: z.string().uuid().nullable().optional(),
   accommodation_type: z.string().nullable().optional(),
   experience_type: z.string().nullable().optional(),
   description: z.string().nullable().optional(),

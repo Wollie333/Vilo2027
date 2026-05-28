@@ -159,21 +159,10 @@ export const listingSchema = z
       .min(2, "Listing needs a name.")
       .max(200, "Listing name is too long."),
     listing_kind: z.enum(["accommodation", "experience"]),
-    accommodation_type: z
-      .enum([
-        "guesthouse",
-        "bb",
-        "self_catering",
-        "lodge",
-        "hotel",
-        "cottage",
-        "villa",
-        "other",
-      ])
-      .optional(),
-    experience_type: z
-      .enum(["tour", "activity", "workshop", "transfer", "other"])
-      .optional(),
+    category_id: z.string().uuid().nullable().optional(),
+    // Legacy text columns — mirrored from the chosen category slug.
+    accommodation_type: z.string().optional(),
+    experience_type: z.string().optional(),
     address_line1: z
       .string()
       .trim()
@@ -184,13 +173,9 @@ export const listingSchema = z
     region: z.string().trim().min(2).max(80),
     postal_code: z.string().trim().min(3, "Postal code is required.").max(20),
   })
-  .refine((d) => d.listing_kind !== "accommodation" || !!d.accommodation_type, {
-    path: ["accommodation_type"],
-    message: "Pick an accommodation type.",
-  })
-  .refine((d) => d.listing_kind !== "experience" || !!d.experience_type, {
-    path: ["experience_type"],
-    message: "Pick an experience type.",
+  .refine((d) => !!d.category_id, {
+    path: ["category_id"],
+    message: "Pick a category.",
   });
 export type ListingInput = z.infer<typeof listingSchema>;
 
@@ -225,21 +210,9 @@ export const finalizeOnboardingSchema = z
     // duration, photos etc. live in the listing editor post-onboarding.
     listing_name: z.string().trim().min(2).max(200),
     listing_kind: z.enum(["accommodation", "experience"]),
-    accommodation_type: z
-      .enum([
-        "guesthouse",
-        "bb",
-        "self_catering",
-        "lodge",
-        "hotel",
-        "cottage",
-        "villa",
-        "other",
-      ])
-      .optional(),
-    experience_type: z
-      .enum(["tour", "activity", "workshop", "transfer", "other"])
-      .optional(),
+    category_id: z.string().uuid().nullable().optional(),
+    accommodation_type: z.string().optional(),
+    experience_type: z.string().optional(),
     address_line1: z.string().trim().min(3).max(200),
     address_line2: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().min(2).max(120),
@@ -251,13 +224,9 @@ export const finalizeOnboardingSchema = z
     plan: z.enum(["free", "basic", "pro", "business"]),
     billing_cycle: z.enum(["monthly", "annual"]),
   })
-  .refine((d) => d.listing_kind !== "accommodation" || !!d.accommodation_type, {
-    path: ["accommodation_type"],
-    message: "Pick an accommodation type.",
-  })
-  .refine((d) => d.listing_kind !== "experience" || !!d.experience_type, {
-    path: ["experience_type"],
-    message: "Pick an experience type.",
+  .refine((d) => !!d.category_id, {
+    path: ["category_id"],
+    message: "Pick a category.",
   });
 
 export type FinalizeOnboardingInput = z.infer<typeof finalizeOnboardingSchema>;

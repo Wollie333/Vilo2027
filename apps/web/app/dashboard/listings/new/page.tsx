@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
 import { NewListingForm } from "./NewListingForm";
 
@@ -30,6 +31,18 @@ export default async function NewListingPage() {
     redirect("/signup/host");
   }
 
+  const tree = await getCategoryTree();
+  const categoryLeaves = [...tree.accommodation, ...tree.experience].flatMap(
+    (root) =>
+      root.children.map((c) => ({
+        id: c.id,
+        label: c.label,
+        slug: c.slug,
+        kind: c.kind,
+        description: c.description,
+      })),
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -52,7 +65,7 @@ export default async function NewListingPage() {
         </p>
       </header>
 
-      <NewListingForm />
+      <NewListingForm categoryLeaves={categoryLeaves} />
     </div>
   );
 }
