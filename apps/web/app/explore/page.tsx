@@ -13,6 +13,10 @@ import Link from "next/link";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
+import {
+  getCategoryBySlug,
+  getDescendantIds,
+} from "@/lib/taxonomy/getCategories";
 
 import { SearchBar } from "./SearchBar";
 import { TypeChips } from "./TypeChips";
@@ -26,14 +30,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 24;
-
-const ACC_TYPES = [
-  "hotel",
-  "guesthouse",
-  "bb",
-  "self_catering",
-  "lodge",
-] as const;
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -120,10 +116,26 @@ export default async function ExplorePage({
       query = query.eq("listing_type", "accommodation");
     } else if (type === "experience") {
       query = query.eq("listing_type", "experience");
-    } else if ((ACC_TYPES as readonly string[]).includes(type)) {
-      query = query
-        .eq("listing_type", "accommodation")
-        .eq("accommodation_type", type);
+    } else {
+      // Treat `type` as a category slug. Look it up in the taxonomy and
+      // include every descendant id when filtering. Fall back to the legacy
+      // accommodation_type / experience_type text column for listings that
+      // haven't been backfilled yet.
+      const category = await getCategoryBySlug(type);
+      if (category) {
+        const ids = await getDescendantIds(category.id);
+        const idList = `(${ids.join(",")})`;
+        const legacyCol =
+          category.kind === "experience"
+            ? "experience_type"
+            : "accommodation_type";
+        query = query.or(`category_id.in.${idList},${legacyCol}.eq.${type}`);
+      } else {
+        // Unknown slug — still try the legacy text column so old URLs work.
+        query = query.or(
+          `accommodation_type.eq.${type},experience_type.eq.${type}`,
+        );
+      }
     }
   }
   if (guests) {

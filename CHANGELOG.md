@@ -31,6 +31,106 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-28 — Listing taxonomy (super-admin CRUD + SEO landing pages)
+
+Replaced the hardcoded `accommodation_type`/`experience_type` CHECK enums
+with an admin-managed `listing_categories` master table (parent → child
+nesting, per-category SEO + landing-page content) and an
+`amenity_groups`/`amenity_catalog` pair. Built the full enterprise admin
+module under `/admin/platform/categories` and `/admin/platform/amenities`,
+and wired the public side so admin changes flow through to the visitor
+experience.
+
+### Built
+
+- **DB** — `20260528000001_listing_taxonomy.sql`: three new tables
+  (`listing_categories`, `amenity_groups`, `amenity_catalog`) with RLS,
+  partial unique indexes, soft-delete. Dropped legacy CHECK constraints
+  on `listings.accommodation_type` / `experience_type`. Added
+  `listings.category_id` (FK) and `listing_amenities.catalog_id` (FK).
+  Extended `admin_audit_log.target_type` CHECK with three new values.
+  Seeded 2 roots + 13 leaf categories with SEO meta, 5 amenity groups +
+  20 amenities. Backfilled both new FKs from the legacy columns.
+- **Permissions/audit** — added `taxonomy.manage` to the `PermissionKey`
+  union and seeded grants for `super_admin` and `content_mod`. Added
+  `listing_category` / `amenity_group` / `amenity_catalog` to
+  `AuditTargetType`.
+- **Admin UI** — `/admin/platform/categories` (grouped table view with
+  edit-link per row) + `/admin/platform/categories/[id]` and `/new`
+  (full SEO/landing/FAQ editor with three sections — Basic, SEO &
+  landing, FAQ). `/admin/platform/amenities` (inline-edit grouped by
+  amenity_group) + `/admin/platform/amenities/groups` (inline-edit).
+  Every mutation wrapped in `withAdminAudit`; deletes require a reason.
+- **Shared loaders** — `apps/web/lib/taxonomy/{types,getCategories,
+  getAmenities,descendantIds}.ts`. Both loaders use React `cache()` for
+  per-request dedupe and Next `unstable_cache` with tag `taxonomy` so
+  admin saves can `revalidateTag('taxonomy')`.
+- **Public wire-up** —
+  - `/explore` `TypeChips` is now a Server Component fed by the published
+    category tree; the type filter resolves the slug → category id →
+    descendant id set and queries with `category_id.in.(…)` plus a
+    legacy-column fallback so pre-migration listings still match.
+  - `/listing/[slug]` `AmenitiesList` is now async — looks up icon and
+    label from the catalog by slug, falls back to humanise() for unknown
+    keys. No more hardcoded ICON/LABEL maps.
+  - **NEW**: `/c/[slug]` category landing pages — dark hero card with
+    hero image, intro markdown paragraphs, listing grid filtered by
+    descendants, FAQ section, FAQPage JSON-LD, full `generateMetadata`
+    (title, description, canonical, OG image, Twitter card).
+  - `sitemap.ts` adds `/explore` plus `/c/<slug>` for every published
+    category.
+
+### Sidebar
+
+- Added two PLATFORM entries to `AdminSidebar.tsx` between Feature flags
+  and Broadcasts: Categories (Layers icon) and Amenities (Sparkles icon).
+
+### Deferred (intentional v1 trade-offs)
+
+- **Host wizard / new-listing form / edit BasicTab category picker** —
+  the public side is fully wired (DB → chips → filter → landing pages),
+  but the three host-side forms still use their hardcoded
+  `ACCOMMODATION_TYPES`/`EXPERIENCE_TYPES` constants. Swapping them in
+  needs coordinated changes across `signup/host/schemas.ts`,
+  `dashboard/listings/new/schemas.ts`, `dashboard/listings/[id]/edit/schemas.ts`
+  + the matching server actions to write `category_id` AND keep the
+  legacy text columns populated. Tracked as next iteration.
+- **AmenitiesTab catalog plumbing** — same shape; tab still imports
+  `AMENITY_OPTIONS` from `schemas.ts`. The catalog is admin-CRUD and
+  publicly rendered; passing the grouped catalog down to AmenitiesTab is
+  the remaining wire.
+- Drag-and-drop reorder (numeric `sort_order` for v1).
+- Rich-text / MDX intro editor (plain `<textarea>` markdown for v1).
+- Supabase Storage `listing-cms` bucket + upload widget for hero/OG
+  images (URL fields for v1).
+- Slug-change 301 redirect table.
+- Cleanup migration to drop `listings.accommodation_type` /
+  `experience_type` once nothing reads them.
+
+### Migrations
+
+- `supabase/migrations/20260528000001_listing_taxonomy.sql`
+
+### Notes
+
+- **Migration not yet applied locally** — Docker Desktop wasn't running
+  this session. Apply with `supabase start && supabase db reset` then
+  `supabase gen types typescript --local > packages/types/database.types.ts`.
+  The build compiles cleanly without it because `createAdminClient` is
+  un-typed (`SupabaseClient<any>`), so `.from('listing_categories')`
+  doesn't require the table in the generated types.
+- **Public reads use service-role client through cached loaders.** Safe
+  because the loaders filter by `is_published = true AND deleted_at IS
+  NULL` server-side before returning rows. Same pattern as the help
+  centre.
+- **Single-segment slugs** (`villa`, `tour`) routed at `/c/[slug]`, not
+  nested paths. Cleaner URLs; parent pages aggregate descendant listings
+  via `getDescendantIds()`.
+- Pre-MVP "features open on free" rule does NOT apply — `taxonomy.manage`
+  is an admin permission, not a host plan feature.
+
+---
+
 ## 2026-05-26 — Enterprise notification system (5 phases on feat/notifications)
 
 Built the coordinating brain on top of the existing notification plumbing

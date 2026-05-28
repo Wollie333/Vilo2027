@@ -11,12 +11,14 @@ import {
   Gauge,
   Home as HomeIcon,
   KeyRound,
+  Layers,
   LifeBuoy,
   Mail,
   Megaphone,
   MessageSquarePlus,
   Send,
   ShieldAlert,
+  Sparkles,
   Star,
   Users,
   UsersRound,
@@ -134,6 +136,18 @@ const SUPPORT: Item[] = [
 const PLATFORM: Item[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
+  {
+    href: "/admin/platform/categories",
+    label: "Categories",
+    icon: Layers,
+    match: "prefix",
+  },
+  {
+    href: "/admin/platform/amenities",
+    label: "Amenities",
+    icon: Sparkles,
+    match: "prefix",
+  },
   {
     href: "/admin/broadcasts",
     label: "Broadcasts",

@@ -2,14 +2,19 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
-**Date:** 2026-05-26 (post enterprise notification system)
-**Phase:** Pre-MVP launch path. Notification system shipped on
-`feat/notifications` (8 commits, type-clean, awaiting merge to main).
-Code-side of host + guest experiences is substantially complete.
-Remaining work is operational — credentials, domain verification,
-region migration.
-**Session Goal (next):** Merge `feat/notifications` to main (after
-review) then pick one of the launch-ops items below.
+**Date:** 2026-05-28 (post listing-taxonomy session)
+**Phase:** Pre-MVP launch path. Listing taxonomy (admin-managed
+categories + amenities + per-category SEO landing pages at /c/[slug])
+shipped on `main` this session. Notification system still on
+`feat/notifications` (8 commits, awaiting merge). Remaining work is
+operational + the deferred host-side wire-ups below.
+**Session Goal (next):** **First**: apply the taxonomy migration when
+Docker is up — `supabase start && supabase db reset && supabase gen types
+typescript --local > packages/types/database.types.ts`. Then pick:
+(a) wire the host wizard / new-listing / edit BasicTab to the new
+category picker (deferred this session — see `CHANGELOG.md` 2026-05-28
+"Deferred"), (b) pass the amenity catalog into AmenitiesTab, or (c) any
+of the launch-ops items below.
 
 ---
 

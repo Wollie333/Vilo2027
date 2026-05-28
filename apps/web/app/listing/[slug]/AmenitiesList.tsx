@@ -1,71 +1,63 @@
 import {
+  Accessibility,
+  Baby,
   Bath,
+  BellRing,
+  Car,
   CheckCircle2,
-  Cigarette,
   Coffee,
+  Cross,
   Dog,
   Flame,
-  Flower2,
-  Heart,
-  Home,
+  KeyRound,
+  Laptop,
+  Shirt,
   ShieldCheck,
+  SquareParking,
   Sparkles,
+  TreePine,
   Tv,
+  UserCheck,
   Users,
   Utensils,
+  UtensilsCrossed,
+  Waves,
   Wifi,
   Wind,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 
-const ICON: Record<string, LucideIcon> = {
+import { getAmenityIndex } from "@/lib/taxonomy/getAmenities";
+
+const ICONS: Record<string, LucideIcon> = {
   wifi: Wifi,
-  kitchen: Utensils,
-  parking: Home,
-  pool: Bath,
-  hot_tub: Bath,
-  aircon: Wind,
-  heating: Flame,
-  fireplace: Flame,
+  utensils: Utensils,
+  "square-parking": SquareParking,
+  wind: Wind,
+  flame: Flame,
   tv: Tv,
-  washer: Sparkles,
-  dryer: Sparkles,
-  workspace: Coffee,
-  braai: Flame,
-  pet_friendly: Dog,
-  family_friendly: Users,
-  wheelchair: Heart,
-  smoke_alarm: Cigarette,
-  first_aid: ShieldCheck,
-  self_checkin: Zap,
-  host_onsite: Flower2,
+  shirt: Shirt,
+  laptop: Laptop,
+  "key-round": KeyRound,
+  "user-check": UserCheck,
+  waves: Waves,
+  bath: Bath,
+  "utensils-crossed": UtensilsCrossed,
+  users: Users,
+  "paw-print": Dog,
+  "bell-ring": BellRing,
+  cross: Cross,
+  accessibility: Accessibility,
+  "tree-pine": TreePine,
+  sparkles: Sparkles,
+  "check-circle-2": CheckCircle2,
+  baby: Baby,
+  "shield-check": ShieldCheck,
+  car: Car,
+  coffee: Coffee,
 };
 
-const LABEL: Record<string, string> = {
-  wifi: "WiFi",
-  kitchen: "Kitchen",
-  parking: "Free parking",
-  pool: "Pool",
-  hot_tub: "Hot tub",
-  aircon: "Air conditioning",
-  heating: "Heating",
-  fireplace: "Fireplace",
-  tv: "TV",
-  washer: "Washing machine",
-  dryer: "Tumble dryer",
-  workspace: "Workspace",
-  braai: "Braai / BBQ",
-  pet_friendly: "Pet friendly",
-  family_friendly: "Family friendly",
-  wheelchair: "Wheelchair accessible",
-  smoke_alarm: "Smoke alarm",
-  first_aid: "First-aid kit",
-  self_checkin: "Self check-in",
-  host_onsite: "Host on-site",
-};
-
-export function AmenitiesList({ keys }: { keys: string[] }) {
+export async function AmenitiesList({ keys }: { keys: string[] }) {
   if (keys.length === 0) {
     return (
       <p className="text-sm text-brand-mute">
@@ -74,16 +66,18 @@ export function AmenitiesList({ keys }: { keys: string[] }) {
     );
   }
 
+  const catalog = await getAmenityIndex();
+
   return (
     <ul className="grid gap-3 sm:grid-cols-2">
       {keys.map((k) => {
-        const Icon = ICON[k] ?? CheckCircle2;
+        const entry = catalog.get(k);
+        const Icon = entry ? (ICONS[entry.icon] ?? CheckCircle2) : CheckCircle2;
+        const label = entry?.label ?? humanize(k);
         return (
           <li key={k} className="flex items-center gap-3">
             <Icon className="h-4 w-4 shrink-0 text-brand-primary" />
-            <span className="text-sm text-brand-dark">
-              {LABEL[k] ?? humanize(k)}
-            </span>
+            <span className="text-sm text-brand-dark">{label}</span>
           </li>
         );
       })}

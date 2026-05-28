@@ -27,6 +27,7 @@ export type PermissionKey =
   | "platform.staff"
   | "audit.view"
   | "help.manage"
+  | "taxonomy.manage"
   | "notifications.broadcast"
   | "notifications.send_individual"
   | "notifications.view_history";

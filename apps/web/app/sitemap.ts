@@ -9,7 +9,11 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createServerClient();
 
-  const [{ data: articles }, { data: categories }] = await Promise.all([
+  const [
+    { data: articles },
+    { data: categories },
+    { data: listingCategories },
+  ] = await Promise.all([
     supabase
       .from("help_articles")
       .select("slug, updated_at, published_at")
@@ -23,6 +27,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .eq("is_published", true)
       .is("deleted_at", null)
       .limit(200),
+    supabase
+      .from("listing_categories")
+      .select("slug, updated_at")
+      .eq("is_published", true)
+      .is("deleted_at", null)
+      .limit(500),
   ]);
 
   const now = new Date().toISOString();
@@ -64,6 +74,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.7,
     },
+    {
+      url: `${BASE_URL}/explore`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
   ];
 
   const articleEntries: MetadataRoute.Sitemap = (articles ?? []).map((a) => ({
@@ -85,5 +101,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
-  return [...root, ...categoryEntries, ...articleEntries];
+  const listingCategoryEntries: MetadataRoute.Sitemap = (
+    listingCategories ?? []
+  ).map((c) => ({
+    url: `${BASE_URL}/c/${(c as { slug: string }).slug}`,
+    lastModified: (c as { updated_at?: string }).updated_at ?? now,
+    changeFrequency: "weekly",
+    priority: 0.7,
+  }));
+
+  return [
+    ...root,
+    ...listingCategoryEntries,
+    ...categoryEntries,
+    ...articleEntries,
+  ];
 }

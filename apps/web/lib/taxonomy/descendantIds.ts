@@ -1,0 +1,1 @@
+export { getDescendantIds } from "./getCategories";
