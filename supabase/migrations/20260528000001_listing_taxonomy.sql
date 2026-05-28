@@ -148,6 +148,10 @@ CREATE POLICY "admin_full_amenity_catalog" ON amenity_catalog FOR ALL
   USING (is_super_admin() OR has_admin_permission('taxonomy.manage'));
 
 -- ─── extend admin_audit_log.target_type ──────────────────────
+-- Include every target_type the app currently writes — earlier migrations
+-- missed `broadcast` and `notification_send` (added in code via the
+-- notification system without a corresponding DB CHECK update). If we
+-- redefine the CHECK without them, the constraint fails on existing rows.
 ALTER TABLE admin_audit_log DROP CONSTRAINT admin_audit_log_target_type_check;
 ALTER TABLE admin_audit_log ADD CONSTRAINT admin_audit_log_target_type_check
   CHECK (target_type IN (
@@ -156,6 +160,7 @@ ALTER TABLE admin_audit_log ADD CONSTRAINT admin_audit_log_target_type_check
     'impersonation','permission_denied',
     'help_article','help_video','help_faq','help_category',
     'help_status','help_settings','help_article_suggestion',
+    'broadcast','notification_send',
     'listing_category','amenity_group','amenity_catalog'
   ));
 

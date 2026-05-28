@@ -1,11 +1,12 @@
 import "server-only";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { AdminPermissionDenied } from "./errors";
+import { AdminAccessDenied } from "./errors";
 import { type AdminContext, requireAdmin } from "./requireAdmin";
 
 export type PermissionKey =
@@ -33,36 +34,66 @@ export type PermissionKey =
   | "notifications.view_history";
 
 /**
- * Resolves to the admin context if the caller holds `permissionKey`. On denial,
- * writes a `permission_denied` row to admin_audit_log (so probing is visible)
- * and throws AdminPermissionDenied.
+ * Resolves to the admin context if the caller holds `permissionKey`. On denial
+ * (no session, not a staff member, missing permission, or RPC failure) writes
+ * a `permission_denied` row to admin_audit_log and REDIRECTS the user — to
+ * /login on missing-session, to /admin/no-access on a real permission denial.
+ *
+ * Why redirect instead of throw: in production Next.js sanitizes server-thrown
+ * errors before passing them to the route's error boundary, so the boundary
+ * can't tell "permission denied" apart from a real 500 and shows a generic
+ * error. `redirect()` uses NEXT_REDIRECT under the hood which Next handles
+ * cleanly, so every admin page that calls this gets a usable UX without
+ * per-page try/catch.
+ *
+ * Server actions that call this from inside a client mutation get the same
+ * redirect — the action's caller sees the redirect resolve on the client,
+ * which is acceptable for the edge case of an action firing after the page
+ * lost its permission.
  *
  * Always call requireAdmin() implicitly first.
  */
 export async function requirePermission(
   permissionKey: PermissionKey,
 ): Promise<AdminContext> {
-  const admin = await requireAdmin();
-  const supabase = createServerClient();
+  let admin: AdminContext;
+  try {
+    admin = await requireAdmin();
+  } catch (err) {
+    if (err instanceof AdminAccessDenied) {
+      redirect("/login?next=/admin&reason=admin_required");
+    }
+    throw err;
+  }
 
+  const supabase = createServerClient();
   const { data, error } = await supabase.rpc("has_admin_permission", {
     p_key: permissionKey,
   });
 
   if (error || data !== true) {
-    // Surface the RPC failure in server logs so a misconfigured DB
-    // (missing function, AAL2 still enforced, missing seed row) doesn't
-    // silently look like "permission denied". The user-facing UX is the
-    // same — they hit the admin error boundary either way.
+    // Surface the underlying cause in Vercel server logs so a misconfigured
+    // DB (missing function, AAL2 still enforced via the un-applied
+    // 20260525000009 migration, missing seed row) is diagnosable. The user
+    // lands on /admin/no-access either way.
     if (error) {
       console.error("[admin:requirePermission] RPC failed", {
         permissionKey,
         adminUserId: admin.userId,
         rpcError: error.message,
       });
+    } else {
+      console.warn("[admin:requirePermission] permission denied", {
+        permissionKey,
+        adminUserId: admin.userId,
+      });
     }
     await logDeniedAttempt(admin.userId, permissionKey);
-    throw new AdminPermissionDenied(permissionKey);
+    redirect(
+      `/admin/no-access?key=${encodeURIComponent(permissionKey)}${
+        error ? "&reason=rpc_error" : ""
+      }`,
+    );
   }
 
   return admin;

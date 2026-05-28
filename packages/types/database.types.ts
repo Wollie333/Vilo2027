@@ -287,6 +287,89 @@ export type Database = {
         }
         Relationships: []
       }
+      amenity_catalog: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          group_id: string
+          icon: string
+          id: string
+          is_published: boolean
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          group_id: string
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          group_id?: string
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_catalog_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_groups: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          icon: string
+          id: string
+          is_published: boolean
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          icon?: string
+          id?: string
+          is_published?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blocked_dates: {
         Row: {
           booking_id: string | null
@@ -1944,6 +2027,7 @@ export type Database = {
         Row: {
           amenity_key: string
           amenity_label: string | null
+          catalog_id: string | null
           id: string
           listing_id: string
           room_id: string | null
@@ -1951,6 +2035,7 @@ export type Database = {
         Insert: {
           amenity_key: string
           amenity_label?: string | null
+          catalog_id?: string | null
           id?: string
           listing_id: string
           room_id?: string | null
@@ -1958,11 +2043,19 @@ export type Database = {
         Update: {
           amenity_key?: string
           amenity_label?: string | null
+          catalog_id?: string | null
           id?: string
           listing_id?: string
           room_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listing_amenities_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_catalog"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listing_amenities_listing_id_fkey"
             columns: ["listing_id"]
@@ -1975,6 +2068,80 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_categories: {
+        Row: {
+          canonical_url: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          faq: Json
+          hero_image_url: string | null
+          icon: string
+          id: string
+          intro_markdown: string | null
+          is_published: boolean
+          kind: string
+          label: string
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          faq?: Json
+          hero_image_url?: string | null
+          icon?: string
+          id?: string
+          intro_markdown?: string | null
+          is_published?: boolean
+          kind: string
+          label: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          faq?: Json
+          hero_image_url?: string | null
+          icon?: string
+          id?: string
+          intro_markdown?: string | null
+          is_published?: boolean
+          kind?: string
+          label?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "listing_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -2303,6 +2470,7 @@ export type Database = {
           booking_mode: string
           cancellation_policy: string
           cancellation_policy_label: string | null
+          category_id: string | null
           check_in_time: string | null
           check_out_time: string | null
           city: string | null
@@ -2361,6 +2529,7 @@ export type Database = {
           booking_mode?: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
+          category_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
           city?: string | null
@@ -2419,6 +2588,7 @@ export type Database = {
           booking_mode?: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
+          category_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
           city?: string | null
@@ -2464,6 +2634,13 @@ export type Database = {
           what_to_bring?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "listing_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listings_host_id_fkey"
             columns: ["host_id"]
