@@ -109,19 +109,17 @@ export async function createBankAccountAction(
   const shouldBeDefault = parsed.data.is_default || (count ?? 0) === 0;
   if (shouldBeDefault) await clearExistingDefault(host.hostId);
 
-  let ciphertext: string;
-  try {
-    ciphertext = encryptAccountNumber(parsed.data.account_number);
-  } catch {
-    return { ok: false, error: "Banking encryption is not configured." };
-  }
+  // encryptAccountNumber returns the value encrypted with v1.… if
+  // BANKING_CIPHER_KEY is set, otherwise the plain digits. Either way the
+  // value round-trips through decryptAccountNumber transparently.
+  const storedAccount = encryptAccountNumber(parsed.data.account_number);
 
   const { error } = await supabase.from("eft_banking_details").insert({
     host_id: host.hostId,
     label: parsed.data.label,
     bank_name: resolveBankName(parsed.data),
     account_holder: parsed.data.account_holder,
-    account_number: ciphertext,
+    account_number: storedAccount,
     account_type: parsed.data.account_type,
     branch_code: parsed.data.branch_code,
     swift_code: parsed.data.swift_code || null,
@@ -174,14 +172,10 @@ export async function updateBankAccountAction(
     is_default: parsed.data.is_default,
   };
 
-  // Only re-encrypt if the user supplied a new account number. Empty input
-  // means "keep the existing ciphertext".
+  // Only re-store if the user supplied a new account number. Empty input
+  // means "keep the existing stored value" (encrypted or plain).
   if (parsed.data.account_number) {
-    try {
-      update.account_number = encryptAccountNumber(parsed.data.account_number);
-    } catch {
-      return { ok: false, error: "Banking encryption is not configured." };
-    }
+    update.account_number = encryptAccountNumber(parsed.data.account_number);
   }
 
   const supabase = createServerClient();
