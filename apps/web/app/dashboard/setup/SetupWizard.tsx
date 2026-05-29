@@ -1,16 +1,26 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import {
+  Check,
+  CheckCircle2,
+  LayoutDashboard,
+  Link as LinkIcon,
+  PartyPopper,
+  Rocket,
+  Sparkles,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { computeSetupCompletion } from "@/lib/setup/completion";
 
+import { togglePublishAction } from "../listings/[id]/edit/actions";
+import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
 import { StepListing } from "./steps/StepListing";
 import { StepPolicies } from "./steps/StepPolicies";
 import { StepProfile } from "./steps/StepProfile";
-import { StepReview } from "./steps/StepReview";
 import type {
   BankAccount,
   BusinessDetails,
@@ -22,31 +32,51 @@ import type {
   SetupStepKey,
 } from "./types";
 
-const STEPS: { key: SetupStepKey; label: string; description: string }[] = [
+type SectionMeta = {
+  key: SetupStepKey;
+  n: string;
+  label: string;
+  rail: string;
+  required: boolean;
+};
+
+// Section order for the single-scroll layout + left rail. "review" is the
+// final action step (the live preview + publish), never a "required" item.
+const SECTIONS: SectionMeta[] = [
   {
     key: "profile",
-    label: "Your profile",
-    description: "Photo, bio, languages — what guests see first.",
+    n: "1",
+    label: "Host profile",
+    rail: "Profile",
+    required: true,
   },
   {
     key: "banking",
-    label: "Banking",
-    description: "How we route guest payments to you.",
+    n: "2",
+    label: "Banking & payouts",
+    rail: "Banking",
+    required: true,
   },
   {
     key: "listing",
+    n: "3",
     label: "Listing details",
-    description: "Photos, pricing and rooms for your first listing.",
+    rail: "Listing",
+    required: true,
   },
   {
     key: "policies",
-    label: "Policies",
-    description: "Cancellation, check-in / out times, house rules.",
+    n: "4",
+    label: "Policies & house rules",
+    rail: "Policies",
+    required: true,
   },
   {
     key: "review",
-    label: "Review & publish",
-    description: "One last look, then you're live.",
+    n: "5",
+    label: "Preview & publish",
+    rail: "Preview",
+    required: false,
   },
 ];
 
@@ -63,20 +93,10 @@ type Props = {
 };
 
 export function SetupWizard(props: Props) {
-  // Compute which steps are already complete from the data we received.
-  // The wizard auto-jumps to the first incomplete step unless ?step= asks
-  // for a specific one.
-  const initialDone = computeInitialDone(props);
-  const initialIndex = pickInitialIndex(props.requestedStep, initialDone);
+  const router = useRouter();
 
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  // Local completion state so steps can mark themselves done after a save
-  // without a full server refetch.
-  const [done, setDone] = useState(initialDone);
-
-  // The data props are server-fetched snapshots — once a step saves, we
-  // mutate this local copy so subsequent steps see the latest values.
-  // Server actions also revalidate, so a refresh would refetch anyway.
+  // Live draft state — steps mutate these on save so the rail + ring + preview
+  // all update without a server refetch.
   const [host, setHost] = useState(props.host);
   const [profile, setProfile] = useState(props.profile);
   const [listing, setListing] = useState(props.listing);
@@ -85,317 +105,552 @@ export function SetupWizard(props: Props) {
   const [photos, setPhotos] = useState(props.photos);
   const [rooms, setRooms] = useState(props.rooms);
 
-  const current = STEPS[currentIndex];
-  const doneCount = STEPS.filter((s) => done[s.key]).length;
-  const pct = Math.round((doneCount / STEPS.length) * 100);
+  const [active, setActive] = useState<SetupStepKey>("profile");
+  const [published, setPublished] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [publishing, startPublish] = useTransition();
 
-  function markDone(key: SetupStepKey) {
-    setDone((d) => ({ ...d, [key]: true }));
+  // Completion is the single shared predicate, computed from live state.
+  const done = useMemo(
+    () =>
+      computeSetupCompletion({
+        host,
+        hasBankAccount: bankAccounts.length > 0,
+        listing,
+        photoCount: photos.length,
+        roomCount: rooms.filter((r) => r.is_active).length,
+      }),
+    [host, bankAccounts, listing, photos, rooms],
+  );
+
+  const requiredSections = SECTIONS.filter((s) => s.required);
+  const doneCount = requiredSections.filter((s) => done[s.key]).length;
+  const pct = Math.round((doneCount / requiredSections.length) * 100);
+  const missing = requiredSections.filter((s) => !done[s.key]);
+  const ready = missing.length === 0;
+
+  function jump(key: SetupStepKey) {
+    document
+      .getElementById(`sec-${key}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function goTo(idx: number) {
-    if (idx < 0 || idx >= STEPS.length) return;
-    setCurrentIndex(idx);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  // Scroll-spy: highlight the section nearest the top of the viewport.
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const top = visible[0]?.target as HTMLElement | undefined;
+        if (top?.dataset.section)
+          setActive(top.dataset.section as SetupStepKey);
+      },
+      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(`sec-${s.key}`);
+      if (el) obs.observe(el);
+    });
+    return () => obs.disconnect();
+  }, []);
+
+  // Honour ?step= deep links by scrolling there on mount.
+  const didJump = useRef(false);
+  useEffect(() => {
+    if (didJump.current || !props.requestedStep) return;
+    didJump.current = true;
+    const t = setTimeout(() => jump(props.requestedStep as SetupStepKey), 250);
+    return () => clearTimeout(t);
+  }, [props.requestedStep]);
+
+  function publish() {
+    if (!ready) {
+      toast.error("Finish the required steps first.");
+      jump(missing[0].key);
+      return;
+    }
+    startPublish(async () => {
+      const result = await togglePublishAction(listing.id, true);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      setListing((l) => ({ ...l, is_published: true }));
+      setShowConfetti(true);
+      setPublished(true);
+      setTimeout(() => setShowConfetti(false), 5200);
+    });
   }
 
-  function advance() {
-    markDone(current.key);
-    if (currentIndex < STEPS.length - 1) goTo(currentIndex + 1);
-  }
+  const firstName = (profile.full_name || host.display_name || "there").split(
+    " ",
+  )[0];
 
   return (
     <div className="py-2">
-      {/* Dark hero with progress ring + step chips */}
-      <section className="relative mb-6 overflow-hidden rounded-card border border-brand-line shadow-card">
-        <div className="relative bg-brand-gradient-dark p-6 text-white md:p-8">
-          <div
-            aria-hidden
-            className="setup-dotgrid pointer-events-none absolute inset-0 opacity-30"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
-          />
-
-          <div className="relative flex items-start justify-between gap-6">
-            <div className="min-w-0">
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent/80 transition hover:text-white"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
-              </Link>
-              <h1 className="mt-3 font-display text-2xl font-bold tracking-tight md:text-3xl">
-                Finish setting up
-              </h1>
-              <p className="mt-1 max-w-xl text-sm text-brand-accent/80">
-                A few more details and you&rsquo;re ready to take real bookings.
-                Each step saves as you go.
-              </p>
+      {/* Page intro + progress ring */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+            <Sparkles className="h-3.5 w-3.5" /> Almost there, {firstName}
+          </div>
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+            Finish setting up your listing
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-brand-mute">
+            Work through the steps below — everything you enter builds the live
+            preview at the bottom. Required steps unlock the Publish button.
+          </p>
+        </div>
+        <div className="flex items-center gap-4 rounded-card border border-brand-line bg-white px-5 py-4 shadow-card">
+          <ProgressRing pct={pct} />
+          <div className="leading-tight">
+            <div className="text-sm font-semibold text-brand-ink">
+              Setup complete
             </div>
-            <ProgressRing
-              pct={pct}
-              doneCount={doneCount}
-              total={STEPS.length}
-            />
+            <div className="text-xs text-brand-mute">
+              {ready
+                ? "All required steps done"
+                : `${missing.length} required step${missing.length === 1 ? "" : "s"} left`}
+            </div>
           </div>
-
-          {/* Step chips */}
-          <ol className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-            {STEPS.map((s, idx) => {
-              const isDone = done[s.key];
-              const isCurrent = idx === currentIndex;
-              return (
-                <li key={s.key}>
-                  <button
-                    type="button"
-                    onClick={() => goTo(idx)}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className={`flex w-full items-center gap-2.5 rounded-[12px] border px-3 py-2.5 text-left transition ${
-                      isCurrent
-                        ? "border-brand-primary bg-white/10"
-                        : "border-white/10 bg-white/[0.04] hover:bg-white/10"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill text-[11px] font-bold ${
-                        isDone
-                          ? "bg-brand-primary text-white"
-                          : isCurrent
-                            ? "border-2 border-brand-primary bg-brand-primary/20 text-white"
-                            : "border border-white/25 text-white/60"
-                      }`}
-                    >
-                      {isDone ? (
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      ) : (
-                        idx + 1
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <div
-                        className={`truncate text-[12px] font-semibold ${
-                          isCurrent || isDone ? "text-white" : "text-white/70"
-                        }`}
-                      >
-                        {s.label}
-                      </div>
-                      <div
-                        className={`truncate text-[10px] ${
-                          isDone
-                            ? "text-brand-primary"
-                            : isCurrent
-                              ? "text-brand-accent/80"
-                              : "text-white/40"
-                        }`}
-                      >
-                        {isDone ? "Done" : isCurrent ? "In progress" : "To do"}
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
         </div>
-      </section>
-
-      {/* Current step body */}
-      <div className="setup-step-active rounded-card border border-brand-line bg-white p-6 shadow-card md:p-8">
-        <div className="mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Step {currentIndex + 1} of {STEPS.length}
-          </div>
-          <h2 className="mt-1 font-display text-xl font-bold text-brand-ink md:text-2xl">
-            {current.label}
-          </h2>
-          <p className="mt-1 text-sm text-brand-mute">{current.description}</p>
-        </div>
-
-        {current.key === "profile" ? (
-          <StepProfile
-            host={host}
-            profile={profile}
-            emailVerified={props.emailVerified}
-            onSaved={(next) => {
-              setHost((h) => ({ ...h, ...next.host }));
-              setProfile((p) => ({ ...p, ...next.profile }));
-              advance();
-            }}
-          />
-        ) : null}
-
-        {current.key === "banking" ? (
-          <StepBanking
-            hostId={host.id}
-            bankAccounts={bankAccounts}
-            businessDetails={businessDetails}
-            onAccountSaved={(acc) => setBankAccounts((list) => [...list, acc])}
-            onAccountUpdated={(id, patch) =>
-              setBankAccounts((list) =>
-                list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-              )
-            }
-            onAccountDeleted={(id) =>
-              setBankAccounts((list) => list.filter((a) => a.id !== id))
-            }
-            onDefaultChanged={(id) =>
-              setBankAccounts((list) =>
-                list.map((a) => ({ ...a, is_default: a.id === id })),
-              )
-            }
-            onBusinessSaved={(b) => setBusinessDetails(b)}
-            onContinue={advance}
-          />
-        ) : null}
-
-        {current.key === "listing" ? (
-          <StepListing
-            listing={listing}
-            photos={photos}
-            rooms={rooms}
-            onListingChanged={(patch) =>
-              setListing((l) => ({ ...l, ...patch }))
-            }
-            onPhotoAdded={(p) => setPhotos((list) => [...list, p])}
-            onPhotoRemoved={(id) =>
-              setPhotos((list) => list.filter((p) => p.id !== id))
-            }
-            onRoomSaved={(r) =>
-              setRooms((list) => {
-                const idx = list.findIndex((x) => x.id === r.id);
-                if (idx === -1) return [...list, r];
-                const next = [...list];
-                next[idx] = r;
-                return next;
-              })
-            }
-            onContinue={advance}
-          />
-        ) : null}
-
-        {current.key === "policies" ? (
-          <StepPolicies
-            listing={listing}
-            onSaved={(patch) => {
-              setListing((l) => ({ ...l, ...patch }));
-              advance();
-            }}
-          />
-        ) : null}
-
-        {current.key === "review" ? (
-          <StepReview
-            host={host}
-            profile={profile}
-            listing={listing}
-            photos={photos}
-            rooms={rooms}
-            bankAccounts={bankAccounts}
-            done={done}
-            onEditStep={(key) => {
-              const idx = STEPS.findIndex((s) => s.key === key);
-              if (idx >= 0) goTo(idx);
-            }}
-          />
-        ) : null}
-
-        {/* Footer nav — Review step has its own primary CTA */}
-        {current.key !== "review" ? (
-          <div className="mt-8 flex items-center justify-between border-t border-brand-line pt-5">
-            <button
-              type="button"
-              onClick={() => goTo(currentIndex - 1)}
-              disabled={currentIndex === 0}
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition hover:bg-brand-accent disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                markDone(current.key);
-                goTo(currentIndex + 1);
-              }}
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-mute transition hover:bg-brand-accent hover:text-brand-ink"
-            >
-              Skip for now <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        ) : null}
       </div>
+
+      {/* Rail + stacked section cards */}
+      <div className="mt-7 grid grid-cols-12 gap-6">
+        <div className="col-span-12 lg:col-span-3">
+          <ProgressRail
+            active={active}
+            done={done}
+            pct={pct}
+            ready={ready}
+            publishing={publishing}
+            onJump={jump}
+            onPublish={publish}
+          />
+        </div>
+
+        <div className="col-span-12 space-y-5 lg:col-span-9">
+          <SectionCard
+            meta={SECTIONS[0]}
+            complete={done.profile}
+            active={active === "profile"}
+          >
+            <StepProfile
+              host={host}
+              profile={profile}
+              emailVerified={props.emailVerified}
+              onSaved={(next) => {
+                setHost((h) => ({ ...h, ...next.host }));
+                setProfile((p) => ({ ...p, ...next.profile }));
+                jump("banking");
+              }}
+            />
+          </SectionCard>
+
+          <SectionCard
+            meta={SECTIONS[1]}
+            complete={done.banking}
+            active={active === "banking"}
+          >
+            <StepBanking
+              hostId={host.id}
+              bankAccounts={bankAccounts}
+              businessDetails={businessDetails}
+              onAccountSaved={(acc) =>
+                setBankAccounts((list) => [...list, acc])
+              }
+              onAccountUpdated={(id, patch) =>
+                setBankAccounts((list) =>
+                  list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
+                )
+              }
+              onAccountDeleted={(id) =>
+                setBankAccounts((list) => list.filter((a) => a.id !== id))
+              }
+              onDefaultChanged={(id) =>
+                setBankAccounts((list) =>
+                  list.map((a) => ({ ...a, is_default: a.id === id })),
+                )
+              }
+              onBusinessSaved={(b) => setBusinessDetails(b)}
+              onContinue={() => jump("listing")}
+            />
+          </SectionCard>
+
+          <SectionCard
+            meta={SECTIONS[2]}
+            complete={done.listing}
+            active={active === "listing"}
+          >
+            <StepListing
+              listing={listing}
+              photos={photos}
+              rooms={rooms}
+              onListingChanged={(patch) =>
+                setListing((l) => ({ ...l, ...patch }))
+              }
+              onPhotoAdded={(p) => setPhotos((list) => [...list, p])}
+              onPhotoRemoved={(id) =>
+                setPhotos((list) => list.filter((p) => p.id !== id))
+              }
+              onRoomSaved={(r) =>
+                setRooms((list) => {
+                  const idx = list.findIndex((x) => x.id === r.id);
+                  if (idx === -1) return [...list, r];
+                  const next = [...list];
+                  next[idx] = r;
+                  return next;
+                })
+              }
+              onContinue={() => jump("policies")}
+            />
+          </SectionCard>
+
+          <SectionCard
+            meta={SECTIONS[3]}
+            complete={done.policies}
+            active={active === "policies"}
+          >
+            <StepPolicies
+              listing={listing}
+              onSaved={(patch) => {
+                setListing((l) => ({ ...l, ...patch }));
+                jump("review");
+              }}
+            />
+          </SectionCard>
+
+          <SectionCard
+            meta={SECTIONS[4]}
+            complete={published}
+            active={active === "review"}
+          >
+            <SetupPreview
+              host={host}
+              profile={profile}
+              listing={listing}
+              photos={photos}
+              rooms={rooms}
+              ready={ready}
+              publishing={publishing}
+              missing={missing.map((m) => ({ key: m.key, label: m.label }))}
+              onPublish={publish}
+              onJump={jump}
+            />
+          </SectionCard>
+        </div>
+      </div>
+
+      {showConfetti ? <Confetti /> : null}
+      {published ? (
+        <PublishedModal
+          host={host}
+          listing={listing}
+          onClose={() => {
+            setPublished(false);
+            router.push("/dashboard");
+            router.refresh();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
 
-function computeInitialDone(props: Props): Record<SetupStepKey, boolean> {
-  // Shared predicate so the wizard and the dashboard checklist can't diverge.
-  return computeSetupCompletion({
-    host: props.host,
-    hasBankAccount: props.bankAccounts.length > 0,
-    listing: props.listing,
-    photoCount: props.photos.length,
-    roomCount: props.rooms.filter((r) => r.is_active).length,
-  });
-}
-
-function ProgressRing({
-  pct,
-  doneCount,
-  total,
-}: {
-  pct: number;
-  doneCount: number;
-  total: number;
-}) {
-  const r = 26;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct / 100);
+function ProgressRing({ pct }: { pct: number }) {
+  const dash = (pct / 100) * 97.4;
   return (
-    <div className="relative hidden h-[88px] w-[88px] shrink-0 sm:block">
-      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+    <div className="relative h-14 w-14">
+      <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
         <circle
-          cx="32"
-          cy="32"
-          r={r}
+          cx="18"
+          cy="18"
+          r="15.5"
           fill="none"
-          strokeWidth="7"
-          className="setup-ring-bg"
+          stroke="#DCEAE0"
+          strokeWidth="4"
         />
         <circle
-          cx="32"
-          cy="32"
-          r={r}
+          cx="18"
+          cy="18"
+          r="15.5"
           fill="none"
-          strokeWidth="7"
+          stroke="#10B981"
+          strokeWidth="4"
           strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          className="setup-ring-fg"
+          strokeDasharray={`${dash} 97.4`}
+          className="transition-all duration-500"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="num font-display text-lg font-bold leading-none text-white">
-          {doneCount}
-          <span className="text-sm text-white/60">/{total}</span>
-        </div>
-        <div className="mt-0.5 text-[9px] uppercase tracking-wider text-brand-accent/70">
-          done
-        </div>
+      <div className="num absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-brand-ink">
+        {pct}%
       </div>
     </div>
   );
 }
 
-function pickInitialIndex(
-  requested: string | null,
-  done: Record<SetupStepKey, boolean>,
-): number {
-  if (requested) {
-    const idx = STEPS.findIndex((s) => s.key === requested);
-    if (idx >= 0) return idx;
-  }
-  const firstUndone = STEPS.findIndex((s) => !done[s.key]);
-  return firstUndone < 0 ? 0 : firstUndone;
+function ProgressRail({
+  active,
+  done,
+  pct,
+  ready,
+  publishing,
+  onJump,
+  onPublish,
+}: {
+  active: SetupStepKey;
+  done: Record<SetupStepKey, boolean>;
+  pct: number;
+  ready: boolean;
+  publishing: boolean;
+  onJump: (key: SetupStepKey) => void;
+  onPublish: () => void;
+}) {
+  return (
+    <div className="sticky top-24 space-y-4">
+      <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            Setup progress
+          </span>
+          <span className="num font-display text-sm font-bold text-brand-primary">
+            {pct}%
+          </span>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
+          <div
+            className="h-full rounded-pill bg-brand-gradient transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        <nav className="mt-4 space-y-0.5">
+          {SECTIONS.map((s) => {
+            const isDone = done[s.key];
+            const isActive = active === s.key;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => onJump(s.key)}
+                className={`group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors ${
+                  isActive ? "bg-brand-accent" : "hover:bg-brand-light"
+                }`}
+              >
+                <span
+                  className={`num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold transition-colors ${
+                    isDone
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : isActive
+                        ? "border-brand-primary bg-white text-brand-primary"
+                        : "border-brand-line bg-white text-brand-mute"
+                  }`}
+                >
+                  {isDone ? <Check className="h-3 w-3" strokeWidth={3} /> : s.n}
+                </span>
+                <span
+                  className={`flex-1 truncate text-[13px] font-medium ${
+                    isActive
+                      ? "text-brand-ink"
+                      : "text-brand-mute group-hover:text-brand-ink"
+                  }`}
+                >
+                  {s.rail}
+                </span>
+                {s.required && !isDone ? (
+                  <span
+                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-pending"
+                    title="Required"
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <button
+        type="button"
+        onClick={onPublish}
+        disabled={!ready || publishing}
+        className={`flex w-full items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold shadow-card transition-all ${
+          ready
+            ? "bg-brand-primary text-white hover:bg-brand-secondary hover:shadow-glow"
+            : "cursor-not-allowed bg-brand-line text-brand-mute"
+        }`}
+      >
+        <Rocket className="h-4 w-4" />
+        {publishing
+          ? "Publishing…"
+          : ready
+            ? "Publish listing"
+            : "Finish required steps"}
+      </button>
+      {!ready ? (
+        <p className="px-1 text-center text-[11px] leading-relaxed text-brand-mute">
+          Complete the required steps to go live. You can keep editing after
+          publishing.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function SectionCard({
+  meta,
+  complete,
+  active,
+  children,
+}: {
+  meta: SectionMeta;
+  complete: boolean;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      id={`sec-${meta.key}`}
+      data-section={meta.key}
+      className={`scroll-mt-24 rounded-card border bg-white shadow-card transition-colors ${
+        active
+          ? "setup-step-active border-brand-primary/40"
+          : "border-brand-line"
+      }`}
+    >
+      <div className="flex items-start gap-4 border-b border-brand-line px-6 py-5 md:px-7">
+        <div
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-card font-display text-sm font-bold transition-colors ${
+            complete
+              ? "bg-brand-primary text-white"
+              : "bg-brand-accent text-brand-secondary"
+          }`}
+        >
+          {complete ? <Check className="h-5 w-5" strokeWidth={3} /> : meta.n}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-display text-lg font-bold text-brand-ink">
+              {meta.label}
+            </h2>
+            <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
+              {meta.required ? "Required" : "Final step"}
+            </span>
+            {complete ? (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Done
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+      <div className="px-6 py-6 md:px-7">{children}</div>
+    </section>
+  );
+}
+
+function Confetti() {
+  const pieces = useMemo(() => {
+    const colors = [
+      "#10B981",
+      "#064E3B",
+      "#D1FAE5",
+      "#34D399",
+      "#A7F3D0",
+      "#F4A836",
+    ];
+    return Array.from({ length: 70 }).map((_, i) => ({
+      left: (i * 37) % 100,
+      dx: `${((i * 53) % 220) - 110}px`,
+      d: `${3 + ((i * 7) % 25) / 10}s`,
+      delay: `${((i * 13) % 80) / 100}s`,
+      bg: colors[i % colors.length],
+      rot: (i * 47) % 180,
+    }));
+  }, []);
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[80] overflow-hidden">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="setup-confetti-piece"
+          style={
+            {
+              left: `${p.left}%`,
+              background: p.bg,
+              transform: `rotate(${p.rot}deg)`,
+              "--dx": p.dx,
+              "--d": p.d,
+              "--delay": p.delay,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function PublishedModal({
+  host,
+  listing,
+  onClose,
+}: {
+  host: Host;
+  listing: Listing;
+  onClose: () => void;
+}) {
+  const slug = (listing.name || "listing")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 28);
+  return (
+    <div
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-brand-dark/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-card bg-white p-7 text-center shadow-peek"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
+          <PartyPopper className="h-8 w-8" />
+        </div>
+        <h3 className="mt-4 font-display text-2xl font-bold text-brand-ink">
+          You&rsquo;re live! 🎉
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-brand-mute">
+          <span className="font-semibold text-brand-ink">{listing.name}</span>{" "}
+          is now published and bookable. Share your link to start taking direct
+          bookings.
+        </p>
+        <div className="mt-4 flex items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 py-2.5 font-mono text-xs text-brand-ink">
+          <LinkIcon className="h-3.5 w-3.5 text-brand-primary" />
+          <span className="truncate">
+            viloplatform.com/{host.handle}/{slug}
+          </span>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            className="rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light"
+          >
+            Keep editing
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            <LayoutDashboard className="h-4 w-4" /> Go to dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

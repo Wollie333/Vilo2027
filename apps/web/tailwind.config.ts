@@ -86,6 +86,7 @@ const config: Config = {
         lift: "0 8px 28px -10px rgba(6,78,59,0.14), 0 2px 6px rgba(6,78,59,0.05)",
         ring: "0 0 0 4px rgba(16,185,129,0.15)",
         glow: "0 12px 32px -10px rgba(16,185,129,0.35)",
+        peek: "0 24px 60px -20px rgba(6,78,59,0.25), 0 4px 12px rgba(6,78,59,0.06)",
       },
       transitionTimingFunction: {
         out: "cubic-bezier(0.2, 0.8, 0.2, 1)",

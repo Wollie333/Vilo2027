@@ -491,6 +491,23 @@
   );
   background-size: 18px 18px;
 }
+/* Focus ring for setup form fields (matches the design mockup). */
+.focus-ring:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+}
+/* Selectable choice card hover lift. */
+.pick-card {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+.pick-card:hover {
+  transform: translateY(-1px);
+}
 /* Soft pulse glow on the active step card. */
 @keyframes setup-step-glow {
   0%,
