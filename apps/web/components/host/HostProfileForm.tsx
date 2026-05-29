@@ -61,15 +61,32 @@ export function HostProfileForm({
   const bio = watch("bio") ?? "";
   const fullName = watch("full_name") ?? "";
 
+  // Name is captured as two fields but stored as a single full_name (DB column).
+  const initialName = (defaults.full_name ?? "").trim();
+  const [firstName, setFirstName] = useState(initialName.split(/\s+/)[0] ?? "");
+  const [lastName, setLastName] = useState(
+    initialName.split(/\s+/).slice(1).join(" "),
+  );
+  function syncName(first: string, last: string) {
+    setValue("full_name", `${first} ${last}`.trim(), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }
+
   function onSubmit(values: ProfileInput) {
     start(async () => {
-      const result = await saveProfileAction(values);
+      // The host's public display name is just their name — no separate field.
+      const result = await saveProfileAction({
+        ...values,
+        display_name: values.full_name,
+      });
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success("Profile saved.");
-      onSaved?.(values);
+      onSaved?.({ ...values, display_name: values.full_name });
     });
   }
 
@@ -150,58 +167,81 @@ export function HostProfileForm({
         {/* Identity */}
         <div className="flex-1 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" error={errors.full_name?.message}>
+            <Field label="Name" error={errors.full_name?.message}>
               <TextInput
-                placeholder="Lerato Mokoena"
-                autoComplete="name"
-                {...register("full_name")}
+                placeholder="Lerato"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => {
+                  setFirstName(e.target.value);
+                  syncName(e.target.value, lastName);
+                }}
               />
             </Field>
-            <Field
-              label="Your Vilo handle"
-              hint={host ? `viloplatform.com/${host.handle}` : undefined}
-            >
-              <div className="relative">
-                <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-brand-mute">
-                  @
-                </span>
-                <TextInput
-                  value={host?.handle ?? ""}
-                  disabled
-                  className="pl-7"
-                  title="Set at signup — change it in Settings."
-                />
-              </div>
+            <Field label="Surname">
+              <TextInput
+                placeholder="Mokoena"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => {
+                  setLastName(e.target.value);
+                  syncName(firstName, e.target.value);
+                }}
+              />
             </Field>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
-              label="Display name"
-              hint="Shown on listings & your host page."
+              label="Email"
+              hint="Your sign-in — contact support to change it."
             >
-              <TextInput
-                placeholder="Cape Coast Retreats"
-                {...register("display_name")}
-              />
-            </Field>
-            <Field label="Email" error={errors.email?.message}>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
                 <TextInput
                   type="email"
-                  autoComplete="email"
-                  className="pl-9"
+                  readOnly
+                  className="pl-9 pr-24"
                   {...register("email")}
                 />
-                {emailVerified ? (
-                  <span className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-pill bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600">
-                    <CheckCircle2 className="h-3 w-3" /> Verified
-                  </span>
-                ) : null}
+                <span
+                  className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                    emailVerified
+                      ? "bg-emerald-500/10 text-emerald-600"
+                      : "bg-status-pending/10 text-status-pending"
+                  }`}
+                >
+                  {emailVerified ? <CheckCircle2 className="h-3 w-3" /> : null}
+                  {emailVerified ? "Verified" : "Unverified"}
+                </span>
               </div>
             </Field>
+            <Field label="Phone" error={errors.phone?.message}>
+              <TextInput
+                type="tel"
+                autoComplete="tel"
+                placeholder="+27 82 123 4567"
+                {...register("phone")}
+              />
+            </Field>
           </div>
+
+          <Field
+            label="Your Vilo handle"
+            hint={host ? `viloplatform.com/${host.handle}` : undefined}
+          >
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-brand-mute">
+                @
+              </span>
+              <TextInput
+                value={host?.handle ?? ""}
+                disabled
+                className="pl-7"
+                title="Set at signup — change it in Settings."
+              />
+            </div>
+          </Field>
 
           <Field
             label="Short bio"
@@ -215,24 +255,6 @@ export function HostProfileForm({
               {...register("bio")}
             />
           </Field>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Phone" optional error={errors.phone?.message}>
-              <TextInput
-                type="tel"
-                autoComplete="tel"
-                placeholder="+27 82 123 4567"
-                {...register("phone")}
-              />
-            </Field>
-            <Field label="Website" optional error={errors.website_url?.message}>
-              <TextInput
-                type="url"
-                placeholder="https://yourplace.co.za"
-                {...register("website_url")}
-              />
-            </Field>
-          </div>
         </div>
       </div>
 

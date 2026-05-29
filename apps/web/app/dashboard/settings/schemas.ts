@@ -18,9 +18,8 @@ export const profileSchema = z.object({
   phone: z
     .string()
     .trim()
-    .max(40, "Phone number is too long.")
-    .optional()
-    .or(z.literal("")),
+    .min(6, "Enter your phone number.")
+    .max(40, "Phone number is too long."),
   avatar_url: z
     .string()
     .trim()
