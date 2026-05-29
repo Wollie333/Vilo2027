@@ -98,27 +98,25 @@ export default async function BankingSettingsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-bold text-brand-ink">
-            Banking & business
-          </h2>
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-medium text-brand-secondary">
-            <ShieldCheck className="h-3 w-3" />
-            Encrypted at rest
-          </span>
-        </div>
-        <p className="mb-4 text-sm text-brand-mute">
-          One source of truth for EFT, invoices, and quotes. Account numbers are
-          encrypted and only shown to guests with a confirmed EFT booking.
-        </p>
-        <BankAccountList accounts={accounts} />
-      </section>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="font-display text-lg font-bold text-brand-ink">
+          Business info
+        </h2>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-medium text-brand-secondary">
+          <ShieldCheck className="h-3 w-3" />
+          Encrypted at rest
+        </span>
+      </div>
+      <p className="-mt-2 text-sm text-brand-mute">
+        Your business details and payout accounts — used on EFT instructions,
+        invoices, and quotes. Account numbers are encrypted and only shown to
+        guests with a confirmed EFT booking.
+      </p>
 
-      <section>
-        <BusinessDetailsForm defaults={businessDefaults} />
-      </section>
+      {/* Business details first, then payout accounts. */}
+      <BusinessDetailsForm defaults={businessDefaults} />
+      <BankAccountList accounts={accounts} />
     </div>
   );
 }
