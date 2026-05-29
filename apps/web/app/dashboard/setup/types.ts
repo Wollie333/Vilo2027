@@ -78,9 +78,17 @@ export type Photo = {
 export type Room = {
   id: string;
   name: string;
+  description: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   max_guests: number | null;
   base_price: number | null;
+  weekend_price: number | null;
+  cleaning_fee: number | null;
+  bed_type: string | null;
+  view_type: string | null;
   is_active: boolean;
+  /** Featured photo URL (cover), or first room photo. */
+  featured_image: string | null;
+  photo_count: number;
 };

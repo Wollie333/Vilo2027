@@ -97,9 +97,19 @@ export default async function SetupPage({
 
   const { data: rooms } = await supabase
     .from("listing_rooms")
-    .select("id, name, bedrooms, bathrooms, max_guests, base_price, is_active")
+    .select(
+      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, bed_type, view_type, is_active, featured_photo_id",
+    )
     .eq("listing_id", listing.id)
     .is("deleted_at", null)
+    .order("sort_order", { ascending: true });
+
+  // Per-room photos (for the card thumbnail + count).
+  const { data: roomPhotos } = await supabase
+    .from("listing_photos")
+    .select("id, url, room_id, sort_order")
+    .eq("listing_id", listing.id)
+    .not("room_id", "is", null)
     .order("sort_order", { ascending: true });
 
   return (
@@ -195,15 +205,30 @@ export default async function SetupPage({
         id: p.id as string,
         url: p.url as string,
       }))}
-      rooms={(rooms ?? []).map((r) => ({
-        id: r.id as string,
-        name: (r.name as string) ?? "Room",
-        bedrooms: (r.bedrooms as number | null) ?? null,
-        bathrooms: (r.bathrooms as number | null) ?? null,
-        max_guests: (r.max_guests as number | null) ?? null,
-        base_price: r.base_price == null ? null : Number(r.base_price),
-        is_active: Boolean(r.is_active),
-      }))}
+      rooms={(rooms ?? []).map((r) => {
+        const mine = (roomPhotos ?? []).filter((p) => p.room_id === r.id);
+        const featured =
+          mine.find((p) => p.id === r.featured_photo_id)?.url ??
+          mine[0]?.url ??
+          null;
+        return {
+          id: r.id as string,
+          name: (r.name as string) ?? "Room",
+          description: (r.description as string | null) ?? null,
+          bedrooms: (r.bedrooms as number | null) ?? null,
+          bathrooms: (r.bathrooms as number | null) ?? null,
+          max_guests: (r.max_guests as number | null) ?? null,
+          base_price: r.base_price == null ? null : Number(r.base_price),
+          weekend_price:
+            r.weekend_price == null ? null : Number(r.weekend_price),
+          cleaning_fee: r.cleaning_fee == null ? null : Number(r.cleaning_fee),
+          bed_type: (r.bed_type as string | null) ?? null,
+          view_type: (r.view_type as string | null) ?? null,
+          is_active: Boolean(r.is_active),
+          featured_image: featured,
+          photo_count: mine.length,
+        };
+      })}
     />
   );
 }

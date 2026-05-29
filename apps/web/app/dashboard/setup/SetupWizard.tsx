@@ -111,14 +111,14 @@ export function SetupWizard(props: Props) {
   const [profile, setProfile] = useState(props.profile);
   const [listing, setListing] = useState(props.listing);
   const [photos, setPhotos] = useState(props.photos);
-  const [rooms, setRooms] = useState(props.rooms);
 
-  // Banking + business are managed by the shared canonical components via
+  // Banking, business AND rooms are managed by shared canonical components via
   // server actions; they call onChanged → router.refresh, which re-runs the
   // server page and feeds fresh props here. Read straight from props so the
-  // rail / completion update after a refresh.
+  // rail / completion / cards update after a refresh.
   const bankAccounts = props.bankAccounts;
   const businessDefaults = props.businessDefaults;
+  const rooms = props.rooms;
 
   const [active, setActive] = useState<SetupStepKey>("profile");
   const [published, setPublished] = useState(false);
@@ -290,15 +290,7 @@ export function SetupWizard(props: Props) {
             <StepRooms
               listingId={listing.id}
               rooms={rooms}
-              onRoomSaved={(r) =>
-                setRooms((list) => {
-                  const idx = list.findIndex((x) => x.id === r.id);
-                  if (idx === -1) return [...list, r];
-                  const next = [...list];
-                  next[idx] = r;
-                  return next;
-                })
-              }
+              onChanged={() => router.refresh()}
               onContinue={() => jump("policies")}
             />
           </SectionCard>

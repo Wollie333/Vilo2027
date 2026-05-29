@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { updateRoomAction } from "../../../actions";
+import { createRoomAction, updateRoomAction } from "../../../actions";
 import { BED_TYPES, EXPERIENCES, VIEW_TYPES } from "../../../roomEnums";
 import type { RoomEditorRoom } from "../RoomEditor";
 
@@ -36,11 +36,15 @@ function numToStr(n: number | null | undefined, fallback = ""): string {
 export function RoomDetailsForm({
   listingId,
   room,
+  mode = "edit",
   onSaved,
+  onCreated,
 }: {
   listingId: string;
   room: RoomEditorRoom;
-  onSaved: (patch: Partial<RoomEditorRoom>) => void;
+  mode?: "create" | "edit";
+  onSaved?: (patch: Partial<RoomEditorRoom>) => void;
+  onCreated?: (id: string) => void;
 }) {
   const [pending, start] = useTransition();
 
@@ -71,38 +75,39 @@ export function RoomDetailsForm({
   }
 
   function save() {
+    if (!name.trim()) {
+      toast.error("Give the room a name.");
+      return;
+    }
+    const patch = {
+      name: name.trim(),
+      description: description.trim().length > 0 ? description.trim() : null,
+      bedrooms: toInt(bedrooms),
+      bathrooms: toInt(bathrooms),
+      max_guests: toInt(maxGuests) ?? room.max_guests ?? 2,
+      base_price: toNum(basePrice) ?? room.base_price ?? 0,
+      weekend_price: toNum(weekendPrice),
+      cleaning_fee: toNum(cleaningFee) ?? 0,
+      is_active: isActive,
+      room_size_sqm: toNum(roomSize),
+      bed_type: bedType.length > 0 ? bedType : null,
+      view_type: viewType.length > 0 ? viewType : null,
+      experiences,
+    };
     start(async () => {
-      const result = await updateRoomAction(listingId, room.id, {
-        name: name.trim(),
-        description: description.trim().length > 0 ? description.trim() : null,
-        bedrooms: toInt(bedrooms),
-        bathrooms: toInt(bathrooms),
-        max_guests: toInt(maxGuests) ?? room.max_guests,
-        base_price: toNum(basePrice) ?? room.base_price,
-        weekend_price: toNum(weekendPrice),
-        cleaning_fee: toNum(cleaningFee) ?? 0,
-        is_active: isActive,
-        room_size_sqm: toNum(roomSize),
-        bed_type: bedType.length > 0 ? bedType : null,
-        view_type: viewType.length > 0 ? viewType : null,
-        experiences,
-      });
+      if (mode === "create") {
+        const result = await createRoomAction(listingId, patch);
+        if (result.ok && result.data) {
+          toast.success("Room created");
+          onCreated?.(result.data.id);
+        } else {
+          toast.error(result.ok ? "Could not create room." : result.error);
+        }
+        return;
+      }
+      const result = await updateRoomAction(listingId, room.id, patch);
       if (result.ok) {
-        onSaved({
-          name: name.trim(),
-          description: description.trim().length > 0 ? description : null,
-          bedrooms: toInt(bedrooms),
-          bathrooms: toInt(bathrooms),
-          max_guests: toInt(maxGuests) ?? room.max_guests,
-          base_price: toNum(basePrice) ?? room.base_price,
-          weekend_price: toNum(weekendPrice),
-          cleaning_fee: toNum(cleaningFee) ?? 0,
-          is_active: isActive,
-          room_size_sqm: toNum(roomSize),
-          bed_type: bedType.length > 0 ? bedType : null,
-          view_type: viewType.length > 0 ? viewType : null,
-          experiences,
-        });
+        onSaved?.(patch);
         toast.success("Room saved");
       } else {
         toast.error(result.error);
@@ -303,7 +308,11 @@ export function RoomDetailsForm({
             className="gap-1.5"
           >
             <Save className="h-4 w-4" />
-            {pending ? "Saving…" : "Save room"}
+            {pending
+              ? "Saving…"
+              : mode === "create"
+                ? "Create room"
+                : "Save room"}
           </Button>
         </div>
       </CardContent>
