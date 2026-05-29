@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { HostProfileForm } from "@/components/host/HostProfileForm";
+
 import { PasswordCard } from "./PasswordCard";
-import { ProfileForm } from "./ProfileForm";
 
 export const metadata: Metadata = {
   title: "Profile · Settings · Vilo",
@@ -37,7 +38,8 @@ export default async function SettingsProfilePage() {
   return (
     <section className="space-y-5">
       <h2 className="font-display text-lg font-bold text-brand-ink">Profile</h2>
-      <ProfileForm
+      <HostProfileForm
+        emailVerified={Boolean(user?.email_confirmed_at)}
         defaults={{
           full_name: profile?.full_name ?? "",
           email: profile?.email ?? user?.email ?? "",
