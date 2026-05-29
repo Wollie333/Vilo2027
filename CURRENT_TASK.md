@@ -2,6 +2,21 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-05-29 — branch `feat/policy-manager`, NOT merged):**
+Built the Policy Manager at `/dashboard/policies` — three separately-assignable
+kinds (refund terms / check-in-out / house rules), listing-wide default +
+per-room overrides, locked presets (duplicate-to-customise), WYSIWYG + summary,
+guest "Read full policy" popup on listing + checkout, and the booking
+`snapshot_booking_policies` call (guest + manual flows) that was never wired.
+Migration `20260529000000_policy_manager_ui_support.sql`. **Docker would not
+start**, so `packages/types/database.types.ts` was HAND-EDITED to match the
+migration (new `policies.summary`/`check_in_time`/`check_out_time`,
+`listing_policies.room_id`, `ensure_host_policy_presets` RPC). `pnpm build` +
+`pnpm lint` both green against the hand-edited types. **TODO before merge:** run
+`supabase db reset && supabase gen types typescript --local > packages/types/database.types.ts`
+to regenerate types properly (output will be identical) and run the manual E2E
+in the CHANGELOG verification list. See CHANGELOG 2026-05-29 entry.
+
 **Date:** 2026-05-28 (post listing-taxonomy session)
 **Phase:** Pre-MVP launch path. Listing taxonomy (admin-managed
 categories + amenities + per-category SEO landing pages at /c/[slug])

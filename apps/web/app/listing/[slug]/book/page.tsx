@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { type PricingModel } from "../../../dashboard/addons/schemas";
@@ -152,6 +153,8 @@ export default async function BookingPage({
             minParticipants={minP}
             maxParticipants={maxP}
           />
+
+          <ListingPolicyBlock listingId={listing.id} className="mt-6" />
         </main>
         <SiteFooter />
       </div>
@@ -335,6 +338,10 @@ export default async function BookingPage({
             availableAddons={availableAddons}
           />
         )}
+
+        {datesOk ? (
+          <ListingPolicyBlock listingId={listing.id} className="mt-6" />
+        ) : null}
       </main>
 
       <SiteFooter />

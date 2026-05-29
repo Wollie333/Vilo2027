@@ -4,6 +4,7 @@ import { Check, Clock, ShieldCheck } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { assignCancellationPresetAction } from "../../policies/actions";
 import { saveListingPatchAction } from "../../listings/[id]/edit/actions";
 import type { Listing } from "../types";
 
@@ -67,6 +68,9 @@ export function StepPolicies({ listing, onSaved }: Props) {
         toast.error(result.error);
         return;
       }
+      // Also assign the matching refund preset listing-wide so bookings get a
+      // policy snapshot. Best-effort — the legacy enum above is authoritative.
+      await assignCancellationPresetAction(listing.id, policy);
       onSaved({
         cancellation_policy: policy,
         check_in_time: checkIn,

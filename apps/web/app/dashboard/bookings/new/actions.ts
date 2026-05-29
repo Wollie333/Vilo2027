@@ -282,6 +282,13 @@ export async function createManualBookingAction(
     });
   }
 
+  // Freeze the listing's assigned policies onto the booking (best-effort) so
+  // refund calculations have a snapshot to read, same as guest checkout.
+  await supabase.rpc("snapshot_booking_policies", {
+    p_booking_id: booking.id,
+    p_listing_id: data.listing_id,
+  });
+
   revalidatePath("/dashboard/bookings");
   revalidatePath("/dashboard/invoices");
   revalidatePath("/dashboard/calendar");

@@ -20,6 +20,7 @@ import {
   RotateCw,
   Search,
   Settings,
+  ShieldCheck,
   Star,
   Users,
   type LucideIcon,
@@ -92,6 +93,12 @@ const TOOLS: Item[] = [
     badge: { text: "PRO", tone: "pro" },
   },
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
+  {
+    href: "/dashboard/policies",
+    label: "Policies",
+    icon: ShieldCheck,
+    match: "prefix",
+  },
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 

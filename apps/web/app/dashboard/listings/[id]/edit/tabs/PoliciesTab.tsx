@@ -1,12 +1,9 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Save } from "lucide-react";
-import { useTransition } from "react";
-import { useForm } from "react-hook-form";
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,76 +11,87 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
+import { setListingPolicyAction } from "../../../../policies/actions";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+  POLICY_TYPE_LABEL,
+  type PolicyType,
+} from "../../../../policies/schemas";
+import type { EditorRoom } from "../Editor";
 
-import { saveListingPatchAction } from "../actions";
-import type { EditorListing } from "../Editor";
-import { policiesSchema, type PoliciesInput } from "../schemas";
+export type AvailablePolicy = { id: string; name: string; type: PolicyType };
+export type AssignedPolicy = {
+  policyId: string;
+  policyType: PolicyType;
+  roomId: string | null;
+};
 
-const CANCELLATION_OPTIONS = [
-  {
-    value: "flexible" as const,
-    name: "Flexible",
-    body: "Full refund up to 24 hours before check-in.",
-  },
-  {
-    value: "moderate" as const,
-    name: "Moderate",
-    body: "Full refund up to 5 days before check-in.",
-  },
-  {
-    value: "strict" as const,
-    name: "Strict",
-    body: "50% refund up to 7 days before. No refund after.",
-  },
-];
+const SECTION_BLURB: Record<PolicyType, string> = {
+  cancellation: "How much guests are refunded if they cancel.",
+  check_in_out: "Check-in and check-out times for this listing.",
+  house_rules: "The rules guests agree to when booking.",
+};
 
-export function PoliciesTab({ listing }: { listing: EditorListing }) {
-  const [pending, start] = useTransition();
-  const isExperience = listing.listing_type === "experience";
-  const form = useForm<PoliciesInput>({
-    resolver: zodResolver(policiesSchema),
-    defaultValues: {
-      check_in_time: listing.check_in_time?.slice(0, 5) ?? "",
-      check_out_time: listing.check_out_time?.slice(0, 5) ?? "",
-      cancellation_policy: listing.cancellation_policy,
-      house_rules: listing.house_rules ?? "",
-    },
-  });
+export function PoliciesTab({
+  listingId,
+  listingType,
+  rooms,
+  available,
+  assigned: initialAssigned,
+}: {
+  listingId: string;
+  listingType: "accommodation" | "experience";
+  rooms: EditorRoom[];
+  available: AvailablePolicy[];
+  assigned: AssignedPolicy[];
+}) {
+  const [assigned, setAssigned] = useState<AssignedPolicy[]>(initialAssigned);
 
-  function onSubmit(values: PoliciesInput) {
-    start(async () => {
-      const result = await saveListingPatchAction(listing.id, {
-        // Experiences don't have check-in/out — clear those columns so a host
-        // who switched a draft from stay to experience doesn't leave stale data.
-        check_in_time: isExperience
-          ? null
-          : values.check_in_time && values.check_in_time.length > 0
-            ? `${values.check_in_time}:00`
-            : null,
-        check_out_time: isExperience
-          ? null
-          : values.check_out_time && values.check_out_time.length > 0
-            ? `${values.check_out_time}:00`
-            : null,
-        cancellation_policy: values.cancellation_policy,
-        house_rules:
-          values.house_rules && values.house_rules.length > 0
-            ? values.house_rules
-            : null,
-      });
-      if (result.ok) toast.success("Policies saved");
-      else toast.error(result.error);
-    });
+  // Experiences have no check-in/out; everything else applies.
+  const types: PolicyType[] =
+    listingType === "experience"
+      ? ["cancellation", "house_rules"]
+      : ["cancellation", "check_in_out", "house_rules"];
+
+  const byType = useMemo(() => {
+    const m = new Map<PolicyType, AvailablePolicy[]>();
+    for (const p of available) {
+      const arr = m.get(p.type) ?? [];
+      arr.push(p);
+      m.set(p.type, arr);
+    }
+    return m;
+  }, [available]);
+
+  function currentPolicyId(type: PolicyType, roomId: string | null): string {
+    const row = assigned.find(
+      (a) => a.policyType === type && a.roomId === roomId,
+    );
+    return row?.policyId ?? "";
+  }
+
+  async function assign(
+    type: PolicyType,
+    roomId: string | null,
+    policyId: string,
+  ) {
+    const prev = assigned;
+    const next = assigned.filter(
+      (a) => !(a.policyType === type && a.roomId === roomId),
+    );
+    if (policyId) next.push({ policyType: type, roomId, policyId });
+    setAssigned(next);
+
+    const result = await setListingPolicyAction(
+      listingId,
+      type,
+      roomId,
+      policyId || null,
+    );
+    if (!result.ok) {
+      setAssigned(prev);
+      toast.error(result.error);
+    }
   }
 
   return (
@@ -93,116 +101,109 @@ export function PoliciesTab({ listing }: { listing: EditorListing }) {
           Policies
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          Check-in/out, house rules and cancellation. Full Policy Manager
-          (per-policy versioning, snapshots) lands later.
+          Assign refund terms, check-in/out times and house rules to this
+          listing. Create and edit them under{" "}
+          <Link
+            href="/dashboard/policies"
+            className="text-brand-primary underline decoration-brand-primary/40 underline-offset-2 hover:decoration-brand-primary"
+          >
+            Tools → Policies
+          </Link>
+          .
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-            noValidate
-          >
-            {isExperience ? null : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="check_in_time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Check-in time</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="check_out_time"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Check-out time</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      <CardContent className="space-y-6">
+        {types.map((type) => {
+          const options = byType.get(type) ?? [];
+          return (
+            <div key={type} className="space-y-3">
+              <div>
+                <div className="font-display text-sm font-semibold text-brand-dark">
+                  {POLICY_TYPE_LABEL[type]}
+                </div>
+                <p className="text-xs text-brand-mute">{SECTION_BLURB[type]}</p>
               </div>
-            )}
 
-            <FormField
-              control={form.control}
-              name="cancellation_policy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cancellation policy</FormLabel>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {CANCELLATION_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => field.onChange(opt.value)}
-                        className={`rounded-card border p-4 text-left transition-colors ${
-                          field.value === opt.value
-                            ? "border-brand-primary bg-brand-accent/50"
-                            : "border-brand-line bg-white hover:bg-brand-light/60"
-                        }`}
-                      >
-                        <div className="font-display text-sm font-semibold text-brand-dark">
-                          {opt.name}
-                        </div>
-                        <p className="mt-1 text-xs leading-relaxed text-brand-mute">
-                          {opt.body}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
+              {options.length === 0 ? (
+                <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-3 py-3 text-xs text-brand-mute">
+                  No {POLICY_TYPE_LABEL[type].toLowerCase()} yet.{" "}
+                  <Link
+                    href="/dashboard/policies"
+                    className="text-brand-primary underline underline-offset-2"
+                  >
+                    Create one
+                  </Link>
+                  .
+                </div>
+              ) : (
+                <>
+                  <PolicySelect
+                    label="Listing-wide"
+                    value={currentPolicyId(type, null)}
+                    options={options}
+                    onChange={(id) => assign(type, null, id)}
+                    placeholder="None"
+                  />
+
+                  {listingType === "accommodation" && rooms.length > 0 ? (
+                    <details className="rounded border border-brand-line bg-brand-light/30 px-3 py-2">
+                      <summary className="cursor-pointer text-xs font-medium text-brand-mute">
+                        Room overrides ({rooms.length})
+                      </summary>
+                      <div className="mt-2 space-y-2">
+                        {rooms.map((room) => (
+                          <PolicySelect
+                            key={room.id}
+                            label={room.name}
+                            value={currentPolicyId(type, room.id)}
+                            options={options}
+                            onChange={(id) => assign(type, room.id, id)}
+                            placeholder="Use listing default"
+                          />
+                        ))}
+                      </div>
+                    </details>
+                  ) : null}
+                </>
               )}
-            />
-
-            <FormField
-              control={form.control}
-              name="house_rules"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {isExperience ? "Guest expectations" : "House rules"}{" "}
-                    <span className="font-normal text-brand-mute">
-                      (optional)
-                    </span>
-                  </FormLabel>
-                  <FormControl>
-                    <Textarea
-                      rows={5}
-                      placeholder={
-                        isExperience
-                          ? "Be on time, follow safety briefing, no flash photography during the talk."
-                          : "Quiet hours after 10pm, no smoking inside, etc."
-                      }
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end">
-              <Button type="submit" disabled={pending} className="gap-1.5">
-                <Save className="h-4 w-4" />
-                {pending ? "Saving…" : "Save policies"}
-              </Button>
             </div>
-          </form>
-        </Form>
+          );
+        })}
       </CardContent>
     </Card>
+  );
+}
+
+function PolicySelect({
+  label,
+  value,
+  options,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  options: AvailablePolicy[];
+  onChange: (id: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="flex items-center justify-between gap-3">
+      <span className="min-w-0 flex-1 truncate text-sm text-brand-ink">
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-56 max-w-[60%] rounded border border-brand-line bg-white px-2 text-sm text-brand-ink"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

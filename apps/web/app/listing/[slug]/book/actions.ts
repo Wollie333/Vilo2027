@@ -477,6 +477,14 @@ export async function createBookingAction(
     }
   }
 
+  // 6c. Freeze the listing's assigned policies onto the booking so later edits
+  // never change the guest's agreed terms. calculate_policy_refund_amount reads
+  // these snapshots. Best-effort — a missing snapshot shouldn't block payment.
+  await admin.rpc("snapshot_booking_policies", {
+    p_booking_id: booking.id,
+    p_listing_id: listing.id,
+  });
+
   // 7. Pending payment row. provider_reference filled after init.
   const { data: payment, error: paymentErr } = await admin
     .from("payments")

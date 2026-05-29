@@ -13,7 +13,9 @@ import {
   type EditorRoom,
 } from "./Editor";
 import { type PricingModel } from "../../../addons/schemas";
+import { type PolicyType } from "../../../policies/schemas";
 import type { AssignedAddon, AvailableAddon } from "./tabs/AddonsTab";
+import type { AssignedPolicy, AvailablePolicy } from "./tabs/PoliciesTab";
 
 export const metadata: Metadata = {
   title: "Edit listing · Vilo",
@@ -91,6 +93,8 @@ export default async function EditListingPage({
     { data: roomRows },
     { data: addonRows },
     { data: listingAddonRows },
+    { data: policyRows },
+    { data: listingPolicyRows },
   ] = await Promise.all([
     supabase
       .from("listing_amenities")
@@ -120,6 +124,19 @@ export default async function EditListingPage({
     supabase
       .from("listing_addons")
       .select("addon_id, room_id, unit_price_override")
+      .eq("listing_id", params.id),
+    supabase
+      .from("policies")
+      .select("id, name, type")
+      .eq("host_id", listing.host_id)
+      .eq("status", "active")
+      .is("deleted_at", null)
+      .in("type", ["cancellation", "check_in_out", "house_rules"])
+      .order("type", { ascending: true })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("listing_policies")
+      .select("policy_id, policy_type, room_id")
       .eq("listing_id", params.id),
   ]);
 
@@ -184,6 +201,19 @@ export default async function EditListingPage({
       r.unit_price_override == null ? null : Number(r.unit_price_override),
   }));
 
+  const availablePolicies: AvailablePolicy[] = (policyRows ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    type: r.type as PolicyType,
+  }));
+  const assignedPolicies: AssignedPolicy[] = (listingPolicyRows ?? []).map(
+    (r) => ({
+      policyId: r.policy_id,
+      policyType: r.policy_type as PolicyType,
+      roomId: r.room_id ?? null,
+    }),
+  );
+
   const [categoryLeavesAll, amenityGroups] = await Promise.all([
     getCategoriesForKind(listing.listing_type),
     getAmenityCatalog(),
@@ -207,6 +237,8 @@ export default async function EditListingPage({
       rooms={rooms}
       availableAddons={availableAddons}
       assignedAddons={assignedAddons}
+      availablePolicies={availablePolicies}
+      assignedPolicies={assignedPolicies}
       categoryLeaves={categoryLeaves}
       amenityGroups={amenityGroups}
     />

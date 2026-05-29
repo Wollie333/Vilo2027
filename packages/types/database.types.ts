@@ -2202,6 +2202,7 @@ export type Database = {
           listing_id: string
           policy_id: string
           policy_type: string
+          room_id: string | null
         }
         Insert: {
           assigned_at?: string
@@ -2210,6 +2211,7 @@ export type Database = {
           listing_id: string
           policy_id: string
           policy_type: string
+          room_id?: string | null
         }
         Update: {
           assigned_at?: string
@@ -2218,6 +2220,7 @@ export type Database = {
           listing_id?: string
           policy_id?: string
           policy_type?: string
+          room_id?: string | null
         }
         Relationships: [
           {
@@ -3282,6 +3285,8 @@ export type Database = {
       }
       policies: {
         Row: {
+          check_in_time: string | null
+          check_out_time: string | null
           created_at: string
           deleted_at: string | null
           host_id: string
@@ -3291,11 +3296,14 @@ export type Database = {
           parent_policy_id: string | null
           preset: string | null
           status: string
+          summary: string | null
           type: string
           updated_at: string
           version: number
         }
         Insert: {
+          check_in_time?: string | null
+          check_out_time?: string | null
           created_at?: string
           deleted_at?: string | null
           host_id: string
@@ -3305,11 +3313,14 @@ export type Database = {
           parent_policy_id?: string | null
           preset?: string | null
           status?: string
+          summary?: string | null
           type: string
           updated_at?: string
           version?: number
         }
         Update: {
+          check_in_time?: string | null
+          check_out_time?: string | null
           created_at?: string
           deleted_at?: string | null
           host_id?: string
@@ -3319,6 +3330,7 @@ export type Database = {
           parent_policy_id?: string | null
           preset?: string | null
           status?: string
+          summary?: string | null
           type?: string
           updated_at?: string
           version?: number
@@ -4965,6 +4977,10 @@ export type Database = {
       geometry_same_3d: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
+      }
+      ensure_host_policy_presets: {
+        Args: { p_host_id: string }
+        Returns: undefined
       }
       geometry_within: {
         Args: { geom1: unknown; geom2: unknown }

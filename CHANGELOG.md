@@ -31,6 +31,56 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-29 — Policy Manager (`/dashboard/policies`) — branch `feat/policy-manager`
+
+### Built
+- **Central Policies section at `/dashboard/policies`** managing three
+  independent, separately-assignable kinds: **Refund terms** (`cancellation`),
+  **Check-in / Check-out** (`check_in_out`), and **House rules** (`house_rules`).
+  Each is created once and assigned to a whole listing or overridden per room.
+- **The 3 refund presets (flexible/moderate/strict + non-refundable) are locked**
+  — materialised per-host as real `policies` rows by a new idempotent RPC
+  `ensure_host_policy_presets()` (seeded lazily on first page visit / create).
+  Locked = `preset <> 'custom'`; hosts **Duplicate** a preset to customise it.
+- **WYSIWYG full-policy editor** (reuses `components/editor/RichTextEditor`,
+  TipTap) + a short `summary` for cards/checkout. Refund terms get a rules
+  repeater (days-before → refund-% + label) and a non-refundable toggle.
+- **Guest-facing popup** — shared `components/policy/PolicyDialog` (read full
+  terms) + server `components/policy/ListingPolicyBlock` rendered on the listing
+  detail page (replacing the dead `href="#"` "Read full policy" link) and the
+  checkout page (both stay/experience paths). Falls back to the legacy
+  `CANCELLATION_BLURB` when no policy is assigned.
+- **Booking snapshot wired** — `book/actions.ts` now calls the pre-existing but
+  never-invoked `snapshot_booking_policies()` RPC after the booking insert, so
+  `calculate_policy_refund_amount()` finally has a snapshot to read.
+
+### Changed
+- Migration `20260529000000_policy_manager_ui_support.sql`: extends the
+  `type`/`policy_type` CHECKs (adds `check_in_out`, `house_rules`); adds
+  `policies.summary`/`check_in_time`/`check_out_time`; adds
+  `listing_policies.room_id` + NULL-safe partial unique indexes (mirrors
+  `listing_addons`); `CREATE OR REPLACE`s `snapshot_booking_policies` +
+  `get_listing_policy_summary` (new types + summary) and extends
+  `sync_listing_policy_label` to keep `listings.check_in_time`/`check_out_time`/
+  `house_rules` in sync from the listing-wide assignment; seeds `plan_features`
+  `'policies'` = true on all plans (pre-MVP, §3.4).
+- Listing editor `PoliciesTab` rewritten from the 3-preset radio to three policy
+  pickers (listing-wide + per-room overrides) calling a new
+  `setListingPolicyAction`; `edit/page.tsx` + `Editor.tsx` fetch/thread the
+  new `availablePolicies`/`assignedPolicies` props.
+- Onboarding `StepPolicies` additionally assigns the matching preset listing-wide
+  (best-effort) so onboarding listings are refund-ready.
+- Sidebar: new **Policies** link in Tools.
+
+### Notes
+- The whole Domain-11 DB foundation (5 tables, RLS, functions, triggers, seed
+  templates) already existed from `20260502000000..0008` and was unused — this
+  session is mostly UI + per-room assignment + the one missing snapshot call.
+- `body_html` is sanitised at write time via `sanitiseListingHtml` so the shared
+  client dialog renders trusted markup.
+- Not yet committed; pending `supabase db reset` + type regen + `pnpm build/lint`
+  (Docker was down at code-time). To be merged into `main` later.
+
 ## 2026-05-28 — Manual booking form redesign + backend wiring
 
 Rebuilt `/dashboard/bookings/new` to the "New Booking Page" design — a

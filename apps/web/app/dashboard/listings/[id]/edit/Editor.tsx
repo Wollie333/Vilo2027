@@ -37,7 +37,11 @@ import { DangerTab } from "./tabs/DangerTab";
 import { LocationTab } from "./tabs/LocationTab";
 import { LogisticsTab } from "./tabs/LogisticsTab";
 import { PhotosTab } from "./tabs/PhotosTab";
-import { PoliciesTab } from "./tabs/PoliciesTab";
+import {
+  PoliciesTab,
+  type AssignedPolicy,
+  type AvailablePolicy,
+} from "./tabs/PoliciesTab";
 import { PricingTab } from "./tabs/PricingTab";
 import { RoomsTab } from "./tabs/RoomsTab";
 import { ScheduleTab } from "./tabs/ScheduleTab";
@@ -191,6 +195,8 @@ export function Editor({
   rooms: initialRooms,
   availableAddons,
   assignedAddons,
+  availablePolicies,
+  assignedPolicies,
   categoryLeaves,
   amenityGroups,
 }: {
@@ -200,6 +206,8 @@ export function Editor({
   rooms: EditorRoom[];
   availableAddons: AvailableAddon[];
   assignedAddons: AssignedAddon[];
+  availablePolicies: AvailablePolicy[];
+  assignedPolicies: AssignedPolicy[];
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
 }) {
@@ -571,7 +579,15 @@ export function Editor({
         {active === "logistics" ? <LogisticsTab listing={listing} /> : null}
         {active === "schedule" ? <ScheduleTab listing={listing} /> : null}
         {active === "pricing" ? <PricingTab listing={listing} /> : null}
-        {active === "policies" ? <PoliciesTab listing={listing} /> : null}
+        {active === "policies" ? (
+          <PoliciesTab
+            listingId={listing.id}
+            listingType={listing.listing_type}
+            rooms={rooms}
+            available={availablePolicies}
+            assigned={assignedPolicies}
+          />
+        ) : null}
         {active === "settings" ? <SettingsTab listing={listing} /> : null}
         {active === "danger" ? (
           <DangerTab listingId={listing.id} listingName={listing.name} />

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import {
-  ArrowRight,
   BadgeCheck,
   Ban,
   Clock,
@@ -24,6 +23,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { UtilityBar } from "@/app/_components/home/UtilityBar";
+import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -809,14 +809,12 @@ function ListingBody({
                   </span>{" "}
                   {CANCELLATION_BLURB[listing.cancellation_policy]}
                 </p>
-                <a
-                  href="#"
-                  className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-brand-primary underline underline-offset-2"
-                >
-                  Read full policy <ArrowRight className="h-3.5 w-3.5" />
-                </a>
               </div>
             </div>
+
+            {/* Assigned policies with read-the-full-text popups. Renders nothing
+                when none are assigned, leaving the legacy summary above. */}
+            <ListingPolicyBlock listingId={listing.id} className="mt-6" />
 
             <button
               type="button"
