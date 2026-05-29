@@ -16,6 +16,9 @@ import { toast } from "sonner";
 
 import { computeSetupCompletion } from "@/lib/setup/completion";
 
+import type { Account } from "@/app/dashboard/settings/banking/_components/BankAccountList";
+import type { BusinessDetailsInput } from "@/app/dashboard/settings/banking/schemas";
+
 import { togglePublishAction } from "../listings/[id]/edit/actions";
 import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
@@ -23,8 +26,6 @@ import { StepListing } from "./steps/StepListing";
 import { StepPolicies } from "./steps/StepPolicies";
 import { StepProfile } from "./steps/StepProfile";
 import type {
-  BankAccount,
-  BusinessDetails,
   Host,
   Listing,
   Photo,
@@ -54,8 +55,8 @@ const SECTIONS: SectionMeta[] = [
   {
     key: "banking",
     n: "2",
-    label: "Banking & payouts",
-    rail: "Banking",
+    label: "Business info",
+    rail: "Business",
     required: true,
   },
   {
@@ -87,8 +88,8 @@ type Props = {
   profile: Profile;
   emailVerified: boolean;
   listing: Listing;
-  bankAccounts: BankAccount[];
-  businessDetails: BusinessDetails | null;
+  bankAccounts: Account[];
+  businessDefaults: BusinessDetailsInput;
   photos: Photo[];
   rooms: Room[];
 };
@@ -101,10 +102,15 @@ export function SetupWizard(props: Props) {
   const [host, setHost] = useState(props.host);
   const [profile, setProfile] = useState(props.profile);
   const [listing, setListing] = useState(props.listing);
-  const [bankAccounts, setBankAccounts] = useState(props.bankAccounts);
-  const [businessDetails, setBusinessDetails] = useState(props.businessDetails);
   const [photos, setPhotos] = useState(props.photos);
   const [rooms, setRooms] = useState(props.rooms);
+
+  // Banking + business are managed by the shared canonical components via
+  // server actions; they call onChanged → router.refresh, which re-runs the
+  // server page and feeds fresh props here. Read straight from props so the
+  // rail / completion update after a refresh.
+  const bankAccounts = props.bankAccounts;
+  const businessDefaults = props.businessDefaults;
 
   const [active, setActive] = useState<SetupStepKey>("profile");
   const [published, setPublished] = useState(false);
@@ -242,26 +248,9 @@ export function SetupWizard(props: Props) {
             active={active === "banking"}
           >
             <StepBanking
-              hostId={host.id}
-              bankAccounts={bankAccounts}
-              businessDetails={businessDetails}
-              onAccountSaved={(acc) =>
-                setBankAccounts((list) => [...list, acc])
-              }
-              onAccountUpdated={(id, patch) =>
-                setBankAccounts((list) =>
-                  list.map((a) => (a.id === id ? { ...a, ...patch } : a)),
-                )
-              }
-              onAccountDeleted={(id) =>
-                setBankAccounts((list) => list.filter((a) => a.id !== id))
-              }
-              onDefaultChanged={(id) =>
-                setBankAccounts((list) =>
-                  list.map((a) => ({ ...a, is_default: a.id === id })),
-                )
-              }
-              onBusinessSaved={(b) => setBusinessDetails(b)}
+              accounts={bankAccounts}
+              businessDefaults={businessDefaults}
+              onChanged={() => router.refresh()}
               onContinue={() => jump("listing")}
             />
           </SectionCard>

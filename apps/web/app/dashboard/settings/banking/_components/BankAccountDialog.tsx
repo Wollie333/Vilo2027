@@ -59,6 +59,9 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   editing: EditingAccount | null;
   hasExistingAccounts: boolean;
+  /** Called after a successful create/update (e.g. to refresh a parent that
+   *  holds its own copy of the accounts, like the setup wizard). */
+  onChanged?: () => void;
 };
 
 const EMPTY_DEFAULTS: BankAccountInput = {
@@ -79,6 +82,7 @@ export function BankAccountDialog({
   onOpenChange,
   editing,
   hasExistingAccounts,
+  onChanged,
 }: Props) {
   const [pending, start] = useTransition();
   const form = useForm<BankAccountInput>({
@@ -124,6 +128,7 @@ export function BankAccountDialog({
       if (result.ok) {
         toast.success(editing ? "Bank account updated" : "Bank account added");
         onOpenChange(false);
+        onChanged?.();
       } else {
         toast.error(result.error);
       }

@@ -6,17 +6,16 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { SetupWizard } from "./SetupWizard";
 
-// eft_banking_details stores account_number encrypted at rest. The host
-// reviewing their OWN banking wants to eyeball the full number before
-// editing, so we decrypt server-side and ship the full number down — the
-// wizard masks it by default and reveals on click. (Host's own data, own
-// authenticated session; see DECISIONS.md.)
-function decryptFull(stored: string | null): string {
-  if (!stored) return "";
+// eft_banking_details stores account_number encrypted at rest. The shared
+// BankAccountList only needs the last 4 for display, so decrypt server-side
+// and ship the last4 down (matches /dashboard/settings/banking).
+function last4FromCipher(stored: string | null): string {
+  if (!stored) return "????";
   try {
-    return decryptAccountNumber(stored);
+    const plain = decryptAccountNumber(stored).replace(/\D/g, "");
+    return plain.length >= 4 ? plain.slice(-4) : plain.padStart(4, "•");
   } catch {
-    return "";
+    return "????";
   }
 }
 
@@ -75,11 +74,12 @@ export default async function SetupPage({
   const { data: bankAccounts } = await supabase
     .from("eft_banking_details")
     .select(
-      "id, label, bank_name, account_holder, account_number, branch_code, swift_code, account_type, is_default",
+      "id, label, bank_name, account_holder, account_number, account_type, branch_code, swift_code, reference_format, is_default, created_at",
     )
     .eq("host_id", host.id)
     .eq("is_archived", false)
-    .order("is_default", { ascending: false });
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true });
 
   const { data: businessDetails } = await supabase
     .from("host_business_details")
@@ -163,32 +163,34 @@ export default async function SetupPage({
         label: b.label as string,
         bank_name: b.bank_name as string,
         account_holder: b.account_holder as string,
-        account_number: decryptFull(b.account_number as string | null),
+        account_number_last4: last4FromCipher(
+          b.account_number as string | null,
+        ),
+        account_type: b.account_type as
+          | "cheque"
+          | "savings"
+          | "transmission"
+          | "business",
         branch_code: b.branch_code as string,
-        swift_code: (b.swift_code as string | null) ?? "",
-        account_type: b.account_type as string,
+        swift_code: (b.swift_code as string | null) ?? null,
+        reference_format:
+          (b.reference_format as string) ?? "VILO-{booking_ref}",
         is_default: Boolean(b.is_default),
       }))}
-      businessDetails={
-        businessDetails
-          ? {
-              legal_name: (businessDetails.legal_name as string) ?? "",
-              trading_name: (businessDetails.trading_name as string) ?? "",
-              vat_number: (businessDetails.vat_number as string) ?? "",
-              company_registration_number:
-                (businessDetails.company_registration_number as string) ?? "",
-              billing_address_line1:
-                (businessDetails.billing_address_line1 as string) ?? "",
-              billing_address_line2:
-                (businessDetails.billing_address_line2 as string) ?? "",
-              billing_city: (businessDetails.billing_city as string) ?? "",
-              billing_postcode:
-                (businessDetails.billing_postcode as string) ?? "",
-              billing_country:
-                (businessDetails.billing_country as string) ?? "ZA",
-            }
-          : null
-      }
+      businessDefaults={{
+        legal_name: (businessDetails?.legal_name as string) ?? "",
+        trading_name: (businessDetails?.trading_name as string) ?? "",
+        vat_number: (businessDetails?.vat_number as string) ?? "",
+        company_registration_number:
+          (businessDetails?.company_registration_number as string) ?? "",
+        billing_address_line1:
+          (businessDetails?.billing_address_line1 as string) ?? "",
+        billing_address_line2:
+          (businessDetails?.billing_address_line2 as string) ?? "",
+        billing_city: (businessDetails?.billing_city as string) ?? "",
+        billing_postcode: (businessDetails?.billing_postcode as string) ?? "",
+        billing_country: (businessDetails?.billing_country as string) ?? "ZA",
+      }}
       photos={(photos ?? []).map((p) => ({
         id: p.id as string,
         url: p.url as string,

@@ -22,7 +22,7 @@ import { ACCOUNT_TYPE_LABELS, type ACCOUNT_TYPES } from "../schemas";
 
 import { BankAccountDialog, type EditingAccount } from "./BankAccountDialog";
 
-type Account = {
+export type Account = {
   id: string;
   label: string;
   bank_name: string;
@@ -35,7 +35,13 @@ type Account = {
   is_default: boolean;
 };
 
-export function BankAccountList({ accounts }: { accounts: Account[] }) {
+export function BankAccountList({
+  accounts,
+  onChanged,
+}: {
+  accounts: Account[];
+  onChanged?: () => void;
+}) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EditingAccount | null>(null);
   const [pending, start] = useTransition();
@@ -53,16 +59,20 @@ export function BankAccountList({ accounts }: { accounts: Account[] }) {
   function handleSetDefault(id: string) {
     start(async () => {
       const result = await setDefaultBankAccountAction(id);
-      if (result.ok) toast.success("Default account updated");
-      else toast.error(result.error);
+      if (result.ok) {
+        toast.success("Default account updated");
+        onChanged?.();
+      } else toast.error(result.error);
     });
   }
 
   function handleArchive(id: string) {
     start(async () => {
       const result = await archiveBankAccountAction(id);
-      if (result.ok) toast.success("Account archived");
-      else toast.error(result.error);
+      if (result.ok) {
+        toast.success("Account archived");
+        onChanged?.();
+      } else toast.error(result.error);
     });
   }
 
@@ -190,6 +200,7 @@ export function BankAccountList({ accounts }: { accounts: Account[] }) {
         onOpenChange={setDialogOpen}
         editing={editing}
         hasExistingAccounts={accounts.length > 0}
+        onChanged={onChanged}
       />
     </>
   );
