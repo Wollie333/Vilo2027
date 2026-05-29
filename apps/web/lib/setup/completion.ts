@@ -37,6 +37,12 @@ export type SetupCompletionInput = {
   photoCount: number;
   /** Count of active rooms on the setup listing. */
   roomCount: number;
+  /**
+   * A refund (cancellation) policy is assigned to the setup listing
+   * listing-wide (via listing_policies). Preferred over the legacy enum, which
+   * is only synced for the locked presets — custom policies wouldn't set it.
+   */
+  hasCancellationPolicy?: boolean;
 };
 
 export type SetupCompletion = Record<SetupSectionKey, boolean>;
@@ -72,11 +78,14 @@ export function computeSetupCompletion(
   // Rooms is its own section for accommodation (≥1 active room drives price +
   // capacity); experiences have no rooms, so it's not applicable.
   const roomsDone = isExperience ? true : input.roomCount > 0;
+
+  // Policies = a refund policy is set for the listing. With the Policy Manager,
+  // refund terms are reusable policies assigned via listing_policies; the
+  // legacy enum is only a fallback (synced for presets, not custom policies).
   const policies = Boolean(
     listing &&
-    hasText(listing.cancellation_policy) &&
-    (isExperience ||
-      (hasText(listing.check_in_time) && hasText(listing.check_out_time))),
+    (input.hasCancellationPolicy === true ||
+      hasText(listing.cancellation_policy)),
   );
 
   const review = Boolean(listing?.is_published);

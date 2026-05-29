@@ -18,9 +18,12 @@ import { computeSetupCompletion } from "@/lib/setup/completion";
 
 import type { Account } from "@/app/dashboard/settings/banking/_components/BankAccountList";
 import type { BusinessDetailsInput } from "@/app/dashboard/settings/banking/schemas";
+import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
 import { togglePublishAction } from "../listings/[id]/edit/actions";
+import type { PolicyCard } from "../policies/PolicyManager";
+import type { PolicyType } from "../policies/schemas";
 import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
 import { StepListing } from "./steps/StepListing";
@@ -101,8 +104,11 @@ type Props = {
   businessDefaults: BusinessDetailsInput;
   photos: Photo[];
   rooms: Room[];
+  categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
   amenities: { id: string; key: string; roomId: string | null }[];
+  policies: PolicyCard[];
+  policyAssignments: Record<PolicyType, string | null>;
 };
 
 export function SetupWizard(props: Props) {
@@ -122,6 +128,8 @@ export function SetupWizard(props: Props) {
   const bankAccounts = props.bankAccounts;
   const businessDefaults = props.businessDefaults;
   const rooms = props.rooms;
+  const policies = props.policies;
+  const policyAssignments = props.policyAssignments;
 
   const [active, setActive] = useState<SetupStepKey>("profile");
   const [published, setPublished] = useState(false);
@@ -137,8 +145,9 @@ export function SetupWizard(props: Props) {
         listing,
         photoCount: photos.length,
         roomCount: rooms.filter((r) => r.is_active).length,
+        hasCancellationPolicy: policyAssignments.cancellation != null,
       }),
-    [host, bankAccounts, listing, photos, rooms],
+    [host, bankAccounts, listing, photos, rooms, policyAssignments],
   );
 
   const requiredSections = SECTIONS.filter((s) => s.required);
@@ -274,6 +283,7 @@ export function SetupWizard(props: Props) {
             <StepListing
               listing={listing}
               photos={photos}
+              categoryLeaves={props.categoryLeaves}
               amenityGroups={props.amenityGroups}
               amenities={props.amenities}
               onListingChanged={(patch) =>
@@ -304,10 +314,10 @@ export function SetupWizard(props: Props) {
           >
             <StepPolicies
               listing={listing}
-              onSaved={(patch) => {
-                setListing((l) => ({ ...l, ...patch }));
-                jump("review");
-              }}
+              policies={policies}
+              assignments={policyAssignments}
+              onChanged={() => router.refresh()}
+              onContinue={() => jump("review")}
             />
           </SectionCard>
 

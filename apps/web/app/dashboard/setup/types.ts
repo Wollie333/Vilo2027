@@ -27,6 +27,7 @@ export type Listing = {
   id: string;
   name: string;
   listing_type: "accommodation" | "experience";
+  category_id: string | null;
   accommodation_type: string | null;
   experience_type: string | null;
   description: string;
@@ -43,6 +44,14 @@ export type Listing = {
   house_rules: string;
   is_published: boolean;
   booking_mode: "whole_listing" | "rooms_only" | "flexible";
+  // Location — for SEO + search (set on the Listing card).
+  address_line1: string | null;
+  address_line2: string | null;
+  city: string | null;
+  province: string | null;
+  postal_code: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type BankAccount = {

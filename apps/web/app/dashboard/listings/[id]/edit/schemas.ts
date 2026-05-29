@@ -62,7 +62,10 @@ export const basicSchema = z.object({
   // accepted without a strict enum after the taxonomy cutover.
   accommodation_type: z.string().nullable().optional(),
   experience_type: z.string().nullable().optional(),
-  description: z.string().trim().max(4000).optional().or(z.literal("")),
+  // Rich-text HTML — sanitised server-side. No length cap here: a previously
+  // saved long description would otherwise fail validation as "Invalid input"
+  // and silently block the whole form (incl. name changes).
+  description: z.string().optional(),
 });
 export type BasicInput = z.infer<typeof basicSchema>;
 

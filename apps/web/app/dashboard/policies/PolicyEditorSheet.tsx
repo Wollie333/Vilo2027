@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -14,6 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Field, TextInput } from "@/app/dashboard/setup/_atoms";
 
 import { createPolicyAction, updatePolicyAction } from "./actions";
 import type { PolicyCard } from "./PolicyManager";
@@ -164,8 +164,8 @@ export function PolicyEditorSheet({
         </SheetHeader>
 
         <div className="mt-6 space-y-5">
-          <Field label="Name">
-            <Input
+          <Field label="Name" required>
+            <TextInput
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={pending}
@@ -179,18 +179,21 @@ export function PolicyEditorSheet({
             />
           </Field>
 
-          <Field label="Summary (shown on cards & checkout)">
-            <Input
+          <Field
+            label="Summary"
+            hint="One short line guests see on cards & checkout."
+          >
+            <TextInput
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
               disabled={pending}
-              placeholder="One short line guests see before opening the full policy."
+              placeholder="Shown before guests open the full policy."
             />
           </Field>
 
           {type === "cancellation" ? (
             <>
-              <label className="flex items-center gap-2 text-sm text-brand-dark">
+              <label className="flex items-center gap-2 text-sm text-brand-ink">
                 <input
                   type="checkbox"
                   checked={isNonRefundable}
@@ -202,9 +205,12 @@ export function PolicyEditorSheet({
               </label>
 
               {!isNonRefundable ? (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                <div className="space-y-2.5">
+                  <div className="text-sm font-medium text-brand-ink">
                     Refund rules
+                    <span className="ml-0.5 text-status-cancelled" aria-hidden>
+                      *
+                    </span>
                   </div>
                   <p className="text-xs text-brand-mute">
                     The rule with the largest matching “days before check-in”
@@ -212,55 +218,61 @@ export function PolicyEditorSheet({
                   </p>
                   {rules.map((r, i) => (
                     <div key={i} className="flex items-end gap-2">
-                      <Field label="Days before" className="w-24">
-                        <Input
-                          type="number"
-                          min={0}
-                          value={r.days_before}
-                          onChange={(e) =>
-                            setRules(
-                              rules.map((x, j) =>
-                                j === i
-                                  ? { ...x, days_before: e.target.value }
-                                  : x,
-                              ),
-                            )
-                          }
-                          disabled={pending}
-                        />
-                      </Field>
-                      <Field label="Refund %" className="w-24">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={r.refund_percent}
-                          onChange={(e) =>
-                            setRules(
-                              rules.map((x, j) =>
-                                j === i
-                                  ? { ...x, refund_percent: e.target.value }
-                                  : x,
-                              ),
-                            )
-                          }
-                          disabled={pending}
-                        />
-                      </Field>
-                      <Field label="Label" className="flex-1">
-                        <Input
-                          value={r.label}
-                          onChange={(e) =>
-                            setRules(
-                              rules.map((x, j) =>
-                                j === i ? { ...x, label: e.target.value } : x,
-                              ),
-                            )
-                          }
-                          disabled={pending}
-                          placeholder="e.g. Full refund"
-                        />
-                      </Field>
+                      <div className="w-24">
+                        <Field label="Days before">
+                          <TextInput
+                            type="number"
+                            min={0}
+                            value={r.days_before}
+                            onChange={(e) =>
+                              setRules(
+                                rules.map((x, j) =>
+                                  j === i
+                                    ? { ...x, days_before: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            disabled={pending}
+                          />
+                        </Field>
+                      </div>
+                      <div className="w-24">
+                        <Field label="Refund %">
+                          <TextInput
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={r.refund_percent}
+                            onChange={(e) =>
+                              setRules(
+                                rules.map((x, j) =>
+                                  j === i
+                                    ? { ...x, refund_percent: e.target.value }
+                                    : x,
+                                ),
+                              )
+                            }
+                            disabled={pending}
+                          />
+                        </Field>
+                      </div>
+                      <div className="flex-1">
+                        <Field label="Label">
+                          <TextInput
+                            value={r.label}
+                            onChange={(e) =>
+                              setRules(
+                                rules.map((x, j) =>
+                                  j === i ? { ...x, label: e.target.value } : x,
+                                ),
+                              )
+                            }
+                            disabled={pending}
+                            placeholder="e.g. Full refund"
+                          />
+                        </Field>
+                      </div>
                       <button
                         type="button"
                         onClick={() =>
@@ -268,7 +280,7 @@ export function PolicyEditorSheet({
                         }
                         disabled={pending}
                         aria-label="Remove rule"
-                        className="mb-1.5 flex h-9 w-9 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
+                        className="mb-1 flex h-10 w-10 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -287,7 +299,7 @@ export function PolicyEditorSheet({
                 </div>
               ) : null}
 
-              <Field label="Full policy text (optional)">
+              <Field label="Full policy text" optional>
                 <RichTextEditor
                   value={bodyHtml}
                   onChange={setBodyHtml}
@@ -301,16 +313,16 @@ export function PolicyEditorSheet({
           {type === "check_in_out" ? (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Check-in time">
-                  <Input
+                <Field label="Check-in time" required>
+                  <TextInput
                     type="time"
                     value={checkIn}
                     onChange={(e) => setCheckIn(e.target.value)}
                     disabled={pending}
                   />
                 </Field>
-                <Field label="Check-out time">
-                  <Input
+                <Field label="Check-out time" required>
+                  <TextInput
                     type="time"
                     value={checkOut}
                     onChange={(e) => setCheckOut(e.target.value)}
@@ -318,7 +330,7 @@ export function PolicyEditorSheet({
                   />
                 </Field>
               </div>
-              <Field label="Arrival notes (optional)">
+              <Field label="Arrival notes" optional>
                 <RichTextEditor
                   value={bodyHtml}
                   onChange={setBodyHtml}
@@ -330,7 +342,7 @@ export function PolicyEditorSheet({
           ) : null}
 
           {type === "house_rules" ? (
-            <Field label="House rules">
+            <Field label="House rules" required>
               <div className="space-y-2">
                 {!bodyHtml ? (
                   <Button
@@ -375,24 +387,5 @@ export function PolicyEditorSheet({
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Field({
-  label,
-  className,
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </label>
-      <div className="mt-1">{children}</div>
-    </div>
   );
 }

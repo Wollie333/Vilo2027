@@ -327,6 +327,7 @@ export async function fetchGettingStartedState(
     null;
   let setupPhotoCount = 0;
   let setupRoomCount = 0;
+  let setupHasCancellation = false;
   if (hostId) {
     const { data: firstL } = await supabase
       .from("listings")
@@ -373,6 +374,16 @@ export async function fetchGettingStartedState(
       ]);
       setupPhotoCount = photoCount ?? 0;
       setupRoomCount = roomCount ?? 0;
+
+      // A refund policy assigned listing-wide marks the Policies step done —
+      // mirrors the wizard, which reads listing_policies the same way.
+      const { count: cancellationCount } = await supabase
+        .from("listing_policies")
+        .select("id", { count: "exact", head: true })
+        .eq("listing_id", row.id)
+        .eq("policy_type", "cancellation")
+        .is("room_id", null);
+      setupHasCancellation = (cancellationCount ?? 0) > 0;
     }
 
     const { data: listings } = await supabase
@@ -416,6 +427,7 @@ export async function fetchGettingStartedState(
     listing: setupListing,
     photoCount: setupPhotoCount,
     roomCount: setupRoomCount,
+    hasCancellationPolicy: setupHasCancellation,
   });
 
   return {
