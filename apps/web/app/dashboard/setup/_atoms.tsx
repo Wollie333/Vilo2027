@@ -11,12 +11,14 @@ export function Field({
   hint,
   error,
   optional,
+  required,
   children,
 }: {
   label?: string;
   hint?: string;
   error?: string;
   optional?: boolean;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -24,6 +26,11 @@ export function Field({
       {label ? (
         <label className="mb-1.5 block text-sm font-medium text-brand-ink">
           {label}
+          {required ? (
+            <span className="ml-0.5 text-status-cancelled" aria-hidden>
+              *
+            </span>
+          ) : null}
           {optional ? (
             <span className="ml-1 font-normal text-brand-mute">(optional)</span>
           ) : null}

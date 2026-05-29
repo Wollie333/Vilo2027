@@ -76,6 +76,13 @@ export function HostProfileForm({
   }
 
   function onSubmit(values: ProfileInput) {
+    // Required beyond the Zod schema (these also gate "profile complete").
+    if (!avatarUrl) return toast.error("Add a profile photo.");
+    if (!values.bio || values.bio.trim().length < 10)
+      return toast.error("Add a short bio (at least 10 characters).");
+    if (!values.languages_spoken?.length)
+      return toast.error("Pick at least one language you speak.");
+
     start(async () => {
       // The host's public display name is just their name — no separate field.
       const result = await saveProfileAction({
@@ -168,7 +175,7 @@ export function HostProfileForm({
         {/* Identity */}
         <div className="flex-1 space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name" error={errors.full_name?.message}>
+            <Field label="Name" required error={errors.full_name?.message}>
               <TextInput
                 placeholder="Lerato"
                 autoComplete="given-name"
@@ -195,6 +202,7 @@ export function HostProfileForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Email"
+              required
               hint="Your sign-in. Changing it updates where notifications go."
               error={errors.email?.message}
             >
@@ -224,7 +232,7 @@ export function HostProfileForm({
                 </span>
               </div>
             </Field>
-            <Field label="Phone" error={errors.phone?.message}>
+            <Field label="Phone" required error={errors.phone?.message}>
               <TextInput
                 type="tel"
                 autoComplete="tel"
@@ -253,6 +261,7 @@ export function HostProfileForm({
 
           <Field
             label="Short bio"
+            required
             hint={`${bio.length}/2000 — what makes you a great host?`}
             error={errors.bio?.message}
           >
@@ -266,7 +275,11 @@ export function HostProfileForm({
         </div>
       </div>
 
-      <Field label="Languages you speak" hint="Guests filter by these.">
+      <Field
+        label="Languages you speak"
+        required
+        hint="Guests filter by these."
+      >
         <Controller
           control={control}
           name="languages_spoken"
