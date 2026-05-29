@@ -31,6 +31,39 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-29 — Listing card single-source-of-truth: Amenities + Photos — branch `feat/setup-wizard-rework`
+
+### Built
+- **`components/listing/AmenitiesPicker.tsx`** — one grouped amenity selector +
+  save (`replaceAmenitiesAction`), with optional per-room assignment. Rendered by
+  the listing editor's Amenities tab AND the setup Listing card (listing-wide).
+  Amenities now exist in the setup flow (was editor-only before).
+- **`components/listing/PhotosManager.tsx`** — one photo manager: multi-file
+  upload, drag-to-reorder (first photo = cover), delete, with optional per-room
+  assignment. The editor's `PhotosTab` and the setup Listing card are now both
+  thin wrappers over it; setup gains multi-upload + reorder for free.
+
+### Changed
+- Editor `AmenitiesTab` / `PhotosTab` reduced to thin wrappers (Card chrome +
+  the shared component).
+- Setup `StepListing` drops its bespoke single-file photo grid; `SetupWizard`
+  now passes a single `onPhotosChanged(next)` callback (was add/remove pair).
+
+### Notes
+- This completes the Listing-card source-of-truth set: **Basics · Photos ·
+  Amenities · Rooms** are each now one component shared between `/dashboard/setup`
+  and the listing editor / sidebar.
+- A concurrent agent's in-progress public-profile work (`app/[handle]/page.tsx`
+  + `ProfileTabs.tsx`) was accidentally bundled into the amenities commit, then
+  **split back out** (force-update of `main`); that work is preserved uncommitted
+  in the tree and recoverable from old commit `f86aae5`. Other agent now stopped.
+
+### Commit
+- `feat(listing): shared AmenitiesPicker …` — `ad14dd8`
+- `feat(listing): shared PhotosManager …` — `3eed730`
+
+---
+
 ## 2026-05-29 — Policy Manager (`/dashboard/policies`) — branch `feat/policy-manager`
 
 ### Built
