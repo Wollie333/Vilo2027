@@ -194,13 +194,14 @@ export function HostProfileForm({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               label="Email"
-              hint="Your sign-in — contact support to change it."
+              hint="Your sign-in. Changing it updates where notifications go."
+              error={errors.email?.message}
             >
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
                 <TextInput
                   type="email"
-                  readOnly
+                  autoComplete="email"
                   className="pl-9 pr-24"
                   {...register("email")}
                 />

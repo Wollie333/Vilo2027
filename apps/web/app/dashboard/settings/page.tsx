@@ -42,7 +42,7 @@ export default async function SettingsProfilePage() {
         emailVerified={Boolean(user?.email_confirmed_at)}
         defaults={{
           full_name: profile?.full_name ?? "",
-          email: profile?.email ?? user?.email ?? "",
+          email: profile?.email || user?.email || "",
           phone: profile?.phone ?? "",
           avatar_url: avatarUrl,
           display_name: host?.display_name ?? "",
