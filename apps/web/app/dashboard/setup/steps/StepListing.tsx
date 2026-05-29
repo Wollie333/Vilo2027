@@ -1,9 +1,11 @@
 "use client";
 
-import { Camera, DoorOpen, Plus, Wallet, X } from "lucide-react";
+import { Camera, DoorOpen, FileText, Plus, Wallet, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 
 import {
   createRoomAction,
@@ -36,6 +38,9 @@ export function StepListing({
 }: Props) {
   const photoFileRef = useRef<HTMLInputElement>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // About (rich text) — stored as sanitised HTML on listings.description.
+  const [description, setDescription] = useState(listing.description ?? "");
 
   // Pricing
   const [basePrice, setBasePrice] = useState(
@@ -108,8 +113,10 @@ export function StepListing({
       toast.error("Max guests must be at least 1.");
       return;
     }
+    const cleanDescription = description.trim();
     startPricing(async () => {
       const result = await saveListingPatchAction(listing.id, {
+        description: cleanDescription,
         base_price: base,
         weekend_price: weekend,
         cleaning_fee: cleaning,
@@ -123,6 +130,7 @@ export function StepListing({
         return;
       }
       onListingChanged({
+        description: cleanDescription,
         base_price: base,
         weekend_price: weekend,
         cleaning_fee: cleaning,
@@ -130,7 +138,7 @@ export function StepListing({
         bedrooms: beds,
         bathrooms: baths,
       });
-      toast.success("Pricing saved.");
+      toast.success("Details saved.");
     });
   }
 
@@ -272,6 +280,29 @@ export function StepListing({
         )}
       </section>
 
+      {/* About this place — rich text */}
+      <section>
+        <div className="mb-3 flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-brand-secondary">
+            <FileText className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold text-brand-ink">
+              About this place
+            </h3>
+            <p className="text-xs text-brand-mute">
+              Describe the space, the area and what makes a stay here special.
+              Use headings and lists to keep it scannable.
+            </p>
+          </div>
+        </div>
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          placeholder="Wake up to sea views, walk to the cliff path, and unwind on the deck after a day exploring Hermanus…"
+        />
+      </section>
+
       {/* Pricing + capacity */}
       <section>
         <div className="mb-3 flex items-start gap-3">
@@ -283,8 +314,8 @@ export function StepListing({
               Pricing &amp; capacity
             </h3>
             <p className="text-xs text-brand-mute">
-              Set your nightly rate, weekend uplift and cleaning fee. You can
-              tweak these any time from the listing editor.
+              Set your nightly rate, weekend uplift and cleaning fee. Saving
+              here also saves your description above.
             </p>
           </div>
         </div>
@@ -342,7 +373,7 @@ export function StepListing({
             disabled={savePricing}
             className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent disabled:opacity-60"
           >
-            {savePricing ? "Saving…" : "Save pricing"}
+            {savePricing ? "Saving…" : "Save details"}
           </button>
         </div>
       </section>

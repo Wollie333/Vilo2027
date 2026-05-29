@@ -38,18 +38,35 @@ export function StepProfile({ host, profile, emailVerified, onSaved }: Props) {
 
   async function onAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    // Reset the input so picking the same file again still fires onChange.
+    e.target.value = "";
     if (!file) return;
-    setUploading(true);
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadAvatarAction(fd);
-    setUploading(false);
-    if (!result.ok || !result.url) {
-      toast.error(result.ok ? "Upload failed." : result.error);
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file.");
       return;
     }
-    setAvatarUrl(result.url);
-    toast.success("Photo uploaded.");
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image must be 8 MB or smaller.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await uploadAvatarAction(fd);
+      if (!result.ok || !result.url) {
+        toast.error(result.ok ? "Upload failed." : result.error);
+        return;
+      }
+      setAvatarUrl(result.url);
+      toast.success("Photo uploaded.");
+    } catch {
+      // A thrown action (network drop, server crash) must not leave the
+      // button stuck in the uploading state — finally resets it below.
+      toast.error("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function onSave() {

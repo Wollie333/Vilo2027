@@ -28,6 +28,7 @@ export type Listing = {
   listing_type: "accommodation" | "experience";
   accommodation_type: string | null;
   experience_type: string | null;
+  description: string;
   base_price: number | null;
   weekend_price: number | null;
   cleaning_fee: number | null;
@@ -48,8 +49,10 @@ export type BankAccount = {
   label: string;
   bank_name: string;
   account_holder: string;
-  account_last4: string;
+  /** Full account number (host's own data) — UI masks it and reveals on click. */
+  account_number: string;
   branch_code: string;
+  swift_code: string;
   account_type: string;
   is_default: boolean;
 };

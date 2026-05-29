@@ -6,16 +6,17 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { SetupWizard } from "./SetupWizard";
 
-// eft_banking_details stores account_number encrypted at rest. We only
-// need the last 4 digits for display, so decrypt server-side and ship the
-// last4 down to the client.
-function last4FromCipher(stored: string | null): string {
-  if (!stored) return "????";
+// eft_banking_details stores account_number encrypted at rest. The host
+// reviewing their OWN banking wants to eyeball the full number before
+// editing, so we decrypt server-side and ship the full number down — the
+// wizard masks it by default and reveals on click. (Host's own data, own
+// authenticated session; see DECISIONS.md.)
+function decryptFull(stored: string | null): string {
+  if (!stored) return "";
   try {
-    const plain = decryptAccountNumber(stored).replace(/\D/g, "");
-    return plain.length >= 4 ? plain.slice(-4) : plain.padStart(4, "•");
+    return decryptAccountNumber(stored);
   } catch {
-    return "????";
+    return "";
   }
 }
 
@@ -60,7 +61,7 @@ export default async function SetupPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, name, listing_type, accommodation_type, experience_type, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode",
+      "id, name, listing_type, accommodation_type, experience_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -74,7 +75,7 @@ export default async function SetupPage({
   const { data: bankAccounts } = await supabase
     .from("eft_banking_details")
     .select(
-      "id, label, bank_name, account_holder, account_number, branch_code, account_type, is_default",
+      "id, label, bank_name, account_holder, account_number, branch_code, swift_code, account_type, is_default",
     )
     .eq("host_id", host.id)
     .eq("is_archived", false)
@@ -130,6 +131,7 @@ export default async function SetupPage({
           "accommodation",
         accommodation_type: listing.accommodation_type ?? null,
         experience_type: listing.experience_type ?? null,
+        description: listing.description ?? "",
         base_price:
           listing.base_price == null ? null : Number(listing.base_price),
         weekend_price:
@@ -161,8 +163,9 @@ export default async function SetupPage({
         label: b.label as string,
         bank_name: b.bank_name as string,
         account_holder: b.account_holder as string,
-        account_last4: last4FromCipher(b.account_number as string | null),
+        account_number: decryptFull(b.account_number as string | null),
         branch_code: b.branch_code as string,
+        swift_code: (b.swift_code as string | null) ?? "",
         account_type: b.account_type as string,
         is_default: Boolean(b.is_default),
       }))}

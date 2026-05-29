@@ -3,6 +3,8 @@
 import {
   Building2,
   CreditCard,
+  Eye,
+  EyeOff,
   Landmark,
   Lock,
   Pencil,
@@ -222,6 +224,13 @@ function BankAccountCard({
 }) {
   const [deletePending, startDelete] = useTransition();
   const [defaultPending, startDefault] = useTransition();
+  const [revealed, setRevealed] = useState(false);
+
+  const digits = account.account_number.replace(/\s/g, "");
+  const maskedNumber =
+    digits.length > 4
+      ? `${"•".repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`
+      : digits || "—";
 
   return (
     <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -265,23 +274,52 @@ function BankAccountCard({
         </div>
       </div>
 
-      <div className="space-y-1.5 px-4 py-3.5">
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-medium text-brand-ink">
-            {account.bank_name}
-          </span>
-          <span className="num font-mono text-[12.5px] text-brand-mute">
-            ••••{account.account_last4}
-          </span>
+      {/* Full details, so the host can eyeball them before editing. The
+          account number is masked until the eye toggle reveals it. */}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 px-4 py-3.5">
+        <DetailRow label="Account holder" value={account.account_holder} />
+        <DetailRow
+          label="Bank"
+          value={`${account.bank_name} · ${
+            ACCOUNT_TYPE_LABELS[
+              account.account_type as keyof typeof ACCOUNT_TYPE_LABELS
+            ] ?? account.account_type
+          }`}
+        />
+        <div>
+          <dt className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            Account number
+          </dt>
+          <dd className="mt-0.5 flex items-center gap-2">
+            <span className="num font-mono text-[13px] font-medium text-brand-ink">
+              {revealed ? account.account_number || "—" : maskedNumber}
+            </span>
+            {digits.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setRevealed((v) => !v)}
+                aria-label={
+                  revealed ? "Hide account number" : "Reveal account number"
+                }
+                aria-pressed={revealed}
+                className="flex h-6 w-6 items-center justify-center rounded text-brand-mute transition hover:bg-brand-accent hover:text-brand-ink"
+              >
+                {revealed ? (
+                  <EyeOff className="h-3.5 w-3.5" />
+                ) : (
+                  <Eye className="h-3.5 w-3.5" />
+                )}
+              </button>
+            ) : null}
+          </dd>
         </div>
-        <div className="text-[11.5px] leading-relaxed text-brand-mute">
-          {account.account_holder} ·{" "}
-          {ACCOUNT_TYPE_LABELS[
-            account.account_type as keyof typeof ACCOUNT_TYPE_LABELS
-          ] ?? account.account_type}
-          {account.branch_code ? ` · Branch ${account.branch_code}` : ""}
-        </div>
-      </div>
+        <DetailRow
+          label="Branch code"
+          value={account.branch_code || "—"}
+          mono
+        />
+        <DetailRow label="SWIFT / BIC" value={account.swift_code || "—"} mono />
+      </dl>
 
       {!account.is_default ? (
         <div className="border-t border-brand-line px-4 py-2">
@@ -296,6 +334,31 @@ function BankAccountCard({
           </button>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+        {label}
+      </dt>
+      <dd
+        className={`mt-0.5 truncate text-[13px] font-medium text-brand-ink ${
+          mono ? "num font-mono" : ""
+        }`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -340,7 +403,7 @@ function BankAccountForm({
     (typeof ACCOUNT_TYPES)[number]
   >((account?.account_type as (typeof ACCOUNT_TYPES)[number]) ?? "cheque");
   const [branchCode, setBranchCode] = useState(account?.branch_code ?? "");
-  const [swiftCode, setSwiftCode] = useState("");
+  const [swiftCode, setSwiftCode] = useState(account?.swift_code ?? "");
   const [referenceFormat, setReferenceFormat] = useState("Guest surname");
   const [isDefault, setIsDefault] = useState(account?.is_default ?? false);
 
@@ -402,10 +465,13 @@ function BankAccountForm({
         label: label.trim(),
         bank_name: resolvedBankName,
         account_holder: accountHolder.trim(),
-        account_last4: accountNumber.trim()
-          ? accountNumber.trim().slice(-4)
-          : (account?.account_last4 ?? "????"),
+        // On edit a blank number means "keep existing" — preserve the prior
+        // full value so the card still shows it; otherwise use what was typed.
+        account_number: accountNumber.trim()
+          ? accountNumber.trim()
+          : (account?.account_number ?? ""),
         branch_code: branchCode.trim(),
+        swift_code: swiftCode.trim(),
         account_type: accountType,
         is_default: payload.is_default,
       };
@@ -498,7 +564,7 @@ function BankAccountForm({
               }
               placeholder={
                 mode === "edit" && account
-                  ? `current: ••••${account.account_last4}`
+                  ? `current: ••••${account.account_number.replace(/\s/g, "").slice(-4)}`
                   : "6–16 digits"
               }
               className="text-input"

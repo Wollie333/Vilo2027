@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
+    "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
     "prepare": "husky"
   },
   "engines": {

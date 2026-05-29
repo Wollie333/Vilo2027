@@ -1,3 +1,4 @@
+import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -315,40 +316,63 @@ export async function fetchGettingStartedState(
     hasBankAccount = (bankCount ?? 0) > 0;
   }
 
-  // Profile is "complete" when bio, avatar and at least one language are
-  // all populated on the hosts row — these are what the public host page
-  // renders so they're the meaningful signals.
-  const profileBioOk = Boolean(hostRow?.bio && hostRow.bio.trim().length > 0);
-  const profileAvatarOk = Boolean(
-    hostRow?.avatar_url && hostRow.avatar_url.length > 0,
-  );
-  const profileLangsOk = Boolean(
-    hostRow?.languages_spoken && hostRow.languages_spoken.length > 0,
-  );
-  const profileCompleted = profileBioOk && profileAvatarOk && profileLangsOk;
-
   let firstListing: GettingStartedState["first_listing"] = { done: false };
   let icalConnected: GettingStartedState["ical_connected"] = { done: false };
   let listingPublished: GettingStartedState["listing_published"] = {
     done: false,
   };
-  let policiesSet = false;
+  // The setup listing (oldest) drives the per-section completion shared with
+  // the wizard. Defaults are filled in below once we have its data.
+  let setupListing: Parameters<typeof computeSetupCompletion>[0]["listing"] =
+    null;
+  let setupPhotoCount = 0;
+  let setupRoomCount = 0;
   if (hostId) {
     const { data: firstL } = await supabase
       .from("listings")
-      .select("name, status, is_published, check_in_time")
+      .select(
+        "id, name, status, is_published, listing_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
+      )
       .eq("host_id", hostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
     if (firstL) {
-      const name = (firstL as { name?: string }).name ?? "First listing";
-      const status = (firstL as { status?: string }).status ?? "draft";
+      const row = firstL as {
+        id: string;
+        name?: string;
+        status?: string;
+        is_published?: boolean | null;
+        listing_type?: string | null;
+        booking_mode?: string | null;
+        base_price?: number | string | null;
+        max_guests?: number | null;
+        cancellation_policy?: string | null;
+        check_in_time?: string | null;
+        check_out_time?: string | null;
+      };
+      const name = row.name ?? "First listing";
+      const status = row.status ?? "draft";
       firstListing = { done: true, meta: `${name} · ${status}` };
-      policiesSet = Boolean(
-        (firstL as { check_in_time?: string | null }).check_in_time,
-      );
+      setupListing = row;
+
+      // Photos + active rooms on the setup listing — needed so the checklist
+      // reflects "added photos / rooms", which the old predicate ignored.
+      const [{ count: photoCount }, { count: roomCount }] = await Promise.all([
+        supabase
+          .from("listing_photos")
+          .select("id", { count: "exact", head: true })
+          .eq("listing_id", row.id),
+        supabase
+          .from("listing_rooms")
+          .select("id", { count: "exact", head: true })
+          .eq("listing_id", row.id)
+          .is("deleted_at", null)
+          .eq("is_active", true),
+      ]);
+      setupPhotoCount = photoCount ?? 0;
+      setupRoomCount = roomCount ?? 0;
     }
 
     const { data: listings } = await supabase
@@ -384,6 +408,16 @@ export async function fetchGettingStartedState(
     }
   }
 
+  // Shared completion predicates — same logic the setup wizard uses, so the
+  // dashboard checklist and the wizard never disagree about what's done.
+  const completion = computeSetupCompletion({
+    host: hostRow,
+    hasBankAccount,
+    listing: setupListing,
+    photoCount: setupPhotoCount,
+    roomCount: setupRoomCount,
+  });
+
   return {
     account_created: {
       done: Boolean(accountCreatedAt),
@@ -396,8 +430,8 @@ export async function fetchGettingStartedState(
         : `Check ${profileEmail ?? "your inbox"} for the link`,
     },
     profile_completed: {
-      done: profileCompleted,
-      meta: profileCompleted
+      done: completion.profile,
+      meta: completion.profile
         ? "Photo, bio and languages set"
         : "Profile photo, short bio, languages spoken",
     },
@@ -410,8 +444,10 @@ export async function fetchGettingStartedState(
     },
     ical_connected: icalConnected,
     policies_set: {
-      done: policiesSet,
-      meta: policiesSet ? "Check-in time set" : "Tell guests what to expect",
+      done: completion.policies,
+      meta: completion.policies
+        ? "Cancellation policy & check-in times set"
+        : "Set cancellation policy and check-in / out times",
     },
     listing_published: listingPublished,
   };

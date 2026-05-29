@@ -487,4 +487,30 @@ Related: ADR-007 (React Email choice — preserved); `NOTIFICATIONS.md` §6 (pus
 
 ---
 
+## ADR-009: Full EFT account number sent to the host's own setup wizard
+
+**Status:** Accepted · 2026-05-29
+
+**Decision:** On `/dashboard/setup`, the host's own EFT bank account number is
+decrypted server-side and sent to the client in full (previously only the last 4
+digits were shipped). The wizard's banking card masks the number by default and
+reveals it on an eye-toggle. Account holder, bank, branch code and SWIFT are
+shown in full.
+
+**Reasons:** Hosts asked to eyeball their full payout details before editing, to
+catch typos without re-opening the edit form. The data belongs to the host and
+is only sent within their own authenticated session over TLS. `account_number`
+remains encrypted at rest; only the owner's own row is ever decrypted to the
+client.
+
+**Alternatives rejected:** (a) last-4 only — fails the "double-check visually"
+need; (b) always-visible plaintext — needlessly renders the full number on
+screen; the masked + reveal toggle is the balance.
+
+**Constraint / revisit:** Applies ONLY to the host's own accounts in their own
+session. Do NOT extend full-number exposure to admin/staff or any shared view.
+Re-evaluate at the pre-launch security checklist.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

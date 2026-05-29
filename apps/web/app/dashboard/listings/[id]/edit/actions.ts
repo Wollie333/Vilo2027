@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { z } from "zod";
@@ -61,10 +62,20 @@ export async function saveListingPatchAction(
     return { ok: false, error: "Some fields look wrong. Check the form." };
   }
 
+  // description is rich-text HTML from the editor — sanitise on the way in so
+  // the DB never holds anything the render-time sanitiser would have to strip.
+  const patch =
+    parsed.data.description != null
+      ? {
+          ...parsed.data,
+          description: sanitiseListingHtml(parsed.data.description),
+        }
+      : parsed.data;
+
   const supabase = createServerClient();
   const { error } = await supabase
     .from("listings")
-    .update(parsed.data)
+    .update(patch)
     .eq("id", listingId);
   if (error) {
     return { ok: false, error: "Could not save. Try again." };

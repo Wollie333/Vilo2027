@@ -1,0 +1,116 @@
+# Host-Side Feature Verification — Progress Tracker
+
+> **Durable across days.** This is the file to read first when resuming. It
+> records what's verified, what's next, how to re-seed, and the working method.
+> Full plan: `C:\Users\Wollie\.claude\plans\i-want-to-start-cosmic-lerdorf.md`.
+
+## Goal
+Walk every host-side feature (`/dashboard/**`) in dependency order and confirm
+each works **100%** before moving to the next, fixing broken code on the spot.
+
+## How to resume (daily)
+1. Read this file + the "Activity log" at the bottom.
+2. Start the app: from `apps/web` run `pnpm dev` → http://localhost:3000
+3. Log in as the demo host (below). Re-seed if data looks off.
+4. Continue at the first ⬜ feature in the checklist.
+
+## Demo data / login
+- **Seed command:** from `apps/web` → `pnpm seed:demo` (idempotent, safe to re-run)
+- **Script:** `apps/web/scripts/seed-demo.mjs` (Cloud, service-role key from `.env.local`)
+- **Host login:** `host@vilodemo.com` / `ViloDemo123!`
+- **Guest login:** `guest@vilodemo.com` / `ViloDemo123!`
+- **Seeded:** 2 listings (Seaview Cottage = whole_listing; The Vines = flexible/rooms),
+  2 rooms, 2 add-ons, seasonal pricing, 5 bookings (pending/confirmed/completed/
+  cancelled/rooms), 4 payments, 1 pending refund request, 3 auto-invoices,
+  1 conversation, 1 review.
+
+## Working method (per feature)
+1. **Audit** (can be a sub-agent, see below): read page + server actions + RLS;
+   check RHF+Zod, server-action-only mutations, feature gate, no `any`, Realtime cleanup.
+2. **Static gate:** `pnpm build` + `pnpm lint` + `pnpm type-check` (from `apps/web`).
+3. **Live check:** founder runs the flow in the browser; reports breakage.
+4. **Fix** → re-run static gate → founder re-checks.
+5. Mark ✅ here + note any deviation, then move on.
+
+## Parallelization with sub-agents
+The **live + fix loop stays sequential** (it's founder-driven and dependency-ordered).
+What we parallelize is the **read-only code-audit** ahead of each live session:
+- Before each work session, fan out **3–4 audit sub-agents at once**, one per
+  upcoming feature, each returning a findings list (bugs, missing gates, `any`
+  usage, broken imports, RLS gaps). Audits are read-only so they can't collide.
+- We then sit down and do the live+fix loop with the issues already mapped.
+- **Don't** parallelize fixes to interdependent features (e.g. bookings ↔ payments)
+  — apply those sequentially to avoid conflicting edits.
+- Good independent-audit batches: {Help, Notifications, Staff}, {Quotes, Invoices,
+  Add-ons}, {Subscription, Banking, Host profile}, {Seasonal pricing, Calendar, iCal}.
+
+## Checklist (foundation → leaf)
+Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
+
+- [✅] **0. Demo seed script** — idempotent, verified (triggers fire, no counter inflation).
+- [🟦] 1. Onboarding setup wizard — `/dashboard/setup` (audit ✅ + bug fix ✅, awaiting live browser check). FLOW: `/signup/host` creates host+draft listing → `/dashboard` checklist → `/dashboard/setup` 5 steps: **Profile → Banking → Listing → Policies → Review** → publish → `/dashboard`. No plan/payment step in this wizard. FIXED: avatar upload could hang with no abort → now try/finally + size/type guard (StepProfile.tsx). Branch-code "bug" was a FALSE POSITIVE (pre-filled on edit, correctly required) — left as-is.
+- [⬜] 2. Host profile — `/dashboard/settings/host`
+- [⬜] 3. Banking details — `/dashboard/settings/banking`
+- [⬜] 4. Subscription & billing — `/dashboard/settings/subscription`
+- [⬜] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`
+- [⬜] 6. Rooms — `/dashboard/rooms`
+- [⬜] 7. Seasonal pricing — `/dashboard/seasonal-pricing`
+- [⬜] 8. Add-ons — `/dashboard/addons`
+- [⬜] 9. Availability calendar — `/dashboard/calendar`
+- [⬜] 10. iCal calendar-sync — `/dashboard/calendar-sync`
+- [⬜] 11. Bookings board + detail — `/dashboard/bookings`
+- [⬜] 12. Manual booking — `/dashboard/bookings/new`
+- [⬜] 13. Quotes — `/dashboard/quotes`
+- [⬜] 14. Payments — `/dashboard/payments`
+- [⬜] 15. Refunds — `/dashboard/refunds`
+- [⬜] 16. Invoices — `/dashboard/invoices`
+- [⬜] 17. Inbox + templates — `/dashboard/inbox`
+- [⬜] 18. Notifications — `/dashboard/notifications`
+- [⬜] 19. Reviews — `/dashboard/reviews`
+- [⬜] 20. Staff — `/dashboard/staff`
+- [⬜] 21. Help center — `/dashboard/help/*`
+- [⬜] 22. Settings hub + Data/Privacy + Notification prefs — `/dashboard/settings`
+- [⬜] 23. Dashboard home KPIs — `/dashboard` (last — aggregates everything)
+
+> Stubs (confirm placeholder only, not built out): `/dashboard/reports`, `/dashboard/channels`.
+
+## Known caveats to revisit
+- Seeded published review does NOT bump `hosts.avg_rating` / `total_reviews`
+  (rating trigger likely keys on a publish transition). Re-check at #19 / #23.
+- 1 extra listing/rooms/addon rows exist from earlier testing under a different
+  host — the demo host only sees its own 2 listings (RLS-scoped). Harmless.
+
+---
+## Static-gate baseline (2026-05-28)
+- `pnpm type-check` → clean ✅
+- `pnpm lint` → 1 pre-existing warning only: `app/dashboard/help/_components/PopularArticles.tsx:137`
+  (`aria-pressed` on role=tab). Fix when we reach #21 Help.
+- `pnpm build` → not yet run.
+
+## Activity log
+- **2026-05-28** — Built + verified the idempotent demo seed (Step 0: triggers fire,
+  no counter inflation). Established static-gate baseline (type-check clean, 1 lint
+  warning in Help). Audited feature #1 (Onboarding) — no blockers, flow completes;
+  corrected flow understanding (5 steps, no payment step); 2 minor bugs logged.
+  **NEXT: founder live-checks Onboarding in browser** (fresh signup → walk wizard).
+  App code unchanged so far except `seed:demo` script + `scripts/seed-demo.mjs`.
+- **2026-05-29** — Fixed avatar-upload hang in `StepProfile.tsx` (try/finally + 8 MB /
+  image-type guard + input reset). Branch-code finding was a false positive; no change.
+- **2026-05-29 (wizard rework, approved plan):** Building feature #1 rework in increments.
+  DONE so far (all build+lint+type-check clean):
+  • **1a Shared completion** — new `lib/setup/completion.ts`; rewired both
+    `SetupWizard.computeInitialDone` AND `lib/help/queries.ts fetchGettingStartedState`.
+    Fixes the "incomplete after publish" bug (policies now needs cancellation_policy +
+    check-in + check-out; photos & rooms now counted; experiences skip check-in/out).
+  • **1d WYSIWYG About** — added rich-text About field to StepListing (reuses
+    `RichTextEditor`); folded its save into the renamed "Save details" button (one fewer
+    button). `saveListingPatchAction` now sanitises description on input (sanitiseListingHtml).
+    Added `description` to Listing type + setup page fetch.
+  • **1d Banking reveal** — setup page now passes full decrypted account number + swift_code;
+    StepBanking card shows holder/bank/number(masked+eye-reveal)/branch/SWIFT in full.
+    BankAccount type swapped account_last4 → account_number + swift_code. ADR-009 added.
+  REMAINING for #1: 1b (full RoomEditor in a sheet — create-first flow), 1c (wizard shell
+  redesign: dark hero, progress ring/stepper, dotgrid, confetti, one-save-per-step, globals CSS),
+  1e (visitor-style review preview with per-section Edit; remove plan card).
+  **NEXT:** founder can live-check 1a/1d now (About field saves+renders; banking card shows
+  full details w/ reveal; dashboard checklist completes after publish). Then I continue 1b/1c/1e.

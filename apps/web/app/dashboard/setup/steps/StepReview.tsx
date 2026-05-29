@@ -118,7 +118,7 @@ export function StepReview({
               ? [
                   {
                     label: "Default account",
-                    value: `${bankAccounts[0].bank_name} ···· ${bankAccounts[0].account_last4}`,
+                    value: `${bankAccounts[0].bank_name} ···· ${bankAccounts[0].account_number.replace(/\s/g, "").slice(-4)}`,
                   },
                   {
                     label: "Account holder",

@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { computeSetupCompletion } from "@/lib/setup/completion";
+
 import { StepBanking } from "./steps/StepBanking";
 import { StepListing } from "./steps/StepListing";
 import { StepPolicies } from "./steps/StepPolicies";
@@ -302,30 +304,14 @@ export function SetupWizard(props: Props) {
 }
 
 function computeInitialDone(props: Props): Record<SetupStepKey, boolean> {
-  const profileDone = Boolean(
-    props.host.bio &&
-    props.host.avatar_url &&
-    props.host.languages_spoken.length > 0,
-  );
-  const bankingDone = props.bankAccounts.some((a) => a.is_default);
-  const listingDone = Boolean(
-    props.photos.length > 0 &&
-    props.listing.base_price != null &&
-    props.listing.max_guests != null,
-  );
-  const policiesDone = Boolean(
-    props.listing.cancellation_policy &&
-    props.listing.check_in_time &&
-    props.listing.check_out_time,
-  );
-  const reviewDone = props.listing.is_published;
-  return {
-    profile: profileDone,
-    banking: bankingDone,
-    listing: listingDone,
-    policies: policiesDone,
-    review: reviewDone,
-  };
+  // Shared predicate so the wizard and the dashboard checklist can't diverge.
+  return computeSetupCompletion({
+    host: props.host,
+    hasBankAccount: props.bankAccounts.length > 0,
+    listing: props.listing,
+    photoCount: props.photos.length,
+    roomCount: props.rooms.filter((r) => r.is_active).length,
+  });
 }
 
 function pickInitialIndex(
