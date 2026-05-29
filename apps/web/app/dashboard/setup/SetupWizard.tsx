@@ -279,10 +279,7 @@ export function SetupWizard(props: Props) {
               onListingChanged={(patch) =>
                 setListing((l) => ({ ...l, ...patch }))
               }
-              onPhotoAdded={(p) => setPhotos((list) => [...list, p])}
-              onPhotoRemoved={(id) =>
-                setPhotos((list) => list.filter((p) => p.id !== id))
-              }
+              onPhotosChanged={(next) => setPhotos(next)}
               onContinue={() => jump("rooms")}
             />
           </SectionCard>
