@@ -1,14 +1,15 @@
 "use client";
 
 import {
+  ArrowLeft,
   Check,
   CheckCircle2,
   LayoutDashboard,
   Link as LinkIcon,
   PartyPopper,
   Rocket,
-  Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -189,37 +190,22 @@ export function SetupWizard(props: Props) {
 
   return (
     <div className="py-2">
-      {/* Page intro + progress ring */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
-            <Sparkles className="h-3.5 w-3.5" /> Almost there, {firstName}
-          </div>
-          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Finish setting up your listing
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-brand-mute">
-            Work through the steps below — everything you enter builds the live
-            preview at the bottom. Required steps unlock the Publish button.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 rounded-card border border-brand-line bg-white px-5 py-4 shadow-card">
-          <ProgressRing pct={pct} />
-          <div className="leading-tight">
-            <div className="text-sm font-semibold text-brand-ink">
-              Setup complete
-            </div>
-            <div className="text-xs text-brand-mute">
-              {ready
-                ? "All required steps done"
-                : `${missing.length} required step${missing.length === 1 ? "" : "s"} left`}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Dark hero */}
+      <Hero
+        firstName={firstName}
+        active={active}
+        done={done}
+        pct={pct}
+        doneCount={doneCount}
+        total={requiredSections.length}
+        ready={ready}
+        publishing={publishing}
+        onJump={jump}
+        onPublish={publish}
+      />
 
       {/* Rail + stacked section cards */}
-      <div className="mt-7 grid grid-cols-12 gap-6">
+      <div className="mt-6 grid grid-cols-12 gap-6">
         <div className="col-span-12 lg:col-span-3">
           <ProgressRail
             active={active}
@@ -360,35 +346,159 @@ export function SetupWizard(props: Props) {
   );
 }
 
-function ProgressRing({ pct }: { pct: number }) {
+function Hero({
+  firstName,
+  active,
+  done,
+  pct,
+  doneCount,
+  total,
+  ready,
+  publishing,
+  onJump,
+  onPublish,
+}: {
+  firstName: string;
+  active: SetupStepKey;
+  done: Record<SetupStepKey, boolean>;
+  pct: number;
+  doneCount: number;
+  total: number;
+  ready: boolean;
+  publishing: boolean;
+  onJump: (key: SetupStepKey) => void;
+  onPublish: () => void;
+}) {
   const dash = (pct / 100) * 97.4;
   return (
-    <div className="relative h-14 w-14">
-      <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90">
-        <circle
-          cx="18"
-          cy="18"
-          r="15.5"
-          fill="none"
-          stroke="#DCEAE0"
-          strokeWidth="4"
+    <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
+      <div className="relative bg-brand-gradient-dark p-6 text-white md:p-8">
+        <div
+          aria-hidden
+          className="setup-dotgrid pointer-events-none absolute inset-0 opacity-30"
         />
-        <circle
-          cx="18"
-          cy="18"
-          r="15.5"
-          fill="none"
-          stroke="#10B981"
-          strokeWidth="4"
-          strokeLinecap="round"
-          strokeDasharray={`${dash} 97.4`}
-          className="transition-all duration-500"
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
         />
-      </svg>
-      <div className="num absolute inset-0 flex items-center justify-center font-display text-sm font-bold text-brand-ink">
-        {pct}%
+
+        <div className="relative">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent/80 transition hover:text-white"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
+          </Link>
+
+          <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-xl">
+              <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
+                Finish setting up
+              </h1>
+              <p className="mt-2 text-sm leading-relaxed text-brand-accent/80">
+                A few more details, {firstName}, and you&rsquo;re ready to take
+                real bookings. Each step saves as you go — required steps unlock
+                Publish.
+              </p>
+            </div>
+
+            {/* Right cluster: count ring + publish */}
+            <div className="flex shrink-0 items-center gap-4">
+              <div className="relative h-16 w-16">
+                <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="3.5"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.5"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeDasharray={`${dash} 97.4`}
+                    className="transition-all duration-500"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+                  <span className="num font-display text-base font-bold text-white">
+                    {doneCount}
+                    <span className="text-xs text-white/60">/{total}</span>
+                  </span>
+                  <span className="mt-0.5 text-[8.5px] uppercase tracking-wider text-brand-accent/70">
+                    done
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onPublish}
+                disabled={!ready || publishing}
+                className={`inline-flex items-center gap-2 rounded-card px-4 py-3 text-sm font-semibold shadow-card transition-all ${
+                  ready
+                    ? "bg-brand-primary text-white hover:bg-white hover:text-brand-secondary"
+                    : "cursor-not-allowed bg-white/10 text-white/50"
+                }`}
+              >
+                <Rocket className="h-4 w-4" />
+                {publishing
+                  ? "Publishing…"
+                  : ready
+                    ? "Publish listing"
+                    : "Finish to publish"}
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontal step chips */}
+          <ol className="mt-6 flex flex-wrap gap-2">
+            {SECTIONS.map((s) => {
+              const isDone = done[s.key];
+              const isActive = active === s.key;
+              return (
+                <li key={s.key}>
+                  <button
+                    type="button"
+                    onClick={() => onJump(s.key)}
+                    aria-current={isActive ? "step" : undefined}
+                    className={`flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                      isDone
+                        ? "border-brand-primary bg-brand-primary text-white"
+                        : isActive
+                          ? "border-brand-primary bg-white/10 text-white"
+                          : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/10"
+                    }`}
+                  >
+                    <span
+                      className={`num flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                        isDone
+                          ? "bg-white/20 text-white"
+                          : isActive
+                            ? "bg-brand-primary text-white"
+                            : "bg-white/10 text-white/70"
+                      }`}
+                    >
+                      {isDone ? (
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      ) : (
+                        s.n
+                      )}
+                    </span>
+                    {s.rail}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
