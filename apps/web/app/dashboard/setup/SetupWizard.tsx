@@ -106,89 +106,103 @@ export function SetupWizard(props: Props) {
 
   return (
     <div className="py-2">
-      {/* Header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1 text-xs font-medium text-brand-mute hover:text-brand-ink"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
-          </Link>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Finish setting up
-          </h1>
-          <p className="mt-1 max-w-xl text-sm text-brand-mute">
-            A few more details and you&rsquo;re ready to take real bookings.
-            We&rsquo;ll save each step as you go.
-          </p>
-        </div>
-        <div className="hidden text-right md:block">
-          <div className="num font-display text-2xl font-bold text-brand-primary">
-            {doneCount}
-            <span className="text-brand-mute">/{STEPS.length}</span>
-          </div>
-          <div className="text-[10.5px] uppercase tracking-wider text-brand-mute">
-            complete
-          </div>
-        </div>
-      </div>
-
-      {/* Stepper */}
-      <div className="mb-6 overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="h-1 w-full bg-brand-line">
+      {/* Dark hero with progress ring + step chips */}
+      <section className="relative mb-6 overflow-hidden rounded-card border border-brand-line shadow-card">
+        <div className="relative bg-brand-gradient-dark p-6 text-white md:p-8">
           <div
-            className="h-full bg-brand-primary transition-all duration-500"
-            style={{ width: `${pct}%` }}
+            aria-hidden
+            className="setup-dotgrid pointer-events-none absolute inset-0 opacity-30"
           />
-        </div>
-        <ol className="grid grid-cols-2 md:grid-cols-5">
-          {STEPS.map((s, idx) => {
-            const isDone = done[s.key];
-            const isCurrent = idx === currentIndex;
-            return (
-              <li key={s.key} className="contents">
-                <button
-                  type="button"
-                  onClick={() => goTo(idx)}
-                  className={`flex items-center gap-3 border-r border-brand-line px-4 py-3 text-left transition last:border-r-0 ${
-                    isCurrent
-                      ? "bg-brand-accent/40"
-                      : "bg-white hover:bg-brand-light/60"
-                  }`}
-                >
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-pill text-[11px] font-bold ${
-                      isDone
-                        ? "bg-emerald-500 text-white"
-                        : isCurrent
-                          ? "bg-brand-primary text-white"
-                          : "border border-brand-line bg-white text-brand-mute"
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
+          />
+
+          <div className="relative flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent/80 transition hover:text-white"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
+              </Link>
+              <h1 className="mt-3 font-display text-2xl font-bold tracking-tight md:text-3xl">
+                Finish setting up
+              </h1>
+              <p className="mt-1 max-w-xl text-sm text-brand-accent/80">
+                A few more details and you&rsquo;re ready to take real bookings.
+                Each step saves as you go.
+              </p>
+            </div>
+            <ProgressRing
+              pct={pct}
+              doneCount={doneCount}
+              total={STEPS.length}
+            />
+          </div>
+
+          {/* Step chips */}
+          <ol className="relative mt-7 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {STEPS.map((s, idx) => {
+              const isDone = done[s.key];
+              const isCurrent = idx === currentIndex;
+              return (
+                <li key={s.key}>
+                  <button
+                    type="button"
+                    onClick={() => goTo(idx)}
+                    aria-current={isCurrent ? "step" : undefined}
+                    className={`flex w-full items-center gap-2.5 rounded-[12px] border px-3 py-2.5 text-left transition ${
+                      isCurrent
+                        ? "border-brand-primary bg-white/10"
+                        : "border-white/10 bg-white/[0.04] hover:bg-white/10"
                     }`}
                   >
-                    {isDone ? <Check className="h-3.5 w-3.5" /> : idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <div
-                      className={`truncate text-[12.5px] font-semibold ${
-                        isCurrent ? "text-brand-ink" : "text-brand-ink/80"
+                    <span
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-pill text-[11px] font-bold ${
+                        isDone
+                          ? "bg-brand-primary text-white"
+                          : isCurrent
+                            ? "border-2 border-brand-primary bg-brand-primary/20 text-white"
+                            : "border border-white/25 text-white/60"
                       }`}
                     >
-                      {s.label}
+                      {isDone ? (
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      ) : (
+                        idx + 1
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <div
+                        className={`truncate text-[12px] font-semibold ${
+                          isCurrent || isDone ? "text-white" : "text-white/70"
+                        }`}
+                      >
+                        {s.label}
+                      </div>
+                      <div
+                        className={`truncate text-[10px] ${
+                          isDone
+                            ? "text-brand-primary"
+                            : isCurrent
+                              ? "text-brand-accent/80"
+                              : "text-white/40"
+                        }`}
+                      >
+                        {isDone ? "Done" : isCurrent ? "In progress" : "To do"}
+                      </div>
                     </div>
-                    <div className="truncate text-[10.5px] text-brand-mute">
-                      {isDone ? "Done" : isCurrent ? "In progress" : "To do"}
-                    </div>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
 
       {/* Current step body */}
-      <div className="rounded-card border border-brand-line bg-white p-6 shadow-card md:p-8">
+      <div className="setup-step-active rounded-card border border-brand-line bg-white p-6 shadow-card md:p-8">
         <div className="mb-6">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
             Step {currentIndex + 1} of {STEPS.length}
@@ -280,6 +294,10 @@ export function SetupWizard(props: Props) {
             rooms={rooms}
             bankAccounts={bankAccounts}
             done={done}
+            onEditStep={(key) => {
+              const idx = STEPS.findIndex((s) => s.key === key);
+              if (idx >= 0) goTo(idx);
+            }}
           />
         ) : null}
 
@@ -320,6 +338,54 @@ function computeInitialDone(props: Props): Record<SetupStepKey, boolean> {
     photoCount: props.photos.length,
     roomCount: props.rooms.filter((r) => r.is_active).length,
   });
+}
+
+function ProgressRing({
+  pct,
+  doneCount,
+  total,
+}: {
+  pct: number;
+  doneCount: number;
+  total: number;
+}) {
+  const r = 26;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct / 100);
+  return (
+    <div className="relative hidden h-[88px] w-[88px] shrink-0 sm:block">
+      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+        <circle
+          cx="32"
+          cy="32"
+          r={r}
+          fill="none"
+          strokeWidth="7"
+          className="setup-ring-bg"
+        />
+        <circle
+          cx="32"
+          cy="32"
+          r={r}
+          fill="none"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          className="setup-ring-fg"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <div className="num font-display text-lg font-bold leading-none text-white">
+          {doneCount}
+          <span className="text-sm text-white/60">/{total}</span>
+        </div>
+        <div className="mt-0.5 text-[9px] uppercase tracking-wider text-brand-accent/70">
+          done
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function pickInitialIndex(

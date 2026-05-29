@@ -483,6 +483,62 @@
   animation: vilo-logo-pulse 3.5s ease-in-out infinite;
 }
 
+/* ── Onboarding setup wizard ─────────────────────────────────── */
+.setup-dotgrid {
+  background-image: radial-gradient(
+    rgba(16, 185, 129, 0.18) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+}
+/* Soft pulse glow on the active step card. */
+@keyframes setup-step-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.1);
+  }
+}
+.setup-step-active {
+  animation: setup-step-glow 2.4s ease-in-out infinite;
+}
+/* Progress ring stroke transition. */
+.setup-ring-fg {
+  stroke: #10b981;
+  transition: stroke-dashoffset 600ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.setup-ring-bg {
+  stroke: rgba(255, 255, 255, 0.2);
+}
+/* Publish confetti. */
+@keyframes setup-confetti-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0), 110vh, 0) rotate(720deg);
+    opacity: 1;
+  }
+}
+.setup-confetti-piece {
+  position: fixed;
+  top: 0;
+  width: 9px;
+  height: 15px;
+  border-radius: 2px;
+  z-index: 90;
+  will-change: transform, opacity;
+  animation: setup-confetti-fall var(--d, 2.6s) cubic-bezier(0.2, 0.7, 0.2, 1)
+    forwards;
+  animation-delay: var(--delay, 0s);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

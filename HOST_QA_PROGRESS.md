@@ -48,7 +48,14 @@ What we parallelize is the **read-only code-audit** ahead of each live session:
 Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 
 - [✅] **0. Demo seed script** — idempotent, verified (triggers fire, no counter inflation).
-- [🟦] 1. Onboarding setup wizard — `/dashboard/setup` (audit ✅ + bug fix ✅, awaiting live browser check). FLOW: `/signup/host` creates host+draft listing → `/dashboard` checklist → `/dashboard/setup` 5 steps: **Profile → Banking → Listing → Policies → Review** → publish → `/dashboard`. No plan/payment step in this wizard. FIXED: avatar upload could hang with no abort → now try/finally + size/type guard (StepProfile.tsx). Branch-code "bug" was a FALSE POSITIVE (pre-filled on edit, correctly required) — left as-is.
+- [🟦] 1. Onboarding setup wizard — `/dashboard/setup`. Full rework code-complete on branch
+  `feat/setup-wizard-rework` (all build/lint/type-check green); **awaiting founder live check**.
+  FLOW: `/signup/host` → host+draft listing → `/dashboard` checklist → `/dashboard/setup`
+  5 steps **Profile → Banking → Listing → Policies → Review** → publish → `/dashboard`.
+  Rework done: 1a shared completion (fixes "incomplete after publish"); 1b full RoomEditorSheet
+  (details+photos+amenities, create-first); 1c shell redesign (dark hero, progress ring, step
+  chips, active glow, globals CSS); 1d About WYSIWYG + banking reveal; 1e guest-preview review
+  with per-section Edit buttons + confetti on publish. Earlier: avatar-hang fix (StepProfile).
 - [⬜] 2. Host profile — `/dashboard/settings/host`
 - [⬜] 3. Banking details — `/dashboard/settings/banking`
 - [⬜] 4. Subscription & billing — `/dashboard/settings/subscription`
@@ -96,6 +103,13 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   App code unchanged so far except `seed:demo` script + `scripts/seed-demo.mjs`.
 - **2026-05-29** — Fixed avatar-upload hang in `StepProfile.tsx` (try/finally + 8 MB /
   image-type guard + input reset). Branch-code finding was a false positive; no change.
+- **2026-05-29 (later)** — Onboarding rework COMPLETE in code (1a–1e). 1a/1d/1b pushed to
+  `origin/main`. A concurrent `feat/policy-manager` track collided in the shared worktree;
+  per founder, published it to main (a3fb60d). Resumed 1c/1e on branch
+  `feat/setup-wizard-rework` (off integrated tip, pushed). 1c = wizard shell redesign +
+  `globals.css` setup utilities; 1e = StepReview guest-preview + per-section Edit + confetti.
+  All green (clean-cache build). **NEXT: founder live-checks the whole wizard, then merge
+  `feat/setup-wizard-rework` → main and mark #1 ✅.**
 - **2026-05-29 (wizard rework, approved plan):** Building feature #1 rework in increments.
   DONE so far (all build+lint+type-check clean):
   • **1a Shared completion** — new `lib/setup/completion.ts`; rewired both
