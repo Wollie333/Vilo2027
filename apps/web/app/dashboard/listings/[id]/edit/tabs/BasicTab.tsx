@@ -1,9 +1,7 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Save } from "lucide-react";
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,24 +12,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RichTextEditor } from "@/components/editor/RichTextEditor";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  CategoryPicker,
-  type CategoryPickerLeaf,
-} from "@/lib/taxonomy/CategoryPicker";
+import { ListingBasicsForm } from "@/components/listing/ListingBasicsForm";
+import { type CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 
-import { saveListingPatchAction, setBookingModeAction } from "../actions";
+import { setBookingModeAction } from "../actions";
 import type { EditorListing } from "../Editor";
-import { BOOKING_MODES, basicSchema, type BasicInput } from "../schemas";
+import { BOOKING_MODES } from "../schemas";
 
 export function BasicTab({
   listing,
@@ -40,46 +26,6 @@ export function BasicTab({
   listing: EditorListing;
   categoryLeaves: CategoryPickerLeaf[];
 }) {
-  const [pending, start] = useTransition();
-  const form = useForm<BasicInput>({
-    resolver: zodResolver(basicSchema),
-    defaultValues: {
-      name: listing.name,
-      category_id: listing.category_id ?? null,
-      accommodation_type: listing.accommodation_type,
-      experience_type: listing.experience_type,
-      description: listing.description ?? "",
-    },
-  });
-
-  const selectedCategoryId = form.watch("category_id") ?? null;
-
-  function onSubmit(values: BasicInput) {
-    // Resolve the chosen leaf so we can keep the legacy column populated.
-    const leaf = categoryLeaves.find((l) => l.id === values.category_id);
-    start(async () => {
-      const patch = {
-        name: values.name,
-        category_id: values.category_id ?? null,
-        // Mirror the leaf slug into the legacy text column so old read paths
-        // (and the explore page's legacy fallback) keep working.
-        accommodation_type:
-          listing.listing_type === "accommodation"
-            ? (leaf?.slug ?? null)
-            : null,
-        experience_type:
-          listing.listing_type === "experience" ? (leaf?.slug ?? null) : null,
-        description:
-          values.description && values.description.length > 0
-            ? values.description
-            : null,
-      };
-      const result = await saveListingPatchAction(listing.id, patch);
-      if (result.ok) toast.success("Basic info saved");
-      else toast.error(result.error);
-    });
-  }
-
   return (
     <div className="space-y-6">
       <Card className="rounded-card border-brand-line shadow-card">
@@ -92,82 +38,18 @@ export function BasicTab({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4"
-              noValidate
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Listing name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category_id"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>
-                      {listing.listing_type === "accommodation"
-                        ? "Accommodation type"
-                        : "Experience type"}
-                    </FormLabel>
-                    <CategoryPicker
-                      leaves={categoryLeaves}
-                      value={selectedCategoryId}
-                      onChange={(leaf) => {
-                        form.setValue("category_id", leaf.id, {
-                          shouldDirty: true,
-                        });
-                      }}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <RichTextEditor
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        disabled={pending}
-                        placeholder="Tell guests what makes this place special. Mornings, the views, the breakfast, the why behind it."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-brand-mute">
-                      Bold what matters, use headings for sections like
-                      &ldquo;The space&rdquo; or &ldquo;The
-                      neighbourhood&rdquo;.
-                    </p>
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={pending} className="gap-1.5">
-                  <Save className="h-4 w-4" />
-                  {pending ? "Saving…" : "Save basic info"}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          <ListingBasicsForm
+            listing={{
+              id: listing.id,
+              listing_type: listing.listing_type,
+              name: listing.name,
+              category_id: listing.category_id ?? null,
+              accommodation_type: listing.accommodation_type,
+              experience_type: listing.experience_type,
+              description: listing.description ?? "",
+            }}
+            categoryLeaves={categoryLeaves}
+          />
         </CardContent>
       </Card>
 
