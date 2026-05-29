@@ -60,6 +60,7 @@ export function HostProfileForm({
   const avatarUrl = watch("avatar_url") ?? "";
   const bio = watch("bio") ?? "";
   const fullName = watch("full_name") ?? "";
+  const email = watch("email") ?? "";
 
   // Name is captured as two fields but stored as a single full_name (DB column).
   const initialName = (defaults.full_name ?? "").trim();
@@ -203,7 +204,13 @@ export function HostProfileForm({
                   type="email"
                   autoComplete="email"
                   className="pl-9 pr-24"
-                  {...register("email")}
+                  value={email}
+                  onChange={(e) =>
+                    setValue("email", e.target.value, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
                 />
                 <span
                   className={`absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center gap-1 rounded-pill px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
