@@ -2,6 +2,7 @@ export type SetupStepKey =
   | "profile"
   | "banking"
   | "listing"
+  | "rooms"
   | "policies"
   | "review";
 

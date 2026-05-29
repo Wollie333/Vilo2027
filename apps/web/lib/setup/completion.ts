@@ -11,6 +11,7 @@ export type SetupSectionKey =
   | "profile"
   | "banking"
   | "listing"
+  | "rooms"
   | "policies"
   | "review";
 
@@ -57,16 +58,20 @@ export function computeSetupCompletion(
 
   const banking = input.hasBankAccount;
 
-  // rooms_only listings price/seat per room, so the whole-listing base_price /
-  // max_guests aren't the signal there — a published room set is.
-  const isRoomsOnly = listing?.booking_mode === "rooms_only";
-  const listingCore = isRoomsOnly
-    ? input.roomCount > 0
-    : listing?.base_price != null && listing?.max_guests != null;
-  const listingDone = Boolean(listing && input.photoCount > 0 && listingCore);
-
-  // Experiences have no check-in / check-out times — only accommodation does.
   const isExperience = listing?.listing_type === "experience";
+
+  // Listing details = photos (+ price/capacity for experiences, which have no
+  // rooms). For accommodation, pricing & capacity live entirely in Rooms.
+  const listingDone = Boolean(
+    listing &&
+    input.photoCount > 0 &&
+    (!isExperience ||
+      (listing.base_price != null && listing.max_guests != null)),
+  );
+
+  // Rooms is its own section for accommodation (≥1 active room drives price +
+  // capacity); experiences have no rooms, so it's not applicable.
+  const roomsDone = isExperience ? true : input.roomCount > 0;
   const policies = Boolean(
     listing &&
     hasText(listing.cancellation_policy) &&
@@ -76,5 +81,12 @@ export function computeSetupCompletion(
 
   const review = Boolean(listing?.is_published);
 
-  return { profile, banking, listing: listingDone, policies, review };
+  return {
+    profile,
+    banking,
+    listing: listingDone,
+    rooms: roomsDone,
+    policies,
+    review,
+  };
 }

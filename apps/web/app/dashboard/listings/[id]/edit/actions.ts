@@ -425,6 +425,37 @@ export async function setBookingModeAction(
   return { ok: true };
 }
 
+// Derive the parent listing's headline price + capacity from its active rooms:
+// base_price = cheapest active room ("from"), and max_guests / bedrooms /
+// bathrooms = the sum across rooms. No-op when the listing has no active rooms.
+// Called after every room create / update / delete so the listing stays in sync.
+async function recomputeListingFromRooms(
+  supabase: ReturnType<typeof createServerClient>,
+  listingId: string,
+): Promise<void> {
+  const { data: rooms } = await supabase
+    .from("listing_rooms")
+    .select("base_price, max_guests, bedrooms, bathrooms")
+    .eq("listing_id", listingId)
+    .is("deleted_at", null)
+    .eq("is_active", true);
+  if (!rooms || rooms.length === 0) return;
+  const prices = rooms
+    .map((r) => Number(r.base_price))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  const sum = (key: "max_guests" | "bedrooms" | "bathrooms") =>
+    rooms.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
+  await supabase
+    .from("listings")
+    .update({
+      base_price: prices.length ? Math.min(...prices) : null,
+      max_guests: sum("max_guests") || null,
+      bedrooms: sum("bedrooms") || null,
+      bathrooms: sum("bathrooms") || null,
+    })
+    .eq("id", listingId);
+}
+
 export async function createRoomAction(
   listingId: string,
   input: RoomPatch,
@@ -477,7 +508,9 @@ export async function createRoomAction(
     return { ok: false, error: "Could not create room. Try again." };
   }
 
+  await recomputeListingFromRooms(supabase, listingId);
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard");
   return { ok: true, data: { id: room.id } };
 }
 
@@ -504,7 +537,9 @@ export async function updateRoomAction(
     return { ok: false, error: "Could not save room." };
   }
 
+  await recomputeListingFromRooms(supabase, listingId);
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 
@@ -635,7 +670,9 @@ export async function deleteRoomAction(
     return { ok: false, error: "Could not delete room." };
   }
 
+  await recomputeListingFromRooms(supabase, listingId);
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

@@ -23,6 +23,7 @@ import { togglePublishAction } from "../listings/[id]/edit/actions";
 import { SetupPreview } from "./SetupPreview";
 import { StepBanking } from "./steps/StepBanking";
 import { StepListing } from "./steps/StepListing";
+import { StepRooms } from "./steps/StepRooms";
 import { StepPolicies } from "./steps/StepPolicies";
 import { StepProfile } from "./steps/StepProfile";
 import type {
@@ -67,15 +68,22 @@ const SECTIONS: SectionMeta[] = [
     required: true,
   },
   {
-    key: "policies",
+    key: "rooms",
     n: "4",
+    label: "Rooms & pricing",
+    rail: "Rooms",
+    required: true,
+  },
+  {
+    key: "policies",
+    n: "5",
     label: "Policies & house rules",
     rail: "Policies",
     required: true,
   },
   {
     key: "review",
-    n: "5",
+    n: "6",
     label: "Preview & publish",
     rail: "Preview",
     required: false,
@@ -263,7 +271,6 @@ export function SetupWizard(props: Props) {
             <StepListing
               listing={listing}
               photos={photos}
-              rooms={rooms}
               onListingChanged={(patch) =>
                 setListing((l) => ({ ...l, ...patch }))
               }
@@ -271,6 +278,18 @@ export function SetupWizard(props: Props) {
               onPhotoRemoved={(id) =>
                 setPhotos((list) => list.filter((p) => p.id !== id))
               }
+              onContinue={() => jump("rooms")}
+            />
+          </SectionCard>
+
+          <SectionCard
+            meta={SECTIONS[3]}
+            complete={done.rooms}
+            active={active === "rooms"}
+          >
+            <StepRooms
+              listingId={listing.id}
+              rooms={rooms}
               onRoomSaved={(r) =>
                 setRooms((list) => {
                   const idx = list.findIndex((x) => x.id === r.id);
@@ -285,7 +304,7 @@ export function SetupWizard(props: Props) {
           </SectionCard>
 
           <SectionCard
-            meta={SECTIONS[3]}
+            meta={SECTIONS[4]}
             complete={done.policies}
             active={active === "policies"}
           >
@@ -299,7 +318,7 @@ export function SetupWizard(props: Props) {
           </SectionCard>
 
           <SectionCard
-            meta={SECTIONS[4]}
+            meta={SECTIONS[5]}
             complete={published}
             active={active === "review"}
           >
