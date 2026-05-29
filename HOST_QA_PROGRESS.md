@@ -94,7 +94,18 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   (`aria-pressed` on role=tab). Fix when we reach #21 Help.
 - `pnpm build` → not yet run.
 
-## Activity log
+## Activity log (latest first)
+- **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
+  mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
+  `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
+  section list + Publish), page intro + circular % ring, stacked SectionCards with
+  scroll-spy glow, and a **live browser-frame preview** (desktop/mobile) of the public
+  listing. Publish → confetti (Groot Baas Wollie likes it — keep) + "You're live" modal.
+  New `SetupPreview.tsx`; `SetupWizard.tsx` rebuilt; removed `StepReview.tsx`. Tokens:
+  peek shadow (tailwind), focus-ring + pick-card (globals). On `origin/main` (6a50d82),
+  deploying. Step-card INTERNALS still use existing styling (offer pick-cards / capacity
+  steppers / amenity chips not yet pixel-matched to mockup) — possible follow-up polish.
+
 - **2026-05-28** — Built + verified the idempotent demo seed (Step 0: triggers fire,
   no counter inflation). Established static-gate baseline (type-check clean, 1 lint
   warning in Help). Audited feature #1 (Onboarding) — no blockers, flow completes;
