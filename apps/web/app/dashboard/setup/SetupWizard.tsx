@@ -18,6 +18,7 @@ import { computeSetupCompletion } from "@/lib/setup/completion";
 
 import type { Account } from "@/app/dashboard/settings/banking/_components/BankAccountList";
 import type { BusinessDetailsInput } from "@/app/dashboard/settings/banking/schemas";
+import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
 import { togglePublishAction } from "../listings/[id]/edit/actions";
 import { SetupPreview } from "./SetupPreview";
@@ -100,6 +101,8 @@ type Props = {
   businessDefaults: BusinessDetailsInput;
   photos: Photo[];
   rooms: Room[];
+  amenityGroups: AmenityGroupWithItems[];
+  amenities: { id: string; key: string; roomId: string | null }[];
 };
 
 export function SetupWizard(props: Props) {
@@ -271,6 +274,8 @@ export function SetupWizard(props: Props) {
             <StepListing
               listing={listing}
               photos={photos}
+              amenityGroups={props.amenityGroups}
+              amenities={props.amenities}
               onListingChanged={(patch) =>
                 setListing((l) => ({ ...l, ...patch }))
               }

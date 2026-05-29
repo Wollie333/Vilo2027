@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { createServerClient } from "@/lib/supabase/server";
+import { getAmenityCatalog } from "@/lib/taxonomy/getAmenities";
 
 import { SetupWizard } from "./SetupWizard";
 
@@ -111,6 +112,15 @@ export default async function SetupPage({
     .eq("listing_id", listing.id)
     .not("room_id", "is", null)
     .order("sort_order", { ascending: true });
+
+  // Amenities — catalog (groups) + the listing's current selection.
+  const [amenityGroups, { data: amenityRows }] = await Promise.all([
+    getAmenityCatalog(),
+    supabase
+      .from("listing_amenities")
+      .select("id, amenity_key, room_id")
+      .eq("listing_id", listing.id),
+  ]);
 
   return (
     <SetupWizard
@@ -229,6 +239,12 @@ export default async function SetupPage({
           photo_count: mine.length,
         };
       })}
+      amenityGroups={amenityGroups}
+      amenities={(amenityRows ?? []).map((a) => ({
+        id: a.id as string,
+        key: a.amenity_key as string,
+        roomId: (a.room_id as string | null) ?? null,
+      }))}
     />
   );
 }

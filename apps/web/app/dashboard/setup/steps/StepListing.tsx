@@ -1,11 +1,13 @@
 "use client";
 
-import { Camera, FileText, Plus, X } from "lucide-react";
+import { Camera, FileText, Plus, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { AmenitiesPicker } from "@/components/listing/AmenitiesPicker";
 import { ListingBasicsForm } from "@/components/listing/ListingBasicsForm";
+import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
 import {
   deleteListingPhotoAction,
@@ -16,6 +18,8 @@ import type { Listing, Photo } from "../types";
 type Props = {
   listing: Listing;
   photos: Photo[];
+  amenityGroups: AmenityGroupWithItems[];
+  amenities: { id: string; key: string; roomId: string | null }[];
   onListingChanged: (patch: Partial<Listing>) => void;
   onPhotoAdded: (photo: Photo) => void;
   onPhotoRemoved: (id: string) => void;
@@ -27,6 +31,8 @@ type Props = {
 export function StepListing({
   listing,
   photos,
+  amenityGroups,
+  amenities,
   onListingChanged,
   onPhotoAdded,
   onPhotoRemoved,
@@ -185,6 +191,29 @@ export function StepListing({
             </button>
           </div>
         )}
+      </section>
+
+      {/* Amenities — listing-wide (shared with the editor's Amenities tab) */}
+      <section>
+        <div className="mb-3 flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-brand-secondary">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold text-brand-ink">
+              Amenities
+            </h3>
+            <p className="text-xs text-brand-mute">
+              What the whole place offers. Per-room extras are set inside each
+              room.
+            </p>
+          </div>
+        </div>
+        <AmenitiesPicker
+          listingId={listing.id}
+          groups={amenityGroups}
+          initial={amenities}
+        />
       </section>
 
       {/* Continue */}
