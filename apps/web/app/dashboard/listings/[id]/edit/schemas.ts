@@ -56,16 +56,18 @@ export const AMENITY_OPTIONS: { key: string; label: string }[] = [
 
 export const basicSchema = z.object({
   name: z.string().trim().min(3, "Name is too short.").max(200),
+  // Coerce "" → null in the form (defaults + submit) before this runs — an
+  // empty string fails .uuid() and would block the whole form.
   category_id: z.string().uuid().nullable().optional(),
   // Legacy text columns — written server-side from the chosen leaf slug,
   // not edited by the host. Kept in the schema so the patch payload is
   // accepted without a strict enum after the taxonomy cutover.
   accommodation_type: z.string().nullable().optional(),
   experience_type: z.string().nullable().optional(),
-  // Rich-text HTML — sanitised server-side. No length cap here: a previously
-  // saved long description would otherwise fail validation as "Invalid input"
-  // and silently block the whole form (incl. name changes).
-  description: z.string().optional(),
+  // Rich-text HTML — sanitised server-side. Nullable + no length cap: a
+  // previously saved long/null description would otherwise fail validation as
+  // "Invalid input" and silently block the whole form (incl. name changes).
+  description: z.string().nullable().optional(),
 });
 export type BasicInput = z.infer<typeof basicSchema>;
 
@@ -298,7 +300,10 @@ export type RoomPatch = z.infer<typeof roomPatchSchema>;
 // What the saveListingPatch action accepts — a subset of listings columns.
 export const patchSchema = z.object({
   name: z.string().trim().min(3).max(200).optional(),
-  category_id: z.string().uuid().nullable().optional(),
+  category_id: z.preprocess(
+    (v) => (v === "" || v == null ? null : v),
+    z.string().uuid().nullable().optional(),
+  ),
   accommodation_type: z.string().nullable().optional(),
   experience_type: z.string().nullable().optional(),
   description: z.string().nullable().optional(),

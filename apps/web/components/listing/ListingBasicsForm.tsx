@@ -57,7 +57,7 @@ export function ListingBasicsForm({
     resolver: zodResolver(basicSchema),
     defaultValues: {
       name: listing.name,
-      category_id: listing.category_id ?? null,
+      category_id: listing.category_id || null,
       accommodation_type: listing.accommodation_type,
       experience_type: listing.experience_type,
       description: listing.description ?? "",
@@ -67,12 +67,19 @@ export function ListingBasicsForm({
   const categoryId = watch("category_id") ?? null;
   const description = watch("description") ?? "";
 
+  // Surface validation errors instead of failing silently — a blocked submit
+  // with no visible reason is what made the name field look "broken".
+  function onInvalid(errs: typeof errors) {
+    const first = Object.values(errs)[0];
+    toast.error(first?.message ?? "Please check the highlighted fields.");
+  }
+
   function onSubmit(values: BasicInput) {
     const leaf = categoryLeaves?.find((l) => l.id === values.category_id);
     start(async () => {
       const patch = {
         name: values.name,
-        category_id: values.category_id ?? null,
+        category_id: values.category_id || null,
         // Mirror the chosen leaf slug into the legacy text column so older read
         // paths keep working. Only touched when a category picker is shown.
         ...(categoryLeaves
@@ -107,7 +114,11 @@ export function ListingBasicsForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit, onInvalid)}
+      className="space-y-4"
+      noValidate
+    >
       <Field label="Listing name" required error={errors.name?.message}>
         <TextInput
           placeholder="Karoo Stone & Skies Cottage"

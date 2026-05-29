@@ -5,6 +5,7 @@
 // "Setup Flow" design (focus-ring inputs, brand pick-cards).
 
 import { Check, ChevronDown, Minus, Plus } from "lucide-react";
+import { forwardRef } from "react";
 
 export function Field({
   label,
@@ -47,36 +48,43 @@ export function Field({
   );
 }
 
-export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  const { className = "", ...rest } = props;
+// forwardRef so react-hook-form's register() ref reaches the real input —
+// without it React drops the ref and RHF can't read the field's value, which
+// surfaces as a spurious "Invalid input" even on a filled field.
+export const TextInput = forwardRef<
+  HTMLInputElement,
+  React.InputHTMLAttributes<HTMLInputElement>
+>(function TextInput({ className = "", ...rest }, ref) {
   return (
     <input
+      ref={ref}
       {...rest}
       className={`focus-ring w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink transition placeholder:text-brand-mute disabled:bg-brand-light/60 disabled:text-brand-mute ${className}`}
     />
   );
-}
+});
 
-export function TextArea(
-  props: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-) {
-  const { className = "", ...rest } = props;
+export const TextArea = forwardRef<
+  HTMLTextAreaElement,
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>
+>(function TextArea({ className = "", ...rest }, ref) {
   return (
     <textarea
+      ref={ref}
       {...rest}
       className={`focus-ring w-full resize-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm leading-relaxed text-brand-ink transition placeholder:text-brand-mute ${className}`}
     />
   );
-}
+});
 
-export function SelectInput({
-  children,
-  className = "",
-  ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export const SelectInput = forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement>
+>(function SelectInput({ children, className = "", ...rest }, ref) {
   return (
     <div className="relative">
       <select
+        ref={ref}
         {...rest}
         className={`focus-ring w-full appearance-none rounded border border-brand-line bg-white px-3.5 py-2.5 pr-9 text-sm text-brand-ink transition ${className}`}
       >
@@ -85,7 +93,7 @@ export function SelectInput({
       <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
     </div>
   );
-}
+});
 
 /** Currency input with a leading R prefix. */
 export function CurrencyInput({
