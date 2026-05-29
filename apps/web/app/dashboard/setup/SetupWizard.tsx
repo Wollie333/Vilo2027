@@ -248,7 +248,15 @@ export function SetupWizard(props: Props) {
             onPhotoRemoved={(id) =>
               setPhotos((list) => list.filter((p) => p.id !== id))
             }
-            onRoomAdded={(r) => setRooms((list) => [...list, r])}
+            onRoomSaved={(r) =>
+              setRooms((list) => {
+                const idx = list.findIndex((x) => x.id === r.id);
+                if (idx === -1) return [...list, r];
+                const next = [...list];
+                next[idx] = r;
+                return next;
+              })
+            }
             onContinue={advance}
           />
         ) : null}

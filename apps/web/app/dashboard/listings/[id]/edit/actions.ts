@@ -508,6 +508,91 @@ export async function updateRoomAction(
   return { ok: true };
 }
 
+export type RoomEditorData = {
+  room: {
+    id: string;
+    name: string;
+    description: string | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    max_guests: number;
+    base_price: number;
+    weekend_price: number | null;
+    cleaning_fee: number;
+    is_active: boolean;
+    room_size_sqm: number | null;
+    bed_type: string | null;
+    view_type: string | null;
+    experiences: string[];
+    featured_photo_id: string | null;
+  };
+  photos: { id: string; url: string }[];
+  amenityKeys: string[];
+};
+
+// Full room payload for the wizard's room sheet (mirrors the room edit page
+// fetch) so an existing room opens with all its details, photos and amenities.
+export async function fetchRoomEditorDataAction(
+  listingId: string,
+  roomId: string,
+): Promise<ActionResult<RoomEditorData>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data: room } = await supabase
+    .from("listing_rooms")
+    .select(
+      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id",
+    )
+    .eq("id", roomId)
+    .eq("listing_id", listingId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!room) return { ok: false, error: "Room not found." };
+
+  const [{ data: photoRows }, { data: amenityRows }] = await Promise.all([
+    supabase
+      .from("listing_photos")
+      .select("id, url, sort_order")
+      .eq("listing_id", listingId)
+      .eq("room_id", roomId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_amenities")
+      .select("amenity_key")
+      .eq("listing_id", listingId)
+      .eq("room_id", roomId),
+  ]);
+
+  return {
+    ok: true,
+    data: {
+      room: {
+        id: room.id,
+        name: room.name,
+        description: room.description ?? null,
+        bedrooms: room.bedrooms,
+        bathrooms: room.bathrooms,
+        max_guests: room.max_guests,
+        base_price: Number(room.base_price),
+        weekend_price:
+          room.weekend_price != null ? Number(room.weekend_price) : null,
+        cleaning_fee: Number(room.cleaning_fee ?? 0),
+        is_active: room.is_active,
+        room_size_sqm:
+          room.room_size_sqm != null ? Number(room.room_size_sqm) : null,
+        bed_type: room.bed_type ?? null,
+        view_type: room.view_type ?? null,
+        experiences: (room.experiences as string[] | null) ?? [],
+        featured_photo_id: room.featured_photo_id ?? null,
+      },
+      photos: (photoRows ?? []).map((p) => ({ id: p.id, url: p.url })),
+      amenityKeys: (amenityRows ?? []).map((a) => a.amenity_key),
+    },
+  };
+}
+
 export async function deleteRoomAction(
   listingId: string,
   roomId: string,

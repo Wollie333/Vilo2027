@@ -1,6 +1,14 @@
 "use client";
 
-import { Camera, DoorOpen, FileText, Plus, Wallet, X } from "lucide-react";
+import {
+  Camera,
+  DoorOpen,
+  FileText,
+  Pencil,
+  Plus,
+  Wallet,
+  X,
+} from "lucide-react";
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -8,12 +16,12 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 
 import {
-  createRoomAction,
   deleteListingPhotoAction,
   saveListingPatchAction,
   uploadListingPhotoAction,
 } from "../../listings/[id]/edit/actions";
 import type { Listing, Photo, Room } from "../types";
+import { RoomEditorSheet } from "./RoomEditorSheet";
 
 type Props = {
   listing: Listing;
@@ -22,7 +30,7 @@ type Props = {
   onListingChanged: (patch: Partial<Listing>) => void;
   onPhotoAdded: (photo: Photo) => void;
   onPhotoRemoved: (id: string) => void;
-  onRoomAdded: (room: Room) => void;
+  onRoomSaved: (room: Room) => void;
   onContinue: () => void;
 };
 
@@ -33,7 +41,7 @@ export function StepListing({
   onListingChanged,
   onPhotoAdded,
   onPhotoRemoved,
-  onRoomAdded,
+  onRoomSaved,
   onContinue,
 }: Props) {
   const photoFileRef = useRef<HTMLInputElement>(null);
@@ -60,16 +68,24 @@ export function StepListing({
     listing.bathrooms?.toString() ?? "1",
   );
 
-  // New room form
-  const [showRoomForm, setShowRoomForm] = useState(false);
-  const [roomName, setRoomName] = useState("");
-  const [roomGuests, setRoomGuests] = useState("2");
-  const [roomBeds, setRoomBeds] = useState("1");
-  const [roomBaths, setRoomBaths] = useState("1");
-  const [roomPrice, setRoomPrice] = useState("");
+  // Room editor sheet — null roomId = add new, otherwise edit existing.
+  const [roomSheetOpen, setRoomSheetOpen] = useState(false);
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
 
   const [savePricing, startPricing] = useTransition();
-  const [createRoom, startCreateRoom] = useTransition();
+
+  function openAddRoom() {
+    setEditingRoomId(null);
+    setRoomSheetOpen(true);
+  }
+  function openEditRoom(id: string) {
+    setEditingRoomId(id);
+    setRoomSheetOpen(true);
+  }
+  // Upsert the saved room into the wizard's list.
+  function handleRoomSaved(room: Room) {
+    onRoomSaved(room);
+  }
 
   async function onPhotoPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -139,51 +155,6 @@ export function StepListing({
         bathrooms: baths,
       });
       toast.success("Details saved.");
-    });
-  }
-
-  function onCreateRoom() {
-    const price = Number(roomPrice);
-    const guests = Number(roomGuests);
-    const beds = Number(roomBeds);
-    const baths = Number(roomBaths);
-    if (!roomName.trim()) {
-      toast.error("Room needs a name.");
-      return;
-    }
-    if (!Number.isFinite(price) || price <= 0) {
-      toast.error("Room needs a base price.");
-      return;
-    }
-    if (!Number.isInteger(guests) || guests < 1) {
-      toast.error("Room max guests must be at least 1.");
-      return;
-    }
-    startCreateRoom(async () => {
-      const result = await createRoomAction(listing.id, {
-        name: roomName.trim(),
-        max_guests: guests,
-        bedrooms: beds,
-        bathrooms: baths,
-        base_price: price,
-      });
-      if (!result.ok || !result.data) {
-        toast.error(result.ok ? "Could not create room." : result.error);
-        return;
-      }
-      onRoomAdded({
-        id: result.data.id,
-        name: roomName.trim(),
-        max_guests: guests,
-        bedrooms: beds,
-        bathrooms: baths,
-        base_price: price,
-        is_active: true,
-      });
-      toast.success("Room added.");
-      setRoomName("");
-      setRoomPrice("");
-      setShowRoomForm(false);
     });
   }
 
@@ -400,15 +371,25 @@ export function StepListing({
           </div>
 
           {rooms.length > 0 ? (
-            <ul className="mb-3 divide-y divide-brand-line rounded border border-brand-line bg-white">
+            <ul className="mb-3 space-y-2">
               {rooms.map((r) => (
-                <li key={r.id} className="flex items-center gap-3 px-4 py-3">
+                <li
+                  key={r.id}
+                  className="flex items-center gap-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card"
+                >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-brand-secondary">
                     <DoorOpen className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold text-brand-ink">
-                      {r.name}
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-brand-ink">
+                        {r.name}
+                      </span>
+                      {!r.is_active ? (
+                        <span className="rounded-pill bg-status-draft/15 px-1.5 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-brand-mute">
+                          Hidden
+                        </span>
+                      ) : null}
                     </div>
                     <div className="text-[11px] text-brand-mute">
                       {r.max_guests ?? "—"} guests · {r.bedrooms ?? 1} bed ·{" "}
@@ -424,85 +405,35 @@ export function StepListing({
                       /night
                     </span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => openEditRoom(r.id)}
+                    className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-2.5 py-1.5 text-xs font-medium text-brand-ink transition hover:bg-brand-accent"
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </button>
                 </li>
               ))}
             </ul>
           ) : null}
 
-          {showRoomForm ? (
-            <div className="rounded border border-brand-line bg-white p-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Room name" className="sm:col-span-2">
-                  <input
-                    type="text"
-                    value={roomName}
-                    onChange={(e) => setRoomName(e.target.value)}
-                    placeholder="e.g. Garden Suite"
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  />
-                </Field>
-                <Field label="Max guests">
-                  <input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={roomGuests}
-                    onChange={(e) => setRoomGuests(e.target.value)}
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  />
-                </Field>
-                <Field label="Base price · per night">
-                  <CurrencyInput value={roomPrice} onChange={setRoomPrice} />
-                </Field>
-                <Field label="Bedrooms">
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={roomBeds}
-                    onChange={(e) => setRoomBeds(e.target.value)}
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  />
-                </Field>
-                <Field label="Bathrooms">
-                  <input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={roomBaths}
-                    onChange={(e) => setRoomBaths(e.target.value)}
-                    className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  />
-                </Field>
-              </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRoomForm(false)}
-                  className="inline-flex items-center gap-1 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-accent hover:text-brand-ink"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={onCreateRoom}
-                  disabled={createRoom}
-                  className="inline-flex items-center gap-1 rounded bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
-                >
-                  {createRoom ? "Adding…" : "Add room"}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowRoomForm(true)}
-              className="inline-flex items-center gap-1.5 rounded border border-dashed border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
-            >
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Add a room
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={openAddRoom}
+            className="inline-flex items-center gap-1.5 rounded border border-dashed border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            Add a room
+          </button>
+
+          <RoomEditorSheet
+            listingId={listing.id}
+            open={roomSheetOpen}
+            onOpenChange={setRoomSheetOpen}
+            roomId={editingRoomId}
+            onSaved={handleRoomSaved}
+          />
         </section>
       ) : null}
 
