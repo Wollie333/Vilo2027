@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  ChevronDown,
   ExternalLink,
   LayoutDashboard,
   Link as LinkIcon,
@@ -121,6 +122,9 @@ export function SetupWizard(props: Props) {
   const [profile, setProfile] = useState(props.profile);
   const [listing, setListing] = useState(props.listing);
   const [photos, setPhotos] = useState(props.photos);
+  // Amenities are lifted here (like photos) so the listing card's selection
+  // survives the accordion collapse/remount.
+  const [amenities, setAmenities] = useState(props.amenities);
 
   // Banking, business AND rooms are managed by shared canonical components via
   // server actions; they call onChanged → router.refresh, which re-runs the
@@ -132,7 +136,6 @@ export function SetupWizard(props: Props) {
   const policies = props.policies;
   const policyAssignments = props.policyAssignments;
 
-  const [active, setActive] = useState<SetupStepKey>("profile");
   const [published, setPublished] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [publishing, startPublish] = useTransition();
@@ -157,31 +160,21 @@ export function SetupWizard(props: Props) {
   const missing = requiredSections.filter((s) => !done[s.key]);
   const ready = missing.length === 0;
 
-  function jump(key: SetupStepKey) {
-    document
-      .getElementById(`sec-${key}`)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  // One card open at a time (accordion). Default to the first incomplete
+  // required step so a returning host lands where they left off.
+  const [active, setActive] = useState<SetupStepKey>(
+    () => requiredSections.find((s) => !done[s.key])?.key ?? "review",
+  );
 
-  // Scroll-spy: highlight the section nearest the top of the viewport.
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        const top = visible[0]?.target as HTMLElement | undefined;
-        if (top?.dataset.section)
-          setActive(top.dataset.section as SetupStepKey);
-      },
-      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
-    );
-    SECTIONS.forEach((s) => {
-      const el = document.getElementById(`sec-${s.key}`);
-      if (el) obs.observe(el);
-    });
-    return () => obs.disconnect();
-  }, []);
+  // Open a step (collapsing the others) and scroll its card into view.
+  function jump(key: SetupStepKey) {
+    setActive(key);
+    setTimeout(() => {
+      document
+        .getElementById(`sec-${key}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  }
 
   // Honour ?step= deep links by scrolling there on mount.
   const didJump = useRef(false);
@@ -249,7 +242,8 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[0]}
             complete={done.profile}
-            active={active === "profile"}
+            expanded={active === "profile"}
+            onOpen={() => jump("profile")}
           >
             <StepProfile
               host={host}
@@ -266,7 +260,8 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[1]}
             complete={done.banking}
-            active={active === "banking"}
+            expanded={active === "banking"}
+            onOpen={() => jump("banking")}
           >
             <StepBanking
               accounts={bankAccounts}
@@ -279,18 +274,20 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[2]}
             complete={done.listing}
-            active={active === "listing"}
+            expanded={active === "listing"}
+            onOpen={() => jump("listing")}
           >
             <StepListing
               listing={listing}
               photos={photos}
               categoryLeaves={props.categoryLeaves}
               amenityGroups={props.amenityGroups}
-              amenities={props.amenities}
+              amenities={amenities}
               onListingChanged={(patch) =>
                 setListing((l) => ({ ...l, ...patch }))
               }
               onPhotosChanged={(next) => setPhotos(next)}
+              onAmenitiesChanged={(next) => setAmenities(next)}
               onContinue={() => jump("rooms")}
             />
           </SectionCard>
@@ -298,7 +295,8 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[3]}
             complete={done.rooms}
-            active={active === "rooms"}
+            expanded={active === "rooms"}
+            onOpen={() => jump("rooms")}
           >
             <StepRooms
               listingId={listing.id}
@@ -311,7 +309,8 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[4]}
             complete={done.policies}
-            active={active === "policies"}
+            expanded={active === "policies"}
+            onOpen={() => jump("policies")}
           >
             <StepPolicies
               listing={listing}
@@ -325,7 +324,8 @@ export function SetupWizard(props: Props) {
           <SectionCard
             meta={SECTIONS[5]}
             complete={published}
-            active={active === "review"}
+            expanded={active === "review"}
+            onOpen={() => jump("review")}
           >
             <SetupPreview
               host={host}
@@ -624,25 +624,36 @@ function ProgressRail({
 function SectionCard({
   meta,
   complete,
-  active,
+  expanded,
+  onOpen,
   children,
 }: {
   meta: SectionMeta;
   complete: boolean;
-  active: boolean;
+  expanded: boolean;
+  onOpen: () => void;
   children: React.ReactNode;
 }) {
+  // Accordion: one card open at a time. The header is always a clickable
+  // toggle; the body (and the step's heavy form) only mounts when expanded.
   return (
     <section
       id={`sec-${meta.key}`}
       data-section={meta.key}
-      className={`scroll-mt-24 rounded-card border bg-white shadow-card transition-colors ${
-        active
+      className={`scroll-mt-24 overflow-hidden rounded-card border bg-white shadow-card transition-colors ${
+        expanded
           ? "setup-step-active border-brand-primary/40"
           : "border-brand-line"
       }`}
     >
-      <div className="flex items-start gap-4 border-b border-brand-line px-6 py-5 md:px-7">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-expanded={expanded}
+        className={`flex w-full items-start gap-4 px-6 py-5 text-left md:px-7 ${
+          expanded ? "border-b border-brand-line" : ""
+        }`}
+      >
         <div
           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-card font-display text-sm font-bold transition-colors ${
             complete
@@ -667,8 +678,13 @@ function SectionCard({
             ) : null}
           </div>
         </div>
-      </div>
-      <div className="px-6 py-6 md:px-7">{children}</div>
+        <ChevronDown
+          className={`mt-1 h-5 w-5 shrink-0 text-brand-mute transition-transform ${
+            expanded ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {expanded ? <div className="px-6 py-6 md:px-7">{children}</div> : null}
     </section>
   );
 }

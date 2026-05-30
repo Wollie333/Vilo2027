@@ -4,7 +4,7 @@
 // pick-card primitives used across every step card. Styling matches the Vilo
 // "Setup Flow" design (focus-ring inputs, brand pick-cards).
 
-import { Check, ChevronDown, Minus, Plus } from "lucide-react";
+import { Check, ChevronDown, Minus, Pencil, Plus } from "lucide-react";
 import { forwardRef } from "react";
 
 export function Field({
@@ -291,6 +291,68 @@ export function RadioCard({
         </div>
       ) : null}
     </button>
+  );
+}
+
+/**
+ * Read-only summary of a saved section with an Edit pill (gently pulses to draw
+ * the eye). Used in the setup steps so a saved sub-section collapses to a clean
+ * card instead of an always-open form.
+ */
+export function SavedCard({
+  icon,
+  title,
+  rows,
+  onEdit,
+  children,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  rows?: { label: string; value: React.ReactNode }[];
+  onEdit: () => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          {icon ? (
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-accent text-brand-secondary">
+              {icon}
+            </div>
+          ) : null}
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 font-display text-sm font-semibold text-brand-ink">
+              <Check
+                className="h-3.5 w-3.5 text-brand-primary"
+                strokeWidth={3}
+              />
+              {title}
+            </div>
+            {rows && rows.length > 0 ? (
+              <dl className="mt-1.5 space-y-0.5 text-[12.5px]">
+                {rows.map((r) => (
+                  <div key={r.label} className="flex gap-2">
+                    <dt className="shrink-0 text-brand-mute">{r.label}</dt>
+                    <dd className="min-w-0 flex-1 truncate font-medium text-brand-ink">
+                      {r.value || <span className="text-brand-mute">—</span>}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {children ? <div className="mt-1.5">{children}</div> : null}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="pulse-soft inline-flex shrink-0 items-center gap-1 rounded-pill border border-brand-primary/40 bg-white px-3 py-1.5 text-xs font-semibold text-brand-primary transition hover:bg-brand-accent"
+        >
+          <Pencil className="h-3.5 w-3.5" /> Edit
+        </button>
+      </div>
+    </div>
   );
 }
 

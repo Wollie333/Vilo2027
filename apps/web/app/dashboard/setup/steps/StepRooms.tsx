@@ -214,7 +214,7 @@ export function StepRooms({
             onClick={onContinue}
             className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
           >
-            Continue
+            Save &amp; continue
           </button>
         ) : null}
       </div>

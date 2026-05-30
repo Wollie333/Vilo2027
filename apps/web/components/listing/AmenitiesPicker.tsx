@@ -26,7 +26,7 @@ export function AmenitiesPicker({
   groups: AmenityGroupWithItems[];
   initial: Item[];
   rooms?: { id: string; name: string }[];
-  onSaved?: () => void;
+  onSaved?: (saved: Item[]) => void;
 }) {
   const [items, setItems] = useState<Item[]>(initial);
   const [pending, start] = useTransition();
@@ -50,15 +50,14 @@ export function AmenitiesPicker({
         toast.error(result.error);
         return;
       }
-      setItems(
-        (result.data ?? []).map((r) => ({
-          id: r.id,
-          key: r.key,
-          roomId: r.roomId,
-        })),
-      );
+      const saved = (result.data ?? []).map((r) => ({
+        id: r.id,
+        key: r.key,
+        roomId: r.roomId,
+      }));
+      setItems(saved);
       toast.success("Amenities saved.");
-      onSaved?.();
+      onSaved?.(saved);
     });
   }
 
