@@ -1,7 +1,7 @@
 "use client";
 
 import { BedDouble, ChevronDown, Plus } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -36,13 +36,18 @@ export function RoomsManager({
   rooms,
   onChange,
   embedded = false,
+  autoCreate = false,
 }: {
   listingId: string;
   rooms: EditorRoom[];
   onChange: (rooms: EditorRoom[]) => void;
   embedded?: boolean;
+  /** When true (deep-linked with ?add=1), create + open a fresh room on mount. */
+  autoCreate?: boolean;
 }) {
   const [createPending, startCreate] = useTransition();
+  // Which freshly-added room row should auto-expand to its form.
+  const [openRoomId, setOpenRoomId] = useState<string | null>(null);
 
   function addRoom() {
     startCreate(async () => {
@@ -60,6 +65,8 @@ export function RoomsManager({
         toast.error(result.error);
         return;
       }
+      // Auto-expand the new room so the host lands straight on its form.
+      setOpenRoomId(result.data!.id);
       // Optimistic-ish: shove a stub into local state. Real values come from
       // the next page navigation; for editing immediately use the returned id.
       onChange([
@@ -96,9 +103,20 @@ export function RoomsManager({
           featuredPhotoUrl: null,
         },
       ]);
-      toast.success("Room added");
+      toast.success("Room added — fill in the details below");
     });
   }
+
+  // Deep-linked from /dashboard/rooms "Add room" (?tab=rooms&add=1): create one
+  // fresh room and open its form straight away. Guard so it fires only once.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoCreate && !autoRan.current) {
+      autoRan.current = true;
+      addRoom();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCreate]);
 
   const body = (
     <>
@@ -115,6 +133,7 @@ export function RoomsManager({
               key={room.id}
               listingId={listingId}
               room={room}
+              defaultOpen={room.id === openRoomId}
               onUpdated={(updated) =>
                 onChange(rooms.map((r) => (r.id === room.id ? updated : r)))
               }
@@ -165,13 +184,15 @@ function RoomRow({
   room,
   onUpdated,
   onDeleted,
+  defaultOpen = false,
 }: {
   listingId: string;
   room: EditorRoom;
   onUpdated: (room: EditorRoom) => void;
   onDeleted: () => void;
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   const bedTotal = roomBedTotal(room);
   const amenityCount = room.amenityKeys?.length ?? 0;

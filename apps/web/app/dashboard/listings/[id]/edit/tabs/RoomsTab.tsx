@@ -66,10 +66,12 @@ export function RoomsTab({
   listing,
   rooms,
   onRoomsChange,
+  autoCreate = false,
 }: {
   listing: EditorListing;
   rooms: EditorRoom[];
   onRoomsChange: (rooms: EditorRoom[]) => void;
+  autoCreate?: boolean;
 }) {
   const notice = MODE_NOTICE[listing.booking_mode];
   return (
@@ -104,6 +106,7 @@ export function RoomsTab({
         listingId={listing.id}
         rooms={rooms}
         onChange={onRoomsChange}
+        autoCreate={autoCreate}
       />
       <CapacityForm listing={listing} />
     </div>

@@ -23,8 +23,10 @@ export const metadata: Metadata = {
 
 export default async function EditListingPage({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { tab?: string; add?: string };
 }) {
   const supabase = createServerClient();
   const {
@@ -250,6 +252,8 @@ export default async function EditListingPage({
       assignedPolicies={assignedPolicies}
       categoryLeaves={categoryLeaves}
       amenityGroups={amenityGroups}
+      initialTab={searchParams?.tab}
+      autoCreateRoom={searchParams?.add === "1"}
     />
   );
 }

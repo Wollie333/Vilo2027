@@ -206,6 +206,8 @@ export function Editor({
   assignedPolicies,
   categoryLeaves,
   amenityGroups,
+  initialTab,
+  autoCreateRoom = false,
 }: {
   listing: EditorListing;
   amenities: EditorAmenity[];
@@ -217,12 +219,18 @@ export function Editor({
   assignedPolicies: AssignedPolicy[];
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
+  /** Deep-link the editor to a tab (e.g. ?tab=rooms). Falls back to Basic info. */
+  initialTab?: string;
+  /** ?add=1 on the rooms tab — auto-open a fresh room form. */
+  autoCreateRoom?: boolean;
 }) {
   const TABS =
     listing.listing_type === "experience"
       ? EXPERIENCE_TABS
       : ACCOMMODATION_TABS;
-  const [active, setActive] = useState<TabKey>("basic");
+  const [active, setActive] = useState<TabKey>(() =>
+    TABS.some((t) => t.key === initialTab) ? (initialTab as TabKey) : "basic",
+  );
   const [isPublished, setIsPublished] = useState(listing.is_published);
   const [publishPending, startPublish] = useTransition();
   // Local photo state so adds/removes show immediately without page reload.
@@ -565,7 +573,12 @@ export function Editor({
         ) : null}
         {active === "location" ? <LocationTab listing={listing} /> : null}
         {active === "rooms" ? (
-          <RoomsTab listing={listing} rooms={rooms} onRoomsChange={setRooms} />
+          <RoomsTab
+            listing={listing}
+            rooms={rooms}
+            onRoomsChange={setRooms}
+            autoCreate={autoCreateRoom}
+          />
         ) : null}
         {active === "amenities" ? (
           <AmenitiesTab

@@ -309,6 +309,11 @@ export default async function RoomsPage({
         avgRate={avgRate}
         totalPhotos={totalPhotos}
         photos={heroPhotos}
+        addRoomHref={
+          listingsCount === 1
+            ? `/dashboard/listings/${groups[0].listing.id}/edit?tab=rooms&add=1`
+            : "/dashboard/listings"
+        }
       />
 
       {groups.length === 0 ? (
@@ -353,6 +358,7 @@ function PortfolioHero({
   avgRate,
   totalPhotos,
   photos,
+  addRoomHref,
 }: {
   totalRooms: number;
   activeRooms: number;
@@ -361,6 +367,8 @@ function PortfolioHero({
   avgRate: number;
   totalPhotos: number;
   photos: Array<{ url: string; roomName: string; listingName: string }>;
+  /** Where the hero "Add room" button goes — the rooms editor, not the portfolio. */
+  addRoomHref: string;
 }) {
   const hasRooms = totalRooms > 0;
 
@@ -461,7 +469,7 @@ function PortfolioHero({
             {/* Actions */}
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               <Link
-                href="/dashboard/listings"
+                href={addRoomHref}
                 className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-[0_12px_32px_-10px_rgba(16,185,129,0.35)] hover:bg-brand-accent"
               >
                 <Plus className="h-4 w-4" />
@@ -749,6 +757,7 @@ function ListingGroupCard({ group }: { group: Group }) {
     .filter(Boolean)
     .join(", ");
   const editListingHref = `/dashboard/listings/${listing.id}/edit`;
+  const addRoomHref = `/dashboard/listings/${listing.id}/edit?tab=rooms&add=1`;
 
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -811,7 +820,7 @@ function ListingGroupCard({ group }: { group: Group }) {
         </div>
         <div className="flex items-center gap-1.5">
           <Link
-            href={editListingHref}
+            href={addRoomHref}
             className="inline-flex items-center gap-1 rounded-[8px] border border-brand-line px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-light/60"
           >
             <Plus className="h-3 w-3" />
@@ -1070,7 +1079,7 @@ function EmptyStateNoRooms({ listingId }: { listingId: string }) {
         Add a room to let guests book a single bedroom inside this property.
       </p>
       <Link
-        href={`/dashboard/listings/${listingId}/edit`}
+        href={`/dashboard/listings/${listingId}/edit?tab=rooms&add=1`}
         className="mt-1 inline-flex items-center gap-1 rounded-[8px] bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-secondary"
       >
         <Plus className="h-3 w-3" />
