@@ -10,36 +10,48 @@ jobs:
   db-migrate:
     runs-on: ubuntu-latest
     steps:
+      # A migration file changed on main. If the CI secrets aren't configured we
+      # FAIL loudly instead of skipping — a silently-skipped push is exactly how
+      # a pending migration drifts out of sync with the cloud DB (the "column
+      # does not exist" class of runtime error). To resolve a red run:
+      #   • configure the 3 secrets below so CI auto-applies, OR
+      #   • apply locally with `supabase db push --linked`, then re-run this job.
       - name: Check for required secrets
-        id: secrets
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           if [ -z "$DB_URL" ] || [ -z "$ACCESS_TOKEN" ] || [ -z "$PROJECT_ID" ]; then
-            echo "::warning::Supabase CI secrets not configured (SUPABASE_DB_URL / SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID). Skipping CI migration — apply manually with 'supabase db push --linked'."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Migration changed but Supabase CI secrets are missing (SUPABASE_DB_URL / SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_ID). The migration was NOT applied to the cloud DB. Configure the secrets to auto-apply, or run 'supabase db push --linked' locally — then re-run this job. Do not merge migration changes while this is red."
+            exit 1
           fi
 
       - uses: actions/checkout@v4
-        if: steps.secrets.outputs.configured == 'true'
 
       - uses: supabase/setup-cli@v1
-        if: steps.secrets.outputs.configured == 'true'
         with:
           version: latest
 
       - name: Run migrations
-        if: steps.secrets.outputs.configured == 'true'
-        run: supabase db push --db-url ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Drift guard: after pushing, a dry-run must report nothing left to push.
+      # If anything is still pending the push silently failed — fail the job.
+      - name: Verify no pending migrations
+        run: |
+          OUT="$(supabase db push --dry-run --db-url "${{ secrets.SUPABASE_DB_URL }}" 2>&1)"
+          echo "$OUT"
+          if echo "$OUT" | grep -q "Would push these migrations"; then
+            echo "::error::Migrations are still pending after the push — the cloud DB is out of sync. Investigate before merging."
+            exit 1
+          fi
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Regenerate TypeScript types
-        if: steps.secrets.outputs.configured == 'true'
         run: |
           supabase gen types typescript \
             --project-id ${{ secrets.SUPABASE_PROJECT_ID }} \
@@ -48,7 +60,6 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Commit updated types
-        if: steps.secrets.outputs.configured == 'true'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: regenerate database types [skip ci]"
