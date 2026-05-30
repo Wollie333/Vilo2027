@@ -23,7 +23,7 @@ import {
   LANGUAGE_OPTIONS,
   PLANS,
   SA_REGIONS,
-  accountSchema,
+  hostAccountSchema,
   aboutSchema,
   listingSchema,
 } from "./schemas";
@@ -49,7 +49,10 @@ const STEPS = [
 type StepKey = (typeof STEPS)[number]["key"];
 
 type WizardData = {
-  // account
+  // account — captured as two fields; fullName is kept in sync (combined) for
+  // storage + display so downstream code is unchanged.
+  firstName: string;
+  surname: string;
   fullName: string;
   email: string;
   password: string;
@@ -91,8 +94,20 @@ type Prefilled = {
   country: string | null;
 };
 
+function splitName(full: string | null): {
+  firstName: string;
+  surname: string;
+} {
+  const parts = (full ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", surname: "" };
+  return { firstName: parts[0], surname: parts.slice(1).join(" ") };
+}
+
 function initialData(prefilled: Prefilled): WizardData {
+  const { firstName, surname } = splitName(prefilled.fullName);
   return {
+    firstName,
+    surname,
     fullName: prefilled.fullName ?? "",
     email: prefilled.email ?? "",
     password: "",
@@ -169,7 +184,8 @@ const SIDE_RAIL: Record<
 // Map Zod schema field names (snake_case) → wizard state field names
 // (camelCase) so we can render errors next to the right inputs.
 const ERROR_KEY_MAP: Record<string, string> = {
-  full_name: "fullName",
+  first_name: "firstName",
+  surname: "surname",
   listing_name: "listingName",
   // Everything else (email, password, terms, phone, bio, city, rate, …)
   // already matches between schema and state, so no rewrite needed.
@@ -273,8 +289,9 @@ export function Wizard({
   }
 
   function handleAccountNext() {
-    const parsed = accountSchema.safeParse({
-      full_name: data.fullName,
+    const parsed = hostAccountSchema.safeParse({
+      first_name: data.firstName,
+      surname: data.surname,
       email: data.email,
       password: data.password,
       terms: data.terms,
@@ -286,7 +303,8 @@ export function Wizard({
     setErrors({});
     startCreate(async () => {
       const result = await createAccountAction({
-        full_name: data.fullName,
+        first_name: data.firstName,
+        surname: data.surname,
         email: data.email,
         password: data.password,
         terms: data.terms,
@@ -792,15 +810,36 @@ function StepAccount({
           <div className="h-px flex-1 bg-brand-line" />
         </div>
 
-        <FormField label="Full name" error={errors.fullName}>
-          <TextInput
-            value={data.fullName}
-            onChange={(e) => patch({ fullName: e.target.value })}
-            placeholder="Lerato Mokoena"
-            disabled={pending}
-            autoComplete="name"
-          />
-        </FormField>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Name" error={errors.firstName}>
+            <TextInput
+              value={data.firstName}
+              onChange={(e) =>
+                patch({
+                  firstName: e.target.value,
+                  fullName: `${e.target.value} ${data.surname}`.trim(),
+                })
+              }
+              placeholder="Lerato"
+              disabled={pending}
+              autoComplete="given-name"
+            />
+          </FormField>
+          <FormField label="Surname" error={errors.surname}>
+            <TextInput
+              value={data.surname}
+              onChange={(e) =>
+                patch({
+                  surname: e.target.value,
+                  fullName: `${data.firstName} ${e.target.value}`.trim(),
+                })
+              }
+              placeholder="Mokoena"
+              disabled={pending}
+              autoComplete="family-name"
+            />
+          </FormField>
+        </div>
 
         <FormField label="Email" error={errors.email}>
           <TextInput
