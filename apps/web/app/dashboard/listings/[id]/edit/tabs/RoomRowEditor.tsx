@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { randomId } from "@/lib/randomId";
 
 import {
   deleteListingPhotoAction,
@@ -829,7 +830,7 @@ function PhotosTab({
     if (!files || files.length === 0) return;
     const file = files[0];
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
+    const path = `${listingId}/${randomId()}.${ext}`;
     startUpload(async () => {
       // Direct browser → Storage upload (RLS-protected), then record the row —
       // avoids the Server Action / Vercel request-body cap on large photos.

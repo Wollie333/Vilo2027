@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { randomId } from "@/lib/randomId";
 
 import {
   deleteListingPhotoAction,
@@ -43,7 +44,7 @@ export function RoomPhotosSection({
     if (!files || files.length === 0) return;
     const file = files[0];
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
+    const path = `${listingId}/${randomId()}.${ext}`;
     startUpload(async () => {
       // Direct browser → Storage upload (RLS-protected), then record the row —
       // avoids the Server Action / Vercel request-body cap on large photos.
