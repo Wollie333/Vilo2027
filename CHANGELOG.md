@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Add-ons redesign: archive grid + full editor page — branch `feat/setup-wizard-rework`
+
+### Built
+- **Add-ons archive** (`/dashboard/addons`) — redesigned to a card grid matching the
+  "Add-ons Archive" design: stat tiles (Active / Drafts / Categories), category filter
+  tabs + search + sort, and add-on cards (image, status pill, name, description, price,
+  category). "New add-on" creates a draft and opens the editor.
+- **Add-on editor** (`/dashboard/addons/[id]`) — new full-page editor matching the
+  "Add-on Editor" design: summary card, Details / Pricing / Availability / Photo sections,
+  a "How is it charged?" picker (rich labels for each pricing model), category chips,
+  VAT-included toggle, lead-time chips, daily capacity, guest-preview, "Ready to publish"
+  checklist, Active toggle, delete, and a sticky save bar.
+- Replaces the old inline accordion (`AddonsManager` removed).
+
+### Migrations
+- `20260531000001_addon_editor_fields.sql` — adds `addons.category`, `addons.vat_included`,
+  `addons.daily_capacity` (single source of truth: DB → generated types → Zod schema).
+
+### Notes
+- `pnpm build` + `pnpm lint` pass clean. Per-listing/room availability and the pre-arrival/
+  in-stay channels are surfaced read-only (managed in the listing editor / "Coming soon"),
+  not faked.
+
 ## 2026-05-30 — Checkout: listing context, room picker, add-ons, contact capture, payment methods — branch `feat/setup-wizard-rework`
 
 ### Built

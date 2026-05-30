@@ -41,8 +41,10 @@ export type Database = {
     Tables: {
       addons: {
         Row: {
+          category: string | null
           created_at: string
           currency: string
+          daily_capacity: number | null
           description: string | null
           host_id: string
           id: string
@@ -57,10 +59,13 @@ export type Database = {
           sort_order: number
           unit_price: number
           updated_at: string
+          vat_included: boolean
         }
         Insert: {
+          category?: string | null
           created_at?: string
           currency?: string
+          daily_capacity?: number | null
           description?: string | null
           host_id: string
           id?: string
@@ -75,10 +80,13 @@ export type Database = {
           sort_order?: number
           unit_price: number
           updated_at?: string
+          vat_included?: boolean
         }
         Update: {
+          category?: string | null
           created_at?: string
           currency?: string
+          daily_capacity?: number | null
           description?: string | null
           host_id?: string
           id?: string
@@ -93,6 +101,7 @@ export type Database = {
           sort_order?: number
           unit_price?: number
           updated_at?: string
+          vat_included?: boolean
         }
         Relationships: [
           {
@@ -598,6 +607,7 @@ export type Database = {
       bookings: {
         Row: {
           actioned_by: string | null
+          additional_guests: Json
           base_amount: number
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -644,6 +654,7 @@ export type Database = {
         }
         Insert: {
           actioned_by?: string | null
+          additional_guests?: Json
           base_amount: number
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -690,6 +701,7 @@ export type Database = {
         }
         Update: {
           actioned_by?: string | null
+          additional_guests?: Json
           base_amount?: number
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -1677,10 +1689,14 @@ export type Database = {
           deleted_at: string | null
           display_name: string
           handle: string
+          highlights: string[]
           id: string
           is_active: boolean
+          is_superhost: boolean
           is_verified: boolean
           languages_spoken: string[] | null
+          payout_verified: boolean
+          phone_verified: boolean
           response_rate: number | null
           social_links: Json | null
           total_bookings: number
@@ -1688,10 +1704,6 @@ export type Database = {
           updated_at: string
           user_id: string
           website_url: string | null
-          highlights: string[]
-          is_superhost: boolean
-          phone_verified: boolean
-          payout_verified: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -1703,10 +1715,14 @@ export type Database = {
           deleted_at?: string | null
           display_name: string
           handle: string
+          highlights?: string[]
           id?: string
           is_active?: boolean
+          is_superhost?: boolean
           is_verified?: boolean
           languages_spoken?: string[] | null
+          payout_verified?: boolean
+          phone_verified?: boolean
           response_rate?: number | null
           social_links?: Json | null
           total_bookings?: number
@@ -1714,10 +1730,6 @@ export type Database = {
           updated_at?: string
           user_id: string
           website_url?: string | null
-          highlights?: string[]
-          is_superhost?: boolean
-          phone_verified?: boolean
-          payout_verified?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -1729,10 +1741,14 @@ export type Database = {
           deleted_at?: string | null
           display_name?: string
           handle?: string
+          highlights?: string[]
           id?: string
           is_active?: boolean
+          is_superhost?: boolean
           is_verified?: boolean
           languages_spoken?: string[] | null
+          payout_verified?: boolean
+          phone_verified?: boolean
           response_rate?: number | null
           social_links?: Json | null
           total_bookings?: number
@@ -1740,10 +1756,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website_url?: string | null
-          highlights?: string[]
-          is_superhost?: boolean
-          phone_verified?: boolean
-          payout_verified?: boolean
         }
         Relationships: [
           {

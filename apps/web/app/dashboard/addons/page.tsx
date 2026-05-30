@@ -6,8 +6,8 @@ import { Crown, PackagePlus } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { AddonsManager, type AddonCard } from "./AddonsManager";
-import { type PricingModel } from "./schemas";
+import { AddonsArchive, type AddonCard } from "./AddonsArchive";
+import { type AddonCategory, type PricingModel } from "./schemas";
 
 export const metadata: Metadata = {
   title: "Add-ons · Vilo",
@@ -54,7 +54,7 @@ export default async function AddonsPage() {
     supabase
       .from("addons")
       .select(
-        "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days",
+        "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days, category, vat_included, daily_capacity",
       )
       .eq("host_id", host.id)
       .order("sort_order", { ascending: true }),
@@ -88,14 +88,12 @@ export default async function AddonsPage() {
     isRequired: r.is_required,
     isActive: r.is_active,
     leadTimeDays: r.lead_time_days,
+    category: (r.category as AddonCategory | null) ?? null,
+    vatIncluded: r.vat_included,
+    dailyCapacity: r.daily_capacity,
   }));
 
-  return (
-    <div className="space-y-6">
-      <Header />
-      <AddonsManager initial={addons} />
-    </div>
-  );
+  return <AddonsArchive initial={addons} />;
 }
 
 function Header() {

@@ -113,6 +113,9 @@ export async function createAddonAction(
       is_required: parsed.data.is_required,
       is_active: parsed.data.is_active,
       lead_time_days: parsed.data.lead_time_days,
+      category: parsed.data.category ?? null,
+      vat_included: parsed.data.vat_included,
+      daily_capacity: parsed.data.daily_capacity ?? null,
       sort_order: nextSort,
     })
     .select("id")
@@ -123,6 +126,28 @@ export async function createAddonAction(
 
   revalidatePath("/dashboard/addons");
   return { ok: true, data: { id: row.id } };
+}
+
+/** Create a blank draft add-on (hidden from guests) and return its id so the
+ * archive can open the editor on it. */
+export async function createDraftAddonAction(): Promise<
+  ActionResult<{ id: string }>
+> {
+  return createAddonAction({
+    name: "Untitled add-on",
+    description: null,
+    pricing_model: "per_stay",
+    unit_price: 0,
+    currency: "ZAR",
+    min_quantity: 1,
+    max_quantity: null,
+    is_required: false,
+    is_active: false,
+    lead_time_days: 0,
+    category: null,
+    vat_included: false,
+    daily_capacity: null,
+  });
 }
 
 export async function updateAddonAction(
@@ -158,6 +183,9 @@ export async function updateAddonAction(
       is_required: parsed.data.is_required,
       is_active: parsed.data.is_active,
       lead_time_days: parsed.data.lead_time_days,
+      category: parsed.data.category ?? null,
+      vat_included: parsed.data.vat_included,
+      daily_capacity: parsed.data.daily_capacity ?? null,
     })
     .eq("id", addonId);
   if (error) {
