@@ -126,6 +126,7 @@ export type EditorRoom = {
   is_active: boolean;
   // Drill-in editor fields (migration 20260524000004).
   room_size_sqm: number | null;
+  bed_type: string | null;
   view_type: string | null;
   experiences: string[];
   // Enterprise fields (migration 20260524000007).
@@ -136,6 +137,12 @@ export type EditorRoom = {
   private_entrance: boolean;
   floor_number: number | null;
   inventory_count: number;
+  // Pricing model (migration 20260530000001).
+  pricing_mode: "per_room" | "per_person" | "per_room_plus_extra";
+  price_per_person: number | null;
+  base_occupancy: number | null;
+  extra_guest_price: number | null;
+  featured_photo_id: string | null;
   beds: { bed_kind: string; quantity: number }[];
   // Optional — populated by /dashboard/rooms so the inline tabbed editor
   // has everything it needs without a follow-up fetch. The listing editor

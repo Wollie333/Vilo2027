@@ -1,11 +1,8 @@
 "use client";
 
 import {
-  BedDouble,
   Image as ImageIcon,
   Info,
-  Minus,
-  Plus,
   Save,
   Settings2,
   Sparkles,
@@ -20,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -29,27 +25,17 @@ import {
   deleteRoomAction,
   registerListingPhotoAction,
   setRoomAmenityAction,
-  setRoomBedsAction,
   setRoomFeaturedPhotoAction,
   updateRoomAction,
 } from "../actions";
 import type { EditorRoom } from "../Editor";
-import { VIEW_TYPES, EXPERIENCES } from "../roomEnums";
-import {
-  AMENITY_OPTIONS,
-  BED_KINDS,
-  type BedKind,
-  type BedInput,
-} from "../schemas";
+import { RoomDetailsForm } from "../rooms/[roomId]/sections/RoomDetailsForm";
+import type { RoomEditorRoom } from "../rooms/[roomId]/RoomEditor";
+import { AMENITY_OPTIONS } from "../schemas";
 
 function toInt(v: string): number | null {
   if (v === "") return null;
   const n = parseInt(v, 10);
-  return Number.isFinite(n) ? n : null;
-}
-function toNum(v: string): number | null {
-  if (v === "") return null;
-  const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
 function numToStr(n: number | null | undefined, fallback = ""): string {
@@ -57,6 +43,32 @@ function numToStr(n: number | null | undefined, fallback = ""): string {
 }
 
 type PhotoCard = { id: string; url: string };
+
+/** Map the listing-editor room shape to the canonical form's shape. */
+function toRoomEditorRoom(room: EditorRoom): RoomEditorRoom {
+  return {
+    id: room.id,
+    name: room.name,
+    description: room.description,
+    bedrooms: room.bedrooms,
+    bathrooms: room.bathrooms,
+    max_guests: room.max_guests,
+    base_price: room.base_price,
+    weekend_price: room.weekend_price,
+    cleaning_fee: room.cleaning_fee,
+    is_active: room.is_active,
+    room_size_sqm: room.room_size_sqm,
+    bed_type: room.bed_type,
+    view_type: room.view_type,
+    experiences: room.experiences,
+    featured_photo_id: room.featured_photo_id,
+    beds: room.beds,
+    pricing_mode: room.pricing_mode,
+    price_per_person: room.price_per_person,
+    base_occupancy: room.base_occupancy,
+    extra_guest_price: room.extra_guest_price,
+  };
+}
 
 export function RoomRowEditor({
   listingId,
@@ -69,9 +81,7 @@ export function RoomRowEditor({
   onUpdated: (room: EditorRoom) => void;
   onDeleted: () => void;
 }) {
-  const [tab, setTab] = useState<"details" | "beds" | "amenities" | "photos">(
-    "details",
-  );
+  const [tab, setTab] = useState<"details" | "amenities" | "photos">("details");
 
   return (
     <div className="border-t border-brand-line bg-brand-light/30">
@@ -85,19 +95,13 @@ export function RoomRowEditor({
             value="details"
             className="gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
           >
-            <Settings2 className="h-3.5 w-3.5" /> Details
-          </TabsTrigger>
-          <TabsTrigger
-            value="beds"
-            className="gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
-          >
-            <BedDouble className="h-3.5 w-3.5" /> Beds &amp; view
+            <Settings2 className="h-3.5 w-3.5" /> Details, beds &amp; pricing
           </TabsTrigger>
           <TabsTrigger
             value="amenities"
             className="gap-1.5 rounded px-3 py-1.5 text-xs font-medium"
           >
-            <Sparkles className="h-3.5 w-3.5" /> Amenities &amp; policies
+            <Sparkles className="h-3.5 w-3.5" /> Amenities &amp; setup
           </TabsTrigger>
           <TabsTrigger
             value="photos"
@@ -107,25 +111,19 @@ export function RoomRowEditor({
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="p-4">
-          <DetailsTab
+        <TabsContent value="details" className="space-y-4 p-4">
+          {/* The single canonical room form — same one the setup wizard and the
+              standalone room page use. No duplicate details/beds logic here. */}
+          <RoomDetailsForm
             listingId={listingId}
-            room={room}
-            onUpdated={onUpdated}
-            onDeleted={onDeleted}
+            room={toRoomEditorRoom(room)}
+            onSaved={(patch) => onUpdated({ ...room, ...patch })}
           />
-        </TabsContent>
-
-        <TabsContent value="beds" className="p-4">
-          <BedsViewTab
-            listingId={listingId}
-            room={room}
-            onUpdated={onUpdated}
-          />
+          <DeleteRow listingId={listingId} room={room} onDeleted={onDeleted} />
         </TabsContent>
 
         <TabsContent value="amenities" className="p-4">
-          <AmenitiesPoliciesTab
+          <AmenitiesSetupTab
             listingId={listingId}
             room={room}
             onUpdated={onUpdated}
@@ -140,79 +138,18 @@ export function RoomRowEditor({
   );
 }
 
-// ─── Details tab ──────────────────────────────────────────────────
+// ─── Delete control (lives under the details form) ────────────────
 
-function DetailsTab({
+function DeleteRow({
   listingId,
   room,
-  onUpdated,
   onDeleted,
 }: {
   listingId: string;
   room: EditorRoom;
-  onUpdated: (room: EditorRoom) => void;
   onDeleted: () => void;
 }) {
-  const [savePending, startSave] = useTransition();
-  const [deletePending, startDelete] = useTransition();
-
-  const [name, setName] = useState(room.name);
-  const [description, setDescription] = useState(room.description ?? "");
-  const [bedrooms, setBedrooms] = useState(numToStr(room.bedrooms, "1"));
-  const [bathrooms, setBathrooms] = useState(numToStr(room.bathrooms, "0"));
-  const [maxGuests, setMaxGuests] = useState(numToStr(room.max_guests, "2"));
-  const [roomSize, setRoomSize] = useState(numToStr(room.room_size_sqm));
-  const [floorNumber, setFloorNumber] = useState(numToStr(room.floor_number));
-  const [inventoryCount, setInventoryCount] = useState(
-    numToStr(room.inventory_count, "1"),
-  );
-  const [basePrice, setBasePrice] = useState(numToStr(room.base_price, "0"));
-  const [weekendPrice, setWeekendPrice] = useState(
-    numToStr(room.weekend_price),
-  );
-  const [cleaningFee, setCleaningFee] = useState(
-    numToStr(room.cleaning_fee, "0"),
-  );
-  const [isActive, setIsActive] = useState(room.is_active);
-
-  function save() {
-    startSave(async () => {
-      const result = await updateRoomAction(listingId, room.id, {
-        name: name.trim(),
-        description: description.trim().length > 0 ? description.trim() : null,
-        bedrooms: toInt(bedrooms),
-        bathrooms: toInt(bathrooms),
-        max_guests: toInt(maxGuests) ?? room.max_guests,
-        base_price: toNum(basePrice) ?? room.base_price,
-        weekend_price: toNum(weekendPrice),
-        cleaning_fee: toNum(cleaningFee) ?? 0,
-        is_active: isActive,
-        room_size_sqm: toNum(roomSize),
-        floor_number: toInt(floorNumber),
-        inventory_count: toInt(inventoryCount) ?? 1,
-      });
-      if (result.ok) {
-        onUpdated({
-          ...room,
-          name: name.trim(),
-          description: description.trim().length > 0 ? description : null,
-          bedrooms: toInt(bedrooms),
-          bathrooms: toInt(bathrooms),
-          max_guests: toInt(maxGuests) ?? room.max_guests,
-          base_price: toNum(basePrice) ?? room.base_price,
-          weekend_price: toNum(weekendPrice),
-          cleaning_fee: toNum(cleaningFee) ?? 0,
-          is_active: isActive,
-          room_size_sqm: toNum(roomSize),
-          floor_number: toInt(floorNumber),
-          inventory_count: toInt(inventoryCount) ?? 1,
-        });
-        toast.success("Room saved");
-      } else {
-        toast.error(result.error);
-      }
-    });
-  }
+  const [pending, start] = useTransition();
 
   function remove() {
     if (
@@ -222,7 +159,7 @@ function DetailsTab({
     ) {
       return;
     }
-    startDelete(async () => {
+    start(async () => {
       const result = await deleteRoomAction(listingId, room.id);
       if (result.ok) {
         onDeleted();
@@ -234,387 +171,24 @@ function DetailsTab({
   }
 
   return (
-    <div className="space-y-4">
-      <Field label="Room name">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={savePending}
-        />
-      </Field>
-
-      <Field label="Description (optional)">
-        <Textarea
-          rows={3}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          disabled={savePending}
-        />
-      </Field>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Bedrooms">
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={bedrooms}
-            onChange={(e) => setBedrooms(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-        <Field label="Bathrooms">
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            value={bathrooms}
-            onChange={(e) => setBathrooms(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-        <Field label="Max guests">
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={maxGuests}
-            onChange={(e) => setMaxGuests(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Room size (m²)">
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.1"
-            value={roomSize}
-            onChange={(e) => setRoomSize(e.target.value)}
-            disabled={savePending}
-            placeholder="24"
-          />
-        </Field>
-        <Field label="Floor (optional)">
-          <Input
-            type="number"
-            inputMode="numeric"
-            value={floorNumber}
-            onChange={(e) => setFloorNumber(e.target.value)}
-            disabled={savePending}
-            placeholder="1"
-          />
-        </Field>
-        <Field
-          label="Inventory"
-          hint="How many identical units exist (hotel-style)."
-        >
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            value={inventoryCount}
-            onChange={(e) => setInventoryCount(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Base price / night">
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={basePrice}
-            onChange={(e) => setBasePrice(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-        <Field label="Weekend price (optional)">
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={weekendPrice}
-            onChange={(e) => setWeekendPrice(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-        <Field label="Cleaning fee">
-          <Input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={cleaningFee}
-            onChange={(e) => setCleaningFee(e.target.value)}
-            disabled={savePending}
-          />
-        </Field>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm text-brand-dark">
-        <input
-          type="checkbox"
-          checked={isActive}
-          onChange={(e) => setIsActive(e.target.checked)}
-          disabled={savePending}
-          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-        />
-        Bookable
-      </label>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={remove}
-          disabled={deletePending || savePending}
-          className="gap-1.5 text-status-cancelled hover:bg-red-50 hover:text-status-cancelled"
-        >
-          <Trash2 className="h-4 w-4" />
-          {deletePending ? "Deleting…" : "Delete room"}
-        </Button>
-        <Button
-          type="button"
-          onClick={save}
-          disabled={savePending}
-          className="gap-1.5"
-        >
-          <Save className="h-4 w-4" />
-          {savePending ? "Saving…" : "Save details"}
-        </Button>
-      </div>
+    <div className="flex justify-end">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={remove}
+        disabled={pending}
+        className="gap-1.5 text-status-cancelled hover:bg-red-50 hover:text-status-cancelled"
+      >
+        <Trash2 className="h-4 w-4" />
+        {pending ? "Deleting…" : "Delete room"}
+      </Button>
     </div>
   );
 }
 
-// ─── Beds & view tab ──────────────────────────────────────────────
+// ─── Amenities, room policies & setup tab ─────────────────────────
 
-function BedsViewTab({
-  listingId,
-  room,
-  onUpdated,
-}: {
-  listingId: string;
-  room: EditorRoom;
-  onUpdated: (room: EditorRoom) => void;
-}) {
-  const [pending, start] = useTransition();
-  const [beds, setBeds] = useState<BedInput[]>(
-    () =>
-      room.beds.map((b) => ({
-        bed_kind: b.bed_kind as BedKind,
-        quantity: b.quantity,
-      })) ?? [],
-  );
-  const [viewType, setViewType] = useState<string>(room.view_type ?? "");
-  const [experiences, setExperiences] = useState<string[]>(
-    room.experiences ?? [],
-  );
-
-  function addBed() {
-    setBeds([...beds, { bed_kind: "queen", quantity: 1 }]);
-  }
-  function removeBed(idx: number) {
-    setBeds(beds.filter((_, i) => i !== idx));
-  }
-  function updateBed(idx: number, patch: Partial<BedInput>) {
-    setBeds(beds.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
-  }
-  function toggleExperience(label: string) {
-    setExperiences((prev) =>
-      prev.includes(label) ? prev.filter((p) => p !== label) : [...prev, label],
-    );
-  }
-
-  function save() {
-    start(async () => {
-      const [bedsResult, detailsResult] = await Promise.all([
-        setRoomBedsAction(listingId, room.id, beds),
-        updateRoomAction(listingId, room.id, {
-          view_type: viewType.length > 0 ? viewType : null,
-          experiences,
-        }),
-      ]);
-      if (bedsResult.ok && detailsResult.ok) {
-        onUpdated({
-          ...room,
-          beds: beds.map((b) => ({
-            bed_kind: b.bed_kind,
-            quantity: b.quantity,
-          })),
-          view_type: viewType.length > 0 ? viewType : null,
-          experiences,
-        });
-        toast.success("Beds & view saved");
-      } else {
-        toast.error(
-          (!bedsResult.ok && bedsResult.error) ||
-            (!detailsResult.ok && detailsResult.error) ||
-            "Couldn't save.",
-        );
-      }
-    });
-  }
-
-  return (
-    <div className="space-y-5">
-      <div>
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Beds in this room
-          </label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addBed}
-            disabled={pending}
-            className="gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add a bed
-          </Button>
-        </div>
-        <div className="mt-2 space-y-2">
-          {beds.length === 0 ? (
-            <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-3 py-4 text-center text-xs text-brand-mute">
-              No beds yet. Add what&rsquo;s in this room — e.g. 1 King + 2
-              Singles + 1 Sofa bed.
-            </div>
-          ) : (
-            beds.map((b, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 rounded border border-brand-line bg-white px-3 py-2"
-              >
-                <select
-                  value={b.bed_kind}
-                  onChange={(e) =>
-                    updateBed(i, { bed_kind: e.target.value as BedKind })
-                  }
-                  disabled={pending}
-                  className="h-8 rounded border border-brand-line bg-white px-2 text-sm"
-                >
-                  {BED_KINDS.map((k) => (
-                    <option key={k.value} value={k.value}>
-                      {k.label}
-                    </option>
-                  ))}
-                </select>
-                <div className="ml-auto flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateBed(i, { quantity: Math.max(1, b.quantity - 1) })
-                    }
-                    disabled={pending || b.quantity <= 1}
-                    className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
-                    aria-label="Decrease"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <div className="w-8 text-center font-display font-semibold text-brand-ink">
-                    {b.quantity}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateBed(i, { quantity: Math.min(20, b.quantity + 1) })
-                    }
-                    disabled={pending || b.quantity >= 20}
-                    className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
-                    aria-label="Increase"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeBed(i)}
-                  disabled={pending}
-                  className="ml-2 flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
-                  aria-label="Remove bed"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-          View
-        </label>
-        <select
-          value={viewType}
-          onChange={(e) => setViewType(e.target.value)}
-          disabled={pending}
-          className="mt-1 h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark"
-        >
-          <option value="">—</option>
-          {VIEW_TYPES.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-          Experiences{" "}
-          <span className="font-normal normal-case">(pick all that apply)</span>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {EXPERIENCES.map((label) => {
-            const active = experiences.includes(label);
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => toggleExperience(label)}
-                disabled={pending}
-                className={`rounded-pill border px-3 py-1 text-xs font-medium transition-colors ${
-                  active
-                    ? "border-brand-primary bg-brand-primary text-white"
-                    : "border-brand-line bg-white text-brand-dark hover:bg-brand-light/60"
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="flex justify-end pt-2">
-        <Button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="gap-1.5"
-        >
-          <Save className="h-4 w-4" />
-          {pending ? "Saving…" : "Save beds & view"}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Amenities & policies tab ─────────────────────────────────────
-
-function AmenitiesPoliciesTab({
+function AmenitiesSetupTab({
   listingId,
   room,
   onUpdated,
@@ -633,10 +207,16 @@ function AmenitiesPoliciesTab({
     room.wheelchair_accessible,
   );
   const [privateEntrance, setPrivateEntrance] = useState(room.private_entrance);
+  const [floorNumber, setFloorNumber] = useState(numToStr(room.floor_number));
+  const [inventoryCount, setInventoryCount] = useState(
+    numToStr(room.inventory_count, "1"),
+  );
   const [flagsPending, startFlags] = useTransition();
   const [amenityPending, startAmenity] = useTransition();
 
-  function saveFlags() {
+  function saveSetup() {
+    const floor = toInt(floorNumber);
+    const inventory = toInt(inventoryCount) ?? 1;
     startFlags(async () => {
       const result = await updateRoomAction(listingId, room.id, {
         has_ensuite_bathroom: hasEnsuite,
@@ -644,6 +224,8 @@ function AmenitiesPoliciesTab({
         pets_allowed: petsAllowed,
         wheelchair_accessible: wheelchairAccessible,
         private_entrance: privateEntrance,
+        floor_number: floor,
+        inventory_count: inventory,
       });
       if (result.ok) {
         onUpdated({
@@ -653,8 +235,10 @@ function AmenitiesPoliciesTab({
           pets_allowed: petsAllowed,
           wheelchair_accessible: wheelchairAccessible,
           private_entrance: privateEntrance,
+          floor_number: floor,
+          inventory_count: inventory,
         });
-        toast.success("Policies saved");
+        toast.success("Saved");
       } else {
         toast.error(result.error);
       }
@@ -678,12 +262,14 @@ function AmenitiesPoliciesTab({
     });
   }
 
-  const flagsDirty =
+  const setupDirty =
     hasEnsuite !== room.has_ensuite_bathroom ||
     smokingAllowed !== room.smoking_allowed ||
     petsAllowed !== room.pets_allowed ||
     wheelchairAccessible !== room.wheelchair_accessible ||
-    privateEntrance !== room.private_entrance;
+    privateEntrance !== room.private_entrance ||
+    (toInt(floorNumber) ?? null) !== (room.floor_number ?? null) ||
+    (toInt(inventoryCount) ?? 1) !== room.inventory_count;
 
   return (
     <div className="space-y-5">
@@ -723,17 +309,44 @@ function AmenitiesPoliciesTab({
             disabled={flagsPending}
           />
         </div>
-        {flagsDirty ? (
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label="Floor (optional)">
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={floorNumber}
+              onChange={(e) => setFloorNumber(e.target.value)}
+              disabled={flagsPending}
+              placeholder="1"
+            />
+          </Field>
+          <Field
+            label="Inventory"
+            hint="How many identical units exist (hotel-style)."
+          >
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              value={inventoryCount}
+              onChange={(e) => setInventoryCount(e.target.value)}
+              disabled={flagsPending}
+            />
+          </Field>
+        </div>
+
+        {setupDirty ? (
           <div className="mt-3 flex justify-end">
             <Button
               type="button"
-              onClick={saveFlags}
+              onClick={saveSetup}
               disabled={flagsPending}
               size="sm"
               className="gap-1.5"
             >
               <Save className="h-3.5 w-3.5" />
-              {flagsPending ? "Saving…" : "Save policies"}
+              {flagsPending ? "Saving…" : "Save setup"}
             </Button>
           </div>
         ) : null}

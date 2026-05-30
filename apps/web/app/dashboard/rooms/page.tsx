@@ -89,7 +89,7 @@ export default async function RoomsPage({
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
+      "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -111,6 +111,7 @@ export default async function RoomsPage({
         is_active: boolean;
         deleted_at: string | null;
         room_size_sqm: number | string | null;
+        bed_type: string | null;
         view_type: string | null;
         experiences: string[] | null;
         has_ensuite_bathroom: boolean | null;
@@ -120,6 +121,10 @@ export default async function RoomsPage({
         private_entrance: boolean | null;
         floor_number: number | null;
         inventory_count: number | null;
+        pricing_mode: string | null;
+        price_per_person: number | string | null;
+        base_occupancy: number | null;
+        extra_guest_price: number | string | null;
         featured_photo_id: string | null;
         featured_photo: { url: string } | Array<{ url: string }> | null;
         beds: Array<{
@@ -164,6 +169,7 @@ export default async function RoomsPage({
           is_active: r.is_active,
           room_size_sqm:
             r.room_size_sqm == null ? null : Number(r.room_size_sqm),
+          bed_type: r.bed_type ?? null,
           view_type: r.view_type ?? null,
           experiences: r.experiences ?? [],
           has_ensuite_bathroom: r.has_ensuite_bathroom ?? false,
@@ -173,6 +179,14 @@ export default async function RoomsPage({
           private_entrance: r.private_entrance ?? false,
           floor_number: r.floor_number ?? null,
           inventory_count: r.inventory_count ?? 1,
+          pricing_mode: (r.pricing_mode ??
+            "per_room") as EditorRoom["pricing_mode"],
+          price_per_person:
+            r.price_per_person == null ? null : Number(r.price_per_person),
+          base_occupancy: r.base_occupancy ?? null,
+          extra_guest_price:
+            r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+          featured_photo_id: r.featured_photo_id ?? null,
           beds,
           featuredPhotoUrl: fp?.url ?? null,
           featuredPhotoId: r.featured_photo_id ?? null,

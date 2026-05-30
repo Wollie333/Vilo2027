@@ -108,7 +108,7 @@ export default async function EditListingPage({
     supabase
       .from("listing_rooms")
       .select(
-        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sort_order )",
       )
       .eq("listing_id", params.id)
       .is("deleted_at", null)
@@ -171,6 +171,7 @@ export default async function EditListingPage({
       sort_order: r.sort_order,
       is_active: r.is_active,
       room_size_sqm: r.room_size_sqm == null ? null : Number(r.room_size_sqm),
+      bed_type: r.bed_type ?? null,
       view_type: r.view_type ?? null,
       experiences: (r.experiences as string[] | null) ?? [],
       has_ensuite_bathroom: r.has_ensuite_bathroom ?? false,
@@ -180,6 +181,14 @@ export default async function EditListingPage({
       private_entrance: r.private_entrance ?? false,
       floor_number: r.floor_number ?? null,
       inventory_count: r.inventory_count ?? 1,
+      pricing_mode: (r.pricing_mode ??
+        "per_room") as EditorRoom["pricing_mode"],
+      price_per_person:
+        r.price_per_person == null ? null : Number(r.price_per_person),
+      base_occupancy: r.base_occupancy ?? null,
+      extra_guest_price:
+        r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+      featured_photo_id: r.featured_photo_id ?? null,
       beds: rawBeds
         .sort((a, b) => a.sort_order - b.sort_order)
         .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
