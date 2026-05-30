@@ -31,6 +31,52 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Enterprise room management: bed-derived capacity + per-room pricing modes — branch `feat/setup-wizard-rework`
+
+### Built
+- **Bed editor + derived capacity** — one canonical `RoomDetailsForm` (used by the
+  setup wizard, the standalone room page, and the listing-editor rooms tab) now
+  manages a room's beds (add/remove, kind + qty, incl. the new **Futon**). A room's
+  `max_guests` is **derived strictly from its beds** (Σ bed capacity × qty) and shown
+  live as "Sleeps N" — never hand-typed.
+- **Three pricing modes per room** — `per_room` (flat + optional weekend),
+  `per_person` (rate × guests/night), `per_room_plus_extra` (base covers
+  `base_occupancy`, then `extra_guest_price` per extra guest). Flat cleaning fee in
+  every mode.
+- **`roomBeds.ts`** — single source of truth for bed kinds + per-kind capacities +
+  `roomCapacityFromBeds()`. **`roomDisplay.ts`** gains shared `roomNightlyBase` /
+  `roomFromNightly` / `roomPriceLabel` used by the grid, cart, and server alike.
+- **Booking flow** — guests set guests *per room* (capped at each room's capacity);
+  the cart, confirm page, and `createBookingAction` all price each room by its mode.
+  Public room cards show the right label ("R900/night", "R300/person/night",
+  "R900/night base").
+
+### Changed
+- The inline `RoomRowEditor`'s duplicate Details/Beds tabs are retired — it renders
+  the shared form now (no drift). Room flags + floor/inventory moved to its
+  "Amenities & setup" tab.
+- `recomputeListingFromRooms` now uses each room's effective "from" price by mode.
+- `setRoomBedsAction` derives + writes `max_guests` and recomputes the listing.
+
+### Migrations
+- `20260530000001_room_enterprise_pricing.sql` — adds `'futon'` to the `room_beds`
+  bed-kind CHECK; adds `listing_rooms.pricing_mode` / `price_per_person` /
+  `base_occupancy` / `extra_guest_price`; backfills `max_guests` from beds. Applied to
+  cloud + DB types regenerated.
+
+### Notes
+- Server is the price source of truth — `createBookingAction` recomputes per room and
+  validates per-room guests against bed-derived capacity; the client never sets price.
+- Onboarding / finish-setup verified green throughout (the wizard reuses the same form).
+
+### Commit
+- `feat(rooms): phase 1 — schema for bed capacities + pricing modes` — `ee97c6f`
+- `feat(rooms): phase 2a — canonical form gains bed editor…` — `1002678`
+- `refactor(rooms): phase 2b — listing editor uses the one canonical room form` — `4b8f01b`
+- `feat(rooms): phase 3 — booking flow honours per-room pricing modes` — `632203c`
+
+---
+
 ## 2026-05-30 — Settings pages adopt the setup dark-hero + chip-tab design — branch `feat/setup-wizard-rework`
 
 ### Built
