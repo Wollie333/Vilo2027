@@ -124,7 +124,7 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
     // trigger_booking_confirmed in 20260501000013_create_triggers.sql
     // inserts blocked_dates rows automatically when status flips to
     // confirmed. No duplication here per AGENT_RULES.md §4.2.
-    await supabase
+    const { data: confirmed } = await supabase
       .from("bookings")
       .update({
         status: "confirmed",
@@ -132,7 +132,36 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
         confirmed_at: new Date().toISOString(),
       })
       .eq("id", payment.booking_id)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id, guest_id, host_id")
+      .maybeSingle();
+
+    // Enqueue the confirmation emails — the drain cron renders + sends them
+    // (booking_confirmed_guest / _host resolvers hydrate from booking_id).
+    // Guarded by the transition above, so duplicate webhooks are idempotent.
+    // Manual host-approved bookings email via dispatchEvent instead; a paid
+    // booking is auto-confirmed only here, so there's no double-send.
+    if (confirmed) {
+      const queueRows: Record<string, unknown>[] = [];
+      if (confirmed.guest_id) {
+        queueRows.push({
+          type: "booking_confirmed_guest",
+          guest_id: confirmed.guest_id,
+          user_id: confirmed.guest_id,
+          payload: { booking_id: confirmed.id },
+        });
+      }
+      if (confirmed.host_id) {
+        queueRows.push({
+          type: "booking_confirmed_host",
+          host_id: confirmed.host_id,
+          payload: { booking_id: confirmed.id },
+        });
+      }
+      if (queueRows.length > 0) {
+        await supabase.from("notification_queue").insert(queueRows);
+      }
+    }
     return;
   }
 
