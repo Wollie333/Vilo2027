@@ -137,12 +137,22 @@ export function PhotosManager({
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const list = e.target.files;
+    if (!list || list.length === 0) {
+      e.target.value = "";
+      return;
+    }
+    const files = Array.from(list);
     e.target.value = "";
-    if (!list || list.length === 0) return;
-    void uploadFiles(Array.from(list));
+    // Immediate, unmissable confirmation that the picker → handler fired.
+    toast(`Adding ${files.length} photo${files.length === 1 ? "" : "s"}…`);
+    void uploadFiles(files);
   }
 
-  function onDrop(e: React.DragEvent<HTMLLabelElement>) {
+  function openPicker() {
+    if (!uploading) inputRef.current?.click();
+  }
+
+  function onDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDropTarget(false);
     const list = e.dataTransfer.files;
@@ -150,7 +160,7 @@ export function PhotosManager({
     void uploadFiles(Array.from(list));
   }
 
-  function onDragOver(e: React.DragEvent<HTMLLabelElement>) {
+  function onDragOver(e: React.DragEvent<HTMLDivElement>) {
     // Only highlight when files are being dragged in — ignore in-page card
     // reorder events that bubble up here.
     if (e.dataTransfer.types.includes("Files")) {
@@ -324,7 +334,16 @@ export function PhotosManager({
           );
         })}
 
-        <label
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={openPicker}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              openPicker();
+            }
+          }}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
@@ -332,17 +351,8 @@ export function PhotosManager({
             isDropTarget
               ? "border-brand-primary bg-brand-accent/60 text-brand-primary"
               : "border-brand-line bg-brand-light/60 text-brand-mute hover:border-brand-primary hover:text-brand-primary"
-          } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+          } ${uploading ? "opacity-60" : ""}`}
         >
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept="image/jpeg,image/png,image/webp"
-            className="sr-only"
-            onChange={onFileInput}
-            disabled={uploading}
-          />
           <UploadCloud className="h-7 w-7" />
           <div className="text-xs font-medium leading-tight">
             {uploading ? (
@@ -361,8 +371,18 @@ export function PhotosManager({
           <div className="text-[10px] text-brand-mute/80">
             Multiple files OK · up to 8 MB each
           </div>
-        </label>
+        </div>
       </div>
+
+      {/* Always-mounted, never-disabled file input (triggered via openPicker). */}
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={onFileInput}
+      />
 
       {photos.length === 0 ? (
         <p className="mt-4 text-xs text-brand-mute">
