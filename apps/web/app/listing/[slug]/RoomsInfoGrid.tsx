@@ -1,6 +1,6 @@
 import { BedDouble, Users } from "lucide-react";
 
-import { bedSummary, roomFlagPills, type PublicRoom } from "./RoomsGrid";
+import { bedSummary, roomFlagPills, type PublicRoom } from "./roomDisplay";
 
 // Display-only room cards for whole-listing mode. Same shape as RoomsGrid
 // but without per-room pricing or the Add-to-cart button — rooms are
