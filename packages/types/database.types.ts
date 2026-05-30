@@ -1688,6 +1688,10 @@ export type Database = {
           updated_at: string
           user_id: string
           website_url: string | null
+          highlights: string[]
+          is_superhost: boolean
+          phone_verified: boolean
+          payout_verified: boolean
         }
         Insert: {
           avatar_url?: string | null
@@ -1710,6 +1714,10 @@ export type Database = {
           updated_at?: string
           user_id: string
           website_url?: string | null
+          highlights?: string[]
+          is_superhost?: boolean
+          phone_verified?: boolean
+          payout_verified?: boolean
         }
         Update: {
           avatar_url?: string | null
@@ -1732,6 +1740,10 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website_url?: string | null
+          highlights?: string[]
+          is_superhost?: boolean
+          phone_verified?: boolean
+          payout_verified?: boolean
         }
         Relationships: [
           {
@@ -4137,6 +4149,12 @@ export type Database = {
           listing_id: string
           publish_at: string | null
           rating: number
+          rating_accuracy: number | null
+          rating_checkin: number | null
+          rating_cleanliness: number | null
+          rating_communication: number | null
+          rating_location: number | null
+          rating_value: number | null
           review_token: string | null
           token_expires_at: string | null
           updated_at: string
@@ -4159,6 +4177,12 @@ export type Database = {
           listing_id: string
           publish_at?: string | null
           rating: number
+          rating_accuracy?: number | null
+          rating_checkin?: number | null
+          rating_cleanliness?: number | null
+          rating_communication?: number | null
+          rating_location?: number | null
+          rating_value?: number | null
           review_token?: string | null
           token_expires_at?: string | null
           updated_at?: string
@@ -4181,6 +4205,12 @@ export type Database = {
           listing_id?: string
           publish_at?: string | null
           rating?: number
+          rating_accuracy?: number | null
+          rating_checkin?: number | null
+          rating_cleanliness?: number | null
+          rating_communication?: number | null
+          rating_location?: number | null
+          rating_value?: number | null
           review_token?: string | null
           token_expires_at?: string | null
           updated_at?: string

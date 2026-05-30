@@ -17,6 +17,64 @@ const RATING_LABELS: Record<number, string> = {
   5: "Outstanding",
 };
 
+// Optional per-category sub-ratings → reviews.rating_* columns.
+const CATEGORIES = [
+  { key: "rating_cleanliness", label: "Cleanliness" },
+  { key: "rating_communication", label: "Communication" },
+  { key: "rating_checkin", label: "Check-in" },
+  { key: "rating_accuracy", label: "Accuracy" },
+  { key: "rating_location", label: "Location" },
+  { key: "rating_value", label: "Value" },
+] as const;
+
+type CategoryKey = (typeof CATEGORIES)[number]["key"];
+
+/** Compact 1–5 star row for an optional category rating. */
+function CategoryStars({
+  label,
+  value,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (n: number) => void;
+  disabled?: boolean;
+}) {
+  const [hover, setHover] = useState(0);
+  const display = hover || value;
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-sm text-brand-ink">{label}</span>
+      <div
+        className="inline-flex items-center gap-0.5"
+        onMouseLeave={() => setHover(0)}
+      >
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            aria-label={`${label}: ${n} ${n === 1 ? "star" : "stars"}`}
+            onMouseEnter={() => setHover(n)}
+            onFocus={() => setHover(n)}
+            onClick={() => onChange(value === n ? 0 : n)}
+            className="rounded p-0.5 transition-colors hover:bg-brand-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:cursor-not-allowed"
+          >
+            <Star
+              className={`h-5 w-5 transition-colors ${
+                n <= display
+                  ? "fill-amber-400 text-amber-400"
+                  : "text-brand-mute/40"
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function ReviewSubmissionForm({
   bookingId,
   token,
@@ -28,6 +86,15 @@ export function ReviewSubmissionForm({
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
   const [body, setBody] = useState("");
+  // 0 = unset (submitted as null); each maps to a reviews.rating_* column.
+  const [categories, setCategories] = useState<Record<CategoryKey, number>>({
+    rating_cleanliness: 0,
+    rating_communication: 0,
+    rating_checkin: 0,
+    rating_accuracy: 0,
+    rating_location: 0,
+    rating_value: 0,
+  });
   const [pending, start] = useTransition();
   const display = hover || rating;
   const remaining = MAX - body.length;
@@ -41,6 +108,12 @@ export function ReviewSubmissionForm({
       const result = await submitReviewAction(bookingId, token, {
         rating,
         body: body.trim() || null,
+        rating_cleanliness: categories.rating_cleanliness || null,
+        rating_communication: categories.rating_communication || null,
+        rating_checkin: categories.rating_checkin || null,
+        rating_accuracy: categories.rating_accuracy || null,
+        rating_location: categories.rating_location || null,
+        rating_value: categories.rating_value || null,
       });
       if (result.ok) {
         toast.success("Thanks — your review has been submitted.");
@@ -90,6 +163,26 @@ export function ReviewSubmissionForm({
         </div>
         <div className="mt-2 h-5 text-[13px] font-medium text-brand-ink">
           {display > 0 ? RATING_LABELS[display] : "Tap a star to rate"}
+        </div>
+      </fieldset>
+
+      {/* Category sub-ratings (optional) */}
+      <fieldset className="rounded border border-brand-line px-4 py-3">
+        <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+          Rate by category (optional)
+        </legend>
+        <div className="mt-1 space-y-2.5">
+          {CATEGORIES.map((cat) => (
+            <CategoryStars
+              key={cat.key}
+              label={cat.label}
+              value={categories[cat.key]}
+              disabled={pending}
+              onChange={(n) =>
+                setCategories((prev) => ({ ...prev, [cat.key]: n }))
+              }
+            />
+          ))}
         </div>
       </fieldset>
 

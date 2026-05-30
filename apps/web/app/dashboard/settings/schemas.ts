@@ -51,6 +51,11 @@ export const profileSchema = z.object({
     .array(z.string().trim().min(1).max(40))
     .max(20, "Pick up to 20 languages.")
     .optional(),
+  // Short host highlights shown on the public page (e.g. "Stargazing & hiking").
+  highlights: z
+    .array(z.string().trim().min(1).max(28))
+    .max(4, "Add up to 4 highlights.")
+    .optional(),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 

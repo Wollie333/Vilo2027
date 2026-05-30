@@ -53,6 +53,7 @@ export function StepProfile({ host, profile, emailVerified, onSaved }: Props) {
         bio: host.bio,
         website_url: host.website_url,
         languages_spoken: host.languages_spoken,
+        highlights: host.highlights,
       }}
       host={{ handle: host.handle, isVerified: false }}
       emailVerified={emailVerified}
@@ -65,6 +66,7 @@ export function StepProfile({ host, profile, emailVerified, onSaved }: Props) {
             avatar_url: v.avatar_url ?? "",
             website_url: v.website_url ?? "",
             languages_spoken: v.languages_spoken ?? [],
+            highlights: v.highlights ?? [],
           },
           profile: { full_name: v.full_name, phone: v.phone ?? "" },
         });

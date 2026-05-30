@@ -28,7 +28,7 @@ export default async function SettingsProfilePage() {
     supabase
       .from("hosts")
       .select(
-        "display_name, handle, bio, website_url, is_verified, avatar_url, languages_spoken",
+        "display_name, handle, bio, website_url, is_verified, avatar_url, languages_spoken, highlights",
       )
       .eq("user_id", user!.id)
       .maybeSingle(),
@@ -76,6 +76,7 @@ export default async function SettingsProfilePage() {
               bio: host?.bio ?? "",
               website_url: host?.website_url ?? "",
               languages_spoken: host?.languages_spoken ?? [],
+              highlights: host?.highlights ?? [],
             }}
             host={
               host

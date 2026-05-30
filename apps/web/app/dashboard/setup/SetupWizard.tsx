@@ -468,41 +468,68 @@ function Hero({
             </div>
           </div>
 
-          {/* Horizontal step chips */}
+          {/* Horizontal step pills — two-line: icon chip + label + status */}
           <ol className="mt-6 flex flex-wrap gap-2">
-            {SECTIONS.map((s) => {
+            {SECTIONS.map((s, i) => {
               const isDone = done[s.key];
               const isActive = active === s.key;
+              const isLast = i === SECTIONS.length - 1;
+              const status = isDone
+                ? "Done"
+                : isLast
+                  ? "Final step"
+                  : isActive
+                    ? "In progress"
+                    : "To do";
               return (
                 <li key={s.key}>
                   <button
                     type="button"
                     onClick={() => onJump(s.key)}
                     aria-current={isActive ? "step" : undefined}
-                    className={`flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition ${
-                      isDone
-                        ? "border-brand-primary bg-brand-primary text-white"
-                        : isActive
-                          ? "border-brand-primary bg-white/10 text-white"
-                          : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/10"
+                    className={`flex items-center gap-2.5 rounded-pill border px-2.5 py-1.5 text-left transition ${
+                      isActive
+                        ? "border-brand-primary/60 bg-white/[0.09]"
+                        : "border-white/10 bg-white/[0.05] hover:bg-white/[0.09]"
                     }`}
                   >
                     <span
-                      className={`num flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
                         isDone
-                          ? "bg-white/20 text-white"
-                          : isActive
-                            ? "bg-brand-primary text-white"
-                            : "bg-white/10 text-white/70"
+                          ? "bg-brand-primary text-white"
+                          : isLast
+                            ? "bg-white/10 text-brand-accent"
+                            : isActive
+                              ? "bg-brand-primary/20 text-brand-primary"
+                              : "bg-white/10 text-white/60"
                       }`}
                     >
                       {isDone ? (
-                        <Check className="h-3 w-3" strokeWidth={3} />
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                      ) : isLast ? (
+                        <Rocket className="h-3.5 w-3.5" />
                       ) : (
-                        s.n
+                        <span className="num text-[11px] font-bold">{s.n}</span>
                       )}
                     </span>
-                    {s.rail}
+                    <span className="pr-1 leading-tight">
+                      <span className="block text-[12.5px] font-semibold text-white">
+                        {s.rail}
+                      </span>
+                      <span
+                        className={`block text-[10px] font-medium ${
+                          isDone
+                            ? "text-brand-primary"
+                            : isLast
+                              ? "text-brand-accent/70"
+                              : isActive
+                                ? "text-white/80"
+                                : "text-white/45"
+                        }`}
+                      >
+                        {status}
+                      </span>
+                    </span>
                   </button>
                 </li>
               );

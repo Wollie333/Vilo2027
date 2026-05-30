@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   ExternalLink,
   Mail,
+  Plus,
+  X,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -44,6 +46,7 @@ export function HostProfileForm({
 }) {
   const [pending, start] = useTransition();
   const [uploading, setUploading] = useState(false);
+  const [highlightDraft, setHighlightDraft] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -301,6 +304,77 @@ export function HostProfileForm({
                     label={lang}
                   />
                 ))}
+              </div>
+            );
+          }}
+        />
+      </Field>
+
+      <Field
+        label="Highlights"
+        hint="Up to 4 short tags guests see on your page — e.g. “Lives on the property”, “Stargazing & hiking”."
+      >
+        <Controller
+          control={control}
+          name="highlights"
+          render={({ field }) => {
+            const tags = field.value ?? [];
+            const atMax = tags.length >= 4;
+            const addTag = () => {
+              const next = highlightDraft.trim().slice(0, 28);
+              if (!next || atMax || tags.includes(next)) return;
+              field.onChange([...tags, next]);
+              setHighlightDraft("");
+            };
+            return (
+              <div className="space-y-2.5">
+                {tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag, i) => (
+                      <span
+                        key={`${tag}-${i}`}
+                        className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-sm text-brand-ink"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${tag}`}
+                          onClick={() =>
+                            field.onChange(tags.filter((_, j) => j !== i))
+                          }
+                          className="text-brand-mute hover:text-brand-ink"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {!atMax ? (
+                  <div className="flex items-center gap-2">
+                    <TextInput
+                      value={highlightDraft}
+                      maxLength={28}
+                      placeholder="Add a highlight…"
+                      onChange={(e) => setHighlightDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={addTag}
+                      disabled={!highlightDraft.trim()}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded border border-brand-line px-3.5 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      Add
+                    </button>
+                  </div>
+                ) : null}
               </div>
             );
           }}

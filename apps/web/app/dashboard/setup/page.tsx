@@ -47,7 +47,7 @@ export default async function SetupPage({
   const { data: host } = await supabase
     .from("hosts")
     .select(
-      "id, handle, display_name, bio, avatar_url, languages_spoken, website_url",
+      "id, handle, display_name, bio, avatar_url, languages_spoken, highlights, website_url",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -231,6 +231,7 @@ export default async function SetupPage({
         bio: host.bio ?? "",
         avatar_url: host.avatar_url ?? "",
         languages_spoken: host.languages_spoken ?? [],
+        highlights: host.highlights ?? [],
         website_url: host.website_url ?? "",
         // Paystack subaccount isn't wired up yet (no column on hosts).
         // EFT banking is the live payout path — treat that as "connected".

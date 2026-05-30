@@ -13,6 +13,7 @@ export type Host = {
   bio: string;
   avatar_url: string;
   languages_spoken: string[];
+  highlights: string[];
   website_url: string;
   paystack_connected: boolean;
 };

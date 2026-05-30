@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import {
   ArrowRight,
+  Award,
   BadgeCheck,
   Calendar,
   Check,
   CheckCircle2,
   Clock,
+  CreditCard,
   Globe,
   Languages,
+  Mail,
   MapPin,
   MessageSquare,
+  Phone,
+  Sparkles,
   Star,
   User,
 } from "lucide-react";
@@ -212,11 +217,87 @@ async function loadHost(handle: string) {
     .order("created_at", { ascending: false })
     .limit(6);
 
+  // ── Defensive reads (the prod DB migration may lag the deploy) ──────────
+  // These columns were added in a separate migration. If they don't exist yet
+  // the query errors and `data` is null — we keep the safe defaults and never
+  // throw, so the page can never 500/404 from a missing column.
+  let hostExtra: HostExtra = {
+    highlights: [],
+    is_superhost: false,
+    phone_verified: false,
+    payout_verified: false,
+  };
+  const { data: extra } = await supabase
+    .from("hosts")
+    .select("highlights, is_superhost, phone_verified, payout_verified")
+    .eq("id", host.id)
+    .maybeSingle();
+  if (extra) {
+    hostExtra = {
+      highlights: extra.highlights ?? [],
+      is_superhost: !!extra.is_superhost,
+      phone_verified: !!extra.phone_verified,
+      payout_verified: !!extra.payout_verified,
+    };
+  }
+
+  // Per-category rating averages over the same public review set.
+  const { data: cats } = await supabase
+    .from("reviews")
+    .select(
+      "rating_cleanliness, rating_communication, rating_checkin, rating_accuracy, rating_location, rating_value",
+    )
+    .eq("host_id", host.id)
+    .eq("is_published", true)
+    .eq("flagged", false);
+  const ratingBreakdown = computeRatingBreakdown(cats ?? []);
+
   return {
     host,
     listings: (listings ?? []) as unknown as Listing[],
     reviews: reviews ?? [],
+    hostExtra,
+    ratingBreakdown,
   };
+}
+
+type HostExtra = {
+  highlights: string[];
+  is_superhost: boolean;
+  phone_verified: boolean;
+  payout_verified: boolean;
+};
+
+const RATING_CATEGORIES = [
+  { key: "rating_cleanliness", label: "Cleanliness" },
+  { key: "rating_communication", label: "Communication" },
+  { key: "rating_checkin", label: "Check-in" },
+  { key: "rating_accuracy", label: "Accuracy" },
+  { key: "rating_location", label: "Location" },
+  { key: "rating_value", label: "Value" },
+] as const;
+
+type CategoryRow = Partial<
+  Record<(typeof RATING_CATEGORIES)[number]["key"], number | null>
+>;
+
+/**
+ * Averages each category over its non-null values. Returns `null` when no
+ * category has any data, so the breakdown block can be hidden entirely.
+ */
+function computeRatingBreakdown(
+  rows: CategoryRow[],
+): Array<{ label: string; avg: number }> | null {
+  const out: Array<{ label: string; avg: number }> = [];
+  for (const { key, label } of RATING_CATEGORIES) {
+    const vals = rows
+      .map((r) => r[key])
+      .filter((v): v is number => v != null && !Number.isNaN(Number(v)))
+      .map(Number);
+    if (vals.length === 0) continue;
+    out.push({ label, avg: vals.reduce((a, b) => a + b, 0) / vals.length });
+  }
+  return out.length > 0 ? out : null;
 }
 
 export async function generateMetadata({
@@ -241,7 +322,7 @@ export default async function HostProfilePage({
 }) {
   const data = await loadHost(params.handle);
   if (!data) notFound();
-  const { host, listings, reviews } = data;
+  const { host, listings, reviews, hostExtra, ratingBreakdown } = data;
 
   const firstName = host.display_name.split(/[\s&]+/)[0];
   const location = deriveLocation(listings);
@@ -279,6 +360,19 @@ export default async function HostProfilePage({
     value: String(hostingSince),
     label: "Hosting since",
   });
+
+  // Confirmed-information rows — each honest to its own verification signal.
+  const confirmed: Array<{ icon: typeof Check; label: string }> = [];
+  if (host.is_verified) {
+    confirmed.push({ icon: User, label: "Identity" });
+    confirmed.push({ icon: Mail, label: "Email address" });
+  }
+  if (hostExtra.phone_verified) {
+    confirmed.push({ icon: Phone, label: "Phone number" });
+  }
+  if (hostExtra.payout_verified) {
+    confirmed.push({ icon: CreditCard, label: "Payout method" });
+  }
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -338,11 +432,18 @@ export default async function HostProfilePage({
                     viloplatform.com/{host.handle}
                   </div>
 
-                  {host.is_verified ? (
+                  {host.is_verified || hostExtra.is_superhost ? (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      <span className="inline-flex items-center gap-1 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-xs font-medium text-brand-primary">
-                        <BadgeCheck className="h-3 w-3" /> Verified host
-                      </span>
+                      {hostExtra.is_superhost ? (
+                        <span className="inline-flex items-center gap-1 rounded-pill bg-brand-secondary px-2.5 py-1 text-xs font-medium text-white">
+                          <Award className="h-3 w-3" /> Superhost
+                        </span>
+                      ) : null}
+                      {host.is_verified ? (
+                        <span className="inline-flex items-center gap-1 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-xs font-medium text-brand-primary">
+                          <BadgeCheck className="h-3 w-3" /> Verified
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
 
@@ -350,7 +451,7 @@ export default async function HostProfilePage({
                     href="#places"
                     className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 font-medium text-white transition-colors hover:bg-brand-secondary"
                   >
-                    <MessageSquare className="h-4 w-4" /> See our places
+                    <ArrowRight className="h-4 w-4" /> See our places
                   </a>
                   {host.website_url ? (
                     <a
@@ -385,19 +486,26 @@ export default async function HostProfilePage({
                 </div>
               </div>
 
-              {host.is_verified ? (
+              {confirmed.length > 0 ? (
                 <div className="mt-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
                   <div className="mb-3 text-sm font-semibold text-brand-ink">
                     Confirmed information
                   </div>
                   <div className="space-y-2.5 text-sm text-brand-ink">
-                    <div className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-brand-primary" /> Identity
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <Check className="h-4 w-4 text-brand-primary" /> Email
-                      address
-                    </div>
+                    {confirmed.map((c) => (
+                      <div
+                        key={c.label}
+                        className="flex items-center justify-between gap-2.5"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <c.icon className="h-4 w-4 shrink-0 text-brand-mute" />
+                          {c.label}
+                        </span>
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-accent text-brand-primary">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : null}
@@ -429,12 +537,23 @@ export default async function HostProfilePage({
                   {host.display_name} hasn&rsquo;t added a bio yet.
                 </p>
               )}
-              {host.languages_spoken && host.languages_spoken.length > 0 ? (
+              {hostExtra.highlights.length > 0 ||
+              (host.languages_spoken && host.languages_spoken.length > 0) ? (
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent/60 px-2.5 py-1 text-xs font-medium text-brand-ink">
-                    <Languages className="h-3 w-3" />{" "}
-                    {host.languages_spoken.join(" · ")}
-                  </span>
+                  {hostExtra.highlights.map((h) => (
+                    <span
+                      key={h}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink shadow-card"
+                    >
+                      <Sparkles className="h-3 w-3 text-brand-primary" /> {h}
+                    </span>
+                  ))}
+                  {host.languages_spoken && host.languages_spoken.length > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent/60 px-3 py-1.5 text-xs font-medium text-brand-ink">
+                      <Languages className="h-3 w-3" />{" "}
+                      {host.languages_spoken.join(" · ")}
+                    </span>
+                  ) : null}
                 </div>
               ) : null}
             </section>
@@ -539,6 +658,34 @@ export default async function HostProfilePage({
                   </h2>
                 </div>
 
+                {ratingBreakdown ? (
+                  <div className="mt-6 rounded-card border border-brand-line bg-white p-5 shadow-card sm:p-6">
+                    <div className="grid gap-x-10 gap-y-4 sm:grid-cols-2">
+                      {ratingBreakdown.map((c) => (
+                        <div
+                          key={c.label}
+                          className="flex items-center gap-3 text-sm"
+                        >
+                          <span className="w-28 shrink-0 text-brand-mute">
+                            {c.label}
+                          </span>
+                          <span className="h-1.5 flex-1 overflow-hidden rounded-pill bg-brand-line">
+                            <span
+                              className="block h-full rounded-pill bg-brand-primary"
+                              style={{
+                                width: `${Math.min(100, (c.avg / 5) * 100)}%`,
+                              }}
+                            />
+                          </span>
+                          <span className="num w-10 shrink-0 text-right font-display font-bold tabular-nums text-brand-ink">
+                            {c.avg.toFixed(1)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="mt-7 grid gap-x-8 gap-y-6 sm:grid-cols-2">
                   {reviews.map((r) => {
                     const listing = r.listing_id
@@ -589,10 +736,13 @@ export default async function HostProfilePage({
                 </div>
 
                 {(host.total_reviews ?? 0) > reviews.length ? (
-                  <div className="mt-7 inline-flex items-center gap-1 text-sm text-brand-mute">
-                    Showing {reviews.length} of {host.total_reviews} reviews
+                  <a
+                    href="#places"
+                    className="mt-7 inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink shadow-card transition-colors hover:bg-brand-light"
+                  >
+                    Show all {host.total_reviews} reviews
                     <ArrowRight className="h-4 w-4" />
-                  </div>
+                  </a>
                 ) : null}
               </section>
             ) : null}

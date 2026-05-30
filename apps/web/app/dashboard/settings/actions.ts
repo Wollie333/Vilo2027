@@ -110,6 +110,8 @@ export async function saveProfileAction(
     if (d.languages_spoken !== undefined) {
       hostPatch.languages_spoken = d.languages_spoken;
     }
+    // Optional in the schema; treat "unset" as "no highlights".
+    hostPatch.highlights = d.highlights ?? [];
     const { error: hostErr } = await supabase
       .from("hosts")
       .update(hostPatch)

@@ -7,9 +7,18 @@ import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
+const subRating = z.number().int().min(1).max(5).nullable().optional();
+
 const submitSchema = z.object({
   rating: z.number().int().min(1).max(5),
   body: z.string().max(2000).optional().nullable(),
+  // Optional per-category star ratings (1–5, or null/omitted if not given).
+  rating_cleanliness: subRating,
+  rating_communication: subRating,
+  rating_checkin: subRating,
+  rating_accuracy: subRating,
+  rating_location: subRating,
+  rating_value: subRating,
 });
 
 type ActionResult =
@@ -29,7 +38,16 @@ type ActionResult =
 export async function submitReviewAction(
   bookingId: string,
   token: string,
-  input: { rating: number; body?: string | null },
+  input: {
+    rating: number;
+    body?: string | null;
+    rating_cleanliness?: number | null;
+    rating_communication?: number | null;
+    rating_checkin?: number | null;
+    rating_accuracy?: number | null;
+    rating_location?: number | null;
+    rating_value?: number | null;
+  },
 ): Promise<ActionResult> {
   const parsed = submitSchema.safeParse(input);
   if (!parsed.success) {
@@ -90,6 +108,12 @@ export async function submitReviewAction(
       guest_id: booking.guest_id,
       rating: parsed.data.rating,
       body: parsed.data.body?.trim() || null,
+      rating_cleanliness: parsed.data.rating_cleanliness ?? null,
+      rating_communication: parsed.data.rating_communication ?? null,
+      rating_checkin: parsed.data.rating_checkin ?? null,
+      rating_accuracy: parsed.data.rating_accuracy ?? null,
+      rating_location: parsed.data.rating_location ?? null,
+      rating_value: parsed.data.rating_value ?? null,
       is_published: false,
       publish_at: publishAt,
     })

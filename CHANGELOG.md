@@ -31,6 +31,35 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Public profile/room redesign + setup-hero pills + profile schema — branch `feat/setup-wizard-rework`
+
+### Built
+- **Setup hero step pills** — the "Finish setting up" hero pills are now two-line
+  (icon chip + label + status: "Done"/"In progress"/"To do"/"Final step"), matching
+  the provided design; green check chip when done, rocket on the final step.
+- **Public host profile redesign** (`app/[handle]`) — matches the "Split host rail / tabs"
+  design: Superhost + Verified badges, "Confirmed information" rows (Identity/Email/Phone/
+  Payout), host highlight pills, and a **review rating breakdown** (Cleanliness, Communication,
+  Check-in, Accuracy, Location, Value averaged from sub-ratings). Reviews stay anonymised
+  ("Verified guest") per privacy rules.
+- **Public room page redesign** (`app/listing/[slug]/rooms/[roomId]`) — breadcrumb, stats
+  grid, About, room highlights, sleeping arrangement, amenities, "Good to know", "part of
+  listing" cross-link, and a new interactive **RoomBookingWidget** (dates + guests + live
+  client-side price breakdown; server still recalculates on the book flow).
+- **Editing UI** — host "Highlights" tag editor in profile settings; optional per-category
+  star inputs in the guest review form so the breakdown populates.
+
+### Migrations
+- `20260530000003_profile_review_enrichment.sql` — adds `reviews.rating_{cleanliness,
+  communication,checkin,accuracy,location,value}` and `hosts.{highlights,is_superhost,
+  phone_verified,payout_verified}`. Additive/nullable; types updated.
+
+### Notes
+- Public pages read the new columns via **error-tolerant supplementary queries**, so they
+  degrade gracefully (sections hidden) and never 500 even if the prod migration lags the
+  deploy. `db-migrate.yml` runs before Vercel on push to `main`, so schema lands first anyway.
+- `pnpm build` + `pnpm lint` pass clean (one pre-existing unrelated a11y warning).
+
 ## 2026-05-30 — Canonical notification-modal system + full-app popup migration — branch `feat/setup-wizard-rework`
 
 ### Built
