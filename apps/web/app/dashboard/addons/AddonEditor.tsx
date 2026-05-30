@@ -24,6 +24,7 @@ import { modal } from "@/components/ui/modal-host";
 import { AddonImageInput } from "./AddonImageInput";
 import {
   deleteAddonAction,
+  setAddonListingRoomsAction,
   toggleAddonActiveAction,
   updateAddonAction,
 } from "./actions";
@@ -54,6 +55,18 @@ export type AddonEditModel = {
   dailyCapacity: number | null;
 };
 
+export type AddonAvailability = {
+  listings: {
+    id: string;
+    name: string;
+    rooms: { id: string; name: string }[];
+  }[];
+  assignments: { listingId: string; roomId: string | null }[];
+};
+
+type ListingMode = "off" | "all" | "rooms";
+type ListingSelection = { mode: ListingMode; roomIds: string[] };
+
 const NAME_MAX = 48;
 const DESC_MAX = 400;
 
@@ -68,11 +81,89 @@ function zar(v: number): string {
   return `R ${(Number.isFinite(v) ? v : 0).toLocaleString("en-ZA")}`;
 }
 
-export function AddonEditor({ addon }: { addon: AddonEditModel }) {
+function deriveSelection(
+  listingId: string,
+  assignments: AddonAvailability["assignments"],
+): ListingSelection {
+  const rows = assignments.filter((a) => a.listingId === listingId);
+  if (rows.some((r) => r.roomId === null)) return { mode: "all", roomIds: [] };
+  const roomIds = rows
+    .map((r) => r.roomId)
+    .filter((id): id is string => id !== null);
+  if (roomIds.length > 0) return { mode: "rooms", roomIds };
+  return { mode: "off", roomIds: [] };
+}
+
+export function AddonEditor({
+  addon,
+  availability,
+}: {
+  addon: AddonEditModel;
+  availability: AddonAvailability;
+}) {
   const router = useRouter();
   const [savePending, startSave] = useTransition();
   const [deletePending, startDelete] = useTransition();
   const [togglePending, startToggle] = useTransition();
+  const [availPending, startAvail] = useTransition();
+
+  const [selections, setSelections] = useState<
+    Record<string, ListingSelection>
+  >(() =>
+    Object.fromEntries(
+      availability.listings.map((l) => [
+        l.id,
+        deriveSelection(l.id, availability.assignments),
+      ]),
+    ),
+  );
+
+  function persistSelection(listingId: string, next: ListingSelection) {
+    const prev = selections[listingId] ?? { mode: "off", roomIds: [] };
+    setSelections((s) => ({ ...s, [listingId]: next }));
+    startAvail(async () => {
+      const payload =
+        next.mode === "rooms"
+          ? { mode: "rooms" as const, roomIds: next.roomIds }
+          : { mode: next.mode };
+      const result = await setAddonListingRoomsAction(
+        addon.id,
+        listingId,
+        payload,
+      );
+      if (!result.ok) {
+        setSelections((s) => ({ ...s, [listingId]: prev }));
+        toast.error(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  function setListingMode(
+    listing: AddonAvailability["listings"][number],
+    mode: ListingMode,
+  ) {
+    if (mode === "rooms") {
+      const current = selections[listing.id];
+      const seeded =
+        current && current.roomIds.length > 0
+          ? current.roomIds
+          : listing.rooms.map((r) => r.id);
+      persistSelection(listing.id, { mode: "rooms", roomIds: seeded });
+    } else {
+      persistSelection(listing.id, { mode, roomIds: [] });
+    }
+  }
+
+  function toggleRoom(listingId: string, roomId: string) {
+    const current = selections[listingId] ?? { mode: "rooms", roomIds: [] };
+    const has = current.roomIds.includes(roomId);
+    const roomIds = has
+      ? current.roomIds.filter((id) => id !== roomId)
+      : [...current.roomIds, roomId];
+    persistSelection(listingId, { mode: "rooms", roomIds });
+  }
 
   const [name, setName] = useState(addon.name);
   const [description, setDescription] = useState(addon.description);
@@ -608,10 +699,100 @@ export function AddonEditor({ addon }: { addon: AddonEditModel }) {
                   <label className="text-[12px] font-semibold text-brand-ink">
                     Applies to rooms
                   </label>
-                  <div className="mt-2 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3.5 py-3 text-[12px] text-brand-mute">
-                    Choose which listings &amp; rooms offer this in the listing
-                    editor.
-                  </div>
+                  <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                    Choose which listings &amp; rooms offer this add-on.
+                  </p>
+                  {availability.listings.length === 0 ? (
+                    <div className="mt-2 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3.5 py-3 text-[12px] text-brand-mute">
+                      Add a published listing to offer this add-on.
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2.5">
+                      {availability.listings.map((listing) => {
+                        const sel = selections[listing.id] ?? {
+                          mode: "off" as const,
+                          roomIds: [],
+                        };
+                        const hasRooms = listing.rooms.length > 0;
+                        const modeOptions: {
+                          value: ListingMode;
+                          label: string;
+                        }[] = hasRooms
+                          ? [
+                              { value: "off", label: "Not offered" },
+                              { value: "all", label: "All rooms" },
+                              { value: "rooms", label: "Specific rooms" },
+                            ]
+                          : [
+                              { value: "off", label: "Not offered" },
+                              { value: "all", label: "All rooms" },
+                            ];
+                        return (
+                          <div
+                            key={listing.id}
+                            className="rounded-[12px] border border-brand-line bg-white px-3.5 py-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="min-w-0 truncate text-[13px] font-semibold text-brand-ink">
+                                {listing.name}
+                              </div>
+                              <div className="inline-flex rounded-[10px] border border-brand-line bg-brand-light/50 p-0.5">
+                                {modeOptions.map((opt) => {
+                                  const active = sel.mode === opt.value;
+                                  return (
+                                    <button
+                                      key={opt.value}
+                                      type="button"
+                                      disabled={availPending}
+                                      aria-pressed={active}
+                                      onClick={() =>
+                                        setListingMode(listing, opt.value)
+                                      }
+                                      className={`rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-60 ${
+                                        active
+                                          ? "bg-brand-primary text-white shadow-sm"
+                                          : "text-brand-mute hover:text-brand-ink"
+                                      }`}
+                                    >
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            {sel.mode === "rooms" && hasRooms ? (
+                              <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-brand-line pt-2.5">
+                                {listing.rooms.map((room) => {
+                                  const on = sel.roomIds.includes(room.id);
+                                  return (
+                                    <button
+                                      key={room.id}
+                                      type="button"
+                                      disabled={availPending}
+                                      aria-pressed={on}
+                                      onClick={() =>
+                                        toggleRoom(listing.id, room.id)
+                                      }
+                                      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60 ${
+                                        on
+                                          ? "border-brand-primary bg-brand-primary text-white"
+                                          : "border-brand-line bg-white text-brand-mute hover:border-brand-primary/40 hover:text-brand-ink"
+                                      }`}
+                                    >
+                                      {on ? (
+                                        <Check className="h-3 w-3" />
+                                      ) : null}
+                                      {room.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div>

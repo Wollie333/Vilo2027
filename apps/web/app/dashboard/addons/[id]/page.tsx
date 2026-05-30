@@ -3,7 +3,11 @@ import { notFound, redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { AddonEditor, type AddonEditModel } from "../AddonEditor";
+import {
+  AddonEditor,
+  type AddonAvailability,
+  type AddonEditModel,
+} from "../AddonEditor";
 import { type AddonCategory, type PricingModel } from "../schemas";
 
 export const metadata: Metadata = {
@@ -69,5 +73,46 @@ export default async function AddonEditorPage({
     dailyCapacity: r.daily_capacity,
   };
 
-  return <AddonEditor addon={model} />;
+  // ----- Availability: published listings, their active rooms, and the
+  // current assignment rows for this add-on. -----
+  const { data: listingRows } = await supabase
+    .from("listings")
+    .select("id, name")
+    .eq("host_id", host.id)
+    .eq("is_published", true)
+    .is("deleted_at", null)
+    .order("created_at");
+
+  const listingIds = (listingRows ?? []).map((l) => l.id);
+
+  const { data: roomRows } = listingIds.length
+    ? await supabase
+        .from("listing_rooms")
+        .select("id, name, listing_id")
+        .in("listing_id", listingIds)
+        .eq("is_active", true)
+        .is("deleted_at", null)
+        .order("sort_order")
+    : { data: [] as { id: string; name: string; listing_id: string }[] };
+
+  const { data: assignmentRows } = await supabase
+    .from("listing_addons")
+    .select("listing_id, room_id")
+    .eq("addon_id", params.id);
+
+  const availability: AddonAvailability = {
+    listings: (listingRows ?? []).map((l) => ({
+      id: l.id,
+      name: l.name,
+      rooms: (roomRows ?? [])
+        .filter((room) => room.listing_id === l.id)
+        .map((room) => ({ id: room.id, name: room.name })),
+    })),
+    assignments: (assignmentRows ?? []).map((a) => ({
+      listingId: a.listing_id,
+      roomId: a.room_id,
+    })),
+  };
+
+  return <AddonEditor addon={model} availability={availability} />;
 }

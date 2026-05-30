@@ -399,3 +399,93 @@ export async function setListingAddonAction(
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   return { ok: true };
 }
+
+/** Multi-room availability control used by the add-on editor.
+ * Replaces every `listing_addons` scope row for (listing, addon) with the new
+ * selection: off = no rows, all = one listing-wide row (room_id null), rooms =
+ * one row per valid room. Distinct from `setListingAddonAction`, which keeps the
+ * single-scope (one room OR listing-wide) semantics the listing editor relies on. */
+export async function setAddonListingRoomsAction(
+  addonId: string,
+  listingId: string,
+  selection:
+    | { mode: "off" }
+    | { mode: "all" }
+    | { mode: "rooms"; roomIds: string[] },
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertAddonsEnabled(host.hostId))) {
+    return { ok: false, error: PLAN_GATE_MSG };
+  }
+  if (!(await assertAddonOwnership(addonId, host.hostId))) {
+    return { ok: false, error: "Not your add-on." };
+  }
+  if (!(await assertListingOwnership(listingId, host.hostId))) {
+    return { ok: false, error: "Not your listing." };
+  }
+
+  const supabase = createServerClient();
+
+  // Always start from a clean slate for this (listing, addon) pair.
+  const { error: delErr } = await supabase
+    .from("listing_addons")
+    .delete()
+    .eq("listing_id", listingId)
+    .eq("addon_id", addonId);
+  if (delErr) {
+    return { ok: false, error: "Could not update availability." };
+  }
+
+  if (selection.mode === "off") {
+    revalidatePath(`/dashboard/addons/${addonId}`);
+    return { ok: true };
+  }
+
+  if (selection.mode === "all") {
+    const { error } = await supabase.from("listing_addons").insert({
+      listing_id: listingId,
+      addon_id: addonId,
+      room_id: null,
+    });
+    if (error) {
+      return { ok: false, error: "Could not update availability." };
+    }
+    revalidatePath(`/dashboard/addons/${addonId}`);
+    return { ok: true };
+  }
+
+  // mode === "rooms": keep only rooms that actually belong to this listing.
+  const requested = Array.from(new Set(selection.roomIds));
+  let validIds: string[] = [];
+  if (requested.length > 0) {
+    const { data: rooms } = await supabase
+      .from("listing_rooms")
+      .select("id")
+      .in("id", requested)
+      .eq("listing_id", listingId)
+      .eq("is_active", true)
+      .is("deleted_at", null);
+    validIds = (rooms ?? []).map((row) => row.id);
+  }
+
+  // No valid rooms left → treat as "off" (rows already deleted above).
+  if (validIds.length === 0) {
+    revalidatePath(`/dashboard/addons/${addonId}`);
+    return { ok: true };
+  }
+
+  const { error } = await supabase.from("listing_addons").insert(
+    validIds.map((roomId) => ({
+      listing_id: listingId,
+      addon_id: addonId,
+      room_id: roomId,
+    })),
+  );
+  if (error) {
+    return { ok: false, error: "Could not update availability." };
+  }
+
+  revalidatePath(`/dashboard/addons/${addonId}`);
+  return { ok: true };
+}
