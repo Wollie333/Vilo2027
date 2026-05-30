@@ -240,6 +240,72 @@ export async function uploadListingPhotoAction(
   return { ok: true, data: { id: row.id, url: row.url } };
 }
 
+/**
+ * Record a photo that the client already uploaded directly to Storage. We do
+ * NOT push the file through this Server Action — Vercel caps action request
+ * bodies at ~4.5 MB, so large photos must go browser → Supabase Storage
+ * directly (RLS-protected), then this records the row. `storagePath` must live
+ * under the listing's folder.
+ */
+export async function registerListingPhotoAction(
+  listingId: string,
+  storagePath: string,
+  roomId: string | null = null,
+): Promise<ActionResult<{ id: string; url: string }>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  if (!storagePath.startsWith(`${listingId}/`)) {
+    return { ok: false, error: "Invalid photo path." };
+  }
+
+  const supabase = createServerClient();
+
+  if (roomId) {
+    const { data: room } = await supabase
+      .from("listing_rooms")
+      .select("id")
+      .eq("id", roomId)
+      .eq("listing_id", listingId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!room) {
+      return { ok: false, error: "Room not found on this listing." };
+    }
+  }
+
+  const { data: publicUrl } = supabase.storage
+    .from("listing-photos")
+    .getPublicUrl(storagePath);
+
+  const { count } = await supabase
+    .from("listing_photos")
+    .select("id", { count: "exact", head: true })
+    .eq("listing_id", listingId);
+
+  const { data: row, error: rowErr } = await supabase
+    .from("listing_photos")
+    .insert({
+      listing_id: listingId,
+      storage_path: storagePath,
+      url: publicUrl.publicUrl,
+      sort_order: count ?? 0,
+      room_id: roomId,
+    })
+    .select("id, url")
+    .single();
+  if (rowErr || !row) {
+    await supabase.storage.from("listing-photos").remove([storagePath]);
+    return { ok: false, error: "Upload saved but record failed." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  if (roomId) {
+    revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
+  }
+  return { ok: true, data: { id: row.id, url: row.url } };
+}
+
 export async function deleteListingPhotoAction(
   listingId: string,
   photoId: string,

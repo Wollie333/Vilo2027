@@ -13,7 +13,7 @@ import {
   Trash2,
   Upload,
 } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,15 +21,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { createClient } from "@/lib/supabase/client";
 
 import {
   deleteListingPhotoAction,
   deleteRoomAction,
+  registerListingPhotoAction,
   setRoomAmenityAction,
   setRoomBedsAction,
   setRoomFeaturedPhotoAction,
   updateRoomAction,
-  uploadListingPhotoAction,
 } from "../actions";
 import type { EditorRoom } from "../Editor";
 import { VIEW_TYPES, EXPERIENCES } from "../roomEnums";
@@ -822,15 +823,28 @@ function PhotosTab({
   );
   const [uploadPending, startUpload] = useTransition();
   const [deletePending, startDelete] = useTransition();
+  const supabase = useMemo(() => createClient(), []);
 
   function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const file = files[0];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
     startUpload(async () => {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("room_id", room.id);
-      const result = await uploadListingPhotoAction(listingId, fd);
+      // Direct browser → Storage upload (RLS-protected), then record the row —
+      // avoids the Server Action / Vercel request-body cap on large photos.
+      const { error: upErr } = await supabase.storage
+        .from("listing-photos")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+      if (upErr) {
+        toast.error(upErr.message || "Upload failed");
+        return;
+      }
+      const result = await registerListingPhotoAction(listingId, path, room.id);
       if (result.ok && result.data) {
         const next = [...photos, { id: result.data.id, url: result.data.url }];
         setPhotos(next);
@@ -838,6 +852,7 @@ function PhotosTab({
         toast.success("Photo uploaded");
       } else if (!result.ok) {
         toast.error(result.error);
+        await supabase.storage.from("listing-photos").remove([path]);
       }
     });
   }

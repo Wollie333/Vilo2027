@@ -1,15 +1,16 @@
 "use client";
 
 import { GripVertical, Star, Trash2, UploadCloud } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
   assignPhotoToRoomAction,
   deleteListingPhotoAction,
+  registerListingPhotoAction,
   reorderListingPhotosAction,
-  uploadListingPhotoAction,
 } from "@/app/dashboard/listings/[id]/edit/actions";
+import { createClient } from "@/lib/supabase/client";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -47,6 +48,10 @@ export function PhotosManager({
   const [dragSourceIdx, setDragSourceIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
+  // Browser Supabase client — files upload straight to Storage (RLS-protected),
+  // bypassing the Server Action / Vercel ~4.5 MB request-body cap.
+  const supabase = useMemo(() => createClient(), []);
+
   const uploading = uploadQueue.total > 0;
   const uploadingLabel =
     uploadQueue.total > 1
@@ -69,30 +74,47 @@ export function PhotosManager({
 
     setUploadQueue({ total: valid.length, done: 0 });
     let next = [...photos];
+    let uploaded = 0;
 
-    // Sequential upload — preserves selection order via sort_order on the
-    // server and avoids race conditions on the count query.
+    // Sequential: upload the file directly to Storage, then record the row via
+    // a tiny action. Preserves selection order via sort_order and avoids the
+    // Server Action body-size limit entirely.
     for (let i = 0; i < valid.length; i++) {
       const file = valid[i];
-      const formData = new FormData();
-      formData.append("file", file);
-      const result = await uploadListingPhotoAction(listingId, formData);
-      if (result.ok && result.data) {
-        next = [
-          ...next,
-          { id: result.data.id, url: result.data.url, roomId: null },
-        ];
-        onChange(next);
-      } else if (!result.ok) {
-        toast.error(`${file.name}: ${result.error}`);
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("listing-photos")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+      if (upErr) {
+        toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
+      } else {
+        const result = await registerListingPhotoAction(listingId, path);
+        if (result.ok && result.data) {
+          next = [
+            ...next,
+            { id: result.data.id, url: result.data.url, roomId: null },
+          ];
+          onChange(next);
+          uploaded += 1;
+        } else if (!result.ok) {
+          toast.error(`${file.name}: ${result.error}`);
+        }
       }
       setUploadQueue({ total: valid.length, done: i + 1 });
     }
 
     setUploadQueue({ total: 0, done: 0 });
-    toast.success(
-      valid.length === 1 ? "Photo uploaded" : `${valid.length} photos uploaded`,
-    );
+    if (uploaded > 0) {
+      toast.success(
+        uploaded === 1 ? "Photo uploaded" : `${uploaded} photos uploaded`,
+      );
+    }
   }
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Star, Trash2, Upload } from "lucide-react";
-import { useRef, useTransition } from "react";
+import { useMemo, useRef, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -11,11 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/client";
 
 import {
   deleteListingPhotoAction,
+  registerListingPhotoAction,
   setRoomFeaturedPhotoAction,
-  uploadListingPhotoAction,
 } from "../../../actions";
 import type { RoomEditorPhoto } from "../RoomEditor";
 
@@ -36,15 +37,28 @@ export function RoomPhotosSection({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadPending, startUpload] = useTransition();
+  const supabase = useMemo(() => createClient(), []);
 
   function upload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const file = files[0];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
     startUpload(async () => {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("room_id", roomId);
-      const result = await uploadListingPhotoAction(listingId, fd);
+      // Direct browser → Storage upload (RLS-protected), then record the row —
+      // avoids the Server Action / Vercel request-body cap on large photos.
+      const { error: upErr } = await supabase.storage
+        .from("listing-photos")
+        .upload(path, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type,
+        });
+      if (upErr) {
+        toast.error(upErr.message || "Upload failed");
+        return;
+      }
+      const result = await registerListingPhotoAction(listingId, path, roomId);
       if (result.ok && result.data) {
         onPhotosChange([
           ...photos,
@@ -53,6 +67,7 @@ export function RoomPhotosSection({
         toast.success("Photo uploaded");
       } else if (!result.ok) {
         toast.error(result.error);
+        await supabase.storage.from("listing-photos").remove([path]);
       }
     });
   }
