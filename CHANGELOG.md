@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Canonical notification-modal system + full-app popup migration — branch `feat/setup-wizard-rework`
+
+### Built
+- **`<Modal>`** (`components/ui/modal.tsx`) — the one canonical popup shell from the
+  design system's "Notification modals": `max-w-sm` card, icon chip, title, message,
+  optional key/value detail box, right-aligned footer buttons. Six intents —
+  `success | info | warning | error | confirm | destructive` — each with its own icon
+  + tint. Brand backdrop `bg-brand-dark/60 backdrop-blur-sm`. Async action handlers
+  with pending/disabled state.
+- **Imperative API** (`components/ui/modal-host.tsx`) — `modal.success/info/warning/error(...)`
+  (→ `Promise<void>`) and `modal.confirm/destructive(...)` (→ `Promise<boolean>`),
+  callable from anywhere. Dependency-free external store via `useSyncExternalStore`.
+  `<ModalHost />` mounted once in the root layout.
+- **`<FormModal>`** (`components/ui/form-modal.tsx`) — same shell sized for forms
+  (header + scroll body + pinned footer; `FormModalFooter`, `FormModalCancel`,
+  `size` sm/md/lg). For popups that contain a form (e.g. "Add seasonal price").
+
+### Changed
+- **Whole-app popup migration** — replaced every `window.confirm`/`window.alert` (13
+  files: booking/quote actions, policies, staff, add-ons, rooms, room photos, reviews,
+  calendar-sync feeds, seasonal pricing, admin categories) with `modal.destructive` /
+  `modal.confirm` / `modal.error|warning`. Converted the 4 shadcn-`Dialog` form popups
+  (bank account, policy viewer, listing settings, seasonal-price rule) to `<FormModal>`.
+  Side/bottom **sheets** intentionally left as sheets (separate design-system pattern).
+- Design system: new **Notification modals** section (+ action/form-modal example +
+  nav link) in `Vilo Design System.html`, mirrored to `apps/web/public/DESIGN_SYSTEM.HTML`.
+  New hard rule in `DESIGN_SYSTEM.md`: no raw `Dialog`/`AlertDialog`/`window.confirm` —
+  every popup uses the modal shell.
+
+### Notes
+- `pnpm build` + `pnpm lint` pass clean (one pre-existing unrelated a11y warning in
+  `PopularArticles.tsx`).
+- Toasts (sonner) deliberately kept for non-blocking result notifications — they're a
+  separate sanctioned component. Only blocking confirms/alerts/error popups moved to modals.
+
 ## 2026-05-30 — Enterprise room management: bed-derived capacity + per-room pricing modes — branch `feat/setup-wizard-rework`
 
 ### Built

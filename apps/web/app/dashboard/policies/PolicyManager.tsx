@@ -21,6 +21,7 @@ import {
   type PolicyDialogData,
 } from "@/components/policy/PolicyDialog";
 import { Button } from "@/components/ui/button";
+import { modal } from "@/components/ui/modal-host";
 
 import { deletePolicyAction, duplicatePolicyAction } from "./actions";
 import { PolicyEditorSheet } from "./PolicyEditorSheet";
@@ -211,8 +212,13 @@ function PolicyRow({
     });
   }
 
-  function remove() {
-    if (!window.confirm(`Delete "${policy.name}"?`)) return;
+  async function remove() {
+    const ok = await modal.destructive({
+      title: `Delete "${policy.name}"?`,
+      description: "This can't be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       const result = await deletePolicyAction(policy.id);
       if (result.ok) {

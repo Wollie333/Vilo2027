@@ -21,14 +21,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -395,8 +393,13 @@ function RuleRow({
     });
   }
 
-  function remove() {
-    if (!window.confirm(`Delete the "${rule.label}" rule?`)) return;
+  async function remove() {
+    const confirmed = await modal.destructive({
+      title: `Delete the "${rule.label}" rule?`,
+      description: "This removes the seasonal override.",
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
     startDelete(async () => {
       const result = await deleteSeasonalRuleAction(rule.id);
       if (result.ok) {
@@ -612,189 +615,180 @@ function RuleDialog({
   }
 
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {target.mode === "create" ? "New seasonal rule" : "Edit rule"}
-          </DialogTitle>
-          <DialogDescription>
-            Override the nightly rate for a date range. Most-specific wins: room
-            rules beat listing rules, then highest priority wins on overlap.
-          </DialogDescription>
-        </DialogHeader>
+    <FormModal
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={target.mode === "create" ? "New seasonal rule" : "Edit rule"}
+      description="Override the nightly rate for a date range. Most-specific wins: room rules beat listing rules, then highest priority wins on overlap."
+    >
+      <div className="space-y-4">
+        <Field label="Listing">
+          <Select
+            value={listingId}
+            onValueChange={(v) => {
+              setListingId(v);
+              setRoomId(null);
+            }}
+            disabled={target.mode === "edit"}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select listing" />
+            </SelectTrigger>
+            <SelectContent>
+              {listings.map((l) => (
+                <SelectItem key={l.id} value={l.id}>
+                  {l.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
 
-        <div className="space-y-4 py-2">
-          <Field label="Listing">
-            <Select
-              value={listingId}
-              onValueChange={(v) => {
-                setListingId(v);
-                setRoomId(null);
-              }}
-              disabled={target.mode === "edit"}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select listing" />
-              </SelectTrigger>
-              <SelectContent>
-                {listings.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>
-                    {l.name}
+        <Field label="Apply to">
+          <Select
+            value={roomId ?? "__listing__"}
+            onValueChange={(v) => setRoomId(v === "__listing__" ? null : v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__listing__">
+                This listing (all rooms)
+              </SelectItem>
+              {canPerRoom &&
+                listing?.rooms.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name}
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </Field>
+            </SelectContent>
+          </Select>
+        </Field>
 
-          <Field label="Apply to">
-            <Select
-              value={roomId ?? "__listing__"}
-              onValueChange={(v) => setRoomId(v === "__listing__" ? null : v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__listing__">
-                  This listing (all rooms)
-                </SelectItem>
-                {canPerRoom &&
-                  listing?.rooms.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </Field>
+        <Field label="Label">
+          <Input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="December holidays, Easter, Winter sale…"
+            maxLength={80}
+          />
+        </Field>
 
-          <Field label="Label">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Start date">
             <Input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="December holidays, Easter, Winter sale…"
-              maxLength={80}
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
             />
           </Field>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Start date">
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </Field>
-            <Field label="End date (inclusive)">
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate || undefined}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label="Price / night (ZAR)">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-            </Field>
-            <Field label="Min nights (optional)">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                placeholder="Inherit"
-                value={minNights}
-                onChange={(e) => setMinNights(e.target.value)}
-              />
-            </Field>
-            <Field label="Priority">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              />
-            </Field>
-          </div>
-
-          <p className="text-[11px] text-brand-mute">
-            Priority decides which rule wins when two cover the same date. Layer
-            a short peak (e.g. Christmas week, priority 10) over a longer season
-            (December, priority 1).
-          </p>
-
-          <label className="flex items-center gap-2 text-sm text-brand-dark">
-            <input
-              type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
-              className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          <Field label="End date (inclusive)">
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              min={startDate || undefined}
             />
-            Active (counts toward booking prices)
-          </label>
-
-          {nights > 0 && priceNum > 0 ? (
-            <div className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-xs text-brand-dark">
-              <CalendarRange className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-              {formatZAR(priceNum)} × {nights} night
-              {nights === 1 ? "" : "s"} ={" "}
-              <strong className="font-semibold">{formatZAR(total)}</strong>
-            </div>
-          ) : null}
-
-          {overlaps.length > 0 ? (
-            <div className="flex gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <div>
-                Overlaps with{" "}
-                {overlaps
-                  .map(
-                    (r) =>
-                      `"${r.label}" (${formatDateRange(r.startDate, r.endDate)}, priority ${r.priority})`,
-                  )
-                  .join(", ")}
-                . The higher-priority rule will apply on shared dates.
-              </div>
-            </div>
-          ) : null}
+          </Field>
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={submit}
-            disabled={
-              pending ||
-              !listingId ||
-              !label.trim() ||
-              !startDate ||
-              !endDate ||
-              !price
-            }
-          >
-            {pending
-              ? "Saving…"
-              : target.mode === "create"
-                ? "Create rule"
-                : "Save rule"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Price / night (ZAR)">
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </Field>
+          <Field label="Min nights (optional)">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              placeholder="Inherit"
+              value={minNights}
+              onChange={(e) => setMinNights(e.target.value)}
+            />
+          </Field>
+          <Field label="Priority">
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+            />
+          </Field>
+        </div>
+
+        <p className="text-[11px] text-brand-mute">
+          Priority decides which rule wins when two cover the same date. Layer a
+          short peak (e.g. Christmas week, priority 10) over a longer season
+          (December, priority 1).
+        </p>
+
+        <label className="flex items-center gap-2 text-sm text-brand-dark">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+          />
+          Active (counts toward booking prices)
+        </label>
+
+        {nights > 0 && priceNum > 0 ? (
+          <div className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-xs text-brand-dark">
+            <CalendarRange className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
+            {formatZAR(priceNum)} × {nights} night
+            {nights === 1 ? "" : "s"} ={" "}
+            <strong className="font-semibold">{formatZAR(total)}</strong>
+          </div>
+        ) : null}
+
+        {overlaps.length > 0 ? (
+          <div className="flex gap-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <div>
+              Overlaps with{" "}
+              {overlaps
+                .map(
+                  (r) =>
+                    `"${r.label}" (${formatDateRange(r.startDate, r.endDate)}, priority ${r.priority})`,
+                )
+                .join(", ")}
+              . The higher-priority rule will apply on shared dates.
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={
+            pending ||
+            !listingId ||
+            !label.trim() ||
+            !startDate ||
+            !endDate ||
+            !price
+          }
+        >
+          {pending
+            ? "Saving…"
+            : target.mode === "create"
+              ? "Create rule"
+              : "Save rule"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 

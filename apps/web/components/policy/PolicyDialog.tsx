@@ -1,15 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { cloneElement, isValidElement, useState } from "react";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { FormModal } from "@/components/ui/form-modal";
 
 export type PolicyDialogData = {
   type: "cancellation" | "check_in_out" | "house_rules";
@@ -40,92 +33,96 @@ export function PolicyDialog({
 }) {
   const [open, setOpen] = useState(false);
 
+  const triggerNode =
+    trigger && isValidElement(trigger) ? (
+      cloneElement(trigger as React.ReactElement, {
+        onClick: () => setOpen(true),
+      })
+    ) : (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-sm font-medium text-brand-primary underline underline-offset-4 hover:text-brand-secondary"
+      >
+        Read full policy
+      </button>
+    );
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <button
-            type="button"
-            className="text-sm font-medium text-brand-primary underline underline-offset-4 hover:text-brand-secondary"
-          >
-            Read full policy
-          </button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display text-brand-ink">
-            {data.name}
-          </DialogTitle>
-          {data.summary ? (
-            <DialogDescription className="text-brand-mute">
-              {data.summary}
-            </DialogDescription>
-          ) : null}
-        </DialogHeader>
-
-        {data.type === "cancellation" ? (
-          <div className="space-y-3">
-            {data.isNonRefundable ? (
-              <p className="rounded border border-brand-line bg-brand-light/50 px-3 py-2 text-sm font-medium text-brand-ink">
-                This booking is non-refundable.
-              </p>
-            ) : data.rules && data.rules.length > 0 ? (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-wider text-brand-mute">
-                    <th className="pb-1.5 font-semibold">If cancelled</th>
-                    <th className="pb-1.5 text-right font-semibold">Refund</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.rules.map((r, i) => (
-                    <tr key={i} className="border-t border-brand-line">
-                      <td className="py-1.5 text-brand-ink">
-                        {r.days_before > 0
-                          ? `${r.days_before}+ day${r.days_before === 1 ? "" : "s"} before check-in`
-                          : "On or after check-in"}
-                      </td>
-                      <td className="py-1.5 text-right font-medium text-brand-ink">
-                        {r.refund_percent}% · {r.label}
-                      </td>
+    <>
+      {triggerNode}
+      <FormModal
+        open={open}
+        onOpenChange={setOpen}
+        title={data.name}
+        description={data.summary ?? undefined}
+      >
+        <div className="space-y-4">
+          {data.type === "cancellation" ? (
+            <div className="space-y-3">
+              {data.isNonRefundable ? (
+                <p className="rounded border border-brand-line bg-brand-light/50 px-3 py-2 text-sm font-medium text-brand-ink">
+                  This booking is non-refundable.
+                </p>
+              ) : data.rules && data.rules.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-brand-mute">
+                      <th className="pb-1.5 font-semibold">If cancelled</th>
+                      <th className="pb-1.5 text-right font-semibold">
+                        Refund
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : null}
-          </div>
-        ) : null}
+                  </thead>
+                  <tbody>
+                    {data.rules.map((r, i) => (
+                      <tr key={i} className="border-t border-brand-line">
+                        <td className="py-1.5 text-brand-ink">
+                          {r.days_before > 0
+                            ? `${r.days_before}+ day${r.days_before === 1 ? "" : "s"} before check-in`
+                            : "On or after check-in"}
+                        </td>
+                        <td className="py-1.5 text-right font-medium text-brand-ink">
+                          {r.refund_percent}% · {r.label}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+            </div>
+          ) : null}
 
-        {data.type === "check_in_out" ? (
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-card border border-brand-line p-3">
-              <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                Check-in
+          {data.type === "check_in_out" ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-card border border-brand-line p-3">
+                <div className="text-[11px] uppercase tracking-wider text-brand-mute">
+                  Check-in
+                </div>
+                <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
+                  {time(data.checkInTime)}
+                </div>
               </div>
-              <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
-                {time(data.checkInTime)}
+              <div className="rounded-card border border-brand-line p-3">
+                <div className="text-[11px] uppercase tracking-wider text-brand-mute">
+                  Check-out
+                </div>
+                <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
+                  {time(data.checkOutTime)}
+                </div>
               </div>
             </div>
-            <div className="rounded-card border border-brand-line p-3">
-              <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                Check-out
-              </div>
-              <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
-                {time(data.checkOutTime)}
-              </div>
-            </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {data.bodyHtml ? (
-          <div
-            className={PROSE}
-            // Sanitised at write time via sanitiseListingHtml.
-            dangerouslySetInnerHTML={{ __html: data.bodyHtml }}
-          />
-        ) : null}
-      </DialogContent>
-    </Dialog>
+          {data.bodyHtml ? (
+            <div
+              className={PROSE}
+              // Sanitised at write time via sanitiseListingHtml.
+              dangerouslySetInnerHTML={{ __html: data.bodyHtml }}
+            />
+          ) : null}
+        </div>
+      </FormModal>
+    </>
   );
 }

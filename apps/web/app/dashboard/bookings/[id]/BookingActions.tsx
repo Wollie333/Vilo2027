@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { modal } from "@/components/ui/modal-host";
 
 import {
   cancelBookingAction,
@@ -65,12 +66,13 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={() => {
-            if (
-              window.confirm(
-                "Decline this booking? The guest will be notified.",
-              )
-            ) {
+          onClick={async () => {
+            const ok = await modal.destructive({
+              title: "Decline this booking?",
+              description: "The guest will be notified and can't be undone.",
+              confirmLabel: "Decline",
+            });
+            if (ok) {
               run("decline");
             }
           }}
@@ -99,12 +101,14 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={() => {
-            if (
-              window.confirm(
-                "Cancel this confirmed booking? The guest will be notified.",
-              )
-            ) {
+          onClick={async () => {
+            const ok = await modal.destructive({
+              title: "Cancel this confirmed booking?",
+              description: "The guest will be notified and can't be undone.",
+              confirmLabel: "Cancel booking",
+              cancelLabel: "Keep booking",
+            });
+            if (ok) {
               run("cancel");
             }
           }}
@@ -133,8 +137,14 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={() => {
-            if (window.confirm("Cancel this in-progress stay?")) {
+          onClick={async () => {
+            const ok = await modal.destructive({
+              title: "Cancel this in-progress stay?",
+              description: "The guest will be notified and can't be undone.",
+              confirmLabel: "Cancel booking",
+              cancelLabel: "Keep booking",
+            });
+            if (ok) {
               run("cancel");
             }
           }}

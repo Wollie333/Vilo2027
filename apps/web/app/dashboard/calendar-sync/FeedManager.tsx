@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
+
 import {
   addIcalFeedAction,
   removeIcalFeedAction,
@@ -84,14 +86,13 @@ export function FeedManager({
     });
   }
 
-  function remove(feedId: string) {
-    if (
-      !confirm(
-        "Remove this feed? Imported blocks for it will be cleared from the calendar.",
-      )
-    ) {
-      return;
-    }
+  async function remove(feedId: string) {
+    const ok = await modal.destructive({
+      title: "Remove this feed?",
+      description: "Imported blocks for it will be cleared from the calendar.",
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     setPendingFeedId(feedId);
     start(async () => {
       const result = await removeIcalFeedAction({ feedId });

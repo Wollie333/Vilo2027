@@ -94,6 +94,9 @@ These are enforced by code review — the HTML has the full "Do & Don't" section
 - ❌ No stacked shadows. Pick one of `shadow-card`, `shadow-lift`, `shadow-ring`, `shadow-glow`.
 - ❌ No technical error strings in toasts — show user-facing copy, log technical detail.
 - ❌ No blocking modals to gate free-tier features — use inline upgrade prompts instead.
+- ❌ No raw shadcn `Dialog`/`AlertDialog`, no `window.confirm`/`window.alert`, no bespoke popup cards. Every popup, alert, confirm and error dialog uses the **Notification modals** shell.
+- ✅ Notifications/alerts/confirms/errors → `<Modal>` or the imperative `modal.success|info|warning|error|confirm|destructive(...)` helpers (`components/ui/modal.tsx`, `modal-host.tsx`).
+- ✅ Popups that contain a form (e.g. "Add seasonal price", "Edit room") → `<FormModal>` (`components/ui/form-modal.tsx`) — same shell, header + scroll body + pinned footer.
 - ✅ Currency formatted via shared `formatCurrency()` helper as `R 2 400`.
 - ✅ Booking references formatted `VILO-YYYY-XXNNNN` in `font-mono`.
 - ✅ All forms use React Hook Form + Zod.

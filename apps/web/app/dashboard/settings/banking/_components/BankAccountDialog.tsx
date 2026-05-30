@@ -8,13 +8,10 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import {
   Form,
   FormControl,
@@ -136,34 +133,104 @@ export function BankAccountDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
-            {editing ? "Edit bank account" : "Add a bank account"}
-          </DialogTitle>
-          <DialogDescription>
-            Used on EFT payment instructions, invoices, and quotes. Account
-            numbers are encrypted at rest.
-          </DialogDescription>
-        </DialogHeader>
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={editing ? "Edit bank account" : "Add a bank account"}
+      description="Used on EFT payment instructions, invoices, and quotes. Account numbers are encrypted at rest."
+      size="lg"
+    >
+      <Form {...form}>
+        <form
+          id="bank-account-form"
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="space-y-4"
+          noValidate
+        >
+          <FormField
+            control={form.control}
+            name="label"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Label</FormLabel>
+                <FormControl>
+                  <Input placeholder="Primary" disabled={pending} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <Form {...form}>
-          <form
-            id="bank-account-form"
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-4"
-            noValidate
-          >
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
-              name="label"
+              name="bank_select"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Label</FormLabel>
+                  <FormLabel>Bank</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={pending}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SA_BANKS.map((b) => (
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="account_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Account type</FormLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={pending}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {ACCOUNT_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {ACCOUNT_TYPE_LABELS[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          {bankSelect === "Other" ? (
+            <FormField
+              control={form.control}
+              name="bank_name_other"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bank name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Primary"
+                      placeholder="e.g. HSBC South Africa"
                       disabled={pending}
                       {...field}
                     />
@@ -172,258 +239,167 @@ export function BankAccountDialog({
                 </FormItem>
               )}
             />
+          ) : null}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="bank_select"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={pending}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select bank" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {SA_BANKS.map((b) => (
-                          <SelectItem key={b} value={b}>
-                            {b}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="account_holder"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Account holder</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="As it appears on the bank statement"
+                    disabled={pending}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              <FormField
-                control={form.control}
-                name="account_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account type</FormLabel>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={pending}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {ACCOUNT_TYPES.map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {ACCOUNT_TYPE_LABELS[t]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {bankSelect === "Other" ? (
-              <FormField
-                control={form.control}
-                name="bank_name_other"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bank name</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. HSBC South Africa"
-                        disabled={pending}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ) : null}
-
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField
               control={form.control}
-              name="account_holder"
+              name="account_number"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Account holder</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="As it appears on the bank statement"
-                      disabled={pending}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="account_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Account number{" "}
-                      {editing ? (
-                        <span className="font-normal text-brand-mute">
-                          (leave blank to keep ••••
-                          {editing.account_number_last4})
-                        </span>
-                      ) : null}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="6 to 16 digits"
-                        disabled={pending}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="branch_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Branch code</FormLabel>
-                    <FormControl>
-                      <Input
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="6-digit universal branch code"
-                        disabled={pending}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="swift_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      SWIFT / BIC{" "}
+                  <FormLabel>
+                    Account number{" "}
+                    {editing ? (
                       <span className="font-normal text-brand-mute">
-                        (optional)
+                        (leave blank to keep ••••
+                        {editing.account_number_last4})
                       </span>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        autoComplete="off"
-                        placeholder="For international wires"
-                        disabled={pending}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="reference_format"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reference format</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={pending}
-                        placeholder="VILO-{booking_ref}"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <p className="text-xs text-brand-mute">
-                      <code className="rounded bg-brand-light px-1 py-0.5">
-                        {"{booking_ref}"}
-                      </code>{" "}
-                      is replaced with the booking reference at payment time.
-                    </p>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="is_default"
-              render={({ field }) => (
-                <FormItem className="flex items-center gap-3 rounded-card border border-brand-line bg-brand-light/40 p-3">
+                    ) : null}
+                  </FormLabel>
                   <FormControl>
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="6 to 16 digits"
                       disabled={pending}
-                      className="h-4 w-4 rounded border-brand-line accent-brand-primary"
+                      {...field}
                     />
                   </FormControl>
-                  <div className="flex-1">
-                    <FormLabel className="!m-0 cursor-pointer">
-                      Use as default account
-                    </FormLabel>
-                    <p className="text-xs text-brand-mute">
-                      Appears on invoices, quotes, and the EFT instructions
-                      shown to guests.
-                    </p>
-                  </div>
+                  <FormMessage />
                 </FormItem>
               )}
             />
-          </form>
-        </Form>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={pending}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="bank-account-form"
-            disabled={pending}
-            className="gap-1.5"
-          >
-            <Save className="h-4 w-4" />
-            {pending
-              ? "Saving…"
-              : editing
-                ? "Save changes"
-                : "Add bank account"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <FormField
+              control={form.control}
+              name="branch_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branch code</FormLabel>
+                  <FormControl>
+                    <Input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="6-digit universal branch code"
+                      disabled={pending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="swift_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    SWIFT / BIC{" "}
+                    <span className="font-normal text-brand-mute">
+                      (optional)
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      autoComplete="off"
+                      placeholder="For international wires"
+                      disabled={pending}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="reference_format"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reference format</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={pending}
+                      placeholder="VILO-{booking_ref}"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-brand-mute">
+                    <code className="rounded bg-brand-light px-1 py-0.5">
+                      {"{booking_ref}"}
+                    </code>{" "}
+                    is replaced with the booking reference at payment time.
+                  </p>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="is_default"
+            render={({ field }) => (
+              <FormItem className="flex items-center gap-3 rounded-card border border-brand-line bg-brand-light/40 p-3">
+                <FormControl>
+                  <input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                    disabled={pending}
+                    className="h-4 w-4 rounded border-brand-line accent-brand-primary"
+                  />
+                </FormControl>
+                <div className="flex-1">
+                  <FormLabel className="!m-0 cursor-pointer">
+                    Use as default account
+                  </FormLabel>
+                  <p className="text-xs text-brand-mute">
+                    Appears on invoices, quotes, and the EFT instructions shown
+                    to guests.
+                  </p>
+                </div>
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
+        <Button
+          type="submit"
+          form="bank-account-form"
+          disabled={pending}
+          className="gap-1.5"
+        >
+          <Save className="h-4 w-4" />
+          {pending ? "Saving…" : editing ? "Save changes" : "Add bank account"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
   );
 }

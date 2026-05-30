@@ -6,14 +6,10 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 
 import { setBookingModeAction } from "../listings/[id]/edit/actions";
 import { BOOKING_MODES } from "../listings/[id]/edit/schemas";
@@ -60,28 +56,23 @@ export function ListingSettingsDialog({
   const dirty = mode !== currentMode;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-        >
-          <Settings2 className="h-3.5 w-3.5" />
-          Listing settings
-        </button>
-      </DialogTrigger>
-      <DialogContent className="rounded-card border-brand-line bg-white shadow-card sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="font-display text-xl font-bold text-brand-dark">
-            Booking mode · {listingName}
-          </DialogTitle>
-          <DialogDescription className="text-brand-mute">
-            How guests book this listing. Switch any time — the rooms
-            you&rsquo;ve added are kept either way.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3 py-2">
+    <>
+      <button
+        type="button"
+        onClick={() => onOpenChange(true)}
+        className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+      >
+        <Settings2 className="h-3.5 w-3.5" />
+        Listing settings
+      </button>
+      <FormModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title={`Booking mode · ${listingName}`}
+        description="How guests book this listing. Switch any time — the rooms you’ve added are kept either way."
+        size="lg"
+      >
+        <div className="grid gap-3">
           {BOOKING_MODES.map((opt) => {
             const selected = mode === opt.value;
             return (
@@ -125,15 +116,8 @@ export function ListingSettingsDialog({
           })}
         </div>
 
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={pending}
-          >
-            Cancel
-          </Button>
+        <FormModalFooter>
+          <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
           <Button
             type="button"
             onClick={save}
@@ -143,8 +127,8 @@ export function ListingSettingsDialog({
             <Save className="h-4 w-4" />
             {pending ? "Saving…" : "Save booking mode"}
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </FormModalFooter>
+      </FormModal>
+    </>
   );
 }

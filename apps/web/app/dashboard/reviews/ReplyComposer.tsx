@@ -4,6 +4,8 @@ import { Loader2, Send, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { modal } from "@/components/ui/modal-host";
+
 import {
   clearReplyAction,
   editReplyAction,
@@ -42,14 +44,13 @@ export function ReplyComposer({
     });
   }
 
-  function clear() {
-    if (
-      !confirm(
-        "Remove your reply? Guests will see this review as unanswered again.",
-      )
-    ) {
-      return;
-    }
+  async function clear() {
+    const ok = await modal.destructive({
+      title: "Remove your reply?",
+      description: "Guests will see this review as unanswered again.",
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     start(async () => {
       const result = await clearReplyAction(reviewId);
       if (result.ok) {

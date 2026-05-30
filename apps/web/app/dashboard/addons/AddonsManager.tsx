@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import { Textarea } from "@/components/ui/textarea";
 
 import { AddonImageInput } from "./AddonImageInput";
@@ -226,14 +227,14 @@ function AddonRow({
     });
   }
 
-  function remove() {
-    if (
-      !window.confirm(
-        `Delete "${addon.name}"? It will be removed from every listing it's attached to.`,
-      )
-    ) {
-      return;
-    }
+  async function remove() {
+    const ok = await modal.destructive({
+      title: `Delete "${addon.name}"?`,
+      description:
+        "It will be removed from every listing it's attached to. This can't be undone.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     startDelete(async () => {
       const result = await deleteAddonAction(addon.id);
       if (result.ok) {

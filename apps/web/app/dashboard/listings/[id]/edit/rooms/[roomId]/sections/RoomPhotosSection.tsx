@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { modal } from "@/components/ui/modal-host";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -87,8 +88,13 @@ export function RoomPhotosSection({
     });
   }
 
-  function remove(photoId: string) {
-    if (!window.confirm("Delete this photo?")) return;
+  async function remove(photoId: string) {
+    const ok = await modal.destructive({
+      title: "Delete this photo?",
+      description: "This permanently removes the photo.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     deleteListingPhotoAction(listingId, photoId).then((result) => {
       if (result.ok) {
         onPhotosChange(photos.filter((p) => p.id !== photoId));

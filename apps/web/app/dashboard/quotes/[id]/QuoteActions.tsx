@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { modal } from "@/components/ui/modal-host";
 import {
   Card,
   CardContent,
@@ -59,13 +60,14 @@ export function QuoteActions({
       } else toast.error(r.error);
     });
   }
-  function decline() {
-    if (
-      !window.confirm(
-        "Decline this quote? The soft hold on the calendar will clear.",
-      )
-    )
-      return;
+  async function decline() {
+    const ok = await modal.destructive({
+      title: "Decline this quote?",
+      description:
+        "The soft hold on the calendar will clear and this can't be undone.",
+      confirmLabel: "Decline",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await declineQuoteAction(quoteId);
       if (r.ok) {
@@ -86,8 +88,13 @@ export function QuoteActions({
       } else if (!r.ok) toast.error(r.error);
     });
   }
-  function softDelete() {
-    if (!window.confirm("Delete this quote?")) return;
+  async function softDelete() {
+    const ok = await modal.destructive({
+      title: "Delete this quote?",
+      description: "This can't be undone.",
+      confirmLabel: "Delete quote",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await softDeleteQuoteAction(quoteId);
       if (r.ok) {

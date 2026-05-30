@@ -27,6 +27,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import type { CategoryKind, ListingCategoryRow } from "@/lib/taxonomy/types";
 
 import { deleteCategory } from "./actions";
@@ -119,12 +120,14 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
 
   const groups = useMemo(() => groupByParent(filteredList), [filteredList]);
 
-  function removeRow(row: ListingCategoryRow) {
+  async function removeRow(row: ListingCategoryRow) {
     const isParent = list.some((r) => r.parent_id === row.id);
     if (isParent) {
-      window.alert(
-        "This category has child categories. Delete or reparent the children first.",
-      );
+      await modal.warning({
+        title: "Can't delete this category",
+        description:
+          "This category has child categories. Delete or reparent the children first.",
+      });
       return;
     }
     const reason = window.prompt(

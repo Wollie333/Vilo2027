@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 
 import {
   cancelInviteAction,
@@ -307,14 +308,13 @@ function MemberRow({
       } else toast.error(r.error);
     });
   }
-  function remove() {
-    if (
-      !window.confirm(
-        `Remove ${member.fullName || member.email} from your team?`,
-      )
-    ) {
-      return;
-    }
+  async function remove() {
+    const ok = await modal.destructive({
+      title: `Remove ${member.fullName || member.email} from your team?`,
+      description: "This removes their access immediately.",
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await removeStaffAction(member.id);
       if (r.ok) {
@@ -390,8 +390,14 @@ function InviteRow({
       })
       .catch(() => toast.error("Couldn't copy — copy it manually."));
   }
-  function cancel() {
-    if (!window.confirm(`Cancel the invite for ${invite.email}?`)) return;
+  async function cancel() {
+    const ok = await modal.destructive({
+      title: `Cancel the invite for ${invite.email}?`,
+      description: "The invite link will stop working.",
+      confirmLabel: "Cancel invite",
+      cancelLabel: "Keep invite",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await cancelInviteAction(invite.id);
       if (r.ok) {

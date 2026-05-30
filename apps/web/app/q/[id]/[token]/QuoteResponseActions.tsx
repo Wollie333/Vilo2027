@@ -6,6 +6,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { modal } from "@/components/ui/modal-host";
 
 import { guestAcceptQuoteAction, guestDeclineQuoteAction } from "./actions";
 
@@ -28,8 +29,13 @@ export function QuoteResponseActions({
       } else toast.error(r.error);
     });
   }
-  function decline() {
-    if (!window.confirm("Decline this quote?")) return;
+  async function decline() {
+    const ok = await modal.destructive({
+      title: "Decline this quote?",
+      description: "This releases the hold on your dates and can't be undone.",
+      confirmLabel: "Decline",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await guestDeclineQuoteAction(quoteId, token);
       if (r.ok) {

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { modal } from "@/components/ui/modal-host";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 
@@ -151,14 +152,13 @@ function DeleteRow({
 }) {
   const [pending, start] = useTransition();
 
-  function remove() {
-    if (
-      !window.confirm(
-        `Delete room "${room.name}"? It can't have any active bookings.`,
-      )
-    ) {
-      return;
-    }
+  async function remove() {
+    const ok = await modal.destructive({
+      title: `Delete room "${room.name}"?`,
+      description: "It can't have any active bookings.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     start(async () => {
       const result = await deleteRoomAction(listingId, room.id);
       if (result.ok) {
@@ -485,8 +485,13 @@ function PhotosTab({
     });
   }
 
-  function remove(photoId: string) {
-    if (!window.confirm("Delete this photo?")) return;
+  async function remove(photoId: string) {
+    const ok = await modal.destructive({
+      title: "Delete this photo?",
+      description: "This permanently removes the photo.",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
     startDelete(async () => {
       const result = await deleteListingPhotoAction(listingId, photoId);
       if (result.ok) {
