@@ -1,7 +1,7 @@
 "use client";
 
 import { GripVertical, Star, Trash2, UploadCloud } from "lucide-react";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
@@ -49,10 +49,6 @@ export function PhotosManager({
   const [dragSourceIdx, setDragSourceIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
-  // Browser Supabase client — files upload straight to Storage (RLS-protected),
-  // bypassing the Server Action / Vercel ~4.5 MB request-body cap.
-  const supabase = useMemo(() => createClient(), []);
-
   const uploading = uploadQueue.total > 0;
   const uploadingLabel =
     uploadQueue.total > 1
@@ -72,6 +68,10 @@ export function PhotosManager({
       return true;
     });
     if (valid.length === 0) return;
+
+    // Create the browser client only when actually uploading (never at render/
+    // SSR) so it can't interfere with hydration.
+    const supabase = createClient();
 
     setUploadQueue({ total: valid.length, done: 0 });
     let next = [...photos];
