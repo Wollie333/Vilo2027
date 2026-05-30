@@ -39,7 +39,9 @@ export function PolicyEditorSheet({
   onOpenChange: (open: boolean) => void;
   type: PolicyType;
   policy: PolicyCard | null;
-  onSaved: () => void;
+  // On create, receives the new policy's id so callers can act on it (e.g. the
+  // setup picker auto-assigns it to the listing). On edit, called with no arg.
+  onSaved: (created?: { id: string }) => void;
 }) {
   const [pending, start] = useTransition();
 
@@ -140,7 +142,7 @@ export function PolicyEditorSheet({
       if (result.ok) {
         toast.success(isEdit ? "Policy saved" : "Policy created");
         onOpenChange(false);
-        onSaved();
+        onSaved(!isEdit && result.data ? { id: result.data.id } : undefined);
       } else {
         toast.error(result.error);
       }

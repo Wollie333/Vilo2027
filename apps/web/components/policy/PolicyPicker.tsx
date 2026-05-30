@@ -82,6 +82,20 @@ export function PolicyPicker({
     });
   }
 
+  // After the sheet saves: a freshly created policy is immediately assigned to
+  // this listing as the default (matches "create → set as default"). An edit
+  // just refreshes.
+  function onSheetSaved(created?: { id: string }) {
+    if (!created?.id) {
+      onChanged();
+      return;
+    }
+    setListingPolicyAction(listingId, type, null, created.id).then((r) => {
+      if (!r.ok) toast.error(r.error);
+      onChanged();
+    });
+  }
+
   return (
     <div className="space-y-2.5">
       {mine.length === 0 ? (
@@ -174,7 +188,7 @@ export function PolicyPicker({
         onOpenChange={(open) => setEditor((e) => ({ ...e, open }))}
         type={type}
         policy={editor.policy}
-        onSaved={onChanged}
+        onSaved={onSheetSaved}
       />
     </div>
   );
