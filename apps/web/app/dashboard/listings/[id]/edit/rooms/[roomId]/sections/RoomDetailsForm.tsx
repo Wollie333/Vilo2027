@@ -1,7 +1,14 @@
 "use client";
 
 import { Minus, Plus, Save, Trash2, Users } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import {
+  forwardRef,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -76,19 +83,24 @@ function bedSummaryString(beds: BedInput[]): string | null {
     .slice(0, 40);
 }
 
-export function RoomDetailsForm({
-  listingId,
-  room,
-  mode = "edit",
-  onSaved,
-  onCreated,
-}: {
-  listingId: string;
-  room: RoomEditorRoom;
-  mode?: "create" | "edit";
-  onSaved?: (patch: Partial<RoomEditorRoom>) => void;
-  onCreated?: (id: string) => void;
-}) {
+export type RoomDetailsFormHandle = {
+  /** Validate + persist the room; resolves true on success. */
+  save: () => Promise<boolean>;
+};
+
+export const RoomDetailsForm = forwardRef<
+  RoomDetailsFormHandle,
+  {
+    listingId: string;
+    room: RoomEditorRoom;
+    mode?: "create" | "edit";
+    onSaved?: (patch: Partial<RoomEditorRoom>) => void;
+    onCreated?: (id: string) => void;
+  }
+>(function RoomDetailsForm(
+  { listingId, room, mode = "edit", onSaved, onCreated },
+  ref,
+) {
   const [pending, start] = useTransition();
 
   const [name, setName] = useState(room.name);
@@ -152,37 +164,39 @@ export function RoomDetailsForm({
     setBeds((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
   }
 
-  function save() {
+  // Awaitable save used by both the in-card button and the page's top
+  // Save / Save & publish buttons (via the imperative handle below).
+  async function doSave(): Promise<boolean> {
     if (!name.trim()) {
       toast.error("Give the room a name.");
-      return;
+      return false;
     }
     if (beds.length === 0 || capacity < 1) {
       toast.error("Add at least one bed — capacity comes from the beds.");
-      return;
+      return false;
     }
 
     // Per-mode price validation.
     if (pricingMode === "per_person" && (toNum(pricePerPerson) ?? 0) <= 0) {
       toast.error("Set a per-person price.");
-      return;
+      return false;
     }
     if (pricingMode === "per_room" && (toNum(basePrice) ?? 0) <= 0) {
       toast.error("Set a base price per night.");
-      return;
+      return false;
     }
     if (pricingMode === "per_room_plus_extra") {
       if ((toNum(basePrice) ?? 0) <= 0) {
         toast.error("Set a base price per night.");
-        return;
+        return false;
       }
       if ((toInt(baseOccupancy) ?? 0) < 1) {
         toast.error("Set how many guests the base price covers.");
-        return;
+        return false;
       }
       if ((toNum(extraGuestPrice) ?? 0) <= 0) {
         toast.error("Set the price per extra guest.");
-        return;
+        return false;
       }
     }
 
@@ -221,43 +235,55 @@ export function RoomDetailsForm({
       })),
     };
 
-    start(async () => {
-      if (mode === "create") {
-        const result = await createRoomAction(listingId, patch);
-        if (!result.ok || !result.data) {
-          toast.error(result.ok ? "Could not create room." : result.error);
-          return;
-        }
-        const bedsResult = await setRoomBedsAction(
-          listingId,
-          result.data.id,
-          beds,
-        );
-        if (!bedsResult.ok) {
-          toast.error(bedsResult.error);
-          return;
-        }
-        toast.success("Room created");
-        onCreated?.(result.data.id);
-        return;
+    if (mode === "create") {
+      const result = await createRoomAction(listingId, patch);
+      if (!result.ok || !result.data) {
+        toast.error(result.ok ? "Could not create room." : result.error);
+        return false;
       }
+      const bedsResult = await setRoomBedsAction(
+        listingId,
+        result.data.id,
+        beds,
+      );
+      if (!bedsResult.ok) {
+        toast.error(bedsResult.error);
+        return false;
+      }
+      toast.success("Room created");
+      onCreated?.(result.data.id);
+      return true;
+    }
 
-      const [detailsResult, bedsResult] = await Promise.all([
-        updateRoomAction(listingId, room.id, patch),
-        setRoomBedsAction(listingId, room.id, beds),
-      ]);
-      if (detailsResult.ok && bedsResult.ok) {
-        onSaved?.(localPatch);
-        toast.success("Room saved");
-      } else {
-        toast.error(
-          (!detailsResult.ok && detailsResult.error) ||
-            (!bedsResult.ok && bedsResult.error) ||
-            "Could not save room.",
-        );
-      }
+    const [detailsResult, bedsResult] = await Promise.all([
+      updateRoomAction(listingId, room.id, patch),
+      setRoomBedsAction(listingId, room.id, beds),
+    ]);
+    if (detailsResult.ok && bedsResult.ok) {
+      onSaved?.(localPatch);
+      toast.success("Room saved");
+      return true;
+    }
+    toast.error(
+      (!detailsResult.ok && detailsResult.error) ||
+        (!bedsResult.ok && bedsResult.error) ||
+        "Could not save room.",
+    );
+    return false;
+  }
+
+  // Keep a stable handle pointing at the latest doSave so the imperative
+  // handle (and its deps) never need to change.
+  const doSaveRef = useRef(doSave);
+  doSaveRef.current = doSave;
+
+  function save() {
+    start(() => {
+      void doSave();
     });
   }
+
+  useImperativeHandle(ref, () => ({ save: () => doSaveRef.current() }), []);
 
   return (
     <Card className="rounded-card border-brand-line shadow-card">
@@ -631,7 +657,7 @@ export function RoomDetailsForm({
       </CardContent>
     </Card>
   );
-}
+});
 
 /** A small labelled −/+ number stepper used for per-bed Sleeps and Qty. */
 function Stepper({

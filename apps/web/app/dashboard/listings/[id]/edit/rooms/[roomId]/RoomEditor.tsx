@@ -6,19 +6,28 @@ import {
   BedDouble,
   Check,
   ChevronRight,
+  Copy,
   ExternalLink,
+  Eye,
   Image as ImageIcon,
   Lightbulb,
+  Link2,
+  PartyPopper,
+  Rocket,
+  Save,
   Settings,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { updateRoomAction } from "../../actions";
 import { RoomAmenitiesSection } from "./sections/RoomAmenitiesSection";
-import { RoomDetailsForm } from "./sections/RoomDetailsForm";
+import {
+  RoomDetailsForm,
+  type RoomDetailsFormHandle,
+} from "./sections/RoomDetailsForm";
 import { RoomPhotosSection } from "./sections/RoomPhotosSection";
 
 export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
@@ -116,6 +125,42 @@ export function RoomEditor({
   const [amenityKeys, setAmenityKeys] = useState<string[]>(initialAmenityKeys);
   const [active, setActive] = useState<SectionId>("sec-details");
   const [bookablePending, startBookable] = useTransition();
+  const [savePending, startSave] = useTransition();
+  const [publishPending, startPublish] = useTransition();
+  const [published, setPublished] = useState(false);
+  const [confetti, setConfetti] = useState(false);
+
+  const formRef = useRef<RoomDetailsFormHandle>(null);
+
+  function saveChanges() {
+    startSave(async () => {
+      await formRef.current?.save();
+    });
+  }
+
+  function saveAndPublish() {
+    startPublish(async () => {
+      const ok = await formRef.current?.save();
+      if (!ok) return;
+      if (!room.is_active) {
+        const result = await updateRoomAction(listingId, room.id, {
+          is_active: true,
+        });
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+        setRoom((r) => ({ ...r, is_active: true }));
+      }
+      setConfetti(true);
+      setPublished(true);
+      setTimeout(() => setConfetti(false), 4200);
+    });
+  }
+
+  const publicRoomPath = listingSlug
+    ? `/listing/${listingSlug}/rooms/${room.id}`
+    : null;
 
   // Scroll-spy: highlight the section nearest the top of the viewport.
   useEffect(() => {
@@ -182,14 +227,57 @@ export function RoomEditor({
 
   return (
     <div className="space-y-6 pb-24">
-      {/* Back link */}
-      <Link
-        href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
-        className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        All rooms · {listingName}
-      </Link>
+      {confetti ? <RoomConfetti /> : null}
+      {published ? (
+        <RoomPublishedModal
+          roomName={room.name}
+          publicPath={publicRoomPath}
+          listingId={listingId}
+          onClose={() => setPublished(false)}
+        />
+      ) : null}
+
+      {/* Back link + top actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
+          className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          All rooms · {listingName}
+        </Link>
+
+        <div className="flex items-center gap-2">
+          {publicRoomPath ? (
+            <Link
+              href={publicRoomPath}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
+            >
+              <Eye className="h-4 w-4" />
+              View room
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={saveChanges}
+            disabled={savePending || publishPending}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60 disabled:opacity-60"
+          >
+            <Save className="h-4 w-4" />
+            {savePending ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={saveAndPublish}
+            disabled={publishPending || savePending}
+            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-glow hover:bg-brand-secondary disabled:opacity-60"
+          >
+            <Rocket className="h-4 w-4" />
+            {publishPending ? "Publishing…" : "Save & publish"}
+          </button>
+        </div>
+      </div>
 
       {/* ============ DARK HERO ============ */}
       <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
@@ -301,12 +389,12 @@ export function RoomEditor({
                     aria-label="Toggle bookable"
                     onClick={toggleBookable}
                     disabled={bookablePending}
-                    className={`relative h-[22px] w-[38px] shrink-0 rounded-pill transition-colors disabled:opacity-60 ${
-                      room.is_active ? "bg-brand-primary" : "bg-white/20"
+                    className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-60 ${
+                      room.is_active ? "bg-brand-primary" : "bg-white/25"
                     }`}
                   >
                     <span
-                      className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow transition-transform ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
                         room.is_active
                           ? "translate-x-[18px]"
                           : "translate-x-[2px]"
@@ -426,6 +514,7 @@ export function RoomEditor({
         <div className="space-y-6">
           <div id="sec-details" className="scroll-mt-32">
             <RoomDetailsForm
+              ref={formRef}
               listingId={listingId}
               room={room}
               onSaved={(patch) => setRoom((r) => ({ ...r, ...patch }))}
@@ -634,6 +723,144 @@ function HeroStat({
         className={`text-[10px] ${warn ? "text-status-pending" : "text-brand-accent/60"}`}
       >
         {sub}
+      </div>
+    </div>
+  );
+}
+
+/** Celebratory confetti — reuses the shared `.setup-confetti-piece` keyframes. */
+function RoomConfetti() {
+  const pieces = useMemo(() => {
+    const colors = [
+      "#10B981",
+      "#064E3B",
+      "#D1FAE5",
+      "#34D399",
+      "#A7F3D0",
+      "#F4A836",
+    ];
+    return Array.from({ length: 70 }).map((_, i) => ({
+      left: (i * 37) % 100,
+      dx: `${((i * 53) % 220) - 110}px`,
+      d: `${3 + ((i * 7) % 25) / 10}s`,
+      delay: `${((i * 13) % 80) / 100}s`,
+      bg: colors[i % colors.length],
+      rot: (i * 47) % 180,
+    }));
+  }, []);
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[80] overflow-hidden">
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="setup-confetti-piece"
+          style={
+            {
+              left: `${p.left}%`,
+              background: p.bg,
+              transform: `rotate(${p.rot}deg)`,
+              "--dx": p.dx,
+              "--d": p.d,
+              "--delay": p.delay,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function RoomPublishedModal({
+  roomName,
+  publicPath,
+  listingId,
+  onClose,
+}: {
+  roomName: string;
+  publicPath: string | null;
+  listingId: string;
+  onClose: () => void;
+}) {
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const [copied, setCopied] = useState(false);
+  const displayUrl = publicPath
+    ? `${origin}${publicPath}`.replace(/^https?:\/\//, "")
+    : "";
+
+  function copy() {
+    if (!publicPath) return;
+    navigator.clipboard?.writeText(`${origin}${publicPath}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[85] flex items-center justify-center bg-brand-dark/40 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-card bg-white p-7 text-center shadow-card"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
+          <PartyPopper className="h-8 w-8" />
+        </div>
+        <h3 className="mt-4 font-display text-2xl font-bold text-brand-ink">
+          Room published! 🎉
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-brand-mute">
+          <span className="font-semibold text-brand-ink">{roomName}</span> is
+          saved and bookable.{" "}
+          {publicPath
+            ? "Here's its public page — share it to take direct bookings."
+            : "Publish the listing to make its public page shareable."}
+        </p>
+
+        {publicPath ? (
+          <button
+            type="button"
+            onClick={copy}
+            title="Click to copy"
+            className="mt-4 flex w-full items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 py-2.5 text-left font-mono text-xs text-brand-ink transition hover:border-brand-primary/50"
+          >
+            <Link2 className="h-3.5 w-3.5 shrink-0 text-brand-primary" />
+            <span className="flex-1 truncate">{displayUrl || publicPath}</span>
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
+              {copied ? "Copied" : <Copy className="h-3 w-3" />}
+            </span>
+          </button>
+        ) : null}
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Link
+            href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
+            className="rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light"
+          >
+            All rooms
+          </Link>
+          {publicPath ? (
+            <a
+              href={publicPath}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              <ExternalLink className="h-4 w-4" /> View room
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              Done
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
