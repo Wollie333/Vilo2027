@@ -1,4 +1,3 @@
-Initialising login role...
 export type Json =
   | string
   | number
@@ -2244,6 +2243,13 @@ export type Database = {
             referencedRelation: "policies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "listing_policies_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
         ]
       }
       listing_rankings: {
@@ -2289,6 +2295,7 @@ export type Database = {
       }
       listing_rooms: {
         Row: {
+          base_occupancy: number | null
           base_price: number
           bathrooms: number | null
           bed_type: string | null
@@ -2299,6 +2306,7 @@ export type Database = {
           deleted_at: string | null
           description: string | null
           experiences: string[]
+          extra_guest_price: number | null
           featured_photo_id: string | null
           floor_number: number | null
           has_ensuite_bathroom: boolean
@@ -2309,6 +2317,8 @@ export type Database = {
           max_guests: number
           name: string
           pets_allowed: boolean
+          price_per_person: number | null
+          pricing_mode: string
           private_entrance: boolean
           room_size_sqm: number | null
           smoking_allowed: boolean
@@ -2319,6 +2329,7 @@ export type Database = {
           wheelchair_accessible: boolean
         }
         Insert: {
+          base_occupancy?: number | null
           base_price: number
           bathrooms?: number | null
           bed_type?: string | null
@@ -2329,6 +2340,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           experiences?: string[]
+          extra_guest_price?: number | null
           featured_photo_id?: string | null
           floor_number?: number | null
           has_ensuite_bathroom?: boolean
@@ -2339,6 +2351,8 @@ export type Database = {
           max_guests?: number
           name: string
           pets_allowed?: boolean
+          price_per_person?: number | null
+          pricing_mode?: string
           private_entrance?: boolean
           room_size_sqm?: number | null
           smoking_allowed?: boolean
@@ -2349,6 +2363,7 @@ export type Database = {
           wheelchair_accessible?: boolean
         }
         Update: {
+          base_occupancy?: number | null
           base_price?: number
           bathrooms?: number | null
           bed_type?: string | null
@@ -2359,6 +2374,7 @@ export type Database = {
           deleted_at?: string | null
           description?: string | null
           experiences?: string[]
+          extra_guest_price?: number | null
           featured_photo_id?: string | null
           floor_number?: number | null
           has_ensuite_bathroom?: boolean
@@ -2369,6 +2385,8 @@ export type Database = {
           max_guests?: number
           name?: string
           pets_allowed?: boolean
+          price_per_person?: number | null
+          pricing_mode?: string
           private_entrance?: boolean
           room_size_sqm?: number | null
           smoking_allowed?: boolean
@@ -4883,6 +4901,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_host_policy_presets: {
+        Args: { p_host_id: string }
+        Returns: undefined
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
@@ -4977,10 +4999,6 @@ export type Database = {
       geometry_same_3d: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
-      }
-      ensure_host_policy_presets: {
-        Args: { p_host_id: string }
-        Returns: undefined
       }
       geometry_within: {
         Args: { geom1: unknown; geom2: unknown }
