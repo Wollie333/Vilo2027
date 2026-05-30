@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 
+import { ModalHost } from "@/components/ui/modal-host";
 import { Toaster } from "@/components/ui/sonner";
 
 import { CookieBanner } from "./_components/CookieBanner";
@@ -42,6 +43,7 @@ export default function RootLayout({
         {children}
         <CookieBanner />
         <Toaster richColors position="top-center" />
+        <ModalHost />
       </body>
     </html>
   );
