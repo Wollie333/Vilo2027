@@ -12,9 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { randomId } from "@/lib/randomId";
 
 import {
+  createListingPhotoUploadUrl,
   deleteListingPhotoAction,
   registerListingPhotoAction,
   setRoomFeaturedPhotoAction,
@@ -44,31 +44,45 @@ export function RoomPhotosSection({
     if (!files || files.length === 0) return;
     const file = files[0];
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${listingId}/${randomId()}.${ext}`;
     startUpload(async () => {
-      // Direct browser → Storage upload (RLS-protected), then record the row —
-      // avoids the Server Action / Vercel request-body cap on large photos.
-      const { error: upErr } = await supabase.storage
-        .from("listing-photos")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: file.type,
-        });
-      if (upErr) {
-        toast.error(upErr.message || "Upload failed");
-        return;
-      }
-      const result = await registerListingPhotoAction(listingId, path, roomId);
-      if (result.ok && result.data) {
-        onPhotosChange([
-          ...photos,
-          { id: result.data.id, url: result.data.url },
-        ]);
-        toast.success("Photo uploaded");
-      } else if (!result.ok) {
-        toast.error(result.error);
-        await supabase.storage.from("listing-photos").remove([path]);
+      try {
+        // Signed-URL upload: server issues the URL, browser uploads straight to
+        // Storage with the token, then we record the row. No body cap, no
+        // browser-session dependency.
+        const ticket = await createListingPhotoUploadUrl(
+          listingId,
+          ext,
+          roomId,
+        );
+        if (!ticket.ok || !ticket.data) {
+          toast.error(ticket.ok ? "Could not start upload" : ticket.error);
+          return;
+        }
+        const { error: upErr } = await supabase.storage
+          .from("listing-photos")
+          .uploadToSignedUrl(ticket.data.path, ticket.data.token, file, {
+            contentType: file.type || "image/jpeg",
+          });
+        if (upErr) {
+          toast.error(upErr.message || "Upload failed");
+          return;
+        }
+        const result = await registerListingPhotoAction(
+          listingId,
+          ticket.data.path,
+          roomId,
+        );
+        if (result.ok && result.data) {
+          onPhotosChange([
+            ...photos,
+            { id: result.data.id, url: result.data.url },
+          ]);
+          toast.success("Photo uploaded");
+        } else if (!result.ok) {
+          toast.error(result.error);
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload error");
       }
     });
   }

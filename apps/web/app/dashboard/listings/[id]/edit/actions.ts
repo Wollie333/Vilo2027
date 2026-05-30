@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
@@ -238,6 +239,47 @@ export async function uploadListingPhotoAction(
     revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
   }
   return { ok: true, data: { id: row.id, url: row.url } };
+}
+
+/**
+ * Issue a one-time signed upload URL for a listing photo. The browser uploads
+ * the file straight to Storage with this token (no file through the action →
+ * no Vercel body cap; the token authorises the write → no dependency on the
+ * browser client's session). Ownership is checked here; the signed URL is
+ * minted with admin creds so it always succeeds once ownership passes.
+ */
+export async function createListingPhotoUploadUrl(
+  listingId: string,
+  ext: string,
+  roomId: string | null = null,
+): Promise<ActionResult<{ path: string; token: string }>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  if (roomId) {
+    const supabase = createServerClient();
+    const { data: room } = await supabase
+      .from("listing_rooms")
+      .select("id")
+      .eq("id", roomId)
+      .eq("listing_id", listingId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (!room) return { ok: false, error: "Room not found on this listing." };
+  }
+
+  const safeExt =
+    (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${listingId}/${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("listing-photos")
+    .createSignedUploadUrl(path);
+  if (error || !data) {
+    return { ok: false, error: "Could not start the upload. Try again." };
+  }
+  return { ok: true, data: { path, token: data.token } };
 }
 
 /**

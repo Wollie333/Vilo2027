@@ -6,12 +6,12 @@ import { toast } from "sonner";
 
 import {
   assignPhotoToRoomAction,
+  createListingPhotoUploadUrl,
   deleteListingPhotoAction,
   registerListingPhotoAction,
   reorderListingPhotosAction,
 } from "@/app/dashboard/listings/[id]/edit/actions";
 import { createClient } from "@/lib/supabase/client";
-import { randomId } from "@/lib/randomId";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -73,48 +73,46 @@ export function PhotosManager({
     });
     if (valid.length === 0) return;
 
-    // Storage RLS needs a live session on the browser client — surface it
-    // instead of failing silently if it's somehow missing.
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
-      toast.error("Your session expired — refresh the page and try again.");
-      return;
-    }
-
     setUploadQueue({ total: valid.length, done: 0 });
     let next = [...photos];
     let uploaded = 0;
 
     try {
-      // Sequential: upload the file directly to Storage, then record the row via
-      // a tiny action. Avoids the Server Action / Vercel request-body cap.
+      // Per file: get a signed upload URL from the server, upload straight to
+      // Storage with the token (no body cap, no browser-session dependency),
+      // then record the row.
       for (let i = 0; i < valid.length; i++) {
         const file = valid[i];
         const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-        const path = `${listingId}/${randomId()}.${ext}`;
         try {
-          const { error: upErr } = await supabase.storage
-            .from("listing-photos")
-            .upload(path, file, {
-              cacheControl: "3600",
-              upsert: false,
-              contentType: file.type || "image/jpeg",
-            });
-          if (upErr) {
-            toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
+          const ticket = await createListingPhotoUploadUrl(listingId, ext);
+          if (!ticket.ok || !ticket.data) {
+            toast.error(
+              `${file.name}: ${ticket.ok ? "could not start upload" : ticket.error}`,
+            );
           } else {
-            const result = await registerListingPhotoAction(listingId, path);
-            if (result.ok && result.data) {
-              next = [
-                ...next,
-                { id: result.data.id, url: result.data.url, roomId: null },
-              ];
-              onChange(next);
-              uploaded += 1;
-            } else if (!result.ok) {
-              toast.error(`${file.name}: ${result.error}`);
+            const { error: upErr } = await supabase.storage
+              .from("listing-photos")
+              .uploadToSignedUrl(ticket.data.path, ticket.data.token, file, {
+                contentType: file.type || "image/jpeg",
+              });
+            if (upErr) {
+              toast.error(`${file.name}: ${upErr.message || "upload failed"}`);
+            } else {
+              const result = await registerListingPhotoAction(
+                listingId,
+                ticket.data.path,
+              );
+              if (result.ok && result.data) {
+                next = [
+                  ...next,
+                  { id: result.data.id, url: result.data.url, roomId: null },
+                ];
+                onChange(next);
+                uploaded += 1;
+              } else if (!result.ok) {
+                toast.error(`${file.name}: ${result.error}`);
+              }
             }
           }
         } catch (err) {
