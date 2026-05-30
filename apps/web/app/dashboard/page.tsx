@@ -160,8 +160,12 @@ export default async function DashboardPage({
   // nothing to gate on. Falls back to redirecting back to onboarding.
   const setupState = host ? await fetchGettingStartedState(user!.id) : null;
   const setupSteps = setupState ? buildSetupSteps(setupState) : [];
+  // A published listing means setup was 100% (the publish gate enforces
+  // profile/banking/photos/rooms/policy), so never nag a host who is already
+  // live — even if a sub-check or cache hiccups. Otherwise require every step.
   const setupComplete =
-    setupSteps.length > 0 && setupSteps.every((s) => s.done);
+    (setupState?.listing_published.done ?? false) ||
+    (setupSteps.length > 0 && setupSteps.every((s) => s.done));
   const hasFirstListing = (listings ?? []).length > 0;
 
   return (
