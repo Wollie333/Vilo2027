@@ -98,14 +98,14 @@ export function RoomEditor({
   const stripPhotos = photos.slice(0, 6);
   const remainingPhotos = Math.max(0, photos.length - stripPhotos.length);
 
+  // bed_type already holds a clean, complete summary ("5 Queens" / "1 King + 2
+  // Singles"), so show it as-is — don't prepend the bedroom count or re-pluralise.
   const bedSummary =
-    room.bed_type && room.bedrooms
-      ? `${room.bedrooms} ${room.bed_type}${room.bedrooms > 1 ? "s" : ""}`
-      : room.bed_type
-        ? room.bed_type
-        : room.bedrooms
-          ? `${room.bedrooms} bed${room.bedrooms > 1 ? "s" : ""}`
-          : "Beds not set";
+    room.bed_type && room.bed_type.length > 0
+      ? room.bed_type
+      : room.bedrooms
+        ? `${room.bedrooms} bed${room.bedrooms > 1 ? "s" : ""}`
+        : "Beds not set";
 
   const bathSummary = room.bathrooms
     ? `${room.bathrooms} bath${room.bathrooms > 1 ? "s" : ""}`
