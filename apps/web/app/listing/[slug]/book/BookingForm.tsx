@@ -22,6 +22,7 @@ import {
   computeAddonSubtotal,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
+import { roomNightlyBase, type RoomPricingMode } from "../roomDisplay";
 import { createBookingAction } from "./actions";
 
 export type BookedRoom = {
@@ -30,7 +31,26 @@ export type BookedRoom = {
   basePrice: number;
   cleaningFee: number;
   maxGuests: number;
+  guests: number;
+  pricing_mode: RoomPricingMode;
+  pricePerPerson: number | null;
+  baseOccupancy: number | null;
+  extraGuestPrice: number | null;
 };
+
+/** Nightly base for a booked room at its chosen guest count. */
+function roomNightly(r: BookedRoom): number {
+  return roomNightlyBase(
+    {
+      pricing_mode: r.pricing_mode,
+      base_price: r.basePrice,
+      price_per_person: r.pricePerPerson,
+      base_occupancy: r.baseOccupancy,
+      extra_guest_price: r.extraGuestPrice,
+    },
+    r.guests,
+  );
+}
 
 export type AvailableAddon = {
   id: string;
@@ -128,9 +148,14 @@ export function BookingForm({
     [rooms, selectedRoomIds],
   );
 
+  // For per-room bookings the guest count is fixed by the per-room selection
+  // made in the cart; for whole-listing the dropdown drives it.
+  const roomsGuestTotal = activeRooms.reduce((acc, r) => acc + r.guests, 0);
+  const effectiveGuests = scope === "rooms" ? roomsGuestTotal : guestCount;
+
   const subtotal =
     scope === "rooms"
-      ? activeRooms.reduce((acc, r) => acc + r.basePrice * nights, 0)
+      ? activeRooms.reduce((acc, r) => acc + roomNightly(r) * nights, 0)
       : basePrice * nights;
   const cleaningTotal =
     scope === "rooms"
@@ -147,11 +172,11 @@ export function BookingForm({
         a.unitPrice,
         qty,
         nights,
-        guestCount,
+        effectiveGuests,
       );
     }
     return sum;
-  }, [addonQty, availableAddons, nights, guestCount]);
+  }, [addonQty, availableAddons, nights, effectiveGuests]);
 
   const selectedAddonLines = useMemo(() => {
     const lines: Array<{ id: string; name: string; subtotal: number }> = [];
@@ -166,12 +191,12 @@ export function BookingForm({
           a.unitPrice,
           qty,
           nights,
-          guestCount,
+          effectiveGuests,
         ),
       });
     }
     return lines;
-  }, [addonQty, availableAddons, nights, guestCount]);
+  }, [addonQty, availableAddons, nights, effectiveGuests]);
 
   const total = subtotal + cleaningTotal + addonsTotal;
   const reserveDisabled =
@@ -186,11 +211,19 @@ export function BookingForm({
     }
     setSelectedRoomIds(remaining);
     // Reflect the change in the URL so a reload survives.
+    const remainingRooms = rooms.filter((r) => remaining.includes(r.id));
     const qs = new URLSearchParams();
     qs.set("from", checkIn);
     qs.set("to", checkOut);
-    qs.set("guests", String(guestCount));
+    qs.set(
+      "guests",
+      String(remainingRooms.reduce((acc, r) => acc + r.guests, 0)),
+    );
     qs.set("room_ids", remaining.join(","));
+    qs.set(
+      "room_guests",
+      remainingRooms.map((r) => `${r.id}:${r.guests}`).join(","),
+    );
     router.replace(`/listing/${listingSlug}/book?${qs.toString()}`);
   }
 
@@ -205,9 +238,13 @@ export function BookingForm({
         listing_id: listingId,
         scope,
         room_ids: scope === "rooms" ? activeRooms.map((r) => r.id) : undefined,
+        room_guests:
+          scope === "rooms"
+            ? activeRooms.map((r) => ({ room_id: r.id, guests: r.guests }))
+            : undefined,
         check_in: checkIn,
         check_out: checkOut,
-        guests: guestCount,
+        guests: effectiveGuests,
         payment_method: "paystack",
         policy_acknowledged: true,
         selected_addons: Array.from(addonQty.entries())
@@ -249,24 +286,36 @@ export function BookingForm({
               <label className="text-[10px] uppercase tracking-wider text-brand-mute">
                 Guests
               </label>
-              <div className="mt-1 inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3 py-2">
-                <Users className="h-4 w-4 text-brand-primary" />
-                <select
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(parseInt(e.target.value, 10))}
-                  className="bg-transparent text-sm font-medium text-brand-ink outline-none"
-                  disabled={isPending}
-                >
-                  {Array.from(
-                    { length: Math.max(1, maxGuests) },
-                    (_, i) => i + 1,
-                  ).map((n) => (
-                    <option key={n} value={n}>
-                      {n} {n === 1 ? "guest" : "guests"}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {scope === "rooms" ? (
+                <div className="mt-1 inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-sm font-medium text-brand-ink">
+                  <Users className="h-4 w-4 text-brand-primary" />
+                  {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
+                  <span className="text-[11px] font-normal text-brand-mute">
+                    · set per room
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-1 inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3 py-2">
+                  <Users className="h-4 w-4 text-brand-primary" />
+                  <select
+                    value={guestCount}
+                    onChange={(e) =>
+                      setGuestCount(parseInt(e.target.value, 10))
+                    }
+                    className="bg-transparent text-sm font-medium text-brand-ink outline-none"
+                    disabled={isPending}
+                  >
+                    {Array.from(
+                      { length: Math.max(1, maxGuests) },
+                      (_, i) => i + 1,
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n} {n === 1 ? "guest" : "guests"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -369,8 +418,9 @@ export function BookingForm({
                         {r.name}
                       </div>
                       <div className="text-[11px] text-brand-mute">
-                        {fmtR(r.basePrice, currency)} × {nights}{" "}
-                        {nights === 1 ? "night" : "nights"}
+                        {fmtR(roomNightly(r), currency)} × {nights}{" "}
+                        {nights === 1 ? "night" : "nights"} · {r.guests}{" "}
+                        {r.guests === 1 ? "guest" : "guests"}
                         {r.cleaningFee > 0
                           ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
                           : ""}
@@ -379,7 +429,7 @@ export function BookingForm({
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-medium text-brand-dark">
-                      {fmtR(r.basePrice * nights + r.cleaningFee, currency)}
+                      {fmtR(roomNightly(r) * nights + r.cleaningFee, currency)}
                     </span>
                     {activeRooms.length > 1 ? (
                       <button

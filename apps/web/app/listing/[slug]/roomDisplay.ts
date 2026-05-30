@@ -3,6 +3,8 @@
 // Importing them from the "use client" RoomsGrid turns them into client
 // references that throw "roomFlagPills is not a function" at render.
 
+export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
+
 export type PublicRoom = {
   id: string;
   name: string;
@@ -13,6 +15,11 @@ export type PublicRoom = {
   base_price: number;
   cleaning_fee: number;
   photoUrl: string | null;
+  // Pricing model — migration 20260530000001.
+  pricing_mode: RoomPricingMode;
+  price_per_person: number | null;
+  base_occupancy: number | null;
+  extra_guest_price: number | null;
   // Enterprise fields — present after migration 20260524000007.
   room_size_sqm: number | null;
   view_type: string | null;
@@ -26,6 +33,66 @@ export type PublicRoom = {
   beds: { bed_kind: string; quantity: number }[];
 };
 
+// ── Per-mode pricing — the single source of truth shared by the grid, the
+// cart sidebar, and the server booking action so client + server agree. ──
+
+export type RoomPricing = {
+  pricing_mode: RoomPricingMode;
+  base_price: number;
+  price_per_person: number | null;
+  base_occupancy: number | null;
+  extra_guest_price: number | null;
+};
+
+/** A room's nightly base for a given guest count in that room (excl. cleaning). */
+export function roomNightlyBase(r: RoomPricing, guests: number): number {
+  const g = Math.max(1, guests);
+  switch (r.pricing_mode) {
+    case "per_person":
+      return (r.price_per_person ?? 0) * g;
+    case "per_room_plus_extra": {
+      const covered = r.base_occupancy ?? 1;
+      const extra = Math.max(0, g - covered);
+      return r.base_price + extra * (r.extra_guest_price ?? 0);
+    }
+    case "per_room":
+    default:
+      return r.base_price;
+  }
+}
+
+/** The headline "from" nightly figure (one-guest baseline) used on cards. */
+export function roomFromNightly(r: RoomPricing): number {
+  return r.pricing_mode === "per_person"
+    ? (r.price_per_person ?? 0)
+    : r.base_price;
+}
+
+function fmtR(n: number, currency: string): string {
+  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
+    .toLocaleString("en-ZA")
+    .replace(/,/g, " ")}`;
+}
+
+/** Card price label, e.g. "R900 / night", "R300 / person / night", "from R900 / night". */
+export function roomPriceLabel(
+  r: RoomPricing,
+  currency: string,
+): { amount: string; suffix: string } {
+  switch (r.pricing_mode) {
+    case "per_person":
+      return {
+        amount: fmtR(r.price_per_person ?? 0, currency),
+        suffix: "/ person / night",
+      };
+    case "per_room_plus_extra":
+      return { amount: fmtR(r.base_price, currency), suffix: "/ night base" };
+    case "per_room":
+    default:
+      return { amount: fmtR(r.base_price, currency), suffix: "/ night" };
+  }
+}
+
 const BED_LABEL: Record<string, string> = {
   king: "King",
   queen: "Queen",
@@ -33,6 +100,7 @@ const BED_LABEL: Record<string, string> = {
   twin: "Twin",
   single: "Single",
   bunk: "Bunk",
+  futon: "Futon",
   sofa_bed: "Sofa bed",
   cot: "Cot",
   floor_mattress: "Floor mattress",

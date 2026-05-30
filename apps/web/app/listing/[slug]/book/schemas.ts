@@ -8,6 +8,16 @@ export const createBookingSchema = z
       .enum(["whole_listing", "rooms", "experience"])
       .default("whole_listing"),
     room_ids: z.array(z.string().uuid()).optional(),
+    // Per-room guest counts (rooms scope) — drives per-person / extra-guest
+    // pricing and per-room capacity. Server re-validates against bed capacity.
+    room_guests: z
+      .array(
+        z.object({
+          room_id: z.string().uuid(),
+          guests: z.number().int().min(1).max(50),
+        }),
+      )
+      .optional(),
     // Accommodation path — required when scope ≠ "experience".
     check_in: z
       .string()

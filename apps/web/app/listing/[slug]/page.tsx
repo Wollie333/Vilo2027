@@ -165,7 +165,7 @@ async function loadListing(slug: string) {
       supabase
         .from("listing_rooms")
         .select(
-          "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
+          "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
         )
         .eq("listing_id", listing.id)
         .is("deleted_at", null)
@@ -196,6 +196,10 @@ async function loadListing(slug: string) {
       max_guests: number;
       base_price: number | string;
       cleaning_fee: number | string | null;
+      pricing_mode: string | null;
+      price_per_person: number | string | null;
+      base_occupancy: number | null;
+      extra_guest_price: number | string | null;
       sort_order: number;
       is_active: boolean;
       room_size_sqm: number | string | null;
@@ -222,6 +226,12 @@ async function loadListing(slug: string) {
     max_guests: r.max_guests,
     base_price: Number(r.base_price),
     cleaning_fee: Number(r.cleaning_fee ?? 0),
+    pricing_mode: (r.pricing_mode ?? "per_room") as PublicRoom["pricing_mode"],
+    price_per_person:
+      r.price_per_person == null ? null : Number(r.price_per_person),
+    base_occupancy: r.base_occupancy ?? null,
+    extra_guest_price:
+      r.extra_guest_price == null ? null : Number(r.extra_guest_price),
     photoUrl: firstPhotoByRoom.get(r.id) ?? null,
     room_size_sqm: r.room_size_sqm == null ? null : Number(r.room_size_sqm),
     view_type: r.view_type ?? null,

@@ -1,10 +1,14 @@
 "use client";
 
-import { Star, Trash2, Users, Zap } from "lucide-react";
+import { Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
 import { useMemo } from "react";
 
-import type { PublicRoom } from "./RoomsGrid";
 import { useRoomsCart } from "./RoomsCartProvider";
+import {
+  roomFromNightly,
+  roomNightlyBase,
+  type PublicRoom,
+} from "./roomDisplay";
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -49,6 +53,8 @@ export function RoomsCartSidebar({
     setFlexibleTab,
     selected,
     toggle,
+    roomGuests,
+    setRoomGuests,
     checkIn,
     checkOut,
     setCheckIn,
@@ -65,14 +71,20 @@ export function RoomsCartSidebar({
     [rooms, selected],
   );
 
+  const guestsFor = (roomId: string) => Math.max(1, roomGuests[roomId] ?? 1);
+  const totalRoomGuests = selectedRooms.reduce(
+    (acc, r) => acc + guestsFor(r.id),
+    0,
+  );
+
   const minRoomsPrice = useMemo(() => {
-    const prices = rooms.map((r) => r.base_price).filter((p) => p > 0);
+    const prices = rooms.map((r) => roomFromNightly(r)).filter((p) => p > 0);
     return prices.length > 0 ? Math.min(...prices) : null;
   }, [rooms]);
 
   const roomsCalc = useMemo(() => {
     const baseSum = selectedRooms.reduce(
-      (acc, r) => acc + r.base_price * nights,
+      (acc, r) => acc + roomNightlyBase(r, guestsFor(r.id)) * nights,
       0,
     );
     const cleaningSum = selectedRooms.reduce(
@@ -84,7 +96,8 @@ export function RoomsCartSidebar({
       cleaning: cleaningSum,
       total: baseSum + cleaningSum,
     };
-  }, [selectedRooms, nights]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRooms, nights, roomGuests]);
 
   const wholeCalc = useMemo(() => {
     const base = (basePrice ?? 0) * nights;
@@ -106,12 +119,29 @@ export function RoomsCartSidebar({
     const params = new URLSearchParams();
     if (checkIn) params.set("from", checkIn);
     if (checkOut) params.set("to", checkOut);
-    params.set("guests", String(guests));
     if (isRoomsTab && selectedRooms.length > 0) {
       params.set("room_ids", selectedRooms.map((r) => r.id).join(","));
+      // Per-room guests "roomId:n,roomId:n" — drives per-person / extra pricing.
+      params.set(
+        "room_guests",
+        selectedRooms.map((r) => `${r.id}:${guestsFor(r.id)}`).join(","),
+      );
+      params.set("guests", String(totalRoomGuests));
+    } else {
+      params.set("guests", String(guests));
     }
     return `/listing/${encodeURIComponent(slug)}/book?${params.toString()}`;
-  }, [checkIn, checkOut, guests, isRoomsTab, selectedRooms, slug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    checkIn,
+    checkOut,
+    guests,
+    isRoomsTab,
+    selectedRooms,
+    roomGuests,
+    totalRoomGuests,
+    slug,
+  ]);
 
   return (
     <div className="sticky top-20 rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -215,26 +245,33 @@ export function RoomsCartSidebar({
             className="bg-transparent text-sm font-medium text-brand-dark outline-none"
           />
         </label>
-        <label className="col-span-2 flex cursor-pointer items-center gap-2 border-t border-brand-line px-3 py-2.5 hover:bg-brand-light/60">
-          <Users className="h-4 w-4 text-brand-primary" />
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Guests
-          </span>
-          <select
-            value={guests}
-            onChange={(e) => setGuests(parseInt(e.target.value, 10))}
-            className="ml-auto bg-transparent text-sm font-medium text-brand-dark outline-none"
-          >
-            {Array.from(
-              { length: Math.max(1, maxGuestsCap) },
-              (_, i) => i + 1,
-            ).map((n) => (
-              <option key={n} value={n}>
-                {n} {n === 1 ? "guest" : "guests"}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!isRoomsTab ? (
+          <label className="col-span-2 flex cursor-pointer items-center gap-2 border-t border-brand-line px-3 py-2.5 hover:bg-brand-light/60">
+            <Users className="h-4 w-4 text-brand-primary" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              Guests
+            </span>
+            <select
+              value={guests}
+              onChange={(e) => setGuests(parseInt(e.target.value, 10))}
+              className="ml-auto bg-transparent text-sm font-medium text-brand-dark outline-none"
+            >
+              {Array.from(
+                { length: Math.max(1, maxGuestsCap) },
+                (_, i) => i + 1,
+              ).map((n) => (
+                <option key={n} value={n}>
+                  {n} {n === 1 ? "guest" : "guests"}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <div className="col-span-2 flex items-center gap-2 border-t border-brand-line px-3 py-2.5 text-[11px] text-brand-mute">
+            <Users className="h-4 w-4 text-brand-primary" />
+            Set guests per room below · {totalRoomGuests} total
+          </div>
+        )}
       </div>
 
       {/* Cart / summary */}
@@ -249,33 +286,76 @@ export function RoomsCartSidebar({
             </div>
           ) : (
             <ul className="mt-2 space-y-2">
-              {selectedRooms.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex items-start justify-between gap-2 rounded border border-brand-line bg-brand-light/40 px-3 py-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-medium text-brand-ink">
-                      {r.name}
-                    </div>
-                    <div className="text-[11px] text-brand-mute">
-                      {fmtR(r.base_price, currency)}
-                      {nights > 0 ? ` × ${nights}` : ""}
-                      {r.cleaning_fee > 0
-                        ? ` + ${fmtR(r.cleaning_fee, currency)} cleaning`
-                        : ""}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toggle(r.id)}
-                    className="rounded p-1 text-brand-mute hover:bg-white hover:text-status-cancelled"
-                    aria-label={`Remove ${r.name}`}
+              {selectedRooms.map((r) => {
+                const g = guestsFor(r.id);
+                const nightly = roomNightlyBase(r, g);
+                return (
+                  <li
+                    key={r.id}
+                    className="rounded border border-brand-line bg-brand-light/40 px-3 py-2"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </li>
-              ))}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-brand-ink">
+                          {r.name}
+                        </div>
+                        <div className="text-[11px] text-brand-mute">
+                          {fmtR(nightly, currency)}
+                          {nights > 0 ? ` × ${nights}` : ""}
+                          {r.cleaning_fee > 0
+                            ? ` + ${fmtR(r.cleaning_fee, currency)} cleaning`
+                            : ""}
+                          {r.pricing_mode === "per_person"
+                            ? ` · ${fmtR(r.price_per_person ?? 0, currency)}/person`
+                            : ""}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggle(r.id)}
+                        className="rounded p-1 text-brand-mute hover:bg-white hover:text-status-cancelled"
+                        aria-label={`Remove ${r.name}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Per-room guests — capped at the room's bed capacity. */}
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                        Guests (max {r.max_guests})
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRoomGuests(r.id, Math.max(1, g - 1))
+                          }
+                          disabled={g <= 1}
+                          className="flex h-7 w-7 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                          aria-label="Fewer guests"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-6 text-center text-sm font-semibold text-brand-ink">
+                          {g}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setRoomGuests(r.id, Math.min(r.max_guests, g + 1))
+                          }
+                          disabled={g >= r.max_guests}
+                          className="flex h-7 w-7 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                          aria-label="More guests"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

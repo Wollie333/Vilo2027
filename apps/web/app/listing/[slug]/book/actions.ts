@@ -11,6 +11,7 @@ import {
   computeAddonSubtotal,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
+import { roomNightlyBase } from "../roomDisplay";
 import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
@@ -202,7 +203,9 @@ export async function createBookingAction(
     // 5a. Validate every room_id belongs to this listing + is bookable.
     const { data: roomRows } = await admin
       .from("listing_rooms")
-      .select("id, base_price, cleaning_fee, max_guests")
+      .select(
+        "id, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
@@ -214,6 +217,14 @@ export async function createBookingAction(
         error: "One or more rooms aren't available. Refresh and try again.",
       };
     }
+
+    // Per-room guest counts (default 1 when a room wasn't sent one).
+    const guestsByRoom = new Map<string, number>();
+    for (const rg of d.room_guests ?? []) {
+      guestsByRoom.set(rg.room_id, rg.guests);
+    }
+    const guestsForRoom = (roomId: string) =>
+      Math.max(1, guestsByRoom.get(roomId) ?? 1);
 
     // 5b. Check availability per room.
     for (const r of roomRows) {
@@ -234,7 +245,15 @@ export async function createBookingAction(
       }
     }
 
-    // 5c. Guest cap = sum of room capacities.
+    // 5c. Per-room capacity check (capacity is bed-derived) + combined cap.
+    for (const r of roomRows) {
+      if (guestsForRoom(r.id) > r.max_guests) {
+        return {
+          ok: false,
+          error: `One room only sleeps ${r.max_guests} — reduce its guests.`,
+        };
+      }
+    }
     const totalCap = roomRows.reduce((acc, r) => acc + r.max_guests, 0);
     if (d.guests > totalCap) {
       return {
@@ -243,11 +262,26 @@ export async function createBookingAction(
       };
     }
 
-    // 5d. Server-recalc price per room.
+    // 5d. Server-recalc price per room by its pricing mode (source of truth).
     baseAmount = 0;
     cleaning = 0;
     roomRowsForBooking = roomRows.map((r) => {
-      const rBase = Number(r.base_price) * nights;
+      const rBase =
+        roomNightlyBase(
+          {
+            pricing_mode: (r.pricing_mode ?? "per_room") as
+              | "per_room"
+              | "per_person"
+              | "per_room_plus_extra",
+            base_price: Number(r.base_price),
+            price_per_person:
+              r.price_per_person == null ? null : Number(r.price_per_person),
+            base_occupancy: r.base_occupancy ?? null,
+            extra_guest_price:
+              r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+          },
+          guestsForRoom(r.id),
+        ) * nights;
       const rClean = Number(r.cleaning_fee ?? 0);
       baseAmount += rBase;
       cleaning += rClean;

@@ -68,7 +68,7 @@ export default async function NewBookingPage() {
         supabase
           .from("listing_rooms")
           .select(
-            "id, listing_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order",
+            "id, listing_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person",
           )
           .in("listing_id", listingIds)
           .eq("is_active", true)
@@ -141,6 +141,9 @@ export default async function NewBookingPage() {
       (r.featured_photo_id ? photoById.get(r.featured_photo_id) : null) ??
       roomPhoto.get(r.id) ??
       null,
+    pricing_mode: (r.pricing_mode ?? "per_room") as BookingRoom["pricing_mode"],
+    price_per_person:
+      r.price_per_person == null ? null : Number(r.price_per_person),
   }));
 
   const addons: BookingAddon[] = (addonRows ?? [])

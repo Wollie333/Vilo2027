@@ -3,18 +3,17 @@
 import { BedDouble, Check, Plus, Users } from "lucide-react";
 
 import { useRoomsCart } from "./RoomsCartProvider";
-import { bedSummary, roomFlagPills, type PublicRoom } from "./roomDisplay";
+import {
+  bedSummary,
+  roomFlagPills,
+  roomPriceLabel,
+  type PublicRoom,
+} from "./roomDisplay";
 
 // Re-export so existing `import { type PublicRoom } from "./RoomsGrid"` (page,
 // RoomsCartSidebar) keep working. bedSummary/roomFlagPills now live in the
 // non-client roomDisplay module so server components can call them.
 export type { PublicRoom };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 export function RoomsGrid({
   rooms,
@@ -106,10 +105,10 @@ export function RoomsGrid({
               <div className="flex items-center justify-between gap-3 border-t border-brand-line pt-3">
                 <div>
                   <span className="font-display text-lg font-bold text-brand-ink">
-                    {fmtR(room.base_price, currency)}
+                    {roomPriceLabel(room, currency).amount}
                   </span>
                   <span className="ml-1 text-[11px] text-brand-mute">
-                    / night
+                    {roomPriceLabel(room, currency).suffix}
                   </span>
                 </div>
                 <button

@@ -50,7 +50,16 @@ export type BookingRoom = {
   view_type: string | null;
   has_ensuite: boolean;
   photo_url: string | null;
+  pricing_mode: "per_room" | "per_person" | "per_room_plus_extra";
+  price_per_person: number | null;
 };
+
+/** A room's "from" nightly figure for prefill — per-person rooms quote /person. */
+function roomFromNightly(r: BookingRoom): number {
+  return r.pricing_mode === "per_person"
+    ? (r.price_per_person ?? 0)
+    : r.base_price;
+}
 export type BookingAddon = {
   id: string;
   listing_id: string;
@@ -191,12 +200,12 @@ export function ManualBookingForm({
   // listing. Re-runs when the pricing source changes; host can still edit.
   useEffect(() => {
     if (hasRooms && !wholeListing && selectedRoom) {
-      setNightlyRate(String(selectedRoom.base_price));
+      setNightlyRate(String(roomFromNightly(selectedRoom)));
       setCleaningFee(String(selectedRoom.cleaning_fee));
     } else if (listing) {
       const fallback =
         (listing.base_price ??
-          listingRooms.reduce((s, r) => s + r.base_price, 0)) ||
+          listingRooms.reduce((s, r) => s + roomFromNightly(r), 0)) ||
         0;
       setNightlyRate(String(fallback));
       setCleaningFee(String(listing.cleaning_fee ?? 0));

@@ -21,6 +21,11 @@ type CartState = {
   clear: () => void;
   isSelected: (roomId: string) => boolean;
 
+  // Per-room guest counts (rooms scope). Drives per-person / extra-guest
+  // pricing and per-room capacity. Keyed by room id.
+  roomGuests: Record<string, number>;
+  setRoomGuests: (roomId: string, n: number) => void;
+
   checkIn: string;
   checkOut: string;
   setCheckIn: (v: string) => void;
@@ -44,6 +49,7 @@ export function RoomsCartProvider({
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(2);
+  const [roomGuests, setRoomGuestsState] = useState<Record<string, number>>({});
 
   const toggle = useCallback((roomId: string) => {
     setSelected((prev) => {
@@ -52,14 +58,29 @@ export function RoomsCartProvider({
       else next.add(roomId);
       return next;
     });
+    // Seed a default of 1 guest when first adding a room; drop it on removal.
+    setRoomGuestsState((prev) => {
+      const next = { ...prev };
+      if (next[roomId] == null) next[roomId] = 1;
+      else delete next[roomId];
+      return next;
+    });
   }, []);
 
-  const clear = useCallback(() => setSelected(new Set()), []);
+  const setRoomGuests = useCallback((roomId: string, n: number) => {
+    setRoomGuestsState((prev) => ({ ...prev, [roomId]: Math.max(1, n) }));
+  }, []);
+
+  const clear = useCallback(() => {
+    setSelected(new Set());
+    setRoomGuestsState({});
+  }, []);
   const isSelected = useCallback((id: string) => selected.has(id), [selected]);
 
   const handleSetFlexibleTab = useCallback((t: FlexibleTab) => {
     setFlexibleTab(t);
     setSelected(new Set());
+    setRoomGuestsState({});
   }, []);
 
   const value = useMemo<CartState>(
@@ -71,6 +92,8 @@ export function RoomsCartProvider({
       toggle,
       clear,
       isSelected,
+      roomGuests,
+      setRoomGuests,
       checkIn,
       checkOut,
       setCheckIn,
@@ -86,6 +109,8 @@ export function RoomsCartProvider({
       toggle,
       clear,
       isSelected,
+      roomGuests,
+      setRoomGuests,
       checkIn,
       checkOut,
       guests,

@@ -38,6 +38,18 @@ function parseRoomIds(raw: string | undefined): string[] {
     .filter((s) => uuidRe.test(s));
 }
 
+/** Parse "roomId:guests,roomId:guests" → Map<roomId, guests>. */
+function parseRoomGuests(raw: string | undefined): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!raw) return map;
+  for (const pair of raw.split(",")) {
+    const [id, g] = pair.split(":");
+    const n = parseInt(g ?? "", 10);
+    if (id && Number.isFinite(n) && n > 0) map.set(id.trim(), n);
+  }
+  return map;
+}
+
 export default async function BookingPage({
   params,
   searchParams,
@@ -48,6 +60,7 @@ export default async function BookingPage({
     to?: string;
     guests?: string;
     room_ids?: string;
+    room_guests?: string;
     slot?: string;
     participants?: string;
   };
@@ -62,6 +75,8 @@ export default async function BookingPage({
   if (searchParams?.to) qs.set("to", searchParams.to);
   if (searchParams?.guests) qs.set("guests", searchParams.guests);
   if (searchParams?.room_ids) qs.set("room_ids", searchParams.room_ids);
+  if (searchParams?.room_guests)
+    qs.set("room_guests", searchParams.room_guests);
   if (searchParams?.slot) qs.set("slot", searchParams.slot);
   if (searchParams?.participants)
     qs.set("participants", searchParams.participants);
@@ -183,10 +198,13 @@ export default async function BookingPage({
   // Fetch rooms if scope=rooms.
   let bookedRooms: BookedRoom[] = [];
   let maxGuestsForForm = listing.max_guests ?? 50;
+  let roomsGuestTotal = guests;
   if (scope === "rooms") {
     const { data: roomRows } = await supabase
       .from("listing_rooms")
-      .select("id, name, base_price, cleaning_fee, max_guests")
+      .select(
+        "id, name, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
@@ -195,14 +213,28 @@ export default async function BookingPage({
     if (!roomRows || roomRows.length !== requestedRoomIds.length) {
       redirect(`/listing/${params.slug}`);
     }
-    bookedRooms = (roomRows ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      basePrice: Number(r.base_price),
-      cleaningFee: Number(r.cleaning_fee ?? 0),
-      maxGuests: r.max_guests,
-    }));
+    const guestsByRoom = parseRoomGuests(searchParams?.room_guests);
+    bookedRooms = (roomRows ?? []).map((r) => {
+      const cap = r.max_guests;
+      const wanted = guestsByRoom.get(r.id) ?? 1;
+      return {
+        id: r.id,
+        name: r.name,
+        basePrice: Number(r.base_price),
+        cleaningFee: Number(r.cleaning_fee ?? 0),
+        maxGuests: cap,
+        guests: Math.min(Math.max(1, wanted), cap),
+        pricing_mode: (r.pricing_mode ??
+          "per_room") as BookedRoom["pricing_mode"],
+        pricePerPerson:
+          r.price_per_person == null ? null : Number(r.price_per_person),
+        baseOccupancy: r.base_occupancy ?? null,
+        extraGuestPrice:
+          r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+      };
+    });
     maxGuestsForForm = bookedRooms.reduce((acc, r) => acc + r.maxGuests, 0);
+    roomsGuestTotal = bookedRooms.reduce((acc, r) => acc + r.guests, 0);
   }
 
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
@@ -330,7 +362,7 @@ export default async function BookingPage({
             checkIn={checkIn}
             checkOut={checkOut}
             nights={nights}
-            guests={guests}
+            guests={scope === "rooms" ? roomsGuestTotal : guests}
             maxGuests={maxGuestsForForm}
             guestEmail={user.email ?? ""}
             scope={scope}
