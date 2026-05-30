@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Checkout: editable dates + per-guest party manifest — branch `feat/setup-wizard-rework`
+
+### Built
+- **Editable check-in/check-out** on the checkout page — a `CheckoutDateEditor` lets the
+  guest change dates; it navigates with updated `?from/?to` (preserving the other params),
+  so the SERVER re-renders with fresh pricing + availability (nothing is computed on the
+  client). Enforces min-stay and check-out > check-in.
+- **Optional party manifest** — the booker can name each additional guest (name + optional
+  email/phone); persisted to `bookings.additional_guests` (jsonb), trimmed/capped to the
+  guest count, so the host's booking card has the full party.
+
+### Migrations
+- `20260531000002_booking_additional_guests.sql` — `bookings.additional_guests jsonb` (default []).
+
+### Notes
+- `pnpm build` + `pnpm lint` pass clean. Date changes stay server-authoritative.
+
 ## 2026-05-31 — Add-ons redesign: archive grid + full editor page — branch `feat/setup-wizard-rework`
 
 ### Built

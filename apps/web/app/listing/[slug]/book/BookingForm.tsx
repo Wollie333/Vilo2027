@@ -39,6 +39,7 @@ import {
   createBookingAction,
   createCheckoutGuestAccountAction,
 } from "./actions";
+import { CheckoutDateEditor } from "./CheckoutDateEditor";
 
 export type RoomOption = {
   id: string;
@@ -156,6 +157,7 @@ export function BookingForm({
   checkIn,
   checkOut,
   nights,
+  minNights,
   wholeGuests,
   maxGuestsWhole,
   guestEmail,
@@ -186,6 +188,7 @@ export function BookingForm({
   checkIn: string;
   checkOut: string;
   nights: number;
+  minNights: number;
   wholeGuests: number;
   maxGuestsWhole: number;
   guestEmail: string;
@@ -687,24 +690,11 @@ export function BookingForm({
               {nights} {nights === 1 ? "night" : "nights"}
             </div>
           </div>
-          <div className="grid gap-4 p-5 sm:grid-cols-2">
-            <div className="rounded-card border border-brand-line p-4">
-              <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                Check-in
-              </div>
-              <div className="mt-1 font-display text-lg font-semibold text-brand-ink">
-                {fmtDate(checkIn)}
-              </div>
-            </div>
-            <div className="rounded-card border border-brand-line p-4">
-              <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                Check-out
-              </div>
-              <div className="mt-1 font-display text-lg font-semibold text-brand-ink">
-                {fmtDate(checkOut)}
-              </div>
-            </div>
-          </div>
+          <CheckoutDateEditor
+            checkIn={checkIn}
+            checkOut={checkOut}
+            minNights={minNights}
+          />
           <div className="px-5 pb-5">
             <div className="mb-1.5 block text-sm font-medium text-brand-ink">
               Guests

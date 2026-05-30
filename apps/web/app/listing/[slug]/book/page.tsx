@@ -449,6 +449,7 @@ export default async function BookingPage({
             checkIn={checkIn}
             checkOut={checkOut}
             nights={nights}
+            minNights={listing.min_nights ?? 1}
             wholeGuests={guests}
             maxGuestsWhole={listing.max_guests ?? 50}
             guestEmail={user?.email ?? ""}
