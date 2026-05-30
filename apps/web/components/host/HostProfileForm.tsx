@@ -14,6 +14,7 @@ import { useRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { combineName, splitName } from "@/lib/profile/name";
 import { LANGUAGE_OPTIONS } from "@/app/signup/host/schemas";
 import {
   saveProfileAction,
@@ -63,13 +64,12 @@ export function HostProfileForm({
   const email = watch("email") ?? "";
 
   // Name is captured as two fields but stored as a single full_name (DB column).
-  const initialName = (defaults.full_name ?? "").trim();
-  const [firstName, setFirstName] = useState(initialName.split(/\s+/)[0] ?? "");
-  const [lastName, setLastName] = useState(
-    initialName.split(/\s+/).slice(1).join(" "),
-  );
+  // Split/combine via the app-wide source of truth (lib/profile/name).
+  const initialName = splitName(defaults.full_name);
+  const [firstName, setFirstName] = useState(initialName.first_name);
+  const [lastName, setLastName] = useState(initialName.surname);
   function syncName(first: string, last: string) {
-    setValue("full_name", `${first} ${last}`.trim(), {
+    setValue("full_name", combineName(first, last), {
       shouldValidate: true,
       shouldDirty: true,
     });

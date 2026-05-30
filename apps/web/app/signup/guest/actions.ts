@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { combineName } from "@/lib/profile/name";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -28,13 +29,14 @@ export async function createGuestAccountAction(
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
   }
   const d = parsed.data;
+  const full_name = combineName(d.first_name, d.surname);
 
   const admin = createAdminClient();
   const { error: createErr } = await admin.auth.admin.createUser({
     email: d.email,
     password: d.password,
     email_confirm: true,
-    user_metadata: { full_name: d.full_name },
+    user_metadata: { full_name },
   });
   if (createErr) {
     if (
@@ -71,7 +73,7 @@ export async function createGuestAccountAction(
   if (newUser) {
     await supabase
       .from("user_profiles")
-      .update({ full_name: d.full_name, role: "guest" })
+      .update({ full_name, role: "guest" })
       .eq("id", newUser.id);
   }
 

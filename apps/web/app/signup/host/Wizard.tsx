@@ -18,12 +18,14 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { combineName, splitName } from "@/lib/profile/name";
+
 import {
   COUNTRIES,
   LANGUAGE_OPTIONS,
   PLANS,
   SA_REGIONS,
-  hostAccountSchema,
+  accountSchema,
   aboutSchema,
   listingSchema,
 } from "./schemas";
@@ -94,19 +96,10 @@ type Prefilled = {
   country: string | null;
 };
 
-function splitName(full: string | null): {
-  firstName: string;
-  surname: string;
-} {
-  const parts = (full ?? "").trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return { firstName: "", surname: "" };
-  return { firstName: parts[0], surname: parts.slice(1).join(" ") };
-}
-
 function initialData(prefilled: Prefilled): WizardData {
-  const { firstName, surname } = splitName(prefilled.fullName);
+  const { first_name, surname } = splitName(prefilled.fullName);
   return {
-    firstName,
+    firstName: first_name,
     surname,
     fullName: prefilled.fullName ?? "",
     email: prefilled.email ?? "",
@@ -289,7 +282,7 @@ export function Wizard({
   }
 
   function handleAccountNext() {
-    const parsed = hostAccountSchema.safeParse({
+    const parsed = accountSchema.safeParse({
       first_name: data.firstName,
       surname: data.surname,
       email: data.email,
@@ -817,7 +810,7 @@ function StepAccount({
               onChange={(e) =>
                 patch({
                   firstName: e.target.value,
-                  fullName: `${e.target.value} ${data.surname}`.trim(),
+                  fullName: combineName(e.target.value, data.surname),
                 })
               }
               placeholder="Lerato"
@@ -831,7 +824,7 @@ function StepAccount({
               onChange={(e) =>
                 patch({
                   surname: e.target.value,
-                  fullName: `${data.firstName} ${e.target.value}`.trim(),
+                  fullName: combineName(data.firstName, e.target.value),
                 })
               }
               placeholder="Mokoena"

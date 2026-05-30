@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccountSection";
+import { combineName, splitName } from "@/lib/profile/name";
 import { uploadAvatarAction } from "@/app/signup/guest/actions";
 import {
   COUNTRIES,
@@ -71,7 +72,10 @@ function SectionCard({
 }
 
 function ProfileSection({ initial }: { initial: SettingsInitial }) {
-  const [fullName, setFullName] = useState(initial.full_name);
+  const initialName = splitName(initial.full_name);
+  const [firstName, setFirstName] = useState(initialName.first_name);
+  const [surname, setSurname] = useState(initialName.surname);
+  const fullName = combineName(firstName, surname);
   const [bio, setBio] = useState(initial.bio);
   const [avatarUrl, setAvatarUrl] = useState(initial.avatar_url);
   const [languages, setLanguages] = useState<string[]>(initial.languages);
@@ -82,7 +86,7 @@ function ProfileSection({ initial }: { initial: SettingsInitial }) {
   function handleSave() {
     startTransition(async () => {
       const result = await updateProfileAction({
-        full_name: fullName,
+        full_name: combineName(firstName, surname),
         bio,
         avatar_url: avatarUrl,
         languages,
@@ -177,16 +181,31 @@ function ProfileSection({ initial }: { initial: SettingsInitial }) {
           </div>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-            Full name
-          </label>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-          />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Name
+            </label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              autoComplete="given-name"
+              className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Surname
+            </label>
+            <input
+              type="text"
+              value={surname}
+              onChange={(e) => setSurname(e.target.value)}
+              autoComplete="family-name"
+              className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+            />
+          </div>
         </div>
 
         <div>

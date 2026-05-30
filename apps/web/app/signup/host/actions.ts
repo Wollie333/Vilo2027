@@ -3,11 +3,13 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { combineName } from "@/lib/profile/name";
+
 import {
+  accountSchema,
   finalizeOnboardingSchema,
-  hostAccountSchema,
+  type AccountInput,
   type FinalizeOnboardingInput,
-  type HostAccountInput,
 } from "./schemas";
 
 export type ActionResult<T = undefined> =
@@ -23,15 +25,15 @@ export type ActionResult<T = undefined> =
 // confirm link.
 
 export async function createAccountAction(
-  input: HostAccountInput,
+  input: AccountInput,
 ): Promise<ActionResult> {
-  const parsed = hostAccountSchema.safeParse(input);
+  const parsed = accountSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
   }
   const d = parsed.data;
-  const full_name = `${d.first_name} ${d.surname}`.trim();
+  const full_name = combineName(d.first_name, d.surname);
 
   const admin = createAdminClient();
 

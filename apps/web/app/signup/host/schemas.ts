@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { nameFields } from "@/lib/profile/name";
+
 // ─── Display data ─────────────────────────────────────────────
 
 export const ACCOMMODATION_TYPES = [
@@ -114,13 +116,11 @@ export const PLANS = [
 
 // ─── Step schemas ─────────────────────────────────────────────
 
-// Shared base account schema (used as-is by the guest signup).
+// Account schema — name captured as two fields (single source of truth:
+// lib/profile/name), combined into full_name on save. Shared by host AND guest
+// signup so the profile structure is identical across the whole app.
 export const accountSchema = z.object({
-  full_name: z
-    .string()
-    .trim()
-    .min(2, "Enter your name.")
-    .max(120, "Name is too long."),
+  ...nameFields,
   email: z.string().trim().toLowerCase().email("Enter a valid email."),
   password: z
     .string()
@@ -131,30 +131,6 @@ export const accountSchema = z.object({
   }),
 });
 export type AccountInput = z.infer<typeof accountSchema>;
-
-// Host signup captures the name as two fields (matches the settings profile
-// structure); combined into full_name by the action for storage.
-export const hostAccountSchema = z.object({
-  first_name: z
-    .string()
-    .trim()
-    .min(1, "Enter your name.")
-    .max(60, "Name is too long."),
-  surname: z
-    .string()
-    .trim()
-    .min(1, "Enter your surname.")
-    .max(60, "Surname is too long."),
-  email: z.string().trim().toLowerCase().email("Enter a valid email."),
-  password: z
-    .string()
-    .min(8, "Min 8 characters.")
-    .max(72, "Password is too long."),
-  terms: z.boolean().refine((v) => v === true, {
-    message: "Please accept the terms to continue.",
-  }),
-});
-export type HostAccountInput = z.infer<typeof hostAccountSchema>;
 
 export const aboutSchema = z.object({
   phone: z

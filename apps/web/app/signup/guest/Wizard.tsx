@@ -23,6 +23,8 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { combineName } from "@/lib/profile/name";
+
 import {
   COUNTRIES,
   LANGUAGE_OPTIONS,
@@ -46,6 +48,9 @@ const STEPS = [
 type StepKey = (typeof STEPS)[number]["key"];
 
 type WizardData = {
+  // Captured as two fields; fullName kept in sync (combined) for storage.
+  firstName: string;
+  surname: string;
   fullName: string;
   email: string;
   password: string;
@@ -62,6 +67,8 @@ type WizardData = {
 
 function initialData(prefilledEmail: string | null): WizardData {
   return {
+    firstName: "",
+    surname: "",
     fullName: "",
     email: prefilledEmail ?? "",
     password: "",
@@ -104,7 +111,8 @@ const SIDE_RAIL: Record<
 };
 
 const ERROR_KEY_MAP: Record<string, string> = {
-  full_name: "fullName",
+  first_name: "firstName",
+  surname: "surname",
 };
 
 function zodIssuesToFieldErrors(
@@ -167,7 +175,8 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
 
   function handleAccountNext() {
     const parsed = accountSchema.safeParse({
-      full_name: data.fullName,
+      first_name: data.firstName,
+      surname: data.surname,
       email: data.email,
       password: data.password,
       terms: data.terms,
@@ -179,7 +188,8 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
     setErrors({});
     startCreate(async () => {
       const result = await createGuestAccountAction({
-        full_name: data.fullName,
+        first_name: data.firstName,
+        surname: data.surname,
         email: data.email,
         password: data.password,
         terms: data.terms,
@@ -526,15 +536,36 @@ function StepAccount({
           <div className="h-px flex-1 bg-brand-line" />
         </div>
 
-        <FormField label="Full name" error={errors.fullName}>
-          <TextInput
-            value={data.fullName}
-            onChange={(e) => patch({ fullName: e.target.value })}
-            placeholder="Nomvula Khumalo"
-            disabled={pending}
-            autoComplete="name"
-          />
-        </FormField>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Name" error={errors.firstName}>
+            <TextInput
+              value={data.firstName}
+              onChange={(e) =>
+                patch({
+                  firstName: e.target.value,
+                  fullName: combineName(e.target.value, data.surname),
+                })
+              }
+              placeholder="Nomvula"
+              disabled={pending}
+              autoComplete="given-name"
+            />
+          </FormField>
+          <FormField label="Surname" error={errors.surname}>
+            <TextInput
+              value={data.surname}
+              onChange={(e) =>
+                patch({
+                  surname: e.target.value,
+                  fullName: combineName(data.firstName, e.target.value),
+                })
+              }
+              placeholder="Khumalo"
+              disabled={pending}
+              autoComplete="family-name"
+            />
+          </FormField>
+        </div>
 
         <FormField label="Email" error={errors.email}>
           <TextInput
