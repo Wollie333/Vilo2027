@@ -33,7 +33,13 @@ export const createBookingSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Invalid session date/time.")
       .optional(),
     guests: z.coerce.number().int().min(1).max(50),
-    payment_method: z.enum(["paystack"]),
+    payment_method: z.enum(["paystack", "eft"]),
+    // Guest contact details — snapshotted onto the booking so the host's
+    // booking card shows complete info even for a brand-new guest account.
+    guest_name: z.string().trim().min(1).max(120).optional(),
+    guest_email: z.string().trim().email().max(160).optional(),
+    guest_phone: z.string().trim().max(40).optional(),
+    special_requests: z.string().trim().max(1000).optional(),
     policy_acknowledged: z.boolean().refine((v) => v === true, {
       message: "You must accept the policies to book.",
     }),

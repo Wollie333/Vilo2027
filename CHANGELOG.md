@@ -31,6 +31,34 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Checkout: listing context, room picker, add-ons, contact capture, payment methods — branch `feat/setup-wizard-rework`
+
+### Built
+- **Listing context** — the checkout summary now leads with the listing's **feature
+  image**, type · city, name and ★ rating · reviews (with an Instant Book overlay) so the
+  guest clearly sees where they're booking.
+- **Room selection** — the guest can pick which room(s) to book on the checkout page (all
+  active rooms render as selectable cards with photo, beds, sleeps, features and live
+  price); flexible listings get a "Book the whole place" toggle; rooms-only requires ≥1.
+  Pricing recomputes live via the shared `roomNightlyBase`.
+- **Add-ons** — section shows the host's add-ons; seed migration adds 2 sample add-ons
+  (Breakfast hamper, Airport transfer) per host, linked listing-wide, so it's testable.
+- **Full contact capture** — name, email, phone and message-to-host are collected and
+  snapshotted onto the booking (`guest_name/email/phone`, `special_requests`) so the
+  host's booking card is fully populated. Signed-in guests get a "Log out & use another
+  account" link (browser sign-out + refresh, stays on checkout).
+- **Payment methods from the host's setup** — "Pay with card" (Paystack) always; "EFT
+  bank transfer" appears only when the host has default banking. EFT creates a
+  `pending_eft` booking (no Paystack hop) and sends the guest to their trip page.
+
+### Migrations
+- `20260530000004_seed_sample_addons.sql` — idempotent sample add-ons per host.
+
+### Notes
+- `pnpm build` + `pnpm lint` pass clean. Payment values use the DB-allowed `eft` (not a
+  custom string). Follow-up: surface the host's bank details + reference on the guest's
+  `/my-trips/[id]` page for the EFT flow (booking + host notification already work).
+
 ## 2026-05-30 — Checkout flow redesign + guest account at checkout — branch `feat/setup-wizard-rework`
 
 ### Built

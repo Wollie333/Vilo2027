@@ -4,15 +4,29 @@ import { notFound, redirect } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { type PricingModel } from "../../../dashboard/addons/schemas";
+import { bedSummary, type RoomPricingMode } from "../roomDisplay";
 import {
   BookingForm,
   type AvailableAddon,
-  type BookedRoom,
+  type RoomOption,
 } from "./BookingForm";
 import { ExperienceBookingForm } from "./ExperienceBookingForm";
+
+const ACC_TYPE_LABEL: Record<string, string> = {
+  hotel: "Hotel",
+  guesthouse: "Guesthouse",
+  bb: "B&B",
+  self_catering: "Self-catering",
+  lodge: "Lodge",
+  apartment: "Apartment",
+  villa: "Villa",
+  cottage: "Cottage",
+  other: "Stay",
+};
 
 export const metadata: Metadata = {
   title: "Confirm and pay · Vilo",
@@ -89,7 +103,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, duration_minutes, max_participants, min_participants, meeting_point, private_group_price",
+      "id, host_id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, duration_minutes, max_participants, min_participants, meeting_point, private_group_price",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -186,64 +200,137 @@ export default async function BookingPage({
   const guests =
     Number.isFinite(guestsParsed) && guestsParsed > 0 ? guestsParsed : 2;
 
-  const requestedRoomIds = parseRoomIds(searchParams?.room_ids);
-  const scope: "whole_listing" | "rooms" =
-    requestedRoomIds.length > 0 ? "rooms" : "whole_listing";
-
-  // Mode/scope compatibility check.
-  if (scope === "rooms" && listing.booking_mode === "whole_listing") {
-    redirect(`/listing/${params.slug}`);
-  }
-  if (scope === "whole_listing" && listing.booking_mode === "rooms_only") {
-    redirect(`/listing/${params.slug}`);
-  }
-
-  // Fetch rooms if scope=rooms.
-  let bookedRooms: BookedRoom[] = [];
-  let maxGuestsForForm = listing.max_guests ?? 50;
-  let roomsGuestTotal = guests;
-  if (scope === "rooms") {
-    const { data: roomRows } = await supabase
-      .from("listing_rooms")
-      .select(
-        "id, name, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
-      )
-      .eq("listing_id", listing.id)
-      .is("deleted_at", null)
-      .eq("is_active", true)
-      .in("id", requestedRoomIds);
-
-    if (!roomRows || roomRows.length !== requestedRoomIds.length) {
-      redirect(`/listing/${params.slug}`);
-    }
-    const guestsByRoom = parseRoomGuests(searchParams?.room_guests);
-    bookedRooms = (roomRows ?? []).map((r) => {
-      const cap = r.max_guests;
-      const wanted = guestsByRoom.get(r.id) ?? 1;
-      return {
-        id: r.id,
-        name: r.name,
-        basePrice: Number(r.base_price),
-        cleaningFee: Number(r.cleaning_fee ?? 0),
-        maxGuests: cap,
-        guests: Math.min(Math.max(1, wanted), cap),
-        pricing_mode: (r.pricing_mode ??
-          "per_room") as BookedRoom["pricing_mode"],
-        pricePerPerson:
-          r.price_per_person == null ? null : Number(r.price_per_person),
-        baseOccupancy: r.base_occupancy ?? null,
-        extraGuestPrice:
-          r.extra_guest_price == null ? null : Number(r.extra_guest_price),
-      };
-    });
-    maxGuestsForForm = bookedRooms.reduce((acc, r) => acc + r.maxGuests, 0);
-    roomsGuestTotal = bookedRooms.reduce((acc, r) => acc + r.guests, 0);
-  }
-
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const datesOk = nights > 0 && nights >= (listing.min_nights ?? 1);
 
-  // Fetch eligible addons (active + lead-time-satisfied + scope-matching).
+  const requestedRoomIds = parseRoomIds(searchParams?.room_ids);
+  const requestedGuestsByRoom = parseRoomGuests(searchParams?.room_guests);
+
+  // ── Load every active room so the guest can pick on this page ──
+  const { data: roomRows } = await supabase
+    .from("listing_rooms")
+    .select(
+      "id, name, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
+    )
+    .eq("listing_id", listing.id)
+    .is("deleted_at", null)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  const roomsRaw = roomRows ?? [];
+  const roomIds = roomsRaw.map((r) => r.id);
+
+  // Beds per room + listing cover photo + a hero photo per room.
+  const bedsByRoom = new Map<
+    string,
+    { bed_kind: string; quantity: number }[]
+  >();
+  const photoByRoom = new Map<string, string>();
+  let coverImageUrl: string | null = null;
+  {
+    const [{ data: bedRows }, { data: photoRows }] = await Promise.all([
+      roomIds.length > 0
+        ? supabase
+            .from("room_beds")
+            .select("room_id, bed_kind, quantity, sort_order")
+            .in("room_id", roomIds)
+            .order("sort_order", { ascending: true })
+        : Promise.resolve({
+            data: [] as {
+              room_id: string;
+              bed_kind: string;
+              quantity: number;
+            }[],
+          }),
+      supabase
+        .from("listing_photos")
+        .select("room_id, url, sort_order")
+        .eq("listing_id", listing.id)
+        .order("sort_order", { ascending: true }),
+    ]);
+    for (const b of bedRows ?? []) {
+      const arr = bedsByRoom.get(b.room_id) ?? [];
+      arr.push({ bed_kind: b.bed_kind, quantity: b.quantity });
+      bedsByRoom.set(b.room_id, arr);
+    }
+    for (const p of photoRows ?? []) {
+      if (p.room_id == null) {
+        if (coverImageUrl == null) coverImageUrl = p.url;
+      } else if (!photoByRoom.has(p.room_id)) {
+        photoByRoom.set(p.room_id, p.url);
+      }
+    }
+  }
+
+  const allRooms: RoomOption[] = roomsRaw.map((r) => {
+    const features: string[] = [];
+    if (r.has_ensuite_bathroom) features.push("En-suite");
+    if (r.private_entrance) features.push("Private entrance");
+    if (r.pets_allowed) features.push("Pet friendly");
+    if (r.view_type) features.push(`${r.view_type} view`);
+    return {
+      id: r.id,
+      name: r.name,
+      bedsLabel: bedSummary(bedsByRoom.get(r.id) ?? []),
+      photoUrl: photoByRoom.get(r.id) ?? null,
+      features,
+      maxGuests: r.max_guests,
+      cleaningFee: Number(r.cleaning_fee ?? 0),
+      pricingMode: (r.pricing_mode ?? "per_room") as RoomPricingMode,
+      basePrice: Number(r.base_price),
+      pricePerPerson:
+        r.price_per_person == null ? null : Number(r.price_per_person),
+      baseOccupancy: r.base_occupancy ?? null,
+      extraGuestPrice:
+        r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+    };
+  });
+
+  // Initial room selection: honour ?room_ids, else default the first room for
+  // rooms-only listings (flexible/whole default to the whole place).
+  const validRequested = requestedRoomIds.filter((id) => roomIds.includes(id));
+  let initialSelectedRoomIds = validRequested;
+  if (
+    initialSelectedRoomIds.length === 0 &&
+    listing.booking_mode === "rooms_only" &&
+    allRooms.length > 0
+  ) {
+    initialSelectedRoomIds = [allRooms[0].id];
+  }
+  const initialRoomGuests: Record<string, number> = {};
+  for (const r of allRooms) {
+    const wanted = requestedGuestsByRoom.get(r.id);
+    initialRoomGuests[r.id] = Math.min(
+      Math.max(1, wanted ?? r.maxGuests),
+      r.maxGuests,
+    );
+  }
+
+  // Host EFT availability — guests can't RLS-read banking, so check via admin.
+  const admin = createAdminClient();
+  const { data: eftRow } = await admin
+    .from("eft_banking_details")
+    .select("id")
+    .eq("host_id", listing.host_id)
+    .eq("is_default", true)
+    .eq("is_archived", false)
+    .limit(1)
+    .maybeSingle();
+  const hasEftBanking = !!eftRow;
+
+  // Prefill contact for a signed-in guest.
+  let guestName = "";
+  let guestPhone = "";
+  if (user) {
+    const { data: prof } = await supabase
+      .from("user_profiles")
+      .select("full_name, phone")
+      .eq("id", user.id)
+      .maybeSingle();
+    guestName = prof?.full_name ?? "";
+    guestPhone = prof?.phone ?? "";
+  }
+
+  // Eligible add-ons (listing-wide + any room-scoped on this listing).
   let availableAddons: AvailableAddon[] = [];
   if (datesOk) {
     const leadDays = Math.max(
@@ -283,17 +370,14 @@ export default async function BookingPage({
       };
     };
 
-    const selectedIds = bookedRooms.map((r) => r.id);
     const seen = new Map<string, AvailableAddon>();
     for (const raw of (addonJoinRows ?? []) as unknown as Row[]) {
       const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
       if (!a) continue;
       if (!a.is_active) continue;
       if (a.lead_time_days > leadDays) continue;
-      if (raw.room_id !== null) {
-        if (scope !== "rooms") continue;
-        if (!selectedIds.includes(raw.room_id)) continue;
-      }
+      // Room-scoped add-ons only apply if their room belongs to this listing.
+      if (raw.room_id !== null && !roomIds.includes(raw.room_id)) continue;
       const effective =
         raw.unit_price_override == null
           ? Number(a.unit_price)
@@ -320,6 +404,9 @@ export default async function BookingPage({
     availableAddons = Array.from(seen.values());
   }
 
+  const listingTypeLabel =
+    ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
+
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -345,21 +432,34 @@ export default async function BookingPage({
             listingId={listing.id}
             listingSlug={params.slug}
             listingName={listing.name}
+            listingTypeLabel={listingTypeLabel}
+            listingCity={listing.city}
+            listingProvince={listing.province}
+            coverImageUrl={coverImageUrl}
+            ratingValue={
+              listing.avg_rating == null ? null : Number(listing.avg_rating)
+            }
+            reviewCount={listing.total_reviews ?? null}
             basePrice={Number(listing.base_price ?? 0)}
             cleaningFee={Number(listing.cleaning_fee ?? 0)}
             currency={listing.currency}
             cancellationPolicy={listing.cancellation_policy}
             instantBooking={listing.instant_booking}
+            bookingMode={listing.booking_mode}
             checkIn={checkIn}
             checkOut={checkOut}
             nights={nights}
-            guests={scope === "rooms" ? roomsGuestTotal : guests}
-            maxGuests={maxGuestsForForm}
+            wholeGuests={guests}
+            maxGuestsWhole={listing.max_guests ?? 50}
             guestEmail={user?.email ?? ""}
             isAuthenticated={!!user}
-            scope={scope}
-            rooms={bookedRooms}
+            guestName={guestName}
+            guestPhone={guestPhone}
+            allRooms={allRooms}
+            initialSelectedRoomIds={initialSelectedRoomIds}
+            initialRoomGuests={initialRoomGuests}
             availableAddons={availableAddons}
+            hasEftBanking={hasEftBanking}
           />
         )}
 

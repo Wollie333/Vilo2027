@@ -522,6 +522,9 @@ export async function createBookingAction(
   // 6. Insert booking. Experience bookings use session_date and leave
   // check_in/check_out NULL; the `nights` column on bookings is GENERATED and
   // resolves to NULL when both dates are absent.
+  // Manual EFT lands the booking in pending_eft (host verifies the transfer);
+  // card payments stay "pending" until Paystack confirms via webhook.
+  const isEft = d.payment_method === "eft";
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
     .insert({
@@ -537,9 +540,15 @@ export async function createBookingAction(
       total_amount: totalAmount,
       currency: listing.currency,
       payment_method: d.payment_method,
-      status: "pending",
+      status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
       scope: d.scope,
+      // Contact snapshot so the host's booking card is fully populated even for
+      // a freshly-created guest account.
+      guest_name: d.guest_name ?? null,
+      guest_email: d.guest_email ?? user.email,
+      guest_phone: d.guest_phone ?? null,
+      special_requests: d.special_requests ?? null,
     })
     .select("id, reference")
     .single();
@@ -610,6 +619,13 @@ export async function createBookingAction(
     await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
     await admin.from("bookings").delete().eq("id", booking.id);
     return { ok: false, error: "Could not prepare payment. Try again." };
+  }
+
+  // 7b. Manual EFT — no payment provider. The booking sits in pending_eft; the
+  // guest gets the host's banking details + reference on their trip page and
+  // uploads proof there. Skip the Paystack hop entirely.
+  if (isEft) {
+    redirect(`/my-trips/${booking.id}`);
   }
 
   // 8. Initialize Paystack transaction.
