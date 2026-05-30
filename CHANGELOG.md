@@ -31,6 +31,27 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Checkout flow redesign + guest account at checkout — branch `feat/setup-wizard-rework`
+
+### Built
+- **Checkout redesign** (`app/listing/[slug]/book` accommodation path) — matches the
+  "Confirm and pay" design: 3-step progress stepper (Review → Payment → Confirmation),
+  sectioned cards (Your rooms, Your trip with check-in/out tiles + guests, styled add-ons,
+  Payment method, cancellation policy), a branded sticky price-summary sidebar with the
+  full breakdown + "Vilo service fee FREE", and a mobile sticky reserve bar. All existing
+  pricing / add-on / per-room / scope logic preserved; payment still goes through Paystack's
+  hosted checkout (no raw card entry).
+- **Guest account at checkout** — anonymous visitors can now reach the accommodation
+  checkout (no forced pre-login) and create a guest account inline (full name, email,
+  password). On reserve, `createCheckoutGuestAccountAction` creates an auto-confirmed user +
+  signs them in (reusing the proven signup/guest pattern), then the booking proceeds as that
+  user. Existing-email collision shows a "sign in" prompt. Experiences still require login.
+
+### Notes
+- `pnpm build` + `pnpm lint` pass clean (one pre-existing unrelated a11y warning).
+- Held on the feature branch (not yet on `main`) — it changes who can reach checkout
+  (anonymous) and creates accounts, so it awaits a go-live confirmation.
+
 ## 2026-05-30 — Public profile/room redesign + setup-hero pills + profile schema — branch `feat/setup-wizard-rework`
 
 ### Built

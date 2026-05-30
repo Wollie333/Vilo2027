@@ -80,10 +80,10 @@ export default async function BookingPage({
   if (searchParams?.slot) qs.set("slot", searchParams.slot);
   if (searchParams?.participants)
     qs.set("participants", searchParams.participants);
+  // Accommodation checkout allows anonymous visitors — they create a guest
+  // account inline in the form (see BookingForm). Experiences still require a
+  // signed-in user (that form isn't wired for inline signup yet).
   const here = `/listing/${params.slug}/book?${qs.toString()}`;
-  if (!user) {
-    redirect(`/login?next=${encodeURIComponent(here)}`);
-  }
 
   // Public read of a published listing.
   const { data: listing } = await supabase
@@ -98,6 +98,9 @@ export default async function BookingPage({
 
   // ── Experience path ────────────────────────────────────────────
   if (listing.listing_type === "experience") {
+    if (!user) {
+      redirect(`/login?next=${encodeURIComponent(here)}`);
+    }
     const slotRaw = searchParams?.slot ?? "";
     const slotOk = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(slotRaw);
     const partRaw = parseInt(searchParams?.participants ?? "", 10);
@@ -321,19 +324,7 @@ export default async function BookingPage({
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
 
-      <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
-        <div className="mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            Confirm and pay
-          </div>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            {listing.name}
-          </h1>
-          <div className="mt-1 text-sm text-brand-mute">
-            {[listing.city, listing.province].filter(Boolean).join(", ")}
-          </div>
-        </div>
-
+      <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
         {!datesOk ? (
           <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
             <div className="font-display text-lg font-semibold text-brand-ink">
@@ -364,7 +355,8 @@ export default async function BookingPage({
             nights={nights}
             guests={scope === "rooms" ? roomsGuestTotal : guests}
             maxGuests={maxGuestsForForm}
-            guestEmail={user.email ?? ""}
+            guestEmail={user?.email ?? ""}
+            isAuthenticated={!!user}
             scope={scope}
             rooms={bookedRooms}
             availableAddons={availableAddons}

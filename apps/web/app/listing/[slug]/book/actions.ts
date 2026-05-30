@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 
 import { initializeTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,6 +16,80 @@ import { roomNightlyBase } from "../roomDisplay";
 import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
+
+// ─── Guest account creation at checkout ──────────────────────────
+// Lets an unauthenticated visitor create a guest account inline on the
+// checkout page (mirrors app/signup/guest createGuestAccountAction): the
+// admin client creates an auto-confirmed user, then we sign them in
+// server-side so the very next createBookingAction call sees the session.
+const checkoutAccountSchema = z.object({
+  full_name: z.string().trim().min(2, "Tell us your name.").max(120),
+  email: z.string().trim().email("Enter a valid email."),
+  password: z.string().min(8, "Use at least 8 characters."),
+});
+export type CheckoutAccountInput = z.infer<typeof checkoutAccountSchema>;
+
+export async function createCheckoutGuestAccountAction(
+  input: CheckoutAccountInput,
+): Promise<CreateBookingResult> {
+  const parsed = checkoutAccountSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+  const { full_name, email, password } = parsed.data;
+
+  // If they're already signed in, nothing to do.
+  const existing = createServerClient();
+  const {
+    data: { user: already },
+  } = await existing.auth.getUser();
+  if (already) return { ok: true };
+
+  const admin = createAdminClient();
+  const { error: createErr } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name },
+  });
+  if (createErr) {
+    const msg = createErr.message.toLowerCase();
+    if (msg.includes("already") || msg.includes("registered")) {
+      return {
+        ok: false,
+        error:
+          "An account with this email already exists — sign in to finish booking.",
+      };
+    }
+    return { ok: false, error: "Could not create your account. Try again." };
+  }
+
+  const supabase = createServerClient();
+  const { error: signInErr } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (signInErr) {
+    return {
+      ok: false,
+      error: "Account created, but sign-in failed. Try signing in manually.",
+    };
+  }
+
+  // Seed the name + guest role onto the (trigger-created) profile row.
+  const {
+    data: { user: newUser },
+  } = await supabase.auth.getUser();
+  if (newUser) {
+    await supabase
+      .from("user_profiles")
+      .update({ full_name, role: "guest" })
+      .eq("id", newUser.id);
+  }
+
+  return { ok: true };
+}
 
 function nightsBetween(checkIn: string, checkOut: string): number {
   const f = new Date(`${checkIn}T00:00:00Z`).getTime();
