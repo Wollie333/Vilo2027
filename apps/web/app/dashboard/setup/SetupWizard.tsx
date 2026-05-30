@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  ExternalLink,
   LayoutDashboard,
   Link as LinkIcon,
   PartyPopper,
@@ -345,7 +346,6 @@ export function SetupWizard(props: Props) {
       {showConfetti ? <Confetti /> : null}
       {published ? (
         <PublishedModal
-          host={host}
           listing={listing}
           onClose={() => {
             setPublished(false);
@@ -715,19 +715,29 @@ function Confetti() {
 }
 
 function PublishedModal({
-  host,
   listing,
   onClose,
 }: {
-  host: Host;
   listing: Listing;
   onClose: () => void;
 }) {
-  const slug = (listing.name || "listing")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 28);
+  // The real, resolvable public URL is /listing/<slug> (slug is set on the
+  // listing row — never re-derive it from the name, which can diverge).
+  const slug = listing.slug;
+  const path = slug ? `/listing/${slug}` : null;
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
+  const displayUrl = path ? `${origin}${path}`.replace(/^https?:\/\//, "") : "";
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    if (!path) return;
+    navigator.clipboard?.writeText(`${origin}${path}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    });
+  }
+
   return (
     <div
       className="fixed inset-0 z-[85] flex items-center justify-center bg-brand-dark/40 p-4 backdrop-blur-sm"
@@ -745,32 +755,54 @@ function PublishedModal({
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-brand-mute">
           <span className="font-semibold text-brand-ink">{listing.name}</span>{" "}
-          is now published and bookable. Share your link to start taking direct
-          bookings.
+          is now published and bookable. Here&rsquo;s your live page — share it
+          to start taking direct bookings.
         </p>
-        <div className="mt-4 flex items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 py-2.5 font-mono text-xs text-brand-ink">
-          <LinkIcon className="h-3.5 w-3.5 text-brand-primary" />
-          <span className="truncate">
-            viloplatform.com/{host.handle}/{slug}
-          </span>
-        </div>
+
+        {path ? (
+          <button
+            type="button"
+            onClick={copy}
+            title="Click to copy"
+            className="mt-4 flex w-full items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 py-2.5 text-left font-mono text-xs text-brand-ink transition hover:border-brand-primary/50"
+          >
+            <LinkIcon className="h-3.5 w-3.5 shrink-0 text-brand-primary" />
+            <span className="flex-1 truncate">{displayUrl || path}</span>
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
+              {copied ? "Copied" : "Copy"}
+            </span>
+          </button>
+        ) : null}
+
         <div className="mt-5 grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
+            onClick={onClose}
             className="rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-light"
           >
-            Keep editing
+            <span className="inline-flex items-center justify-center gap-1.5">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
+            </span>
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
-          >
-            <LayoutDashboard className="h-4 w-4" /> Go to dashboard
-          </button>
+          {path ? (
+            <a
+              href={path}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              <ExternalLink className="h-4 w-4" /> View listing
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              Done
+            </button>
+          )}
         </div>
       </div>
     </div>

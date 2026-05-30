@@ -43,6 +43,7 @@ export type Listing = {
   cancellation_policy: "flexible" | "moderate" | "strict" | null;
   house_rules: string;
   is_published: boolean;
+  slug: string | null;
   booking_mode: "whole_listing" | "rooms_only" | "flexible";
   // Location — for SEO + search (set on the Listing card).
   address_line1: string | null;

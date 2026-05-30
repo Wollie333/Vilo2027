@@ -132,6 +132,8 @@ export async function createBankAccountAction(
   }
 
   revalidatePath("/dashboard/settings/banking");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/setup");
   return { ok: true };
 }
 
@@ -189,6 +191,8 @@ export async function updateBankAccountAction(
   }
 
   revalidatePath("/dashboard/settings/banking");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/setup");
   return { ok: true };
 }
 
@@ -218,6 +222,8 @@ export async function setDefaultBankAccountAction(
   }
 
   revalidatePath("/dashboard/settings/banking");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/setup");
   return { ok: true };
 }
 
@@ -257,6 +263,8 @@ export async function archiveBankAccountAction(
   }
 
   revalidatePath("/dashboard/settings/banking");
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/setup");
   return { ok: true };
 }
 

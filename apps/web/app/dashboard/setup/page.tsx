@@ -64,7 +64,7 @@ export default async function SetupPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, name, listing_type, category_id, accommodation_type, experience_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
+      "id, name, slug, listing_type, category_id, accommodation_type, experience_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -272,6 +272,7 @@ export default async function SetupPage({
             | null) ?? null,
         house_rules: listing.house_rules ?? "",
         is_published: Boolean(listing.is_published),
+        slug: (listing.slug as string | null) ?? null,
         booking_mode:
           (listing.booking_mode as
             | "whole_listing"

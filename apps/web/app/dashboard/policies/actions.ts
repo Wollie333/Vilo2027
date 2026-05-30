@@ -438,6 +438,8 @@ export async function setListingPolicyAction(
     const { error } = await clearScope();
     if (error) return { ok: false, error: "Could not remove policy." };
     revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/setup");
     return { ok: true };
   }
 
@@ -471,5 +473,7 @@ export async function setListingPolicyAction(
   }
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/setup");
   return { ok: true };
 }

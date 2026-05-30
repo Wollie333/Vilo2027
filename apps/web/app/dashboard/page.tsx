@@ -5,7 +5,6 @@ import {
   BarChart3,
   CalendarCheck,
   CalendarClock,
-  ExternalLink,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -18,6 +17,7 @@ import { AcademyCards } from "./_components/AcademyCards";
 import { DashboardPreview } from "./_components/DashboardPreview";
 import { FirstListingTeaser } from "./_components/FirstListingTeaser";
 import { FirstLoginHero } from "./_components/FirstLoginHero";
+import { CompletedSetupHeader } from "./_components/CompletedSetupHeader";
 import { SetupChecklist } from "./_components/SetupChecklist";
 import { SetupSidePanel } from "./_components/SetupSidePanel";
 import { buildSetupSteps } from "./_components/setupSteps";
@@ -223,37 +223,21 @@ export default async function DashboardPage({
       ) : null}
 
       {host && setupComplete ? (
-        <section className="-mt-1 flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
-          <div>
-            <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-              Welcome back, {firstName}.
-            </h2>
-            <p className="mt-1 text-sm text-brand-mute">
-              {pendingCount && pendingCount > 0
-                ? `You have ${pendingCount} pending booking${
-                    pendingCount === 1 ? "" : "s"
-                  } to review.`
-                : "Nothing pending. Your inbox is empty."}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 md:ml-auto">
-            <Link
-              href={`/${host.handle}`}
-              target="_blank"
-              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-            >
-              View public page
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-            <Link
-              href="/dashboard/listings/new"
-              className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-            >
-              <Sparkles className="h-4 w-4" />
-              New listing
-            </Link>
-          </div>
-        </section>
+        <CompletedSetupHeader
+          firstName={firstName}
+          handle={host.handle}
+          pendingCount={pendingCount ?? null}
+          checklist={<SetupChecklist steps={setupSteps} />}
+          attention={
+            <SetupSidePanel
+              firstName={firstName}
+              handle={host.handle}
+              email={user?.email ?? ""}
+              emailVerified={setupState?.email_verified.done ?? false}
+              steps={setupSteps}
+            />
+          }
+        />
       ) : null}
 
       {host ? (

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
+import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { z } from "zod";
@@ -360,29 +361,132 @@ export async function togglePublishAction(
 
   const supabase = createServerClient();
 
-  if (publish) {
-    // Light pre-publish check — minimum fields needed to be bookable.
-    const { data: listing } = await supabase
+  if (!publish) {
+    const { error } = await supabase
       .from("listings")
-      .select("name, base_price, max_guests")
-      .eq("id", listingId)
-      .single();
-    if (!listing) return { ok: false, error: "Listing not found." };
-    if (
-      !listing.name ||
-      listing.base_price == null ||
-      listing.max_guests == null
-    ) {
-      return {
-        ok: false,
-        error: "Add a name, base price, and max guests before publishing.",
-      };
+      .update({ is_published: false })
+      .eq("id", listingId);
+    if (error) {
+      return { ok: false, error: "Could not update publish status." };
     }
+    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath("/dashboard");
+    return { ok: true };
+  }
+
+  // Publishing — minimum bookable fields + a resolvable public slug.
+  const { data: listing } = await supabase
+    .from("listings")
+    .select(
+      "name, base_price, max_guests, slug, host_id, listing_type, booking_mode, cancellation_policy, check_in_time, check_out_time",
+    )
+    .eq("id", listingId)
+    .single();
+  if (!listing) return { ok: false, error: "Listing not found." };
+  if (
+    !listing.name ||
+    listing.base_price == null ||
+    listing.max_guests == null
+  ) {
+    return {
+      ok: false,
+      error: "Add a name, base price, and max guests before publishing.",
+    };
+  }
+
+  // A listing can only go live when setup is 100% — same predicates the setup
+  // wizard uses, enforced here so no surface (editor/portfolio) can bypass it.
+  const [
+    { data: hostRow },
+    { count: bankCount },
+    { count: photoCount },
+    { count: roomCount },
+    { count: cancelCount },
+  ] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("bio, avatar_url, languages_spoken")
+      .eq("id", listing.host_id)
+      .maybeSingle(),
+    supabase
+      .from("eft_banking_details")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", listing.host_id)
+      .eq("is_archived", false),
+    supabase
+      .from("listing_photos")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId),
+    supabase
+      .from("listing_rooms")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .is("deleted_at", null)
+      .eq("is_active", true),
+    supabase
+      .from("listing_policies")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .eq("policy_type", "cancellation")
+      .is("room_id", null),
+  ]);
+
+  const completion = computeSetupCompletion({
+    host: hostRow ?? null,
+    hasBankAccount: (bankCount ?? 0) > 0,
+    listing,
+    photoCount: photoCount ?? 0,
+    roomCount: roomCount ?? 0,
+    hasCancellationPolicy: (cancelCount ?? 0) > 0,
+  });
+
+  const LABELS: Record<string, string> = {
+    profile: "your host profile",
+    banking: "banking details",
+    listing: "listing photos",
+    rooms: "at least one room",
+    policies: "a refund policy",
+  };
+  const missing = (
+    ["profile", "banking", "listing", "rooms", "policies"] as const
+  ).filter((k) => !completion[k]);
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `Finish setup before going live — still needed: ${missing
+        .map((k) => LABELS[k])
+        .join(", ")}.`,
+    };
+  }
+
+  // Guarantee a unique slug so /listing/<slug> resolves the instant we publish
+  // (the create trigger normally sets it; this is a defensive fallback).
+  let slug = listing.slug;
+  if (!slug) {
+    const base =
+      listing.name
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60) || "listing";
+    slug = base;
+    const { data: clash } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("slug", slug)
+      .neq("id", listingId)
+      .maybeSingle();
+    if (clash) slug = `${base}-${listingId.slice(0, 6)}`;
   }
 
   const { error } = await supabase
     .from("listings")
-    .update({ is_published: publish })
+    .update({
+      is_published: true,
+      published_at: new Date().toISOString(),
+      slug,
+    })
     .eq("id", listingId);
   if (error) {
     return { ok: false, error: "Could not update publish status." };
@@ -390,6 +494,7 @@ export async function togglePublishAction(
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   revalidatePath("/dashboard");
+  revalidatePath(`/listing/${slug}`);
   return { ok: true };
 }
 
