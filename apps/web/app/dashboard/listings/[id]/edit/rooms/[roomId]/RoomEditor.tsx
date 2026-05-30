@@ -4,15 +4,19 @@ import {
   ArrowLeft,
   Bath,
   BedDouble,
+  Check,
+  ChevronRight,
   ExternalLink,
-  ImageIcon,
+  Image as ImageIcon,
+  Lightbulb,
   Settings,
-  SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 
+import { updateRoomAction } from "../../actions";
 import { RoomAmenitiesSection } from "./sections/RoomAmenitiesSection";
 import { RoomDetailsForm } from "./sections/RoomDetailsForm";
 import { RoomPhotosSection } from "./sections/RoomPhotosSection";
@@ -57,18 +61,37 @@ export function effectiveNightly(room: {
 
 export type RoomEditorPhoto = { id: string; url: string };
 
-type TabId = "details" | "photos" | "amenities";
+type SectionId = "sec-details" | "sec-photos" | "sec-amenities";
 
-const TABS: { id: TabId; label: string; icon: typeof Settings }[] = [
-  { id: "details", label: "Details", icon: Settings },
-  { id: "photos", label: "Photos", icon: ImageIcon },
-  { id: "amenities", label: "Amenities", icon: Sparkles },
+const NAV: { id: SectionId; label: string; icon: typeof Settings }[] = [
+  { id: "sec-details", label: "Details, beds & pricing", icon: Settings },
+  { id: "sec-photos", label: "Photos", icon: ImageIcon },
+  { id: "sec-amenities", label: "Amenities", icon: Sparkles },
 ];
 
 function formatPrice(amount: number, currency: string): string {
   const prefix = currency === "ZAR" ? "R " : `${currency} `;
   const rounded = Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ");
   return `${prefix}${rounded}`;
+}
+
+function priceLabel(
+  room: RoomEditorRoom,
+  currency: string,
+): { amount: string; sub: string } {
+  if (room.pricing_mode === "per_person") {
+    return {
+      amount: formatPrice(room.price_per_person ?? 0, currency),
+      sub: "per person",
+    };
+  }
+  if (room.pricing_mode === "per_room_plus_extra") {
+    return {
+      amount: formatPrice(room.base_price, currency),
+      sub: "from / night",
+    };
+  }
+  return { amount: formatPrice(room.base_price, currency), sub: "per night" };
 }
 
 export function RoomEditor({
@@ -91,53 +114,91 @@ export function RoomEditor({
   const [room, setRoom] = useState<RoomEditorRoom>(initialRoom);
   const [photos, setPhotos] = useState<RoomEditorPhoto[]>(initialPhotos);
   const [amenityKeys, setAmenityKeys] = useState<string[]>(initialAmenityKeys);
-  const [activeTab, setActiveTab] = useState<TabId>("details");
+  const [active, setActive] = useState<SectionId>("sec-details");
+  const [bookablePending, startBookable] = useTransition();
+
+  // Scroll-spy: highlight the section nearest the top of the viewport.
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id as SectionId);
+      },
+      { rootMargin: "-140px 0px -55% 0px", threshold: 0 },
+    );
+    NAV.forEach((n) => {
+      const el = document.getElementById(n.id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  function jump(id: SectionId) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setActive(id);
+  }
+
+  function toggleBookable() {
+    const next = !room.is_active;
+    startBookable(async () => {
+      const result = await updateRoomAction(listingId, room.id, {
+        is_active: next,
+      });
+      if (result.ok) {
+        setRoom((r) => ({ ...r, is_active: next }));
+        toast.success(next ? "Room is bookable" : "Room hidden");
+      } else {
+        toast.error(result.error);
+      }
+    });
+  }
 
   const featuredPhoto =
     photos.find((p) => p.id === room.featured_photo_id) ?? photos[0] ?? null;
-  const stripPhotos = photos.slice(0, 6);
-  const remainingPhotos = Math.max(0, photos.length - stripPhotos.length);
-
-  // bed_type already holds a clean, complete summary ("5 Queens" / "1 King + 2
-  // Singles"), so show it as-is — don't prepend the bedroom count or re-pluralise.
-  const bedSummary =
+  const bedCount = room.beds.reduce((acc, b) => acc + b.quantity, 0);
+  const rate = priceLabel(room, currency);
+  const bedLine =
     room.bed_type && room.bed_type.length > 0
       ? room.bed_type
-      : room.bedrooms
-        ? `${room.bedrooms} bed${room.bedrooms > 1 ? "s" : ""}`
+      : bedCount > 0
+        ? `${bedCount} bed${bedCount === 1 ? "" : "s"}`
         : "Beds not set";
 
-  const bathSummary = room.bathrooms
-    ? `${room.bathrooms} bath${room.bathrooms > 1 ? "s" : ""}`
-    : "Bath not set";
-
-  const tabCounts: Record<TabId, string | null> = {
-    details: null,
-    photos: String(photos.length),
-    amenities: String(amenityKeys.length),
-  };
+  // Completeness checklist.
+  const steps = [
+    { label: "Name & description", done: room.name.trim().length > 0 },
+    { label: "Beds & capacity", done: room.beds.length > 0 },
+    { label: "A photo or two", done: photos.length > 0 },
+    { label: "Amenities", done: amenityKeys.length > 0 },
+    { label: "A nightly rate", done: effectiveNightly(room) > 0 },
+  ];
+  const doneCount = steps.filter((s) => s.done).length;
+  const percent = Math.round((doneCount / steps.length) * 100);
+  const circumference = 2 * Math.PI * 15.5;
+  const dash = (percent / 100) * circumference;
+  const nextStep = steps.find((s) => !s.done);
 
   return (
     <div className="space-y-6 pb-24">
       {/* Back link */}
-      <div>
-        <Link
-          href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          All rooms · {listingName}
-        </Link>
-      </div>
+      <Link
+        href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
+        className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        All rooms · {listingName}
+      </Link>
 
-      {/* DARK HERO */}
+      {/* ============ DARK HERO ============ */}
       <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
-        <div className="grid gap-0 md:grid-cols-[1.45fr_1fr]">
-          {/* Left: identity + actions */}
+        <div className="grid gap-0 md:grid-cols-[1.5fr_1fr]">
+          {/* Info side */}
           <div className="relative bg-brand-gradient-dark p-7 text-white md:p-8">
             <div
               aria-hidden
-              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/30 blur-3xl"
+              className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
             />
             <div
               aria-hidden
@@ -174,82 +235,42 @@ export function RoomEditor({
               </div>
 
               <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-                {room.name}
+                {room.name || "Untitled room"}
               </h2>
 
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-brand-accent/80">
                 <span className="inline-flex items-center gap-1.5">
                   <BedDouble className="h-3.5 w-3.5" />
-                  {bedSummary} · sleeps {room.max_guests}
+                  {bedLine} · sleeps {room.max_guests}
                 </span>
                 <span className="text-brand-accent/40">·</span>
                 <span className="inline-flex items-center gap-1.5">
                   <Bath className="h-3.5 w-3.5" />
-                  {bathSummary}
-                </span>
-                <span className="text-brand-accent/40">·</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="font-mono text-brand-accent/70">ID</span>
-                  <span className="font-mono font-semibold text-white">
-                    {room.id.slice(0, 8)}
-                  </span>
+                  {room.bathrooms
+                    ? `${room.bathrooms} bath${room.bathrooms === 1 ? "" : "s"}`
+                    : "Bath not set"}
                 </span>
               </div>
 
-              {/* Spec ribbon */}
-              <div className="mt-6 grid max-w-md grid-cols-4 gap-3">
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    {room.pricing_mode === "per_person"
-                      ? "Per person"
-                      : room.pricing_mode === "per_room_plus_extra"
-                        ? "From / night"
-                        : "Base / night"}
-                  </div>
-                  <div className="mt-1 font-display text-xl font-bold text-white">
-                    {formatPrice(effectiveNightly(room), currency)}
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    {room.pricing_mode === "per_person"
-                      ? "per guest / night"
-                      : currency}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Weekend
-                  </div>
-                  <div className="mt-1 font-display text-xl font-bold text-white">
-                    {room.weekend_price != null
-                      ? formatPrice(room.weekend_price, currency)
-                      : "—"}
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    {room.weekend_price != null ? "Fri & Sat" : "uses base"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Photos
-                  </div>
-                  <div className="mt-1 font-display text-xl font-bold text-white">
-                    {photos.length}
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    {photos.length === 0 ? "add some" : "uploaded"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Amenities
-                  </div>
-                  <div className="mt-1 font-display text-xl font-bold text-white">
-                    {amenityKeys.length}
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    selected
-                  </div>
-                </div>
+              {/* Stat strip */}
+              <div className="mt-6 grid max-w-lg grid-cols-4 gap-3">
+                <HeroStat label="Rate" value={rate.amount} sub={rate.sub} />
+                <HeroStat
+                  label="Sleeps"
+                  value={String(room.max_guests)}
+                  sub={`${bedCount} bed${bedCount === 1 ? "" : "s"}`}
+                />
+                <HeroStat
+                  label="Photos"
+                  value={String(photos.length)}
+                  sub={photos.length === 0 ? "add some" : "uploaded"}
+                  warn={photos.length === 0}
+                />
+                <HeroStat
+                  label="Cleaning"
+                  value={formatPrice(room.cleaning_fee, currency)}
+                  sub="once-off"
+                />
               </div>
 
               {/* Actions */}
@@ -261,7 +282,7 @@ export function RoomEditor({
                     className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow hover:bg-brand-accent"
                   >
                     <ExternalLink className="h-4 w-4" />
-                    View public
+                    View public page
                   </Link>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-4 py-2.5 text-sm font-medium text-white/60">
@@ -269,31 +290,38 @@ export function RoomEditor({
                     Publish listing to share
                   </span>
                 )}
-                <Link
-                  href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to rooms
-                </Link>
-                <div className="ml-auto flex items-center gap-2 rounded-pill border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur">
-                  <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      room.is_active ? "bg-brand-primary" : "bg-brand-accent/40"
-                    }`}
-                  />
+                <div className="ml-auto flex items-center gap-2.5 rounded-pill border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur">
                   <span className="text-[11.5px] font-medium text-white/90">
                     {room.is_active ? "Bookable" : "Hidden"}
                   </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={room.is_active}
+                    aria-label="Toggle bookable"
+                    onClick={toggleBookable}
+                    disabled={bookablePending}
+                    className={`relative h-[22px] w-[38px] shrink-0 rounded-pill transition-colors disabled:opacity-60 ${
+                      room.is_active ? "bg-brand-primary" : "bg-white/20"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow transition-transform ${
+                        room.is_active
+                          ? "translate-x-[18px]"
+                          : "translate-x-[2px]"
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right: photo strip */}
-          <div className="relative bg-brand-dark">
+          {/* Photo side */}
+          <div className="relative bg-brand-dark p-2">
             {photos.length === 0 ? (
-              <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 p-6 text-center">
+              <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-2 p-6 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white/70">
                   <ImageIcon className="h-5 w-5" />
                 </div>
@@ -302,35 +330,36 @@ export function RoomEditor({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setActiveTab("photos")}
+                  onClick={() => jump("sec-photos")}
                   className="mt-1 text-[11.5px] font-semibold text-brand-primary hover:text-white"
                 >
                   Add the first photo →
                 </button>
               </div>
             ) : (
-              <div className="grid h-full min-h-[300px] grid-cols-3 grid-rows-3 gap-1 p-2">
-                {featuredPhoto ? (
-                  <div className="col-span-2 row-span-2 overflow-hidden rounded-[10px]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={featuredPhoto.url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : null}
-                {stripPhotos
-                  .filter((p) => p.id !== featuredPhoto?.id)
-                  .slice(0, 4)
-                  .map((p, idx, arr) => {
-                    const isLast =
-                      idx === arr.length - 1 && remainingPhotos > 0;
-                    return (
+              <>
+                <div className="grid h-full min-h-[280px] grid-cols-3 grid-rows-2 gap-1.5">
+                  {featuredPhoto ? (
+                    <div className="relative col-span-2 row-span-2 overflow-hidden rounded-[10px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={featuredPhoto.url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                      <span className="absolute left-2.5 top-2.5 rounded-pill bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
+                        Cover
+                      </span>
+                    </div>
+                  ) : null}
+                  {photos
+                    .filter((p) => p.id !== featuredPhoto?.id)
+                    .slice(0, 2)
+                    .map((p) => (
                       <div
                         key={p.id}
-                        className="relative overflow-hidden rounded-[10px]"
+                        className="overflow-hidden rounded-[10px]"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -339,95 +368,273 @@ export function RoomEditor({
                           className="h-full w-full object-cover"
                           loading="lazy"
                         />
-                        {isLast ? (
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab("photos")}
-                            className="absolute inset-0 flex items-center justify-center bg-brand-dark/70 text-[11px] font-semibold text-white hover:bg-brand-dark/85"
-                          >
-                            +{remainingPhotos} more
-                          </button>
-                        ) : null}
                       </div>
-                    );
-                  })}
-              </div>
+                    ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => jump("sec-photos")}
+                  className="absolute bottom-4 right-4 inline-flex items-center gap-1.5 rounded-[10px] bg-white/95 px-3 py-2 text-[12px] font-semibold text-brand-secondary shadow-card backdrop-blur hover:bg-white"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Manage photos
+                </button>
+              </>
             )}
           </div>
         </div>
       </section>
 
-      {/* STICKY TAB BAR */}
-      <section className="sticky top-16 z-10 rounded-card border border-brand-line bg-white shadow-card">
+      {/* ============ STICKY SECTION NAV ============ */}
+      <section className="sticky top-16 z-20 rounded-card border border-brand-line bg-white/95 shadow-card backdrop-blur">
         <div className="flex items-center gap-0.5 overflow-x-auto px-2 py-1.5">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            const count = tabCounts[tab.id];
+          {NAV.map((n) => {
+            const Icon = n.icon;
+            const on = active === n.id;
             return (
               <button
-                key={tab.id}
+                key={n.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => jump(n.id)}
                 className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] transition-colors ${
-                  active
+                  on
                     ? "bg-brand-accent font-semibold text-brand-secondary"
                     : "font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                {tab.label}
-                {count !== null ? (
-                  <span
-                    className={`rounded-pill px-1.5 py-0.5 text-[9.5px] font-bold ${
-                      active
-                        ? "bg-white/80 text-brand-secondary"
-                        : "bg-brand-line text-brand-mute"
-                    }`}
-                  >
-                    {count}
+                {n.label}
+                {n.id === "sec-photos" && photos.length > 0 ? (
+                  <span className="rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
+                    {photos.length}
+                  </span>
+                ) : null}
+                {n.id === "sec-amenities" && amenityKeys.length > 0 ? (
+                  <span className="rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
+                    {amenityKeys.length}
                   </span>
                 ) : null}
               </button>
             );
           })}
-          <div className="ml-auto hidden items-center gap-1.5 pl-2 text-[11px] text-brand-mute md:flex">
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            <span>Changes save per section</span>
-          </div>
         </div>
       </section>
 
-      {/* TAB CONTENT */}
-      {activeTab === "details" ? (
-        <RoomDetailsForm
-          listingId={listingId}
-          room={room}
-          onSaved={(patch) => setRoom((r) => ({ ...r, ...patch }))}
-        />
-      ) : null}
+      {/* ============ TWO-COLUMN ============ */}
+      <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr]">
+        {/* LEFT: form sections */}
+        <div className="space-y-6">
+          <div id="sec-details" className="scroll-mt-32">
+            <RoomDetailsForm
+              listingId={listingId}
+              room={room}
+              onSaved={(patch) => setRoom((r) => ({ ...r, ...patch }))}
+            />
+          </div>
 
-      {activeTab === "photos" ? (
-        <RoomPhotosSection
-          listingId={listingId}
-          roomId={room.id}
-          featuredPhotoId={room.featured_photo_id}
-          photos={photos}
-          onPhotosChange={setPhotos}
-          onFeaturedChange={(id) =>
-            setRoom((r) => ({ ...r, featured_photo_id: id }))
-          }
-        />
-      ) : null}
+          <div id="sec-photos" className="scroll-mt-32">
+            <RoomPhotosSection
+              listingId={listingId}
+              roomId={room.id}
+              featuredPhotoId={room.featured_photo_id}
+              photos={photos}
+              onPhotosChange={setPhotos}
+              onFeaturedChange={(id) =>
+                setRoom((r) => ({ ...r, featured_photo_id: id }))
+              }
+            />
+          </div>
 
-      {activeTab === "amenities" ? (
-        <RoomAmenitiesSection
-          listingId={listingId}
-          roomId={room.id}
-          amenityKeys={amenityKeys}
-          onChange={setAmenityKeys}
-        />
-      ) : null}
+          <div id="sec-amenities" className="scroll-mt-32">
+            <RoomAmenitiesSection
+              listingId={listingId}
+              roomId={room.id}
+              amenityKeys={amenityKeys}
+              onChange={setAmenityKeys}
+            />
+          </div>
+        </div>
+
+        {/* RIGHT: sticky rail */}
+        <div className="space-y-5">
+          <div className="space-y-5 lg:sticky lg:top-32">
+            {/* Live preview */}
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="flex items-center justify-between border-b border-brand-line px-5 py-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Live preview
+                </div>
+                {listingSlug ? (
+                  <Link
+                    href={`/listing/${listingSlug}/rooms/${room.id}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-secondary hover:text-brand-primary"
+                  >
+                    Open <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ) : null}
+              </div>
+              <div className="p-4">
+                <div className="overflow-hidden rounded-[12px] border border-brand-line">
+                  <div className="relative aspect-[16/10] bg-brand-accent/40">
+                    {featuredPhoto ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={featuredPhoto.url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-brand-primary">
+                        <BedDouble className="h-8 w-8" />
+                      </div>
+                    )}
+                    <span className="absolute right-2.5 top-2.5 rounded-pill bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-brand-secondary backdrop-blur">
+                      {photos.length} photo{photos.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <div className="p-3.5">
+                    <div className="truncate font-display text-[14px] font-bold text-brand-ink">
+                      {room.name || "Untitled room"}
+                    </div>
+                    <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                      {bedLine} · sleeps {room.max_guests}
+                    </div>
+                    <div className="mt-3 flex items-end justify-between border-t border-brand-line pt-3">
+                      <div>
+                        <span className="font-display text-[17px] font-bold text-brand-ink">
+                          {rate.amount}
+                        </span>
+                        <span className="text-[11px] text-brand-mute">
+                          {" "}
+                          / {rate.sub}
+                        </span>
+                      </div>
+                      {room.cleaning_fee > 0 ? (
+                        <span className="text-[10.5px] text-brand-mute">
+                          +{formatPrice(room.cleaning_fee, currency)} clean
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Completeness */}
+            <section className="rounded-card border border-brand-line bg-white shadow-card">
+              <div className="flex items-center gap-3 border-b border-brand-line px-5 py-4">
+                <div className="relative h-12 w-12">
+                  <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="#DCEAE0"
+                      strokeWidth="3.2"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      stroke="#10B981"
+                      strokeWidth="3.2"
+                      strokeLinecap="round"
+                      strokeDasharray={`${dash} ${circumference}`}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-display text-[12px] font-bold text-brand-ink">
+                    {percent}%
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-[14px] font-bold text-brand-ink">
+                    {percent === 100 ? "Ready to go" : "Almost ready"}
+                  </div>
+                  <div className="text-[11.5px] text-brand-mute">
+                    {nextStep
+                      ? `Next: ${nextStep.label.toLowerCase()}`
+                      : "Every section is filled in"}
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-1 px-3 py-3 text-[12.5px]">
+                {steps.map((s) => (
+                  <li
+                    key={s.label}
+                    className={`flex items-center gap-2.5 rounded-md px-2 py-1.5 ${
+                      s.done ? "" : "bg-status-pending/10"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                        s.done
+                          ? "bg-brand-primary text-white"
+                          : "border-2 border-status-pending text-status-pending"
+                      }`}
+                    >
+                      {s.done ? (
+                        <Check className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                    </span>
+                    <span className="flex-1 text-brand-ink">{s.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {/* Tip */}
+            <section className="rounded-card border border-brand-line bg-brand-accent/40 p-4">
+              <div className="flex items-start gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white text-brand-secondary">
+                  <Lightbulb className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-[12.5px] font-semibold text-brand-ink">
+                    Rooms with 5+ photos book faster
+                  </div>
+                  <p className="mt-1 text-[11.5px] leading-relaxed text-brand-mute">
+                    Show the beds, the bathroom and the view. Set a cover photo
+                    that sells the room at a glance.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroStat({
+  label,
+  value,
+  sub,
+  warn = false,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  warn?: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+        {label}
+      </div>
+      <div className="mt-1 font-display text-xl font-bold text-white">
+        {value}
+      </div>
+      <div
+        className={`text-[10px] ${warn ? "text-status-pending" : "text-brand-accent/60"}`}
+      >
+        {sub}
+      </div>
     </div>
   );
 }
