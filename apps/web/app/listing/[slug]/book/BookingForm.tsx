@@ -8,6 +8,7 @@ import {
   Home,
   Lock,
   Mail,
+  Minus,
   PackagePlus,
   Plus,
   ShieldCheck,
@@ -206,10 +207,28 @@ export function BookingForm({
   const [loggingOut, startLogout] = useTransition();
 
   // ── Room selection state ──────────────────────────────────────
-  const roomsMode = allRooms.length > 0 && bookingMode !== "whole_listing";
+  // Show the room picker whenever the listing actually has rooms — even if its
+  // mode is "whole_listing" (a guesthouse can offer both). A pure whole-place
+  // listing has no rooms, so this stays whole-only there.
+  const roomsMode = allRooms.length > 0;
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
     () => initialSelectedRoomIds,
   );
+  // Editable per-room guest counts (manual, capped to each room's capacity).
+  const [roomGuests, setRoomGuests] = useState<Record<string, number>>(() => {
+    const init: Record<string, number> = {};
+    for (const r of allRooms) {
+      const want = initialRoomGuests[r.id] ?? r.maxGuests;
+      init[r.id] = Math.min(Math.max(1, want), r.maxGuests);
+    }
+    return init;
+  });
+  function setRoomGuestCount(room: RoomOption, next: number) {
+    setRoomGuests((prev) => ({
+      ...prev,
+      [room.id]: Math.min(Math.max(1, next), room.maxGuests),
+    }));
+  }
   // Flexible listings can flip to "book the whole place".
   const [wholeListing, setWholeListing] = useState(false);
   // Whole-listing guest count (used when not in rooms mode, or flexible-whole).
@@ -274,9 +293,9 @@ export function BookingForm({
     );
   }
 
-  // Guests per room (defaults from initialRoomGuests / maxGuests).
+  // Guests per room — manual count, clamped to the room's capacity.
   const guestsForRoom = (r: RoomOption) =>
-    initialRoomGuests[r.id] ?? r.maxGuests;
+    Math.min(Math.max(1, roomGuests[r.id] ?? r.maxGuests), r.maxGuests);
 
   // Whole-listing is active when not in rooms mode, or flexible-whole is on.
   const isWhole = !roomsMode || wholeListing;
@@ -521,7 +540,7 @@ export function BookingForm({
                       } selected`}
                 </div>
               </div>
-              {bookingMode === "flexible" ? (
+              {bookingMode !== "rooms_only" && basePrice > 0 ? (
                 <button
                   type="button"
                   onClick={() => setWholeListing((v) => !v)}
@@ -565,87 +584,126 @@ export function BookingForm({
                 {allRooms.map((r) => {
                   const selected = selectedRoomIds.includes(r.id);
                   const nightly = roomNightly(r);
+                  const g = guestsForRoom(r);
                   return (
-                    <button
-                      type="button"
+                    <div
                       key={r.id}
-                      onClick={() => toggleRoom(r.id)}
-                      disabled={isPending}
-                      className={`flex w-full items-stretch gap-3 rounded-card border p-3 text-left transition sm:gap-4 sm:p-4 ${
+                      className={`overflow-hidden rounded-card border transition ${
                         selected
-                          ? "border-brand-primary bg-brand-accent/30"
+                          ? "border-brand-primary bg-brand-accent/20"
                           : "border-brand-line bg-white hover:border-brand-primary/50"
                       }`}
                     >
-                      {r.photoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={r.photoUrl}
-                          alt=""
-                          className="h-16 w-16 shrink-0 rounded-md object-cover sm:h-20 sm:w-20"
-                        />
-                      ) : (
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary sm:h-20 sm:w-20">
-                          <BedDouble className="h-6 w-6" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate font-display font-semibold text-brand-ink">
-                              {r.name}
+                      <button
+                        type="button"
+                        onClick={() => toggleRoom(r.id)}
+                        disabled={isPending}
+                        className="flex w-full items-stretch gap-3 p-3 text-left transition hover:bg-brand-light/40 sm:gap-4 sm:p-4"
+                      >
+                        {r.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.photoUrl}
+                            alt=""
+                            className="h-16 w-16 shrink-0 rounded-md object-cover sm:h-20 sm:w-20"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary sm:h-20 sm:w-20">
+                            <BedDouble className="h-6 w-6" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="truncate font-display font-semibold text-brand-ink">
+                                {r.name}
+                              </div>
+                              <div className="mt-0.5 text-xs text-brand-mute">
+                                {r.bedsLabel ? `${r.bedsLabel} · ` : ""}Sleeps{" "}
+                                {r.maxGuests}
+                              </div>
                             </div>
-                            <div className="mt-0.5 text-xs text-brand-mute">
-                              {r.bedsLabel ? `${r.bedsLabel} · ` : ""}Sleeps{" "}
-                              {r.maxGuests}
+                            <div
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
+                                selected
+                                  ? "border-brand-primary bg-brand-primary text-white"
+                                  : "border-brand-line bg-white"
+                              }`}
+                            >
+                              {selected ? <Check className="h-3 w-3" /> : null}
                             </div>
                           </div>
-                          <div
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
-                              selected
-                                ? "border-brand-primary bg-brand-primary text-white"
-                                : "border-brand-line bg-white"
-                            }`}
-                          >
-                            {selected ? <Check className="h-3 w-3" /> : null}
-                          </div>
-                        </div>
-                        {r.features.length > 0 ? (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {r.features.map((f) => (
-                              <span
-                                key={f}
-                                className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute"
-                              >
-                                {f}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
-                        <div className="mt-2 flex items-baseline justify-between gap-3">
-                          <div className="text-xs text-brand-mute">
-                            <span className="font-semibold text-brand-ink">
-                              {fmtR(roomFromNightly(toPricing(r)), currency)}
-                            </span>{" "}
-                            / night
-                            {r.cleaningFee > 0
-                              ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
-                              : ""}
-                          </div>
-                          {selected ? (
-                            <div className="font-mono text-[11px] text-brand-secondary">
-                              × {nights} ={" "}
-                              <span className="font-semibold">
-                                {fmtR(
-                                  nightly * nights + r.cleaningFee,
-                                  currency,
-                                )}
-                              </span>
+                          {r.features.length > 0 ? (
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {r.features.map((f) => (
+                                <span
+                                  key={f}
+                                  className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute"
+                                >
+                                  {f}
+                                </span>
+                              ))}
                             </div>
                           ) : null}
+                          <div className="mt-2 flex items-baseline justify-between gap-3">
+                            <div className="text-xs text-brand-mute">
+                              <span className="font-semibold text-brand-ink">
+                                {fmtR(roomFromNightly(toPricing(r)), currency)}
+                              </span>{" "}
+                              / night
+                              {r.cleaningFee > 0
+                                ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
+                                : ""}
+                            </div>
+                            {selected ? (
+                              <div className="font-mono text-[11px] text-brand-secondary">
+                                × {nights} ={" "}
+                                <span className="font-semibold">
+                                  {fmtR(
+                                    nightly * nights + r.cleaningFee,
+                                    currency,
+                                  )}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </button>
+                      </button>
+
+                      {selected ? (
+                        <div className="flex items-center justify-between gap-3 border-t border-brand-line/70 px-3 py-2.5 sm:px-4">
+                          <div className="text-xs font-medium text-brand-ink">
+                            Guests in this room
+                            <span className="ml-1 font-normal text-brand-mute">
+                              · max {r.maxGuests}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2.5">
+                            <button
+                              type="button"
+                              onClick={() => setRoomGuestCount(r, g - 1)}
+                              disabled={isPending || g <= 1}
+                              aria-label="Fewer guests"
+                              className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </button>
+                            <span className="w-5 text-center text-sm font-semibold tabular-nums text-brand-ink">
+                              {g}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setRoomGuestCount(r, g + 1)}
+                              disabled={isPending || g >= r.maxGuests}
+                              aria-label="More guests"
+                              className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>

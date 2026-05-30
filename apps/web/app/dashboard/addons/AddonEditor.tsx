@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   Banknote,
   Check,
-  ChevronRight,
   Clock,
   Image as ImageIcon,
   Layers,
@@ -196,99 +195,105 @@ export function AddonEditor({ addon }: { addon: AddonEditModel }) {
   return (
     <div className="min-h-screen bg-brand-light pb-28">
       <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* ===== Header ===== */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
-              <a href="/dashboard/addons" className="hover:text-brand-ink">
-                Add-ons
-              </a>
-              <ChevronRight className="h-3 w-3" />
-              <span className="truncate font-medium text-brand-ink">
-                {displayName}
-              </span>
-            </nav>
-            <h1 className="mt-1 font-display text-2xl font-bold leading-none text-brand-ink">
-              Edit add-on
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {dirty ? (
-              <span className="hidden items-center gap-1.5 rounded-pill border border-status-pending/30 bg-status-pending/10 px-3 py-1.5 text-[11.5px] font-medium text-status-pending md:flex">
-                <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
-                Unsaved changes
-              </span>
-            ) : null}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={savePending}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3.5 py-2 text-[12.5px] font-semibold text-white shadow-lift transition-colors hover:bg-brand-secondary disabled:opacity-60"
-            >
-              <Check className="h-4 w-4" />
-              {savePending ? "Saving…" : "Save add-on"}
-            </button>
-          </div>
-        </div>
-
-        {/* ===== Summary card ===== */}
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="grid gap-0 lg:grid-cols-[1.6fr_1fr]">
-            <div className="p-5 sm:p-6">
+        {/* ===== Dark hero ===== */}
+        <section
+          className="relative overflow-hidden rounded-card shadow-peek"
+          style={{
+            backgroundImage:
+              "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
+          }}
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-primary/20 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-brand-secondary/40 blur-3xl"
+          />
+          <div className="relative grid gap-0 lg:grid-cols-[1.5fr_1fr]">
+            {/* info side */}
+            <div className="p-6 md:p-8">
               <a
                 href="/dashboard/addons"
-                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-mute transition-colors hover:text-brand-ink"
+                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-white/55 transition-colors hover:text-white"
               >
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to add-ons
               </a>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <StatusPill active={isActive} />
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
+                  Add-on editor
+                </span>
+                {isActive ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                    Active
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-white/70 backdrop-blur">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
+                    Draft
+                  </span>
+                )}
                 {categoryLabel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/80 backdrop-blur">
                     {categoryLabel}
                   </span>
                 ) : null}
                 {isRequired ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-secondary/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/80 backdrop-blur">
                     Required
                   </span>
                 ) : null}
               </div>
 
-              <h2 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink">
+              <h1 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-tight text-white md:text-[36px]">
                 {displayName}
-              </h2>
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-brand-mute">
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-brand-accent/80">
                 <span className="inline-flex items-center gap-1.5">
                   <Banknote className="h-3.5 w-3.5" /> {meta.label}
                 </span>
-                <span className="text-brand-line">·</span>
+                <span className="text-brand-accent/40">·</span>
                 <span className="inline-flex items-center gap-1.5">
                   <Layers className="h-3.5 w-3.5" /> {meta.hint}
                 </span>
               </div>
 
-              {/* key facts */}
-              <div className="mt-5 grid max-w-md grid-cols-3 gap-3">
-                <Fact label="Price" value={zar(safePrice)} sub={meta.suffix} />
-                <Fact label="Charge" value={meta.label} sub={meta.hint} />
-                <Fact
+              {/* stat strip */}
+              <div className="mt-6 grid max-w-md grid-cols-3 gap-3">
+                <HeroFact
+                  label="Price"
+                  value={zar(safePrice)}
+                  sub={meta.suffix}
+                />
+                <HeroFact label="Charge" value={meta.label} sub={meta.hint} />
+                <HeroFact
                   label="Max / stay"
                   value={maxQuantity.trim() === "" ? "∞" : maxQuantity}
                   sub={maxQuantity.trim() === "" ? "no limit" : "units"}
                 />
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2.5">
-                <a
-                  href="#sec-media"
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3.5 py-2 text-[12.5px] font-medium text-brand-ink transition-colors hover:bg-brand-light/60"
+              <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={savePending}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow transition-colors hover:bg-brand-accent disabled:opacity-60"
                 >
-                  <ImageIcon className="h-4 w-4" /> Change photo
-                </a>
-                <div className="ml-auto flex items-center gap-2 rounded-pill border border-brand-line bg-brand-light/60 px-3 py-1.5">
-                  <span className="text-[11.5px] font-medium text-brand-ink">
+                  <Check className="h-4 w-4" />
+                  {savePending ? "Saving…" : "Save add-on"}
+                </button>
+                {dirty ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-pill border border-status-pending/30 bg-status-pending/10 px-3 py-2 text-[11.5px] font-medium text-status-pending">
+                    <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
+                    Unsaved changes
+                  </span>
+                ) : null}
+                <div className="ml-auto flex items-center gap-2 rounded-pill border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur">
+                  <span className="text-[11.5px] font-medium text-white/90">
                     Active
                   </span>
                   <Toggle
@@ -302,8 +307,8 @@ export function AddonEditor({ addon }: { addon: AddonEditModel }) {
             </div>
 
             {/* image side */}
-            <div className="relative min-h-[200px] bg-brand-accent/30 p-2">
-              <div className="relative h-full min-h-[180px] overflow-hidden rounded-[12px] bg-brand-accent/40">
+            <div className="relative min-h-[220px] bg-brand-dark p-2">
+              <div className="relative h-full min-h-[200px] overflow-hidden rounded-[12px]">
                 {imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -312,10 +317,18 @@ export function AddonEditor({ addon }: { addon: AddonEditModel }) {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-brand-mute">
+                  <div className="flex h-full w-full items-center justify-center bg-brand-accent/10 text-white/40">
                     <ImageIcon className="h-8 w-8" />
                   </div>
                 )}
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-dark/80 to-transparent p-4">
+                  <a
+                    href="#sec-media"
+                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/95 px-3 py-2 text-[12px] font-semibold text-brand-secondary shadow-lift backdrop-blur transition hover:bg-white"
+                  >
+                    <ImageIcon className="h-4 w-4" /> Change photo
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -846,19 +859,7 @@ export function AddonEditor({ addon }: { addon: AddonEditModel }) {
 
 /* ---------- small building blocks ---------- */
 
-function StatusPill({ active }: { active: boolean }) {
-  return active ? (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
-      <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" /> Active
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-line/60 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
-      <span className="h-1.5 w-1.5 rounded-full bg-brand-mute/50" /> Draft
-    </span>
-  );
-}
-
-function Fact({
+function HeroFact({
   label,
   value,
   sub,
@@ -869,13 +870,13 @@ function Fact({
 }) {
   return (
     <div>
-      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
         {label}
       </div>
-      <div className="mt-1 truncate font-display text-lg font-bold text-brand-ink">
+      <div className="mt-1 truncate font-display text-xl font-bold text-white">
         {value}
       </div>
-      <div className="text-[10px] text-brand-mute">{sub}</div>
+      <div className="text-[10px] text-brand-accent/60">{sub}</div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   checkInOutInputSchema,
   houseRulesInputSchema,
   isLockedPreset,
+  legalDocInputSchema,
   refundPolicyInputSchema,
   type PolicyInput,
   type PolicyType,
@@ -97,7 +98,9 @@ function validate(
       ? refundPolicyInputSchema
       : input.type === "check_in_out"
         ? checkInOutInputSchema
-        : houseRulesInputSchema;
+        : input.type === "house_rules"
+          ? houseRulesInputSchema
+          : legalDocInputSchema;
   const parsed = schema.safeParse(input.data);
   if (!parsed.success) {
     return {
@@ -132,7 +135,9 @@ async function writeChildren(
   }
 
   const rawHtml =
-    input.type === "house_rules"
+    input.type === "house_rules" ||
+    input.type === "booking_terms" ||
+    input.type === "privacy"
       ? input.data.body_html
       : (input.data.body_html ?? null);
 
@@ -184,8 +189,19 @@ export async function createPolicyAction(
             ...base,
             check_in_time: input.data.check_in_time,
             check_out_time: input.data.check_out_time,
+            check_in_method: input.data.check_in_method ?? null,
           }
-        : base;
+        : input.type === "house_rules"
+          ? {
+              ...base,
+              pets_allowed: input.data.pets_allowed ?? null,
+              smoking_allowed: input.data.smoking_allowed ?? null,
+              parties_allowed: input.data.parties_allowed ?? null,
+              children_welcome: input.data.children_welcome ?? null,
+              quiet_hours_start: input.data.quiet_hours_start ?? null,
+              quiet_hours_end: input.data.quiet_hours_end ?? null,
+            }
+          : base;
 
   const { data: row, error } = await supabase
     .from("policies")
@@ -238,6 +254,17 @@ export async function updatePolicyAction(
       ? {
           check_in_time: input.data.check_in_time,
           check_out_time: input.data.check_out_time,
+          check_in_method: input.data.check_in_method ?? null,
+        }
+      : {}),
+    ...(input.type === "house_rules"
+      ? {
+          pets_allowed: input.data.pets_allowed ?? null,
+          smoking_allowed: input.data.smoking_allowed ?? null,
+          parties_allowed: input.data.parties_allowed ?? null,
+          children_welcome: input.data.children_welcome ?? null,
+          quiet_hours_start: input.data.quiet_hours_start ?? null,
+          quiet_hours_end: input.data.quiet_hours_end ?? null,
         }
       : {}),
   };
@@ -373,6 +400,68 @@ export async function duplicatePolicyAction(
 
   revalidatePath("/dashboard/policies");
   return { ok: true, data: { id: newRow.id } };
+}
+
+/** Flip a policy between active and draft (the card toggle). */
+export async function togglePolicyStatusAction(
+  policyId: string,
+  active: boolean,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  if (!policy) return { ok: false, error: "Not your policy." };
+
+  const supabase = createServerClient();
+  const next = active ? "active" : "draft";
+  const update: { status: string; is_default?: boolean } = { status: next };
+  // A drafted policy can't remain the default.
+  if (!active) update.is_default = false;
+
+  const { error } = await supabase
+    .from("policies")
+    .update(update)
+    .eq("id", policyId);
+  if (error) return { ok: false, error: "Could not update policy." };
+
+  revalidatePath("/dashboard/policies");
+  return { ok: true };
+}
+
+/**
+ * Mark a policy as the host's default for its type. Clears the flag from every
+ * other policy of the same type first (the partial unique index allows one),
+ * and ensures the new default is active.
+ */
+export async function setDefaultPolicyAction(
+  policyId: string,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  if (!policy) return { ok: false, error: "Not your policy." };
+
+  const supabase = createServerClient();
+
+  // Clear the existing default of this type, then set the new one. Two writes
+  // because the partial unique index forbids two defaults coexisting.
+  await supabase
+    .from("policies")
+    .update({ is_default: false })
+    .eq("host_id", host.hostId)
+    .eq("type", policy.type)
+    .eq("is_default", true);
+
+  const { error } = await supabase
+    .from("policies")
+    .update({ is_default: true, status: "active" })
+    .eq("id", policyId);
+  if (error) return { ok: false, error: "Could not set default." };
+
+  revalidatePath("/dashboard/policies");
+  return { ok: true };
 }
 
 /**

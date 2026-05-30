@@ -211,7 +211,7 @@ export default async function SetupPage({
     bodyHtml: bodyByPolicy.get(p.id as string) ?? null,
   }));
 
-  const policyAssignments: Record<PolicyType, string | null> = {
+  const policyAssignments: Partial<Record<PolicyType, string | null>> = {
     cancellation: null,
     check_in_out: null,
     house_rules: null,

@@ -151,36 +151,82 @@ export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
 
   return (
     <div className="space-y-6">
-      {/* ============ PAGE HEADER ============ */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="max-w-xl">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Add-ons
-          </h1>
-          <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
-            Optional extras guests can add to any booking — breakfast baskets,
-            firewood, guided hikes and more. Build them once, offer them
-            everywhere.
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3.5 py-2 text-[12.5px] font-medium text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-          >
-            <LayoutTemplate className="h-4 w-4" />
-            Browse templates
-          </button>
-          {newAddonBtn}
-        </div>
-      </header>
+      {/* ============ DARK HERO ============ */}
+      <section
+        className="relative overflow-hidden rounded-card shadow-peek"
+        style={{
+          backgroundImage:
+            "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-primary/20 blur-3xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-brand-secondary/40 blur-3xl"
+        />
+        <div className="relative px-6 py-7 md:px-8 md:py-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
+                  Extras &amp; services
+                </span>
+                {activeCount > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                    {activeCount} live
+                  </span>
+                ) : null}
+              </div>
+              <h1 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-tight text-white md:text-[36px]">
+                Add-ons
+              </h1>
+              <p className="mt-2.5 text-[14px] leading-relaxed text-white/65 md:text-[15px]">
+                Optional extras guests can add to any booking — breakfast
+                baskets, firewood, guided hikes and more. Build them once, offer
+                them everywhere.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCreate}
+                  disabled={isCreating}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow transition hover:bg-brand-accent disabled:opacity-60"
+                >
+                  <Plus className="h-4 w-4" />
+                  {isCreating ? "Creating…" : "New add-on"}
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
+                >
+                  <LayoutTemplate className="h-4 w-4" />
+                  Browse templates
+                </button>
+              </div>
+            </div>
 
-      {/* ============ STAT CARDS ============ */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        <StatCard label="Active" value={activeCount} hint="live to guests" />
-        <StatCard label="Drafts" value={draftCount} hint="hidden" />
-        <StatCard label="Categories" value={categoryCount} hint="in use" />
-      </div>
+            {/* stat strip */}
+            <div className="grid grid-cols-3 gap-3 sm:gap-5">
+              <HeroStat
+                label="Active"
+                value={activeCount}
+                hint="live to guests"
+                accent
+              />
+              <HeroStat label="Drafts" value={draftCount} hint="hidden" />
+              <HeroStat
+                label="Categories"
+                value={categoryCount}
+                hint="in use"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
 
       {initial.length === 0 ? (
         <EmptyArchive cta={newAddonBtn} />
@@ -252,24 +298,30 @@ export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
   );
 }
 
-function StatCard({
+function HeroStat({
   label,
   value,
   hint,
+  accent,
 }: {
   label: string;
   value: number;
   hint: string;
+  accent?: boolean;
 }) {
   return (
-    <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+    <div>
+      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
         {label}
       </div>
-      <div className="mt-1 font-display text-2xl font-bold text-brand-ink">
+      <div className="num mt-1 font-display text-2xl font-bold text-white">
         {value}
       </div>
-      <div className="text-[11px] text-brand-mute">{hint}</div>
+      <div
+        className={`text-[10px] ${accent ? "text-brand-primary" : "text-brand-accent/60"}`}
+      >
+        {hint}
+      </div>
     </div>
   );
 }

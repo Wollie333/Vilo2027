@@ -12,7 +12,7 @@ type Props = {
   listing: Listing;
   policies: PolicyCard[];
   /** The listing-wide policy currently assigned for each kind (or null). */
-  assignments: Record<PolicyType, string | null>;
+  assignments: Partial<Record<PolicyType, string | null>>;
   onChanged: () => void;
   onContinue: () => void;
 };
@@ -44,7 +44,7 @@ export function StepPolicies({
           listingId={listing.id}
           type="cancellation"
           policies={policies}
-          assignedPolicyId={assignments.cancellation}
+          assignedPolicyId={assignments.cancellation ?? null}
           onChanged={onChanged}
         />
       </PolicySection>
@@ -60,7 +60,7 @@ export function StepPolicies({
             listingId={listing.id}
             type="check_in_out"
             policies={policies}
-            assignedPolicyId={assignments.check_in_out}
+            assignedPolicyId={assignments.check_in_out ?? null}
             onChanged={onChanged}
           />
         </PolicySection>
@@ -76,7 +76,7 @@ export function StepPolicies({
           listingId={listing.id}
           type="house_rules"
           policies={policies}
-          assignedPolicyId={assignments.house_rules}
+          assignedPolicyId={assignments.house_rules ?? null}
           onChanged={onChanged}
         />
       </PolicySection>

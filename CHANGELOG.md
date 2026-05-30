@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Consolidated: checkout room picker/calendar + policies redesign — branch `feat/setup-wizard-rework`
+
+### Built (checkout)
+- **Compact month calendar** for changing check-in/out (range select, min-stay, navigates
+  with new `?from/?to` so the server recomputes pricing + availability).
+- **Room picker always shows when the listing has rooms** (even whole_listing mode — a
+  guesthouse can be booked by room or whole). Server relaxed to accept room-scope bookings
+  whenever the rooms validate; whole-place toggle shows when the listing supports it.
+- **Manual per-room guest steppers**, clamped to each room's capacity; the count drives
+  per-person/extra-guest pricing and the booking's `room_guests`.
+
+### Built (policies — consolidated from the parallel rebuild)
+- Policies redesigned to the new "library" + editor: richer schema (default flag, house-rule
+  flags, check-in method, versioning), `listing_policies` room assignment, legal presets
+  (booking terms + POPIA), and a dark hero. Migration `20260531000003_policies_design_rework.sql`.
+
+### Notes
+- Full `pnpm build` green (100/100 pages) — all agents' work compiles as one unit.
+- Still open (mine): wire the add-on editor's "Applies to rooms" to the listing's real rooms.
+
 ## 2026-05-31 — Checkout: editable dates + per-guest party manifest — branch `feat/setup-wizard-rework`
 
 ### Built

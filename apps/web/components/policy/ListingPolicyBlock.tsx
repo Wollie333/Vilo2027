@@ -1,4 +1,10 @@
-import { RotateCcw, CalendarClock, ScrollText } from "lucide-react";
+import {
+  RotateCcw,
+  CalendarClock,
+  ScrollText,
+  FileText,
+  Lock,
+} from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -29,6 +35,8 @@ const ICON = {
   cancellation: RotateCcw,
   check_in_out: CalendarClock,
   house_rules: ScrollText,
+  booking_terms: FileText,
+  privacy: Lock,
 } as const;
 
 /**

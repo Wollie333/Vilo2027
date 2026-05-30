@@ -5,7 +5,12 @@ import { cloneElement, isValidElement, useState } from "react";
 import { FormModal } from "@/components/ui/form-modal";
 
 export type PolicyDialogData = {
-  type: "cancellation" | "check_in_out" | "house_rules";
+  type:
+    | "cancellation"
+    | "check_in_out"
+    | "house_rules"
+    | "booking_terms"
+    | "privacy";
   name: string;
   summary?: string | null;
   isNonRefundable?: boolean;

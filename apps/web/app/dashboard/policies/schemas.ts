@@ -1,17 +1,20 @@
 import { z } from "zod";
 
-// The three host-managed, separately-assignable policy kinds.
-// (booking_terms/privacy exist in the DB for the future but aren't surfaced.)
+// The host-managed, separately-assignable policy kinds.
 export const POLICY_TYPES = [
   { value: "cancellation" as const, label: "Refund terms" },
   { value: "check_in_out" as const, label: "Check-in / Check-out" },
   { value: "house_rules" as const, label: "House rules" },
+  { value: "booking_terms" as const, label: "Booking terms" },
+  { value: "privacy" as const, label: "Privacy (POPIA)" },
 ];
 
 export const policyTypeSchema = z.enum([
   "cancellation",
   "check_in_out",
   "house_rules",
+  "booking_terms",
+  "privacy",
 ]);
 export type PolicyType = z.infer<typeof policyTypeSchema>;
 
@@ -19,6 +22,18 @@ export const POLICY_TYPE_LABEL: Record<PolicyType, string> = {
   cancellation: "Refund terms",
   check_in_out: "Check-in / Check-out",
   house_rules: "House rules",
+  booking_terms: "Booking terms",
+  privacy: "Privacy (POPIA)",
+};
+
+// UI filter buckets shown as chips in the library. booking_terms + privacy
+// collapse into one "Terms & privacy" bucket on the page.
+export const CHECK_IN_METHODS = ["self", "host", "reception"] as const;
+export type CheckInMethod = (typeof CHECK_IN_METHODS)[number];
+export const CHECK_IN_METHOD_LABEL: Record<CheckInMethod, string> = {
+  self: "Self check-in",
+  host: "Host greets you",
+  reception: "Reception check-in",
 };
 
 // Presets are the locked, un-editable refund options. `custom` = host-authored.
@@ -83,23 +98,50 @@ export const checkInOutInputSchema = z.object({
   summary: z.string().trim().max(280).nullable().optional(),
   check_in_time: z.string().regex(TIME_RE, "Use HH:MM."),
   check_out_time: z.string().regex(TIME_RE, "Use HH:MM."),
+  check_in_method: z.enum(CHECK_IN_METHODS).nullable().optional(),
   body_html: z.string().max(50_000).nullable().optional(),
 });
 export type CheckInOutInput = z.infer<typeof checkInOutInputSchema>;
 
 // ─── House rules (type: house_rules) ─────────────────────────────
+// The boolean flags drive the chips on the card. null = unspecified (no chip).
+const triBool = z.boolean().nullable().optional();
 export const houseRulesInputSchema = z.object({
   name: z.string().trim().min(1, "Add a name.").max(120),
   summary: z.string().trim().max(280).nullable().optional(),
+  pets_allowed: triBool,
+  smoking_allowed: triBool,
+  parties_allowed: triBool,
+  children_welcome: triBool,
+  quiet_hours_start: z
+    .string()
+    .regex(TIME_RE, "Use HH:MM.")
+    .nullable()
+    .optional(),
+  quiet_hours_end: z
+    .string()
+    .regex(TIME_RE, "Use HH:MM.")
+    .nullable()
+    .optional(),
   body_html: z.string().trim().min(1, "Write your house rules.").max(50_000),
 });
 export type HouseRulesInput = z.infer<typeof houseRulesInputSchema>;
+
+// ─── Legal documents (type: booking_terms | privacy) ─────────────
+export const legalDocInputSchema = z.object({
+  name: z.string().trim().min(1, "Add a name.").max(120),
+  summary: z.string().trim().max(280).nullable().optional(),
+  body_html: z.string().trim().min(1, "Write the document text.").max(50_000),
+});
+export type LegalDocInput = z.infer<typeof legalDocInputSchema>;
 
 // Discriminated input passed to createPolicyAction / updatePolicyAction.
 export type PolicyInput =
   | { type: "cancellation"; data: RefundPolicyInput }
   | { type: "check_in_out"; data: CheckInOutInput }
-  | { type: "house_rules"; data: HouseRulesInput };
+  | { type: "house_rules"; data: HouseRulesInput }
+  | { type: "booking_terms"; data: LegalDocInput }
+  | { type: "privacy"; data: LegalDocInput };
 
 // ─── Assignment ──────────────────────────────────────────────────
 export const listingPolicyInputSchema = z.object({

@@ -171,12 +171,9 @@ export async function createBookingAction(
         error: "This listing only takes per-room bookings.",
       };
     }
-    if (d.scope === "rooms" && listing.booking_mode === "whole_listing") {
-      return {
-        ok: false,
-        error: "This listing books as a whole — no room selection.",
-      };
-    }
+    // Per-room booking is allowed whenever the listing actually has rooms — even
+    // for whole_listing mode (a guesthouse can be booked by room or whole). The
+    // room-ownership/availability checks below guard against invalid room_ids.
   } else {
     if (!d.session_date) {
       return { ok: false, error: "Pick a session date and time." };

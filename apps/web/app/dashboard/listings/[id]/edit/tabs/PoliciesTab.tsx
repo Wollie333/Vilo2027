@@ -26,7 +26,7 @@ export type AssignedPolicy = {
   roomId: string | null;
 };
 
-const SECTION_BLURB: Record<PolicyType, string> = {
+const SECTION_BLURB: Partial<Record<PolicyType, string>> = {
   cancellation: "How much guests are refunded if they cancel.",
   check_in_out: "Check-in and check-out times for this listing.",
   house_rules: "The rules guests agree to when booking.",

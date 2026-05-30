@@ -16,14 +16,24 @@ import {
 import { Field, TextInput } from "@/app/dashboard/setup/_atoms";
 
 import { createPolicyAction, updatePolicyAction } from "./actions";
-import type { PolicyCard } from "./PolicyManager";
+import type { PolicyCard } from "./policy-card";
 import {
+  CHECK_IN_METHODS,
+  CHECK_IN_METHOD_LABEL,
   POLICY_TYPE_LABEL,
+  type CheckInMethod,
   type PolicyInput,
   type PolicyType,
 } from "./schemas";
 
 type RuleRow = { days_before: string; refund_percent: string; label: string };
+
+// Tri-state house-rule flag: "" = unspecified, "yes"/"no" = allowed/not.
+type TriState = "" | "yes" | "no";
+const triToBool = (v: TriState): boolean | null =>
+  v === "" ? null : v === "yes";
+const boolToTri = (v: boolean | null | undefined): TriState =>
+  v === null || v === undefined ? "" : v ? "yes" : "no";
 
 const HOUSE_RULES_STARTER =
   "<h2>House rules</h2><ul><li>No smoking indoors.</li><li>No parties or events.</li><li>Quiet hours after 22:00.</li><li>Please treat the property with respect.</li></ul>";
@@ -51,6 +61,13 @@ export function PolicyEditorSheet({
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [checkIn, setCheckIn] = useState("14:00");
   const [checkOut, setCheckOut] = useState("10:00");
+  const [checkInMethod, setCheckInMethod] = useState<CheckInMethod | "">("");
+  const [pets, setPets] = useState<TriState>("");
+  const [smoking, setSmoking] = useState<TriState>("");
+  const [parties, setParties] = useState<TriState>("");
+  const [children, setChildren] = useState<TriState>("");
+  const [quietStart, setQuietStart] = useState("");
+  const [quietEnd, setQuietEnd] = useState("");
   const [bodyHtml, setBodyHtml] = useState("");
 
   // Reset the form whenever the sheet opens for a new target.
@@ -68,6 +85,13 @@ export function PolicyEditorSheet({
     );
     setCheckIn(policy?.checkInTime?.slice(0, 5) ?? "14:00");
     setCheckOut(policy?.checkOutTime?.slice(0, 5) ?? "10:00");
+    setCheckInMethod(policy?.checkInMethod ?? "");
+    setPets(boolToTri(policy?.petsAllowed));
+    setSmoking(boolToTri(policy?.smokingAllowed));
+    setParties(boolToTri(policy?.partiesAllowed));
+    setChildren(boolToTri(policy?.childrenWelcome));
+    setQuietStart(policy?.quietHoursStart?.slice(0, 5) ?? "");
+    setQuietEnd(policy?.quietHoursEnd?.slice(0, 5) ?? "");
     setBodyHtml(policy?.bodyHtml ?? "");
   }, [open, policy]);
 
@@ -118,13 +142,32 @@ export function PolicyEditorSheet({
           summary: summaryVal,
           check_in_time: checkIn,
           check_out_time: checkOut,
+          check_in_method: checkInMethod || null,
           body_html: bodyHtml || null,
         },
       };
     }
 
+    if (type === "house_rules") {
+      return {
+        type: "house_rules",
+        data: {
+          name: trimmedName,
+          summary: summaryVal,
+          pets_allowed: triToBool(pets),
+          smoking_allowed: triToBool(smoking),
+          parties_allowed: triToBool(parties),
+          children_welcome: triToBool(children),
+          quiet_hours_start: quietStart || null,
+          quiet_hours_end: quietEnd || null,
+          body_html: bodyHtml,
+        },
+      };
+    }
+
+    // booking_terms | privacy — legal documents (prose only).
     return {
-      type: "house_rules",
+      type,
       data: { name: trimmedName, summary: summaryVal, body_html: bodyHtml },
     };
   }
@@ -161,7 +204,11 @@ export function PolicyEditorSheet({
               ? "Set how much guests get back when they cancel."
               : type === "check_in_out"
                 ? "Set the check-in and check-out times for this policy."
-                : "Write the house rules guests agree to when booking."}
+                : type === "house_rules"
+                  ? "Write the house rules guests agree to when booking."
+                  : type === "booking_terms"
+                    ? "The agreement guests accept at checkout."
+                    : "How guest data is collected, stored and used."}
           </SheetDescription>
         </SheetHeader>
 
@@ -176,7 +223,11 @@ export function PolicyEditorSheet({
                   ? "e.g. Standard refund terms"
                   : type === "check_in_out"
                     ? "e.g. Standard check-in"
-                    : "e.g. House rules"
+                    : type === "house_rules"
+                      ? "e.g. House rules"
+                      : type === "booking_terms"
+                        ? "e.g. Booking terms & conditions"
+                        : "e.g. Guest privacy (POPIA)"
               }
             />
           </Field>
@@ -332,6 +383,26 @@ export function PolicyEditorSheet({
                   />
                 </Field>
               </div>
+              <Field
+                label="Check-in method"
+                hint="Shown as a pill on the policy card."
+              >
+                <select
+                  value={checkInMethod}
+                  onChange={(e) =>
+                    setCheckInMethod(e.target.value as CheckInMethod | "")
+                  }
+                  disabled={pending}
+                  className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary disabled:opacity-60"
+                >
+                  <option value="">Not specified</option>
+                  {CHECK_IN_METHODS.map((m) => (
+                    <option key={m} value={m}>
+                      {CHECK_IN_METHOD_LABEL[m]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Arrival notes" optional>
                 <RichTextEditor
                   value={bodyHtml}
@@ -344,26 +415,105 @@ export function PolicyEditorSheet({
           ) : null}
 
           {type === "house_rules" ? (
-            <Field label="House rules" required>
-              <div className="space-y-2">
-                {!bodyHtml ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setBodyHtml(HOUSE_RULES_STARTER)}
+            <>
+              <div className="space-y-2.5">
+                <div className="text-sm font-medium text-brand-ink">
+                  Quick rules
+                </div>
+                <p className="text-xs text-brand-mute">
+                  These show as chips on the policy card. Leave any “Not set” to
+                  hide it.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <FlagSelect
+                    label="Pets"
+                    value={pets}
+                    onChange={setPets}
+                    yes="Pets OK"
+                    no="No pets"
                     disabled={pending}
-                  >
-                    Insert starter rules
-                  </Button>
-                ) : null}
-                <RichTextEditor
-                  value={bodyHtml}
-                  onChange={setBodyHtml}
-                  disabled={pending}
-                  placeholder="Quiet hours, smoking, pets, parties…"
-                />
+                  />
+                  <FlagSelect
+                    label="Smoking"
+                    value={smoking}
+                    onChange={setSmoking}
+                    yes="Smoking OK"
+                    no="No smoking"
+                    disabled={pending}
+                  />
+                  <FlagSelect
+                    label="Parties"
+                    value={parties}
+                    onChange={setParties}
+                    yes="Parties OK"
+                    no="No parties"
+                    disabled={pending}
+                  />
+                  <FlagSelect
+                    label="Children"
+                    value={children}
+                    onChange={setChildren}
+                    yes="Children welcome"
+                    no="No children"
+                    disabled={pending}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Quiet hours from" optional>
+                    <TextInput
+                      type="time"
+                      value={quietStart}
+                      onChange={(e) => setQuietStart(e.target.value)}
+                      disabled={pending}
+                    />
+                  </Field>
+                  <Field label="Quiet hours until" optional>
+                    <TextInput
+                      type="time"
+                      value={quietEnd}
+                      onChange={(e) => setQuietEnd(e.target.value)}
+                      disabled={pending}
+                    />
+                  </Field>
+                </div>
               </div>
+
+              <Field label="House rules" required>
+                <div className="space-y-2">
+                  {!bodyHtml ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setBodyHtml(HOUSE_RULES_STARTER)}
+                      disabled={pending}
+                    >
+                      Insert starter rules
+                    </Button>
+                  ) : null}
+                  <RichTextEditor
+                    value={bodyHtml}
+                    onChange={setBodyHtml}
+                    disabled={pending}
+                    placeholder="Quiet hours, smoking, pets, parties…"
+                  />
+                </div>
+              </Field>
+            </>
+          ) : null}
+
+          {type === "booking_terms" || type === "privacy" ? (
+            <Field label="Document text" required>
+              <RichTextEditor
+                value={bodyHtml}
+                onChange={setBodyHtml}
+                disabled={pending}
+                placeholder={
+                  type === "booking_terms"
+                    ? "Deposit, damages, liability — the terms guests accept at checkout."
+                    : "What you collect, how it's used, and guests' POPIA rights."
+                }
+              />
             </Field>
           ) : null}
 
@@ -389,5 +539,36 @@ export function PolicyEditorSheet({
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function FlagSelect({
+  label,
+  value,
+  onChange,
+  yes,
+  no,
+  disabled,
+}: {
+  label: string;
+  value: TriState;
+  onChange: (v: TriState) => void;
+  yes: string;
+  no: string;
+  disabled?: boolean;
+}) {
+  return (
+    <Field label={label}>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value as TriState)}
+        disabled={disabled}
+        className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary disabled:opacity-60"
+      >
+        <option value="">Not set</option>
+        <option value="yes">{yes}</option>
+        <option value="no">{no}</option>
+      </select>
+    </Field>
   );
 }

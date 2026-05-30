@@ -3327,16 +3327,24 @@ export type Database = {
       }
       policies: {
         Row: {
+          check_in_method: string | null
           check_in_time: string | null
           check_out_time: string | null
+          children_welcome: boolean | null
           created_at: string
           deleted_at: string | null
           host_id: string
           id: string
+          is_default: boolean
           is_non_refundable: boolean
           name: string
           parent_policy_id: string | null
+          parties_allowed: boolean | null
+          pets_allowed: boolean | null
           preset: string | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          smoking_allowed: boolean | null
           status: string
           summary: string | null
           type: string
@@ -3344,16 +3352,24 @@ export type Database = {
           version: number
         }
         Insert: {
+          check_in_method?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          children_welcome?: boolean | null
           created_at?: string
           deleted_at?: string | null
           host_id: string
           id?: string
+          is_default?: boolean
           is_non_refundable?: boolean
           name: string
           parent_policy_id?: string | null
+          parties_allowed?: boolean | null
+          pets_allowed?: boolean | null
           preset?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          smoking_allowed?: boolean | null
           status?: string
           summary?: string | null
           type: string
@@ -3361,16 +3377,24 @@ export type Database = {
           version?: number
         }
         Update: {
+          check_in_method?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          children_welcome?: boolean | null
           created_at?: string
           deleted_at?: string | null
           host_id?: string
           id?: string
+          is_default?: boolean
           is_non_refundable?: boolean
           name?: string
           parent_policy_id?: string | null
+          parties_allowed?: boolean | null
+          pets_allowed?: boolean | null
           preset?: string | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          smoking_allowed?: boolean | null
           status?: string
           summary?: string | null
           type?: string
@@ -4945,6 +4969,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      ensure_host_legal_presets: {
+        Args: { p_host_id: string }
+        Returns: undefined
       }
       ensure_host_policy_presets: {
         Args: { p_host_id: string }

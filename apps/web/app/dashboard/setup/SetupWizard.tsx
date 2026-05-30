@@ -110,7 +110,7 @@ type Props = {
   amenityGroups: AmenityGroupWithItems[];
   amenities: { id: string; key: string; roomId: string | null }[];
   policies: PolicyCard[];
-  policyAssignments: Record<PolicyType, string | null>;
+  policyAssignments: Partial<Record<PolicyType, string | null>>;
 };
 
 export function SetupWizard(props: Props) {

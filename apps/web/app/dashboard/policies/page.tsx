@@ -5,8 +5,8 @@ import { ShieldCheck } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { PolicyManager, type PolicyCard } from "./PolicyManager";
-import { isLockedPreset, type PolicyType } from "./schemas";
+import { PolicyLibrary, type PolicyCard } from "./PolicyLibrary";
+import { isLockedPreset, type CheckInMethod, type PolicyType } from "./schemas";
 
 export const metadata: Metadata = {
   title: "Policies · Vilo",
@@ -43,13 +43,17 @@ export default async function PoliciesPage() {
     );
   }
 
-  // Materialise the locked refund presets for this host (idempotent).
-  await supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id });
+  // Materialise the locked refund presets + the editable legal starters
+  // (booking terms + POPIA) for this host. Both idempotent.
+  await Promise.all([
+    supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id }),
+    supabase.rpc("ensure_host_legal_presets", { p_host_id: host.id }),
+  ]);
 
   const { data: policies } = await supabase
     .from("policies")
     .select(
-      "id, type, name, summary, preset, is_non_refundable, check_in_time, check_out_time, status",
+      "id, type, name, summary, preset, status, is_default, is_non_refundable, check_in_time, check_out_time, check_in_method, pets_allowed, smoking_allowed, parties_allowed, children_welcome, quiet_hours_start, quiet_hours_end, version, updated_at",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -59,22 +63,57 @@ export default async function PoliciesPage() {
 
   const ids = (policies ?? []).map((p) => p.id);
 
-  const [{ data: rules }, { data: content }] =
-    ids.length > 0
-      ? await Promise.all([
-          supabase
+  // Children + assignment coverage in parallel.
+  const [{ data: rules }, { data: content }, { data: listings }] =
+    await Promise.all([
+      ids.length
+        ? supabase
             .from("policy_cancellation_rules")
             .select("policy_id, days_before, refund_percent, label, sort_order")
             .in("policy_id", ids)
-            .order("days_before", { ascending: false }),
-          supabase
+            .order("days_before", { ascending: false })
+        : Promise.resolve({ data: [] as never[] }),
+      ids.length
+        ? supabase
             .from("policy_content")
             .select("policy_id, body_html")
             .in("policy_id", ids)
-            .eq("locale", "en"),
-        ])
-      : [{ data: [] }, { data: [] }];
+            .eq("locale", "en")
+        : Promise.resolve({ data: [] as never[] }),
+      supabase
+        .from("listings")
+        .select("id")
+        .eq("host_id", host.id)
+        .is("deleted_at", null),
+    ]);
 
+  const listingIds = (listings ?? []).map((l) => l.id);
+
+  const [{ data: rooms }, { data: assignments }] = await Promise.all([
+    listingIds.length
+      ? supabase
+          .from("listing_rooms")
+          .select("id, listing_id")
+          .in("listing_id", listingIds)
+          .eq("is_active", true)
+          .is("deleted_at", null)
+      : Promise.resolve({ data: [] as { id: string; listing_id: string }[] }),
+    listingIds.length
+      ? supabase
+          .from("listing_policies")
+          .select("listing_id, room_id, policy_id, policy_type")
+          .in("listing_id", listingIds)
+      : Promise.resolve({
+          data: [] as {
+            listing_id: string;
+            room_id: string | null;
+            policy_id: string;
+            policy_type: string;
+          }[],
+        }),
+  ]);
+
+  // ── Rule + content maps ──
   const rulesByPolicy = new Map<
     string,
     { days_before: number; refund_percent: number; label: string }[]
@@ -94,6 +133,42 @@ export default async function PoliciesPage() {
     if (c.body_html) bodyByPolicy.set(c.policy_id, c.body_html);
   });
 
+  // ── Per-policy assignment count (room-level + listing-wide rows) ──
+  const assignCount = new Map<string, number>();
+  (assignments ?? []).forEach((a) => {
+    assignCount.set(a.policy_id, (assignCount.get(a.policy_id) ?? 0) + 1);
+  });
+
+  // ── Coverage: a room is covered for a type if it has a room-level
+  //    assignment OR its listing has a listing-wide one. ──
+  const allRooms = rooms ?? [];
+  const wideByListing = new Map<string, Set<string>>(); // listingId -> types
+  const roomScoped = new Set<string>(); // `${roomId}:${type}`
+  (assignments ?? []).forEach((a) => {
+    if (a.room_id === null) {
+      const set = wideByListing.get(a.listing_id) ?? new Set<string>();
+      set.add(a.policy_type);
+      wideByListing.set(a.listing_id, set);
+    } else {
+      roomScoped.add(`${a.room_id}:${a.policy_type}`);
+    }
+  });
+  const roomCovered = (roomId: string, listingId: string, type: string) =>
+    roomScoped.has(`${roomId}:${type}`) ||
+    (wideByListing.get(listingId)?.has(type) ?? false);
+
+  const roomsTotal = allRooms.length;
+  const roomsWithCancellation = allRooms.filter((r) =>
+    roomCovered(r.id, r.listing_id, "cancellation"),
+  ).length;
+  const roomsWithHouseRules = allRooms.filter((r) =>
+    roomCovered(r.id, r.listing_id, "house_rules"),
+  ).length;
+  const fullyCovered =
+    roomsTotal > 0 &&
+    roomsWithCancellation === roomsTotal &&
+    roomsWithHouseRules === roomsTotal;
+
   const cards: PolicyCard[] = (policies ?? []).map((p) => ({
     id: p.id,
     type: p.type as PolicyType,
@@ -101,27 +176,34 @@ export default async function PoliciesPage() {
     summary: p.summary,
     preset: p.preset,
     locked: isLockedPreset(p.preset),
+    status: p.status as "active" | "draft",
+    isDefault: p.is_default,
     isNonRefundable: p.is_non_refundable,
     checkInTime: p.check_in_time,
     checkOutTime: p.check_out_time,
+    checkInMethod: (p.check_in_method as CheckInMethod | null) ?? null,
+    petsAllowed: p.pets_allowed,
+    smokingAllowed: p.smoking_allowed,
+    partiesAllowed: p.parties_allowed,
+    childrenWelcome: p.children_welcome,
+    quietHoursStart: p.quiet_hours_start,
+    quietHoursEnd: p.quiet_hours_end,
+    version: p.version,
+    updatedAt: p.updated_at,
     rules: rulesByPolicy.get(p.id) ?? [],
     bodyHtml: bodyByPolicy.get(p.id) ?? null,
+    assignedCount: assignCount.get(p.id) ?? 0,
   }));
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Policies
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-brand-mute">
-          Create refund terms, check-in/out times and house rules once, then
-          assign them to a whole listing or individual rooms from the listing
-          editor. Guests can read the full policy at checkout.
-        </p>
-      </header>
-
-      <PolicyManager initial={cards} />
-    </div>
+    <PolicyLibrary
+      initial={cards}
+      coverage={{
+        roomsTotal,
+        roomsWithCancellation,
+        roomsWithHouseRules,
+        fullyCovered,
+      }}
+    />
   );
 }
