@@ -1,3 +1,5 @@
+import { unstable_noStore as noStore } from "next/cache";
+
 import { computeSetupCompletion } from "@/lib/setup/completion";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -268,6 +270,9 @@ export type GettingStartedState = {
 export async function fetchGettingStartedState(
   userId: string,
 ): Promise<GettingStartedState> {
+  // Setup completion must always reflect the latest writes — never serve a
+  // cached (pre-completion) snapshot, which would keep the checklist visible.
+  noStore();
   const supabase = createServerClient();
 
   // hosts table doesn't carry paystack_subaccount_code / default_policy_id

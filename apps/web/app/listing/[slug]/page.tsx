@@ -237,7 +237,21 @@ async function loadListing(slug: string) {
       .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
   }));
 
-  return { listing, photos: galleryPhotos, amenities, rooms };
+  // Postgres returns numeric columns as strings over PostgREST. Coerce them so
+  // downstream `.toFixed()` / arithmetic don't crash (e.g. "0".toFixed is not a
+  // function) — note `?? 0` does NOT help when the value is a non-null string.
+  const toNum = (v: unknown): number | null =>
+    v == null || v === "" ? null : Number(v);
+  const coercedListing = {
+    ...listing,
+    base_price: toNum(listing.base_price),
+    cleaning_fee: toNum(listing.cleaning_fee),
+    private_group_price: toNum(listing.private_group_price),
+    avg_rating: toNum(listing.avg_rating),
+    total_reviews: toNum(listing.total_reviews),
+  };
+
+  return { listing: coercedListing, photos: galleryPhotos, amenities, rooms };
 }
 
 export async function generateMetadata({
