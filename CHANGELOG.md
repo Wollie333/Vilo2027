@@ -31,6 +31,37 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-30 — Settings pages adopt the setup dark-hero + chip-tab design — branch `feat/setup-wizard-rework`
+
+### Built
+- **`components/settings/SettingsHero.tsx`** — standalone dark gradient hero shell
+  (re-uses the shared `bg-brand-gradient-dark` + `setup-dotgrid` tokens, drops the
+  wizard-only progress ring / publish button). Props: `title`, `subtitle`,
+  `backHref`, `backLabel`, plus a `children` slot for the tab nav.
+
+### Changed
+- Both settings areas now lead with the dark hero instead of a plain text header,
+  matching the `/dashboard/setup` look:
+  - Host `dashboard/settings/layout.tsx` (back → `/dashboard`).
+  - Guest `account/settings/layout.tsx` (back → `/my-trips`).
+- Tab navs restyled from underline tabs to dark-surface pill chips inside the hero
+  (`SettingsTabs.tsx`, `AccountSettingsTabs.tsx`) — markup only; `TABS`,
+  `usePathname`, and active-state logic unchanged.
+- Profile tab brought in line with the Banking & business tab: the (bare) shared
+  `HostProfileForm` is now wrapped at the page level (`dashboard/settings/page.tsx`)
+  in the same white-card chrome (icon tile + title + divider), and `PasswordCard`
+  swapped its shadcn `Card` for that same custom chrome. `HostProfileForm` itself was
+  not edited (shared with the setup wizard) — the card wrapper lives in the page.
+
+### Notes
+- Design-only change: no routes, forms, Server Actions, or schemas touched. Each tab
+  stays its own routed page so every existing form keeps working.
+- Deliberately did NOT touch the in-flight setup wizard (`SetupWizard.tsx`, `steps/*`)
+  or the public profile work (`[handle]/page.tsx`, `ProfileTabs.tsx`); `SettingsHero`
+  is standalone and does not import from the wizard.
+- Setting forms keep their existing on-brand cards; the numbered-badge "SectionCard"
+  wizard pattern was intentionally not applied (not requested, wizard-specific).
+
 ## 2026-05-29 — Listing card single-source-of-truth: Amenities + Photos — branch `feat/setup-wizard-rework`
 
 ### Built

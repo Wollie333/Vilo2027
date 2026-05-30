@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { SettingsHero } from "@/components/settings/SettingsHero";
 
 import { AccountSettingsTabs } from "./_components/AccountSettingsTabs";
 
@@ -19,16 +20,15 @@ export default function AccountSettingsLayout({
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <BroadcastBanner />
-      <header className="mb-5">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Account settings
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          Manage how Vilo reaches you about your trips and account.
-        </p>
-      </header>
-      <AccountSettingsTabs />
-      <div className="mt-8">{children}</div>
+      <SettingsHero
+        title="Account settings"
+        subtitle="Manage how Vilo reaches you about your trips and account."
+        backHref="/my-trips"
+        backLabel="Back to trips"
+      >
+        <AccountSettingsTabs />
+      </SettingsHero>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }

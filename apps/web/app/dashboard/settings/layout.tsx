@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { SettingsHero } from "@/components/settings/SettingsHero";
+
 import { SettingsTabs } from "./_components/SettingsTabs";
 
 export const metadata: Metadata = {
@@ -13,16 +15,15 @@ export default function SettingsLayout({
 }) {
   return (
     <div>
-      <header className="mb-5">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-          Settings
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          Manage your profile, public host page, banking, and plan.
-        </p>
-      </header>
-      <SettingsTabs />
-      <div className="mt-8">{children}</div>
+      <SettingsHero
+        title="Settings"
+        subtitle="Manage your profile, public host page, banking, and plan."
+        backHref="/dashboard"
+        backLabel="Back to dashboard"
+      >
+        <SettingsTabs />
+      </SettingsHero>
+      <div className="mt-6">{children}</div>
     </div>
   );
 }

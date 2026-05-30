@@ -8,13 +8,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
@@ -47,16 +40,21 @@ export function PasswordCard() {
   }
 
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 font-display text-base">
-          <KeyRound className="h-4 w-4 text-brand-mute" /> Change password
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          At least 8 characters. You&rsquo;ll stay signed in on this device.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2.5 border-b border-brand-line px-5 py-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-secondary">
+          <KeyRound className="h-4.5 w-4.5" />
+        </div>
+        <div>
+          <h3 className="font-display text-base font-semibold text-brand-ink">
+            Change password
+          </h3>
+          <p className="mt-0.5 text-xs text-brand-mute">
+            At least 8 characters. You&rsquo;ll stay signed in on this device.
+          </p>
+        </div>
+      </div>
+      <div className="px-5 py-5">
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(onSubmit)}
@@ -111,7 +109,7 @@ export function PasswordCard() {
             </div>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

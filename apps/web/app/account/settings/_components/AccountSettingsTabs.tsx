@@ -12,36 +12,30 @@ export function AccountSettingsTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-brand-line">
-      <ul role="tablist" className="-mb-px flex gap-1 overflow-x-auto pb-px">
+    <nav>
+      <ol role="tablist" className="flex flex-wrap gap-2">
         {TABS.map((tab) => {
           const isActive =
             pathname === tab.href || pathname.startsWith(`${tab.href}/`);
           return (
-            <li key={tab.href} role="presentation" className="shrink-0">
+            <li key={tab.href} role="presentation">
               <Link
                 href={tab.href}
                 role="tab"
                 aria-current={isActive ? "page" : undefined}
                 aria-selected={isActive}
-                className={`relative flex items-center px-3 py-2.5 text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition ${
                   isActive
-                    ? "text-brand-ink"
-                    : "text-brand-mute hover:text-brand-ink"
+                    ? "border-brand-primary bg-white/10 text-white"
+                    : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/10"
                 }`}
               >
                 {tab.label}
-                {isActive ? (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-3 -bottom-px h-0.5 rounded-t bg-brand-primary"
-                  />
-                ) : null}
               </Link>
             </li>
           );
         })}
-      </ul>
+      </ol>
     </nav>
   );
 }
