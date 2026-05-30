@@ -40,6 +40,18 @@ export const createBookingSchema = z
     guest_email: z.string().trim().email().max(160).optional(),
     guest_phone: z.string().trim().max(40).optional(),
     special_requests: z.string().trim().max(1000).optional(),
+    // Optional party manifest — name (+ optional contact) for each guest beyond
+    // the lead booker. Server drops empty rows and caps to the guest count.
+    additional_guests: z
+      .array(
+        z.object({
+          name: z.string().trim().max(120),
+          email: z.string().trim().max(160).optional().or(z.literal("")),
+          phone: z.string().trim().max(40).optional().or(z.literal("")),
+        }),
+      )
+      .max(50)
+      .optional(),
     policy_acknowledged: z.boolean().refine((v) => v === true, {
       message: "You must accept the policies to book.",
     }),

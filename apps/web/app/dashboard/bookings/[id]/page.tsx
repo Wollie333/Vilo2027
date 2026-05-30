@@ -32,7 +32,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug, listing_type, meeting_point, duration_minutes ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
+      "id, reference, status, payment_status, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, additional_guests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug, listing_type, meeting_point, duration_minutes ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -169,6 +169,7 @@ export default async function BookingDetailPage({
                 </p>
               </div>
             ) : null}
+            <PartyManifest guests={booking.additional_guests} />
           </section>
 
           <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
@@ -336,6 +337,38 @@ export default async function BookingDetailPage({
           ) : null}
         </aside>
       </div>
+    </div>
+  );
+}
+
+function PartyManifest({ guests }: { guests: unknown }) {
+  const list = Array.isArray(guests)
+    ? (guests as { name?: string; email?: string; phone?: string }[]).filter(
+        (g) => g && typeof g.name === "string" && g.name.trim().length > 0,
+      )
+    : [];
+  if (list.length === 0) return null;
+  return (
+    <div className="mt-5">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+        Guests in the party ({list.length})
+      </div>
+      <ul className="mt-2 space-y-1.5">
+        {list.map((g, i) => (
+          <li
+            key={i}
+            className="flex flex-wrap items-center gap-x-3 gap-y-0.5 rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-sm"
+          >
+            <span className="font-medium text-brand-ink">{g.name}</span>
+            {g.email ? (
+              <span className="text-brand-mute">{g.email}</span>
+            ) : null}
+            {g.phone ? (
+              <span className="font-mono text-brand-mute">{g.phone}</span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

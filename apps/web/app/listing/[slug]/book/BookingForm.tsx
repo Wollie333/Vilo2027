@@ -9,9 +9,12 @@ import {
   Lock,
   Mail,
   PackagePlus,
+  Plus,
   ShieldCheck,
   Star,
+  Trash2,
   User as UserIcon,
+  UserPlus,
   Users,
   Zap,
 } from "lucide-react";
@@ -218,6 +221,23 @@ export function BookingForm({
     message: "",
   });
 
+  // ── Optional party manifest (name + contact per guest) ─────────
+  const [party, setParty] = useState<
+    { name: string; email: string; phone: string }[]
+  >([]);
+  function addGuest() {
+    setParty((p) => [...p, { name: "", email: "", phone: "" }]);
+  }
+  function removeGuest(i: number) {
+    setParty((p) => p.filter((_, idx) => idx !== i));
+  }
+  function updateGuest(
+    i: number,
+    patch: Partial<{ name: string; email: string; phone: string }>,
+  ) {
+    setParty((p) => p.map((g, idx) => (idx === i ? { ...g, ...patch } : g)));
+  }
+
   // ── Payment method state ──────────────────────────────────────
   const [method, setMethod] = useState<"paystack" | "eft">("paystack");
 
@@ -408,6 +428,13 @@ export function BookingForm({
         guest_email: guestEmailOut,
         guest_phone: guestPhoneOut,
         special_requests: messageOut,
+        additional_guests: party
+          .map((g) => ({
+            name: g.name.trim(),
+            email: g.email.trim(),
+            phone: g.phone.trim(),
+          }))
+          .filter((g) => g.name.length > 0),
       });
       // Success is a server-side redirect; we only land here on failure.
       if (result && !result.ok) {
@@ -963,6 +990,106 @@ export function BookingForm({
             )}
           </div>
         </section>
+
+        {/* Who's coming? — optional per-guest details */}
+        {effectiveGuests > 1 ? (
+          <section className={cardLabel}>
+            <div className={sectionHead}>
+              <div>
+                <div className="font-display font-semibold text-brand-ink">
+                  Who&rsquo;s coming?{" "}
+                  <span className="text-xs font-normal text-brand-mute">
+                    (optional)
+                  </span>
+                </div>
+                <div className="mt-0.5 text-xs text-brand-mute">
+                  Add names &amp; contact for the rest of your party — up to{" "}
+                  {effectiveGuests - 1} other guest
+                  {effectiveGuests - 1 === 1 ? "" : "s"}.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={addGuest}
+                disabled={party.length >= effectiveGuests - 1}
+                className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60 disabled:opacity-50"
+              >
+                <UserPlus className="h-4 w-4" /> Add guest
+              </button>
+            </div>
+            <div className="space-y-3 p-5">
+              {party.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={addGuest}
+                  className="flex w-full items-center justify-center gap-2 rounded border-2 border-dashed border-brand-line py-5 text-sm font-medium text-brand-mute transition-colors hover:border-brand-primary hover:bg-brand-light/40 hover:text-brand-secondary"
+                >
+                  <Plus className="h-4 w-4" /> Add a guest&rsquo;s details
+                </button>
+              ) : (
+                party.map((g, i) => (
+                  <div
+                    key={i}
+                    className="rounded-card border border-brand-line bg-brand-light/40 p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                        Guest {i + 2}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeGuest(i)}
+                        aria-label="Remove guest"
+                        className="flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                      <input
+                        value={g.name}
+                        onChange={(e) =>
+                          updateGuest(i, { name: e.target.value })
+                        }
+                        placeholder="Full name"
+                        maxLength={120}
+                        className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                      />
+                      <input
+                        value={g.email}
+                        onChange={(e) =>
+                          updateGuest(i, { email: e.target.value })
+                        }
+                        type="email"
+                        placeholder="Email (optional)"
+                        maxLength={160}
+                        className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                      />
+                      <input
+                        value={g.phone}
+                        onChange={(e) =>
+                          updateGuest(i, { phone: e.target.value })
+                        }
+                        placeholder="Phone (optional)"
+                        maxLength={40}
+                        className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+              {party.length > 0 && party.length < effectiveGuests - 1 ? (
+                <button
+                  type="button"
+                  onClick={addGuest}
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-primary hover:underline"
+                >
+                  <Plus className="h-4 w-4" /> Add another guest
+                </button>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
         {/* Payment */}
         <section className={cardLabel}>
