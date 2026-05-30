@@ -14,6 +14,7 @@ import {
   bedKindLabel,
   bookingModeSchema,
   patchSchema,
+  roomCapacityFromBeds,
   roomPatchSchema,
   type BedInput,
   type BookingModeInput,
@@ -648,13 +649,21 @@ async function recomputeListingFromRooms(
 ): Promise<void> {
   const { data: rooms } = await supabase
     .from("listing_rooms")
-    .select("base_price, max_guests, bedrooms, bathrooms")
+    .select(
+      "base_price, price_per_person, pricing_mode, max_guests, bedrooms, bathrooms",
+    )
     .eq("listing_id", listingId)
     .is("deleted_at", null)
     .eq("is_active", true);
   if (!rooms || rooms.length === 0) return;
+  // Headline "from" price = cheapest room's effective nightly figure for its
+  // pricing mode (per_person rooms quote price_per_person; the rest base_price).
   const prices = rooms
-    .map((r) => Number(r.base_price))
+    .map((r) =>
+      r.pricing_mode === "per_person"
+        ? Number(r.price_per_person)
+        : Number(r.base_price),
+    )
     .filter((n) => Number.isFinite(n) && n > 0);
   const sum = (key: "max_guests" | "bedrooms" | "bathrooms") =>
     rooms.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
@@ -714,6 +723,10 @@ export async function createRoomAction(
       cleaning_fee: parsed.data.cleaning_fee ?? 0,
       is_active: parsed.data.is_active ?? true,
       sort_order: nextSort,
+      pricing_mode: parsed.data.pricing_mode ?? "per_room",
+      price_per_person: parsed.data.price_per_person ?? null,
+      base_occupancy: parsed.data.base_occupancy ?? null,
+      extra_guest_price: parsed.data.extra_guest_price ?? null,
     })
     .select("id")
     .single();
@@ -773,6 +786,11 @@ export type RoomEditorData = {
     view_type: string | null;
     experiences: string[];
     featured_photo_id: string | null;
+    beds: { bed_kind: string; quantity: number }[];
+    pricing_mode: "per_room" | "per_person" | "per_room_plus_extra";
+    price_per_person: number | null;
+    base_occupancy: number | null;
+    extra_guest_price: number | null;
   };
   photos: { id: string; url: string }[];
   amenityKeys: string[];
@@ -791,7 +809,7 @@ export async function fetchRoomEditorDataAction(
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id",
+      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
     )
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -799,19 +817,25 @@ export async function fetchRoomEditorDataAction(
     .maybeSingle();
   if (!room) return { ok: false, error: "Room not found." };
 
-  const [{ data: photoRows }, { data: amenityRows }] = await Promise.all([
-    supabase
-      .from("listing_photos")
-      .select("id, url, sort_order")
-      .eq("listing_id", listingId)
-      .eq("room_id", roomId)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("listing_amenities")
-      .select("amenity_key")
-      .eq("listing_id", listingId)
-      .eq("room_id", roomId),
-  ]);
+  const [{ data: photoRows }, { data: amenityRows }, { data: bedRows }] =
+    await Promise.all([
+      supabase
+        .from("listing_photos")
+        .select("id, url, sort_order")
+        .eq("listing_id", listingId)
+        .eq("room_id", roomId)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("listing_amenities")
+        .select("amenity_key")
+        .eq("listing_id", listingId)
+        .eq("room_id", roomId),
+      supabase
+        .from("room_beds")
+        .select("bed_kind, quantity, sort_order")
+        .eq("room_id", roomId)
+        .order("sort_order", { ascending: true }),
+    ]);
 
   return {
     ok: true,
@@ -834,6 +858,19 @@ export async function fetchRoomEditorDataAction(
         view_type: room.view_type ?? null,
         experiences: (room.experiences as string[] | null) ?? [],
         featured_photo_id: room.featured_photo_id ?? null,
+        beds: (bedRows ?? []).map((b) => ({
+          bed_kind: b.bed_kind,
+          quantity: b.quantity,
+        })),
+        pricing_mode: (room.pricing_mode ??
+          "per_room") as RoomEditorData["room"]["pricing_mode"],
+        price_per_person:
+          room.price_per_person != null ? Number(room.price_per_person) : null,
+        base_occupancy: room.base_occupancy ?? null,
+        extra_guest_price:
+          room.extra_guest_price != null
+            ? Number(room.extra_guest_price)
+            : null,
       },
       photos: (photoRows ?? []).map((p) => ({ id: p.id, url: p.url })),
       amenityKeys: (amenityRows ?? []).map((a) => a.amenity_key),
@@ -1082,14 +1119,24 @@ export async function setRoomBedsAction(
           .map((b) => `${b.quantity} ${bedKindLabel(b.bed_kind, b.quantity)}`)
           .join(" + ")
           .slice(0, 40);
+
+  // Capacity is the single source of truth — derived strictly from beds.
+  const derivedCapacity = roomCapacityFromBeds(parsed.data);
   await supabase
     .from("listing_rooms")
-    .update({ bed_type: summary })
+    .update({
+      bed_type: summary,
+      ...(derivedCapacity > 0 ? { max_guests: derivedCapacity } : {}),
+    })
     .eq("id", roomId)
     .eq("listing_id", listingId);
+
+  // Keep the parent listing's headline capacity / "from" price in sync.
+  await recomputeListingFromRooms(supabase, listingId);
 
   revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   revalidatePath("/dashboard/rooms");
+  revalidatePath("/dashboard");
   return { ok: true };
 }

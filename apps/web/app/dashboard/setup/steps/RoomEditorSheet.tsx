@@ -37,6 +37,11 @@ const BLANK_ROOM: RoomEditorRoom = {
   view_type: null,
   experiences: [],
   featured_photo_id: null,
+  beds: [],
+  pricing_mode: "per_room",
+  price_per_person: null,
+  base_occupancy: null,
+  extra_guest_price: null,
 };
 
 export function RoomEditorSheet({

@@ -17,6 +17,8 @@ import { RoomAmenitiesSection } from "./sections/RoomAmenitiesSection";
 import { RoomDetailsForm } from "./sections/RoomDetailsForm";
 import { RoomPhotosSection } from "./sections/RoomPhotosSection";
 
+export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
+
 export type RoomEditorRoom = {
   id: string;
   name: string;
@@ -33,7 +35,25 @@ export type RoomEditorRoom = {
   view_type: string | null;
   experiences: string[];
   featured_photo_id: string | null;
+  // Bed composition — capacity (max_guests) is derived from these.
+  beds: { bed_kind: string; quantity: number }[];
+  // Pricing model.
+  pricing_mode: RoomPricingMode;
+  price_per_person: number | null;
+  base_occupancy: number | null;
+  extra_guest_price: number | null;
 };
+
+/** The room's effective "from" nightly figure for the chosen pricing mode. */
+export function effectiveNightly(room: {
+  pricing_mode: RoomPricingMode;
+  base_price: number;
+  price_per_person: number | null;
+}): number {
+  return room.pricing_mode === "per_person"
+    ? (room.price_per_person ?? 0)
+    : room.base_price;
+}
 
 export type RoomEditorPhoto = { id: string; url: string };
 
@@ -180,13 +200,19 @@ export function RoomEditor({
               <div className="mt-6 grid max-w-md grid-cols-4 gap-3">
                 <div>
                   <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Base / night
+                    {room.pricing_mode === "per_person"
+                      ? "Per person"
+                      : room.pricing_mode === "per_room_plus_extra"
+                        ? "From / night"
+                        : "Base / night"}
                   </div>
                   <div className="mt-1 font-display text-xl font-bold text-white">
-                    {formatPrice(room.base_price, currency)}
+                    {formatPrice(effectiveNightly(room), currency)}
                   </div>
                   <div className="text-[10px] text-brand-accent/60">
-                    {currency}
+                    {room.pricing_mode === "per_person"
+                      ? "per guest / night"
+                      : currency}
                   </div>
                 </div>
                 <div>

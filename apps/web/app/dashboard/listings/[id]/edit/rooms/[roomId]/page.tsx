@@ -39,7 +39,7 @@ export default async function EditRoomPage({
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id",
+      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
     )
     .eq("id", params.roomId)
     .eq("listing_id", params.id)
@@ -47,20 +47,26 @@ export default async function EditRoomPage({
     .maybeSingle();
   if (!room) notFound();
 
-  // Per-room photos + per-room amenities.
-  const [{ data: photoRows }, { data: amenityRows }] = await Promise.all([
-    supabase
-      .from("listing_photos")
-      .select("id, url, sort_order")
-      .eq("listing_id", params.id)
-      .eq("room_id", params.roomId)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("listing_amenities")
-      .select("amenity_key")
-      .eq("listing_id", params.id)
-      .eq("room_id", params.roomId),
-  ]);
+  // Per-room photos + per-room amenities + bed composition.
+  const [{ data: photoRows }, { data: amenityRows }, { data: bedRows }] =
+    await Promise.all([
+      supabase
+        .from("listing_photos")
+        .select("id, url, sort_order")
+        .eq("listing_id", params.id)
+        .eq("room_id", params.roomId)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("listing_amenities")
+        .select("amenity_key")
+        .eq("listing_id", params.id)
+        .eq("room_id", params.roomId),
+      supabase
+        .from("room_beds")
+        .select("bed_kind, quantity, sort_order")
+        .eq("room_id", params.roomId)
+        .order("sort_order", { ascending: true }),
+    ]);
 
   const roomShape: RoomEditorRoom = {
     id: room.id,
@@ -80,6 +86,17 @@ export default async function EditRoomPage({
     view_type: room.view_type ?? null,
     experiences: (room.experiences as string[] | null) ?? [],
     featured_photo_id: room.featured_photo_id ?? null,
+    beds: (bedRows ?? []).map((b) => ({
+      bed_kind: b.bed_kind,
+      quantity: b.quantity,
+    })),
+    pricing_mode: (room.pricing_mode ??
+      "per_room") as RoomEditorRoom["pricing_mode"],
+    price_per_person:
+      room.price_per_person != null ? Number(room.price_per_person) : null,
+    base_occupancy: room.base_occupancy ?? null,
+    extra_guest_price:
+      room.extra_guest_price != null ? Number(room.extra_guest_price) : null,
   };
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, url: p.url }));
   const amenityKeys = (amenityRows ?? []).map((a) => a.amenity_key);

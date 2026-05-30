@@ -1,7 +1,7 @@
 "use client";
 
-import { Save } from "lucide-react";
-import { useState, useTransition } from "react";
+import { Minus, Plus, Save, Trash2, Users } from "lucide-react";
+import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -15,9 +15,20 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { createRoomAction, updateRoomAction } from "../../../actions";
+import {
+  createRoomAction,
+  setRoomBedsAction,
+  updateRoomAction,
+} from "../../../actions";
+import {
+  BED_KINDS,
+  bedKindLabel,
+  roomCapacityFromBeds,
+  type BedInput,
+  type BedKind,
+} from "../../../roomBeds";
 import { BED_TYPES, EXPERIENCES, VIEW_TYPES } from "../../../roomEnums";
-import type { RoomEditorRoom } from "../RoomEditor";
+import type { RoomEditorRoom, RoomPricingMode } from "../RoomEditor";
 
 function toInt(v: string): number | null {
   if (v === "") return null;
@@ -31,6 +42,37 @@ function toNum(v: string): number | null {
 }
 function numToStr(n: number | null | undefined, fallback = ""): string {
   return n == null ? fallback : String(n);
+}
+
+const PRICING_MODES: {
+  value: RoomPricingMode;
+  label: string;
+  body: string;
+}[] = [
+  {
+    value: "per_room",
+    label: "Per room",
+    body: "One flat nightly price, whoever stays.",
+  },
+  {
+    value: "per_person",
+    label: "Per person",
+    body: "Charge a rate for each guest, per night.",
+  },
+  {
+    value: "per_room_plus_extra",
+    label: "Base + extra guest",
+    body: "Flat base covers a few guests; charge extra beyond that.",
+  },
+];
+
+/** Derive the "1 King + 2 Singles" summary string the legacy bed_type column holds. */
+function bedSummaryString(beds: BedInput[]): string | null {
+  if (beds.length === 0) return null;
+  return beds
+    .map((b) => `${b.quantity} ${bedKindLabel(b.bed_kind, b.quantity)}`)
+    .join(" + ")
+    .slice(0, 40);
 }
 
 export function RoomDetailsForm({
@@ -52,16 +94,38 @@ export function RoomDetailsForm({
   const [description, setDescription] = useState(room.description ?? "");
   const [bedrooms, setBedrooms] = useState(numToStr(room.bedrooms, "1"));
   const [bathrooms, setBathrooms] = useState(numToStr(room.bathrooms, "0"));
-  const [maxGuests, setMaxGuests] = useState(numToStr(room.max_guests, "2"));
   const [roomSize, setRoomSize] = useState(numToStr(room.room_size_sqm));
   const [bedType, setBedType] = useState<string>(room.bed_type ?? "");
   const [viewType, setViewType] = useState<string>(room.view_type ?? "");
   const [experiences, setExperiences] = useState<string[]>(
     room.experiences ?? [],
   );
+
+  // ── Beds — capacity is derived from these, never hand-typed. ──
+  const [beds, setBeds] = useState<BedInput[]>(() =>
+    (room.beds ?? []).map((b) => ({
+      bed_kind: b.bed_kind as BedKind,
+      quantity: b.quantity,
+    })),
+  );
+  const capacity = useMemo(() => roomCapacityFromBeds(beds), [beds]);
+
+  // ── Pricing ──
+  const [pricingMode, setPricingMode] = useState<RoomPricingMode>(
+    room.pricing_mode ?? "per_room",
+  );
   const [basePrice, setBasePrice] = useState(numToStr(room.base_price, "0"));
   const [weekendPrice, setWeekendPrice] = useState(
     numToStr(room.weekend_price),
+  );
+  const [pricePerPerson, setPricePerPerson] = useState(
+    numToStr(room.price_per_person),
+  );
+  const [baseOccupancy, setBaseOccupancy] = useState(
+    numToStr(room.base_occupancy, "2"),
+  );
+  const [extraGuestPrice, setExtraGuestPrice] = useState(
+    numToStr(room.extra_guest_price),
   );
   const [cleaningFee, setCleaningFee] = useState(
     numToStr(room.cleaning_fee, "0"),
@@ -73,44 +137,115 @@ export function RoomDetailsForm({
       prev.includes(label) ? prev.filter((p) => p !== label) : [...prev, label],
     );
   }
+  function addBed() {
+    setBeds((prev) => [...prev, { bed_kind: "queen", quantity: 1 }]);
+  }
+  function removeBed(idx: number) {
+    setBeds((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function updateBed(idx: number, patch: Partial<BedInput>) {
+    setBeds((prev) => prev.map((b, i) => (i === idx ? { ...b, ...patch } : b)));
+  }
 
   function save() {
     if (!name.trim()) {
       toast.error("Give the room a name.");
       return;
     }
+    if (beds.length === 0 || capacity < 1) {
+      toast.error("Add at least one bed — capacity comes from the beds.");
+      return;
+    }
+
+    // Per-mode price validation.
+    if (pricingMode === "per_person" && (toNum(pricePerPerson) ?? 0) <= 0) {
+      toast.error("Set a per-person price.");
+      return;
+    }
+    if (pricingMode === "per_room" && (toNum(basePrice) ?? 0) <= 0) {
+      toast.error("Set a base price per night.");
+      return;
+    }
+    if (pricingMode === "per_room_plus_extra") {
+      if ((toNum(basePrice) ?? 0) <= 0) {
+        toast.error("Set a base price per night.");
+        return;
+      }
+      if ((toInt(baseOccupancy) ?? 0) < 1) {
+        toast.error("Set how many guests the base price covers.");
+        return;
+      }
+      if ((toNum(extraGuestPrice) ?? 0) <= 0) {
+        toast.error("Set the price per extra guest.");
+        return;
+      }
+    }
+
     const patch = {
       name: name.trim(),
       description: description.trim().length > 0 ? description.trim() : null,
       bedrooms: toInt(bedrooms),
       bathrooms: toInt(bathrooms),
-      max_guests: toInt(maxGuests) ?? room.max_guests ?? 2,
-      base_price: toNum(basePrice) ?? room.base_price ?? 0,
-      weekend_price: toNum(weekendPrice),
+      // Capacity is derived from beds — sent so the row is consistent even
+      // before setRoomBedsAction re-derives it server-side.
+      max_guests: capacity,
+      pricing_mode: pricingMode,
+      base_price: pricingMode === "per_person" ? 0 : (toNum(basePrice) ?? 0),
+      weekend_price: pricingMode === "per_room" ? toNum(weekendPrice) : null,
+      price_per_person:
+        pricingMode === "per_person" ? toNum(pricePerPerson) : null,
+      base_occupancy:
+        pricingMode === "per_room_plus_extra" ? toInt(baseOccupancy) : null,
+      extra_guest_price:
+        pricingMode === "per_room_plus_extra" ? toNum(extraGuestPrice) : null,
       cleaning_fee: toNum(cleaningFee) ?? 0,
       is_active: isActive,
       room_size_sqm: toNum(roomSize),
-      bed_type: bedType.length > 0 ? bedType : null,
+      bed_type: bedType.length > 0 ? bedType : bedSummaryString(beds),
       view_type: viewType.length > 0 ? viewType : null,
       experiences,
     };
+
+    // The local-state patch the parent applies on success.
+    const localPatch: Partial<RoomEditorRoom> = {
+      ...patch,
+      beds: beds.map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
+    };
+
     start(async () => {
       if (mode === "create") {
         const result = await createRoomAction(listingId, patch);
-        if (result.ok && result.data) {
-          toast.success("Room created");
-          onCreated?.(result.data.id);
-        } else {
+        if (!result.ok || !result.data) {
           toast.error(result.ok ? "Could not create room." : result.error);
+          return;
         }
+        const bedsResult = await setRoomBedsAction(
+          listingId,
+          result.data.id,
+          beds,
+        );
+        if (!bedsResult.ok) {
+          toast.error(bedsResult.error);
+          return;
+        }
+        toast.success("Room created");
+        onCreated?.(result.data.id);
         return;
       }
-      const result = await updateRoomAction(listingId, room.id, patch);
-      if (result.ok) {
-        onSaved?.(patch);
+
+      const [detailsResult, bedsResult] = await Promise.all([
+        updateRoomAction(listingId, room.id, patch),
+        setRoomBedsAction(listingId, room.id, beds),
+      ]);
+      if (detailsResult.ok && bedsResult.ok) {
+        onSaved?.(localPatch);
         toast.success("Room saved");
       } else {
-        toast.error(result.error);
+        toast.error(
+          (!detailsResult.ok && detailsResult.error) ||
+            (!bedsResult.ok && bedsResult.error) ||
+            "Could not save room.",
+        );
       }
     });
   }
@@ -122,8 +257,8 @@ export function RoomDetailsForm({
           Room details
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          What makes this room itself. Pricing, capacity, vibe — set it once
-          here, guests see it in the listing.
+          What makes this room itself. Beds set the capacity; pricing, vibe and
+          the rest set it once here — guests see it in the listing.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -146,6 +281,110 @@ export function RoomDetailsForm({
           />
         </Field>
 
+        {/* ── Beds + derived capacity ─────────────────────────── */}
+        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              Beds in this room
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-xs font-semibold text-brand-primary">
+              <Users className="h-3.5 w-3.5" />
+              Sleeps {capacity}
+            </span>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            {beds.length === 0 ? (
+              <div className="rounded border border-dashed border-brand-line bg-white px-3 py-4 text-center text-xs text-brand-mute">
+                No beds yet. Add what&rsquo;s in the room — e.g. 1 King + 2
+                Singles + 1 Futon. Capacity is worked out from these.
+              </div>
+            ) : (
+              beds.map((b, i) => {
+                const kindCap =
+                  BED_KINDS.find((k) => k.value === b.bed_kind)?.capacity ?? 0;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 rounded border border-brand-line bg-white px-3 py-2"
+                  >
+                    <select
+                      value={b.bed_kind}
+                      onChange={(e) =>
+                        updateBed(i, { bed_kind: e.target.value as BedKind })
+                      }
+                      disabled={pending}
+                      className="h-8 rounded border border-brand-line bg-white px-2 text-sm text-brand-dark outline-none focus:border-brand-primary"
+                    >
+                      {BED_KINDS.map((k) => (
+                        <option key={k.value} value={k.value}>
+                          {k.label} (sleeps {k.capacity})
+                        </option>
+                      ))}
+                    </select>
+                    <span className="hidden text-[11px] text-brand-mute sm:inline">
+                      = {kindCap * b.quantity} guest
+                      {kindCap * b.quantity === 1 ? "" : "s"}
+                    </span>
+                    <div className="ml-auto flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateBed(i, {
+                            quantity: Math.max(1, b.quantity - 1),
+                          })
+                        }
+                        disabled={pending || b.quantity <= 1}
+                        className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                        aria-label="Decrease"
+                      >
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <div className="w-8 text-center font-display font-semibold text-brand-ink">
+                        {b.quantity}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateBed(i, {
+                            quantity: Math.min(20, b.quantity + 1),
+                          })
+                        }
+                        disabled={pending || b.quantity >= 20}
+                        className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                        aria-label="Increase"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeBed(i)}
+                      disabled={pending}
+                      className="ml-1 flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
+                      aria-label="Remove bed"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addBed}
+            disabled={pending}
+            className="mt-3 gap-1.5"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add a bed
+          </Button>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Bedrooms">
             <Input
@@ -167,19 +406,6 @@ export function RoomDetailsForm({
               disabled={pending}
             />
           </Field>
-          <Field label="Max guests">
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              value={maxGuests}
-              onChange={(e) => setMaxGuests(e.target.value)}
-              disabled={pending}
-            />
-          </Field>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Room size (m²)">
             <Input
               type="number"
@@ -192,17 +418,23 @@ export function RoomDetailsForm({
               placeholder="24"
             />
           </Field>
-          <Field label="Bed type">
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field
+            label="Headline bed type"
+            hint="Shown on cards. Auto-filled from beds."
+          >
             <select
               value={bedType}
               onChange={(e) => setBedType(e.target.value)}
               disabled={pending}
               className="h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark outline-none focus:border-brand-primary"
             >
-              <option value="">—</option>
-              {BED_TYPES.map((b) => (
-                <option key={b} value={b}>
-                  {b}
+              <option value="">Auto ({bedSummaryString(beds) ?? "—"})</option>
+              {BED_TYPES.map((bt) => (
+                <option key={bt} value={bt}>
+                  {bt}
                 </option>
               ))}
             </select>
@@ -253,40 +485,120 @@ export function RoomDetailsForm({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Base price / night">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
-              disabled={pending}
-            />
-          </Field>
-          <Field label="Weekend price (optional)">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={weekendPrice}
-              onChange={(e) => setWeekendPrice(e.target.value)}
-              disabled={pending}
-            />
-          </Field>
-          <Field label="Cleaning fee">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={cleaningFee}
-              onChange={(e) => setCleaningFee(e.target.value)}
-              disabled={pending}
-            />
-          </Field>
+        {/* ── Pricing model ───────────────────────────────────── */}
+        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            How this room is priced
+          </div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            {PRICING_MODES.map((m) => {
+              const active = pricingMode === m.value;
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setPricingMode(m.value)}
+                  disabled={pending}
+                  className={`rounded-card border p-3 text-left transition-colors ${
+                    active
+                      ? "border-brand-primary bg-white ring-1 ring-brand-primary/40"
+                      : "border-brand-line bg-white hover:bg-brand-light/60"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-brand-dark">
+                    {m.label}
+                  </div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
+                    {m.body}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {pricingMode === "per_person" ? (
+              <Field label="Price / person / night">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={pricePerPerson}
+                  onChange={(e) => setPricePerPerson(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            ) : (
+              <Field label="Base price / night">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            )}
+
+            {pricingMode === "per_room" ? (
+              <Field label="Weekend price (optional)">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={weekendPrice}
+                  onChange={(e) => setWeekendPrice(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            ) : null}
+
+            {pricingMode === "per_room_plus_extra" ? (
+              <>
+                <Field
+                  label="Base covers"
+                  hint="Guests included in the base price."
+                >
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={capacity || 50}
+                    value={baseOccupancy}
+                    onChange={(e) => setBaseOccupancy(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+                <Field label="Each extra guest / night">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={extraGuestPrice}
+                    onChange={(e) => setExtraGuestPrice(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+              </>
+            ) : null}
+
+            <Field label="Cleaning fee">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={cleaningFee}
+                onChange={(e) => setCleaningFee(e.target.value)}
+                disabled={pending}
+              />
+            </Field>
+          </div>
         </div>
 
         <label className="flex items-center gap-2 text-sm text-brand-dark">
