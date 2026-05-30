@@ -35,8 +35,8 @@ export type RoomEditorRoom = {
   view_type: string | null;
   experiences: string[];
   featured_photo_id: string | null;
-  // Bed composition — capacity (max_guests) is derived from these.
-  beds: { bed_kind: string; quantity: number }[];
+  // Bed composition — capacity (max_guests) is derived from these (Σ sleeps×qty).
+  beds: { bed_kind: string; quantity: number; sleeps: number }[];
   // Pricing model.
   pricing_mode: RoomPricingMode;
   price_per_person: number | null;

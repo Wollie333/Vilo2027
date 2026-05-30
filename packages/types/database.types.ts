@@ -4230,6 +4230,7 @@ export type Database = {
           id: string
           quantity: number
           room_id: string
+          sleeps: number
           sort_order: number
         }
         Insert: {
@@ -4238,6 +4239,7 @@ export type Database = {
           id?: string
           quantity?: number
           room_id: string
+          sleeps?: number
           sort_order?: number
         }
         Update: {
@@ -4246,6 +4248,7 @@ export type Database = {
           id?: string
           quantity?: number
           room_id?: string
+          sleeps?: number
           sort_order?: number
         }
         Relationships: [

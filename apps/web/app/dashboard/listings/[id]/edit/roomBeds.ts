@@ -40,18 +40,30 @@ export const BED_CAPACITY = Object.fromEntries(
 export const bedInputSchema = z.object({
   bed_kind: bedKindSchema,
   quantity: z.number().int().min(1).max(20),
+  // How many people sleep in ONE bed of this row — host-controlled, defaults to
+  // the kind's suggested capacity but freely editable.
+  sleeps: z.number().int().min(1).max(30),
 });
 export type BedInput = z.infer<typeof bedInputSchema>;
 
-/** Room sleeping capacity, strictly derived from its beds. */
+/** The suggested starting capacity for a bed kind (host can override per bed). */
+export function defaultSleepsForKind(kind: string): number {
+  return BED_CAPACITY[kind as BedKind] ?? 1;
+}
+
+/**
+ * Room sleeping capacity, derived from its beds: Σ (sleeps × quantity).
+ * Falls back to the kind's default capacity when a row has no explicit `sleeps`
+ * (older rows / back-compat).
+ */
 export function roomCapacityFromBeds(
-  beds: { bed_kind: string; quantity: number }[],
+  beds: { bed_kind: string; quantity: number; sleeps?: number | null }[],
 ): number {
-  return beds.reduce(
-    (sum, b) =>
-      sum + (BED_CAPACITY[b.bed_kind as BedKind] ?? 0) * (b.quantity || 0),
-    0,
-  );
+  return beds.reduce((sum, b) => {
+    const per =
+      b.sleeps != null ? b.sleeps : (BED_CAPACITY[b.bed_kind as BedKind] ?? 0);
+    return sum + per * (b.quantity || 0);
+  }, 0);
 }
 
 /** Pluralise a bed-kind label for the derived bed_type summary string. */

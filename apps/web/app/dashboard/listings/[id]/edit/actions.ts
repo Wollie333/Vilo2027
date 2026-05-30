@@ -786,7 +786,7 @@ export type RoomEditorData = {
     view_type: string | null;
     experiences: string[];
     featured_photo_id: string | null;
-    beds: { bed_kind: string; quantity: number }[];
+    beds: { bed_kind: string; quantity: number; sleeps: number }[];
     pricing_mode: "per_room" | "per_person" | "per_room_plus_extra";
     price_per_person: number | null;
     base_occupancy: number | null;
@@ -832,7 +832,7 @@ export async function fetchRoomEditorDataAction(
         .eq("room_id", roomId),
       supabase
         .from("room_beds")
-        .select("bed_kind, quantity, sort_order")
+        .select("bed_kind, quantity, sleeps, sort_order")
         .eq("room_id", roomId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -861,6 +861,7 @@ export async function fetchRoomEditorDataAction(
         beds: (bedRows ?? []).map((b) => ({
           bed_kind: b.bed_kind,
           quantity: b.quantity,
+          sleeps: b.sleeps,
         })),
         pricing_mode: (room.pricing_mode ??
           "per_room") as RoomEditorData["room"]["pricing_mode"],
@@ -1101,6 +1102,7 @@ export async function setRoomBedsAction(
       room_id: roomId,
       bed_kind: b.bed_kind,
       quantity: b.quantity,
+      sleeps: b.sleeps,
       sort_order: i,
     }));
     const { error: insErr } = await supabase.from("room_beds").insert(rows);

@@ -63,7 +63,7 @@ export default async function EditRoomPage({
         .eq("room_id", params.roomId),
       supabase
         .from("room_beds")
-        .select("bed_kind, quantity, sort_order")
+        .select("bed_kind, quantity, sleeps, sort_order")
         .eq("room_id", params.roomId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -89,6 +89,7 @@ export default async function EditRoomPage({
     beds: (bedRows ?? []).map((b) => ({
       bed_kind: b.bed_kind,
       quantity: b.quantity,
+      sleeps: b.sleeps,
     })),
     pricing_mode: (room.pricing_mode ??
       "per_room") as RoomEditorRoom["pricing_mode"],

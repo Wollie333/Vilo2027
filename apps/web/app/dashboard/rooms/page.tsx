@@ -89,7 +89,7 @@ export default async function RoomsPage({
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
+      "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sleeps, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -130,6 +130,7 @@ export default async function RoomsPage({
         beds: Array<{
           bed_kind: string;
           quantity: number;
+          sleeps: number;
           sort_order: number;
         }> | null;
         photos: Array<{
@@ -149,7 +150,11 @@ export default async function RoomsPage({
           : r.featured_photo;
         const beds = (r.beds ?? [])
           .sort((a, b) => a.sort_order - b.sort_order)
-          .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity }));
+          .map((b) => ({
+            bed_kind: b.bed_kind,
+            quantity: b.quantity,
+            sleeps: b.sleeps,
+          }));
         const photos = (r.photos ?? [])
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((p) => ({ id: p.id, url: p.url }));

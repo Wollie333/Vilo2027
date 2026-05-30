@@ -23,6 +23,7 @@ import {
 import {
   BED_KINDS,
   bedKindLabel,
+  defaultSleepsForKind,
   roomCapacityFromBeds,
   type BedInput,
   type BedKind,
@@ -106,6 +107,7 @@ export function RoomDetailsForm({
     (room.beds ?? []).map((b) => ({
       bed_kind: b.bed_kind as BedKind,
       quantity: b.quantity,
+      sleeps: b.sleeps ?? defaultSleepsForKind(b.bed_kind),
     })),
   );
   const capacity = useMemo(() => roomCapacityFromBeds(beds), [beds]);
@@ -138,7 +140,10 @@ export function RoomDetailsForm({
     );
   }
   function addBed() {
-    setBeds((prev) => [...prev, { bed_kind: "queen", quantity: 1 }]);
+    setBeds((prev) => [
+      ...prev,
+      { bed_kind: "queen", quantity: 1, sleeps: defaultSleepsForKind("queen") },
+    ]);
   }
   function removeBed(idx: number) {
     setBeds((prev) => prev.filter((_, i) => i !== idx));
@@ -209,7 +214,11 @@ export function RoomDetailsForm({
     // The local-state patch the parent applies on success.
     const localPatch: Partial<RoomEditorRoom> = {
       ...patch,
-      beds: beds.map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
+      beds: beds.map((b) => ({
+        bed_kind: b.bed_kind,
+        quantity: b.quantity,
+        sleeps: b.sleeps,
+      })),
     };
 
     start(async () => {
@@ -300,75 +309,67 @@ export function RoomDetailsForm({
                 Singles + 1 Futon. Capacity is worked out from these.
               </div>
             ) : (
-              beds.map((b, i) => {
-                const kindCap =
-                  BED_KINDS.find((k) => k.value === b.bed_kind)?.capacity ?? 0;
-                return (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 rounded border border-brand-line bg-white px-3 py-2"
+              beds.map((b, i) => (
+                <div
+                  key={i}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded border border-brand-line bg-white px-3 py-2.5"
+                >
+                  <select
+                    value={b.bed_kind}
+                    onChange={(e) => {
+                      const kind = e.target.value as BedKind;
+                      // Reset Sleeps to the new kind's suggestion; host can edit.
+                      updateBed(i, {
+                        bed_kind: kind,
+                        sleeps: defaultSleepsForKind(kind),
+                      });
+                    }}
+                    disabled={pending}
+                    className="h-8 rounded border border-brand-line bg-white px-2 text-sm text-brand-dark outline-none focus:border-brand-primary"
                   >
-                    <select
-                      value={b.bed_kind}
-                      onChange={(e) =>
-                        updateBed(i, { bed_kind: e.target.value as BedKind })
-                      }
-                      disabled={pending}
-                      className="h-8 rounded border border-brand-line bg-white px-2 text-sm text-brand-dark outline-none focus:border-brand-primary"
-                    >
-                      {BED_KINDS.map((k) => (
-                        <option key={k.value} value={k.value}>
-                          {k.label} (sleeps {k.capacity})
-                        </option>
-                      ))}
-                    </select>
-                    <span className="hidden text-[11px] text-brand-mute sm:inline">
-                      = {kindCap * b.quantity} guest
-                      {kindCap * b.quantity === 1 ? "" : "s"}
-                    </span>
-                    <div className="ml-auto flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateBed(i, {
-                            quantity: Math.max(1, b.quantity - 1),
-                          })
-                        }
-                        disabled={pending || b.quantity <= 1}
-                        className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
-                        aria-label="Decrease"
-                      >
-                        <Minus className="h-3.5 w-3.5" />
-                      </button>
-                      <div className="w-8 text-center font-display font-semibold text-brand-ink">
-                        {b.quantity}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateBed(i, {
-                            quantity: Math.min(20, b.quantity + 1),
-                          })
-                        }
-                        disabled={pending || b.quantity >= 20}
-                        className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
-                        aria-label="Increase"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeBed(i)}
-                      disabled={pending}
-                      className="ml-1 flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
-                      aria-label="Remove bed"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                );
-              })
+                    {BED_KINDS.map((k) => (
+                      <option key={k.value} value={k.value}>
+                        {k.label}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Sleeps per bed — host-controlled, any number. */}
+                  <Stepper
+                    label="Sleeps"
+                    value={b.sleeps}
+                    min={1}
+                    max={30}
+                    disabled={pending}
+                    onChange={(n) => updateBed(i, { sleeps: n })}
+                  />
+
+                  {/* How many of this bed. */}
+                  <Stepper
+                    label="Qty"
+                    value={b.quantity}
+                    min={1}
+                    max={20}
+                    disabled={pending}
+                    onChange={(n) => updateBed(i, { quantity: n })}
+                  />
+
+                  <span className="text-[11px] text-brand-mute">
+                    = {b.sleeps * b.quantity} guest
+                    {b.sleeps * b.quantity === 1 ? "" : "s"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => removeBed(i)}
+                    disabled={pending}
+                    className="ml-auto flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
+                    aria-label="Remove bed"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))
             )}
           </div>
 
@@ -629,6 +630,54 @@ export function RoomDetailsForm({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** A small labelled −/+ number stepper used for per-bed Sleeps and Qty. */
+function Stepper({
+  label,
+  value,
+  min,
+  max,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  disabled?: boolean;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+        {label}
+      </span>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={disabled || value <= min}
+          className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+          aria-label={`Decrease ${label}`}
+        >
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <div className="w-7 text-center font-display font-semibold text-brand-ink">
+          {value}
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={disabled || value >= max}
+          className="flex h-8 w-8 items-center justify-center rounded border border-brand-line text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+          aria-label={`Increase ${label}`}
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
 

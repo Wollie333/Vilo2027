@@ -143,7 +143,7 @@ export type EditorRoom = {
   base_occupancy: number | null;
   extra_guest_price: number | null;
   featured_photo_id: string | null;
-  beds: { bed_kind: string; quantity: number }[];
+  beds: { bed_kind: string; quantity: number; sleeps: number }[];
   // Optional — populated by /dashboard/rooms so the inline tabbed editor
   // has everything it needs without a follow-up fetch. The listing editor
   // page doesn't populate these (it uses the drill-in editor for photos

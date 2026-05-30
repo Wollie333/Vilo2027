@@ -110,7 +110,7 @@ export default async function EditListingPage({
     supabase
       .from("listing_rooms")
       .select(
-        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sort_order )",
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sleeps, sort_order )",
       )
       .eq("listing_id", params.id)
       .is("deleted_at", null)
@@ -158,6 +158,7 @@ export default async function EditListingPage({
       (r.beds as Array<{
         bed_kind: string;
         quantity: number;
+        sleeps: number;
         sort_order: number;
       }> | null) ?? [];
     return {
@@ -193,7 +194,11 @@ export default async function EditListingPage({
       featured_photo_id: r.featured_photo_id ?? null,
       beds: rawBeds
         .sort((a, b) => a.sort_order - b.sort_order)
-        .map((b) => ({ bed_kind: b.bed_kind, quantity: b.quantity })),
+        .map((b) => ({
+          bed_kind: b.bed_kind,
+          quantity: b.quantity,
+          sleeps: b.sleeps,
+        })),
     };
   });
 
