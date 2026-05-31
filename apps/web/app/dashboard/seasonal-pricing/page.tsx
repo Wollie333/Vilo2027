@@ -58,7 +58,7 @@ export default async function SeasonalPricingPage() {
       supabase
         .from("listings")
         .select(
-          "id, name, slug, booking_mode, base_price, weekend_price, currency, min_nights, rooms:listing_rooms ( id, name, base_price, weekend_price, currency, sort_order, is_active, deleted_at )",
+          "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:listing_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
         )
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
@@ -90,6 +90,7 @@ export default async function SeasonalPricingPage() {
         name: string;
         base_price: number | string;
         weekend_price: number | string | null;
+        cleaning_fee: number | string | null;
         currency: string;
         sort_order: number;
         is_active: boolean;
@@ -104,6 +105,7 @@ export default async function SeasonalPricingPage() {
         name: r.name,
         basePrice: Number(r.base_price),
         weekendPrice: r.weekend_price == null ? null : Number(r.weekend_price),
+        cleaningFee: r.cleaning_fee == null ? null : Number(r.cleaning_fee),
         currency: r.currency,
         isActive: r.is_active,
       }));
@@ -118,6 +120,7 @@ export default async function SeasonalPricingPage() {
         | "flexible",
       basePrice: l.base_price == null ? null : Number(l.base_price),
       weekendPrice: l.weekend_price == null ? null : Number(l.weekend_price),
+      cleaningFee: l.cleaning_fee == null ? null : Number(l.cleaning_fee),
       currency: l.currency,
       minNights: l.min_nights ?? 1,
       rooms,
@@ -138,16 +141,16 @@ export default async function SeasonalPricingPage() {
     isActive: r.is_active,
   }));
 
-  return (
-    <div className="space-y-6">
-      <Header />
-      {listings.length === 0 ? (
+  if (listings.length === 0) {
+    return (
+      <div className="space-y-6">
+        <Header />
         <EmptyStateNoListings />
-      ) : (
-        <SeasonalPricingManager listings={listings} initialRules={rules} />
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  return <SeasonalPricingManager listings={listings} initialRules={rules} />;
 }
 
 function Header() {

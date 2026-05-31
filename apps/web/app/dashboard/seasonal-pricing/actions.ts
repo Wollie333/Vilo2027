@@ -209,6 +209,105 @@ export async function deleteSeasonalRuleAction(
   return { ok: true };
 }
 
+type CopiedRule = {
+  id: string;
+  listingId: string;
+  roomId: string | null;
+  label: string;
+  startDate: string;
+  endDate: string;
+  price: number;
+  currency: string;
+  minNights: number | null;
+  priority: number;
+  isActive: boolean;
+};
+
+/**
+ * Copy every active listing-wide rule from one listing onto another. Room-
+ * scoped rules are skipped — their room_id wouldn't exist on the target.
+ * Returns the freshly-inserted rows so the client can merge them into state.
+ */
+export async function copySeasonalRulesToListingAction(
+  fromListingId: string,
+  toListingId: string,
+): Promise<ActionResult<{ rules: CopiedRule[] }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertFeatureEnabled(host.hostId))) {
+    return { ok: false, error: PLAN_GATE_MSG };
+  }
+  if (fromListingId === toListingId) {
+    return { ok: false, error: "Pick a different listing to copy into." };
+  }
+  if (
+    !(await assertListingOwnership(fromListingId, host.hostId)) ||
+    !(await assertListingOwnership(toListingId, host.hostId))
+  ) {
+    return { ok: false, error: "Not your listing." };
+  }
+
+  const supabase = createServerClient();
+  const { data: source } = await supabase
+    .from("listing_seasonal_pricing")
+    .select(
+      "label, start_date, end_date, price, currency, min_nights, priority, is_active",
+    )
+    .eq("listing_id", fromListingId)
+    .is("room_id", null);
+
+  const rows = source ?? [];
+  if (rows.length === 0) {
+    return {
+      ok: false,
+      error: "This listing has no listing-wide seasons to copy.",
+    };
+  }
+
+  const { data: inserted, error } = await supabase
+    .from("listing_seasonal_pricing")
+    .insert(
+      rows.map((r) => ({
+        listing_id: toListingId,
+        room_id: null,
+        label: r.label,
+        start_date: r.start_date,
+        end_date: r.end_date,
+        price: r.price,
+        currency: r.currency,
+        min_nights: r.min_nights,
+        priority: r.priority,
+        is_active: r.is_active,
+      })),
+    )
+    .select(
+      "id, listing_id, room_id, label, start_date, end_date, price, currency, min_nights, priority, is_active",
+    );
+  if (error || !inserted) {
+    return { ok: false, error: "Could not copy seasons. Try again." };
+  }
+
+  revalidatePath("/dashboard/seasonal-pricing");
+  return {
+    ok: true,
+    data: {
+      rules: inserted.map((r) => ({
+        id: r.id,
+        listingId: r.listing_id,
+        roomId: r.room_id,
+        label: r.label,
+        startDate: r.start_date,
+        endDate: r.end_date,
+        price: Number(r.price),
+        currency: r.currency,
+        minNights: r.min_nights,
+        priority: r.priority,
+        isActive: r.is_active,
+      })),
+    },
+  };
+}
+
 export async function toggleSeasonalRuleActiveAction(
   ruleId: string,
   isActive: boolean,

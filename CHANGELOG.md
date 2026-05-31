@@ -31,6 +31,58 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Seasonal pricing redesign (Seasonal Pricing template) — branch `feat/seasonal-pricing-redesign`
+
+### Built
+- Rebuilt `/dashboard/seasonal-pricing` (`SeasonalPricingManager.tsx`) to match
+  the provided "Seasonal Pricing" design, fully wired to real data
+  (`listing_seasonal_pricing`, `listings`, `listing_rooms`):
+  - Per-listing **tab switcher** (replaces the stacked-cards layout) + a **year
+    selector** derived from the rules' actual date spans.
+  - **4 KPI cards**: base rate / night, weekend rate (+% vs base), seasons set
+    (with covered-nights count + per-tier share bar), projected uplift
+    (Σ over the year of effective price − flat base, weekend uplift included).
+  - **Year rate-calendar timeline**: listing-wide active rules plotted by
+    day-of-year, bar height vs a price scale, dashed base-rate line, today
+    marker, Jan–Dec axis, tier legend.
+  - **Pricing-rules sidebar** (base / weekend uplift / cleaning fee / peak min
+    nights) + a real computed "Year at a glance" card (guest-facing price range
+    + average — replaces the design's AI mock, no fabricated content).
+  - **Seasons table**: All/Upcoming/Past filter, tier colour bar, derived
+    sub-label (room name or tier descriptor), date range, nights, rate, vs-base
+    %, status pill (Active / Starts tomorrow / Upcoming / Past / Inactive), and
+    a kebab menu (edit / activate-deactivate / delete).
+  - **Guest-preview strip** mirroring the public listing `RatesSection`
+    (base + per-season groups + computed avg/night).
+- **Copy to listing**: new `copySeasonalRulesToListingAction` copies a listing's
+  listing-wide seasons onto another listing (fulfils the deferred bulk-copy
+  item); merges returned rows into client state.
+- **Export**: client-side CSV download of the selected listing's seasons.
+
+### Changed
+- `page.tsx` now also loads `cleaning_fee` (listing + rooms) for the KPI /
+  pricing-rules cards, and renders the manager full-bleed (it owns the page
+  heading); the plain `Header`/empty/upgrade states are unchanged.
+- All create/edit/delete/toggle/overlap-warning/priority logic preserved via the
+  existing `RuleDialog` + server actions — only the presentation changed.
+
+### Migrations
+- **None.** The design's season "tier" (peak/high/shoulder/low) is **derived**
+  from price-vs-base %, so no schema change was needed (also avoids the
+  no-Docker type-regen path). `listing_seasonal_pricing` already carries every
+  field the design needs.
+
+### Notes
+- Tier thresholds: ≥ +40% peak, ≥ +15% high, ≥ 0% shoulder, < base low.
+- `season-*` palette isn't in the app Tailwind config; tier colours are applied
+  via inline `style` hex to match the design exactly.
+- Demo data renders it: `pnpm seed:demo` seeds "December Peak" etc. on listing A.
+
+### Commit
+- `feat(seasonal-pricing): redesign manager to template + wire real data`
+
+---
+
 ## 2026-05-31 — Public listing page redesign (Listing Page template) — branch `feat/listing-page-redesign`
 
 ### Built
