@@ -31,6 +31,36 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Guest portal "My trips" redesign — branch `feat/listing-page-redesign`
+
+### Built
+- Rebuilt `/portal/trips` to the "My Trips Page" design: page header with
+  greeting + "Find a stay" button, a featured **Next trip** hero (cover image,
+  days-to-go countdown ring, dates/nights/room facts, host + reference, view /
+  message / directions actions), and an **Upcoming / Past / Cancelled** tab
+  switcher over a 2-column card grid.
+- Trip cards carry a status badge (Confirmed / Awaiting host / Completed /
+  Cancelled), location, dates, room + guests, host avatar, price (or refunded
+  amount for cancelled), reference, and status-aware actions (View booking /
+  View request / Leave a review / Book again / Rebook + message/receipt).
+- All data is real: bookings joined to listing cover photo (`listing_photos`),
+  host avatar, booked room names (`booking_rooms`), and the guest's `reviews`
+  to drive the "You rated"/"Leave a review" states; refunds use
+  `bookings.refund_total`.
+
+### Changed
+- `/portal/trips` split into a server `page.tsx` (data + bucketing) and a
+  client `TripsClient.tsx` (tabs/featured/cards). Bucketing: cancelled set →
+  Cancelled; live/pending with future check-out → Upcoming; else → Past. The
+  soonest upcoming stay is featured.
+
+### Notes
+- Sidebar/top chrome unchanged — the existing `PortalSidebar` already mirrors
+  the mock. Reused existing tokens/animations (`shadow-glow`, `rounded-card`,
+  `vilo-ring-pulse`, `vilo-step-enter`, `vilo-hide-sb`); no globals.css edits.
+- Trip detail still links to `/my-trips/[id]`; "Leave a review" to
+  `/review/[bookingId]`. `pnpm build` + `pnpm lint` pass.
+
 ## 2026-05-31 — Host booking-detail redesign — branch `feat/listing-page-redesign`
 
 ### Built
