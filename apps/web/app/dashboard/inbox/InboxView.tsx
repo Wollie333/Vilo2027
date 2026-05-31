@@ -16,6 +16,8 @@ import {
   Paperclip,
   PenSquare,
   Phone,
+  PanelLeftClose,
+  PanelLeftOpen,
   PanelRightOpen,
   Search,
   SendHorizontal,
@@ -220,6 +222,22 @@ export function InboxView({
   const [showPaneMobile, setShowPaneMobile] = useState(false);
   const [searchInput, setSearchInput] = useState(search);
 
+  // Folders rail visibility (xl+ only). Persisted so the host's choice sticks
+  // across navigations and reloads. Defaults to shown.
+  const [showFolders, setShowFolders] = useState(true);
+  useEffect(() => {
+    if (window.localStorage.getItem("vilo:inbox:foldersHidden") === "1") {
+      setShowFolders(false);
+    }
+  }, []);
+  const toggleFolders = useCallback(() => {
+    setShowFolders((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("vilo:inbox:foldersHidden", next ? "0" : "1");
+      return next;
+    });
+  }, []);
+
   // Mark selected conversation as read on mount/selection change.
   const markedRef = useRef<string | null>(null);
   useEffect(() => {
@@ -295,8 +313,12 @@ export function InboxView({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-      {/* ── Folders rail (only xl+) ─────────────────────────── */}
-      <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white xl:flex">
+      {/* ── Folders rail (only xl+, toggleable) ─────────────── */}
+      <aside
+        className={`w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white ${
+          showFolders ? "hidden xl:flex" : "hidden"
+        }`}
+      >
         <div className="px-4 pb-3 pt-5">
           <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             Folders
@@ -366,6 +388,19 @@ export function InboxView({
       >
         <div className="mid-head sticky top-0 z-10 border-b border-brand-line bg-white/95 px-4 py-3 backdrop-blur">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleFolders}
+              aria-pressed={!showFolders}
+              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded border border-brand-line bg-white text-brand-ink transition-colors hover:bg-brand-light xl:inline-flex"
+              title={showFolders ? "Hide folders" : "Show folders"}
+            >
+              {showFolders ? (
+                <PanelLeftClose className="h-4 w-4" />
+              ) : (
+                <PanelLeftOpen className="h-4 w-4" />
+              )}
+            </button>
             <div className="flex h-9 flex-1 items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 focus-within:border-brand-primary focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-primary/15">
               <Search className="h-4 w-4 text-brand-mute" />
               <input
