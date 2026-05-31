@@ -75,6 +75,57 @@ function describeRoomFeatures(r: EditorRoom): string {
   return parts.slice(0, 2).join(" · ");
 }
 
+// All currency on this page is assumed ZAR (see avgRate note below).
+function fmtRand(n: number): string {
+  return `R ${Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
+
+// The single nightly figure used for averages — for per-person rooms the
+// rate lives in price_per_person (base_price is saved as 0), so base_price
+// alone would read as "free" and drag the average down.
+function effectiveNightly(r: EditorRoom): number {
+  if (r.pricing_mode === "per_person") return r.price_per_person ?? 0;
+  return r.base_price;
+}
+
+// Headline rate + caption for the table, resolved per pricing mode so the
+// saved rate always shows without opening the room. Returns null only when
+// no rate has actually been set for the room's mode.
+function roomRate(r: EditorRoom): { amount: string; sub: string } | null {
+  if (r.pricing_mode === "per_person") {
+    const pp = r.price_per_person ?? 0;
+    if (pp <= 0) return null;
+    return { amount: fmtRand(pp), sub: "per person / night" };
+  }
+  if (r.pricing_mode === "per_room_plus_extra") {
+    if (r.base_price <= 0) return null;
+    const extra = r.extra_guest_price ?? 0;
+    const covers = r.base_occupancy ?? null;
+    return {
+      amount: fmtRand(r.base_price),
+      sub:
+        extra > 0
+          ? `${covers ? `${covers} guest${covers === 1 ? "" : "s"}` : "base"} · +${fmtRand(extra)}/extra`
+          : "from / night",
+    };
+  }
+  // per_room (default flat nightly rate).
+  if (r.base_price <= 0) return null;
+  const weekendBump =
+    r.weekend_price && r.base_price > 0
+      ? Math.round(((r.weekend_price - r.base_price) / r.base_price) * 100)
+      : null;
+  return {
+    amount: fmtRand(r.base_price),
+    sub:
+      weekendBump != null && weekendBump !== 0
+        ? `Weekend ${weekendBump > 0 ? "+" : ""}${weekendBump}%`
+        : r.cleaning_fee > 0
+          ? `+ ${fmtRand(r.cleaning_fee)} cleaning`
+          : "per night",
+  };
+}
+
 export default async function RoomsPage({
   searchParams,
 }: {
@@ -277,7 +328,7 @@ export default async function RoomsPage({
     activeRoomList.length === 0
       ? 0
       : Math.round(
-          activeRoomList.reduce((a, r) => a + r.base_price, 0) /
+          activeRoomList.reduce((a, r) => a + effectiveNightly(r), 0) /
             activeRoomList.length,
         );
 
@@ -774,12 +825,14 @@ function ListingGroupCard({ group }: { group: Group }) {
   const { listing, rooms } = group;
 
   const totalSleeps = rooms.reduce((a, r) => a + r.max_guests, 0);
-  const activeForAvg = rooms.filter((r) => r.is_active && r.base_price > 0);
+  const activeForAvg = rooms.filter(
+    (r) => r.is_active && effectiveNightly(r) > 0,
+  );
   const avgPrice =
     activeForAvg.length === 0
       ? 0
       : Math.round(
-          activeForAvg.reduce((a, r) => a + r.base_price, 0) /
+          activeForAvg.reduce((a, r) => a + effectiveNightly(r), 0) /
             activeForAvg.length,
         );
   const locationLine = [listing.city, listing.province]
@@ -930,12 +983,7 @@ function RoomRow({ listingId, room }: { listingId: string; room: EditorRoom }) {
   const bedsText = describeBeds(room.beds);
   const featuresText = describeRoomFeatures(room);
   const subTitle = [bedsText, featuresText].filter(Boolean).join(" · ");
-  const weekendBump =
-    room.weekend_price && room.base_price > 0
-      ? Math.round(
-          ((room.weekend_price - room.base_price) / room.base_price) * 100,
-        )
-      : null;
+  const rate = roomRate(room);
 
   return (
     <li className="grid grid-cols-1 gap-y-2 px-6 py-3 hover:bg-brand-light/40 md:grid-cols-[1.6fr_0.75fr_0.7fr_1fr_auto] md:items-center md:gap-3">
@@ -1002,23 +1050,15 @@ function RoomRow({ listingId, room }: { listingId: string; room: EditorRoom }) {
         </div>
       </div>
 
-      {/* Rate / night */}
+      {/* Rate / night — resolved per pricing mode (per_room / per_person /
+          per_room_plus_extra) so the saved rate always shows here. */}
       <div className="md:text-right">
-        {room.base_price > 0 ? (
+        {rate ? (
           <>
             <div className="num font-display text-[14px] font-bold text-brand-ink">
-              R{" "}
-              {Math.round(room.base_price)
-                .toLocaleString("en-ZA")
-                .replace(/,/g, " ")}
+              {rate.amount}
             </div>
-            <div className="num text-[10.5px] text-brand-mute">
-              {weekendBump != null && weekendBump !== 0
-                ? `Weekend ${weekendBump > 0 ? "+" : ""}${weekendBump}%`
-                : room.cleaning_fee > 0
-                  ? `+ R ${Math.round(room.cleaning_fee).toLocaleString("en-ZA").replace(/,/g, " ")} cleaning`
-                  : "Flat rate"}
-            </div>
+            <div className="num text-[10.5px] text-brand-mute">{rate.sub}</div>
           </>
         ) : (
           <>
