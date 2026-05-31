@@ -18,6 +18,7 @@ type CartState = {
 
   selected: Set<string>;
   toggle: (roomId: string) => void;
+  selectAll: (roomIds: string[]) => void;
   clear: () => void;
   isSelected: (roomId: string) => boolean;
 
@@ -71,6 +72,17 @@ export function RoomsCartProvider({
     setRoomGuestsState((prev) => ({ ...prev, [roomId]: Math.max(1, n) }));
   }, []);
 
+  // Select every room at once (whole-guesthouse toggle). Seeds a default of
+  // 1 guest for any room not already counted.
+  const selectAll = useCallback((roomIds: string[]) => {
+    setSelected(new Set(roomIds));
+    setRoomGuestsState((prev) => {
+      const next = { ...prev };
+      for (const id of roomIds) if (next[id] == null) next[id] = 1;
+      return next;
+    });
+  }, []);
+
   const clear = useCallback(() => {
     setSelected(new Set());
     setRoomGuestsState({});
@@ -90,6 +102,7 @@ export function RoomsCartProvider({
       setFlexibleTab: handleSetFlexibleTab,
       selected,
       toggle,
+      selectAll,
       clear,
       isSelected,
       roomGuests,
@@ -107,6 +120,7 @@ export function RoomsCartProvider({
       handleSetFlexibleTab,
       selected,
       toggle,
+      selectAll,
       clear,
       isSelected,
       roomGuests,

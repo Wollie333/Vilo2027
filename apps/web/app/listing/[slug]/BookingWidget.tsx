@@ -3,6 +3,8 @@
 import { Star, Users, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { applyStayDiscounts } from "./pricing";
+
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
     .toLocaleString("en-ZA")
@@ -28,6 +30,8 @@ export function BookingWidget({
   instantBooking,
   rating,
   reviewCount,
+  weeklyDiscountPct,
+  monthlyDiscountPct,
 }: {
   slug: string;
   basePrice: number | null;
@@ -37,6 +41,8 @@ export function BookingWidget({
   instantBooking: boolean;
   rating: number | null;
   reviewCount: number | null;
+  weeklyDiscountPct: number | null;
+  monthlyDiscountPct: number | null;
 }) {
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
@@ -46,12 +52,19 @@ export function BookingWidget({
   const cap = maxGuests ?? 2;
 
   const calc = useMemo(() => {
-    const base = basePrice ?? 0;
-    const cleaning = cleaningFee ?? 0;
-    const subtotal = base * nights;
-    const total = subtotal + (nights > 0 ? cleaning : 0);
-    return { subtotal, cleaning: nights > 0 ? cleaning : 0, total };
-  }, [basePrice, cleaningFee, nights]);
+    const subtotal = (basePrice ?? 0) * nights;
+    const cleaning = nights > 0 ? (cleaningFee ?? 0) : 0;
+    const d = applyStayDiscounts({
+      base: subtotal,
+      cleaning,
+      nights,
+      isWholeCombo: false,
+      wholePct: null,
+      weeklyPct: weeklyDiscountPct,
+      monthlyPct: monthlyDiscountPct,
+    });
+    return { subtotal, cleaning, total: d.total, discount: d };
+  }, [basePrice, cleaningFee, nights, weeklyDiscountPct, monthlyDiscountPct]);
 
   const canReserve =
     nights > 0 && guests >= 1 && guests <= cap && basePrice != null;
@@ -167,6 +180,17 @@ export function BookingWidget({
               {fmtR(calc.subtotal, currency)}
             </dd>
           </div>
+          {calc.discount.losSaving > 0 ? (
+            <div className="flex items-center justify-between text-brand-primary">
+              <dt>
+                {calc.discount.losKind === "monthly" ? "Monthly" : "Weekly"}{" "}
+                discount · {calc.discount.losPct}%
+              </dt>
+              <dd className="font-medium">
+                − {fmtR(calc.discount.losSaving, currency)}
+              </dd>
+            </div>
+          ) : null}
           {calc.cleaning > 0 ? (
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">Cleaning fee</dt>

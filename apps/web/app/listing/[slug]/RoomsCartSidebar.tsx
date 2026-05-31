@@ -1,8 +1,9 @@
 "use client";
 
-import { Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
+import { Home, Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
 import { useMemo } from "react";
 
+import { applyStayDiscounts } from "./pricing";
 import { useRoomsCart } from "./RoomsCartProvider";
 import {
   roomFromNightly,
@@ -35,6 +36,9 @@ export function RoomsCartSidebar({
   reviewCount,
   basePrice,
   cleaningFee,
+  wholeDiscountPct,
+  weeklyDiscountPct,
+  monthlyDiscountPct,
 }: {
   slug: string;
   rooms: PublicRoom[];
@@ -46,6 +50,10 @@ export function RoomsCartSidebar({
   // Used when mode === "flexible" + flexibleTab === "whole".
   basePrice: number | null;
   cleaningFee: number | null;
+  // Combo + length-of-stay discounts (applied server-side; mirrored here).
+  wholeDiscountPct: number | null;
+  weeklyDiscountPct: number | null;
+  monthlyDiscountPct: number | null;
 }) {
   const {
     mode,
@@ -104,6 +112,51 @@ export function RoomsCartSidebar({
     const clean = nights > 0 ? (cleaningFee ?? 0) : 0;
     return { base, cleaning: clean, total: base + clean };
   }, [basePrice, cleaningFee, nights]);
+
+  // All passed rooms are active → booking every one is the whole-place combo.
+  const isWholeCombo =
+    selectedRooms.length > 1 && selectedRooms.length === rooms.length;
+
+  // Rooms-tab discounts: whole-combo (when all rooms) + length-of-stay.
+  const roomsDiscount = useMemo(
+    () =>
+      applyStayDiscounts({
+        base: roomsCalc.base,
+        cleaning: roomsCalc.cleaning,
+        nights,
+        isWholeCombo,
+        wholePct: wholeDiscountPct,
+        weeklyPct: weeklyDiscountPct,
+        monthlyPct: monthlyDiscountPct,
+      }),
+    [
+      roomsCalc,
+      nights,
+      isWholeCombo,
+      wholeDiscountPct,
+      weeklyDiscountPct,
+      monthlyDiscountPct,
+    ],
+  );
+
+  // Whole-tab discounts: length-of-stay only (base_price is the whole-place
+  // rate already; the combo discount doesn't stack on it).
+  const wholeDiscount = useMemo(
+    () =>
+      applyStayDiscounts({
+        base: wholeCalc.base,
+        cleaning: wholeCalc.cleaning,
+        nights,
+        isWholeCombo: false,
+        wholePct: null,
+        weeklyPct: weeklyDiscountPct,
+        monthlyPct: monthlyDiscountPct,
+      }),
+    [wholeCalc, nights, weeklyDiscountPct, monthlyDiscountPct],
+  );
+
+  const losLabel = (kind: "weekly" | "monthly" | null): string =>
+    kind === "monthly" ? "Monthly discount" : "Weekly discount";
 
   // Reserve href construction.
   const wholeReady =
@@ -381,9 +434,9 @@ export function RoomsCartSidebar({
               ? "Pick your dates"
               : `Reserve ${selectedRooms.length} ${
                   selectedRooms.length === 1 ? "room" : "rooms"
-                } · ${fmtR(roomsCalc.total, currency)}`
+                } · ${fmtR(roomsDiscount.total, currency)}`
           : nights > 0 && basePrice != null
-            ? `Reserve · ${fmtR(wholeCalc.total, currency)}`
+            ? `Reserve · ${fmtR(wholeDiscount.total, currency)}`
             : "Pick your dates"}
       </a>
 
@@ -401,6 +454,27 @@ export function RoomsCartSidebar({
                 {fmtR(roomsCalc.base, currency)}
               </dd>
             </div>
+            {roomsDiscount.wholeSaving > 0 ? (
+              <div className="flex items-center justify-between text-brand-primary">
+                <dt className="inline-flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5" /> Whole place ·{" "}
+                  {wholeDiscountPct}%
+                </dt>
+                <dd className="font-medium">
+                  − {fmtR(roomsDiscount.wholeSaving, currency)}
+                </dd>
+              </div>
+            ) : null}
+            {roomsDiscount.losSaving > 0 ? (
+              <div className="flex items-center justify-between text-brand-primary">
+                <dt>
+                  {losLabel(roomsDiscount.losKind)} · {roomsDiscount.losPct}%
+                </dt>
+                <dd className="font-medium">
+                  − {fmtR(roomsDiscount.losSaving, currency)}
+                </dd>
+              </div>
+            ) : null}
             {roomsCalc.cleaning > 0 ? (
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fees</dt>
@@ -414,7 +488,7 @@ export function RoomsCartSidebar({
                 Total
               </dt>
               <dd className="font-display font-bold text-brand-ink">
-                {fmtR(roomsCalc.total, currency)}
+                {fmtR(roomsDiscount.total, currency)}
               </dd>
             </div>
           </dl>
@@ -429,6 +503,16 @@ export function RoomsCartSidebar({
                 {fmtR(wholeCalc.base, currency)}
               </dd>
             </div>
+            {wholeDiscount.losSaving > 0 ? (
+              <div className="flex items-center justify-between text-brand-primary">
+                <dt>
+                  {losLabel(wholeDiscount.losKind)} · {wholeDiscount.losPct}%
+                </dt>
+                <dd className="font-medium">
+                  − {fmtR(wholeDiscount.losSaving, currency)}
+                </dd>
+              </div>
+            ) : null}
             {wholeCalc.cleaning > 0 ? (
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fee</dt>
@@ -442,7 +526,7 @@ export function RoomsCartSidebar({
                 Total
               </dt>
               <dd className="font-display font-bold text-brand-ink">
-                {fmtR(wholeCalc.total, currency)}
+                {fmtR(wholeDiscount.total, currency)}
               </dd>
             </div>
           </dl>

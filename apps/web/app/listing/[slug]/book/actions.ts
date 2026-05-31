@@ -14,10 +14,18 @@ import {
   defaultAddonQuantity,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
+import { applyStayDiscounts } from "../pricing";
 import { roomNightlyBase } from "../roomDisplay";
 import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
+
+// PostgREST returns numeric columns as strings — coerce to number | null.
+function numOrNull(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
 // ─── Guest account creation at checkout ──────────────────────────
 // Lets an unauthenticated visitor create a guest account inline on the
@@ -130,7 +138,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode",
+      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -168,6 +176,10 @@ export async function createBookingAction(
   let baseAmount: number;
   let cleaning: number;
   let totalAmount: number;
+  // True when the guest booked every active room together — unlocks the
+  // whole-listing combo discount. Whole-listing-scope bookings price off the
+  // listing base_price directly and don't stack this discount.
+  let isWholeCombo = false;
   let roomRowsForBooking: Array<{
     room_id: string;
     base_amount: number;
@@ -288,6 +300,19 @@ export async function createBookingAction(
       };
     });
     totalAmount = baseAmount + cleaning;
+
+    // Whole-listing combo: did the guest take every active room? Compare the
+    // selection against the listing's full active-room count.
+    const { count: activeRoomCount } = await admin
+      .from("listing_rooms")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listing.id)
+      .is("deleted_at", null)
+      .eq("is_active", true);
+    isWholeCombo =
+      activeRoomCount != null &&
+      activeRoomCount > 1 &&
+      roomRows.length === activeRoomCount;
   } else {
     // Whole-listing path.
     if (listing.base_price == null) {
@@ -457,7 +482,21 @@ export async function createBookingAction(
         sort_order: sortOrder++,
       });
     }
-    totalAmount = baseAmount + cleaning + addonsTotal;
+
+    // Apply combo + length-of-stay discounts to the room/whole base (never to
+    // cleaning or add-ons). Same pure helper the booking sidebar uses, so the
+    // charged total matches the quoted total exactly.
+    const { discountTotal } = applyStayDiscounts({
+      base: baseAmount,
+      cleaning,
+      nights,
+      isWholeCombo,
+      wholePct: numOrNull(listing.whole_listing_discount_pct),
+      weeklyPct: numOrNull(listing.weekly_discount_pct),
+      monthlyPct: numOrNull(listing.monthly_discount_pct),
+    });
+
+    totalAmount = baseAmount + cleaning + addonsTotal - discountTotal;
   }
 
   // 6. Insert booking.

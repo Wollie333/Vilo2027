@@ -39,6 +39,7 @@ import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
+import { WholeListingToggle } from "./WholeListingToggle";
 
 // Always read live listing/room/add-on data — never serve it from Next's Data
 // Cache, which would otherwise freeze Supabase `.select()` GETs and show stale
@@ -70,6 +71,9 @@ type RawListing = {
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
   instant_booking: boolean;
+  whole_listing_discount_pct: number | null;
+  weekly_discount_pct: number | null;
+  monthly_discount_pct: number | null;
   avg_rating: number | null;
   total_reviews: number | null;
   host: {
@@ -126,6 +130,7 @@ async function loadListing(slug: string) {
         check_in_time, check_out_time,
         base_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
+        whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct,
         avg_rating, total_reviews,
         host:hosts!inner (
           display_name, handle, bio, avatar_url, is_verified,
@@ -252,6 +257,9 @@ async function loadListing(slug: string) {
     total_reviews: toNum(listing.total_reviews),
     latitude: toNum(listing.latitude),
     longitude: toNum(listing.longitude),
+    whole_listing_discount_pct: toNum(listing.whole_listing_discount_pct),
+    weekly_discount_pct: toNum(listing.weekly_discount_pct),
+    monthly_discount_pct: toNum(listing.monthly_discount_pct),
   };
 
   return { listing: coercedListing, photos: galleryPhotos, amenities, rooms };
@@ -314,6 +322,12 @@ export default async function ListingDetailPage({
               roomsNode={
                 <RoomsGrid rooms={rooms} currency={listing.currency} />
               }
+              roomsHeaderAction={
+                <WholeListingToggle
+                  roomIds={rooms.map((r) => r.id)}
+                  discountPct={listing.whole_listing_discount_pct}
+                />
+              }
               sidebarNode={
                 <RoomsCartSidebar
                   slug={listing.slug ?? params.slug}
@@ -325,6 +339,9 @@ export default async function ListingDetailPage({
                   reviewCount={listing.total_reviews}
                   basePrice={listing.base_price}
                   cleaningFee={listing.cleaning_fee}
+                  wholeDiscountPct={listing.whole_listing_discount_pct}
+                  weeklyDiscountPct={listing.weekly_discount_pct}
+                  monthlyDiscountPct={listing.monthly_discount_pct}
                 />
               }
             />
@@ -347,6 +364,8 @@ export default async function ListingDetailPage({
                 instantBooking={listing.instant_booking}
                 rating={listing.avg_rating}
                 reviewCount={listing.total_reviews}
+                weeklyDiscountPct={listing.weekly_discount_pct}
+                monthlyDiscountPct={listing.monthly_discount_pct}
               />
             }
           />
@@ -484,12 +503,14 @@ function ListingBody({
   amenities,
   showRoomsGrid,
   roomsNode,
+  roomsHeaderAction,
   sidebarNode,
 }: {
   listing: RawListing;
   amenities: string[];
   showRoomsGrid: boolean;
   roomsNode: React.ReactNode;
+  roomsHeaderAction?: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
   const hasReviews =
@@ -656,10 +677,11 @@ function ListingBody({
                   </h3>
                   {listing.booking_mode !== "whole_listing" ? (
                     <p className="mt-1 text-sm text-brand-mute">
-                      Tap to select. Book one room or a few.
+                      Tap to select. Book one room, a few, or the whole place.
                     </p>
                   ) : null}
                 </div>
+                {roomsHeaderAction}
               </div>
               <div className="mt-5">{roomsNode}</div>
               {listing.booking_mode !== "whole_listing" ? (
