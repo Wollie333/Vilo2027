@@ -82,17 +82,37 @@ export default async function RoomsPage({
 }) {
   const supabase = createServerClient();
 
-  // RLS host_manage_own_listings — only the signed-in host's listings.
+  // Scope to the logged-in host. `listings` has a `public_read_published`
+  // RLS policy (so guests can browse the directory), which means relying on
+  // RLS alone here would also return every OTHER host's published listing.
+  // The explicit `host_id` filter is what keeps the portfolio private — never
+  // remove it. Resolve the host by `user_id`, not RLS.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: host } = user
+    ? await supabase
+        .from("hosts")
+        .select("id")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle()
+    : { data: null };
+
   // featured-photo join uses listing_rooms_featured_photo_id_fkey
   // (migration 20260524000004). Listings cover comes from the first
   // listing-level photo (sort_order = 0).
-  const { data: listings } = await supabase
-    .from("listings")
-    .select(
-      "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sleeps, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
-    )
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const { data: listings } = host
+    ? await supabase
+        .from("listings")
+        .select(
+          "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sleeps, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
+        )
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+    : { data: null };
 
   // Flatten + filter rooms locally — Supabase doesn't filter nested rows.
   const groups: Group[] = (listings ?? []).map((l) => {
