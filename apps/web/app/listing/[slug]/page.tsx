@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import {
+  Award,
   BadgeCheck,
   Ban,
   Clock,
@@ -27,8 +28,11 @@ import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";
 import { BookingWidget } from "./BookingWidget";
+import { Breadcrumb } from "./Breadcrumb";
+import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
@@ -50,6 +54,9 @@ type RawListing = {
   accommodation_type: string | null;
   city: string | null;
   province: string | null;
+  country: string | null;
+  latitude: number | null;
+  longitude: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
   max_guests: number | null;
@@ -71,6 +78,14 @@ type RawListing = {
     bio: string | null;
     avatar_url: string | null;
     is_verified: boolean;
+    is_superhost: boolean;
+    response_rate: number | null;
+    avg_response_hours: number | null;
+    languages_spoken: string[] | null;
+    highlights: string[] | null;
+    phone_verified: boolean;
+    payout_verified: boolean;
+    created_at: string;
   };
 };
 
@@ -106,13 +121,18 @@ async function loadListing(slug: string) {
       `
         id, slug, name, description,
         listing_type, accommodation_type,
-        city, province,
+        city, province, country, latitude, longitude,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
         base_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         avg_rating, total_reviews,
-        host:hosts!inner ( display_name, handle, bio, avatar_url, is_verified )
+        host:hosts!inner (
+          display_name, handle, bio, avatar_url, is_verified,
+          is_superhost, response_rate, avg_response_hours,
+          languages_spoken, highlights, phone_verified, payout_verified,
+          created_at
+        )
       `,
     )
     .eq("slug", slug)
@@ -230,6 +250,8 @@ async function loadListing(slug: string) {
     cleaning_fee: toNum(listing.cleaning_fee),
     avg_rating: toNum(listing.avg_rating),
     total_reviews: toNum(listing.total_reviews),
+    latitude: toNum(listing.latitude),
+    longitude: toNum(listing.longitude),
   };
 
   return { listing: coercedListing, photos: galleryPhotos, amenities, rooms };
@@ -269,6 +291,12 @@ export default async function ListingDetailPage({
     <div className="bg-white text-brand-ink">
       <UtilityBar />
       <SiteHeader />
+      <Breadcrumb
+        country={listing.country}
+        province={listing.province}
+        city={listing.city}
+        name={listing.name}
+      />
 
       <main className="mx-auto max-w-7xl px-5 pb-24 lg:px-8 lg:pb-12">
         <TitleStrip listing={listing} />
@@ -347,6 +375,11 @@ function TitleStrip({ listing }: { listing: RawListing }) {
           <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
             {typeLabel(listing)}
           </span>
+          {listing.host.is_superhost ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-[#065F46]">
+              <Award className="h-3 w-3" /> Superhost
+            </span>
+          ) : null}
           {listing.host.is_verified ? (
             <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
               <BadgeCheck className="h-3 w-3" /> Verified host
@@ -399,19 +432,30 @@ function TitleStrip({ listing }: { listing: RawListing }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 md:ml-auto md:self-end">
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
-        >
-          <Share2 className="h-4 w-4" /> Share
-        </button>
-        <button
-          type="button"
-          className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
-        >
-          <Heart className="h-4 w-4" /> Save
-        </button>
+      <div className="flex w-full shrink-0 flex-col items-stretch gap-3 md:ml-auto md:w-auto md:items-end">
+        <TrustCard
+          hostName={listing.host.display_name}
+          avatarUrl={listing.host.avatar_url}
+          isVerified={listing.host.is_verified}
+          avgResponseHours={listing.host.avg_response_hours}
+          hostingSince={listing.host.created_at}
+          rating={listing.avg_rating}
+          reviewCount={listing.total_reviews}
+        />
+        <div className="flex items-center gap-2 md:self-end">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
+          >
+            <Share2 className="h-4 w-4" /> Share
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
+          >
+            <Heart className="h-4 w-4" /> Save
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -579,11 +623,8 @@ function ListingBody({
               <h3 className="font-display text-xl font-bold text-brand-ink">
                 About this place
               </h3>
-              <div
-                className="mt-4 space-y-4 text-[15px] leading-[1.65] text-brand-ink/85 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
-                dangerouslySetInnerHTML={{
-                  __html: sanitiseListingHtml(listing.description),
-                }}
+              <AboutCollapsible
+                html={sanitiseListingHtml(listing.description)}
               />
             </section>
           ) : null}
