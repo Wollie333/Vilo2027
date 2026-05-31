@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vilo — Content Strategy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green-900: #0F3D2E;
+  --green-700: #1E6B4F;
+  --green-500: #2E8B6A;
+  --green-50:  #E8F1ED;
+  --bone:      #F7F4EE;
+  --paper:    #FBF9F4;
+  --ink:      #1A1A1A;
+  --ink-soft: #4A4A4A;
+  --line:     #DCD6CB;
+  --line-soft:#EAE6DC;
+  --guest:    #2563AB;
+  --guest-bg: #E8F0F9;
+  --owner:    #B8851A;
+  --owner-bg: #FBF3DE;
+  --accent:   #E07A3B;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ============ HEADER ============ */
+.header {
+  background: var(--green-900);
+  color: var(--paper);
+  padding: 48px 40px 56px;
+  position: relative;
+  overflow: hidden;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(46,139,106,0.25) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(247,244,238,0.6);
+  margin-bottom: 16px;
+}
+
+.title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 18px;
+  font-variation-settings: "opsz" 144;
+}
+
+.title em {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--green-500);
+}
+
+.subtitle {
+  font-size: 16px;
+  color: rgba(247,244,238,0.75);
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.stats {
+  display: flex;
+  gap: 40px;
+  margin-top: 36px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  border-left: 1px solid rgba(247,244,238,0.2);
+  padding-left: 18px;
+}
+
+.stat-num {
+  font-family: 'Fraunces', serif;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--paper);
+}
+
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(247,244,238,0.55);
+  margin-top: 6px;
+}
+
+/* ============ TABS ============ */
+.tabs-wrap {
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.02);
+}
+
+.tabs {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 40px;
+}
+
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  background: none;
+  border: none;
+  padding: 18px 4px;
+  margin-right: 32px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+
+.tab:hover { color: var(--ink); }
+
+.tab.active {
+  color: var(--green-900);
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--green-700);
+}
+
+.tab-count {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: var(--green-50);
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.tab.active .tab-count {
+  background: var(--green-700);
+  color: var(--paper);
+}
+
+/* ============ CONTENT ============ */
+.main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 36px 40px 80px;
+}
+
+.panel { display: none; }
+.panel.active { display: block; animation: fadeIn 0.3s ease; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============ FILTERS ============ */
+.filters {
+  background: var(--bone);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.chip {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.chip:hover {
+  border-color: var(--green-500);
+  color: var(--ink);
+}
+
+.chip.active {
+  background: var(--green-900);
+  border-color: var(--green-900);
+  color: var(--paper);
+}
+
+.search {
+  flex: 1;
+  min-width: 220px;
+  margin-left: auto;
+  position: relative;
+}
+
+.search input {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  padding: 9px 16px 9px 38px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  transition: border-color 0.15s;
+}
+
+.search input:focus {
+  outline: none;
+  border-color: var(--green-500);
+}
+
+.search::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A4A4A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat center;
+}
+
+.result-count {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============ TABLE ============ */
+.table-wrap {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  background: var(--bone);
+  border-bottom: 1px solid var(--line);
+}
+
+th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+th:hover { color: var(--green-700); }
+
+th .arrow {
+  display: inline-block;
+  margin-left: 4px;
+  opacity: 0.3;
+  font-size: 9px;
+}
+
+th.sorted .arrow { opacity: 1; color: var(--green-700); }
+
+td {
+  padding: 16px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line-soft);
+  line-height: 1.5;
+}
+
+tbody tr {
+  transition: background 0.15s;
+}
+
+tbody tr:hover { background: var(--bone); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* Track badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.badge-guest { background: var(--guest-bg); color: var(--guest); }
+.badge-owner { background: var(--owner-bg); color: var(--owner); }
+.badge-stage {
+  background: var(--green-50);
+  color: var(--green-900);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.badge-format {
+  background: #F1ECE0;
+  color: #7A5C24;
+  font-weight: 500;
+}
+
+.id-cell {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--green-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.hook-cell { font-weight: 500; color: var(--ink); }
+.muted { color: var(--ink-soft); font-size: 12.5px; }
+
+/* Track left bar */
+.track-row td:first-child {
+  position: relative;
+  padding-left: 22px;
+}
+
+.track-guest td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--guest);
+}
+
+.track-owner td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--owner);
+}
+
+/* Calendar specific */
+.day-cell {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--green-900);
+  font-variant-numeric: tabular-nums;
+  width: 60px;
+}
+
+.week-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--green-900);
+  color: var(--paper);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Specs page */
+.spec-pixel {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--green-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.spec-aspect {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.platform-tag {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.platform-Facebook  { background: #E3EBF5; color: #1B4D8A; }
+.platform-Instagram { background: #F9E3E3; color: #A52E5C; }
+.platform-TikTok    { background: #E5E5E5; color: #000;    }
+.platform-YouTube   { background: #FCE3E3; color: #C9302C; }
+.platform-LinkedIn  { background: #DCEEDC; color: #0A5C2E; }
+.platform-Blog      { background: #F1ECE0; color: #6E5012; }
+.platform-Blog\\/Vilo, [class*="Vilo"] { background: #F1ECE0; color: #6E5012; }
+
+/* Checklist */
+.check-box {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-block;
+  vertical-align: middle;
+  transition: all 0.15s;
+  background: var(--paper);
+  position: relative;
+}
+
+.check-box:hover { border-color: var(--green-500); }
+
+.check-box.checked {
+  background: var(--green-700);
+  border-color: var(--green-700);
+}
+
+.check-box.checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.progress-card {
+  background: var(--green-900);
+  color: var(--paper);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.progress-card .num {
+  font-family: 'Fraunces', serif;
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.progress-label {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(247,244,238,0.6);
+  margin-top: 4px;
+}
+
+.progress-bar {
+  flex: 1;
+  min-width: 200px;
+  height: 8px;
+  background: rgba(247,244,238,0.15);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--green-500);
+  transition: width 0.3s ease;
+  border-radius: 100px;
+}
+
+.reset-btn {
+  background: rgba(247,244,238,0.1);
+  border: 1px solid rgba(247,244,238,0.2);
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.reset-btn:hover {
+  background: rgba(247,244,238,0.2);
+}
+
+/* README / About panel */
+.intro-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.intro-card {
+  background: var(--paper);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.intro-card h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--green-900);
+  letter-spacing: -0.01em;
+}
+
+.intro-card p {
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+
+.intro-card .big-num {
+  font-family: 'Fraunces', serif;
+  font-size: 48px;
+  font-weight: 500;
+  color: var(--green-700);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  letter-spacing: -0.015em;
+  color: var(--green-900);
+}
+
+.section-lead {
+  font-size: 15px;
+  color: var(--ink-soft);
+  max-width: 720px;
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 40px 24px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--line-soft);
+  margin-top: 40px;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 900px) {
+  .header { padding: 36px 24px 44px; }
+  .tabs { padding: 0 24px; }
+  .main { padding: 28px 20px 60px; }
+  .stats { gap: 24px; }
+  .filters { padding: 14px 16px; gap: 12px; }
+  .search { margin-left: 0; flex: 1 1 100%; }
+  th, td { padding: 12px 12px; }
+  td { font-size: 12.5px; }
+  .intro-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .title { font-size: 32px; }
+  .filter-label { display: none; }
+  th, td { padding: 10px 10px; font-size: 12px; }
+  .id-cell { font-size: 12.5px; }
+  .day-cell { font-size: 18px; width: 44px; }
+}
+
+/* Print */
+@media print {
+  .tabs-wrap, .filters, .search { display: none; }
+  .panel { display: block !important; page-break-after: always; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="eyebrow">Content Strategy · May 2026</div>
+    <h1 class="title">Vilo — a psychology-first<br><em>content system</em></h1>
+    <p class="subtitle">Thirty concepts mapped to eighteen customer-journey moments, rendered across five platforms. One hundred and fifty deliverables, each built to meet a specific mental state with real value.</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-num">2</div><div class="stat-label">Tracks</div></div>
+      <div class="stat"><div class="stat-num">18</div><div class="stat-label">Journey moments</div></div>
+      <div class="stat"><div class="stat-num">30</div><div class="stat-label">Concepts</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">Platforms</div></div>
+      <div class="stat"><div class="stat-num">150</div><div class="stat-label">Deliverables</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab active" data-panel="overview">Overview</button>
+    <button class="tab" data-panel="psychology">Psychology Map<span class="tab-count">18</span></button>
+    <button class="tab" data-panel="catalog">Content Catalog<span class="tab-count">30</span></button>
+    <button class="tab" data-panel="versions">Version Matrix<span class="tab-count">150</span></button>
+    <button class="tab" data-panel="calendar">30-Day Calendar<span class="tab-count">30</span></button>
+    <button class="tab" data-panel="specs">Platform Specs</button>
+    <button class="tab" data-panel="checklist">Production Checklist</button>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- ============ OVERVIEW ============ -->
+  <section class="panel active" id="overview">
+    <h2 class="section-title">The framework</h2>
+    <p class="section-lead">Most content calendars are built around topics or keywords. This one is built around what the customer is feeling at each moment of their journey — and what content will genuinely cut through versus get scrolled past.</p>
+
+    <div class="intro-grid">
+      <div class="intro-card">
+        <div class="big-num">2</div>
+        <h3>Tracks</h3>
+        <p>Two audiences, two parallel journeys. <strong>Guests</strong> (B2C — travellers) and <strong>Owners</strong> (B2B — lodge hosts). Different pains, different desires, different platforms.</p>
+      </div>
+      <div class="intro-card">
+        <div class="big-num">3×3</div>
+        <h3>Stages</h3>
+        <p>Awareness → Consideration → Conversion. Each broken into three sub-stages with defined mental state, desire, and pain point.</p>
+      </div>
+      <div class="intro-card">
+        <div class="big-num">30</div>
+        <h3>Concepts</h3>
+        <p>Weighted toward awareness (12 of 30) because awareness is your biggest current friction. Each concept addresses one specific psychological moment.</p>
+      </div>
+      <div class="intro-card">
+        <div class="big-num">150</div>
+        <h3>Deliverables</h3>
+        <p>Each of the 30 concepts is rendered for Facebook, Instagram, TikTok, YouTube and LinkedIn in their native sizes. Five versions per concept, on average.</p>
+      </div>
+    </div>
+
+    <h2 class="section-title">How to navigate</h2>
+    <p class="section-lead">Start with the <strong>Psychology Map</strong> to internalise the customer mindset. The <strong>Content Catalog</strong> is your creative brief — each row is a complete spec for a writer or designer. The <strong>Version Matrix</strong> shows the full production scope. The <strong>30-Day Calendar</strong> sequences it. The <strong>Production Checklist</strong> tracks progress. Every table is sortable; click column headers to reorder. Use the filter chips and search to narrow down.</p>
+  </section>
+
+  <!-- ============ PSYCHOLOGY ============ -->
+  <section class="panel" id="psychology">
+    <h2 class="section-title">Psychology Map</h2>
+    <p class="section-lead">The customer's mental state, what they want, and what's stopping them — at each of the eighteen moments in their journey.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Track</span>
+        <button class="chip active" data-filter="psy-track" data-value="all">All</button>
+        <button class="chip" data-filter="psy-track" data-value="Guest">Guest</button>
+        <button class="chip" data-filter="psy-track" data-value="Owner">Owner</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Stage</span>
+        <button class="chip active" data-filter="psy-stage" data-value="all">All</button>
+        <button class="chip" data-filter="psy-stage" data-value="Awareness">Awareness</button>
+        <button class="chip" data-filter="psy-stage" data-value="Consideration">Consideration</button>
+        <button class="chip" data-filter="psy-stage" data-value="Conversion">Conversion</button>
+      </div>
+      <div class="search">
+        <input type="text" id="psy-search" placeholder="Search mental states, pains, desires…">
+      </div>
+    </div>
+
+    <div class="result-count" id="psy-count"></div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="psy-table">
+          <thead>
+            <tr>
+              <th data-sort="track">Track <span class="arrow">↕</span></th>
+              <th data-sort="substage">Sub-stage <span class="arrow">↕</span></th>
+              <th data-sort="stage">Stage <span class="arrow">↕</span></th>
+              <th>Mental state</th>
+              <th>Desire</th>
+              <th>Pain point</th>
+              <th>Where they are</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CATALOG ============ -->
+  <section class="panel" id="catalog">
+    <h2 class="section-title">Content Catalog</h2>
+    <p class="section-lead">Thirty concepts. Every row is a complete creative brief: psychological job, hook, format, message, call-to-action, and the value it delivers.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Track</span>
+        <button class="chip active" data-filter="cat-track" data-value="all">All</button>
+        <button class="chip" data-filter="cat-track" data-value="Guest">Guest</button>
+        <button class="chip" data-filter="cat-track" data-value="Owner">Owner</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Stage</span>
+        <button class="chip active" data-filter="cat-stage" data-value="all">All</button>
+        <button class="chip" data-filter="cat-stage" data-value="1.">Awareness</button>
+        <button class="chip" data-filter="cat-stage" data-value="2.">Consideration</button>
+        <button class="chip" data-filter="cat-stage" data-value="3.">Conversion</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Format</span>
+        <button class="chip active" data-filter="cat-format" data-value="all">All</button>
+        <button class="chip" data-filter="cat-format" data-value="Short Video">Short Video</button>
+        <button class="chip" data-filter="cat-format" data-value="Long Video">Long Video</button>
+        <button class="chip" data-filter="cat-format" data-value="Carousel">Carousel</button>
+        <button class="chip" data-filter="cat-format" data-value="Article">Article</button>
+      </div>
+      <div class="search">
+        <input type="text" id="cat-search" placeholder="Search hooks, messages, CTAs…">
+      </div>
+    </div>
+
+    <div class="result-count" id="cat-count"></div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="cat-table">
+          <thead>
+            <tr>
+              <th data-sort="id">ID <span class="arrow">↕</span></th>
+              <th data-sort="track">Track <span class="arrow">↕</span></th>
+              <th data-sort="stage">Stage <span class="arrow">↕</span></th>
+              <th data-sort="hook">Hook</th>
+              <th data-sort="format">Format <span class="arrow">↕</span></th>
+              <th>Core message</th>
+              <th>CTA</th>
+              <th>Value</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ VERSIONS ============ -->
+  <section class="panel" id="versions">
+    <h2 class="section-title">Version Matrix</h2>
+    <p class="section-lead">Every concept × every platform. This is the production list — what actually gets made, at what size, for which placement.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Track</span>
+        <button class="chip active" data-filter="ver-track" data-value="all">All</button>
+        <button class="chip" data-filter="ver-track" data-value="Guest">Guest</button>
+        <button class="chip" data-filter="ver-track" data-value="Owner">Owner</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Platform</span>
+        <button class="chip active" data-filter="ver-platform" data-value="all">All</button>
+        <button class="chip" data-filter="ver-platform" data-value="Facebook">Facebook</button>
+        <button class="chip" data-filter="ver-platform" data-value="Instagram">Instagram</button>
+        <button class="chip" data-filter="ver-platform" data-value="TikTok">TikTok</button>
+        <button class="chip" data-filter="ver-platform" data-value="YouTube">YouTube</button>
+        <button class="chip" data-filter="ver-platform" data-value="LinkedIn">LinkedIn</button>
+        <button class="chip" data-filter="ver-platform" data-value="Blog">Blog</button>
+      </div>
+      <div class="search">
+        <input type="text" id="ver-search" placeholder="Search by hook, platform, size…">
+      </div>
+    </div>
+
+    <div class="result-count" id="ver-count"></div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="ver-table">
+          <thead>
+            <tr>
+              <th data-sort="id">Concept <span class="arrow">↕</span></th>
+              <th data-sort="track">Track <span class="arrow">↕</span></th>
+              <th data-sort="hook">Hook</th>
+              <th data-sort="format">Format <span class="arrow">↕</span></th>
+              <th data-sort="platform">Platform <span class="arrow">↕</span></th>
+              <th>Placement</th>
+              <th>Size / Aspect</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CALENDAR ============ -->
+  <section class="panel" id="calendar">
+    <h2 class="section-title">30-Day Calendar</h2>
+    <p class="section-lead">Sequenced posting plan. Opens with awareness-heavy hooks, builds through positioning, closes with conversion and activation. Tracks alternate so neither audience fatigues.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Track</span>
+        <button class="chip active" data-filter="cal-track" data-value="all">All</button>
+        <button class="chip" data-filter="cal-track" data-value="Guest">Guest</button>
+        <button class="chip" data-filter="cal-track" data-value="Owner">Owner</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Week</span>
+        <button class="chip active" data-filter="cal-week" data-value="all">All</button>
+        <button class="chip" data-filter="cal-week" data-value="1">Week 1</button>
+        <button class="chip" data-filter="cal-week" data-value="2">Week 2</button>
+        <button class="chip" data-filter="cal-week" data-value="3">Week 3</button>
+        <button class="chip" data-filter="cal-week" data-value="4">Week 4</button>
+      </div>
+      <div class="search">
+        <input type="text" id="cal-search" placeholder="Search hooks, rationale…">
+      </div>
+    </div>
+
+    <div class="result-count" id="cal-count"></div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="cal-table">
+          <thead>
+            <tr>
+              <th data-sort="day">Day <span class="arrow">↕</span></th>
+              <th>Week</th>
+              <th data-sort="id">Concept <span class="arrow">↕</span></th>
+              <th data-sort="track">Track <span class="arrow">↕</span></th>
+              <th data-sort="stage">Stage <span class="arrow">↕</span></th>
+              <th>Hook</th>
+              <th>Rationale</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SPECS ============ -->
+  <section class="panel" id="specs">
+    <h2 class="section-title">Platform Specs</h2>
+    <p class="section-lead">Native sizes for each platform and placement. Current standards as of May 2026.</p>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Platform</span>
+        <button class="chip active" data-filter="spec-platform" data-value="all">All</button>
+        <button class="chip" data-filter="spec-platform" data-value="Facebook">Facebook</button>
+        <button class="chip" data-filter="spec-platform" data-value="Instagram">Instagram</button>
+        <button class="chip" data-filter="spec-platform" data-value="TikTok">TikTok</button>
+        <button class="chip" data-filter="spec-platform" data-value="YouTube">YouTube</button>
+        <button class="chip" data-filter="spec-platform" data-value="LinkedIn">LinkedIn</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="spec-table">
+          <thead>
+            <tr>
+              <th data-sort="platform">Platform <span class="arrow">↕</span></th>
+              <th>Format / Placement</th>
+              <th data-sort="pixels">Pixel Size <span class="arrow">↕</span></th>
+              <th>Aspect</th>
+              <th>Use case</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHECKLIST ============ -->
+  <section class="panel" id="checklist">
+    <h2 class="section-title">Production Checklist</h2>
+    <p class="section-lead">Track every deliverable from brief to published. Progress persists in your browser between sessions.</p>
+
+    <div class="progress-card">
+      <div>
+        <div class="num" id="prog-count">0 / 150</div>
+        <div class="progress-label">Posted</div>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <button class="reset-btn" id="reset-progress">Reset progress</button>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">Track</span>
+        <button class="chip active" data-filter="chk-track" data-value="all">All</button>
+        <button class="chip" data-filter="chk-track" data-value="Guest">Guest</button>
+        <button class="chip" data-filter="chk-track" data-value="Owner">Owner</button>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Status</span>
+        <button class="chip active" data-filter="chk-status" data-value="all">All</button>
+        <button class="chip" data-filter="chk-status" data-value="todo">To do</button>
+        <button class="chip" data-filter="chk-status" data-value="inprogress">In progress</button>
+        <button class="chip" data-filter="chk-status" data-value="done">Posted</button>
+      </div>
+      <div class="search">
+        <input type="text" id="chk-search" placeholder="Search…">
+      </div>
+    </div>
+
+    <div class="result-count" id="chk-count"></div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table id="chk-table">
+          <thead>
+            <tr>
+              <th>Concept</th>
+              <th>Hook</th>
+              <th>Platform</th>
+              <th>Size</th>
+              <th>Brief</th>
+              <th>Created</th>
+              <th>Reviewed</th>
+              <th>Posted</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>Vilo Content Strategy · Built for psychology-first content planning · Filters and progress are interactive — your checklist saves locally.</footer>
+
+<script>
+// ============ DATA ============
+const psychology = [
+  ["Guest","1.1 Unaware","Awareness","Living with the problem; accepts OTA friction as normal","A trip that doesn't become a logistics headache","Burned by photo-vs-reality, hidden fees, ghosted hosts — but treats it as cost of doing business","Instagram, TikTok scrolling for inspiration; not solution-seeking"],
+  ["Guest","1.2 Problem-aware","Awareness","Active frustration; naming the friction after a bad booking or fee shock","Confidence that what they book is what they get","OTA fees feel arbitrary; reviews feel manipulated; can't reach the actual lodge owner","Google searches, WhatsApp groups, complaining on X/Twitter"],
+  ["Guest","1.3 Solution-aware","Awareness","Curious — there has to be a better way to book directly","A reliable, no-nonsense booking experience","Doesn't know which 'direct' platforms are legit; fear of paying and getting nothing","Reddit, Google, lodge owner websites, 'is X platform safe' searches"],
+  ["Guest","2.1 Curious","Consideration","First Vilo encounter — what is this and why trust it?","Quick proof that Vilo is real, legit, working","New platform skepticism — how many lodges? Real reviews? Payment safety?","Vilo homepage, About page, IG profile, Google reviews"],
+  ["Guest","2.2 Comparing","Consideration","Vilo vs Airbnb vs Booking.com vs going direct","A clear, honest reason to choose Vilo","Switching cost — they already have Airbnb account, saved searches, known UX","Side-by-side tabs, comparison searches, YouTube reviews"],
+  ["Guest","2.3 Doubting","Consideration","What if the lodge cancels? Refunds? Support?","Safety nets clearly explained","Fear of being stuck with no recourse on a new platform","FAQ pages, terms of service, looking for support contact"],
+  ["Guest","3.1 Intent","Conversion","Picked a lodge, hovering on 'book' — last-minute doubt","Final reassurance this is the right call","Second-guessing the lodge AND the platform simultaneously","Lodge detail page, reviews, photos, host bio"],
+  ["Guest","3.2 Decision","Conversion","At checkout — anything weird kills the booking","Frictionless payment, clear total, instant confirmation","Hidden costs, payment confusion, slow load times","Checkout page, payment screen"],
+  ["Guest","3.3 First-use","Conversion","Did I make the right call? Reassurance-seeking pre-arrival","Smooth communication, easy check-in","Silence between booking and arrival breeds anxiety","Email inbox, WhatsApp, host messages"],
+  ["Owner","1.1 Unaware","Awareness","OTAs charge a lot but that's how the industry works","Keep more of what they earn; own guest relationships","15–20% commissions on Booking/Airbnb; no guest data; parity rules","Running the lodge; reviewing monthly statements"],
+  ["Owner","1.2 Problem-aware","Awareness","Tired of paying R30k+/month in commissions; feeling like a tenant","Independence, predictable income, real guest relationships","Locked into OTAs because that's where bookings come from; afraid to leave","FEDHASA forums, hospitality FB groups, 'reduce OTA commissions' searches"],
+  ["Owner","1.3 Solution-aware","Awareness","Direct booking platforms exist — which is the right route?","A SA-built tool that gets local lodges","Channel managers too expensive; DIY sites too much work","Comparing channel managers, asking peers, reading SA hospitality blogs"],
+  ["Owner","2.1 Curious","Consideration","Vilo — never heard of it. Another startup that'll disappear?","Proof Vilo is built for SA lodges by people who get the industry","Wary of slick foreign platforms that ignore local realities (load shedding, ZAR, EFT)","Vilo website, founder LinkedIn, demos"],
+  ["Owner","2.2 Comparing","Consideration","Vilo vs Lekkeslaap vs Nightsbridge vs current setup","Clear pricing, clear features, no lock-in","Migration anxiety — moving listings, photos, calendars is a huge job","Pricing pages, comparison content, peer reviews"],
+  ["Owner","2.3 Doubting","Consideration","What if Vilo doesn't bring bookings? Slow support? Catch?","Risk-free trial, real case studies from similar lodges","Burned by past tech tools that promised and didn't deliver","Case studies, testimonials, demo calls"],
+  ["Owner","3.1 Intent","Conversion","Ready to sign up — how long will this take?","Fast, guided onboarding with hand-holding","Onboarding friction; doesn't have time to learn another system","Signup page, onboarding flow"],
+  ["Owner","3.2 Decision","Conversion","Creating account, listing first property","Fast wins; first listing live quickly","Tedious data entry; confusing forms","Dashboard, listing creation flow"],
+  ["Owner","3.3 First-use","Conversion","Does this actually work? First booking is everything","Visible momentum — first enquiry, first booking, first payout","Quiet dashboard breeds doubt; one bad early experience kills retention","Dashboard, notifications, payout reports"],
+];
+
+const concepts = [
+  {id:"G-01",track:"Guest",stage:"1.1 Unaware",hook:"The 5 hidden costs in your last Airbnb booking",format:"Carousel",message:"Break down what's actually in a typical SA lodge booking total: nightly rate, cleaning, service fee, currency conversion, OTA markup. Show how much is real cost vs platform tax. No pitch — just transparency.",cta:"Save this for your next booking",value:"Saves money, builds awareness"},
+  {id:"G-02",track:"Guest",stage:"1.1 Unaware",hook:"POV: You arrive at the lodge and it looks nothing like the photos",format:"Short Video",message:"Relatable skit/voiceover capturing the universal 'photo vs reality' moment. End with a soft prompt: 'There's a reason this keeps happening.'",cta:"Comment if this has happened to you",value:"Names the unspoken pain, builds community"},
+  {id:"G-03",track:"Guest",stage:"1.2 Problem-aware",hook:"Why your weekend getaway costs 22% more than it should",format:"Article + Carousel",message:"Long-form explainer on OTA commission structure. Why hosts pass it on. Where the money actually goes. SA-specific data.",cta:"Read the full breakdown",value:"Educates on systemic problem"},
+  {id:"G-04",track:"Guest",stage:"1.2 Problem-aware",hook:"3 questions to ask before you book any lodge in South Africa",format:"Short Video",message:"Quick checklist: Is the host reachable directly? What's the cancellation policy in writing? Are reviews from real verified stays? Practical, useful even if they never use Vilo.",cta:"Save for your next booking",value:"Practical takeaway regardless of brand"},
+  {id:"G-05",track:"Guest",stage:"1.3 Solution-aware",hook:"Booking direct vs OTAs in SA — what actually changes",format:"Carousel",message:"Side-by-side: direct booking vs Airbnb/Booking. Price, support, guest experience, flexibility. Honest about trade-offs (direct = less recourse if rogue host).",cta:"Try Vilo for your next stay",value:"Frames the category Vilo plays in"},
+  {id:"G-06",track:"Guest",stage:"1.3 Solution-aware",hook:"The South African lodges nobody finds on Airbnb",format:"Short Video",message:"Showcase 3–5 hidden gems — small lodges in places like Magoebaskloof, Karoo, Wild Coast — that are bookable on Vilo and underrepresented on big OTAs.",cta:"Discover more on Vilo",value:"Reveals supply unique to Vilo"},
+  {id:"G-07",track:"Guest",stage:"2.1 Curious",hook:"What is Vilo? A 60-second tour",format:"Short Video",message:"Founder or voiceover walks through the platform: how it works, who's on it, what makes it different. Warm, human, not corporate.",cta:"Visit vilo.co.za",value:"Removes 'what is this?' friction fast"},
+  {id:"G-08",track:"Guest",stage:"2.1 Curious",hook:"Meet the lodges on Vilo (handpicked, not algorithm-picked)",format:"Carousel",message:"6–8 lodges across SA with one-line stories. Establishes that the inventory is real, curated, and beautiful.",cta:"Browse all lodges",value:"Proves supply, builds desire"},
+  {id:"G-09",track:"Guest",stage:"2.2 Comparing",hook:"Vilo vs Airbnb vs Booking.com — honest comparison",format:"Article",message:"Long-form, fair comparison. Where each wins. Where Vilo wins (direct contact, lower fees, SA-focused). Where Airbnb wins (global, established). Don't oversell.",cta:"See if Vilo fits your next trip",value:"Builds trust through honesty"},
+  {id:"G-10",track:"Guest",stage:"2.2 Comparing",hook:"I tried booking the same lodge on 3 platforms — here's what happened",format:"Long Video",message:"Real experiment: book identical lodge on Airbnb, Booking, Vilo. Compare total price, communication speed, confirmation experience. Show the receipts.",cta:"Watch the full breakdown",value:"Tangible proof, not claims"},
+  {id:"G-11",track:"Guest",stage:"2.3 Doubting",hook:"What happens if something goes wrong on Vilo?",format:"Carousel",message:"Walk through every 'what if' scenario: lodge cancels, host unresponsive, refund needed, double-booked. Specific, named policies.",cta:"Read our guest protection promise",value:"Removes the doubt that kills bookings"},
+  {id:"G-12",track:"Guest",stage:"3.1 Intent",hook:"5-star reviews from real Vilo guests (with photos)",format:"Carousel",message:"User-generated content from actual guests. Photo + short quote + which lodge. Authentic, not staged.",cta:"Book your stay",value:"Social proof at the moment of doubt"},
+  {id:"G-13",track:"Guest",stage:"3.1 Intent",hook:"Behind the scenes: meet the host of [Featured Lodge]",format:"Short Video",message:"Quick interview with a lodge owner — their story, what guests love, what makes their lodge special. Humanises the booking.",cta:"Book this lodge",value:"Real people > faceless listings"},
+  {id:"G-14",track:"Guest",stage:"3.2 Decision",hook:"How Vilo checkout works (no surprises)",format:"Short Video",message:"30-second screen-record of the checkout flow. Total shown upfront. Multiple payment options. Instant confirmation.",cta:"Try it on your next booking",value:"De-risks the checkout moment"},
+  {id:"G-15",track:"Guest",stage:"3.3 First-use",hook:"Your Vilo trip, day-by-day",format:"Carousel",message:"What to expect from booking to check-out: confirmation email, host intro, pre-arrival info, check-in, support contact, post-stay review. Sets expectation, reduces anxiety.",cta:"Plan your next stay",value:"Reduces post-purchase doubt, builds retention"},
+  {id:"O-01",track:"Owner",stage:"1.1 Unaware",hook:"What 18% commission actually costs you over 12 months",format:"Carousel",message:"Math worked out for a typical 6-room SA lodge: monthly bookings × average rate × 18% = annual loss. Visual, undeniable. No pitch — just the number.",cta:"Calculate yours",value:"Shocks unaware owners into awareness"},
+  {id:"O-02",track:"Owner",stage:"1.1 Unaware",hook:"Why your best guests never come back",format:"Article",message:"OTAs own the guest relationship. You don't get the email. You can't remarket. Repeat business goes to the platform, not to you. Frames the structural problem.",cta:"Read the full article",value:"Names invisible problem"},
+  {id:"O-03",track:"Owner",stage:"1.2 Problem-aware",hook:"The SA lodge owner's guide to escaping OTA dependency",format:"Article",message:"Practical guide: how to gradually shift from 80% OTA / 20% direct → 50/50. Steps, timeline, tools. Useful even if they don't use Vilo.",cta:"Get the full guide",value:"Genuine education builds authority"},
+  {id:"O-04",track:"Owner",stage:"1.2 Problem-aware",hook:"3 lies OTAs tell South African lodge owners",format:"Short Video",message:"Specific industry truths: 'parity is the law' (it's not in SA), 'we bring you bookings you wouldn't get' (audit this), 'commission is the cost of distribution' (other models exist).",cta:"Learn the alternatives",value:"Permission to question the status quo"},
+  {id:"O-05",track:"Owner",stage:"1.3 Solution-aware",hook:"Channel manager vs direct booking platform — what's the difference",format:"Carousel",message:"Plain-English breakdown. Channel manager = syncs across OTAs. Direct booking platform = own audience. Many lodges need both. Educational, not salesy.",cta:"Learn more about Vilo",value:"Clarifies category for confused owners"},
+  {id:"O-06",track:"Owner",stage:"1.3 Solution-aware",hook:"Why we built Vilo in South Africa, for South African lodges",format:"Long Video",message:"Founder story: load shedding, ZAR pricing, FEDHASA standards, EFT payments, local support. The case for a SA-built platform vs global generalists.",cta:"See what Vilo offers",value:"Local relevance as differentiator"},
+  {id:"O-07",track:"Owner",stage:"2.1 Curious",hook:"A 90-second tour of the Vilo host dashboard",format:"Short Video",message:"Screen-record: listing, calendar, bookings, payouts, guest messaging. Shows it's real, working, simple.",cta:"Book a demo",value:"De-risks the 'is this real?' moment"},
+  {id:"O-08",track:"Owner",stage:"2.1 Curious",hook:"The lodges already on Vilo",format:"Carousel",message:"Showcase 8–10 current host lodges (with permission). Social proof — established lodges trust Vilo.",cta:"Join them",value:"Peer credibility"},
+  {id:"O-09",track:"Owner",stage:"2.2 Comparing",hook:"Vilo vs Lekkeslaap vs Nightsbridge — what each is best for",format:"Article",message:"Honest comparison. Different tools for different jobs. Where Vilo fits. Don't bash competitors.",cta:"See if Vilo is the right fit",value:"Trust through honest positioning"},
+  {id:"O-10",track:"Owner",stage:"2.2 Comparing",hook:"How a Karoo lodge replaced 60% of their Airbnb bookings with direct in 6 months",format:"Long Video",message:"Case study interview with a real host (or composite if early). Numbers, timeline, what changed. Specific and credible.",cta:"Read the case study",value:"Tangible proof of outcome"},
+  {id:"O-11",track:"Owner",stage:"2.3 Doubting",hook:"What happens if Vilo doesn't bring me bookings?",format:"Carousel",message:"Honest answer: no lock-in, no minimum contract, free to list, you keep your existing channels. Plus what Vilo does to drive demand to your listing.",cta:"Try Vilo risk-free",value:"Removes risk objection"},
+  {id:"O-12",track:"Owner",stage:"3.1 Intent",hook:"What it takes to list your lodge on Vilo (under 30 minutes)",format:"Short Video",message:"Walk through onboarding step-by-step. Show how fast it is. Reduces 'too much work' objection.",cta:"Start your listing",value:"De-risks the time investment"},
+  {id:"O-13",track:"Owner",stage:"3.2 Decision",hook:"From signup to first booking: 7 days at a Stellenbosch guesthouse",format:"Article",message:"Day-by-day account of a real (or composite) lodge's first week. What they did, what Vilo did, what happened. Sets realistic expectations.",cta:"Start your 7-day journey",value:"Concrete proof of fast time-to-value"},
+  {id:"O-14",track:"Owner",stage:"3.3 First-use",hook:"5 things to do in your first week on Vilo",format:"Carousel",message:"Tactical checklist for new hosts. Complete profile, upload 10+ photos, set seasonal rates, link calendar, write welcome message. Drives early activation.",cta:"Complete your setup",value:"Improves new-host retention"},
+  {id:"O-15",track:"Owner",stage:"3.3 First-use",hook:"How Vilo hosts get found: 4 things you control",format:"Article",message:"How listing rank works on Vilo. Photos, response time, completeness, reviews. Empowers hosts; reduces 'why no bookings?' frustration.",cta:"Optimise your listing",value:"Reduces churn, drives engagement"},
+];
+
+const platformSpecs = [
+  ["Facebook","Feed image (landscape)","1200×630","1.91:1","Link posts, link previews"],
+  ["Facebook","Feed image (square)","1080×1080","1:1","In-feed image post"],
+  ["Facebook","Feed video (landscape)","1280×720","16:9","In-feed video"],
+  ["Facebook","Story / Reel","1080×1920","9:16","Stories & Reels"],
+  ["Facebook","Carousel card","1080×1080","1:1","Multi-image carousel"],
+  ["Instagram","Feed (portrait)","1080×1350","4:5","Maximum feed real estate"],
+  ["Instagram","Feed (square)","1080×1080","1:1","Classic feed post"],
+  ["Instagram","Reel / Story","1080×1920","9:16","Reels & Stories"],
+  ["Instagram","Carousel card","1080×1350","4:5","Multi-card carousel"],
+  ["TikTok","Video","1080×1920","9:16","All TikTok video"],
+  ["TikTok","Photo carousel","1080×1920","9:16","Photo mode"],
+  ["YouTube","Long-form video","1920×1080","16:9","Standard YouTube video"],
+  ["YouTube","Shorts","1080×1920","9:16","YouTube Shorts"],
+  ["YouTube","Thumbnail","1280×720","16:9","Video thumbnail"],
+  ["LinkedIn","Feed image (landscape)","1200×627","1.91:1","Link posts, single image"],
+  ["LinkedIn","Feed image (square)","1080×1080","1:1","In-feed image"],
+  ["LinkedIn","Document carousel","1080×1350","4:5","Multi-page PDF carousel"],
+  ["LinkedIn","Video (landscape)","1920×1080","16:9","Native video"],
+  ["LinkedIn","Video (square)","1080×1080","1:1","Mobile-friendly video"],
+  ["LinkedIn","Article header","1200×627","1.91:1","Long-form article header"],
+];
+
+const formatVersions = {
+  "Short Video": [
+    ["Instagram","Reel","1080×1920 (9:16)"],
+    ["TikTok","Video","1080×1920 (9:16)"],
+    ["YouTube","Shorts","1080×1920 (9:16)"],
+    ["Facebook","Reel","1080×1920 (9:16)"],
+    ["LinkedIn","Video (square)","1080×1080 (1:1)"],
+  ],
+  "Long Video": [
+    ["YouTube","Long-form","1920×1080 (16:9)"],
+    ["Facebook","Feed video","1280×720 (16:9)"],
+    ["LinkedIn","Video (landscape)","1920×1080 (16:9)"],
+    ["Instagram","Reel (cutdown)","1080×1920 (9:16)"],
+    ["TikTok","Video (cutdown)","1080×1920 (9:16)"],
+  ],
+  "Carousel": [
+    ["Instagram","Carousel","1080×1350 (4:5) × multi-card"],
+    ["Facebook","Carousel","1080×1080 (1:1) × multi-card"],
+    ["LinkedIn","Document carousel","1080×1350 (4:5) PDF"],
+    ["TikTok","Photo carousel","1080×1920 (9:16) × multi-card"],
+    ["YouTube","Community post / Short adaptation","1080×1920 (9:16)"],
+  ],
+  "Article": [
+    ["Blog","Long-form article","Web — responsive"],
+    ["LinkedIn","Article (native)","1200×627 header + web body"],
+    ["Facebook","Link post","1200×630 (1.91:1) preview"],
+    ["Instagram","Carousel summary","1080×1350 (4:5) × 5–8 cards"],
+    ["TikTok","Hook video pointing to article","1080×1920 (9:16)"],
+  ],
+  "Article + Carousel": [
+    ["Blog","Long-form article","Web — responsive"],
+    ["Instagram","Carousel summary","1080×1350 (4:5) × 5–8 cards"],
+    ["Facebook","Carousel","1080×1080 (1:1) × multi-card"],
+    ["LinkedIn","Document carousel + article","1080×1350 PDF + 1200×627 header"],
+    ["TikTok","Hook video","1080×1920 (9:16)"],
+  ],
+};
+
+const calendarSeq = [
+  [1,"G-02","Open with relatable pain — high engagement hook for guests"],
+  [2,"O-01","Hit owners immediately with the commission shock"],
+  [3,"G-01","Follow guest pain with practical breakdown"],
+  [4,"O-02","Owner emotional pain — losing repeat guests"],
+  [5,"G-04","Practical guest tip — saves face if no booking yet"],
+  [6,"O-04","Owner permission to question status quo"],
+  [7,"G-03","End week 1 with deeper guest article"],
+  [8,"O-03","Open week 2 with owner long-form authority piece"],
+  [9,"G-06","Reveal Vilo's unique supply — start positioning"],
+  [10,"O-05","Educate owners on category — channel mgr vs direct"],
+  [11,"G-05","Direct vs OTA framing for guests"],
+  [12,"O-06","Founder story — local relevance"],
+  [13,"G-07","Introduce Vilo to guests"],
+  [14,"O-07","Show owners the actual product"],
+  [15,"G-08","Showcase lodges — proof of supply"],
+  [16,"O-08","Showcase existing host lodges — peer proof"],
+  [17,"G-09","Honest comparison article"],
+  [18,"O-09","Owner-side honest comparison"],
+  [19,"G-10","The 3-platform booking experiment"],
+  [20,"O-10","Case study — Karoo lodge"],
+  [21,"G-11","Handle guest doubts head-on"],
+  [22,"O-11","Handle owner risk objection"],
+  [23,"G-12","Social proof — guest reviews"],
+  [24,"O-12","Show how fast onboarding is"],
+  [25,"G-13","Humanise a featured lodge host"],
+  [26,"O-13","Concrete signup-to-first-booking story"],
+  [27,"G-14","Checkout walkthrough — de-risk decision"],
+  [28,"O-14","Activation checklist for new hosts"],
+  [29,"G-15","Set expectation for the trip"],
+  [30,"O-15","How to get found — empowerment + retention"],
+];
+
+const conceptById = Object.fromEntries(concepts.map(c => [c.id, c]));
+
+// Build version matrix
+const versionMatrix = [];
+concepts.forEach(c => {
+  const v = formatVersions[c.format] || [];
+  v.forEach(([platform, placement, size]) => {
+    versionMatrix.push({
+      id: c.id,
+      track: c.track,
+      hook: c.hook,
+      format: c.format,
+      platform: platform,
+      placement: placement,
+      size: size
+    });
+  });
+});
+
+// ============ STATE ============
+const filterState = {
+  'psy-track':'all','psy-stage':'all',
+  'cat-track':'all','cat-stage':'all','cat-format':'all',
+  'ver-track':'all','ver-platform':'all',
+  'cal-track':'all','cal-week':'all',
+  'spec-platform':'all',
+  'chk-track':'all','chk-status':'all',
+};
+const searchState = {psy:'',cat:'',ver:'',cal:'',chk:''};
+const sortState = {};
+
+// Load checklist from localStorage (if available — falls back to memory)
+let checklist = {};
+try {
+  const saved = localStorage.getItem('vilo-checklist');
+  if (saved) checklist = JSON.parse(saved);
+} catch(e) { /* in-memory only */ }
+
+function saveChecklist() {
+  try { localStorage.setItem('vilo-checklist', JSON.stringify(checklist)); }
+  catch(e) { /* graceful */ }
+}
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.panel).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  });
+});
+
+// ============ FILTER CHIPS ============
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const key = chip.dataset.filter;
+    const val = chip.dataset.value;
+    filterState[key] = val;
+    document.querySelectorAll(`.chip[data-filter="${key}"]`).forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    renderAll();
+  });
+});
+
+// ============ SEARCH ============
+['psy','cat','ver','cal','chk'].forEach(key => {
+  const input = document.getElementById(`${key}-search`);
+  if (input) {
+    input.addEventListener('input', e => {
+      searchState[key] = e.target.value.toLowerCase();
+      renderAll();
+    });
+  }
+});
+
+// ============ SORTING ============
+document.querySelectorAll('th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const table = th.closest('table').id;
+    const key = th.dataset.sort;
+    const cur = sortState[table];
+    let dir = 'asc';
+    if (cur && cur.key === key) dir = cur.dir === 'asc' ? 'desc' : 'asc';
+    sortState[table] = {key, dir};
+    // visual indicator
+    th.closest('thead').querySelectorAll('th').forEach(t => {
+      t.classList.remove('sorted');
+      const arrow = t.querySelector('.arrow');
+      if (arrow) arrow.textContent = '↕';
+    });
+    th.classList.add('sorted');
+    const arrow = th.querySelector('.arrow');
+    if (arrow) arrow.textContent = dir === 'asc' ? '↑' : '↓';
+    renderAll();
+  });
+});
+
+function sortRows(rows, table, accessors) {
+  const s = sortState[table];
+  if (!s) return rows;
+  const acc = accessors[s.key];
+  if (!acc) return rows;
+  const sorted = [...rows].sort((a, b) => {
+    const av = acc(a), bv = acc(b);
+    if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+    return String(av).localeCompare(String(bv));
+  });
+  return s.dir === 'asc' ? sorted : sorted.reverse();
+}
+
+// ============ HELPERS ============
+function trackBadge(t) {
+  const cls = t === 'Guest' ? 'badge-guest' : 'badge-owner';
+  return `<span class="badge ${cls}">${t}</span>`;
+}
+
+function stageBadge(s) {
+  return `<span class="badge badge-stage">${s}</span>`;
+}
+
+function formatBadge(f) {
+  return `<span class="badge badge-format">${f}</span>`;
+}
+
+function platformTag(p) {
+  const safe = p.replace(/[^a-zA-Z]/g, '');
+  return `<span class="platform-tag platform-${safe}">${p}</span>`;
+}
+
+function stageWord(s) {
+  if (s.startsWith('1.')) return 'Awareness';
+  if (s.startsWith('2.')) return 'Consideration';
+  return 'Conversion';
+}
+
+function matchSearch(needle, ...haystacks) {
+  if (!needle) return true;
+  return haystacks.some(h => String(h).toLowerCase().includes(needle));
+}
+
+// ============ RENDER: PSYCHOLOGY ============
+function renderPsych() {
+  const tbody = document.querySelector('#psy-table tbody');
+  let rows = psychology
+    .filter(r => filterState['psy-track'] === 'all' || r[0] === filterState['psy-track'])
+    .filter(r => filterState['psy-stage'] === 'all' || r[2] === filterState['psy-stage'])
+    .filter(r => matchSearch(searchState.psy, ...r));
+
+  rows = sortRows(rows, 'psy-table', {
+    track: r => r[0],
+    substage: r => r[1],
+    stage: r => r[2],
+  });
+
+  document.getElementById('psy-count').textContent = `${rows.length} of ${psychology.length} moments`;
+
+  tbody.innerHTML = rows.map(r => `
+    <tr class="track-row track-${r[0].toLowerCase()}">
+      <td>${trackBadge(r[0])}</td>
+      <td><strong>${r[1]}</strong></td>
+      <td>${stageBadge(r[2])}</td>
+      <td>${r[3]}</td>
+      <td>${r[4]}</td>
+      <td>${r[5]}</td>
+      <td class="muted">${r[6]}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ RENDER: CATALOG ============
+function renderCatalog() {
+  const tbody = document.querySelector('#cat-table tbody');
+  let rows = concepts
+    .filter(c => filterState['cat-track'] === 'all' || c.track === filterState['cat-track'])
+    .filter(c => filterState['cat-stage'] === 'all' || c.stage.startsWith(filterState['cat-stage']))
+    .filter(c => filterState['cat-format'] === 'all' || c.format === filterState['cat-format'])
+    .filter(c => matchSearch(searchState.cat, c.id, c.hook, c.message, c.cta, c.value, c.stage));
+
+  rows = sortRows(rows, 'cat-table', {
+    id: c => c.id,
+    track: c => c.track,
+    stage: c => c.stage,
+    hook: c => c.hook,
+    format: c => c.format,
+  });
+
+  document.getElementById('cat-count').textContent = `${rows.length} of ${concepts.length} concepts`;
+
+  tbody.innerHTML = rows.map(c => `
+    <tr class="track-row track-${c.track.toLowerCase()}">
+      <td class="id-cell">${c.id}</td>
+      <td>${trackBadge(c.track)}</td>
+      <td>${stageBadge(c.stage)}</td>
+      <td class="hook-cell">${c.hook}</td>
+      <td>${formatBadge(c.format)}</td>
+      <td class="muted">${c.message}</td>
+      <td>${c.cta}</td>
+      <td class="muted">${c.value}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ RENDER: VERSIONS ============
+function renderVersions() {
+  const tbody = document.querySelector('#ver-table tbody');
+  let rows = versionMatrix
+    .filter(v => filterState['ver-track'] === 'all' || v.track === filterState['ver-track'])
+    .filter(v => filterState['ver-platform'] === 'all' || v.platform === filterState['ver-platform'])
+    .filter(v => matchSearch(searchState.ver, v.id, v.hook, v.platform, v.placement, v.size));
+
+  rows = sortRows(rows, 'ver-table', {
+    id: v => v.id,
+    track: v => v.track,
+    hook: v => v.hook,
+    format: v => v.format,
+    platform: v => v.platform,
+  });
+
+  document.getElementById('ver-count').textContent = `${rows.length} of ${versionMatrix.length} deliverables`;
+
+  tbody.innerHTML = rows.map(v => `
+    <tr class="track-row track-${v.track.toLowerCase()}">
+      <td class="id-cell">${v.id}</td>
+      <td>${trackBadge(v.track)}</td>
+      <td class="hook-cell">${v.hook}</td>
+      <td>${formatBadge(v.format)}</td>
+      <td>${platformTag(v.platform)}</td>
+      <td>${v.placement}</td>
+      <td class="spec-pixel">${v.size}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ RENDER: CALENDAR ============
+function renderCalendar() {
+  const tbody = document.querySelector('#cal-table tbody');
+  let rows = calendarSeq
+    .map(([day, cid, rat]) => ({day, cid, rat, c: conceptById[cid]}))
+    .filter(r => filterState['cal-track'] === 'all' || r.c.track === filterState['cal-track'])
+    .filter(r => {
+      const w = Math.ceil(r.day / 7);
+      return filterState['cal-week'] === 'all' || String(w) === filterState['cal-week'];
+    })
+    .filter(r => matchSearch(searchState.cal, r.c.hook, r.rat, r.cid, r.c.stage));
+
+  rows = sortRows(rows, 'cal-table', {
+    day: r => r.day,
+    id: r => r.cid,
+    track: r => r.c.track,
+    stage: r => r.c.stage,
+  });
+
+  document.getElementById('cal-count').textContent = `${rows.length} of ${calendarSeq.length} posts`;
+
+  tbody.innerHTML = rows.map(r => {
+    const w = Math.ceil(r.day / 7);
+    return `
+    <tr class="track-row track-${r.c.track.toLowerCase()}">
+      <td class="day-cell">${r.day}</td>
+      <td><span class="week-pill">WK ${w}</span></td>
+      <td class="id-cell">${r.cid}</td>
+      <td>${trackBadge(r.c.track)}</td>
+      <td>${stageBadge(r.c.stage)}</td>
+      <td class="hook-cell">${r.c.hook}</td>
+      <td class="muted">${r.rat}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ RENDER: SPECS ============
+function renderSpecs() {
+  const tbody = document.querySelector('#spec-table tbody');
+  let rows = platformSpecs.filter(r => filterState['spec-platform'] === 'all' || r[0] === filterState['spec-platform']);
+
+  rows = sortRows(rows, 'spec-table', {
+    platform: r => r[0],
+    pixels: r => r[2],
+  });
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${platformTag(r[0])}</td>
+      <td>${r[1]}</td>
+      <td class="spec-pixel">${r[2]}</td>
+      <td class="spec-aspect">${r[3]}</td>
+      <td class="muted">${r[4]}</td>
+    </tr>
+  `).join('');
+}
+
+// ============ RENDER: CHECKLIST ============
+function checklistKey(v, stage) {
+  return `${v.id}|${v.platform}|${v.size}|${stage}`;
+}
+
+function getChecklistState(v) {
+  return {
+    brief: checklist[checklistKey(v,'brief')] || false,
+    created: checklist[checklistKey(v,'created')] || false,
+    reviewed: checklist[checklistKey(v,'reviewed')] || false,
+    posted: checklist[checklistKey(v,'posted')] || false,
+  };
+}
+
+function rowStatus(s) {
+  if (s.posted) return 'done';
+  if (s.brief || s.created || s.reviewed) return 'inprogress';
+  return 'todo';
+}
+
+function renderChecklist() {
+  const tbody = document.querySelector('#chk-table tbody');
+  let rows = versionMatrix
+    .filter(v => filterState['chk-track'] === 'all' || v.track === filterState['chk-track'])
+    .filter(v => {
+      if (filterState['chk-status'] === 'all') return true;
+      return rowStatus(getChecklistState(v)) === filterState['chk-status'];
+    })
+    .filter(v => matchSearch(searchState.chk, v.id, v.hook, v.platform, v.size));
+
+  document.getElementById('chk-count').textContent = `${rows.length} of ${versionMatrix.length} deliverables`;
+
+  tbody.innerHTML = rows.map((v, idx) => {
+    const s = getChecklistState(v);
+    return `
+    <tr class="track-row track-${v.track.toLowerCase()}">
+      <td class="id-cell">${v.id}</td>
+      <td class="hook-cell">${v.hook}</td>
+      <td>${platformTag(v.platform)}</td>
+      <td class="muted">${v.size}</td>
+      <td><span class="check-box ${s.brief?'checked':''}" data-id="${v.id}" data-platform="${v.platform}" data-size="${v.size}" data-stage="brief"></span></td>
+      <td><span class="check-box ${s.created?'checked':''}" data-id="${v.id}" data-platform="${v.platform}" data-size="${v.size}" data-stage="created"></span></td>
+      <td><span class="check-box ${s.reviewed?'checked':''}" data-id="${v.id}" data-platform="${v.platform}" data-size="${v.size}" data-stage="reviewed"></span></td>
+      <td><span class="check-box ${s.posted?'checked':''}" data-id="${v.id}" data-platform="${v.platform}" data-size="${v.size}" data-stage="posted"></span></td>
+    </tr>`;
+  }).join('');
+
+  // wire up checkboxes
+  tbody.querySelectorAll('.check-box').forEach(cb => {
+    cb.addEventListener('click', () => {
+      const v = {id: cb.dataset.id, platform: cb.dataset.platform, size: cb.dataset.size};
+      const key = checklistKey(v, cb.dataset.stage);
+      checklist[key] = !checklist[key];
+      saveChecklist();
+      renderChecklist();
+      updateProgress();
+    });
+  });
+}
+
+function updateProgress() {
+  const total = versionMatrix.length;
+  const posted = versionMatrix.filter(v => checklist[checklistKey(v,'posted')]).length;
+  document.getElementById('prog-count').textContent = `${posted} / ${total}`;
+  document.getElementById('prog-fill').style.width = `${(posted/total)*100}%`;
+}
+
+document.getElementById('reset-progress').addEventListener('click', () => {
+  if (confirm('Reset all production checklist progress?')) {
+    checklist = {};
+    saveChecklist();
+    renderChecklist();
+    updateProgress();
+  }
+});
+
+// ============ INIT ============
+function renderAll() {
+  renderPsych();
+  renderCatalog();
+  renderVersions();
+  renderCalendar();
+  renderSpecs();
+  renderChecklist();
+}
+
+renderAll();
+updateProgress();
+</script>
+</body>
+</html>
