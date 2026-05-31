@@ -4992,18 +4992,6 @@ export type Database = {
       }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       gen_url_token: { Args: never; Returns: string }
-      release_addon_stock: {
-        Args: { p_addon_id: string; p_qty: number }
-        Returns: undefined
-      }
-      release_booking_addon_stock: {
-        Args: { p_booking_id: string }
-        Returns: undefined
-      }
-      reserve_addon_stock: {
-        Args: { p_addon_id: string; p_qty: number }
-        Returns: boolean
-      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -5195,6 +5183,18 @@ export type Database = {
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      release_addon_stock: {
+        Args: { p_addon_id: string; p_qty: number }
+        Returns: undefined
+      }
+      release_booking_addon_stock: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      reserve_addon_stock: {
+        Args: { p_addon_id: string; p_qty: number }
+        Returns: boolean
       }
       resolve_notification_prefs: {
         Args: { p_category_id: string; p_user_id: string }
