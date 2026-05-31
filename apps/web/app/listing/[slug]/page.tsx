@@ -34,7 +34,9 @@ import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { BookingWidget } from "./BookingWidget";
 import { Breadcrumb } from "./Breadcrumb";
 import { LocationSection, type Poi } from "./LocationSection";
+import { MobileBookingBar } from "./MobileBookingBar";
 import { RoomsCalendarSection } from "./RoomsCalendarSection";
+import { SimilarListings } from "./SimilarListings";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
@@ -462,6 +464,17 @@ export default async function ListingDetailPage({
                 />
               }
             />
+            <MobileBookingBar
+              slug={listing.slug ?? params.slug}
+              rooms={rooms}
+              currency={listing.currency}
+              basePrice={listing.base_price}
+              cleaningFee={listing.cleaning_fee}
+              wholeDiscountPct={listing.whole_listing_discount_pct}
+              weeklyDiscountPct={listing.weekly_discount_pct}
+              monthlyDiscountPct={listing.monthly_discount_pct}
+              maxGuestsCap={listing.max_guests ?? 50}
+            />
           </RoomsCartProvider>
         ) : (
           <ListingBody
@@ -512,6 +525,12 @@ export default async function ListingDetailPage({
             }
           />
         )}
+
+        <SimilarListings
+          currentSlug={listing.slug ?? params.slug}
+          city={listing.city}
+          province={listing.province}
+        />
       </main>
 
       <SiteFooter />
@@ -865,6 +884,13 @@ function ListingBody({
               bio={listing.host.bio}
               avatarUrl={listing.host.avatar_url}
               isVerified={listing.host.is_verified}
+              isSuperhost={listing.host.is_superhost}
+              responseRate={listing.host.response_rate}
+              avgResponseHours={listing.host.avg_response_hours}
+              languages={listing.host.languages_spoken}
+              hostingSince={listing.host.created_at}
+              rating={listing.avg_rating}
+              reviewCount={listing.total_reviews}
             />
             <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
               <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />

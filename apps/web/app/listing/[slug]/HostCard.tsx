@@ -1,4 +1,11 @@
-import { BadgeCheck, MessageSquare } from "lucide-react";
+import {
+  Award,
+  BadgeCheck,
+  Languages,
+  MessageSquare,
+  Star,
+} from "lucide-react";
+import Link from "next/link";
 
 export function HostCard({
   displayName,
@@ -6,57 +13,169 @@ export function HostCard({
   bio,
   avatarUrl,
   isVerified,
+  isSuperhost,
+  responseRate,
+  avgResponseHours,
+  languages,
+  hostingSince,
+  rating,
+  reviewCount,
 }: {
   displayName: string;
   handle: string;
   bio: string | null;
   avatarUrl: string | null;
   isVerified: boolean;
+  isSuperhost: boolean;
+  responseRate: number | null;
+  avgResponseHours: number | null;
+  languages: string[] | null;
+  hostingSince: string | null;
+  rating: number | null;
+  reviewCount: number | null;
 }) {
   const initials = displayName.slice(0, 2).toUpperCase();
+  const years = hostingYears(hostingSince);
+  const hasRating = rating != null && (reviewCount ?? 0) > 0;
+
   return (
-    <div className="rounded-card border border-brand-line bg-white p-6">
-      <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-accent font-display text-base font-bold text-brand-primary">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt={displayName}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            initials
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="font-display text-lg font-semibold text-brand-ink">
+    <div className="grid gap-6 lg:grid-cols-12">
+      {/* Host card */}
+      <div className="relative overflow-hidden rounded-card border border-brand-line bg-white lg:col-span-5">
+        {isSuperhost ? (
+          <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-semibold text-[#065F46]">
+            <Award className="h-3 w-3" /> Superhost
+          </div>
+        ) : null}
+        <div className="p-6">
+          <div className="mx-auto h-24 w-24 overflow-hidden rounded-full bg-brand-accent ring-4 ring-white">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt={displayName}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center font-display text-2xl font-bold text-brand-primary">
+                {initials}
+              </div>
+            )}
+          </div>
+          <div className="mt-3 text-center">
+            <div className="font-display text-lg font-bold text-brand-ink">
               {displayName}
             </div>
-            {isVerified ? (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary">
-                <BadgeCheck className="h-3.5 w-3.5" /> Verified host
-              </span>
-            ) : null}
+            <div className="font-mono text-xs text-brand-mute">
+              viloplatform.com/{handle}
+            </div>
           </div>
-          <div className="font-mono text-xs text-brand-mute">
-            viloplatform.com/{handle}
+          <div className="mt-5 grid grid-cols-3 divide-x divide-brand-line border-y border-brand-line py-3 text-center">
+            <Stat
+              value={reviewCount != null ? String(reviewCount) : "—"}
+              label="Reviews"
+            />
+            <Stat
+              value={hasRating ? (rating ?? 0).toFixed(2) : "—"}
+              label="Rating"
+            />
+            <Stat
+              value={years != null ? String(years) : "—"}
+              label="Yrs hosting"
+            />
           </div>
         </div>
-        <button
-          type="button"
-          className="hidden items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent sm:inline-flex"
-        >
-          <MessageSquare className="h-4 w-4" />
-          Message
-        </button>
       </div>
-      {bio ? (
-        <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-          {bio}
-        </p>
-      ) : null}
+
+      {/* Host info */}
+      <div className="lg:col-span-7">
+        {bio ? (
+          <p className="whitespace-pre-line text-[15px] leading-relaxed text-brand-ink/85">
+            {bio}
+          </p>
+        ) : null}
+        <div className="mt-5 space-y-3 text-sm text-brand-ink">
+          {responseRate != null || avgResponseHours != null ? (
+            <div className="flex items-center gap-3">
+              <MessageSquare className="h-4 w-4 text-brand-mute" />
+              {responseRate != null ? (
+                <span>
+                  Response rate:{" "}
+                  <span className="font-semibold">
+                    {Math.round(responseRate * 100)}%
+                  </span>
+                </span>
+              ) : null}
+              {avgResponseHours != null ? (
+                <span className="text-brand-mute">
+                  · usually replies in {replyWindow(avgResponseHours)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {languages && languages.length > 0 ? (
+            <div className="flex items-center gap-3">
+              <Languages className="h-4 w-4 text-brand-mute" />
+              Speaks {languages.join(", ")}
+            </div>
+          ) : null}
+          {isVerified ? (
+            <div className="flex items-center gap-3">
+              <BadgeCheck className="h-4 w-4 text-brand-primary" />
+              Identity verified by Vilo
+            </div>
+          ) : null}
+          {hasRating ? (
+            <div className="flex items-center gap-3">
+              <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+              {(rating ?? 0).toFixed(2)} from {reviewCount} verified stay
+              {reviewCount === 1 ? "" : "s"}
+            </div>
+          ) : null}
+        </div>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/${handle}`}
+            className="inline-flex items-center gap-1.5 rounded bg-brand-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+          >
+            <MessageSquare className="h-4 w-4" /> Message{" "}
+            {displayName.split(" ")[0]}
+          </Link>
+          <Link
+            href={`/${handle}`}
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
+          >
+            View host profile
+          </Link>
+        </div>
+      </div>
     </div>
   );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div>
+      <div className="font-display text-lg font-bold text-brand-ink">
+        {value}
+      </div>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function hostingYears(since: string | null): number | null {
+  if (!since) return null;
+  const start = new Date(since).getFullYear();
+  if (Number.isNaN(start)) return null;
+  return Math.max(0, new Date().getFullYear() - start);
+}
+
+function replyWindow(hours: number): string {
+  if (hours <= 1) return "an hour";
+  if (hours < 24) return `${Math.round(hours)} hours`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"}`;
 }
