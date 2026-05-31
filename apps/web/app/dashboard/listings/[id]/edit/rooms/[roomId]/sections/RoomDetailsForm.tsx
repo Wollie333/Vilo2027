@@ -114,12 +114,13 @@ export const RoomDetailsForm = forwardRef<
     room.experiences ?? [],
   );
 
-  // ── Beds — capacity is derived from these, never hand-typed. ──
+  // ── Beds — capacity is derived from each bed's KIND × quantity. The host
+  // only sets the quantity; "sleeps per bed" comes from the bed kind. ──
   const [beds, setBeds] = useState<BedInput[]>(() =>
     (room.beds ?? []).map((b) => ({
       bed_kind: b.bed_kind as BedKind,
       quantity: b.quantity,
-      sleeps: b.sleeps ?? defaultSleepsForKind(b.bed_kind),
+      sleeps: defaultSleepsForKind(b.bed_kind),
     })),
   );
   const capacity = useMemo(() => roomCapacityFromBeds(beds), [beds]);
@@ -344,7 +345,8 @@ export const RoomDetailsForm = forwardRef<
                     value={b.bed_kind}
                     onChange={(e) => {
                       const kind = e.target.value as BedKind;
-                      // Reset Sleeps to the new kind's suggestion; host can edit.
+                      // Capacity follows the bed kind (e.g. King/Twin sleep 2,
+                      // Single sleeps 1).
                       updateBed(i, {
                         bed_kind: kind,
                         sleeps: defaultSleepsForKind(kind),
@@ -360,17 +362,8 @@ export const RoomDetailsForm = forwardRef<
                     ))}
                   </select>
 
-                  {/* Sleeps per bed — host-controlled, any number. */}
-                  <Stepper
-                    label="Sleeps"
-                    value={b.sleeps}
-                    min={1}
-                    max={30}
-                    disabled={pending}
-                    onChange={(n) => updateBed(i, { sleeps: n })}
-                  />
-
-                  {/* How many of this bed. */}
+                  {/* The only number the host sets — how many of this bed. Each
+                      bed's capacity comes from its kind. */}
                   <Stepper
                     label="Qty"
                     value={b.quantity}
@@ -381,8 +374,13 @@ export const RoomDetailsForm = forwardRef<
                   />
 
                   <span className="text-[11px] text-brand-mute">
-                    = {b.sleeps * b.quantity} guest
-                    {b.sleeps * b.quantity === 1 ? "" : "s"}
+                    {defaultSleepsForKind(b.bed_kind)} per bed ·{" "}
+                    <span className="font-medium text-brand-ink">
+                      {defaultSleepsForKind(b.bed_kind) * b.quantity} guest
+                      {defaultSleepsForKind(b.bed_kind) * b.quantity === 1
+                        ? ""
+                        : "s"}
+                    </span>
                   </span>
 
                   <button
