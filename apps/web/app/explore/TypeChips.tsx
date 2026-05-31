@@ -1,4 +1,4 @@
-import { Compass, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
@@ -17,12 +17,8 @@ export async function TypeChips({ currentType }: { currentType: string }) {
     }
   }
 
-  if (tree.experience.length > 0) {
-    chips.push({ key: "experience", label: "Experiences", icon: "compass" });
-  }
-
   return <TypeChipsClient chips={chips} currentType={currentType} />;
 }
 
 // Re-export icon name → component map for the client component.
-export const FALLBACK_CHIP_ICONS = { sparkles: Sparkles, compass: Compass };
+export const FALLBACK_CHIP_ICONS = { sparkles: Sparkles };

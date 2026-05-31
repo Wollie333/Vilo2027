@@ -85,14 +85,10 @@ function fmtR(n: number, currency: string): string {
 
 /** Lowest bookable price for a listing — shared by cards and category rollup. */
 function listingAmount(l: {
-  listing_type: string;
   booking_mode: string | null;
   base_price: number | null;
   listing_rooms: RoomRow[] | null;
 }): number | null {
-  if (l.listing_type === "experience") {
-    return l.base_price != null ? Number(l.base_price) : null;
-  }
   if (l.booking_mode === "rooms_only") {
     const prices = (l.listing_rooms ?? [])
       .filter((r) => r.is_active !== false && r.deleted_at == null)
@@ -112,7 +108,6 @@ type ListingCardRow = {
   currency: string;
   max_guests: number | null;
   bedrooms: number | null;
-  listing_type: string;
   booking_mode: string | null;
   avg_rating: number | null;
   total_reviews: number | null;
@@ -123,27 +118,22 @@ type ListingCardRow = {
 };
 
 const LISTING_CARD_SELECT =
-  "slug, name, city, province, base_price, currency, max_guests, bedrooms, listing_type, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )";
+  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )";
 
 function toListingCard(l: ListingCardRow): HomeListingCard {
   const location = [l.city, l.province].filter(Boolean).join(" · ");
 
   // Price — mirrors /explore and /c/[slug].
   const amount = listingAmount(l);
-  const perLabel = l.listing_type === "experience" ? "per person" : "/ night";
-  const fromLabel =
-    l.listing_type !== "experience" && l.booking_mode === "rooms_only";
+  const perLabel = "/ night";
+  const fromLabel = l.booking_mode === "rooms_only";
 
   const detailBits: string[] = [];
-  if (l.listing_type === "experience") {
-    if (l.max_guests) detailBits.push(`Up to ${l.max_guests} guests`);
-  } else {
-    if (l.max_guests) detailBits.push(`Sleeps ${l.max_guests}`);
-    if (l.bedrooms)
-      detailBits.push(
-        `${l.bedrooms} ${l.bedrooms === 1 ? "bedroom" : "bedrooms"}`,
-      );
-  }
+  if (l.max_guests) detailBits.push(`Sleeps ${l.max_guests}`);
+  if (l.bedrooms)
+    detailBits.push(
+      `${l.bedrooms} ${l.bedrooms === 1 ? "bedroom" : "bedrooms"}`,
+    );
 
   const hasRating =
     l.avg_rating != null && l.total_reviews != null && l.total_reviews > 0;
@@ -213,6 +203,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("listings")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
+        .eq("listing_type", "accommodation")
         .is("deleted_at", null)
         .eq("is_featured", true)
         .order("created_at", { ascending: false })
@@ -222,6 +213,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("listings")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
+        .eq("listing_type", "accommodation")
         .is("deleted_at", null)
         .order("avg_rating", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -230,9 +222,10 @@ export async function getHomeData(): Promise<HomeData> {
       supabase
         .from("listings")
         .select(
-          "city, province, category_id, base_price, currency, booking_mode, listing_type, host:hosts!inner ( display_name ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+          "city, province, category_id, base_price, currency, booking_mode, host:hosts!inner ( display_name ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
         )
         .eq("is_published", true)
+        .eq("listing_type", "accommodation")
         .is("deleted_at", null)
         .limit(1000),
       // Exact published-listing count for the hero + "show all" CTA.
@@ -240,6 +233,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("listings")
         .select("id", { count: "exact", head: true })
         .eq("is_published", true)
+        .eq("listing_type", "accommodation")
         .is("deleted_at", null),
       // Most-recent public reviews (anonymised).
       supabase
@@ -272,7 +266,6 @@ export async function getHomeData(): Promise<HomeData> {
     base_price: number | null;
     currency: string;
     booking_mode: string | null;
-    listing_type: string;
     host: { display_name: string } | null;
     photos: PhotoRow[] | null;
     listing_rooms: RoomRow[] | null;

@@ -99,7 +99,6 @@ export function StepListing({
               name: listing.name,
               category_id: listing.category_id,
               accommodation_type: listing.accommodation_type,
-              experience_type: listing.experience_type,
               description: listing.description ?? "",
             }}
             categoryLeaves={categoryLeaves}

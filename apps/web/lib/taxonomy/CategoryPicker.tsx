@@ -8,13 +8,12 @@ type Leaf = Pick<
 >;
 
 /**
- * Chip-grid picker for a listing category. Pass a flat list of leaves
- * (already filtered to the kind the host has chosen — accommodation or
- * experience) and the picker renders one chip per leaf.
+ * Chip-grid picker for a listing category. Pass a flat list of
+ * accommodation leaves and the picker renders one chip per leaf.
  *
- * Replaces the hardcoded ACCOMMODATION_TYPES / EXPERIENCE_TYPES button
- * grids that used to live in three different forms. The leaves come from
- * the admin-managed listing_categories taxonomy.
+ * Replaces the hardcoded ACCOMMODATION_TYPES button grid that used to live
+ * in three different forms. The leaves come from the admin-managed
+ * listing_categories taxonomy.
  */
 export function CategoryPicker({
   leaves,

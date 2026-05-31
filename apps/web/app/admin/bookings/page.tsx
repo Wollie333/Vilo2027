@@ -50,8 +50,8 @@ export default async function AdminBookingsPage({
     .select(
       `
       id, reference, status, payment_status, payment_method,
-      check_in, check_out, session_date, total_amount, currency, created_at,
-      listing:listings ( name, listing_type ),
+      check_in, check_out, total_amount, currency, created_at,
+      listing:listings ( name ),
       host:hosts ( display_name, handle ),
       guest:user_profiles ( full_name, email )
     `,
@@ -78,14 +78,10 @@ export default async function AdminBookingsPage({
     payment_method: string | null;
     check_in: string | null;
     check_out: string | null;
-    session_date: string | null;
     total_amount: number;
     currency: string;
     created_at: string;
-    listing:
-      | { name: string; listing_type: string }
-      | { name: string; listing_type: string }[]
-      | null;
+    listing: { name: string } | { name: string }[] | null;
     host:
       | { display_name: string; handle: string }
       | { display_name: string; handle: string }[]
@@ -191,19 +187,7 @@ export default async function AdminBookingsPage({
                       </span>
                       {host ? ` · ${host.display_name}` : ""}
                       {guest?.full_name ? ` · ${guest.full_name}` : ""}
-                      {listing?.listing_type === "experience" && b.session_date
-                        ? ` · ${new Date(b.session_date).toLocaleString(
-                            "en-ZA",
-                            {
-                              day: "numeric",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}`
-                        : b.check_in
-                          ? ` · ${b.check_in} → ${b.check_out}`
-                          : ""}
+                      {b.check_in ? ` · ${b.check_in} → ${b.check_out}` : ""}
                     </div>
                   </div>
                   <div className="hidden text-right text-[12px] text-brand-mute sm:block">

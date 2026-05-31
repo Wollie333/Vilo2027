@@ -44,8 +44,8 @@ export function PageFooter() {
               </span>
             </div>
             <p className="mt-5 max-w-xs text-sm leading-relaxed">
-              Direct-booking management for accommodation hosts and experience
-              operators. Built in South Africa, for the world.
+              Direct-booking management for accommodation hosts. Built in South
+              Africa, for the world.
             </p>
             <div className="mt-6 flex items-center gap-3">
               <a

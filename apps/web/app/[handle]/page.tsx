@@ -60,21 +60,11 @@ const ACC_LABEL: Record<string, string> = {
   other: "Stay",
 };
 
-const EXP_LABEL: Record<string, string> = {
-  tour: "Tour",
-  activity: "Activity",
-  workshop: "Workshop",
-  transfer: "Transfer",
-  other: "Experience",
-};
-
 type Listing = {
   id: string;
   slug: string | null;
   name: string;
-  listing_type: string;
   accommodation_type: string | null;
-  experience_type: string | null;
   city: string | null;
   province: string | null;
   base_price: number | null;
@@ -85,7 +75,6 @@ type Listing = {
   max_guests: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
-  duration_minutes: number | null;
   is_featured: boolean;
   photos: Array<{ url: string; sort_order: number }> | null;
   listing_rooms: Array<{
@@ -95,13 +84,8 @@ type Listing = {
   }> | null;
 };
 
-function typeLabel(
-  l: Pick<Listing, "listing_type" | "accommodation_type" | "experience_type">,
-) {
-  if (l.listing_type === "accommodation") {
-    return ACC_LABEL[l.accommodation_type ?? "other"] ?? "Stay";
-  }
-  return EXP_LABEL[l.experience_type ?? "other"] ?? "Experience";
+function typeLabel(l: Pick<Listing, "accommodation_type">) {
+  return ACC_LABEL[l.accommodation_type ?? "other"] ?? "Stay";
 }
 
 function fmtR(n: number, currency: string): string {
@@ -162,19 +146,11 @@ function listingBadge(l: Listing): string | null {
 
 function capacityLabel(l: Listing): string | null {
   const parts: string[] = [];
-  if (l.listing_type === "accommodation") {
-    if (l.max_guests) parts.push(`${l.max_guests} guests`);
-    if (l.bedrooms != null)
-      parts.push(`${l.bedrooms} ${l.bedrooms === 1 ? "bed" : "beds"}`);
-    if (l.bathrooms != null)
-      parts.push(`${l.bathrooms} ${l.bathrooms === 1 ? "bath" : "baths"}`);
-  } else {
-    if (l.max_guests) parts.push(`${l.max_guests} guests`);
-    if (l.duration_minutes) {
-      const h = Math.round((l.duration_minutes / 60) * 10) / 10;
-      parts.push(h >= 1 ? `${h} hr` : `${l.duration_minutes} min`);
-    }
-  }
+  if (l.max_guests) parts.push(`${l.max_guests} guests`);
+  if (l.bedrooms != null)
+    parts.push(`${l.bedrooms} ${l.bedrooms === 1 ? "bed" : "beds"}`);
+  if (l.bathrooms != null)
+    parts.push(`${l.bathrooms} ${l.bathrooms === 1 ? "bath" : "baths"}`);
   return parts.length ? parts.join(" · ") : null;
 }
 
@@ -197,10 +173,12 @@ async function loadHost(handle: string) {
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, listing_type, accommodation_type, experience_type, city, province, base_price, currency, booking_mode, avg_rating, total_reviews, max_guests, bedrooms, bathrooms, duration_minutes, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, accommodation_type, city, province, base_price, currency, booking_mode, avg_rating, total_reviews, max_guests, bedrooms, bathrooms, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("host_id", host.id)
     .eq("is_published", true)
+    // MVP: accommodation only — experiences/tour guides ship later.
+    .eq("listing_type", "accommodation")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 

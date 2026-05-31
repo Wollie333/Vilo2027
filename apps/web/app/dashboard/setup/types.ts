@@ -27,10 +27,9 @@ export type Profile = {
 export type Listing = {
   id: string;
   name: string;
-  listing_type: "accommodation" | "experience";
+  listing_type: "accommodation";
   category_id: string | null;
   accommodation_type: string | null;
-  experience_type: string | null;
   description: string;
   base_price: number | null;
   weekend_price: number | null;

@@ -122,7 +122,7 @@ export function WorkspaceSwitcher({
 
   // Per-workspace quick actions shown under a divider in the dropdown.
   // For host: "Create another listing" so the host can spin up a second
-  // accommodation/experience without leaving the toggle.
+  // listing without leaving the toggle.
   const quickActions: Array<{
     href: string;
     label: string;

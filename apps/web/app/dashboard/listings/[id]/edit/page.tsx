@@ -45,7 +45,6 @@ export default async function EditListingPage({
         "host_id",
         "listing_type",
         "accommodation_type",
-        "experience_type",
         "category_id",
         "name",
         "slug",
@@ -73,13 +72,6 @@ export default async function EditListingPage({
         "instant_booking",
         "is_published",
         "booking_mode",
-        "duration_minutes",
-        "max_participants",
-        "min_participants",
-        "meeting_point",
-        "what_to_bring",
-        "private_group_price",
-        "schedule",
       ].join(", "),
     )
     .eq("id", params.id)
@@ -236,7 +228,7 @@ export default async function EditListingPage({
     getCategoriesForKind(listing.listing_type),
     getAmenityCatalog(),
   ]);
-  // Picker only renders leaves (skip roots like Accommodation / Experiences).
+  // Picker only renders leaves (skip the Accommodation root).
   const categoryLeaves = categoryLeavesAll
     .filter((c) => c.parent_id !== null)
     .map((c) => ({

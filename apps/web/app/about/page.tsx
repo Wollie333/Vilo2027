@@ -25,9 +25,9 @@ export default function AboutPage() {
             <span className="text-brand-primary">Fair fees. Local hosts.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-brand-mute">
-            Vilo is built for South African accommodation hosts and experience
-            operators who want to take bookings on their own terms — without
-            handing 18% off the top to a global marketplace.
+            Vilo is built for South African accommodation hosts who want to take
+            bookings on their own terms — without handing 18% off the top to a
+            global marketplace.
           </p>
         </div>
       </section>

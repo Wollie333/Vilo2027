@@ -46,7 +46,6 @@ type ListingRow = {
   slug: string | null;
   listing_type: string;
   accommodation_type: string | null;
-  experience_type: string | null;
   city: string | null;
   province: string | null;
   base_price: number | string | null;
@@ -91,9 +90,10 @@ export default async function ListingsPage({
     ? await supabase
         .from("listings")
         .select(
-          "id, name, slug, listing_type, accommodation_type, experience_type, city, province, base_price, currency, is_published, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
+          "id, name, slug, listing_type, accommodation_type, city, province, base_price, currency, is_published, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
         )
         .eq("host_id", host.id)
+        .eq("listing_type", "accommodation")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
     : { data: [] as ListingRow[] };
@@ -510,11 +510,7 @@ function ListingCard({
     (a, b) => a.sort_order - b.sort_order,
   );
   const hero = photos[0];
-  const typeKey =
-    listing.listing_type === "accommodation"
-      ? listing.accommodation_type
-      : listing.experience_type;
-  const typeLabel = TYPE_LABEL[typeKey ?? "other"] ?? "Stay";
+  const typeLabel = TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
   const location = [listing.city, listing.province].filter(Boolean).join(", ");
   const roomCount = (listing.rooms ?? []).length;
   const photoCount = photos.length;
@@ -678,7 +674,7 @@ function AddListingTile() {
           Add another listing
         </div>
         <p className="mx-auto mt-1 max-w-[18ch] text-[12px] leading-relaxed text-brand-mute">
-          Apartment, lodge, guesthouse, or experience.
+          Apartment, lodge, guesthouse, or cottage.
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-1 text-[10.5px] text-brand-mute">

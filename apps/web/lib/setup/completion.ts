@@ -64,20 +64,11 @@ export function computeSetupCompletion(
 
   const banking = input.hasBankAccount;
 
-  const isExperience = listing?.listing_type === "experience";
+  // Listing details = photos. Pricing & capacity live entirely in Rooms.
+  const listingDone = Boolean(listing && input.photoCount > 0);
 
-  // Listing details = photos (+ price/capacity for experiences, which have no
-  // rooms). For accommodation, pricing & capacity live entirely in Rooms.
-  const listingDone = Boolean(
-    listing &&
-    input.photoCount > 0 &&
-    (!isExperience ||
-      (listing.base_price != null && listing.max_guests != null)),
-  );
-
-  // Rooms is its own section for accommodation (≥1 active room drives price +
-  // capacity); experiences have no rooms, so it's not applicable.
-  const roomsDone = isExperience ? true : input.roomCount > 0;
+  // Rooms is its own section (≥1 active room drives price + capacity).
+  const roomsDone = input.roomCount > 0;
 
   // Policies = a refund policy is set for the listing. With the Policy Manager,
   // refund terms are reusable policies assigned via listing_policies; the

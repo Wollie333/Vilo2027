@@ -1,4 +1,5 @@
-export type CategoryKind = "accommodation" | "experience";
+// MVP: experiences/tour-guides are not built yet — accommodation only.
+export type CategoryKind = "accommodation";
 
 export type ListingCategoryRow = {
   id: string;
@@ -53,7 +54,6 @@ export type CategoryNode = ListingCategoryRow & {
 
 export type CategoryTreeByKind = {
   accommodation: CategoryNode[];
-  experience: CategoryNode[];
 };
 
 export type AmenityGroupWithItems = AmenityGroupRow & {

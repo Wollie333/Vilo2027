@@ -1,4 +1,4 @@
-import { Eye, Home, Hotel, Plus, Building2 } from "lucide-react";
+import { Home, Hotel, Plus, Building2, Tent } from "lucide-react";
 import Link from "next/link";
 
 const TILES = [
@@ -24,11 +24,11 @@ const TILES = [
     sub_type: "hotel",
   },
   {
-    Icon: Eye,
-    title: "Experience",
-    sub: "Safari, tour, retreat",
-    type: "experience",
-    sub_type: "tour",
+    Icon: Tent,
+    title: "Lodge",
+    sub: "Bush, farm, retreat",
+    type: "accommodation",
+    sub_type: "lodge",
   },
 ] as const;
 

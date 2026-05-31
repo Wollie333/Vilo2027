@@ -33,8 +33,6 @@ export default async function NewBookingPage() {
     .maybeSingle();
 
   // Manual booking entry is shaped for stays (check-in / check-out / nights).
-  // Experience bookings are session-based and only created via the guest
-  // booking flow at /listing/[slug]/book for now.
   const { data: listingRows } = host
     ? await supabase
         .from("listings")

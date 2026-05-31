@@ -38,9 +38,8 @@ import {
 
 // ─── Step machinery ───────────────────────────────────────────────
 
-// 5-step host onboarding. The old "What you offer" step was removed —
-// every host can list both accommodation AND experiences from day one;
-// the kind picker for the FIRST listing happens inline in step 4.
+// 5-step host onboarding. The old "What you offer" step was removed.
+// MVP lists accommodation only — experiences/tour guides ship later.
 const STEPS = [
   { key: "account", label: "Account", short: "Account" },
   { key: "about", label: "About you", short: "Profile" },
@@ -69,13 +68,12 @@ type WizardData = {
   // listing — bare minimum to seed a draft. Capacity, pricing, duration,
   // photos and amenities all live in the listing editor post-onboarding.
   listingName: string;
-  listingKind: "accommodation" | "experience";
+  listingKind: "accommodation";
   categoryId: string | null;
-  // Legacy text columns — derived from the chosen category slug; the
-  // picker writes both so the listings INSERT keeps the old columns
+  // Legacy text column — derived from the chosen category slug; the
+  // picker writes it so the listings INSERT keeps the old column
   // populated for backwards-compatible reads.
   accommodationType: string;
-  experienceType: string;
   addressLine1: string;
   addressLine2: string;
   city: string;
@@ -118,7 +116,6 @@ function initialData(prefilled: Prefilled): WizardData {
     listingKind: "accommodation",
     categoryId: null,
     accommodationType: "",
-    experienceType: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
@@ -157,8 +154,8 @@ const SIDE_RAIL: Record<
   },
   listing: {
     eyebrow: "Step by step",
-    title: "Stays or experiences — pick one to start.",
-    body: "We seed your first listing here. You can add a second listing of either kind from your dashboard, and finish photos, pricing and amenities in the listing editor.",
+    title: "Let's set up your first place.",
+    body: "We seed your first listing here. You can add more listings from your dashboard, and finish photos, pricing and amenities in the listing editor.",
   },
   plan: {
     eyebrow: "Currently free",
@@ -218,7 +215,7 @@ export function Wizard({
     id: string;
     label: string;
     slug: string;
-    kind: "accommodation" | "experience";
+    kind: "accommodation";
     description: string | null;
   }>;
 }) {
@@ -331,14 +328,7 @@ export function Wizard({
       listing_name: data.listingName,
       listing_kind: data.listingKind,
       category_id: data.categoryId,
-      accommodation_type:
-        data.listingKind === "accommodation"
-          ? data.accommodationType || undefined
-          : undefined,
-      experience_type:
-        data.listingKind === "experience"
-          ? data.experienceType || undefined
-          : undefined,
+      accommodation_type: data.accommodationType || undefined,
       address_line1: data.addressLine1,
       address_line2: data.addressLine2,
       city: data.city,
@@ -369,14 +359,7 @@ export function Wizard({
         listing_name: data.listingName,
         listing_kind: data.listingKind,
         category_id: data.categoryId,
-        accommodation_type:
-          data.listingKind === "accommodation"
-            ? data.accommodationType || undefined
-            : undefined,
-        experience_type:
-          data.listingKind === "experience"
-            ? data.experienceType || undefined
-            : undefined,
+        accommodation_type: data.accommodationType || undefined,
         address_line1: data.addressLine1,
         address_line2: data.addressLine2,
         city: data.city,
@@ -1124,96 +1107,34 @@ function StepListing({
     id: string;
     label: string;
     slug: string;
-    kind: "accommodation" | "experience";
+    kind: "accommodation";
     description: string | null;
   }>;
 }) {
-  const isExperience = data.listingKind === "experience";
-  const kindLeaves = categoryLeaves.filter((l) =>
-    isExperience ? l.kind === "experience" : l.kind === "accommodation",
-  );
   return (
     <div className="vilo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
         title="Tell us about your first listing"
-        subtitle="The basics now — name, kind, and address. Photos, amenities, and pricing come in the listing editor right after."
+        subtitle="The basics now — name, type, and address. Photos, amenities, and pricing come in the listing editor right after."
       />
 
       <div className="mt-7 space-y-6">
-        {/* Listing kind toggle — host can list both kinds; pick which one
-            to start with. The other can be added from the dashboard. */}
-        <FormField label="Is this an accommodation or an experience?">
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              {
-                v: "accommodation" as const,
-                label: "Accommodation",
-                sub: "Guesthouse, lodge, villa, cottage…",
-              },
-              {
-                v: "experience" as const,
-                label: "Experience",
-                sub: "Tour, activity, workshop, transfer…",
-              },
-            ].map((opt) => {
-              const on = data.listingKind === opt.v;
-              return (
-                <button
-                  key={opt.v}
-                  type="button"
-                  onClick={() =>
-                    patch({
-                      listingKind: opt.v,
-                      // Different kind = different leaf set. Clear the
-                      // previous pick so the host re-selects from the
-                      // matching options.
-                      categoryId: null,
-                      accommodationType: "",
-                      experienceType: "",
-                    })
-                  }
-                  className={`rounded-card border p-3 text-left transition-colors ${
-                    on
-                      ? "border-brand-primary bg-brand-accent/40"
-                      : "border-brand-line bg-white hover:border-brand-primary/40"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-brand-ink">
-                    {opt.label}
-                  </div>
-                  <div className="mt-0.5 text-xs text-brand-mute">
-                    {opt.sub}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </FormField>
-
         <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            label={isExperience ? "Experience name" : "Listing name"}
-            error={errors.listingName}
-          >
+          <FormField label="Listing name" error={errors.listingName}>
             <TextInput
               value={data.listingName}
               onChange={(e) => patch({ listingName: e.target.value })}
-              placeholder={
-                isExperience ? "Sunrise Canoe Tour" : "Cape Town Boutique B&B"
-              }
+              placeholder="Cape Town Boutique B&B"
             />
           </FormField>
 
-          <FormField
-            label={isExperience ? "Experience type" : "Property type"}
-            error={errors.category_id}
-          >
+          <FormField label="Property type" error={errors.category_id}>
             <SelectInput
               value={data.categoryId ?? ""}
               onChange={(e) => {
                 const id = e.target.value;
-                const leaf = kindLeaves.find((l) => l.id === id);
+                const leaf = categoryLeaves.find((l) => l.id === id);
                 if (!leaf) {
                   patch({ categoryId: null });
                   return;
@@ -1221,15 +1142,13 @@ function StepListing({
                 patch({
                   categoryId: leaf.id,
                   // Mirror onto the legacy column so the listings INSERT
-                  // populates both. Cleared for the opposite kind in the
-                  // server action.
-                  accommodationType: isExperience ? "" : leaf.slug,
-                  experienceType: isExperience ? leaf.slug : "",
+                  // keeps it populated.
+                  accommodationType: leaf.slug,
                 });
               }}
             >
               <option value="">Pick a category…</option>
-              {kindLeaves.map((l) => (
+              {categoryLeaves.map((l) => (
                 <option key={l.id} value={l.id}>
                   {l.label}
                 </option>
@@ -1241,21 +1160,14 @@ function StepListing({
         {/* Address block */}
         <div className="space-y-3 rounded-card border border-brand-line bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-mute">
-            {isExperience ? "Meeting point address" : "Property address"}
+            Property address
           </div>
 
-          <FormField
-            label={isExperience ? "Street / location" : "Street address"}
-            error={errors.addressLine1}
-          >
+          <FormField label="Street address" error={errors.addressLine1}>
             <TextInput
               value={data.addressLine1}
               onChange={(e) => patch({ addressLine1: e.target.value })}
-              placeholder={
-                isExperience
-                  ? "Slipway entrance, V&A Waterfront"
-                  : "12 Main Road"
-              }
+              placeholder="12 Main Road"
             />
           </FormField>
 

@@ -188,16 +188,6 @@ export function CategoryEditor({
               className="input font-mono text-[12px]"
             />
           </Field>
-          <Field label="Kind">
-            <select
-              value={state.kind}
-              onChange={(e) => update("kind", e.target.value as CategoryKind)}
-              className="input capitalize"
-            >
-              <option value="accommodation">Accommodation</option>
-              <option value="experience">Experience</option>
-            </select>
-          </Field>
           <Field label="Parent">
             <select
               value={state.parentId ?? ""}

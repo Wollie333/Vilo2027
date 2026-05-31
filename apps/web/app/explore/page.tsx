@@ -46,14 +46,6 @@ const TYPE_LABEL: Record<string, string> = {
   other: "Stay",
 };
 
-const EXP_LABEL: Record<string, string> = {
-  tour: "Tour",
-  activity: "Activity",
-  workshop: "Workshop",
-  transfer: "Transfer",
-  other: "Experience",
-};
-
 type SearchParams = {
   where?: string;
   guests?: string;
@@ -98,10 +90,12 @@ export default async function ExplorePage({
   let query = supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, experience_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)
+    // MVP: accommodation only — experiences/tour guides ship later.
+    .eq("listing_type", "accommodation")
     .is("deleted_at", null);
 
   if (where.length > 0) {
@@ -113,28 +107,22 @@ export default async function ExplorePage({
   }
   if (type) {
     if (type === "accommodation") {
-      query = query.eq("listing_type", "accommodation");
-    } else if (type === "experience") {
-      query = query.eq("listing_type", "experience");
+      // Base query already filters to accommodation — nothing more to do.
     } else {
       // Treat `type` as a category slug. Look it up in the taxonomy and
       // include every descendant id when filtering. Fall back to the legacy
-      // accommodation_type / experience_type text column for listings that
-      // haven't been backfilled yet.
+      // accommodation_type text column for listings that haven't been
+      // backfilled yet.
       const category = await getCategoryBySlug(type);
       if (category) {
         const ids = await getDescendantIds(category.id);
         const idList = `(${ids.join(",")})`;
-        const legacyCol =
-          category.kind === "experience"
-            ? "experience_type"
-            : "accommodation_type";
-        query = query.or(`category_id.in.${idList},${legacyCol}.eq.${type}`);
+        query = query.or(
+          `category_id.in.${idList},accommodation_type.eq.${type}`,
+        );
       } else {
         // Unknown slug — still try the legacy text column so old URLs work.
-        query = query.or(
-          `accommodation_type.eq.${type},experience_type.eq.${type}`,
-        );
+        query = query.eq("accommodation_type", type);
       }
     }
   }
@@ -205,11 +193,7 @@ export default async function ExplorePage({
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
-              {where
-                ? `Stays matching "${where}"`
-                : type === "experience"
-                  ? "All experiences"
-                  : "All stays"}
+              {where ? `Stays matching "${where}"` : "All stays"}
             </h1>
             {hasFilters ? (
               <Link
@@ -294,11 +278,8 @@ export default async function ExplorePage({
                           {l.name}
                         </div>
                         <div className="mt-0.5 truncate text-xs text-brand-mute">
-                          {l.listing_type === "experience"
-                            ? (EXP_LABEL[l.experience_type ?? "other"] ??
-                              "Experience")
-                            : (TYPE_LABEL[l.accommodation_type ?? "other"] ??
-                              "Stay")}
+                          {TYPE_LABEL[l.accommodation_type ?? "other"] ??
+                            "Stay"}
                           {location ? ` · ${location}` : ""}
                         </div>
                       </div>
@@ -324,12 +305,8 @@ export default async function ExplorePage({
                         }> | null) ?? [];
                       let amount: number | null = null;
                       let fromLabel = false;
-                      let perLabel = "/ night";
-                      if (l.listing_type === "experience") {
-                        amount =
-                          l.base_price != null ? Number(l.base_price) : null;
-                        perLabel = "per person";
-                      } else if (l.booking_mode === "rooms_only") {
+                      const perLabel = "/ night";
+                      if (l.booking_mode === "rooms_only") {
                         const prices = rooms
                           .filter(
                             (r) =>

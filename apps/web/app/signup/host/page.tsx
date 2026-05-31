@@ -57,19 +57,17 @@ export default async function HostSignupPage() {
     }
   }
 
-  // Flatten the category tree to leaves only (skip the Accommodation /
-  // Experiences roots). The Wizard picks accommodation vs experience first
-  // then filters this list by kind.
+  // Flatten the category tree to accommodation leaves only (skip the
+  // Accommodation root). MVP lists accommodation only.
   const tree = await getCategoryTree();
-  const categoryLeaves = [...tree.accommodation, ...tree.experience].flatMap(
-    (root) =>
-      root.children.map((c) => ({
-        id: c.id,
-        label: c.label,
-        slug: c.slug,
-        kind: c.kind,
-        description: c.description,
-      })),
+  const categoryLeaves = tree.accommodation.flatMap((root) =>
+    root.children.map((c) => ({
+      id: c.id,
+      label: c.label,
+      slug: c.slug,
+      kind: c.kind,
+      description: c.description,
+    })),
   );
 
   // Unsigned users can land here directly — Step 1 (Account) creates the

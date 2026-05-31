@@ -45,7 +45,6 @@ export function BasicTab({
               name: listing.name,
               category_id: listing.category_id ?? null,
               accommodation_type: listing.accommodation_type,
-              experience_type: listing.experience_type,
               description: listing.description ?? "",
             }}
             categoryLeaves={categoryLeaves}
@@ -53,9 +52,7 @@ export function BasicTab({
         </CardContent>
       </Card>
 
-      {listing.listing_type === "accommodation" ? (
-        <BookingModeCard listing={listing} />
-      ) : null}
+      <BookingModeCard listing={listing} />
     </div>
   );
 }

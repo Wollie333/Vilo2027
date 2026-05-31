@@ -64,7 +64,7 @@ export default async function SetupPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, name, slug, listing_type, category_id, accommodation_type, experience_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
+      "id, name, slug, listing_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -125,10 +125,8 @@ export default async function SetupPage({
       .eq("listing_id", listing.id),
   ]);
 
-  // Category leaves for the chosen kind (skip roots) — drives the picker.
-  const categoryLeavesAll = await getCategoriesForKind(
-    (listing.listing_type as "accommodation" | "experience") ?? "accommodation",
-  );
+  // Accommodation category leaves (skip the root) — drives the picker.
+  const categoryLeavesAll = await getCategoriesForKind("accommodation");
   const categoryLeaves = categoryLeavesAll
     .filter((c) => c.parent_id !== null)
     .map((c) => ({
@@ -246,12 +244,9 @@ export default async function SetupPage({
       listing={{
         id: listing.id,
         name: listing.name,
-        listing_type:
-          (listing.listing_type as "accommodation" | "experience") ??
-          "accommodation",
+        listing_type: "accommodation",
         category_id: listing.category_id ?? null,
         accommodation_type: listing.accommodation_type ?? null,
-        experience_type: listing.experience_type ?? null,
         description: listing.description ?? "",
         base_price:
           listing.base_price == null ? null : Number(listing.base_price),

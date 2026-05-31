@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -14,7 +14,6 @@ import {
   type AvailableAddon,
   type RoomOption,
 } from "./BookingForm";
-import { ExperienceBookingForm } from "./ExperienceBookingForm";
 
 const ACC_TYPE_LABEL: Record<string, string> = {
   hotel: "Hotel",
@@ -83,8 +82,6 @@ export default async function BookingPage({
     guests?: string;
     room_ids?: string;
     room_guests?: string;
-    slot?: string;
-    participants?: string;
   };
 }) {
   const supabase = createServerClient();
@@ -92,115 +89,19 @@ export default async function BookingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const qs = new URLSearchParams();
-  if (searchParams?.from) qs.set("from", searchParams.from);
-  if (searchParams?.to) qs.set("to", searchParams.to);
-  if (searchParams?.guests) qs.set("guests", searchParams.guests);
-  if (searchParams?.room_ids) qs.set("room_ids", searchParams.room_ids);
-  if (searchParams?.room_guests)
-    qs.set("room_guests", searchParams.room_guests);
-  if (searchParams?.slot) qs.set("slot", searchParams.slot);
-  if (searchParams?.participants)
-    qs.set("participants", searchParams.participants);
   // Accommodation checkout allows anonymous visitors — they create a guest
-  // account inline in the form (see BookingForm). Experiences still require a
-  // signed-in user (that form isn't wired for inline signup yet).
-  const here = `/listing/${params.slug}/book?${qs.toString()}`;
+  // account inline in the form (see BookingForm).
 
   // Public read of a published listing.
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, host_id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, duration_minutes, max_participants, min_participants, meeting_point, private_group_price",
+      "id, host_id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews",
     )
     .eq("slug", params.slug)
     .maybeSingle();
 
   if (!listing) notFound();
-
-  // ── Experience path ────────────────────────────────────────────
-  if (listing.listing_type === "experience") {
-    if (!user) {
-      redirect(`/login?next=${encodeURIComponent(here)}`);
-    }
-    const slotRaw = searchParams?.slot ?? "";
-    const slotOk = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(slotRaw);
-    const partRaw = parseInt(searchParams?.participants ?? "", 10);
-    const minP = Math.max(1, listing.min_participants ?? 1);
-    const maxP = listing.max_participants ?? 50;
-    const participants =
-      Number.isFinite(partRaw) && partRaw >= minP && partRaw <= maxP
-        ? partRaw
-        : minP;
-
-    if (!slotOk || listing.base_price == null) {
-      return (
-        <div className="bg-brand-light text-brand-ink">
-          <SiteHeader />
-          <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
-            <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-              <div className="font-display text-lg font-semibold text-brand-ink">
-                Pick a session first
-              </div>
-              <p className="mt-2 text-sm text-brand-mute">
-                We need a session date and time before we can take payment.
-              </p>
-              <a
-                href={`/listing/${params.slug}`}
-                className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-              >
-                Back to listing
-              </a>
-            </div>
-          </main>
-          <SiteFooter />
-        </div>
-      );
-    }
-
-    return (
-      <div className="bg-brand-light text-brand-ink">
-        <SiteHeader />
-        <main className="mx-auto max-w-3xl px-5 py-8 lg:px-8 lg:py-12">
-          <div className="mb-6">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-              Confirm and pay
-            </div>
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-              {listing.name}
-            </h1>
-            <div className="mt-1 text-sm text-brand-mute">
-              {[listing.city, listing.province].filter(Boolean).join(", ")}
-            </div>
-          </div>
-
-          <ExperienceBookingForm
-            listingId={listing.id}
-            listingName={listing.name}
-            basePrice={Number(listing.base_price ?? 0)}
-            privateGroupPrice={
-              listing.private_group_price == null
-                ? null
-                : Number(listing.private_group_price)
-            }
-            currency={listing.currency}
-            cancellationPolicy={listing.cancellation_policy}
-            instantBooking={listing.instant_booking}
-            durationMinutes={listing.duration_minutes ?? null}
-            meetingPoint={listing.meeting_point ?? null}
-            sessionDate={slotRaw}
-            participants={participants}
-            minParticipants={minP}
-            maxParticipants={maxP}
-          />
-
-          <ListingPolicyBlock listingId={listing.id} className="mt-6" />
-        </main>
-        <SiteFooter />
-      </div>
-    );
-  }
-  // ── End experience path ───────────────────────────────────────
 
   const checkIn = isIso(searchParams?.from) ? searchParams!.from! : "";
   const checkOut = isIso(searchParams?.to) ? searchParams!.to! : "";
@@ -414,7 +315,7 @@ export default async function BookingPage({
     ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
 
   return (
-    <div className="bg-brand-light text-brand-ink">
+    <div className="bg-[#F4F6F4] text-brand-ink">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">

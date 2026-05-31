@@ -28,7 +28,7 @@ import { useMemo, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";
 import { modal } from "@/components/ui/modal-host";
-import type { CategoryKind, ListingCategoryRow } from "@/lib/taxonomy/types";
+import type { ListingCategoryRow } from "@/lib/taxonomy/types";
 
 import { deleteCategory } from "./actions";
 
@@ -58,33 +58,16 @@ type GroupedRow = {
   children: ListingCategoryRow[];
 };
 
-function groupByParent(rows: ListingCategoryRow[]): {
-  accommodation: GroupedRow[];
-  experience: GroupedRow[];
-} {
-  const byKind: Record<CategoryKind, ListingCategoryRow[]> = {
-    accommodation: [],
-    experience: [],
-  };
-  for (const r of rows) byKind[r.kind].push(r);
-
-  const grouped = (kind: CategoryKind): GroupedRow[] => {
-    const list = byKind[kind];
-    const roots = list
-      .filter((r) => r.parent_id === null)
-      .sort((a, b) => a.sort_order - b.sort_order);
-    return roots.map((p) => ({
-      parent: p,
-      children: list
-        .filter((r) => r.parent_id === p.id)
-        .sort((a, b) => a.sort_order - b.sort_order),
-    }));
-  };
-
-  return {
-    accommodation: grouped("accommodation"),
-    experience: grouped("experience"),
-  };
+function groupByParent(rows: ListingCategoryRow[]): GroupedRow[] {
+  const roots = rows
+    .filter((r) => r.parent_id === null)
+    .sort((a, b) => a.sort_order - b.sort_order);
+  return roots.map((p) => ({
+    parent: p,
+    children: rows
+      .filter((r) => r.parent_id === p.id)
+      .sort((a, b) => a.sort_order - b.sort_order),
+  }));
 }
 
 export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
@@ -119,6 +102,7 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
   }, [list, query]);
 
   const groups = useMemo(() => groupByParent(filteredList), [filteredList]);
+  const totalCategories = groups.reduce((acc, g) => acc + g.children.length, 0);
 
   async function removeRow(row: ListingCategoryRow) {
     const isParent = list.some((r) => r.parent_id === row.id);
@@ -177,82 +161,72 @@ export function CategoriesTable({ rows }: { rows: ListingCategoryRow[] }) {
         </div>
       ) : null}
 
-      {(["accommodation", "experience"] as const).map((kind) => (
-        <section
-          key={kind}
-          className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card"
-        >
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-line bg-brand-light/40 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
-                {kind === "accommodation" ? (
-                  <Building2 className="h-4.5 w-4.5" />
-                ) : (
-                  <Sparkles className="h-4.5 w-4.5" />
-                )}
-              </span>
-              <div>
-                <div className="font-display text-[15px] font-semibold text-brand-ink">
-                  {kind === "accommodation" ? "Accommodation" : "Experiences"}
-                </div>
-                <div className="text-[11.5px] text-brand-mute">
-                  {groups[kind].reduce((acc, g) => acc + g.children.length, 0)}{" "}
-                  categories across {groups[kind].length} root
-                  {groups[kind].length === 1 ? "" : "s"}
-                </div>
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-line bg-brand-light/40 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+              <Building2 className="h-4.5 w-4.5" />
+            </span>
+            <div>
+              <div className="font-display text-[15px] font-semibold text-brand-ink">
+                Accommodation
+              </div>
+              <div className="text-[11.5px] text-brand-mute">
+                {totalCategories} categories across {groups.length} root
+                {groups.length === 1 ? "" : "s"}
               </div>
             </div>
-          </header>
+          </div>
+        </header>
 
-          {groups[kind].length === 0 ? (
-            <div className="px-5 py-12 text-center text-[13px] text-brand-mute">
-              {query ? "No matches in this section." : "No categories yet."}
+        {groups.length === 0 ? (
+          <div className="px-5 py-12 text-center text-[13px] text-brand-mute">
+            {query ? "No matches in this section." : "No categories yet."}
+          </div>
+        ) : null}
+
+        {groups.map(({ parent, children }) => {
+          const ParentIcon = resolveIcon(parent.icon);
+          return (
+            <div
+              key={parent.id}
+              className="border-t border-brand-line first:border-t-0"
+            >
+              {/* Parent row */}
+              <Row
+                row={parent}
+                isParent
+                icon={ParentIcon}
+                pending={pending}
+                onDelete={removeRow}
+              />
+
+              {/* Children */}
+              {children.length === 0 ? (
+                <div className="px-5 py-3 pl-16 text-[12px] italic text-brand-mute">
+                  No sub-categories under {parent.label}.
+                </div>
+              ) : (
+                <div className="divide-y divide-brand-line">
+                  {children.map((c) => {
+                    const Icon = resolveIcon(c.icon);
+                    return (
+                      <Row
+                        key={c.id}
+                        row={c}
+                        isParent={false}
+                        icon={Icon}
+                        pending={pending}
+                        onDelete={removeRow}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          ) : null}
-
-          {groups[kind].map(({ parent, children }) => {
-            const ParentIcon = resolveIcon(parent.icon);
-            return (
-              <div
-                key={parent.id}
-                className="border-t border-brand-line first:border-t-0"
-              >
-                {/* Parent row */}
-                <Row
-                  row={parent}
-                  isParent
-                  icon={ParentIcon}
-                  pending={pending}
-                  onDelete={removeRow}
-                />
-
-                {/* Children */}
-                {children.length === 0 ? (
-                  <div className="px-5 py-3 pl-16 text-[12px] italic text-brand-mute">
-                    No sub-categories under {parent.label}.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-brand-line">
-                    {children.map((c) => {
-                      const Icon = resolveIcon(c.icon);
-                      return (
-                        <Row
-                          key={c.id}
-                          row={c}
-                          isParent={false}
-                          icon={Icon}
-                          pending={pending}
-                          onDelete={removeRow}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      ))}
+          );
+        })}
+      </section>
     </div>
   );
 }

@@ -18,7 +18,7 @@ import { ValueProp } from "./_components/ValueProp";
 export const metadata: Metadata = {
   title: "Vilo — Direct booking management for hosts",
   description:
-    "Direct-booking management for accommodation hosts and experience operators. Branded booking page, unified inbox, calendar that syncs — for one flat monthly fee.",
+    "Direct-booking management for accommodation hosts. Branded booking page, unified inbox, calendar that syncs — for one flat monthly fee.",
 };
 
 export default function BookingManagementPage() {

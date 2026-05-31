@@ -46,9 +46,9 @@ export default function SignupChoicePage() {
             <ChoiceCard
               href="/signup/host"
               icon={<Home className="h-6 w-6" />}
-              eyebrow="For owners & operators"
+              eyebrow="For property owners"
               title="I want to host my property"
-              desc="List a guesthouse, B&B, lodge or experience. Take direct bookings on a flat monthly fee."
+              desc="List a guesthouse, B&B, lodge or cottage. Take direct bookings on a flat monthly fee."
             />
           </div>
 

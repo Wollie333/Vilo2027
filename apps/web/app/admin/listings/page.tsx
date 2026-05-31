@@ -80,7 +80,7 @@ export default async function AdminListingsPage({
             Listings
           </h1>
           <p className="mt-1 text-[13px] text-brand-mute">
-            Every accommodation and experience on the platform.
+            Every accommodation listing on the platform.
           </p>
         </div>
         <p className="text-[12px] text-brand-mute">
@@ -187,7 +187,7 @@ export default async function AdminListingsPage({
                         .toLocaleString("en-ZA")
                         .replace(/,/g, " ")}
                     </span>{" "}
-                    {l.listing_type === "experience" ? "per person" : "/ night"}
+                    / night
                   </div>
                   <div className="flex items-center gap-2">
                     {l.slug ? (
