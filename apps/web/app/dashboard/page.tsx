@@ -67,19 +67,23 @@ export default async function DashboardPage({
   const today = isoDate(new Date());
   const sevenDays = isoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
 
+  // Resolve the host first — the listings preview below must be scoped to
+  // host_id (listings has a public_read_published RLS policy, so an unscoped
+  // query leaks other hosts' published listings). The booking queries rely on
+  // host_manage_own_bookings RLS and need no explicit filter.
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id, handle, display_name, avg_rating, total_reviews")
+    .eq("user_id", user!.id)
+    .maybeSingle();
+
   const [
-    { data: host },
     { data: monthBookings },
     { data: upcomingCheckIns },
     { data: recentBookings },
     { data: listings },
     { count: pendingCount },
   ] = await Promise.all([
-    supabase
-      .from("hosts")
-      .select("id, handle, display_name, avg_rating, total_reviews")
-      .eq("user_id", user!.id)
-      .maybeSingle(),
     supabase
       .from("bookings")
       .select("id, total_amount, currency, status, nights, check_in")
@@ -107,6 +111,7 @@ export default async function DashboardPage({
       .select(
         "id, name, slug, is_published, booking_mode, listing_rooms ( id )",
       )
+      .eq("host_id", host?.id ?? "00000000-0000-0000-0000-000000000000")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(5),

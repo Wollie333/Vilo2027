@@ -137,7 +137,7 @@ function TabButton({
     <button
       type="button"
       role="tab"
-      aria-pressed={active}
+      aria-selected={active}
       onClick={onClick}
       className={`rounded-pill px-3 py-1 transition-colors ${
         active

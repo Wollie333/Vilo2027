@@ -46,15 +46,32 @@ export default async function CalendarPage({
 }) {
   const supabase = createServerClient();
 
-  // RLS host_manage_own_listings — only the host's rows. The calendar tracks
-  // blocked_dates which is accommodation-shaped; experience sessions live on
+  // Scope to the logged-in host. listings has a public_read_published RLS
+  // policy, so relying on RLS alone would surface every OTHER host's published
+  // accommodation in the picker — filter host_id explicitly. The calendar
+  // tracks blocked_dates (accommodation-shaped); experience sessions live on
   // bookings.session_date and surface in /dashboard/bookings instead.
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("id, name, booking_mode")
-    .eq("listing_type", "accommodation")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: host } = user
+    ? await supabase
+        .from("hosts")
+        .select("id")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle()
+    : { data: null };
+
+  const { data: listings } = host
+    ? await supabase
+        .from("listings")
+        .select("id, name, booking_mode")
+        .eq("host_id", host.id)
+        .eq("listing_type", "accommodation")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+    : { data: [] as { id: string; name: string; booking_mode: string }[] };
 
   const selectedListing =
     listings && listings.length > 0

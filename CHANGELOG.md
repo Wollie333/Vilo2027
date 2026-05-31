@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Data-isolation sweep + a11y warning — branch `main`
+
+### Fixed (data isolation — sweep follow-up)
+- Read-only audit of every `dashboard/**` query for the two bug classes from the
+  entry below. Pattern A (ambiguous embeds): clean. Pattern B (RLS public-read
+  leaks) found 2 more unscoped `listings` reads, both now filtered by `host_id`:
+  - `dashboard/page.tsx` — "your listings" preview (hoisted host resolution out
+    of the parallel batch so the listings query can scope to `host_id`).
+  - `dashboard/calendar/page.tsx` — the listing picker showed every host's
+    published accommodation; now resolves the host and filters `host_id`.
+
+### Fixed (a11y / lint)
+- `help/_components/PopularArticles.tsx` — `aria-pressed` on a `role="tab"`
+  button → `aria-selected`. `pnpm lint` now clean, zero warnings.
+
 ## 2026-05-31 — Fix: host dashboard data not showing (ambiguous embeds), listings leak, robust account deletion — branch `feat/setup-wizard-rework`
 
 ### Fixed (the big one — every host dashboard read was silently empty)
