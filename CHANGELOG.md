@@ -31,6 +31,31 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Host booking-detail redesign — branch `feat/listing-page-redesign`
+
+### Built
+- Rebuilt `/dashboard/bookings/[id]` to the "Booking Details" design: dark
+  gradient hero (status + proximity + channel chips, stay-journey tiles,
+  booked→arrival→checkout progress bar), guest card with real returning-guest
+  stats (stays + lifetime value with this host, member-since), reservation
+  card (cover photo, occupancy, channel, cancellation, guest note, rooms,
+  add-ons), payment & payout breakdown, real activity timeline from booking
+  timestamps, and a sticky right rail (workflow actions, quick actions,
+  stay policy, internal notes).
+- Internal-notes thread now reads/writes the real `booking_notes` table via a
+  new `addBookingNoteAction` (host-only `InternalNotes` client component).
+
+### Changed
+- `BookingActions` (status transitions) moved into the right-rail workflow card
+  (amber "Awaiting your confirmation" treatment for pending bookings).
+
+### Notes
+- All content is real DB data — no placeholder door codes / fake verification
+  badges. Sections render conditionally when their data exists.
+- Built alongside a concurrent agent on the same branch (listing-page redesign);
+  scoped edits to `dashboard/bookings/**` only. `pnpm build` + `pnpm lint` green
+  with both sets of changes present.
+
 ## 2026-05-31 — Inbox full-bleed layout rule (host + guest) — branch `main`
 
 ### Built
