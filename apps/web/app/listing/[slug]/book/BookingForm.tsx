@@ -1,15 +1,22 @@
 "use client";
 
 import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
   BedDouble,
   Building2,
   Check,
   CreditCard,
   Home,
+  Info,
+  Loader2,
   Lock,
   Mail,
+  MapPin,
   Minus,
   PackagePlus,
+  Percent,
   Plus,
   ShieldCheck,
   Star,
@@ -23,7 +30,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -113,73 +119,49 @@ function leadDaysUntil(iso: string): number {
   );
 }
 
-const CANCELLATION_BLURB: Record<"flexible" | "moderate" | "strict", string> = {
-  flexible: "Full refund up to 24 hours before check-in.",
-  moderate: "Full refund up to 5 days before check-in.",
-  strict: "50% refund up to 7 days before. No refund after.",
+const CANCELLATION_BULLETS: Record<
+  "flexible" | "moderate" | "strict",
+  { dot: string; text: string }[]
+> = {
+  flexible: [
+    {
+      dot: "bg-brand-primary",
+      text: "Full refund up to 24 hours before check-in.",
+    },
+    {
+      dot: "bg-amber-500",
+      text: "After that, the first night is non-refundable.",
+    },
+    { dot: "bg-red-500", text: "No-shows are charged in full." },
+  ],
+  moderate: [
+    {
+      dot: "bg-brand-primary",
+      text: "Cancel 5+ days before check-in for a full refund.",
+    },
+    {
+      dot: "bg-amber-500",
+      text: "Cancel 1–4 days before check-in for a 50% refund.",
+    },
+    {
+      dot: "bg-red-500",
+      text: "Cancel within 24 hours of check-in — no refund.",
+    },
+  ],
+  strict: [
+    {
+      dot: "bg-brand-primary",
+      text: "50% refund up to 7 days before check-in.",
+    },
+    {
+      dot: "bg-amber-500",
+      text: "After 7 days, the booking is non-refundable.",
+    },
+    { dot: "bg-red-500", text: "No-shows are charged in full." },
+  ],
 };
 
 const STEPS = ["Review trip", "Payment", "Confirmation"];
-
-/**
- * Full-width progress band that sits directly under the site header — same dark
- * gradient as the hero cards. Checkout is at "Review", then Paystack, then the
- * success page.
- */
-function Stepper() {
-  const current = 0;
-  return (
-    <section
-      className="relative overflow-hidden rounded-card shadow-peek"
-      style={{
-        backgroundImage:
-          "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
-      }}
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-brand-primary/20 blur-3xl"
-      />
-      <div className="hide-sb relative flex items-center gap-2.5 overflow-x-auto px-5 py-4 md:px-8">
-        {STEPS.map((label, i) => {
-          const done = i < current;
-          const active = i === current;
-          return (
-            <div key={label} className="flex items-center gap-2.5">
-              <div className="flex shrink-0 items-center gap-2">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-pill text-xs font-semibold ${
-                    done
-                      ? "bg-brand-primary text-white"
-                      : active
-                        ? "border-2 border-brand-primary bg-white/10 text-white"
-                        : "border border-white/30 bg-transparent text-white/50"
-                  }`}
-                >
-                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </div>
-                <div
-                  className={`text-xs font-medium ${
-                    done
-                      ? "text-white"
-                      : active
-                        ? "text-white"
-                        : "text-white/50"
-                  }`}
-                >
-                  {label}
-                </div>
-              </div>
-              {i < STEPS.length - 1 ? (
-                <div className="h-px w-6 min-w-6 bg-white/20 md:w-10" />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
 
 export function BookingForm({
   listingId,
@@ -246,23 +228,20 @@ export function BookingForm({
   const [isPending, start] = useTransition();
   const [loggingOut, startLogout] = useTransition();
 
+  // ── Wizard step ───────────────────────────────────────────────
+  // 0 = Review trip, 1 = Payment. Step 2 ("Confirmation") is the post-redirect
+  // success page (/booking/[id]/success), so it isn't rendered in-form.
+  const [step, setStep] = useState<0 | 1>(0);
+
   // ── Dates ─────────────────────────────────────────────────────
-  // Lifted here so the always-visible calendar, the summary side card and the
-  // live pricing all read one source of truth. Nights derive from the dates;
-  // the server revalidates availability + recomputes the authoritative total
-  // when the booking is created.
   const [dates, setDates] = useState({ from: checkIn, to: checkOut });
   const nights = useMemo(() => nightsBetween(dates.from, dates.to), [dates]);
 
   // ── Room selection state ──────────────────────────────────────
-  // Show the room picker whenever the listing actually has rooms — even if its
-  // mode is "whole_listing" (a guesthouse can offer both). A pure whole-place
-  // listing has no rooms, so this stays whole-only there.
   const roomsMode = allRooms.length > 0;
   const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>(
     () => initialSelectedRoomIds,
   );
-  // Editable per-room guest counts (manual, capped to each room's capacity).
   const [roomGuests, setRoomGuests] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
     for (const r of allRooms) {
@@ -278,17 +257,13 @@ export function BookingForm({
     }));
   }
 
-  // The booking's minimum nights = the longer of the listing's and the
-  // currently-selected rooms' minimums.
   const effectiveMinNights = useMemo(() => {
     const sel = allRooms.filter((r) => selectedRoomIds.includes(r.id));
     return Math.max(minNights, 1, ...sel.map((r) => r.minNights));
   }, [allRooms, selectedRoomIds, minNights]);
   const datesValid =
     Boolean(dates.from && dates.to) && nights >= effectiveMinNights;
-  // Flexible listings can flip to "book the whole place".
   const [wholeListing, setWholeListing] = useState(false);
-  // Whole-listing guest count (used when not in rooms mode, or flexible-whole).
   const [guestCount, setGuestCount] = useState(wholeGuests);
 
   // ── Contact / account state ───────────────────────────────────
@@ -320,10 +295,7 @@ export function BookingForm({
   // ── Payment method state ──────────────────────────────────────
   const [method, setMethod] = useState<"paystack" | "eft">("paystack");
 
-  const [policyAck, setPolicyAck] = useState(false);
-
-  // Pre-select required addons at their default quantity (full nights for
-  // per-night add-ons, else the host minimum).
+  // Pre-select required addons at their default quantity.
   const [addonQty, setAddonQty] = useState<Map<string, number>>(() => {
     const m = new Map<string, number>();
     for (const a of availableAddons) {
@@ -340,7 +312,7 @@ export function BookingForm({
   function toggleAddon(addonId: string) {
     const a = availableAddons.find((x) => x.id === addonId);
     if (!a || a.isRequired) return;
-    if (a.stockQuantity != null && a.stockQuantity <= 0) return; // sold out
+    if (a.stockQuantity != null && a.stockQuantity <= 0) return;
     setAddonQty((prev) => {
       const next = new Map(prev);
       if (next.has(addonId)) next.delete(addonId);
@@ -353,8 +325,6 @@ export function BookingForm({
     });
   }
 
-  // Step the quantity of an already-selected add-on, clamped to the add-on's
-  // rules + the live stay length + remaining stock.
   function setAddonQuantity(addonId: string, desired: number) {
     const a = availableAddons.find((x) => x.id === addonId);
     if (!a) return;
@@ -373,16 +343,11 @@ export function BookingForm({
     });
   }
 
-  // Add-ons are only orderable when the booking gives enough notice (lead time).
-  // Re-evaluate against the live check-in date so the list stays relevant as the
-  // guest changes their dates.
   const leadDays = leadDaysUntil(dates.from);
   const eligibleAddons = useMemo(
     () => availableAddons.filter((a) => leadDays >= a.leadTimeDays),
     [availableAddons, leadDays],
   );
-  // Drop add-ons the current dates no longer allow, and re-clamp quantities
-  // (per-night qty shrinks when the guest shortens their stay).
   useEffect(() => {
     setAddonQty((prev) => {
       let changed = false;
@@ -418,14 +383,12 @@ export function BookingForm({
     );
   }
 
-  // Guests per room — manual count, clamped to the room's capacity.
   const guestsForRoom = (r: RoomOption) =>
     Math.min(
       Math.max(r.minGuests, roomGuests[r.id] ?? r.minGuests),
       r.maxGuests,
     );
 
-  // Whole-listing is active when not in rooms mode, or flexible-whole is on.
   const isWhole = !roomsMode || wholeListing;
 
   const selectedRooms = useMemo(
@@ -454,7 +417,6 @@ export function BookingForm({
     ? guestCount
     : selectedRooms.reduce((acc, r) => acc + guestsForRoom(r), 0);
 
-  // scope for submit.
   const scope: "whole_listing" | "rooms" =
     roomsMode && !wholeListing && selectedRooms.length > 0
       ? "rooms"
@@ -496,10 +458,7 @@ export function BookingForm({
 
   const total = subtotal + cleaningTotal + addonsTotal;
 
-  // rooms_only listings require at least one room.
   const needsRoom = roomsMode && !wholeListing && selectedRooms.length === 0;
-  const reserveDisabled =
-    !policyAck || isPending || loggingOut || needsRoom || !datesValid;
 
   const locationLine = [listingCity, listingProvince]
     .filter(Boolean)
@@ -513,23 +472,19 @@ export function BookingForm({
     });
   }
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!policyAck) {
-      toast.error("Please accept the policies to continue.");
-      return;
-    }
+  /** Validate everything the Review step gathers. Toasts the first problem. */
+  function validateReview(): boolean {
     if (!datesValid) {
       toast.error(
         `Choose dates of at least ${effectiveMinNights} ${
           effectiveMinNights === 1 ? "night" : "nights"
         }.`,
       );
-      return;
+      return false;
     }
     if (needsRoom) {
       toast.error("Select at least one room to continue.");
-      return;
+      return false;
     }
     if (!isAuthenticated) {
       if (
@@ -538,12 +493,33 @@ export function BookingForm({
         contact.password.length < 8
       ) {
         toast.error("Add your name, email and a password (8+ characters).");
-        return;
+        return false;
       }
+    } else if (contact.fullName.trim().length < 2) {
+      toast.error("Please add the name we should put on the booking.");
+      return false;
+    }
+    return true;
+  }
+
+  function goToPayment() {
+    if (!validateReview()) return;
+    setStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function goBack() {
+    setStep(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validateReview()) {
+      setStep(0);
+      return;
     }
 
     start(async () => {
-      // Anonymous visitors get a guest account created + signed in first.
       if (!isAuthenticated) {
         const acc = await createCheckoutGuestAccountAction({
           full_name: contact.fullName.trim(),
@@ -593,24 +569,21 @@ export function BookingForm({
           }))
           .filter((g) => g.name.length > 0),
       });
-      // Success is a server-side redirect; we only land here on failure.
       if (result && !result.ok) {
         toast.error(result.error);
       }
     });
   }
 
-  const reserveLabel = isPending
+  const payLabel = isPending
     ? !isAuthenticated
       ? "Creating account…"
       : method === "eft"
         ? "Reserving…"
         : "Redirecting to Paystack…"
     : method === "eft"
-      ? "Reserve — pay by EFT"
-      : isAuthenticated
-        ? "Reserve and pay"
-        : "Create account & reserve";
+      ? "Reserve & get bank details"
+      : `Pay ${fmtR(total, currency)}`;
 
   const cardLabel = "rounded-card border border-brand-line bg-white";
   const sectionHead =
@@ -622,846 +595,1141 @@ export function BookingForm({
       label: "Pay with card",
       sub: "Visa, Mastercard & instant EFT · secured by Paystack",
       Icon: CreditCard,
+      cards: ["visa", "mc"] as const,
     },
     ...(hasEftBanking
       ? [
           {
             id: "eft" as const,
             label: "EFT bank transfer",
-            sub: "Pay by transfer · the host verifies it",
+            sub: "Manual transfer · verified by the host",
             Icon: Building2,
+            cards: undefined,
           },
         ]
       : []),
   ];
 
-  return (
-    <div className="space-y-6">
-      {/* Progress band — full width, directly under the site header */}
-      <Stepper />
+  /* ── Review step ───────────────────────────────────────────── */
+  const reviewBody = (
+    <div className="ck-step space-y-7">
+      <header>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+          Step 1 of 3
+        </div>
+        <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
+          Review your trip
+        </h2>
+        <p className="mt-1.5 text-sm text-brand-mute">
+          Confirm your rooms, dates and contact details before payment.
+        </p>
+      </header>
 
-      <form
-        onSubmit={onSubmit}
-        className="grid gap-6 lg:grid-cols-[1.5fr_1fr] lg:gap-8"
-      >
-        {/* ── Left column ─────────────────────────────────────────── */}
-        <div className="space-y-7 pb-24 lg:pb-0">
-          <header>
-            <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-              You&rsquo;re booking
+      {/* Rooms / whole-place selection */}
+      {roomsMode ? (
+        <section className={cardLabel}>
+          <div className={`${sectionHead} flex-wrap`}>
+            <div className="min-w-0">
+              <div className="font-display font-semibold text-brand-ink">
+                Your rooms
+              </div>
+              <div className="mt-0.5 text-xs text-brand-mute">
+                {needsRoom
+                  ? "Select at least one room to continue."
+                  : wholeListing
+                    ? "Booking the whole place"
+                    : `${selectedRooms.length} of ${allRooms.length} ${
+                        allRooms.length === 1 ? "room" : "rooms"
+                      } selected`}
+              </div>
             </div>
-            <h1 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
-              {listingName}
-            </h1>
-            <p className="mt-1.5 text-sm text-brand-mute">
-              {locationLine
-                ? `${listingTypeLabel} · ${locationLine}`
-                : listingTypeLabel}{" "}
-              — confirm your details, then continue to secure payment.
-            </p>
-          </header>
+            {bookingMode !== "rooms_only" && basePrice > 0 ? (
+              <button
+                type="button"
+                onClick={() => setWholeListing((v) => !v)}
+                disabled={isPending}
+                className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
+                  wholeListing
+                    ? "border border-brand-primary bg-brand-primary text-white"
+                    : "border border-brand-primary/30 bg-brand-accent text-brand-secondary hover:bg-brand-primary hover:text-white"
+                }`}
+              >
+                <Home className="h-3.5 w-3.5" />
+                {wholeListing
+                  ? "Booking the whole place"
+                  : "Book the whole place"}
+              </button>
+            ) : null}
+          </div>
 
-          {/* Rooms / whole-place selection */}
-          {roomsMode ? (
-            <section className={cardLabel}>
-              <div className={sectionHead}>
-                <div className="min-w-0">
-                  <div className="font-display font-semibold text-brand-ink">
-                    Your rooms
-                  </div>
-                  <div className="mt-0.5 text-xs text-brand-mute">
-                    {wholeListing
-                      ? "Booking the whole place"
-                      : `${selectedRooms.length} ${
-                          selectedRooms.length === 1 ? "room" : "rooms"
-                        } selected`}
-                  </div>
+          {wholeListing ? (
+            <div className="flex items-center gap-3 p-5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                <Home className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-medium text-brand-ink">{listingName}</div>
+                <div className="text-xs text-brand-mute">
+                  {fmtR(basePrice, currency)} / night
+                  {cleaningFee > 0
+                    ? ` · ${fmtR(cleaningFee, currency)} cleaning`
+                    : ""}
                 </div>
-                {bookingMode !== "rooms_only" && basePrice > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setWholeListing((v) => !v)}
-                    disabled={isPending}
-                    className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
-                      wholeListing
-                        ? "bg-brand-primary text-white"
-                        : "border border-brand-line bg-white text-brand-ink hover:border-brand-primary/50"
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5 p-4 sm:p-5">
+              {needsRoom ? (
+                <div className="inline-flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                  <Info className="h-4 w-4" /> Select at least one room to
+                  continue.
+                </div>
+              ) : null}
+              {allRooms.map((r) => {
+                const selected = selectedRoomIds.includes(r.id);
+                const nightly = roomNightly(r);
+                const g = guestsForRoom(r);
+                return (
+                  <div
+                    key={r.id}
+                    className={`overflow-hidden rounded-card border bg-white transition ${
+                      selected
+                        ? "ck-selected border-brand-primary"
+                        : "border-brand-line hover:border-brand-primary/50"
                     }`}
                   >
-                    <Home className="h-3.5 w-3.5" />
-                    Book the whole place
-                  </button>
-                ) : null}
-              </div>
-
-              {wholeListing ? (
-                <div className="flex items-center gap-3 p-5">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-                    <Home className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-brand-ink">
-                      {listingName}
-                    </div>
-                    <div className="text-xs text-brand-mute">
-                      {fmtR(basePrice, currency)} / night
-                      {cleaningFee > 0
-                        ? ` · ${fmtR(cleaningFee, currency)} cleaning`
-                        : ""}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2.5 p-4 sm:p-5">
-                  {needsRoom ? (
-                    <div className="rounded border border-dashed border-status-cancelled/40 bg-status-cancelled/5 px-3 py-2 text-xs font-medium text-status-cancelled">
-                      Select at least one room.
-                    </div>
-                  ) : null}
-                  {allRooms.map((r) => {
-                    const selected = selectedRoomIds.includes(r.id);
-                    const nightly = roomNightly(r);
-                    const g = guestsForRoom(r);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`overflow-hidden rounded-card border transition ${
-                          selected
-                            ? "border-brand-primary bg-brand-accent/20"
-                            : "border-brand-line bg-white hover:border-brand-primary/50"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => toggleRoom(r.id)}
-                          disabled={isPending}
-                          className="flex w-full items-stretch gap-3 p-3 text-left transition hover:bg-brand-light/40 sm:gap-4 sm:p-4"
-                        >
-                          {r.photoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={r.photoUrl}
-                              alt=""
-                              className="h-16 w-16 shrink-0 rounded-md object-cover sm:h-20 sm:w-20"
-                            />
-                          ) : (
-                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary sm:h-20 sm:w-20">
-                              <BedDouble className="h-6 w-6" />
+                    <button
+                      type="button"
+                      onClick={() => toggleRoom(r.id)}
+                      disabled={isPending}
+                      className="flex w-full items-stretch gap-3 p-3 text-left transition hover:bg-brand-light/40 sm:gap-4 sm:p-4"
+                    >
+                      {r.photoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.photoUrl}
+                          alt=""
+                          className="h-16 w-16 shrink-0 rounded-md object-cover sm:h-20 sm:w-20"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary sm:h-20 sm:w-20">
+                          <BedDouble className="h-6 w-6" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate font-display font-semibold text-brand-ink">
+                              {r.name}
                             </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="truncate font-display font-semibold text-brand-ink">
-                                  {r.name}
-                                </div>
-                                <div className="mt-0.5 text-xs text-brand-mute">
-                                  {r.bedsLabel ? `${r.bedsLabel} · ` : ""}Sleeps{" "}
-                                  {r.maxGuests}
-                                </div>
-                              </div>
-                              <div
-                                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
-                                  selected
-                                    ? "border-brand-primary bg-brand-primary text-white"
-                                    : "border-brand-line bg-white"
-                                }`}
-                              >
-                                {selected ? (
-                                  <Check className="h-3 w-3" />
-                                ) : null}
-                              </div>
-                            </div>
-                            {r.features.length > 0 ? (
-                              <div className="mt-1.5 flex flex-wrap gap-1">
-                                {r.features.map((f) => (
-                                  <span
-                                    key={f}
-                                    className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute"
-                                  >
-                                    {f}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : null}
-                            <div className="mt-2 flex items-baseline justify-between gap-3">
-                              <div className="text-xs text-brand-mute">
-                                <span className="font-semibold text-brand-ink">
-                                  {fmtR(
-                                    roomFromNightly(toPricing(r)),
-                                    currency,
-                                  )}
-                                </span>{" "}
-                                / night
-                                {r.cleaningFee > 0
-                                  ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
-                                  : ""}
-                              </div>
-                              {selected ? (
-                                <div className="font-mono text-[11px] text-brand-secondary">
-                                  × {nights} ={" "}
-                                  <span className="font-semibold">
-                                    {fmtR(
-                                      nightly * nights + r.cleaningFee,
-                                      currency,
-                                    )}
-                                  </span>
-                                </div>
-                              ) : null}
+                            <div className="mt-0.5 flex items-center gap-1.5 text-xs text-brand-mute">
+                              <BedDouble className="h-3.5 w-3.5" />
+                              {r.bedsLabel ? `${r.bedsLabel}` : "Room"}
+                              <span className="text-brand-line">·</span>
+                              <Users className="h-3.5 w-3.5" />
+                              Sleeps {r.maxGuests}
                             </div>
                           </div>
-                        </button>
+                          <div
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
+                              selected
+                                ? "border-brand-primary bg-brand-primary text-white"
+                                : "border-brand-line bg-white"
+                            }`}
+                          >
+                            {selected ? <Check className="h-3 w-3" /> : null}
+                          </div>
+                        </div>
+                        {r.features.length > 0 ? (
+                          <div className="mt-2 hidden flex-wrap gap-1.5 sm:flex">
+                            {r.features.map((f) => (
+                              <span
+                                key={f}
+                                className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium text-brand-mute"
+                              >
+                                {f}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        <div className="mt-2 flex items-baseline justify-between gap-3">
+                          <div className="text-xs text-brand-mute">
+                            <span className="font-semibold text-brand-ink">
+                              {fmtR(roomFromNightly(toPricing(r)), currency)}
+                            </span>{" "}
+                            / night
+                            {r.cleaningFee > 0
+                              ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
+                              : ""}
+                          </div>
+                          {selected ? (
+                            <div className="font-mono text-[11px] text-brand-secondary">
+                              × {nights} ={" "}
+                              <span className="font-semibold">
+                                {fmtR(
+                                  nightly * nights + r.cleaningFee,
+                                  currency,
+                                )}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </button>
 
-                        {selected ? (
-                          <div className="flex items-center justify-between gap-3 border-t border-brand-line/70 px-3 py-2.5 sm:px-4">
-                            <div className="text-xs font-medium text-brand-ink">
-                              Guests in this room
-                              <span className="ml-1 font-normal text-brand-mute">
-                                · max {r.maxGuests}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                              <button
-                                type="button"
-                                onClick={() => setRoomGuestCount(r, g - 1)}
-                                disabled={isPending || g <= r.minGuests}
-                                aria-label="Fewer guests"
-                                className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
-                              >
-                                <Minus className="h-3.5 w-3.5" />
-                              </button>
-                              <span className="w-5 text-center text-sm font-semibold tabular-nums text-brand-ink">
-                                {g}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setRoomGuestCount(r, g + 1)}
-                                disabled={isPending || g >= r.maxGuests}
-                                aria-label="More guests"
-                                className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
-                              >
-                                <Plus className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
+                    {selected ? (
+                      <div className="flex items-center justify-between gap-3 border-t border-brand-line/70 px-3 py-2.5 sm:px-4">
+                        <div className="text-xs font-medium text-brand-ink">
+                          Guests in this room
+                          <span className="ml-1 font-normal text-brand-mute">
+                            · max {r.maxGuests}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setRoomGuestCount(r, g - 1)}
+                            disabled={isPending || g <= r.minGuests}
+                            aria-label="Fewer guests"
+                            className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-5 text-center text-sm font-semibold tabular-nums text-brand-ink">
+                            {g}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setRoomGuestCount(r, g + 1)}
+                            disabled={isPending || g >= r.maxGuests}
+                            aria-label="More guests"
+                            className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className={cardLabel}>
+          <div className={sectionHead}>
+            <div className="font-display font-semibold text-brand-ink">
+              Whole place
+            </div>
+            {instantBooking ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+                <Zap className="h-3 w-3" /> Instant Book
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-3 p-5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+              <Home className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-medium text-brand-ink">{listingName}</div>
+              <div className="text-xs text-brand-mute">
+                {fmtR(basePrice, currency)} / night
+                {cleaningFee > 0
+                  ? ` · ${fmtR(cleaningFee, currency)} cleaning`
+                  : ""}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Your trip — dates (calendar) + guests */}
+      <section className={cardLabel}>
+        <div className={sectionHead}>
+          <div>
+            <div className="font-display font-semibold text-brand-ink">
+              Your trip
+            </div>
+            <div className="mt-0.5 text-xs text-brand-mute">
+              {nights} {nights === 1 ? "night" : "nights"}
+            </div>
+          </div>
+          {instantBooking ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+              <Zap className="h-3 w-3" /> Instant Book
+            </span>
+          ) : null}
+        </div>
+        {/* The guest's own calendar lives right here in the card. */}
+        <CheckoutDateEditor
+          from={dates.from}
+          to={dates.to}
+          minNights={effectiveMinNights}
+          onChange={(from, to) => setDates({ from, to })}
+        />
+        <div className="px-5 pb-5">
+          <div className="mb-1.5 block text-sm font-medium text-brand-ink">
+            Guests
+          </div>
+          {isWhole ? (
+            <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-4 py-3">
+              <Users className="h-4 w-4 text-brand-primary" />
+              <select
+                value={guestCount}
+                onChange={(e) => setGuestCount(parseInt(e.target.value, 10))}
+                disabled={isPending}
+                className="bg-transparent text-sm font-medium text-brand-ink outline-none"
+              >
+                {Array.from(
+                  { length: Math.max(1, maxGuestsWhole) },
+                  (_, i) => i + 1,
+                ).map((n) => (
+                  <option key={n} value={n}>
+                    {n} {n === 1 ? "guest" : "guests"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-4 py-3 text-sm font-medium text-brand-ink">
+              <Users className="h-4 w-4 text-brand-primary" />
+              {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
+              <span className="text-[11px] font-normal text-brand-mute">
+                · set per room
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Add-ons */}
+      {eligibleAddons.length > 0 ? (
+        <section className={cardLabel}>
+          <div className={`${sectionHead} flex-wrap`}>
+            <div className="min-w-0">
+              <div className="font-display font-semibold text-brand-ink">
+                Make it extra-special
+              </div>
+              <div className="mt-0.5 text-xs text-brand-mute">
+                Optional add-ons offered by your host.
+                {selectedAddonLines.length > 0 ? (
+                  <span className="font-medium text-brand-primary">
+                    {" "}
+                    · {selectedAddonLines.length} selected ·{" "}
+                    {fmtR(addonsTotal, currency)}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+              Optional
+            </div>
+          </div>
+          <div className="grid gap-2.5 p-4 sm:grid-cols-2 sm:p-5">
+            {eligibleAddons.map((a) => {
+              const qty = addonQty.get(a.id) ?? 0;
+              const checked = qty > 0;
+              const lineTotal = checked
+                ? computeAddonSubtotal(
+                    a.pricingModel,
+                    a.unitPrice,
+                    qty,
+                    effectiveGuests,
+                  )
+                : 0;
+              const stock = a.stockQuantity;
+              const soldOut = stock != null && stock <= 0;
+              const perNight = isPerNightModel(a.pricingModel);
+              const clampOpts = {
+                minQuantity: a.minQuantity,
+                maxQuantity: a.maxQuantity,
+                nights,
+                stock: a.stockQuantity,
+                allowCustom: a.allowCustomQuantity,
+              };
+              const canDec =
+                clampAddonQuantity(a.pricingModel, qty - 1, clampOpts) < qty;
+              const canInc =
+                clampAddonQuantity(a.pricingModel, qty + 1, clampOpts) > qty;
+              const showStepper = checked && a.allowCustomQuantity;
+              return (
+                <div
+                  key={a.id}
+                  className={`flex flex-col overflow-hidden rounded-card border transition ${
+                    checked
+                      ? "ck-selected border-brand-primary"
+                      : "border-brand-line bg-white hover:border-brand-primary/50"
+                  } ${soldOut ? "opacity-60" : ""}`}
+                >
+                  <button
+                    type="button"
+                    disabled={a.isRequired || isPending || soldOut}
+                    onClick={() => toggleAddon(a.id)}
+                    className={`flex gap-3 p-3.5 text-left transition ${
+                      a.isRequired || soldOut ? "cursor-default" : ""
+                    }`}
+                  >
+                    {a.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={a.imageUrl}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-md object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+                          checked
+                            ? "bg-brand-primary text-white"
+                            : "bg-brand-accent text-brand-primary"
+                        }`}
+                      >
+                        <PackagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-sm font-semibold leading-tight text-brand-ink">
+                          {a.name}
+                        </div>
+                        <div
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
+                            checked
+                              ? "border-brand-primary bg-brand-primary text-white"
+                              : "border-brand-line bg-white"
+                          }`}
+                        >
+                          {checked ? <Check className="h-3 w-3" /> : null}
+                        </div>
+                      </div>
+                      {a.description ? (
+                        <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-brand-mute">
+                          {a.description}
+                        </div>
+                      ) : null}
+                      <div className="mt-2 flex items-baseline justify-between gap-3">
+                        <div className="text-xs">
+                          <span className="font-semibold text-brand-ink">
+                            {fmtR(a.unitPrice, currency)}
+                          </span>
+                          <span className="text-brand-mute">
+                            {" "}
+                            · {PRICING_LABEL[a.pricingModel]}
+                          </span>
+                        </div>
+                        {checked && lineTotal > 0 ? (
+                          <div className="font-mono text-[11px] text-brand-secondary">
+                            = {fmtR(lineTotal, currency)}
                           </div>
                         ) : null}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          ) : (
-            <section className={cardLabel}>
-              <div className={sectionHead}>
-                <div className="font-display font-semibold text-brand-ink">
-                  Whole place
-                </div>
-                {instantBooking ? (
-                  <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
-                    <Zap className="h-3 w-3" /> Instant Book
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-3 p-5">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-                  <Home className="h-5 w-5" />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-medium text-brand-ink">
-                    {listingName}
-                  </div>
-                  <div className="text-xs text-brand-mute">
-                    {fmtR(basePrice, currency)} / night
-                    {cleaningFee > 0
-                      ? ` · ${fmtR(cleaningFee, currency)} cleaning`
-                      : ""}
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Your trip */}
-          <section className={cardLabel}>
-            <div className="border-b border-brand-line px-5 py-4">
-              <div className="font-display font-semibold text-brand-ink">
-                Your trip
-              </div>
-              <div className="mt-0.5 text-xs text-brand-mute">
-                {nights} {nights === 1 ? "night" : "nights"}
-              </div>
-            </div>
-            <CheckoutDateEditor
-              from={dates.from}
-              to={dates.to}
-              minNights={effectiveMinNights}
-              onChange={(from, to) => setDates({ from, to })}
-            />
-            <div className="px-5 pb-5">
-              <div className="mb-1.5 block text-sm font-medium text-brand-ink">
-                Guests
-              </div>
-              {isWhole ? (
-                <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-4 py-3">
-                  <Users className="h-4 w-4 text-brand-primary" />
-                  <select
-                    value={guestCount}
-                    onChange={(e) =>
-                      setGuestCount(parseInt(e.target.value, 10))
-                    }
-                    disabled={isPending}
-                    className="bg-transparent text-sm font-medium text-brand-ink outline-none"
-                  >
-                    {Array.from(
-                      { length: Math.max(1, maxGuestsWhole) },
-                      (_, i) => i + 1,
-                    ).map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? "guest" : "guests"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-4 py-3 text-sm font-medium text-brand-ink">
-                  <Users className="h-4 w-4 text-brand-primary" />
-                  {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
-                  <span className="text-[11px] font-normal text-brand-mute">
-                    · set per room
-                  </span>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Add-ons */}
-          {eligibleAddons.length > 0 ? (
-            <section className={cardLabel}>
-              <div className={sectionHead}>
-                <div className="min-w-0">
-                  <div className="font-display font-semibold text-brand-ink">
-                    Make it extra-special
-                  </div>
-                  <div className="mt-0.5 text-xs text-brand-mute">
-                    Optional add-ons offered by your host.
-                    {selectedAddonLines.length > 0 ? (
-                      <span className="font-medium text-brand-primary">
-                        {" "}
-                        · {selectedAddonLines.length} selected
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                  Optional
-                </div>
-              </div>
-              <div className="grid gap-2.5 p-4 sm:grid-cols-2 sm:p-5">
-                {eligibleAddons.map((a) => {
-                  const qty = addonQty.get(a.id) ?? 0;
-                  const checked = qty > 0;
-                  const lineTotal = checked
-                    ? computeAddonSubtotal(
-                        a.pricingModel,
-                        a.unitPrice,
-                        qty,
-                        effectiveGuests,
-                      )
-                    : 0;
-                  const stock = a.stockQuantity;
-                  const soldOut = stock != null && stock <= 0;
-                  const perNight = isPerNightModel(a.pricingModel);
-                  const clampOpts = {
-                    minQuantity: a.minQuantity,
-                    maxQuantity: a.maxQuantity,
-                    nights,
-                    stock: a.stockQuantity,
-                    allowCustom: a.allowCustomQuantity,
-                  };
-                  const canDec =
-                    clampAddonQuantity(a.pricingModel, qty - 1, clampOpts) <
-                    qty;
-                  const canInc =
-                    clampAddonQuantity(a.pricingModel, qty + 1, clampOpts) >
-                    qty;
-                  const showStepper = checked && a.allowCustomQuantity;
-                  return (
-                    <div
-                      key={a.id}
-                      className={`flex flex-col overflow-hidden rounded-card border transition ${
-                        checked
-                          ? "border-brand-primary bg-brand-accent/30"
-                          : "border-brand-line bg-white hover:border-brand-primary/50"
-                      } ${soldOut ? "opacity-60" : ""}`}
-                    >
-                      <button
-                        type="button"
-                        disabled={a.isRequired || isPending || soldOut}
-                        onClick={() => toggleAddon(a.id)}
-                        className={`flex gap-3 p-3.5 text-left transition ${
-                          a.isRequired || soldOut ? "cursor-default" : ""
-                        }`}
-                      >
-                        {a.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={a.imageUrl}
-                            alt=""
-                            className="h-10 w-10 shrink-0 rounded-md object-cover"
-                          />
-                        ) : (
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
-                              checked
-                                ? "bg-brand-primary text-white"
-                                : "bg-brand-accent text-brand-primary"
-                            }`}
-                          >
-                            <PackagePlus className="h-5 w-5" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="text-sm font-semibold leading-tight text-brand-ink">
-                              {a.name}
-                            </div>
-                            <div
-                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
-                                checked
-                                  ? "border-brand-primary bg-brand-primary text-white"
-                                  : "border-brand-line bg-white"
-                              }`}
-                            >
-                              {checked ? <Check className="h-3 w-3" /> : null}
-                            </div>
-                          </div>
-                          {a.description ? (
-                            <div className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-brand-mute">
-                              {a.description}
-                            </div>
-                          ) : null}
-                          <div className="mt-2 flex items-baseline justify-between gap-3">
-                            <div className="text-xs">
-                              <span className="font-semibold text-brand-ink">
-                                {fmtR(a.unitPrice, currency)}
-                              </span>
-                              <span className="text-brand-mute">
-                                {" "}
-                                · {PRICING_LABEL[a.pricingModel]}
-                              </span>
-                            </div>
-                            {checked && lineTotal > 0 ? (
-                              <div className="font-mono text-[11px] text-brand-secondary">
-                                = {fmtR(lineTotal, currency)}
-                              </div>
-                            ) : null}
-                          </div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {a.isRequired ? (
-                              <span className="inline-flex rounded-pill bg-brand-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
-                                Required
-                              </span>
-                            ) : null}
-                            {soldOut ? (
-                              <span className="inline-flex rounded-pill bg-status-cancelled/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-status-cancelled">
-                                Sold out
-                              </span>
-                            ) : stock != null ? (
-                              <span className="inline-flex rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-brand-mute">
-                                {stock} left
-                              </span>
-                            ) : null}
-                            {checked && !a.allowCustomQuantity && perNight ? (
-                              <span className="text-[10px] text-brand-mute">
-                                whole stay · {qty}{" "}
-                                {qty === 1 ? "night" : "nights"}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-                      </button>
-
-                      {showStepper ? (
-                        <div className="flex items-center justify-between gap-3 border-t border-brand-primary/20 px-3.5 py-2.5">
-                          <span className="text-[11px] font-medium text-brand-ink">
-                            {perNight ? "For how many nights?" : "Quantity"}
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {a.isRequired ? (
+                          <span className="inline-flex rounded-pill bg-brand-secondary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                            Required
                           </span>
-                          <div className="flex items-center gap-2.5">
-                            <button
-                              type="button"
-                              onClick={() => setAddonQuantity(a.id, qty - 1)}
-                              disabled={!canDec || isPending}
-                              aria-label="Fewer"
-                              className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
-                            >
-                              <Minus className="h-3.5 w-3.5" />
-                            </button>
-                            <span className="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-brand-ink">
-                              {qty}{" "}
-                              <span className="text-[10px] font-normal text-brand-mute">
-                                {perNight ? "nights" : "units"}
-                              </span>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setAddonQuantity(a.id, qty + 1)}
-                              disabled={!canInc || isPending}
-                              aria-label="More"
-                              className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ) : null}
+                        ) : null}
+                        {soldOut ? (
+                          <span className="inline-flex rounded-pill bg-status-cancelled/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-status-cancelled">
+                            Sold out
+                          </span>
+                        ) : stock != null ? (
+                          <span className="inline-flex rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-brand-mute">
+                            {stock} left
+                          </span>
+                        ) : null}
+                        {checked && !a.allowCustomQuantity && perNight ? (
+                          <span className="text-[10px] text-brand-mute">
+                            whole stay · {qty} {qty === 1 ? "night" : "nights"}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
-
-          {/* Contact details / create account */}
-          <section className={cardLabel}>
-            <div className="border-b border-brand-line px-5 py-4">
-              <div className="font-display font-semibold text-brand-ink">
-                {isAuthenticated
-                  ? "Contact details"
-                  : "Create your guest account"}
-              </div>
-              <div className="mt-0.5 text-xs text-brand-mute">
-                {isAuthenticated
-                  ? "Your host uses this to share check-in instructions."
-                  : "Booking without an account? We’ll set one up so you can manage your trip and message your host."}
-              </div>
-            </div>
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                  Full name
-                </label>
-                <input
-                  value={contact.fullName}
-                  onChange={(e) =>
-                    setContact((s) => ({ ...s, fullName: e.target.value }))
-                  }
-                  placeholder="Amara Okafor"
-                  autoComplete="name"
-                  className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                  Email
-                </label>
-                {isAuthenticated ? (
-                  <div className="flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3.5 py-2.5 text-sm">
-                    <UserIcon className="h-4 w-4 shrink-0 text-brand-primary" />
-                    <span className="min-w-0 flex-1 truncate font-mono text-brand-ink">
-                      {guestEmail}
-                    </span>
-                  </div>
-                ) : (
-                  <input
-                    type="email"
-                    value={contact.email}
-                    onChange={(e) =>
-                      setContact((s) => ({ ...s, email: e.target.value }))
-                    }
-                    placeholder="amara@example.com"
-                    autoComplete="email"
-                    className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                  />
-                )}
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                  Phone{" "}
-                  <span className="font-normal text-brand-mute">
-                    (optional)
-                  </span>
-                </label>
-                <input
-                  type="tel"
-                  value={contact.phone}
-                  onChange={(e) =>
-                    setContact((s) => ({ ...s, phone: e.target.value }))
-                  }
-                  placeholder="+27 82 000 0000"
-                  autoComplete="tel"
-                  className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                />
-              </div>
-              {!isAuthenticated ? (
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                    Create a password
-                  </label>
-                  <input
-                    type="password"
-                    value={contact.password}
-                    onChange={(e) =>
-                      setContact((s) => ({ ...s, password: e.target.value }))
-                    }
-                    placeholder="At least 8 characters"
-                    autoComplete="new-password"
-                    className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                  />
-                </div>
-              ) : null}
-              <div className="sm:col-span-2">
-                <label className="mb-1.5 block text-sm font-medium text-brand-ink">
-                  Message to host{" "}
-                  <span className="font-normal text-brand-mute">
-                    (optional)
-                  </span>
-                </label>
-                <textarea
-                  value={contact.message}
-                  onChange={(e) =>
-                    setContact((s) => ({
-                      ...s,
-                      message: e.target.value.slice(0, 1000),
-                    }))
-                  }
-                  rows={3}
-                  maxLength={1000}
-                  placeholder="Arrival time, special requests, anything the host should know…"
-                  className="w-full resize-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                />
-              </div>
-              {isAuthenticated ? (
-                <p className="-mt-1 text-xs text-brand-mute sm:col-span-2">
-                  Booking as{" "}
-                  <span className="font-mono text-brand-ink">{guestEmail}</span>
-                  .{" "}
-                  <button
-                    type="button"
-                    onClick={logOut}
-                    disabled={loggingOut}
-                    className="font-medium text-brand-primary hover:underline disabled:opacity-50"
-                  >
-                    {loggingOut
-                      ? "Logging out…"
-                      : "Not you? Log out & use another account"}
                   </button>
-                </p>
-              ) : (
-                <p className="-mt-1 text-xs text-brand-mute sm:col-span-2">
-                  Already have an account?{" "}
-                  <a
-                    href={`/login?next=${encodeURIComponent(
-                      `/listing/${listingSlug}/book`,
-                    )}`}
-                    className="font-medium text-brand-primary hover:underline"
-                  >
-                    Sign in
-                  </a>{" "}
-                  to book faster.
-                </p>
-              )}
-            </div>
-          </section>
 
-          {/* Who's coming? — optional per-guest details */}
-          {effectiveGuests > 1 ? (
-            <section className={cardLabel}>
-              <div className={sectionHead}>
-                <div>
-                  <div className="font-display font-semibold text-brand-ink">
-                    Who&rsquo;s coming?{" "}
-                    <span className="text-xs font-normal text-brand-mute">
-                      (optional)
-                    </span>
-                  </div>
-                  <div className="mt-0.5 text-xs text-brand-mute">
-                    Add names &amp; contact for the rest of your party — up to{" "}
-                    {effectiveGuests - 1} other guest
-                    {effectiveGuests - 1 === 1 ? "" : "s"}.
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={addGuest}
-                  disabled={party.length >= effectiveGuests - 1}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60 disabled:opacity-50"
-                >
-                  <UserPlus className="h-4 w-4" /> Add guest
-                </button>
-              </div>
-              <div className="space-y-3 p-5">
-                {party.length === 0 ? (
-                  <button
-                    type="button"
-                    onClick={addGuest}
-                    className="flex w-full items-center justify-center gap-2 rounded border-2 border-dashed border-brand-line py-5 text-sm font-medium text-brand-mute transition-colors hover:border-brand-primary hover:bg-brand-light/40 hover:text-brand-secondary"
-                  >
-                    <Plus className="h-4 w-4" /> Add a guest&rsquo;s details
-                  </button>
-                ) : (
-                  party.map((g, i) => (
-                    <div
-                      key={i}
-                      className="rounded-card border border-brand-line bg-brand-light/40 p-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                          Guest {i + 2}
+                  {showStepper ? (
+                    <div className="flex items-center justify-between gap-3 border-t border-brand-primary/20 px-3.5 py-2.5">
+                      <span className="text-[11px] font-medium text-brand-ink">
+                        {perNight ? "For how many nights?" : "Quantity"}
+                      </span>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setAddonQuantity(a.id, qty - 1)}
+                          disabled={!canDec || isPending}
+                          aria-label="Fewer"
+                          className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-brand-ink">
+                          {qty}{" "}
+                          <span className="text-[10px] font-normal text-brand-mute">
+                            {perNight ? "nights" : "units"}
+                          </span>
                         </span>
                         <button
                           type="button"
-                          onClick={() => removeGuest(i)}
-                          aria-label="Remove guest"
-                          className="flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
+                          onClick={() => setAddonQuantity(a.id, qty + 1)}
+                          disabled={!canInc || isPending}
+                          aria-label="More"
+                          className="flex h-7 w-7 items-center justify-center rounded-pill border border-brand-line text-brand-ink transition hover:bg-brand-accent disabled:opacity-30"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Plus className="h-3.5 w-3.5" />
                         </button>
                       </div>
-                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                        <input
-                          value={g.name}
-                          onChange={(e) =>
-                            updateGuest(i, { name: e.target.value })
-                          }
-                          placeholder="Full name"
-                          maxLength={120}
-                          className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                        />
-                        <input
-                          value={g.email}
-                          onChange={(e) =>
-                            updateGuest(i, { email: e.target.value })
-                          }
-                          type="email"
-                          placeholder="Email (optional)"
-                          maxLength={160}
-                          className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                        />
-                        <input
-                          value={g.phone}
-                          onChange={(e) =>
-                            updateGuest(i, { phone: e.target.value })
-                          }
-                          placeholder="Phone (optional)"
-                          maxLength={40}
-                          className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
-                        />
-                      </div>
                     </div>
-                  ))
-                )}
-                {party.length > 0 && party.length < effectiveGuests - 1 ? (
-                  <button
-                    type="button"
-                    onClick={addGuest}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-primary hover:underline"
-                  >
-                    <Plus className="h-4 w-4" /> Add another guest
-                  </button>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
-          {/* Payment */}
-          <section className={cardLabel}>
-            <div className="border-b border-brand-line px-5 py-4">
+      {/* Contact details / create account */}
+      <section className={cardLabel}>
+        <div className="border-b border-brand-line px-5 py-4">
+          <div className="font-display font-semibold text-brand-ink">
+            {isAuthenticated ? "Contact details" : "Create your guest account"}
+          </div>
+          <div className="mt-0.5 text-xs text-brand-mute">
+            {isAuthenticated
+              ? "Your host uses this to share check-in instructions."
+              : "Booking without an account? We’ll set one up so you can manage your trip and message your host."}
+          </div>
+        </div>
+        <div className="grid gap-4 p-5 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Full name
+            </label>
+            <input
+              value={contact.fullName}
+              onChange={(e) =>
+                setContact((s) => ({ ...s, fullName: e.target.value }))
+              }
+              placeholder="Amara Okafor"
+              autoComplete="name"
+              className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Email
+            </label>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2 rounded border border-brand-line bg-brand-light/40 px-3.5 py-2.5 text-sm">
+                <UserIcon className="h-4 w-4 shrink-0 text-brand-primary" />
+                <span className="min-w-0 flex-1 truncate font-mono text-brand-ink">
+                  {guestEmail}
+                </span>
+              </div>
+            ) : (
+              <input
+                type="email"
+                value={contact.email}
+                onChange={(e) =>
+                  setContact((s) => ({ ...s, email: e.target.value }))
+                }
+                placeholder="amara@example.com"
+                autoComplete="email"
+                className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+              />
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Phone{" "}
+              <span className="font-normal text-brand-mute">(optional)</span>
+            </label>
+            <input
+              type="tel"
+              value={contact.phone}
+              onChange={(e) =>
+                setContact((s) => ({ ...s, phone: e.target.value }))
+              }
+              placeholder="+27 82 000 0000"
+              autoComplete="tel"
+              className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+            />
+          </div>
+          {!isAuthenticated ? (
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+                Create a password
+              </label>
+              <input
+                type="password"
+                value={contact.password}
+                onChange={(e) =>
+                  setContact((s) => ({ ...s, password: e.target.value }))
+                }
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                className="w-full rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+              />
+            </div>
+          ) : null}
+          {isAuthenticated ? (
+            <p className="-mt-1 text-xs text-brand-mute sm:col-span-2">
+              Booking as{" "}
+              <span className="font-mono text-brand-ink">{guestEmail}</span>.{" "}
+              <button
+                type="button"
+                onClick={logOut}
+                disabled={loggingOut}
+                className="font-medium text-brand-primary hover:underline disabled:opacity-50"
+              >
+                {loggingOut
+                  ? "Logging out…"
+                  : "Not you? Log out & use another account"}
+              </button>
+            </p>
+          ) : (
+            <p className="-mt-1 text-xs text-brand-mute sm:col-span-2">
+              Already have an account?{" "}
+              <a
+                href={`/login?next=${encodeURIComponent(
+                  `/listing/${listingSlug}/book`,
+                )}`}
+                className="font-medium text-brand-primary hover:underline"
+              >
+                Sign in
+              </a>{" "}
+              to book faster.
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* Who's coming? — optional per-guest details */}
+      {effectiveGuests > 1 ? (
+        <section className={cardLabel}>
+          <div className={sectionHead}>
+            <div>
               <div className="font-display font-semibold text-brand-ink">
-                Payment
+                Who&rsquo;s coming?{" "}
+                <span className="text-xs font-normal text-brand-mute">
+                  (optional)
+                </span>
               </div>
               <div className="mt-0.5 text-xs text-brand-mute">
-                Vilo never charges a booking fee.
+                Add names &amp; contact for the rest of your party — up to{" "}
+                {effectiveGuests - 1} other guest
+                {effectiveGuests - 1 === 1 ? "" : "s"}.
               </div>
             </div>
-            <div className="space-y-2.5 p-5">
-              {paymentMethods.map((m) => {
-                const selected = method === m.id;
-                const Icon = m.Icon;
-                return (
-                  <button
-                    type="button"
-                    key={m.id}
-                    onClick={() => setMethod(m.id)}
-                    disabled={isPending}
-                    className={`flex w-full items-center gap-4 rounded-card border px-5 py-4 text-left transition ${
-                      selected
-                        ? "border-2 border-brand-primary bg-brand-accent/30"
-                        : "border border-brand-line bg-white hover:border-brand-primary/50"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-pill border-2 transition ${
-                        selected
-                          ? "border-brand-primary bg-brand-primary text-white"
-                          : "border-brand-line bg-white"
-                      }`}
+            <button
+              type="button"
+              onClick={addGuest}
+              disabled={party.length >= effectiveGuests - 1}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60 disabled:opacity-50"
+            >
+              <UserPlus className="h-4 w-4" /> Add guest
+            </button>
+          </div>
+          <div className="space-y-3 p-5">
+            {party.length === 0 ? (
+              <button
+                type="button"
+                onClick={addGuest}
+                className="flex w-full items-center justify-center gap-2 rounded border-2 border-dashed border-brand-line py-5 text-sm font-medium text-brand-mute transition-colors hover:border-brand-primary hover:bg-brand-light/40 hover:text-brand-secondary"
+              >
+                <Plus className="h-4 w-4" /> Add a guest&rsquo;s details
+              </button>
+            ) : (
+              party.map((g, i) => (
+                <div
+                  key={i}
+                  className="rounded-card border border-brand-line bg-brand-light/40 p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                      Guest {i + 2}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeGuest(i)}
+                      aria-label="Remove guest"
+                      className="flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-white hover:text-status-cancelled"
                     >
-                      {selected ? (
-                        <span className="h-2 w-2 rounded-pill bg-white" />
-                      ) : null}
-                    </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white text-brand-primary">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-brand-ink">
-                        {m.label}
-                      </div>
-                      <div className="mt-0.5 text-xs text-brand-mute">
-                        {m.sub}
-                      </div>
-                    </div>
-                    {m.id === "paystack" ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-brand-mute">
-                        <Lock className="h-3 w-3" /> Encrypted
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-              {method === "eft" ? (
-                <div className="rounded border border-dashed border-brand-line bg-brand-light/40 p-3 text-xs text-brand-mute">
-                  After you reserve, you&rsquo;ll get the host&rsquo;s banking
-                  details and a reference here to complete the transfer.
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    <input
+                      value={g.name}
+                      onChange={(e) => updateGuest(i, { name: e.target.value })}
+                      placeholder="Full name"
+                      maxLength={120}
+                      className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                    />
+                    <input
+                      value={g.email}
+                      onChange={(e) =>
+                        updateGuest(i, { email: e.target.value })
+                      }
+                      type="email"
+                      placeholder="Email (optional)"
+                      maxLength={160}
+                      className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                    />
+                    <input
+                      value={g.phone}
+                      onChange={(e) =>
+                        updateGuest(i, { phone: e.target.value })
+                      }
+                      placeholder="Phone (optional)"
+                      maxLength={40}
+                      className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+                    />
+                  </div>
                 </div>
-              ) : null}
-            </div>
-          </section>
+              ))
+            )}
+            {party.length > 0 && party.length < effectiveGuests - 1 ? (
+              <button
+                type="button"
+                onClick={addGuest}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-primary hover:underline"
+              >
+                <Plus className="h-4 w-4" /> Add another guest
+              </button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
-          {/* Cancellation policy */}
-          <section className="rounded-card border border-brand-line bg-brand-light/50 p-5">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-brand-line bg-white text-brand-primary">
-                <ShieldCheck className="h-5 w-5" />
+      {/* Message to host */}
+      <section className={cardLabel}>
+        <div className="border-b border-brand-line px-5 py-4">
+          <div className="font-display font-semibold text-brand-ink">
+            Message to host
+          </div>
+          <div className="mt-0.5 text-xs text-brand-mute">
+            Optional — early check-in, dietary needs, anything your host should
+            know.
+          </div>
+        </div>
+        <div className="p-5">
+          <textarea
+            value={contact.message}
+            onChange={(e) =>
+              setContact((s) => ({
+                ...s,
+                message: e.target.value.slice(0, 1000),
+              }))
+            }
+            rows={3}
+            maxLength={1000}
+            placeholder="Hi! We're flying in around 3pm. Could we drop bags before official check-in?"
+            className="w-full resize-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
+          />
+          <div className="mt-1 text-right text-[11px] text-brand-mute">
+            {(contact.message || "").length} / 1000
+          </div>
+        </div>
+      </section>
+
+      {/* Cancellation policy */}
+      <section className="rounded-card border border-brand-line bg-brand-light/50 p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-brand-line bg-white text-brand-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="font-display font-semibold capitalize text-brand-ink">
+              {cancellationPolicy} cancellation policy
+            </div>
+            <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
+              {CANCELLATION_BULLETS[cancellationPolicy].map((b) => (
+                <li key={b.text} className="flex items-start gap-2">
+                  <span
+                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill ${b.dot}`}
+                  />
+                  {b.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  /* ── Payment step ──────────────────────────────────────────── */
+  const paymentBody = (
+    <div className="ck-step space-y-7">
+      <header>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+          Step 2 of 3
+        </div>
+        <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
+          Choose how you&rsquo;ll pay
+        </h2>
+        <p className="mt-1.5 text-sm text-brand-mute">
+          All payments are processed securely. Vilo never charges a booking fee.
+        </p>
+      </header>
+
+      {/* Method selector */}
+      <section className="space-y-2.5">
+        {paymentMethods.map((m) => {
+          const on = method === m.id;
+          const Icon = m.Icon;
+          return (
+            <button
+              type="button"
+              key={m.id}
+              onClick={() => setMethod(m.id)}
+              disabled={isPending}
+              className={`flex w-full items-center gap-4 rounded-card border bg-white px-5 py-4 text-left transition ${
+                on
+                  ? "ck-selected border-brand-primary"
+                  : "border-brand-line hover:border-brand-primary/50"
+              }`}
+            >
+              <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-pill border-2 transition ${
+                  on
+                    ? "border-brand-primary bg-brand-primary text-white"
+                    : "border-brand-line"
+                }`}
+              >
+                {on ? <span className="h-2 w-2 rounded-pill bg-white" /> : null}
+              </div>
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+                  on
+                    ? "bg-brand-accent text-brand-primary"
+                    : "bg-brand-light text-brand-mute"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="font-display font-semibold capitalize text-brand-ink">
-                  {cancellationPolicy} cancellation policy
+                <div className="font-medium text-brand-ink">{m.label}</div>
+                <div className="mt-0.5 text-xs text-brand-mute">{m.sub}</div>
+              </div>
+              {m.cards ? (
+                <div className="hidden items-center gap-1.5 sm:flex">
+                  {m.cards.map((c) => (
+                    <CardLogo key={c} kind={c} />
+                  ))}
                 </div>
-                <p className="mt-1 text-sm text-brand-ink">
-                  {CANCELLATION_BLURB[cancellationPolicy]}
-                </p>
-                <label className="mt-3 flex cursor-pointer items-start gap-3 rounded border border-brand-line bg-white p-3">
-                  <Checkbox
-                    checked={policyAck}
-                    onCheckedChange={(v) => setPolicyAck(v === true)}
-                    className="mt-0.5"
-                    disabled={isPending}
-                  />
-                  <span className="text-sm text-brand-ink">
-                    I&rsquo;ve read the cancellation policy and house rules.
-                  </span>
-                </label>
+              ) : null}
+            </button>
+          );
+        })}
+      </section>
+
+      {/* Method body */}
+      {method === "paystack" ? (
+        <section className={cardLabel}>
+          <div className="flex items-center justify-between border-b border-brand-line px-5 py-4">
+            <div className="font-display font-semibold text-brand-ink">
+              Secure card payment
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
+              <Lock className="h-3 w-3" /> Encrypted with Paystack
+            </div>
+          </div>
+          <div className="flex items-start gap-4 p-5">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <div className="font-display font-semibold text-brand-ink">
+                You&rsquo;ll finish on Paystack
+              </div>
+              <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
+                When you tap{" "}
+                <span className="font-medium text-brand-ink">
+                  Pay {fmtR(total, currency)}
+                </span>{" "}
+                below, you&rsquo;ll be taken to Paystack&rsquo;s secure page to
+                enter your card. Vilo never sees or stores your card number, and
+                you won&rsquo;t be charged a booking fee.
+              </p>
+              <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+                {[
+                  ["Step 1", "Enter card on Paystack"],
+                  ["Step 2", "Payment confirmed instantly"],
+                  ["Step 3", "Trip locked · receipt emailed"],
+                ].map(([k, v]) => (
+                  <div
+                    key={k}
+                    className="rounded border border-brand-line bg-brand-light/40 p-3"
+                  >
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                      {k}
+                    </div>
+                    <div className="mt-1 text-xs font-medium text-brand-ink">
+                      {v}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </section>
+          </div>
+        </section>
+      ) : (
+        <section className={cardLabel}>
+          <div className="border-b border-brand-line px-5 py-4">
+            <div className="font-display font-semibold text-brand-ink">
+              Bank transfer details
+            </div>
+            <div className="mt-0.5 text-xs text-brand-mute">
+              Reserve first — we&rsquo;ll then show the host&rsquo;s banking
+              details and your reference to complete the transfer.
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="flex items-start gap-2.5 rounded border border-amber-200 bg-amber-50 p-3">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              <div className="text-xs leading-relaxed text-amber-800">
+                Your dates are held while you pay. Use the exact reference we
+                give you so the host can match your transfer.
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Trust strip */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          {
+            Icon: Lock,
+            t: "Secure payment",
+            s: "Encrypted via Paystack.",
+          },
+          {
+            Icon: Percent,
+            t: "No booking fees",
+            s: "Vilo never charges guests a fee.",
+          },
+          {
+            Icon: ShieldCheck,
+            t: "Buyer protection",
+            s: "Full refund if the host cancels.",
+          },
+        ].map((x) => (
+          <div key={x.t} className={`${cardLabel} p-4`}>
+            <div className="mb-2.5 flex h-8 w-8 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+              <x.Icon className="h-4 w-4" />
+            </div>
+            <div className="text-sm font-medium text-brand-ink">{x.t}</div>
+            <div className="mt-0.5 text-xs leading-relaxed text-brand-mute">
+              {x.s}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const progressPct = (step / (STEPS.length - 1)) * 100;
+
+  return (
+    <div className="space-y-5">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+@keyframes ck-step-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.ck-step{animation:ck-step-in .35s cubic-bezier(.2,.7,.2,1) both;}
+.ck-selected{box-shadow:0 0 0 2px #10B981 inset, 0 8px 28px -16px rgba(6,78,59,0.18);}
+@keyframes ck-ring{0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,.35);}70%{box-shadow:0 0 0 10px rgba(16,185,129,0);}}
+.ck-pulse{animation:ck-ring 2.2s ease-out infinite;}
+@media (prefers-reduced-motion: reduce){.ck-step,.ck-pulse{animation:none!important;}}
+`,
+        }}
+      />
+
+      {/* Progress band */}
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="h-1 bg-brand-light">
+          <div
+            className="h-full bg-brand-primary transition-all duration-500"
+            style={{ width: `${progressPct}%` }}
+          />
         </div>
+        <div className="hide-sb flex items-center gap-3 px-4 py-3 md:px-5">
+          <span className="hidden shrink-0 font-mono text-[10px] text-brand-mute sm:inline">
+            {String(step + 1).padStart(2, "0")}/
+            {String(STEPS.length).padStart(2, "0")}
+          </span>
+          <div className="hide-sb flex flex-1 items-center gap-2 overflow-x-auto md:gap-2.5">
+            {STEPS.map((label, i) => {
+              const done = i < step;
+              const active = i === step;
+              return (
+                <div key={label} className="flex items-center gap-2 md:gap-2.5">
+                  <div className="flex shrink-0 items-center gap-2">
+                    <div
+                      className={`flex h-7 w-7 items-center justify-center rounded-pill text-xs font-semibold ${
+                        done
+                          ? "bg-brand-primary text-white"
+                          : active
+                            ? "ck-pulse border-2 border-brand-primary bg-white text-brand-primary"
+                            : "border border-brand-line bg-white text-brand-mute"
+                      }`}
+                    >
+                      {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                    </div>
+                    <div
+                      className={`text-xs font-medium ${
+                        done
+                          ? "text-brand-ink"
+                          : active
+                            ? "text-brand-primary"
+                            : "text-brand-mute"
+                      } ${!active ? "hidden sm:inline" : ""}`}
+                    >
+                      {label}
+                    </div>
+                  </div>
+                  {i < STEPS.length - 1 ? (
+                    <div
+                      className={`h-px w-6 min-w-6 md:w-10 ${
+                        i < step ? "bg-brand-primary" : "bg-brand-line"
+                      }`}
+                    />
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+          <span className="ml-auto hidden shrink-0 items-center gap-1.5 text-[11px] text-brand-mute md:inline-flex">
+            <Lock className="h-3.5 w-3.5 text-brand-primary" /> Secure checkout
+          </span>
+        </div>
+      </section>
+
+      {/* Listing hero */}
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="grid sm:grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]">
+          <div className="relative h-32 overflow-hidden sm:h-auto sm:min-h-[140px]">
+            {coverImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={coverImageUrl}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-brand-gradient-dark" />
+            )}
+            {instantBooking ? (
+              <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-pill bg-white/95 px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary shadow-card backdrop-blur">
+                <Zap className="h-3 w-3" /> Instant Book
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-col justify-center p-4 sm:p-5">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+              <MapPin className="h-3 w-3" />
+              {locationLine
+                ? `${listingTypeLabel} · ${locationLine}`
+                : listingTypeLabel}
+            </div>
+            <h1 className="mt-1 font-display text-xl font-bold tracking-tight text-brand-ink sm:text-2xl">
+              You&rsquo;re booking at{" "}
+              <span className="text-brand-secondary">{listingName}</span>
+            </h1>
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-brand-mute">
+              {ratingValue != null ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                  <span className="font-semibold text-brand-ink">
+                    {ratingValue.toFixed(2)}
+                  </span>{" "}
+                  · {reviewCount ?? 0}{" "}
+                  {(reviewCount ?? 0) === 1 ? "review" : "reviews"}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1.5">
+                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
+                Verified host
+              </span>
+              {allRooms.length > 0 ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <BedDouble className="h-3.5 w-3.5" />
+                  {allRooms.length} {allRooms.length === 1 ? "room" : "rooms"}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <form
+        onSubmit={onSubmit}
+        className="grid items-start gap-5 lg:grid-cols-[1fr_380px] lg:gap-7"
+      >
+        {/* ── Left column: the current step ───────────────────────── */}
+        <section className="min-w-0 pb-24 lg:pb-0">
+          {step === 0 ? reviewBody : paymentBody}
+
+          {/* Footer actions */}
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={goBack}
+              disabled={step === 0}
+              className="inline-flex items-center gap-1.5 text-sm text-brand-mute transition-colors hover:text-brand-ink disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back
+            </button>
+            {step === 0 ? (
+              <button
+                type="button"
+                onClick={goToPayment}
+                disabled={needsRoom || !datesValid}
+                className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue to payment <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isPending}
+                className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:cursor-progress disabled:opacity-70"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {payLabel}
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4" />
+                    {payLabel}
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* Legal disclaimer (payment step) */}
+          {step === 1 ? (
+            <div className="mt-4 max-w-xl text-[11px] leading-relaxed text-brand-mute">
+              By tapping{" "}
+              <span className="font-medium text-brand-ink">{payLabel}</span>,
+              you agree to Vilo&rsquo;s Terms and the host&rsquo;s house rules,
+              and that Vilo may charge your payment method per the{" "}
+              <span className="capitalize">{cancellationPolicy}</span>{" "}
+              cancellation policy if you cancel or fail to check in.
+            </div>
+          ) : null}
+        </section>
 
         {/* ── Right column: sticky summary ────────────────────────── */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            {/* Cover image / placeholder with identity overlay */}
             <div className="relative h-40 w-full">
               {coverImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -1481,26 +1749,30 @@ export function BookingForm({
             </div>
 
             <div className="border-b border-brand-line px-5 py-4">
-              <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                {locationLine
-                  ? `${listingTypeLabel} · ${locationLine}`
-                  : listingTypeLabel}
-              </div>
-              <div className="mt-0.5 truncate font-display text-lg font-bold text-brand-ink">
-                {listingName}
-              </div>
-              {ratingValue != null ? (
-                <div className="mt-1 flex items-center gap-1 text-xs text-brand-ink">
-                  <Star className="h-3.5 w-3.5 fill-brand-primary text-brand-primary" />
-                  <span className="font-semibold">
-                    {ratingValue.toFixed(2)}
-                  </span>
-                  <span className="text-brand-mute">
-                    · {reviewCount ?? 0}{" "}
-                    {(reviewCount ?? 0) === 1 ? "review" : "reviews"}
-                  </span>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+                    {locationLine
+                      ? `${listingTypeLabel} · ${listingCity ?? locationLine}`
+                      : listingTypeLabel}
+                  </div>
+                  <div className="mt-0.5 truncate font-display text-lg font-bold text-brand-ink">
+                    {listingName}
+                  </div>
                 </div>
-              ) : null}
+                {ratingValue != null ? (
+                  <div className="text-right">
+                    <div className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
+                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                      {ratingValue.toFixed(2)}
+                    </div>
+                    <div className="text-[11px] text-brand-mute">
+                      {reviewCount ?? 0}{" "}
+                      {(reviewCount ?? 0) === 1 ? "review" : "reviews"}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <div className="p-5">
@@ -1521,77 +1793,153 @@ export function BookingForm({
                     {fmtDate(dates.to)}
                   </div>
                 </div>
+                <div className="col-span-2 rounded border border-brand-line p-2.5">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                    Guests
+                  </div>
+                  <div className="mt-0.5 text-sm font-medium text-brand-ink">
+                    {effectiveGuests}{" "}
+                    {effectiveGuests === 1 ? "guest" : "guests"}
+                  </div>
+                </div>
               </div>
 
-              <dl className="mt-5 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <dt className="text-brand-mute">
-                    {scope === "rooms"
-                      ? `${selectedRooms.length} ${
-                          selectedRooms.length === 1 ? "room" : "rooms"
-                        } × ${nights} ${nights === 1 ? "night" : "nights"}`
-                      : `${fmtR(basePrice, currency)} × ${nights} ${
-                          nights === 1 ? "night" : "nights"
-                        }`}
-                  </dt>
-                  <dd className="font-medium text-brand-dark">
-                    {fmtR(subtotal, currency)}
-                  </dd>
+              {/* Selected rooms */}
+              <div className="mt-5 border-t border-brand-line pt-4">
+                <div className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+                  {isWhole
+                    ? "Whole place"
+                    : `${selectedRooms.length} ${
+                        selectedRooms.length === 1 ? "room" : "rooms"
+                      } selected`}
                 </div>
-                {cleaningTotal > 0 ? (
-                  <div className="flex items-center justify-between">
-                    <dt className="text-brand-mute">
-                      {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
-                    </dt>
-                    <dd className="font-medium text-brand-dark">
-                      {fmtR(cleaningTotal, currency)}
-                    </dd>
+                {isWhole ? (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                        <Home className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-brand-ink">
+                          {listingName}
+                        </div>
+                        <div className="font-mono text-[11px] text-brand-mute">
+                          {fmtR(basePrice, currency)} × {nights}n
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-sm font-semibold text-brand-ink">
+                      {fmtR(subtotal, currency)}
+                    </div>
+                  </div>
+                ) : selectedRooms.length === 0 ? (
+                  <div className="text-xs italic text-brand-mute">
+                    No rooms selected yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {selectedRooms.map((r) => (
+                      <div key={r.id} className="flex items-center gap-3">
+                        {r.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={r.photoUrl}
+                            alt=""
+                            className="h-10 w-12 shrink-0 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                            <BedDouble className="h-4 w-4" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-brand-ink">
+                            {r.name}
+                          </div>
+                          <div className="font-mono text-[11px] text-brand-mute">
+                            {fmtR(roomNightly(r), currency)} × {nights}n
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-sm font-semibold text-brand-ink">
+                          {fmtR(roomNightly(r) * nights, currency)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Breakdown */}
+              <dl className="mt-4 space-y-2 border-t border-brand-line pt-4 text-sm">
+                <div className="flex items-center justify-between text-brand-ink">
+                  <dt>Rooms subtotal</dt>
+                  <dd>{fmtR(subtotal, currency)}</dd>
+                </div>
+                {selectedAddonLines.length > 0 ? (
+                  <div className="border-t border-brand-line/70 pt-2">
+                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+                      Add-ons
+                    </div>
+                    {selectedAddonLines.map((line) => (
+                      <div
+                        key={line.id}
+                        className="flex items-center justify-between py-0.5 text-[13px] text-brand-ink"
+                      >
+                        <dt className="truncate pr-2">{line.name}</dt>
+                        <dd>{fmtR(line.subtotal, currency)}</dd>
+                      </div>
+                    ))}
                   </div>
                 ) : null}
-                {selectedAddonLines.map((line) => (
-                  <div
-                    key={line.id}
-                    className="flex items-center justify-between"
-                  >
-                    <dt className="truncate pr-2 text-brand-mute">
-                      {line.name}
+                {cleaningTotal > 0 ? (
+                  <div className="flex items-center justify-between text-brand-ink">
+                    <dt className="inline-flex items-center gap-1.5">
+                      {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
+                      <span title="One-off cleaning fee charged by the host.">
+                        <Info className="h-3 w-3 text-brand-mute" />
+                      </span>
                     </dt>
-                    <dd className="font-medium text-brand-dark">
-                      {fmtR(line.subtotal, currency)}
-                    </dd>
+                    <dd>{fmtR(cleaningTotal, currency)}</dd>
                   </div>
-                ))}
-                <div className="flex items-center justify-between">
-                  <dt className="text-brand-mute">Vilo service fee</dt>
+                ) : null}
+                <div className="flex items-center justify-between text-brand-mute">
+                  <dt className="inline-flex items-center gap-1.5">
+                    Vilo service fee
+                    <span title="Vilo charges hosts a subscription. Guests never pay a booking fee.">
+                      <Info className="h-3 w-3" />
+                    </span>
+                  </dt>
                   <dd className="font-medium text-brand-primary">FREE</dd>
                 </div>
-                <div className="flex items-center justify-between border-t border-brand-line pt-3">
+                <div className="flex items-baseline justify-between border-t border-brand-line pt-3">
                   <dt className="font-display font-semibold text-brand-ink">
-                    Total
+                    Total · {currency}
                   </dt>
-                  <dd className="font-display text-lg font-bold text-brand-ink">
+                  <dd className="font-display text-2xl font-bold text-brand-ink">
                     {fmtR(total, currency)}
                   </dd>
                 </div>
               </dl>
 
-              <button
-                type="submit"
-                disabled={reserveDisabled}
-                className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded bg-brand-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Lock className="h-4 w-4" />
-                {reserveLabel}
-              </button>
+              {/* Refund / safety strip */}
+              <div className="mt-4 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light/60 p-3">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                <div className="text-[11px] leading-relaxed text-brand-mute">
+                  {CANCELLATION_BULLETS[cancellationPolicy][0].text} Vilo holds
+                  payments until your trip is confirmed.
+                </div>
+              </div>
 
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-brand-mute">
-                <Mail className="h-3 w-3" />
-                {method === "eft"
-                  ? "You’ll get the host’s banking details to complete payment."
-                  : isAuthenticated
-                    ? "You won’t be charged until payment completes."
-                    : "We’ll create your guest account, then open secure checkout."}
-              </p>
+              {step === 1 ? (
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-brand-mute">
+                  <Mail className="h-3 w-3" />
+                  {method === "eft"
+                    ? "You’ll get the host’s banking details to complete payment."
+                    : isAuthenticated
+                      ? "You won’t be charged until payment completes."
+                      : "We’ll create your guest account, then open secure checkout."}
+                </p>
+              ) : null}
             </div>
           </div>
         </aside>
@@ -1608,17 +1956,51 @@ export function BookingForm({
                 {effectiveGuests === 1 ? "guest" : "guests"}
               </div>
             </div>
-            <button
-              type="submit"
-              disabled={reserveDisabled}
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Lock className="h-4 w-4" />
-              {isPending ? "Working…" : "Reserve"}
-            </button>
+            {step === 0 ? (
+              <button
+                type="button"
+                onClick={goToPayment}
+                disabled={needsRoom || !datesValid}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={isPending}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-progress disabled:opacity-70"
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {isPending ? "Working…" : method === "eft" ? "Reserve" : "Pay"}
+              </button>
+            )}
           </div>
         </div>
       </form>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Card brand marks (echoes the design's payment-method row)                  */
+/* -------------------------------------------------------------------------- */
+function CardLogo({ kind }: { kind: "visa" | "mc" }) {
+  if (kind === "visa") {
+    return (
+      <div className="flex h-5 items-center rounded-sm bg-[#1A1F71] px-1.5 font-mono text-[10px] font-bold text-white">
+        VISA
+      </div>
+    );
+  }
+  return (
+    <div className="flex h-5 items-center gap-0.5 rounded-sm border border-brand-line bg-white px-1.5">
+      <span className="h-3 w-3 rounded-pill bg-[#EB001B]" />
+      <span className="-ml-1.5 h-3 w-3 rounded-pill bg-[#F79E1B] mix-blend-multiply" />
     </div>
   );
 }

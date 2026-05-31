@@ -142,6 +142,12 @@ export default async function BookingSuccessPage({
 
   const isConfirmed =
     booking.status === "confirmed" && booking.payment_status === "completed";
+  // Manual-EFT bookings land here straight after reserving (no Paystack hop) —
+  // they sit pending until the guest transfers + the host verifies.
+  const isEftPending =
+    !isConfirmed &&
+    (booking.payment_method === "eft" ||
+      booking.payment_method === "manual_eft");
 
   const listing = booking.listing as unknown as {
     id: string;
@@ -374,6 +380,7 @@ export default async function BookingSuccessPage({
   const data: ConfirmationData = {
     bookingId: booking.id,
     isConfirmed,
+    isEftPending,
     reference: booking.reference,
     guestFirstName,
     guest: {

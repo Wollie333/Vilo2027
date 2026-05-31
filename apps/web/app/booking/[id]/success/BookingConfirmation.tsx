@@ -34,6 +34,8 @@ import { useEffect, useMemo, useState } from "react";
 export type ConfirmationData = {
   bookingId: string;
   isConfirmed: boolean;
+  /** Booking placed via manual EFT and still awaiting the guest's transfer. */
+  isEftPending: boolean;
   reference: string;
   guestFirstName: string;
   guest: { name: string; email: string; phone: string | null };
@@ -318,6 +320,10 @@ function Hero({ data }: { data: ConfirmationData }) {
               <>
                 <Zap className="h-3 w-3" /> Confirmed
               </>
+            ) : data.isEftPending ? (
+              <>
+                <Clock className="h-3 w-3" /> Reserved · pay by EFT
+              </>
             ) : (
               <>
                 <Clock className="h-3 w-3" /> Confirming payment
@@ -333,6 +339,8 @@ function Hero({ data }: { data: ConfirmationData }) {
                   : "You're booked,"}
                 <br className="hidden sm:block" /> {data.guestFirstName} 🎉
               </>
+            ) : data.isEftPending ? (
+              <>You&rsquo;re nearly there, {data.guestFirstName}</>
             ) : (
               <>Hang tight, {data.guestFirstName}…</>
             )}
@@ -354,6 +362,18 @@ function Hero({ data }: { data: ConfirmationData }) {
                 ) : (
                   "."
                 )}
+              </>
+            ) : data.isEftPending ? (
+              <>
+                Your dates at{" "}
+                <span className="font-medium text-brand-ink">
+                  {data.listing.name}
+                </span>{" "}
+                are held. Complete your EFT transfer to confirm — tap{" "}
+                <span className="font-medium text-brand-ink">
+                  View my booking
+                </span>{" "}
+                for the host&rsquo;s banking details and your reference.
               </>
             ) : (
               <>

@@ -708,10 +708,11 @@ export async function createBookingAction(
   }
 
   // 7b. Manual EFT — no payment provider. The booking sits in pending_eft; the
-  // guest gets the host's banking details + reference on their trip page and
-  // uploads proof there. Skip the Paystack hop entirely.
+  // guest lands on the confirmation/thank-you page (which shows the awaiting-
+  // transfer state) and follows "View my booking" for the host's banking
+  // details + reference. Skip the Paystack hop entirely.
   if (isEft) {
-    redirect(`/my-trips/${booking.id}`);
+    redirect(`/booking/${booking.id}/success`);
   }
 
   // 8. Initialize Paystack transaction.
