@@ -54,6 +54,8 @@ function toRoomEditorRoom(room: EditorRoom): RoomEditorRoom {
     bedrooms: room.bedrooms,
     bathrooms: room.bathrooms,
     max_guests: room.max_guests,
+    min_guests: room.min_guests ?? 1,
+    min_nights: room.min_nights ?? 1,
     base_price: room.base_price,
     weekend_price: room.weekend_price,
     cleaning_fee: room.cleaning_fee,

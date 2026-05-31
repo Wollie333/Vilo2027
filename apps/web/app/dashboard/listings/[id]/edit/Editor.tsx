@@ -119,6 +119,8 @@ export type EditorRoom = {
   bedrooms: number | null;
   bathrooms: number | null;
   max_guests: number;
+  min_guests: number;
+  min_nights: number;
   base_price: number;
   weekend_price: number | null;
   cleaning_fee: number;

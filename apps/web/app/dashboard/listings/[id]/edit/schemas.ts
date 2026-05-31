@@ -245,6 +245,9 @@ export const roomPatchSchema = z.object({
   bedrooms: z.number().int().nullable().optional(),
   bathrooms: z.number().int().nullable().optional(),
   max_guests: z.number().int().min(1).max(50).optional(),
+  // Per-room minimums — guests required + nights required (default 1).
+  min_guests: z.number().int().min(1).max(50).optional(),
+  min_nights: z.number().int().min(1).max(365).optional(),
   base_price: z.number().min(0).max(1000000).optional(),
   weekend_price: z.number().nullable().optional(),
   cleaning_fee: z.number().min(0).max(1000000).optional(),

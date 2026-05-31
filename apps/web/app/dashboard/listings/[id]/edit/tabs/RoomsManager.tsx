@@ -78,6 +78,8 @@ export function RoomsManager({
           bedrooms: 1,
           bathrooms: 0,
           max_guests: 2,
+          min_guests: 1,
+          min_nights: 1,
           base_price: 0,
           weekend_price: null,
           cleaning_fee: 0,

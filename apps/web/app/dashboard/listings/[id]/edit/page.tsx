@@ -110,7 +110,7 @@ export default async function EditListingPage({
     supabase
       .from("listing_rooms")
       .select(
-        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sleeps, sort_order )",
+        "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sleeps, sort_order )",
       )
       .eq("listing_id", params.id)
       .is("deleted_at", null)
@@ -168,6 +168,8 @@ export default async function EditListingPage({
       bedrooms: r.bedrooms,
       bathrooms: r.bathrooms,
       max_guests: r.max_guests,
+      min_guests: r.min_guests ?? 1,
+      min_nights: r.min_nights ?? 1,
       base_price: Number(r.base_price),
       weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
       cleaning_fee: Number(r.cleaning_fee ?? 0),

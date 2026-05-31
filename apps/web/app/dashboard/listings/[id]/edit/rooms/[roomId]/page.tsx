@@ -39,7 +39,7 @@ export default async function EditRoomPage({
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
     )
     .eq("id", params.roomId)
     .eq("listing_id", params.id)
@@ -75,6 +75,8 @@ export default async function EditRoomPage({
     bedrooms: room.bedrooms,
     bathrooms: room.bathrooms,
     max_guests: room.max_guests,
+    min_guests: room.min_guests ?? 1,
+    min_nights: room.min_nights ?? 1,
     base_price: Number(room.base_price),
     weekend_price:
       room.weekend_price != null ? Number(room.weekend_price) : null,

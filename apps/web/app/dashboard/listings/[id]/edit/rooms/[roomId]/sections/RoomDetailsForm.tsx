@@ -113,6 +113,9 @@ export const RoomDetailsForm = forwardRef<
   const [experiences, setExperiences] = useState<string[]>(
     room.experiences ?? [],
   );
+  // ── Per-room minimums ──
+  const [minGuests, setMinGuests] = useState(numToStr(room.min_guests, "1"));
+  const [minNights, setMinNights] = useState(numToStr(room.min_nights, "1"));
 
   // ── Beds — capacity is derived from each bed's KIND × quantity. The host
   // only sets the quantity; "sleeps per bed" comes from the bed kind. ──
@@ -209,6 +212,12 @@ export const RoomDetailsForm = forwardRef<
       // Capacity is derived from beds — sent so the row is consistent even
       // before setRoomBedsAction re-derives it server-side.
       max_guests: capacity,
+      // Per-room minimums. min_guests can't exceed what the room sleeps.
+      min_guests: Math.min(
+        Math.max(1, toInt(minGuests) ?? 1),
+        Math.max(1, capacity),
+      ),
+      min_nights: Math.max(1, toInt(minNights) ?? 1),
       pricing_mode: pricingMode,
       base_price: pricingMode === "per_person" ? 0 : (toNum(basePrice) ?? 0),
       weekend_price: pricingMode === "per_room" ? toNum(weekendPrice) : null,
@@ -408,6 +417,42 @@ export const RoomDetailsForm = forwardRef<
             <Plus className="h-3.5 w-3.5" />
             Add a bed
           </Button>
+        </div>
+
+        {/* ── Minimum booking ───────────────────────────────────── */}
+        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
+            <Users className="h-4 w-4 text-brand-primary" />
+            Minimum booking
+          </div>
+          <p className="mt-0.5 text-xs text-brand-mute">
+            Require a floor on guests and length-of-stay for this room. Leave at
+            1 for no minimum. The booking takes the longer of the
+            listing&rsquo;s and the selected rooms&rsquo; minimum nights.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Field label={`Min guests (room sleeps ${capacity || 1})`}>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={Math.max(1, capacity)}
+                value={minGuests}
+                onChange={(e) => setMinGuests(e.target.value)}
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Min nights">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={minNights}
+                onChange={(e) => setMinNights(e.target.value)}
+                disabled={pending}
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3">

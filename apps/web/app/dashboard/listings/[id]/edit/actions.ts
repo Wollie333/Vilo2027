@@ -718,6 +718,8 @@ export async function createRoomAction(
       bedrooms: parsed.data.bedrooms ?? 1,
       bathrooms: parsed.data.bathrooms ?? 0,
       max_guests: parsed.data.max_guests,
+      min_guests: parsed.data.min_guests ?? 1,
+      min_nights: parsed.data.min_nights ?? 1,
       base_price: parsed.data.base_price,
       weekend_price: parsed.data.weekend_price ?? null,
       cleaning_fee: parsed.data.cleaning_fee ?? 0,
@@ -777,6 +779,8 @@ export type RoomEditorData = {
     bedrooms: number | null;
     bathrooms: number | null;
     max_guests: number;
+    min_guests: number;
+    min_nights: number;
     base_price: number;
     weekend_price: number | null;
     cleaning_fee: number;
@@ -809,7 +813,7 @@ export async function fetchRoomEditorDataAction(
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
     )
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -847,6 +851,8 @@ export async function fetchRoomEditorDataAction(
         bedrooms: room.bedrooms,
         bathrooms: room.bathrooms,
         max_guests: room.max_guests,
+        min_guests: room.min_guests ?? 1,
+        min_nights: room.min_nights ?? 1,
         base_price: Number(room.base_price),
         weekend_price:
           room.weekend_price != null ? Number(room.weekend_price) : null,
