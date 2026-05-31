@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
-import { ArrowLeft, MessageSquare, User } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  MessageSquare,
+  User,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -38,6 +44,16 @@ export default async function BookingDetailPage({
     .maybeSingle();
 
   if (!booking) notFound();
+
+  // The payment record for this booking — payments are the single source of
+  // truth for money; link straight to its financial-management screen.
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .select("id, status, method")
+    .eq("booking_id", booking.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   const listing = booking.listing as unknown as {
     name: string;
@@ -149,6 +165,16 @@ export default async function BookingDetailPage({
                 </>
               )}
             </dl>
+            {paymentRow ? (
+              <Link
+                href={`/dashboard/payments/${paymentRow.id}`}
+                className="mt-4 inline-flex items-center gap-1.5 rounded border border-brand-line px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
+              >
+                <CreditCard className="h-4 w-4 text-brand-primary" />
+                View payment record
+                <ArrowRight className="h-4 w-4 text-brand-mute" />
+              </Link>
+            ) : null}
             {isExperience && listing.meeting_point ? (
               <div className="mt-5 rounded border border-brand-line bg-brand-light/60 p-3 text-sm text-brand-dark">
                 <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
