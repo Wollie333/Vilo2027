@@ -9,7 +9,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
+  clampAddonQuantity,
   computeAddonSubtotal,
+  defaultAddonQuantity,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
 import { roomNightlyBase } from "../roomDisplay";
@@ -276,7 +278,7 @@ export async function createBookingAction(
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+        "id, base_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -317,7 +319,7 @@ export async function createBookingAction(
       }
     }
 
-    // 5c. Per-room capacity check (capacity is bed-derived) + combined cap.
+    // 5c. Per-room capacity + minimum-occupancy + minimum-nights checks.
     for (const r of roomRows) {
       if (guestsForRoom(r.id) > r.max_guests) {
         return {
@@ -325,6 +327,25 @@ export async function createBookingAction(
           error: `One room only sleeps ${r.max_guests} — reduce its guests.`,
         };
       }
+      const minG = r.min_guests ?? 1;
+      if (guestsForRoom(r.id) < minG) {
+        return {
+          ok: false,
+          error: `One room needs at least ${minG} ${minG === 1 ? "guest" : "guests"}.`,
+        };
+      }
+    }
+    const roomsMinNights = Math.max(
+      1,
+      ...roomRows.map((r) => r.min_nights ?? 1),
+    );
+    if (nights < roomsMinNights) {
+      return {
+        ok: false,
+        error: `One of these rooms needs a minimum stay of ${roomsMinNights} ${
+          roomsMinNights === 1 ? "night" : "nights"
+        }.`,
+      };
     }
     const totalCap = roomRows.reduce((acc, r) => acc + r.max_guests, 0);
     if (d.guests > totalCap) {
@@ -413,6 +434,16 @@ export async function createBookingAction(
     addon_id: string;
     sort_order: number;
   }> = [];
+  // Stock we've already taken — released if the booking unwinds before payment.
+  const reservedAddons: { addonId: string; qty: number }[] = [];
+  const releaseReserved = async () => {
+    for (const r of reservedAddons) {
+      await admin.rpc("release_addon_stock", {
+        p_addon_id: r.addonId,
+        p_qty: r.qty,
+      });
+    }
+  };
 
   if (d.scope !== "experience") {
     const roomIdScope =
@@ -420,7 +451,7 @@ export async function createBookingAction(
     const { data: eligibleAddonRows } = await admin
       .from("listing_addons")
       .select(
-        "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
+        "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )
       .eq("listing_id", listing.id);
 
@@ -436,6 +467,8 @@ export async function createBookingAction(
         currency: string;
         min_quantity: number;
         max_quantity: number | null;
+        allow_custom_quantity: boolean;
+        stock_quantity: number | null;
         is_required: boolean;
         is_active: boolean;
         lead_time_days: number;
@@ -477,7 +510,14 @@ export async function createBookingAction(
     }
     for (const [addonId, entry] of eligibleMap.entries()) {
       if (entry.addon.is_required && !selectedQty.has(addonId)) {
-        selectedQty.set(addonId, Math.max(entry.addon.min_quantity, 1));
+        selectedQty.set(
+          addonId,
+          defaultAddonQuantity(
+            entry.addon.pricing_model,
+            entry.addon.min_quantity,
+            nights,
+          ),
+        );
       }
     }
 
@@ -487,17 +527,20 @@ export async function createBookingAction(
       const entry = eligibleMap.get(addonId);
       if (!entry) continue;
       const a = entry.addon;
-      let clamped = qty;
-      if (clamped < a.min_quantity) clamped = a.min_quantity;
-      if (a.max_quantity != null && clamped > a.max_quantity) {
-        clamped = a.max_quantity;
-      }
+      // Never trust the client quantity: re-apply the same min/max/nights/stock
+      // rules + the fixed pin the UI uses.
+      const clamped = clampAddonQuantity(a.pricing_model, qty, {
+        minQuantity: a.min_quantity,
+        maxQuantity: a.max_quantity,
+        nights,
+        stock: a.stock_quantity,
+        allowCustom: a.allow_custom_quantity,
+      });
       if (clamped <= 0) continue;
       const subtotal = computeAddonSubtotal(
         a.pricing_model,
         entry.effectiveUnitPrice,
         clamped,
-        nights,
         d.guests,
       );
       addonsTotal += subtotal;
@@ -607,6 +650,33 @@ export async function createBookingAction(
       await admin.from("bookings").delete().eq("id", booking.id);
       return { ok: false, error: "Could not save add-ons. Try again." };
     }
+
+    // 6b-i. Reserve live inventory atomically. Sorted by addon_id to keep the
+    // lock order stable across concurrent checkouts. A shortfall (someone took
+    // the last unit) rolls the whole booking back.
+    const toReserve = [...addonInserts].sort((x, y) =>
+      x.addon_id.localeCompare(y.addon_id),
+    );
+    for (const a of toReserve) {
+      const { data: reserved, error: resErr } = await admin.rpc(
+        "reserve_addon_stock",
+        { p_addon_id: a.addon_id, p_qty: a.quantity },
+      );
+      if (resErr || reserved !== true) {
+        await releaseReserved();
+        await admin
+          .from("booking_addons")
+          .delete()
+          .eq("booking_id", booking.id);
+        await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
+        await admin.from("bookings").delete().eq("id", booking.id);
+        return {
+          ok: false,
+          error: `Sorry — “${a.label}” just sold out. Adjust your add-ons and try again.`,
+        };
+      }
+      reservedAddons.push({ addonId: a.addon_id, qty: a.quantity });
+    }
   }
 
   // 6c. Freeze the listing's assigned policies onto the booking so later edits
@@ -630,6 +700,8 @@ export async function createBookingAction(
     .select("id")
     .single();
   if (paymentErr || !payment) {
+    await releaseReserved();
+    await admin.from("booking_addons").delete().eq("booking_id", booking.id);
     await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
     await admin.from("bookings").delete().eq("id", booking.id);
     return { ok: false, error: "Could not prepare payment. Try again." };
@@ -662,6 +734,7 @@ export async function createBookingAction(
       },
     });
   } catch {
+    await releaseReserved();
     await admin.from("payments").delete().eq("id", payment.id);
     await admin.from("booking_addons").delete().eq("booking_id", booking.id);
     await admin.from("booking_rooms").delete().eq("booking_id", booking.id);

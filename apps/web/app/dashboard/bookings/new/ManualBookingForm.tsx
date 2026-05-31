@@ -315,7 +315,6 @@ export function ManualBookingForm({
           (a.pricing_model as keyof typeof PRICING_LABEL) ?? "per_stay",
           a.unit_price,
           qty,
-          nights || 1,
           adults + children,
         );
         return {
@@ -340,7 +339,7 @@ export function ManualBookingForm({
         subtotal: parseFloat(f.amount) || 0,
       }));
     return [...configured, ...custom];
-  }, [listingAddons, addonQty, customFees, nights, adults, children]);
+  }, [listingAddons, addonQty, customFees, adults, children]);
 
   const addonsTotal = addonLines.reduce((s, a) => s + a.subtotal, 0);
   const total = netBase + cleaning + addonsTotal;

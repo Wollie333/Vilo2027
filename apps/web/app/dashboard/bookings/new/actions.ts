@@ -158,11 +158,12 @@ export async function createManualBookingAction(
       : "per_stay";
     const unitPrice = fromCatalog ? fromCatalog.unit_price : a.unit_price;
     const label = fromCatalog ? fromCatalog.name : a.label;
+    // Quantity now carries the night count for per-night add-ons (the host
+    // enters how many nights), so there's no separate nights multiplier.
     const subtotal = computeAddonSubtotal(
       model,
       unitPrice,
       a.quantity,
-      nights.length,
       data.headcount,
     );
     return {

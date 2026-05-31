@@ -48,6 +48,8 @@ export function AddonTemplatesModal({
         currency: "ZAR",
         min_quantity: t.minQuantity,
         max_quantity: t.maxQuantity,
+        allow_custom_quantity: true,
+        stock_quantity: null,
         is_required: false,
         is_active: true,
         lead_time_days: t.leadTimeDays,

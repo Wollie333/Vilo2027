@@ -45,7 +45,7 @@ export default async function AddonEditorPage({
   const { data: r } = await supabase
     .from("addons")
     .select(
-      "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days, category, vat_included, daily_capacity",
+      "id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days, category, vat_included, daily_capacity",
     )
     .eq("id", params.id)
     .eq("host_id", host.id)
@@ -65,6 +65,8 @@ export default async function AddonEditorPage({
     currency: r.currency,
     minQuantity: r.min_quantity,
     maxQuantity: r.max_quantity,
+    allowCustomQuantity: r.allow_custom_quantity,
+    stockQuantity: r.stock_quantity,
     isRequired: r.is_required,
     isActive: r.is_active,
     leadTimeDays: r.lead_time_days,

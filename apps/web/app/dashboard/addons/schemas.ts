@@ -32,11 +32,11 @@ export const PRICING_MODEL_META: Record<
 > = {
   per_guest_per_night: {
     label: "Per person",
-    suffix: "per person",
-    hint: "× guests × nights",
+    suffix: "per person / night",
+    hint: "× guests · pick nights",
   },
   per_stay: { label: "Per booking", suffix: "per booking", hint: "flat, once" },
-  per_night: { label: "Per night", suffix: "per night", hint: "× nights" },
+  per_night: { label: "Per night", suffix: "per night", hint: "pick nights" },
   per_guest: { label: "Per guest", suffix: "per guest", hint: "× guests" },
   per_couple: { label: "Per couple", suffix: "per couple", hint: "× couples" },
 };
@@ -63,26 +63,72 @@ export const ADDON_CATEGORY_LABEL: Record<string, string> = Object.fromEntries(
   ADDON_CATEGORIES.map((c) => [c.value, c.label]),
 );
 
-// Compute the same line subtotal the SQL helper does. Server is authoritative;
-// this mirror is only for the cart UI breakdown.
+/** Per-night add-ons: the guest-chosen quantity IS the number of nights. */
+export function isPerNightModel(model: PricingModel): boolean {
+  return model === "per_night" || model === "per_guest_per_night";
+}
+
+// Line subtotal. The quantity already carries the night count for per-night
+// models, so there is NO separate nights multiplier — only the per-guest /
+// per-couple scaling is automatic. Server is authoritative; this mirror drives
+// the cart UI breakdown. Keep in sync with the SQL compute_addon_subtotal.
 export function computeAddonSubtotal(
   model: PricingModel,
   unitPrice: number,
   quantity: number,
-  nights: number,
   guests: number,
 ): number {
-  const multiplier =
-    model === "per_stay"
-      ? 1
-      : model === "per_night"
-        ? nights
-        : model === "per_guest"
-          ? guests
-          : model === "per_guest_per_night"
-            ? nights * guests
-            : Math.ceil(guests / 2);
-  return unitPrice * quantity * multiplier;
+  const guestFactor =
+    model === "per_guest" || model === "per_guest_per_night"
+      ? guests
+      : model === "per_couple"
+        ? Math.ceil(guests / 2)
+        : 1;
+  return unitPrice * quantity * guestFactor;
+}
+
+/**
+ * The quantity an add-on starts at when selected. Per-night add-ons default to
+ * the whole stay (every night); everything else defaults to the host minimum.
+ */
+export function defaultAddonQuantity(
+  model: PricingModel,
+  minQuantity: number,
+  nights: number,
+): number {
+  const min = Math.max(minQuantity, 1);
+  if (isPerNightModel(model)) return Math.max(min, nights || 1);
+  return min;
+}
+
+/**
+ * Constrain a desired quantity to what the add-on + stay actually allow.
+ * Fixed (allowCustom = false) add-ons are pinned to the default. Otherwise the
+ * quantity is floored at the host minimum and capped by the stay length (for
+ * per-night add-ons), the host maximum, and remaining stock.
+ */
+export function clampAddonQuantity(
+  model: PricingModel,
+  desired: number,
+  opts: {
+    minQuantity: number;
+    maxQuantity?: number | null;
+    nights: number;
+    stock?: number | null;
+    allowCustom: boolean;
+  },
+): number {
+  if (!opts.allowCustom) {
+    return defaultAddonQuantity(model, opts.minQuantity, opts.nights);
+  }
+  const min = Math.max(opts.minQuantity, 1);
+  let max = Infinity;
+  if (isPerNightModel(model)) max = Math.min(max, Math.max(opts.nights, 1));
+  if (opts.maxQuantity != null) max = Math.min(max, opts.maxQuantity);
+  if (opts.stock != null) max = Math.min(max, opts.stock);
+  // A min above the cap (e.g. min 3 but only 2 in stock) collapses to the cap.
+  const lo = Math.min(min, max);
+  return Math.max(lo, Math.min(desired, max));
 }
 
 export const addonInputSchema = z.object({
@@ -93,6 +139,8 @@ export const addonInputSchema = z.object({
   currency: z.string().trim().min(3).max(3).default("ZAR"),
   min_quantity: z.number().int().min(0).max(99).default(1),
   max_quantity: z.number().int().min(0).max(99).nullable().optional(),
+  allow_custom_quantity: z.boolean().default(true),
+  stock_quantity: z.number().int().min(0).max(99999).nullable().optional(),
   is_required: z.boolean().default(false),
   is_active: z.boolean().default(true),
   lead_time_days: z.number().int().min(0).max(365).default(0),

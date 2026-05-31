@@ -33,6 +33,8 @@ import {
   ADDON_CATEGORY_LABEL,
   PRICING_MODELS,
   PRICING_MODEL_META,
+  computeAddonSubtotal,
+  isPerNightModel,
   type AddonCategory,
   type PricingModel,
 } from "./schemas";
@@ -47,6 +49,8 @@ export type AddonEditModel = {
   currency: string;
   minQuantity: number;
   maxQuantity: number | null;
+  allowCustomQuantity: boolean;
+  stockQuantity: number | null;
   isRequired: boolean;
   isActive: boolean;
   leadTimeDays: number;
@@ -176,8 +180,17 @@ export function AddonEditor({
   const [unitPrice, setUnitPrice] = useState(
     addon.unitPrice ? String(addon.unitPrice) : "0",
   );
+  const [minQuantity, setMinQuantity] = useState(
+    String(Math.max(1, addon.minQuantity)),
+  );
   const [maxQuantity, setMaxQuantity] = useState(
     addon.maxQuantity == null ? "" : String(addon.maxQuantity),
+  );
+  const [allowCustomQuantity, setAllowCustomQuantity] = useState(
+    addon.allowCustomQuantity,
+  );
+  const [stockQuantity, setStockQuantity] = useState(
+    addon.stockQuantity == null ? "" : String(addon.stockQuantity),
   );
   const [leadTimeDays, setLeadTimeDays] = useState(addon.leadTimeDays);
   const [dailyCapacity, setDailyCapacity] = useState(
@@ -196,6 +209,22 @@ export function AddonEditor({
   const meta = PRICING_MODEL_META[pricingModel];
   const priceNum = Number(unitPrice);
   const safePrice = Number.isFinite(priceNum) ? priceNum : 0;
+
+  // Live price example for a representative 2-night, 2-guest booking.
+  const previewQty = isPerNightModel(pricingModel)
+    ? 2
+    : Math.max(1, Number(minQuantity) || 1);
+  const previewSubtotal = computeAddonSubtotal(
+    pricingModel,
+    safePrice,
+    previewQty,
+    2,
+  );
+  const pricePreview = `Example · ${zar(safePrice)} ${meta.suffix} → ${zar(
+    previewSubtotal,
+  )} on a 2-night, 2-guest booking${
+    isPerNightModel(pricingModel) ? " (both nights)" : ""
+  }.`;
 
   // ---- Ready-to-publish checklist ----
   const checklist = useMemo(() => {
@@ -228,8 +257,11 @@ export function AddonEditor({
         pricing_model: pricingModel,
         unit_price: parsedPrice,
         currency: addon.currency,
-        min_quantity: addon.minQuantity,
+        min_quantity: minQuantity.trim() === "" ? 1 : Number(minQuantity),
         max_quantity: maxQuantity.trim() === "" ? null : Number(maxQuantity),
+        allow_custom_quantity: allowCustomQuantity,
+        stock_quantity:
+          stockQuantity.trim() === "" ? null : Number(stockQuantity),
         is_required: isRequired,
         is_active: isActive,
         lead_time_days: leadTimeDays,
@@ -589,23 +621,99 @@ export function AddonEditor({
                   </div>
                   <div>
                     <label className="text-[12px] font-semibold text-brand-ink">
-                      Max quantity per stay
+                      Stock available
                     </label>
                     <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                      Blank or 0 = no limit.
+                      Blank = unlimited. Sells out at 0.
                     </p>
                     <input
                       type="number"
                       inputMode="numeric"
                       min={0}
-                      value={maxQuantity}
+                      value={stockQuantity}
                       onChange={(e) => {
-                        setMaxQuantity(e.target.value);
+                        setStockQuantity(e.target.value);
                         touch();
                       }}
-                      placeholder="No limit"
+                      placeholder="Unlimited"
                       className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                     />
+                  </div>
+                </div>
+
+                {/* Quantity rules */}
+                <div className="rounded-[10px] border border-brand-line p-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-[13px] font-medium text-brand-ink">
+                        Let guests choose the quantity
+                      </div>
+                      <div className="text-[11px] text-brand-mute">
+                        {allowCustomQuantity
+                          ? isPerNightModel(pricingModel)
+                            ? "Guests pick how many nights to include."
+                            : "Guests pick how many units to add."
+                          : "Fixed — applies to the whole stay."}
+                      </div>
+                    </div>
+                    <Toggle
+                      checked={allowCustomQuantity}
+                      onChange={() => {
+                        setAllowCustomQuantity((v) => !v);
+                        touch();
+                      }}
+                      label="Toggle custom quantity"
+                    />
+                  </div>
+
+                  {allowCustomQuantity ? (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="text-[12px] font-semibold text-brand-ink">
+                          Minimum quantity
+                        </label>
+                        <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                          Guests can&apos;t go below this.
+                        </p>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          value={minQuantity}
+                          onChange={(e) => {
+                            setMinQuantity(e.target.value);
+                            touch();
+                          }}
+                          placeholder="1"
+                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[12px] font-semibold text-brand-ink">
+                          Maximum quantity
+                        </label>
+                        <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                          Blank = no cap (or stock).
+                        </p>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          value={maxQuantity}
+                          onChange={(e) => {
+                            setMaxQuantity(e.target.value);
+                            touch();
+                          }}
+                          placeholder="No limit"
+                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Live price example */}
+                  <div className="mt-3 rounded-[8px] bg-brand-light/60 px-3 py-2 text-[11.5px] text-brand-mute">
+                    {pricePreview}
                   </div>
                 </div>
 
@@ -1006,8 +1114,15 @@ export function AddonEditor({
                 setCategory(addon.category);
                 setPricingModel(addon.pricingModel);
                 setUnitPrice(addon.unitPrice ? String(addon.unitPrice) : "0");
+                setMinQuantity(String(Math.max(1, addon.minQuantity)));
                 setMaxQuantity(
                   addon.maxQuantity == null ? "" : String(addon.maxQuantity),
+                );
+                setAllowCustomQuantity(addon.allowCustomQuantity);
+                setStockQuantity(
+                  addon.stockQuantity == null
+                    ? ""
+                    : String(addon.stockQuantity),
                 );
                 setLeadTimeDays(addon.leadTimeDays);
                 setDailyCapacity(

@@ -32,6 +32,14 @@ export const metadata: Metadata = {
   title: "Confirm and pay · Vilo",
 };
 
+// Guest-facing data (add-ons, rooms, pricing, availability) must always be read
+// fresh. Reading cookies makes this route dynamically *rendered*, but that alone
+// does NOT disable Next's per-fetch Data Cache — Supabase `.select()` GETs would
+// still be frozen, so newly created/activated add-ons intermittently fail to
+// appear. force-dynamic sets fetchCache: 'force-no-store' for the whole segment.
+// (Mirrors the sibling rooms/[roomId] and dashboard/addons/[id] pages.)
+export const dynamic = "force-dynamic";
+
 function isIso(d: string | undefined): d is string {
   return !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
 }
@@ -210,7 +218,7 @@ export default async function BookingPage({
   const { data: roomRows } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, base_price, cleaning_fee, max_guests, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
+      "id, name, base_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
     )
     .eq("listing_id", listing.id)
     .is("deleted_at", null)
@@ -274,6 +282,8 @@ export default async function BookingPage({
       photoUrl: photoByRoom.get(r.id) ?? null,
       features,
       maxGuests: r.max_guests,
+      minGuests: r.min_guests ?? 1,
+      minNights: r.min_nights ?? 1,
       cleaningFee: Number(r.cleaning_fee ?? 0),
       pricingMode: (r.pricing_mode ?? "per_room") as RoomPricingMode,
       basePrice: Number(r.base_price),
@@ -330,23 +340,15 @@ export default async function BookingPage({
     guestPhone = prof?.phone ?? "";
   }
 
-  // Eligible add-ons (listing-wide + any room-scoped on this listing).
+  // Eligible add-ons (listing-wide + any room-scoped on this listing). Lead-time
+  // eligibility is applied client-side against the live check-in date, so the
+  // list stays correct as the guest changes their dates.
   let availableAddons: AvailableAddon[] = [];
   if (datesOk) {
-    const leadDays = Math.max(
-      0,
-      Math.round(
-        (new Date(`${checkIn}T00:00:00Z`).getTime() -
-          new Date(
-            new Date().toISOString().slice(0, 10) + "T00:00:00Z",
-          ).getTime()) /
-          (1000 * 60 * 60 * 24),
-      ),
-    );
     const { data: addonJoinRows } = await supabase
       .from("listing_addons")
       .select(
-        "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, is_required, is_active, lead_time_days )",
+        "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )
       .eq("listing_id", listing.id);
 
@@ -364,6 +366,8 @@ export default async function BookingPage({
         currency: string;
         min_quantity: number;
         max_quantity: number | null;
+        allow_custom_quantity: boolean;
+        stock_quantity: number | null;
         is_required: boolean;
         is_active: boolean;
         lead_time_days: number;
@@ -375,7 +379,6 @@ export default async function BookingPage({
       const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
       if (!a) continue;
       if (!a.is_active) continue;
-      if (a.lead_time_days > leadDays) continue;
       // Room-scoped add-ons only apply if their room belongs to this listing.
       if (raw.room_id !== null && !roomIds.includes(raw.room_id)) continue;
       const effective =
@@ -397,7 +400,10 @@ export default async function BookingPage({
           currency: a.currency,
           minQuantity: a.min_quantity,
           maxQuantity: a.max_quantity,
+          allowCustomQuantity: a.allow_custom_quantity,
+          stockQuantity: a.stock_quantity,
           isRequired: a.is_required,
+          leadTimeDays: a.lead_time_days,
         });
       }
     }
@@ -448,7 +454,6 @@ export default async function BookingPage({
             bookingMode={listing.booking_mode}
             checkIn={checkIn}
             checkOut={checkOut}
-            nights={nights}
             minNights={listing.min_nights ?? 1}
             wholeGuests={guests}
             maxGuestsWhole={listing.max_guests ?? 50}

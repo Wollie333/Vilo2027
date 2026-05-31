@@ -41,6 +41,7 @@ export type Database = {
     Tables: {
       addons: {
         Row: {
+          allow_custom_quantity: boolean
           category: string | null
           created_at: string
           currency: string
@@ -57,11 +58,13 @@ export type Database = {
           name: string
           pricing_model: string
           sort_order: number
+          stock_quantity: number | null
           unit_price: number
           updated_at: string
           vat_included: boolean
         }
         Insert: {
+          allow_custom_quantity?: boolean
           category?: string | null
           created_at?: string
           currency?: string
@@ -78,11 +81,13 @@ export type Database = {
           name: string
           pricing_model: string
           sort_order?: number
+          stock_quantity?: number | null
           unit_price: number
           updated_at?: string
           vat_included?: boolean
         }
         Update: {
+          allow_custom_quantity?: boolean
           category?: string | null
           created_at?: string
           currency?: string
@@ -99,6 +104,7 @@ export type Database = {
           name?: string
           pricing_model?: string
           sort_order?: number
+          stock_quantity?: number | null
           unit_price?: number
           updated_at?: string
           vat_included?: boolean
@@ -2339,6 +2345,8 @@ export type Database = {
           is_active: boolean
           listing_id: string
           max_guests: number
+          min_guests: number
+          min_nights: number
           name: string
           pets_allowed: boolean
           price_per_person: number | null
@@ -2373,6 +2381,8 @@ export type Database = {
           is_active?: boolean
           listing_id: string
           max_guests?: number
+          min_guests?: number
+          min_nights?: number
           name: string
           pets_allowed?: boolean
           price_per_person?: number | null
@@ -2407,6 +2417,8 @@ export type Database = {
           is_active?: boolean
           listing_id?: string
           max_guests?: number
+          min_guests?: number
+          min_nights?: number
           name?: string
           pets_allowed?: boolean
           price_per_person?: number | null
@@ -4980,6 +4992,18 @@ export type Database = {
       }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       gen_url_token: { Args: never; Returns: string }
+      release_addon_stock: {
+        Args: { p_addon_id: string; p_qty: number }
+        Returns: undefined
+      }
+      release_booking_addon_stock: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      reserve_addon_stock: {
+        Args: { p_addon_id: string; p_qty: number }
+        Returns: boolean
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
