@@ -294,7 +294,7 @@ export function InboxView({
   const messageDays = useMemo(() => groupMessagesByDay(messages), [messages]);
 
   return (
-    <div className="flex min-w-0 flex-1 overflow-hidden bg-white">
+    <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
       {/* ── Folders rail (only xl+) ─────────────────────────── */}
       <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white xl:flex">
         <div className="px-4 pb-3 pt-5">
