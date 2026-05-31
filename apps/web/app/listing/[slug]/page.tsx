@@ -35,6 +35,7 @@ import { Breadcrumb } from "./Breadcrumb";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
+import { RatesSection, type SeasonRow } from "./RatesSection";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
@@ -65,6 +66,7 @@ type RawListing = {
   check_in_time: string | null;
   check_out_time: string | null;
   base_price: number | null;
+  weekend_price: number | null;
   cleaning_fee: number | null;
   currency: string;
   booking_mode: BookingMode;
@@ -128,7 +130,7 @@ async function loadListing(slug: string) {
         city, province, country, latitude, longitude,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
-        base_price, cleaning_fee, currency, booking_mode,
+        base_price, weekend_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct,
         avg_rating, total_reviews,
@@ -145,30 +147,40 @@ async function loadListing(slug: string) {
 
   if (!listing) return null;
 
-  const [{ data: photoRows }, { data: amenityRows }, { data: roomRows }] =
-    await Promise.all([
-      supabase
-        .from("listing_photos")
-        .select("id, url, sort_order, room_id")
-        .eq("listing_id", listing.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("listing_amenities")
-        .select("amenity_key")
-        .eq("listing_id", listing.id),
-      // Rooms are fetched for every mode now — they're descriptive on
-      // whole-place listings (bedroom layout, beds, flags) and bookable
-      // on per-room / flexible.
-      supabase
-        .from("listing_rooms")
-        .select(
-          "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
-        )
-        .eq("listing_id", listing.id)
-        .is("deleted_at", null)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }),
-    ]);
+  const [
+    { data: photoRows },
+    { data: amenityRows },
+    { data: roomRows },
+    { data: seasonRows },
+  ] = await Promise.all([
+    supabase
+      .from("listing_photos")
+      .select("id, url, sort_order, room_id")
+      .eq("listing_id", listing.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_amenities")
+      .select("amenity_key")
+      .eq("listing_id", listing.id),
+    // Rooms are fetched for every mode now — they're descriptive on
+    // whole-place listings (bedroom layout, beds, flags) and bookable
+    // on per-room / flexible.
+    supabase
+      .from("listing_rooms")
+      .select(
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
+      )
+      .eq("listing_id", listing.id)
+      .is("deleted_at", null)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_seasonal_pricing")
+      .select("id, label, start_date, end_date, price, room_id, priority")
+      .eq("listing_id", listing.id)
+      .eq("is_active", true)
+      .order("start_date", { ascending: true }),
+  ]);
 
   const galleryPhotos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
     id: r.id,
@@ -252,6 +264,7 @@ async function loadListing(slug: string) {
   const coercedListing = {
     ...listing,
     base_price: toNum(listing.base_price),
+    weekend_price: toNum(listing.weekend_price),
     cleaning_fee: toNum(listing.cleaning_fee),
     avg_rating: toNum(listing.avg_rating),
     total_reviews: toNum(listing.total_reviews),
@@ -262,7 +275,33 @@ async function loadListing(slug: string) {
     monthly_discount_pct: toNum(listing.monthly_discount_pct),
   };
 
-  return { listing: coercedListing, photos: galleryPhotos, amenities, rooms };
+  const seasons: SeasonRow[] = (
+    (seasonRows ?? []) as Array<{
+      id: string;
+      label: string;
+      start_date: string;
+      end_date: string;
+      price: number | string;
+      room_id: string | null;
+      priority: number;
+    }>
+  ).map((r) => ({
+    id: r.id,
+    label: r.label,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    price: Number(r.price),
+    roomId: r.room_id,
+    priority: r.priority,
+  }));
+
+  return {
+    listing: coercedListing,
+    photos: galleryPhotos,
+    amenities,
+    rooms,
+    seasons,
+  };
 }
 
 export async function generateMetadata({
@@ -291,9 +330,22 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const { listing, photos, amenities, rooms } = data;
+  const { listing, photos, amenities, rooms, seasons } = data;
 
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
+
+  const ratesNode =
+    rooms.length > 0 || seasons.length > 0 ? (
+      <RatesSection
+        rooms={rooms}
+        seasons={seasons}
+        basePrice={listing.base_price}
+        weekendPrice={listing.weekend_price}
+        cleaningFee={listing.cleaning_fee}
+        currency={listing.currency}
+        weeklyDiscountPct={listing.weekly_discount_pct}
+      />
+    ) : null;
 
   return (
     <div className="bg-white text-brand-ink">
@@ -328,6 +380,7 @@ export default async function ListingDetailPage({
                   discountPct={listing.whole_listing_discount_pct}
                 />
               }
+              ratesNode={ratesNode}
               sidebarNode={
                 <RoomsCartSidebar
                   slug={listing.slug ?? params.slug}
@@ -354,6 +407,7 @@ export default async function ListingDetailPage({
             roomsNode={
               rooms.length > 0 ? <RoomsInfoGrid rooms={rooms} /> : null
             }
+            ratesNode={ratesNode}
             sidebarNode={
               <BookingWidget
                 slug={listing.slug ?? params.slug}
@@ -504,6 +558,7 @@ function ListingBody({
   showRoomsGrid,
   roomsNode,
   roomsHeaderAction,
+  ratesNode,
   sidebarNode,
 }: {
   listing: RawListing;
@@ -511,6 +566,7 @@ function ListingBody({
   showRoomsGrid: boolean;
   roomsNode: React.ReactNode;
   roomsHeaderAction?: React.ReactNode;
+  ratesNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
   const hasReviews =
@@ -521,6 +577,7 @@ function ListingBody({
     { id: "sec-overview", label: "Overview" },
     { id: "sec-amenities", label: "Amenities" },
     ...(showRoomsGrid ? [{ id: "sec-rooms", label: "Rooms" }] : []),
+    ...(ratesNode ? [{ id: "sec-rates", label: "Rates" }] : []),
     ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
     { id: "sec-host", label: "Host" },
     { id: "sec-policies", label: "Things to know" },
@@ -692,6 +749,9 @@ function ListingBody({
               ) : null}
             </section>
           ) : null}
+
+          {/* RATES & SEASONAL PRICING */}
+          {ratesNode}
 
           {/* REVIEWS — summary card only (full reviews list not loaded here) */}
           {hasReviews ? (
