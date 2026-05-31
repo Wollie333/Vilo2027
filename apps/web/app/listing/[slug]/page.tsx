@@ -33,6 +33,7 @@ import { AmenitiesList } from "./AmenitiesList";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { BookingWidget } from "./BookingWidget";
 import { Breadcrumb } from "./Breadcrumb";
+import { LocationSection, type Poi } from "./LocationSection";
 import { RoomsCalendarSection } from "./RoomsCalendarSection";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
@@ -158,6 +159,7 @@ async function loadListing(slug: string) {
     { data: roomRows },
     { data: seasonRows },
     { data: blockedRows },
+    { data: poiRows },
   ] = await Promise.all([
     supabase
       .from("listing_photos")
@@ -194,6 +196,12 @@ async function loadListing(slug: string) {
       .eq("listing_id", listing.id)
       .is("room_id", null)
       .gte("date", todayStr),
+    supabase
+      .from("listing_points_of_interest")
+      .select("id, category, name, travel_time, sort_order")
+      .eq("listing_id", listing.id)
+      .order("category", { ascending: true })
+      .order("sort_order", { ascending: true }),
   ]);
 
   const galleryPhotos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
@@ -313,6 +321,20 @@ async function loadListing(slug: string) {
     (r) => r.date,
   );
 
+  const pois: Poi[] = (
+    (poiRows ?? []) as Array<{
+      id: string;
+      category: "eat" | "do" | "travel";
+      name: string;
+      travel_time: string | null;
+    }>
+  ).map((p) => ({
+    id: p.id,
+    category: p.category,
+    name: p.name,
+    travelTime: p.travel_time,
+  }));
+
   return {
     listing: coercedListing,
     photos: galleryPhotos,
@@ -320,6 +342,7 @@ async function loadListing(slug: string) {
     rooms,
     seasons,
     unavailableDates,
+    pois,
   };
 }
 
@@ -349,11 +372,24 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const { listing, photos, amenities, rooms, seasons, unavailableDates } = data;
+  const { listing, photos, amenities, rooms, seasons, unavailableDates, pois } =
+    data;
 
   const reviews = await loadListingReviews(listing.id);
   const reviewsNode =
     reviews.count > 0 ? <ReviewsSection data={reviews} /> : null;
+
+  const locationNode =
+    (listing.latitude != null && listing.longitude != null) ||
+    pois.length > 0 ? (
+      <LocationSection
+        lat={listing.latitude}
+        lng={listing.longitude}
+        city={listing.city}
+        province={listing.province}
+        pois={pois}
+      />
+    ) : null;
 
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
 
@@ -408,6 +444,7 @@ export default async function ListingDetailPage({
                 <RoomsCalendarSection unavailable={unavailableDates} />
               }
               reviewsNode={reviewsNode}
+              locationNode={locationNode}
               sidebarNode={
                 <RoomsCartSidebar
                   slug={listing.slug ?? params.slug}
@@ -458,6 +495,7 @@ export default async function ListingDetailPage({
               ) : null
             }
             reviewsNode={reviewsNode}
+            locationNode={locationNode}
             sidebarNode={
               <BookingWidget
                 slug={listing.slug ?? params.slug}
@@ -611,6 +649,7 @@ function ListingBody({
   ratesNode,
   calendarNode,
   reviewsNode,
+  locationNode,
   sidebarNode,
 }: {
   listing: RawListing;
@@ -621,6 +660,7 @@ function ListingBody({
   ratesNode?: React.ReactNode;
   calendarNode?: React.ReactNode;
   reviewsNode?: React.ReactNode;
+  locationNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
   const sectionLinks = [
@@ -630,6 +670,7 @@ function ListingBody({
     ...(ratesNode ? [{ id: "sec-rates", label: "Rates" }] : []),
     ...(calendarNode ? [{ id: "sec-calendar", label: "Calendar" }] : []),
     ...(reviewsNode ? [{ id: "sec-reviews", label: "Reviews" }] : []),
+    ...(locationNode ? [{ id: "sec-location", label: "Location" }] : []),
     { id: "sec-host", label: "Host" },
     { id: "sec-policies", label: "Things to know" },
   ];
@@ -809,6 +850,9 @@ function ListingBody({
 
           {/* REVIEWS — full section (distribution, categories, grid, votes) */}
           {reviewsNode}
+
+          {/* LOCATION — map + neighbourhood */}
+          {locationNode}
 
           {/* HOST */}
           <section id="sec-host" className="border-b border-brand-line py-7">
