@@ -121,7 +121,12 @@ export async function createAddonAction(
     .select("id")
     .single();
   if (error || !row) {
-    return { ok: false, error: "Could not create add-on. Try again." };
+    return {
+      ok: false,
+      error: error
+        ? `Could not create add-on: ${error.message}`
+        : "Could not create add-on. Try again.",
+    };
   }
 
   revalidatePath("/dashboard/addons");
@@ -189,7 +194,9 @@ export async function updateAddonAction(
     })
     .eq("id", addonId);
   if (error) {
-    return { ok: false, error: "Could not save add-on." };
+    // Surface the real cause so the host (and we) can see why a save fails —
+    // e.g. a missing column if a migration hasn't applied, or a CHECK breach.
+    return { ok: false, error: `Could not save add-on: ${error.message}` };
   }
 
   revalidatePath("/dashboard/addons");

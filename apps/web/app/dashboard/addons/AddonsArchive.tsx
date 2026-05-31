@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 
 import { createDraftAddonAction } from "./actions";
+import { AddonTemplatesModal } from "./AddonTemplatesModal";
 import {
   ADDON_CATEGORIES,
   ADDON_CATEGORY_LABEL,
@@ -60,6 +61,7 @@ export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
   const [category, setCategory] = useState<AddonCategory | "all">("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("name");
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // ---- stats ----
   const activeCount = useMemo(
@@ -201,6 +203,7 @@ export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
                 </button>
                 <button
                   type="button"
+                  onClick={() => setTemplatesOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
                 >
                   <LayoutTemplate className="h-4 w-4" />
@@ -294,6 +297,11 @@ export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
           )}
         </>
       )}
+
+      <AddonTemplatesModal
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+      />
     </div>
   );
 }
