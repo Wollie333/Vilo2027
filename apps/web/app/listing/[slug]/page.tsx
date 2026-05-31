@@ -38,6 +38,11 @@ import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
 import { nextSlots } from "./scheduleSlots";
 
+// Always read live listing/room/add-on data — never serve it from Next's Data
+// Cache, which would otherwise freeze Supabase `.select()` GETs and show stale
+// availability. (Mirrors the sibling rooms/[roomId] and /book pages.)
+export const dynamic = "force-dynamic";
+
 type ScheduleRecurringDay = {
   day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   times: string[];
@@ -1057,6 +1062,10 @@ function ExperienceBody({
                 </PolicyCard>
               ) : null}
             </div>
+
+            {/* Real assigned/default policies with read-the-full-text popups.
+                Renders nothing when none resolve, leaving the cards above. */}
+            <ListingPolicyBlock listingId={listing.id} className="mt-6" />
           </section>
         </div>
 

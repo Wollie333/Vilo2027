@@ -17,8 +17,52 @@ export type PolicyDialogData = {
   rules?: { days_before: number; refund_percent: number; label: string }[];
   checkInTime?: string | null;
   checkOutTime?: string | null;
+  checkInMethod?: "self" | "host" | "reception" | null;
+  petsAllowed?: boolean | null;
+  smokingAllowed?: boolean | null;
+  partiesAllowed?: boolean | null;
+  childrenWelcome?: boolean | null;
+  quietHoursStart?: string | null;
+  quietHoursEnd?: string | null;
   bodyHtml?: string | null;
 };
+
+const CHECK_IN_METHOD_LABEL: Record<
+  NonNullable<PolicyDialogData["checkInMethod"]>,
+  string
+> = {
+  self: "Self check-in (lockbox / smart lock)",
+  host: "Host greets you on arrival",
+  reception: "Reception check-in",
+};
+
+/** A yes/no house rule → a labelled chip. NULL/undefined = unspecified (hidden). */
+function ruleChips(data: PolicyDialogData) {
+  const out: { label: string; ok: boolean }[] = [];
+  if (data.petsAllowed != null)
+    out.push({
+      label: data.petsAllowed ? "Pets allowed" : "No pets",
+      ok: data.petsAllowed,
+    });
+  if (data.smokingAllowed != null)
+    out.push({
+      label: data.smokingAllowed ? "Smoking allowed" : "No smoking",
+      ok: data.smokingAllowed,
+    });
+  if (data.partiesAllowed != null)
+    out.push({
+      label: data.partiesAllowed ? "Parties allowed" : "No parties or events",
+      ok: data.partiesAllowed,
+    });
+  if (data.childrenWelcome != null)
+    out.push({
+      label: data.childrenWelcome
+        ? "Children welcome"
+        : "Not suitable for children",
+      ok: data.childrenWelcome,
+    });
+  return out;
+}
 
 // Replicates just enough typography for the sanitised policy body to read well
 // (Tailwind prose plugin isn't installed) — mirrors RichTextEditor's classes.
@@ -99,23 +143,55 @@ export function PolicyDialog({
           ) : null}
 
           {data.type === "check_in_out" ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-card border border-brand-line p-3">
-                <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                  Check-in
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-card border border-brand-line p-3">
+                  <div className="text-[11px] uppercase tracking-wider text-brand-mute">
+                    Check-in
+                  </div>
+                  <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
+                    {time(data.checkInTime)}
+                  </div>
                 </div>
-                <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
-                  {time(data.checkInTime)}
+                <div className="rounded-card border border-brand-line p-3">
+                  <div className="text-[11px] uppercase tracking-wider text-brand-mute">
+                    Check-out
+                  </div>
+                  <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
+                    {time(data.checkOutTime)}
+                  </div>
                 </div>
               </div>
-              <div className="rounded-card border border-brand-line p-3">
-                <div className="text-[11px] uppercase tracking-wider text-brand-mute">
-                  Check-out
+              {data.checkInMethod ? (
+                <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-3 py-1 text-xs font-medium text-brand-secondary">
+                  {CHECK_IN_METHOD_LABEL[data.checkInMethod]}
                 </div>
-                <div className="num mt-1 font-display text-lg font-bold text-brand-ink">
-                  {time(data.checkOutTime)}
-                </div>
-              </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {data.type === "house_rules" &&
+          (ruleChips(data).length > 0 ||
+            (data.quietHoursStart && data.quietHoursEnd)) ? (
+            <div className="flex flex-wrap gap-2">
+              {ruleChips(data).map((c) => (
+                <span
+                  key={c.label}
+                  className={`inline-flex items-center rounded-pill border px-2.5 py-1 text-xs font-medium ${
+                    c.ok
+                      ? "border-brand-line bg-brand-accent text-brand-secondary"
+                      : "border-brand-line bg-brand-light text-brand-mute"
+                  }`}
+                >
+                  {c.label}
+                </span>
+              ))}
+              {data.quietHoursStart && data.quietHoursEnd ? (
+                <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2.5 py-1 text-xs font-medium text-brand-mute">
+                  Quiet hours {time(data.quietHoursStart)}–
+                  {time(data.quietHoursEnd)}
+                </span>
+              ) : null}
             </div>
           ) : null}
 

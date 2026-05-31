@@ -21,14 +21,23 @@ type SummaryCancellation = {
 type SummaryContent = {
   name: string;
   summary: string | null;
-  check_in_time: string | null;
-  check_out_time: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  check_in_method?: "self" | "host" | "reception" | null;
+  pets_allowed?: boolean | null;
+  smoking_allowed?: boolean | null;
+  parties_allowed?: boolean | null;
+  children_welcome?: boolean | null;
+  quiet_hours_start?: string | null;
+  quiet_hours_end?: string | null;
   body_html: string | null;
 };
 type Summary = {
   cancellation?: SummaryCancellation;
   check_in_out?: SummaryContent;
   house_rules?: SummaryContent;
+  booking_terms?: SummaryContent;
+  privacy?: SummaryContent;
 };
 
 const ICON = {
@@ -41,8 +50,11 @@ const ICON = {
 
 /**
  * Guest-facing policy summary with a "Read full policy" popup, driven by the
- * listing's assigned (listing-wide) policies. Renders nothing when no policies
- * are assigned, so callers can keep their own legacy fallback alongside it.
+ * listing's effective policies. The RPC resolves each type to the explicit
+ * listing-wide assignment, else the host's active default (see migration
+ * 20260531000004), so real policies surface even without per-listing wiring.
+ * Renders nothing when no policies resolve, so callers can keep their own
+ * legacy fallback alongside it.
  */
 export async function ListingPolicyBlock({
   listingId,
@@ -75,6 +87,7 @@ export async function ListingPolicyBlock({
       summary: summary.check_in_out.summary,
       checkInTime: summary.check_in_out.check_in_time,
       checkOutTime: summary.check_in_out.check_out_time,
+      checkInMethod: summary.check_in_out.check_in_method,
       bodyHtml: summary.check_in_out.body_html,
     });
   }
@@ -83,7 +96,29 @@ export async function ListingPolicyBlock({
       type: "house_rules",
       name: summary.house_rules.name,
       summary: summary.house_rules.summary,
+      petsAllowed: summary.house_rules.pets_allowed,
+      smokingAllowed: summary.house_rules.smoking_allowed,
+      partiesAllowed: summary.house_rules.parties_allowed,
+      childrenWelcome: summary.house_rules.children_welcome,
+      quietHoursStart: summary.house_rules.quiet_hours_start,
+      quietHoursEnd: summary.house_rules.quiet_hours_end,
       bodyHtml: summary.house_rules.body_html,
+    });
+  }
+  if (summary.booking_terms) {
+    items.push({
+      type: "booking_terms",
+      name: summary.booking_terms.name,
+      summary: summary.booking_terms.summary,
+      bodyHtml: summary.booking_terms.body_html,
+    });
+  }
+  if (summary.privacy) {
+    items.push({
+      type: "privacy",
+      name: summary.privacy.name,
+      summary: summary.privacy.summary,
+      bodyHtml: summary.privacy.body_html,
     });
   }
 
