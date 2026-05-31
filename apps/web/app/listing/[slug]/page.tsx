@@ -30,8 +30,10 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";
+import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { BookingWidget } from "./BookingWidget";
 import { Breadcrumb } from "./Breadcrumb";
+import { RoomsCalendarSection } from "./RoomsCalendarSection";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
@@ -147,11 +149,13 @@ async function loadListing(slug: string) {
 
   if (!listing) return null;
 
+  const todayStr = new Date().toISOString().slice(0, 10);
   const [
     { data: photoRows },
     { data: amenityRows },
     { data: roomRows },
     { data: seasonRows },
+    { data: blockedRows },
   ] = await Promise.all([
     supabase
       .from("listing_photos")
@@ -180,6 +184,14 @@ async function loadListing(slug: string) {
       .eq("listing_id", listing.id)
       .eq("is_active", true)
       .order("start_date", { ascending: true }),
+    // Whole-listing blocks (room_id NULL) from today on — drives the
+    // availability calendar's unavailable days.
+    supabase
+      .from("blocked_dates")
+      .select("date")
+      .eq("listing_id", listing.id)
+      .is("room_id", null)
+      .gte("date", todayStr),
   ]);
 
   const galleryPhotos: GalleryPhoto[] = (photoRows ?? []).map((r) => ({
@@ -295,12 +307,17 @@ async function loadListing(slug: string) {
     priority: r.priority,
   }));
 
+  const unavailableDates = ((blockedRows ?? []) as Array<{ date: string }>).map(
+    (r) => r.date,
+  );
+
   return {
     listing: coercedListing,
     photos: galleryPhotos,
     amenities,
     rooms,
     seasons,
+    unavailableDates,
   };
 }
 
@@ -330,7 +347,7 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const { listing, photos, amenities, rooms, seasons } = data;
+  const { listing, photos, amenities, rooms, seasons, unavailableDates } = data;
 
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
 
@@ -381,6 +398,9 @@ export default async function ListingDetailPage({
                 />
               }
               ratesNode={ratesNode}
+              calendarNode={
+                <RoomsCalendarSection unavailable={unavailableDates} />
+              }
               sidebarNode={
                 <RoomsCartSidebar
                   slug={listing.slug ?? params.slug}
@@ -408,6 +428,28 @@ export default async function ListingDetailPage({
               rooms.length > 0 ? <RoomsInfoGrid rooms={rooms} /> : null
             }
             ratesNode={ratesNode}
+            calendarNode={
+              unavailableDates.length > 0 ? (
+                <section
+                  id="sec-calendar"
+                  className="border-b border-brand-line py-7"
+                >
+                  <h3 className="font-display text-xl font-bold text-brand-ink">
+                    Availability
+                  </h3>
+                  <p className="mt-1 text-sm text-brand-mute">
+                    Dates the host has blocked or that are already booked.
+                  </p>
+                  <div className="mt-5">
+                    <AvailabilityCalendar
+                      unavailable={unavailableDates}
+                      from=""
+                      to=""
+                    />
+                  </div>
+                </section>
+              ) : null
+            }
             sidebarNode={
               <BookingWidget
                 slug={listing.slug ?? params.slug}
@@ -559,6 +601,7 @@ function ListingBody({
   roomsNode,
   roomsHeaderAction,
   ratesNode,
+  calendarNode,
   sidebarNode,
 }: {
   listing: RawListing;
@@ -567,6 +610,7 @@ function ListingBody({
   roomsNode: React.ReactNode;
   roomsHeaderAction?: React.ReactNode;
   ratesNode?: React.ReactNode;
+  calendarNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
   const hasReviews =
@@ -578,6 +622,7 @@ function ListingBody({
     { id: "sec-amenities", label: "Amenities" },
     ...(showRoomsGrid ? [{ id: "sec-rooms", label: "Rooms" }] : []),
     ...(ratesNode ? [{ id: "sec-rates", label: "Rates" }] : []),
+    ...(calendarNode ? [{ id: "sec-calendar", label: "Calendar" }] : []),
     ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
     { id: "sec-host", label: "Host" },
     { id: "sec-policies", label: "Things to know" },
@@ -752,6 +797,9 @@ function ListingBody({
 
           {/* RATES & SEASONAL PRICING */}
           {ratesNode}
+
+          {/* AVAILABILITY CALENDAR */}
+          {calendarNode}
 
           {/* REVIEWS — summary card only (full reviews list not loaded here) */}
           {hasReviews ? (
