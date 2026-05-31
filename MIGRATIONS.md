@@ -4,6 +4,27 @@
 
 ---
 
+## ✅ Standing rule (2026-05-31): no Docker — apply migrations directly to Supabase
+
+**Docker / the local Supabase stack are removed from this project's workflow.**
+Do **not** run `supabase start`, `supabase status`, or `supabase db reset`
+(those need Docker). Apply every migration straight to the **linked** cloud
+project instead:
+
+```bash
+supabase db push --linked            # applies all pending migrations, in order
+supabase migration list --linked     # verify → "Remote database is up to date."
+supabase gen types typescript --linked > packages/types/database.types.ts
+```
+
+The repo is already linked (`supabase/.temp/project-ref` → `zlcivjgvtyeaszikqleu`).
+`supabase db push --linked` is non-destructive: it runs only the timestamped
+files not yet recorded in the remote `supabase_migrations.schema_migrations`
+table, in filename order. You'll be prompted for the DB password (paste it; or
+pass `--password "<pw>"` to run non-interactively).
+
+---
+
 ## ⚠️ Current status (2026-05-31): CI auto-apply is OFF
 
 The GitHub Actions **`db-migrate`** job fails on every push that touches

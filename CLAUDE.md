@@ -151,16 +151,16 @@ vilo/
 
 ## Claude Code Workflow (Terminal)
 
+> **No Docker.** The local Supabase stack is removed. Do NOT run
+> `supabase start` / `supabase status` / `supabase db reset`. Apply migrations
+> directly to the linked cloud project with `supabase db push --linked`
+> (see `MIGRATIONS.md`). Regenerate types with `supabase gen types typescript
+> --linked > packages/types/database.types.ts`.
+
 ### Starting a session
 ```bash
 # Always start from project root
 cd ~/your-project
-
-# Check Supabase is running
-supabase status
-
-# If not running
-supabase start
 
 # Read your task before doing anything else
 cat CURRENT_TASK.md
@@ -217,15 +217,12 @@ wip:       incomplete work being saved
 # Dev
 pnpm dev                        # start web app (from apps/web/)
 pnpm start                      # start mobile app (from apps/mobile/)
-supabase start                  # start local Supabase
-supabase stop                   # stop local Supabase
-supabase status                 # check what's running
 
-# Database
-supabase db push                # apply pending migrations
-supabase db reset               # wipe + re-apply all migrations + seed
+# Database — NO Docker. Apply straight to the linked cloud project.
+supabase db push --linked       # apply pending migrations (in order) to cloud
+supabase migration list --linked  # verify local + remote are in sync
 supabase migration new <name>   # create new migration file
-supabase gen types typescript --local > packages/types/database.types.ts
+supabase gen types typescript --linked > packages/types/database.types.ts
 
 # Edge Functions
 supabase functions serve                               # serve all functions locally
