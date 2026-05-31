@@ -24,7 +24,7 @@ export default function WelcomeHost({ firstName = "there" }: Props) {
       <Text>Here's what to do next:</Text>
       <ul style={{ paddingLeft: 20 }}>
         <li>Complete your host profile and add a cover photo.</li>
-        <li>Create your first listing (accommodation or experience).</li>
+        <li>Create your first accommodation listing.</li>
         <li>Connect Paystack or PayPal so guests can pay you directly.</li>
       </ul>
       <Button

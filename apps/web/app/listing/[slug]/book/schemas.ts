@@ -3,10 +3,8 @@ import { z } from "zod";
 export const createBookingSchema = z
   .object({
     listing_id: z.string().uuid(),
-    // Accommodation: "whole_listing" | "rooms". Experience: "experience".
-    scope: z
-      .enum(["whole_listing", "rooms", "experience"])
-      .default("whole_listing"),
+    // Accommodation: "whole_listing" | "rooms".
+    scope: z.enum(["whole_listing", "rooms"]).default("whole_listing"),
     room_ids: z.array(z.string().uuid()).optional(),
     // Per-room guest counts (rooms scope) — drives per-person / extra-guest
     // pricing and per-room capacity. Server re-validates against bed capacity.
@@ -18,7 +16,7 @@ export const createBookingSchema = z
         }),
       )
       .optional(),
-    // Accommodation path — required when scope ≠ "experience".
+    // Accommodation path — check-in / check-out dates.
     check_in: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-in date.")
@@ -26,11 +24,6 @@ export const createBookingSchema = z
     check_out: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-out date.")
-      .optional(),
-    // Experience path — required when scope = "experience".
-    session_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Invalid session date/time.")
       .optional(),
     guests: z.coerce.number().int().min(1).max(50),
     payment_method: z.enum(["paystack", "eft"]),
@@ -68,7 +61,6 @@ export const createBookingSchema = z
   .refine(
     (d) =>
       d.scope === "whole_listing" ||
-      d.scope === "experience" ||
       (Array.isArray(d.room_ids) && d.room_ids.length > 0),
     {
       message: "Select at least one room.",
@@ -76,13 +68,10 @@ export const createBookingSchema = z
     },
   )
   .refine(
-    (d) =>
-      d.scope === "experience"
-        ? typeof d.session_date === "string"
-        : typeof d.check_in === "string" && typeof d.check_out === "string",
+    (d) => typeof d.check_in === "string" && typeof d.check_out === "string",
     {
       message: "Missing dates for this booking.",
-      path: ["session_date"],
+      path: ["check_in"],
     },
   );
 

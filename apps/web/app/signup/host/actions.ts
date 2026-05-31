@@ -231,19 +231,15 @@ export async function finalizeOnboardingAction(
   }
 
   // 3. First DRAFT listing — full address collected, capacity/pricing/
-  //    duration/photos stay NULL until the host opens the listing editor.
+  //    photos stay NULL until the host opens the listing editor.
   //    If this fails we KEEP the host row (the user is still a host, they
   //    can create a listing from the dashboard) — avoids the stuck state
   //    where the cleanup deletes the host and leaves the user homeless.
-  const finalKind = d.listing_kind;
   const { error: listingErr } = await admin.from("listings").insert({
     host_id: host.id,
-    listing_type: finalKind,
+    listing_type: "accommodation",
     category_id: d.category_id ?? null,
-    accommodation_type:
-      finalKind === "accommodation" ? (d.accommodation_type ?? null) : null,
-    experience_type:
-      finalKind === "experience" ? (d.experience_type ?? null) : null,
+    accommodation_type: d.accommodation_type ?? null,
     name: d.listing_name,
     address_line1: d.address_line1,
     address_line2:

@@ -64,19 +64,17 @@ export default async function CategoryLandingPage({
   const descendantIds = await getDescendantIds(category.id);
   const supabase = createServerClient();
 
-  // Listings in this category OR any descendant. Fall back to the legacy text
-  // column for pre-migration listings (kind-appropriate column).
-  const legacyCol =
-    category.kind === "experience" ? "experience_type" : "accommodation_type";
+  // Listings in this category OR any descendant. Fall back to the legacy
+  // accommodation_type text column for pre-migration listings.
   const idList = `(${descendantIds.join(",")})`;
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, experience_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("is_published", true)
     .is("deleted_at", null)
-    .or(`category_id.in.${idList},${legacyCol}.eq.${category.slug}`)
+    .or(`category_id.in.${idList},accommodation_type.eq.${category.slug}`)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
@@ -121,7 +119,7 @@ export default async function CategoryLandingPage({
 
           <div className="relative px-7 py-10 sm:px-10 sm:py-12">
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-              {category.kind === "experience" ? "Experience" : "Accommodation"}
+              Accommodation
             </div>
             <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
               {category.label}
@@ -199,11 +197,8 @@ export default async function CategoryLandingPage({
                 }> | null) ?? [];
               let amount: number | null = null;
               let fromLabel = false;
-              let perLabel = "/ night";
-              if (l.listing_type === "experience") {
-                amount = l.base_price != null ? Number(l.base_price) : null;
-                perLabel = "per person";
-              } else if (l.booking_mode === "rooms_only") {
+              const perLabel = "/ night";
+              if (l.booking_mode === "rooms_only") {
                 const prices = rooms
                   .filter((r) => r.is_active !== false && r.deleted_at == null)
                   .map((r) => Number(r.base_price))

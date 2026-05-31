@@ -32,12 +32,10 @@ export type BookingRow = {
   guestAvatar: string | null;
   stayIndex: number; // 1-based: how many stays this guest has had
   listingName: string;
-  listingType: "accommodation" | "experience";
   listingThumb: string | null;
   checkIn: string | null;
   checkOut: string | null;
   nights: number | null;
-  sessionDate: string | null;
   guestsCount: number;
   totalAmount: number;
   currency: string;
@@ -210,7 +208,7 @@ function matchesTab(r: BookingRow, tab: TabKey, today: number): boolean {
         r.status === "checked_in"
       )
         return false;
-      const end = r.checkOut ?? r.sessionDate ?? r.checkIn;
+      const end = r.checkOut ?? r.checkIn;
       return end ? dts(end) >= today : true;
     }
   }
@@ -257,7 +255,7 @@ function exportCsv(rows: BookingRow[]) {
       r.reference,
       r.guestName,
       r.listingName,
-      r.checkIn ?? r.sessionDate ?? "",
+      r.checkIn ?? "",
       r.checkOut ?? "",
       r.nights ?? "",
       r.guestsCount,
@@ -393,10 +391,7 @@ export function BookingsBoard({
       Earlier: [],
     };
     for (const r of filtered) {
-      const anchorStr =
-        r.checkIn ??
-        (r.sessionDate ? r.sessionDate.slice(0, 10) : null) ??
-        r.createdAt.slice(0, 10);
+      const anchorStr = r.checkIn ?? r.createdAt.slice(0, 10);
       const anchor = dts(anchorStr);
       const inHouseNow =
         r.checkIn &&
@@ -411,8 +406,7 @@ export function BookingsBoard({
       else buckets.Earlier.push(r);
     }
     const sortAsc = (a: BookingRow, b: BookingRow) =>
-      dts(a.checkIn ?? a.sessionDate ?? a.createdAt) -
-      dts(b.checkIn ?? b.sessionDate ?? b.createdAt);
+      dts(a.checkIn ?? a.createdAt) - dts(b.checkIn ?? b.createdAt);
     buckets.Today.sort(sortAsc);
     buckets["This week"].sort(sortAsc);
     buckets.Later.sort(sortAsc);
@@ -971,20 +965,11 @@ function BookingRowItem({
   const ch = channelOf(row.origin);
   const isCancelled = CANCELLED.has(row.status);
   const inHouse = row.status === "checked_in";
-  const isExperience = row.listingType === "experience";
 
   // Dates cell
   let dateMain: React.ReactNode = "—";
   let dateSub = "";
-  if (isExperience && row.sessionDate) {
-    dateMain = new Date(row.sessionDate).toLocaleString("en-ZA", {
-      day: "2-digit",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    dateSub = "Experience session";
-  } else if (row.checkIn && row.checkOut) {
+  if (row.checkIn && row.checkOut) {
     const ci = dts(row.checkIn);
     const co = dts(row.checkOut);
     const arriving = ci === today;
@@ -1027,8 +1012,7 @@ function BookingRowItem({
   // "Booked X · Nd lead"
   const bookedStr = fmtDay(row.createdAt.slice(0, 10));
   let leadStr = "";
-  const startStr =
-    row.checkIn ?? (row.sessionDate ? row.sessionDate.slice(0, 10) : null);
+  const startStr = row.checkIn;
   if (startStr) {
     const lead = Math.round(
       (dts(startStr) - dts(row.createdAt.slice(0, 10))) / DAY,
@@ -1138,14 +1122,7 @@ function BookingRowItem({
       {/* Guests */}
       <div className="text-[12.5px]">
         <div className="num font-semibold text-brand-ink">
-          {row.guestsCount}{" "}
-          {isExperience
-            ? row.guestsCount === 1
-              ? "person"
-              : "people"
-            : row.guestsCount === 1
-              ? "guest"
-              : "guests"}
+          {row.guestsCount} {row.guestsCount === 1 ? "guest" : "guests"}
         </div>
       </div>
 

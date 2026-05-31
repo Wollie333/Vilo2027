@@ -51,9 +51,6 @@ export type ConfirmationData = {
     rating: number | null;
     reviews: number;
     coverImageUrl: string | null;
-    isExperience: boolean;
-    meetingPoint: string | null;
-    durationLabel: string | null;
   };
   host: {
     name: string;
@@ -65,7 +62,6 @@ export type ConfirmationData = {
     checkInLabel: string | null;
     checkOutLabel: string | null;
     nights: number | null;
-    sessionLabel: string | null;
     guests: number;
     adults: number;
     children: number;
@@ -399,7 +395,7 @@ function Hero({ data }: { data: ConfirmationData }) {
                     ? "Today"
                     : `${data.daysToGo} day${data.daysToGo === 1 ? "" : "s"}`}
                 </span>{" "}
-                to {data.listing.isExperience ? "your session" : "check-in"}
+                to check-in
               </div>
             ) : null}
           </div>
@@ -522,59 +518,43 @@ function StayCard({ data }: { data: ConfirmationData }) {
         ) : null}
       </div>
 
-      {data.listing.isExperience ? (
-        <div className="px-5 py-5">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-stretch">
+        <div className="p-5">
           <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-            Session
+            Check-in
           </div>
           <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-            {stay.sessionLabel ?? "—"}
+            {stay.checkInLabel ?? "—"}
           </div>
-          {listing.durationLabel ? (
+          {listing.checkInTime ? (
             <div className="mt-0.5 text-xs text-brand-mute">
-              {listing.durationLabel}
+              From {listing.checkInTime.slice(0, 5)}
             </div>
           ) : null}
         </div>
-      ) : (
-        <div className="grid grid-cols-[1fr_auto_1fr] items-stretch">
-          <div className="p-5">
-            <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-              Check-in
-            </div>
-            <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-              {stay.checkInLabel ?? "—"}
-            </div>
-            {listing.checkInTime ? (
-              <div className="mt-0.5 text-xs text-brand-mute">
-                From {listing.checkInTime.slice(0, 5)}
-              </div>
-            ) : null}
+        <div className="flex flex-col items-center justify-center border-x border-brand-line bg-brand-light/40 px-3">
+          <Moon className="h-4 w-4 text-brand-primary" />
+          <div className="mt-1 font-display text-sm font-bold text-brand-ink">
+            {stay.nights ?? "—"}
           </div>
-          <div className="flex flex-col items-center justify-center border-x border-brand-line bg-brand-light/40 px-3">
-            <Moon className="h-4 w-4 text-brand-primary" />
-            <div className="mt-1 font-display text-sm font-bold text-brand-ink">
-              {stay.nights ?? "—"}
-            </div>
-            <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-              night{stay.nights === 1 ? "" : "s"}
-            </div>
-          </div>
-          <div className="p-5 text-right">
-            <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-              Check-out
-            </div>
-            <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-              {stay.checkOutLabel ?? "—"}
-            </div>
-            {listing.checkOutTime ? (
-              <div className="mt-0.5 text-xs text-brand-mute">
-                Until {listing.checkOutTime.slice(0, 5)}
-              </div>
-            ) : null}
+          <div className="text-[10px] uppercase tracking-wider text-brand-mute">
+            night{stay.nights === 1 ? "" : "s"}
           </div>
         </div>
-      )}
+        <div className="p-5 text-right">
+          <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+            Check-out
+          </div>
+          <div className="mt-1 font-display text-lg font-bold text-brand-ink">
+            {stay.checkOutLabel ?? "—"}
+          </div>
+          {listing.checkOutTime ? (
+            <div className="mt-0.5 text-xs text-brand-mute">
+              Until {listing.checkOutTime.slice(0, 5)}
+            </div>
+          ) : null}
+        </div>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-brand-line bg-brand-light/30 px-5 py-3.5">
         <div className="inline-flex items-center gap-2 text-sm text-brand-ink">
@@ -778,12 +758,8 @@ function TimelineCard({ data }: { data: ConfirmationData }) {
     },
     {
       icon: KeyRound,
-      title: data.listing.isExperience
-        ? "Meeting details · before your session"
-        : "Check-in details · 24h before",
-      sub: data.listing.isExperience
-        ? "Where to meet and what to bring arrive ahead of time."
-        : "Address, access and parking info arrive the day before you travel.",
+      title: "Check-in details · 24h before",
+      sub: "Address, access and parking info arrive the day before you travel.",
       done: false,
     },
     {
@@ -881,7 +857,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
         ) : data.accommodationTotal != null ? (
           <div className="flex items-center justify-between text-brand-ink">
             <span className="truncate pr-3">
-              {data.listing.isExperience ? "Experience" : "Accommodation"}
+              Accommodation
               {data.stay.nights ? (
                 <span className="font-mono text-xs text-brand-mute">
                   {" "}
@@ -1009,18 +985,11 @@ function HostCard({ data }: { data: ConfirmationData }) {
 /* -------------------------------------------------------------------------- */
 function EssentialsCard({ data }: { data: ConfirmationData }) {
   const { listing } = data;
-  const addressRow = listing.isExperience
-    ? listing.meetingPoint
-    : data.isConfirmed
-      ? listing.address
-      : null;
-  const hasArrival =
-    !listing.isExperience && (listing.checkInTime || listing.checkOutTime);
-  if (!addressRow && !hasArrival && !listing.durationLabel) return null;
+  const addressRow = data.isConfirmed ? listing.address : null;
+  const hasArrival = listing.checkInTime || listing.checkOutTime;
+  if (!addressRow && !hasArrival) return null;
   return (
-    <SectionCard
-      title={listing.isExperience ? "Before you go" : "Check-in essentials"}
-    >
+    <SectionCard title="Check-in essentials">
       <div className="divide-y divide-brand-line">
         {addressRow ? (
           <div className="flex items-start justify-between gap-3 px-5 py-3.5">
@@ -1028,7 +997,7 @@ function EssentialsCard({ data }: { data: ConfirmationData }) {
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
               <div className="min-w-0">
                 <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                  {listing.isExperience ? "Meeting point" : "Address"}
+                  Address
                 </div>
                 <div className="mt-0.5 whitespace-pre-line text-sm text-brand-ink">
                   {addressRow}
@@ -1062,19 +1031,6 @@ function EssentialsCard({ data }: { data: ConfirmationData }) {
                 {listing.checkOutTime
                   ? `check-out by ${listing.checkOutTime.slice(0, 5)}`
                   : ""}
-              </div>
-            </div>
-          </div>
-        ) : null}
-        {listing.isExperience && listing.durationLabel ? (
-          <div className="flex items-start gap-3 px-5 py-3.5">
-            <Clock className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-            <div>
-              <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                Duration
-              </div>
-              <div className="mt-0.5 text-sm text-brand-ink">
-                {listing.durationLabel}
               </div>
             </div>
           </div>

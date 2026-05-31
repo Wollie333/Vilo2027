@@ -91,7 +91,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, listing:listings!inner ( id, host_id, name, slug, city, province, listing_type, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews, meeting_point, duration_minutes )",
+      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, listing:listings!inner ( id, host_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -156,7 +156,6 @@ export default async function BookingSuccessPage({
     slug: string | null;
     city: string | null;
     province: string | null;
-    listing_type: "accommodation" | "experience";
     accommodation_type: string | null;
     address_line1: string | null;
     address_line2: string | null;
@@ -165,10 +164,7 @@ export default async function BookingSuccessPage({
     check_out_time: string | null;
     avg_rating: number | null;
     total_reviews: number | null;
-    meeting_point: string | null;
-    duration_minutes: number | null;
   };
-  const isExperience = listing.listing_type === "experience";
 
   // ── Parallel fetch: host, guest profile, room lines, add-on lines, cover ──
   const admin = createAdminClient();
@@ -303,14 +299,7 @@ export default async function BookingSuccessPage({
     const calLoc = encodeURIComponent(
       address ?? [listing.city, listing.province].filter(Boolean).join(", "),
     );
-    if (isExperience && booking.session_date) {
-      const start = new Date(booking.session_date);
-      const durMin = listing.duration_minutes ?? 60;
-      const end = new Date(start.getTime() + durMin * 60_000);
-      const stamp = (d: Date) =>
-        `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}${String(d.getUTCDate()).padStart(2, "0")}T${String(d.getUTCHours()).padStart(2, "0")}${String(d.getUTCMinutes()).padStart(2, "0")}00Z`;
-      calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&details=${calDetails}&location=${calLoc}&dates=${stamp(start)}/${stamp(end)}`;
-    } else if (booking.check_in && booking.check_out) {
+    if (booking.check_in && booking.check_out) {
       // All-day event range (Google treats the end date as exclusive).
       calendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&details=${calDetails}&location=${calLoc}&dates=${compactDate(booking.check_in)}/${compactDate(booking.check_out)}`;
     }
@@ -318,17 +307,6 @@ export default async function BookingSuccessPage({
 
   const fullName = profile?.full_name?.trim() || "";
   const guestFirstName = fullName ? fullName.split(/\s+/)[0] : "there";
-
-  const sessionLabel = booking.session_date
-    ? new Date(booking.session_date).toLocaleString("en-ZA", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : null;
 
   const hostSince = hostRow?.created_at
     ? new Date(hostRow.created_at).toLocaleDateString("en-ZA", {
@@ -391,9 +369,8 @@ export default async function BookingSuccessPage({
     listing: {
       name: listing.name,
       slug: listing.slug,
-      typeLabel: isExperience
-        ? "Experience"
-        : (ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay"),
+      typeLabel:
+        ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay",
       city: listing.city,
       province: listing.province,
       address: isConfirmed ? address : null,
@@ -402,12 +379,6 @@ export default async function BookingSuccessPage({
       rating: listing.avg_rating == null ? null : Number(listing.avg_rating),
       reviews: listing.total_reviews ?? 0,
       coverImageUrl,
-      isExperience,
-      meetingPoint: isConfirmed ? listing.meeting_point : null,
-      durationLabel:
-        listing.duration_minutes != null
-          ? formatDuration(listing.duration_minutes)
-          : null,
     },
     host: hostRow
       ? {
@@ -421,7 +392,6 @@ export default async function BookingSuccessPage({
       checkInLabel: fmtDate(booking.check_in),
       checkOutLabel: fmtDate(booking.check_out),
       nights,
-      sessionLabel,
       guests: booking.guests_count,
       adults: booking.guests_count,
       children: 0,
@@ -437,11 +407,7 @@ export default async function BookingSuccessPage({
         booking.payment_method.toUpperCase())
       : null,
     specialRequests: booking.special_requests,
-    daysToGo: daysFromToday(
-      isExperience
-        ? (booking.session_date?.slice(0, 10) ?? null)
-        : booking.check_in,
-    ),
+    daysToGo: daysFromToday(booking.check_in),
     cancellationDeadlineLabel: null,
     calendarUrl,
     directionsUrl,
@@ -449,19 +415,10 @@ export default async function BookingSuccessPage({
   };
 
   return (
-    <div className="bg-brand-light text-brand-ink">
+    <div className="bg-[#F4F6F4] text-brand-ink">
       <SiteHeader />
       <BookingConfirmation data={data} />
       <SiteFooter />
     </div>
   );
-}
-
-function formatDuration(minutes: number): string {
-  const m = Math.trunc(minutes);
-  if (m < 60) return `${m} min`;
-  const hours = Math.floor(m / 60);
-  const rem = m % 60;
-  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${rem}min`;
 }

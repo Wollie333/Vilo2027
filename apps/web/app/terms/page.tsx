@@ -16,7 +16,7 @@ const LAST_UPDATED = "2026-05-23";
 const SECTIONS: ReadonlyArray<LegalSectionData> = [
   {
     heading: "1. Introduction",
-    body: "These Terms of Service (“Terms”) govern your access to and use of the Vilo platform, operated by Vilo Platform (Pty) Ltd. By creating an account, listing a property or experience, or making a booking, you agree to these Terms.",
+    body: "These Terms of Service (“Terms”) govern your access to and use of the Vilo platform, operated by Vilo Platform (Pty) Ltd. By creating an account, listing a property, or making a booking, you agree to these Terms.",
   },
   {
     heading: "2. Acceptance and changes",
@@ -28,7 +28,7 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
   {
     heading: "4. Host obligations",
-    body: "Hosts are responsible for the accuracy of their listings (photos, descriptions, pricing, availability, policies), for complying with local laws and tax obligations, for honouring confirmed bookings, and for the safety and condition of the property or experience offered.",
+    body: "Hosts are responsible for the accuracy of their listings (photos, descriptions, pricing, availability, policies), for complying with local laws and tax obligations, for honouring confirmed bookings, and for the safety and condition of the property offered.",
   },
   {
     heading: "5. Guest obligations",

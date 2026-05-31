@@ -38,28 +38,17 @@ export function NewListingForm({
       listing_type: "accommodation",
       category_id: undefined,
       accommodation_type: undefined,
-      experience_type: undefined,
     },
   });
 
-  const listingType = form.watch("listing_type");
   const selectedCategoryId = form.watch("category_id") ?? null;
-
-  const leavesForKind = categoryLeaves.filter((l) => l.kind === listingType);
 
   function onSubmit(values: NewListingInput) {
     const leaf = categoryLeaves.find((l) => l.id === values.category_id);
     start(async () => {
       const result = await createListingAction({
         ...values,
-        accommodation_type:
-          values.listing_type === "accommodation"
-            ? (leaf?.slug ?? undefined)
-            : undefined,
-        experience_type:
-          values.listing_type === "experience"
-            ? (leaf?.slug ?? undefined)
-            : undefined,
+        accommodation_type: leaf?.slug ?? undefined,
       });
       if (result && !result.ok) {
         toast.error(result.error);
@@ -102,53 +91,12 @@ export function NewListingForm({
 
             <FormField
               control={form.control}
-              name="listing_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>What is it?</FormLabel>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {(["accommodation", "experience"] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          field.onChange(t);
-                          // Different kind = different leaves. Reset.
-                          form.setValue("category_id", undefined as never);
-                        }}
-                        disabled={pending}
-                        className={`rounded-card border p-4 text-left transition-colors ${
-                          field.value === t
-                            ? "border-brand-primary bg-brand-accent/50"
-                            : "border-brand-line bg-white hover:bg-brand-light/60"
-                        }`}
-                      >
-                        <div className="font-display text-base font-semibold capitalize text-brand-dark">
-                          {t === "accommodation"
-                            ? "A place to stay"
-                            : "An experience"}
-                        </div>
-                        <div className="mt-1 text-xs text-brand-mute">
-                          {t === "accommodation"
-                            ? "Cottage, B&B, lodge, self-catering."
-                            : "Tour, workshop, transfer, activity."}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="category_id"
               render={() => (
                 <FormItem>
                   <FormLabel>Category</FormLabel>
                   <CategoryPicker
-                    leaves={leavesForKind}
+                    leaves={categoryLeaves}
                     value={selectedCategoryId}
                     onChange={(leaf) => {
                       form.setValue("category_id", leaf.id, {

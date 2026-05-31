@@ -19,18 +19,17 @@ import { useTransition } from "react";
 
 type BasicsListing = {
   id: string;
-  listing_type: "accommodation" | "experience";
+  listing_type: "accommodation";
   name: string;
   category_id: string | null;
   accommodation_type: string | null;
-  experience_type: string | null;
   description: string;
 };
 
 // Single source of truth for a listing's basic info (name · category · about).
 // Rendered by the listing editor BasicTab AND the setup "Listing" card.
 // The category picker only shows when `categoryLeaves` is supplied — the setup
-// card omits it (kind/category is chosen at creation), the editor includes it.
+// card omits it (category is chosen at creation), the editor includes it.
 export function ListingBasicsForm({
   listing,
   categoryLeaves,
@@ -59,7 +58,6 @@ export function ListingBasicsForm({
       name: listing.name,
       category_id: listing.category_id || null,
       accommodation_type: listing.accommodation_type,
-      experience_type: listing.experience_type,
       description: listing.description ?? "",
     },
   });
@@ -82,18 +80,7 @@ export function ListingBasicsForm({
         category_id: values.category_id || null,
         // Mirror the chosen leaf slug into the legacy text column so older read
         // paths keep working. Only touched when a category picker is shown.
-        ...(categoryLeaves
-          ? {
-              accommodation_type:
-                listing.listing_type === "accommodation"
-                  ? (leaf?.slug ?? null)
-                  : null,
-              experience_type:
-                listing.listing_type === "experience"
-                  ? (leaf?.slug ?? null)
-                  : null,
-            }
-          : {}),
+        ...(categoryLeaves ? { accommodation_type: leaf?.slug ?? null } : {}),
         description:
           values.description && values.description.length > 0
             ? values.description
@@ -127,14 +114,7 @@ export function ListingBasicsForm({
       </Field>
 
       {categoryLeaves ? (
-        <Field
-          label={
-            listing.listing_type === "accommodation"
-              ? "Accommodation type"
-              : "Experience type"
-          }
-          error={errors.category_id?.message}
-        >
+        <Field label="Accommodation type" error={errors.category_id?.message}>
           <CategoryPicker
             leaves={categoryLeaves}
             value={categoryId}

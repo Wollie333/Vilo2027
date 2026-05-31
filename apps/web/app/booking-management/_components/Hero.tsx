@@ -103,9 +103,9 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-brand-mute">
-            Vilo gives accommodation hosts and experience operators a branded
-            booking page, a single inbox, and a calendar that syncs with the
-            OTAs — for one flat monthly fee.{" "}
+            Vilo gives accommodation hosts a branded booking page, a single
+            inbox, and a calendar that syncs with the OTAs — for one flat
+            monthly fee.{" "}
             <span className="font-medium text-brand-dark">
               Zero booking commissions. Ever.
             </span>

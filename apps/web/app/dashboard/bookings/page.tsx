@@ -37,7 +37,6 @@ function dts(s: string): number {
 type RawListing = {
   id: string;
   name: string;
-  listing_type: "accommodation" | "experience";
   listing_photos: { url: string; sort_order: number }[] | null;
 };
 type RawGuest = {
@@ -58,7 +57,6 @@ type RawBooking = {
   check_in: string | null;
   check_out: string | null;
   nights: number | null;
-  session_date: string | null;
   guests_count: number;
   total_amount: number;
   currency: string;
@@ -96,7 +94,7 @@ export default async function BookingsListPage() {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, origin, guest_id, guest_name, guest_email, check_in, check_out, nights, session_date, guests_count, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_type, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url )",
+      "id, reference, status, payment_status, scope, origin, guest_id, guest_name, guest_email, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url )",
     )
     .order("created_at", { ascending: false })
     .limit(400);
@@ -137,12 +135,10 @@ export default async function BookingsListPage() {
       guestAvatar: b.guest?.avatar_url ?? null,
       stayIndex: stayIndex.get(b.id) ?? 1,
       listingName: b.listing.name,
-      listingType: b.listing.listing_type,
       listingThumb: thumb,
       checkIn: b.check_in,
       checkOut: b.check_out,
       nights: b.nights,
-      sessionDate: b.session_date,
       guestsCount: b.guests_count,
       totalAmount: Number(b.total_amount),
       currency: b.currency,
@@ -179,8 +175,7 @@ function computeKpis(rows: BookingRow[], listingCount: number): Kpis {
 
   // The date a booking "belongs to" for revenue/volume.
   const anchorOf = (r: BookingRow): string =>
-    r.checkIn ??
-    (r.sessionDate ? r.sessionDate.slice(0, 10) : r.createdAt.slice(0, 10));
+    r.checkIn ?? r.createdAt.slice(0, 10);
 
   // ── Revenue ──
   const revSpark = new Array(d).fill(0) as number[];
@@ -242,7 +237,7 @@ function computeKpis(rows: BookingRow[], listingCount: number): Kpis {
   let bookedNights = 0;
   let prevNights = 0;
   for (const r of rows) {
-    if (r.listingType !== "accommodation" || CANCELLED.has(r.status)) continue;
+    if (CANCELLED.has(r.status)) continue;
     if (!r.checkIn || !r.checkOut) continue;
     bookedNights += overlapNights(r.checkIn, r.checkOut, winStart, winEnd);
     prevNights += overlapNights(r.checkIn, r.checkOut, prevStart, winStart);
@@ -269,7 +264,7 @@ function computeKpis(rows: BookingRow[], listingCount: number): Kpis {
     { amount: number; nights: number; count: number }
   >();
   for (const r of rows) {
-    if (r.listingType !== "accommodation" || CANCELLED.has(r.status)) continue;
+    if (CANCELLED.has(r.status)) continue;
     const n = r.nights ?? 0;
     if (n <= 0) continue;
     adrAmount += r.totalAmount;

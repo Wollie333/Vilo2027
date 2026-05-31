@@ -3,7 +3,6 @@
 import {
   AlertTriangle,
   CalendarClock,
-  CalendarDays,
   Camera,
   ExternalLink,
   Home,
@@ -15,7 +14,6 @@ import {
   Play,
   Receipt,
   Settings as SettingsIcon,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -35,7 +33,6 @@ import { AmenitiesTab } from "./tabs/AmenitiesTab";
 import { BasicTab } from "./tabs/BasicTab";
 import { DangerTab } from "./tabs/DangerTab";
 import { LocationTab } from "./tabs/LocationTab";
-import { LogisticsTab } from "./tabs/LogisticsTab";
 import { PhotosTab } from "./tabs/PhotosTab";
 import {
   PoliciesTab,
@@ -44,24 +41,13 @@ import {
 } from "./tabs/PoliciesTab";
 import { PricingTab } from "./tabs/PricingTab";
 import { RoomsTab } from "./tabs/RoomsTab";
-import { ScheduleTab } from "./tabs/ScheduleTab";
 import { SettingsTab } from "./tabs/SettingsTab";
-
-export type ScheduleRecurringDay = {
-  day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-  times: string[];
-};
-export type ScheduleSpecificEntry = { date: string; time: string };
-export type ListingSchedule =
-  | { kind: "recurring"; days: ScheduleRecurringDay[] }
-  | { kind: "specific"; dates: ScheduleSpecificEntry[] };
 
 export type EditorListing = {
   id: string;
   host_id: string;
-  listing_type: "accommodation" | "experience";
+  listing_type: "accommodation";
   accommodation_type: string | null;
-  experience_type: string | null;
   category_id: string | null;
   name: string;
   slug: string | null;
@@ -89,14 +75,6 @@ export type EditorListing = {
   instant_booking: boolean;
   is_published: boolean;
   booking_mode: "whole_listing" | "rooms_only" | "flexible";
-  // Experience-only fields (null for accommodation listings)
-  duration_minutes: number | null;
-  max_participants: number | null;
-  min_participants: number | null;
-  meeting_point: string | null;
-  what_to_bring: string | null;
-  private_group_price: number | null;
-  schedule: ListingSchedule | null;
 };
 
 export type EditorPhoto = {
@@ -163,8 +141,6 @@ type TabKey =
   | "rooms"
   | "amenities"
   | "addons"
-  | "logistics"
-  | "schedule"
   | "pricing"
   | "policies"
   | "settings"
@@ -179,18 +155,6 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "rooms", label: "Rooms & capacity", icon: Camera },
   { key: "amenities", label: "Amenities", icon: ListChecks },
   { key: "addons", label: "Add-ons", icon: PackagePlus },
-  { key: "pricing", label: "Pricing", icon: Receipt },
-  { key: "policies", label: "Policies", icon: CalendarClock },
-  { key: "settings", label: "Booking settings", icon: SettingsIcon },
-  { key: "danger", label: "Danger zone", icon: AlertTriangle },
-];
-
-const EXPERIENCE_TABS: TabDef[] = [
-  { key: "basic", label: "Basic info", icon: Home },
-  { key: "photos", label: "Photos", icon: ImageIcon },
-  { key: "location", label: "Location", icon: MapPin },
-  { key: "logistics", label: "Logistics", icon: Users },
-  { key: "schedule", label: "Schedule", icon: CalendarDays },
   { key: "pricing", label: "Pricing", icon: Receipt },
   { key: "policies", label: "Policies", icon: CalendarClock },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
@@ -226,10 +190,7 @@ export function Editor({
   /** ?add=1 on the rooms tab — auto-open a fresh room form. */
   autoCreateRoom?: boolean;
 }) {
-  const TABS =
-    listing.listing_type === "experience"
-      ? EXPERIENCE_TABS
-      : ACCOMMODATION_TABS;
+  const TABS = ACCOMMODATION_TABS;
   const [active, setActive] = useState<TabKey>(() =>
     TABS.some((t) => t.key === initialTab) ? (initialTab as TabKey) : "basic",
   );
@@ -252,16 +213,10 @@ export function Editor({
     });
   }
 
-  const typeLabel =
-    listing.listing_type === "accommodation"
-      ? listing.accommodation_type
-        ? listing.accommodation_type.charAt(0).toUpperCase() +
-          listing.accommodation_type.slice(1)
-        : "Accommodation"
-      : listing.experience_type
-        ? listing.experience_type.charAt(0).toUpperCase() +
-          listing.experience_type.slice(1)
-        : "Experience";
+  const typeLabel = listing.accommodation_type
+    ? listing.accommodation_type.charAt(0).toUpperCase() +
+      listing.accommodation_type.slice(1)
+    : "Accommodation";
 
   const locationLabel = [listing.city, listing.province]
     .filter(Boolean)
@@ -598,13 +553,10 @@ export function Editor({
             initialAssigned={assignedAddons}
           />
         ) : null}
-        {active === "logistics" ? <LogisticsTab listing={listing} /> : null}
-        {active === "schedule" ? <ScheduleTab listing={listing} /> : null}
         {active === "pricing" ? <PricingTab listing={listing} /> : null}
         {active === "policies" ? (
           <PoliciesTab
             listingId={listing.id}
-            listingType={listing.listing_type}
             rooms={rooms}
             available={availablePolicies}
             assigned={assignedPolicies}

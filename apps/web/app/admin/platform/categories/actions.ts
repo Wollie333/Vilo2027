@@ -16,7 +16,8 @@ const faqSchema = z.array(
 const upsertSchema = z.object({
   id: z.string().uuid(),
   parentId: z.string().uuid().nullable(),
-  kind: z.enum(["accommodation", "experience"]),
+  // MVP: accommodation only — experiences/tour guides not built yet.
+  kind: z.literal("accommodation"),
   slug: z.string().min(2).max(80).optional(),
   label: z.string().trim().min(2).max(120),
   description: z.string().trim().max(500).optional().nullable(),
@@ -160,7 +161,7 @@ export const deleteCategoryAction = withAdminAudit<
 export async function saveCategory(input: {
   id?: string;
   parentId?: string | null;
-  kind: "accommodation" | "experience";
+  kind: "accommodation";
   slug?: string;
   label: string;
   description?: string | null;

@@ -6,13 +6,11 @@ export const newListingSchema = z.object({
     .trim()
     .min(3, "Listing name is too short.")
     .max(200, "Listing name is too long."),
-  listing_type: z.enum(["accommodation", "experience"], {
-    message: "Pick a type.",
-  }),
+  // MVP: accommodation only — experiences/tour guides ship later.
+  listing_type: z.literal("accommodation"),
   category_id: z.string().uuid({ message: "Pick a category." }),
-  // Legacy text columns — mirrored from the chosen leaf slug.
+  // Legacy text column — mirrored from the chosen leaf slug.
   accommodation_type: z.string().optional(),
-  experience_type: z.string().optional(),
 });
 
 export type NewListingInput = z.infer<typeof newListingSchema>;

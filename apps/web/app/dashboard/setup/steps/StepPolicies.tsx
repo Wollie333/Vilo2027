@@ -27,8 +27,6 @@ export function StepPolicies({
   onChanged,
   onContinue,
 }: Props) {
-  const isExperience = listing.listing_type === "experience";
-
   // A refund policy is the one thing we require before publishing.
   const canContinue = assignments.cancellation != null;
 
@@ -49,22 +47,20 @@ export function StepPolicies({
         />
       </PolicySection>
 
-      {/* Check-in / Check-out — accommodation only */}
-      {!isExperience ? (
-        <PolicySection
-          icon={<CalendarClock className="h-4 w-4" />}
-          title="Check-in & check-out"
-          blurb="The arrival and departure times guests follow."
-        >
-          <PolicyPicker
-            listingId={listing.id}
-            type="check_in_out"
-            policies={policies}
-            assignedPolicyId={assignments.check_in_out ?? null}
-            onChanged={onChanged}
-          />
-        </PolicySection>
-      ) : null}
+      {/* Check-in / Check-out */}
+      <PolicySection
+        icon={<CalendarClock className="h-4 w-4" />}
+        title="Check-in & check-out"
+        blurb="The arrival and departure times guests follow."
+      >
+        <PolicyPicker
+          listingId={listing.id}
+          type="check_in_out"
+          policies={policies}
+          assignedPolicyId={assignments.check_in_out ?? null}
+          onChanged={onChanged}
+        />
+      </PolicySection>
 
       {/* House rules */}
       <PolicySection

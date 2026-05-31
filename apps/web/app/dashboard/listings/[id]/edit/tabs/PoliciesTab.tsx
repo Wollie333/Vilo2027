@@ -34,24 +34,18 @@ const SECTION_BLURB: Partial<Record<PolicyType, string>> = {
 
 export function PoliciesTab({
   listingId,
-  listingType,
   rooms,
   available,
   assigned: initialAssigned,
 }: {
   listingId: string;
-  listingType: "accommodation" | "experience";
   rooms: EditorRoom[];
   available: AvailablePolicy[];
   assigned: AssignedPolicy[];
 }) {
   const [assigned, setAssigned] = useState<AssignedPolicy[]>(initialAssigned);
 
-  // Experiences have no check-in/out; everything else applies.
-  const types: PolicyType[] =
-    listingType === "experience"
-      ? ["cancellation", "house_rules"]
-      : ["cancellation", "check_in_out", "house_rules"];
+  const types: PolicyType[] = ["cancellation", "check_in_out", "house_rules"];
 
   const byType = useMemo(() => {
     const m = new Map<PolicyType, AvailablePolicy[]>();
@@ -145,7 +139,7 @@ export function PoliciesTab({
                     placeholder="None"
                   />
 
-                  {listingType === "accommodation" && rooms.length > 0 ? (
+                  {rooms.length > 0 ? (
                     <details className="rounded border border-brand-line bg-brand-light/30 px-3 py-2">
                       <summary className="cursor-pointer text-xs font-medium text-brand-mute">
                         Room overrides ({rooms.length})

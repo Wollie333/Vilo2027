@@ -14,14 +14,6 @@ export const ACCOMMODATION_TYPES = [
   { value: "villa", label: "Villa" },
 ] as const;
 
-export const EXPERIENCE_TYPES = [
-  { value: "tour", label: "Tour" },
-  { value: "activity", label: "Activity" },
-  { value: "workshop", label: "Class" },
-  { value: "transfer", label: "Transfer" },
-  { value: "other", label: "Other" },
-] as const;
-
 export const SA_REGIONS = [
   "Western Cape",
   "Eastern Cape",
@@ -104,7 +96,7 @@ export const PLANS = [
     monthly: 999,
     annual: 9990,
     tag: null,
-    blurb: "Teams, experiences, exports.",
+    blurb: "Teams, multi-property, exports.",
     features: [
       "Everything in Pro",
       "Staff accounts",
@@ -149,9 +141,9 @@ export const aboutSchema = z.object({
 export type AboutInput = z.infer<typeof aboutSchema>;
 
 // Signup wizard listing fields. Kept intentionally lean — capacity,
-// pricing, duration, photos and amenities all live in the listing editor
-// once onboarding completes. We collect: name, kind (accommodation vs
-// experience), the type within that kind, and the full address.
+// pricing, photos and amenities all live in the listing editor once
+// onboarding completes. We collect: name, the property type, and the
+// full address. MVP is accommodation only.
 export const listingSchema = z
   .object({
     listing_name: z
@@ -159,11 +151,10 @@ export const listingSchema = z
       .trim()
       .min(2, "Listing needs a name.")
       .max(200, "Listing name is too long."),
-    listing_kind: z.enum(["accommodation", "experience"]),
+    listing_kind: z.literal("accommodation"),
     category_id: z.string().uuid().nullable().optional(),
-    // Legacy text columns — mirrored from the chosen category slug.
+    // Legacy text column — mirrored from the chosen category slug.
     accommodation_type: z.string().optional(),
-    experience_type: z.string().optional(),
     address_line1: z
       .string()
       .trim()
@@ -191,8 +182,8 @@ export type PlanInput = z.infer<typeof planSchema>;
 // creates the host profile + first listing + free subscription.
 //
 // No `offering` field — that step was removed; we go straight from About
-// to the Listing step where the host picks accommodation vs experience
-// for their FIRST listing. They can add the other kind from the dashboard.
+// to the Listing step where the host seeds their FIRST accommodation
+// listing. More listings can be added from the dashboard.
 export const finalizeOnboardingSchema = z
   .object({
     // Profile (from Account + About steps) — all persisted on user_profiles
@@ -210,10 +201,9 @@ export const finalizeOnboardingSchema = z
     // Listing — only the bare minimum to seed a draft. Capacity, pricing,
     // duration, photos etc. live in the listing editor post-onboarding.
     listing_name: z.string().trim().min(2).max(200),
-    listing_kind: z.enum(["accommodation", "experience"]),
+    listing_kind: z.literal("accommodation"),
     category_id: z.string().uuid().nullable().optional(),
     accommodation_type: z.string().optional(),
-    experience_type: z.string().optional(),
     address_line1: z.string().trim().min(3).max(200),
     address_line2: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().min(2).max(120),

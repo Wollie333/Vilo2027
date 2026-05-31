@@ -31,6 +31,53 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Remove Experiences/tour-guide surface (MVP = accommodation only) — branch `main`
+
+### Changed
+- Scoped the whole app to **accommodation listings only**. Experiences /
+  tour-guide operators are deferred until that separate track is built; this
+  was a code-only removal — no migrations, the DB schema (the `experience`
+  enum value, `experience_type`, and the experience-only listing columns) and
+  the seeded "Experiences" taxonomy rows are all left intact for an easy
+  re-enable later.
+- **Taxonomy** (`lib/taxonomy/*`): `CategoryKind` narrowed to
+  `"accommodation"`; `getCategoryTree`, `getAllCategoriesForAdmin` and
+  `getCategoryBySlug` now filter `kind = 'accommodation'`, so experience
+  categories never load and `/c/<experience-slug>` 404s.
+- **Admin categories**: removed the kind dropdown + the two-section table;
+  single Accommodation section, parent queries filtered to accommodation.
+- **Host signup + new-listing + setup**: removed the accommodation-vs-
+  experience chooser, `experienceType`/`EXPERIENCE_TYPES`, and the
+  experience-only editor tabs (Logistics, Schedule) + branches in
+  Pricing/Policies/Basic. New listings always insert `listing_type =
+  'accommodation'`.
+- **Guest flow**: deleted `ExperienceBookingWidget`, `ExperienceBookingForm`,
+  the editor `LogisticsTab`/`ScheduleTab`, and `scheduleSlots.ts`; collapsed
+  every `listing_type === 'experience'` branch in the listing page, checkout
+  (`book/`), booking actions, success page + `BookingConfirmation`, and the
+  guest trip views to the accommodation path. Booking `scope` enum is now
+  `whole_listing | rooms`.
+- **Discovery + profiles + admin lists**: explore, `/c/[slug]`, `/[handle]`,
+  home-data, and the admin booking/listing/host views now hard-filter
+  `listing_type = 'accommodation'` and dropped the experience chips/labels.
+- **Copy**: marketing pages, legal docs, and emails no longer mention
+  "experience operators".
+
+### Not touched (intentional)
+- The per-room **`experiences`** highlights field (`roomEnums.EXPERIENCES`,
+  RoomDetailsForm) and the **"Experiences" add-on category** are unrelated to
+  the Experiences product and were left as-is.
+
+### Notes
+- `pnpm build` + `pnpm lint` both pass clean.
+- Re-enabling tour guides later means re-wiring UI only (and re-seeding the
+  taxonomy rows if you ever delete them) — the data model is unchanged.
+
+### Commit
+- `feat: scope app to accommodation only (remove experiences surface)` — [pending]
+
+---
+
 ## 2026-05-31 — Public homepage wired to live data (no more hardcoded stays/reviews) — branch `main`
 
 ### Built

@@ -56,7 +56,7 @@ export default async function AdminHostsPage({
             Hosts
           </h1>
           <p className="mt-1 text-[13px] text-brand-mute">
-            Every accommodation and experience host on the platform.
+            Every accommodation host on the platform.
           </p>
         </div>
         <p className="text-[12px] text-brand-mute">

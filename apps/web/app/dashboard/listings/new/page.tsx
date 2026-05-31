@@ -32,15 +32,14 @@ export default async function NewListingPage() {
   }
 
   const tree = await getCategoryTree();
-  const categoryLeaves = [...tree.accommodation, ...tree.experience].flatMap(
-    (root) =>
-      root.children.map((c) => ({
-        id: c.id,
-        label: c.label,
-        slug: c.slug,
-        kind: c.kind,
-        description: c.description,
-      })),
+  const categoryLeaves = tree.accommodation.flatMap((root) =>
+    root.children.map((c) => ({
+      id: c.id,
+      label: c.label,
+      slug: c.slug,
+      kind: c.kind,
+      description: c.description,
+    })),
   );
 
   return (

@@ -20,9 +20,9 @@ export default async function AdminCategoriesPage() {
           </h1>
           <p className="mt-1 max-w-2xl text-[13px] text-brand-mute">
             The taxonomy that powers the host wizard, the public browse filter,
-            and every <code>/c/[slug]</code> landing page. Two roots —
-            Accommodation and Experiences — with as many leaves as you need.
-            Each row carries its own SEO content for search engines.
+            and every <code>/c/[slug]</code> landing page. Organise
+            accommodation under the Accommodation root with as many leaves as
+            you need. Each row carries its own SEO content for search engines.
           </p>
         </div>
         <Link

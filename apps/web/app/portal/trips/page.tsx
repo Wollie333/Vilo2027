@@ -50,14 +50,13 @@ type Row = {
   check_in: string | null;
   check_out: string | null;
   nights: number | null;
-  session_date: string | null;
   guests_count: number;
   total_amount: number;
   currency: string;
   created_at: string;
   listing:
-    | { name: string; slug: string | null; listing_type: string }
-    | { name: string; slug: string | null; listing_type: string }[]
+    | { name: string; slug: string | null }
+    | { name: string; slug: string | null }[]
     | null;
   host:
     | { handle: string; display_name: string }
@@ -77,10 +76,10 @@ export default async function PortalTripsPage() {
     .select(
       `
       id, reference, status, payment_status,
-      check_in, check_out, nights, session_date,
+      check_in, check_out, nights,
       guests_count, total_amount, currency,
       created_at,
-      listing:listings ( name, slug, listing_type ),
+      listing:listings ( name, slug ),
       host:hosts ( handle, display_name )
     `,
     )
@@ -98,7 +97,6 @@ export default async function PortalTripsPage() {
     ) {
       return false;
     }
-    if (b.session_date) return new Date(b.session_date) >= now;
     return (b.check_out ?? "") >= todayIso;
   };
   const upcoming = list.filter(isUpcoming);
@@ -160,17 +158,6 @@ function Section({ title, rows }: { title: string; rows: Row[] }) {
           const statusCls =
             STATUS_STYLES[b.status] ??
             "bg-brand-light text-brand-mute border-brand-line";
-          const isExperience = listing?.listing_type === "experience";
-          const when =
-            isExperience && b.session_date
-              ? new Date(b.session_date).toLocaleString("en-ZA", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : null;
           return (
             <article
               key={b.id}
@@ -195,15 +182,11 @@ function Section({ title, rows }: { title: string; rows: Row[] }) {
                     {host?.display_name
                       ? `Hosted by ${host.display_name} · `
                       : ""}
-                    {isExperience
-                      ? `Session: ${when ?? "—"} · ${b.guests_count} ${
-                          b.guests_count === 1 ? "person" : "people"
-                        }`
-                      : `${fmtDate(b.check_in)} → ${fmtDate(b.check_out)}${
-                          b.nights
-                            ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
-                            : ""
-                        }`}
+                    {`${fmtDate(b.check_in)} → ${fmtDate(b.check_out)}${
+                      b.nights
+                        ? ` · ${b.nights} ${b.nights === 1 ? "night" : "nights"}`
+                        : ""
+                    }`}
                   </div>
                 </div>
                 <div className="shrink-0 text-right">

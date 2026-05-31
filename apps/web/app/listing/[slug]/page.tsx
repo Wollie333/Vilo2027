@@ -29,38 +29,25 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { AmenitiesList } from "./AmenitiesList";
 import { BookingWidget } from "./BookingWidget";
-import { ExperienceBookingWidget } from "./ExperienceBookingWidget";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
-import { nextSlots } from "./scheduleSlots";
 
 // Always read live listing/room/add-on data — never serve it from Next's Data
 // Cache, which would otherwise freeze Supabase `.select()` GETs and show stale
 // availability. (Mirrors the sibling rooms/[roomId] and /book pages.)
 export const dynamic = "force-dynamic";
 
-type ScheduleRecurringDay = {
-  day_of_week: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-  times: string[];
-};
-type ScheduleSpecific = { date: string; time: string };
-type RawSchedule =
-  | { kind: "recurring"; days: ScheduleRecurringDay[] }
-  | { kind: "specific"; dates: ScheduleSpecific[] }
-  | null;
-
 type RawListing = {
   id: string;
   slug: string | null;
   name: string;
   description: string | null;
-  listing_type: "accommodation" | "experience";
+  listing_type: "accommodation";
   accommodation_type: string | null;
-  experience_type: string | null;
   city: string | null;
   province: string | null;
   bedrooms: number | null;
@@ -78,13 +65,6 @@ type RawListing = {
   instant_booking: boolean;
   avg_rating: number | null;
   total_reviews: number | null;
-  duration_minutes: number | null;
-  max_participants: number | null;
-  min_participants: number | null;
-  meeting_point: string | null;
-  what_to_bring: string | null;
-  private_group_price: number | null;
-  schedule: RawSchedule;
   host: {
     display_name: string;
     handle: string;
@@ -109,19 +89,8 @@ const ACC_LABEL: Record<string, string> = {
   other: "Stay",
 };
 
-const EXP_LABEL: Record<string, string> = {
-  tour: "Tour",
-  activity: "Activity",
-  workshop: "Workshop",
-  transfer: "Transfer",
-  other: "Experience",
-};
-
 function typeLabel(l: RawListing): string {
-  if (l.listing_type === "accommodation") {
-    return ACC_LABEL[l.accommodation_type ?? "other"] ?? "Stay";
-  }
-  return EXP_LABEL[l.experience_type ?? "other"] ?? "Experience";
+  return ACC_LABEL[l.accommodation_type ?? "other"] ?? "Stay";
 }
 
 function locationLabel(l: RawListing): string {
@@ -136,15 +105,13 @@ async function loadListing(slug: string) {
     .select(
       `
         id, slug, name, description,
-        listing_type, accommodation_type, experience_type,
+        listing_type, accommodation_type,
         city, province,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
         base_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
         avg_rating, total_reviews,
-        duration_minutes, max_participants, min_participants,
-        meeting_point, what_to_bring, private_group_price, schedule,
         host:hosts!inner ( display_name, handle, bio, avatar_url, is_verified )
       `,
     )
@@ -261,7 +228,6 @@ async function loadListing(slug: string) {
     ...listing,
     base_price: toNum(listing.base_price),
     cleaning_fee: toNum(listing.cleaning_fee),
-    private_group_price: toNum(listing.private_group_price),
     avg_rating: toNum(listing.avg_rating),
     total_reviews: toNum(listing.total_reviews),
   };
@@ -298,8 +264,6 @@ export default async function ListingDetailPage({
   const { listing, photos, amenities, rooms } = data;
 
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
-  const isExperience = listing.listing_type === "experience";
-  const upcomingSlots = isExperience ? nextSlots(listing.schedule, 12) : [];
 
   return (
     <div className="bg-white text-brand-ink">
@@ -313,27 +277,7 @@ export default async function ListingDetailPage({
           <PhotoGallery photos={photos} />
         </div>
 
-        {isExperience ? (
-          <ExperienceBody
-            listing={listing}
-            amenities={amenities}
-            sidebarNode={
-              <ExperienceBookingWidget
-                slug={listing.slug ?? params.slug}
-                basePrice={listing.base_price}
-                privateGroupPrice={listing.private_group_price}
-                currency={listing.currency}
-                durationMinutes={listing.duration_minutes}
-                maxParticipants={listing.max_participants}
-                minParticipants={listing.min_participants}
-                instantBooking={listing.instant_booking}
-                rating={listing.avg_rating}
-                reviewCount={listing.total_reviews}
-                slots={upcomingSlots}
-              />
-            }
-          />
-        ) : hasRoomsMode ? (
+        {hasRoomsMode ? (
           <RoomsCartProvider mode={listing.booking_mode}>
             <ListingBody
               listing={listing}
@@ -633,10 +577,7 @@ function ListingBody({
           {listing.description ? (
             <section className="border-b border-brand-line py-7">
               <h3 className="font-display text-xl font-bold text-brand-ink">
-                About this{" "}
-                {listing.listing_type === "accommodation"
-                  ? "place"
-                  : "experience"}
+                About this place
               </h3>
               <div
                 className="mt-4 space-y-4 text-[15px] leading-[1.65] text-brand-ink/85 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
@@ -880,233 +821,6 @@ function Highlight({
           {body}
         </div>
       </div>
-    </div>
-  );
-}
-
-function formatDurationLabel(minutes: number): string {
-  const m = Math.trunc(minutes);
-  if (m < 60) return `${m} min`;
-  const hours = Math.floor(m / 60);
-  const rem = m % 60;
-  if (rem === 0) return `${hours} hour${hours === 1 ? "" : "s"}`;
-  return `${hours}h ${rem}min`;
-}
-
-function ExperienceBody({
-  listing,
-  amenities,
-  sidebarNode,
-}: {
-  listing: RawListing;
-  amenities: string[];
-  sidebarNode: React.ReactNode;
-}) {
-  const hasReviews =
-    listing.avg_rating != null &&
-    listing.total_reviews != null &&
-    listing.total_reviews > 0;
-  const sectionLinks = [
-    { id: "sec-overview", label: "Overview" },
-    { id: "sec-amenities", label: "What's included" },
-    ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
-    { id: "sec-host", label: "Host" },
-    { id: "sec-policies", label: "Things to know" },
-  ];
-
-  return (
-    <>
-      <SubNav links={sectionLinks} />
-
-      <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-12">
-        <div className="min-w-0 lg:col-span-7 xl:col-span-8">
-          {/* Quick facts — experience-specific */}
-          <section
-            id="sec-overview"
-            className="grid grid-cols-2 gap-3 border-b border-brand-line pb-7 sm:grid-cols-4"
-          >
-            <Fact
-              label="Duration"
-              value={
-                listing.duration_minutes != null
-                  ? formatDurationLabel(listing.duration_minutes)
-                  : "—"
-              }
-            />
-            <Fact
-              label="Group size"
-              value={
-                listing.max_participants != null
-                  ? `Up to ${listing.max_participants}`
-                  : "—"
-              }
-            />
-            <Fact label="Min to book" value={listing.min_participants ?? 1} />
-            <Fact
-              label="From"
-              value={
-                listing.base_price != null
-                  ? `${listing.currency === "ZAR" ? "R" : ""}${Math.round(
-                      Number(listing.base_price),
-                    )}`
-                  : "—"
-              }
-            />
-          </section>
-
-          {listing.description ? (
-            <section className="border-b border-brand-line py-7">
-              <h3 className="font-display text-xl font-bold text-brand-ink">
-                About this experience
-              </h3>
-              <div
-                className="mt-4 space-y-4 text-[15px] leading-[1.65] text-brand-ink/85 [&_blockquote]:my-3 [&_blockquote]:border-l-2 [&_blockquote]:border-brand-primary [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-brand-mute [&_h2]:mt-4 [&_h2]:font-display [&_h2]:text-lg [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:font-display [&_h3]:text-base [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
-                dangerouslySetInnerHTML={{
-                  __html: sanitiseListingHtml(listing.description),
-                }}
-              />
-            </section>
-          ) : null}
-
-          {amenities.length > 0 ? (
-            <section
-              id="sec-amenities"
-              className="border-b border-brand-line py-7"
-            >
-              <h3 className="font-display text-xl font-bold text-brand-ink">
-                What&apos;s included
-              </h3>
-              <div className="mt-5">
-                <AmenitiesList keys={amenities} />
-              </div>
-            </section>
-          ) : null}
-
-          {listing.meeting_point || listing.what_to_bring ? (
-            <section className="border-b border-brand-line py-7">
-              <h3 className="font-display text-xl font-bold text-brand-ink">
-                Logistics
-              </h3>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                {listing.meeting_point ? (
-                  <PolicyCard title="Meeting point">
-                    <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                      {listing.meeting_point}
-                    </p>
-                  </PolicyCard>
-                ) : null}
-                {listing.what_to_bring ? (
-                  <PolicyCard title="What to bring">
-                    <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                      {listing.what_to_bring}
-                    </p>
-                  </PolicyCard>
-                ) : null}
-              </div>
-            </section>
-          ) : null}
-
-          {hasReviews ? (
-            <section
-              id="sec-reviews"
-              className="border-b border-brand-line py-7"
-            >
-              <div className="rounded-card border border-brand-line bg-gradient-to-br from-brand-light to-white p-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display text-[56px] font-extrabold leading-none tracking-tight text-brand-ink">
-                    {(listing.avg_rating ?? 0).toFixed(2)}
-                  </span>
-                  <span className="font-display text-xl text-brand-mute">
-                    / 5
-                  </span>
-                </div>
-                <div className="mt-2 text-sm text-brand-mute">
-                  From {listing.total_reviews} verified guest
-                  {listing.total_reviews === 1 ? "" : "s"}
-                </div>
-              </div>
-            </section>
-          ) : null}
-
-          <section id="sec-host" className="border-b border-brand-line py-7">
-            <h3 className="mb-4 font-display text-xl font-bold text-brand-ink">
-              Meet your host
-            </h3>
-            <HostCard
-              displayName={listing.host.display_name}
-              handle={listing.host.handle}
-              bio={listing.host.bio}
-              avatarUrl={listing.host.avatar_url}
-              isVerified={listing.host.is_verified}
-            />
-          </section>
-
-          <section id="sec-policies" className="py-7">
-            <h3 className="font-display text-xl font-bold text-brand-ink">
-              Things to know
-            </h3>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <PolicyCard title="Cancellation policy">
-                <p className="text-sm text-brand-dark">
-                  <span className="font-medium capitalize">
-                    {listing.cancellation_policy}.
-                  </span>{" "}
-                  {CANCELLATION_BLURB[listing.cancellation_policy]}
-                </p>
-              </PolicyCard>
-              {listing.house_rules ? (
-                <PolicyCard title="Guest expectations">
-                  <p className="whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                    {listing.house_rules}
-                  </p>
-                </PolicyCard>
-              ) : null}
-            </div>
-
-            {/* Real assigned/default policies with read-the-full-text popups.
-                Renders nothing when none resolve, leaving the cards above. */}
-            <ListingPolicyBlock listingId={listing.id} className="mt-6" />
-          </section>
-        </div>
-
-        <aside className="lg:col-span-5 xl:col-span-4">{sidebarNode}</aside>
-      </div>
-    </>
-  );
-}
-
-function Fact({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-card border border-brand-line bg-white p-4">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </div>
-      <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function PolicyCard({
-  title,
-  children,
-  wide,
-}: {
-  title: string;
-  children: React.ReactNode;
-  wide?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-card border border-brand-line bg-white p-4 ${
-        wide ? "sm:col-span-2" : ""
-      }`}
-    >
-      <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-primary">
-        {title}
-      </div>
-      {children}
     </div>
   );
 }

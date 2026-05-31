@@ -27,8 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Vilo",
-  description:
-    "Direct-booking management for accommodation hosts and experience operators.",
+  description: "Direct-booking management for accommodation hosts.",
 };
 
 export default function RootLayout({

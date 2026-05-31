@@ -28,6 +28,7 @@ export default async function EditCategoryPage({
       .select("id, label, kind, parent_id")
       .is("deleted_at", null)
       .is("parent_id", null)
+      .eq("kind", "accommodation")
       .order("sort_order"),
   ]);
 

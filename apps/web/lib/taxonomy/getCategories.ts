@@ -35,7 +35,11 @@ const loadAllCategories = unstable_cache(
  */
 export const getCategoryTree = cache(async (): Promise<CategoryTreeByKind> => {
   const all = await loadAllCategories();
-  const published = all.filter((c) => c.is_published);
+  // MVP: only accommodation is surfaced. Experience taxonomy rows remain in
+  // the DB but are filtered out everywhere until tour guides ship.
+  const published = all.filter(
+    (c) => c.is_published && c.kind === "accommodation",
+  );
   return buildTree(published);
 });
 
@@ -51,7 +55,8 @@ export async function getAllCategoriesForAdmin(): Promise<
     .from("listing_categories")
     .select("*")
     .is("deleted_at", null)
-    .order("kind")
+    // MVP: hide experience taxonomy rows from the admin UI too.
+    .eq("kind", "accommodation")
     .order("sort_order");
   if (error) {
     console.error("[taxonomy] getAllCategoriesForAdmin failed", error);
@@ -64,7 +69,12 @@ export async function getAllCategoriesForAdmin(): Promise<
 export const getCategoryBySlug = cache(
   async (slug: string): Promise<ListingCategoryRow | null> => {
     const all = await loadAllCategories();
-    return all.find((c) => c.is_published && c.slug === slug) ?? null;
+    // MVP: only accommodation categories resolve — experience slugs 404.
+    return (
+      all.find(
+        (c) => c.is_published && c.kind === "accommodation" && c.slug === slug,
+      ) ?? null
+    );
   },
 );
 
@@ -103,7 +113,6 @@ function buildTree(rows: ListingCategoryRow[]): CategoryTreeByKind {
     nodes.set(r.id, { ...r, children: [] });
   }
   const accommodation: CategoryNode[] = [];
-  const experience: CategoryNode[] = [];
   for (const node of nodes.values()) {
     if (node.parent_id) {
       const parent = nodes.get(node.parent_id);
@@ -113,7 +122,6 @@ function buildTree(rows: ListingCategoryRow[]): CategoryTreeByKind {
       }
     }
     if (node.kind === "accommodation") accommodation.push(node);
-    else experience.push(node);
   }
   const sortNodes = (list: CategoryNode[]) => {
     list.sort(
@@ -122,6 +130,5 @@ function buildTree(rows: ListingCategoryRow[]): CategoryTreeByKind {
     for (const n of list) sortNodes(n.children);
   };
   sortNodes(accommodation);
-  sortNodes(experience);
-  return { accommodation, experience };
+  return { accommodation };
 }

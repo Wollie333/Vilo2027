@@ -130,7 +130,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, listing_type, max_participants, min_participants, private_group_price",
+      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -139,66 +139,28 @@ export async function createBookingAction(
     return { ok: false, error: "This listing isn't available." };
   }
 
-  // 3. Listing-type vs scope sanity. Experience and accommodation paths share
-  // the same action but diverge on validation + pricing math.
-  const isExperience = listing.listing_type === "experience";
-  if (isExperience && d.scope !== "experience") {
-    return { ok: false, error: "This is an experience — pick a session slot." };
+  // 3. Date / mode validation.
+  const nights = nightsBetween(d.check_in!, d.check_out!);
+  if (nights <= 0) {
+    return { ok: false, error: "Check-out must be after check-in." };
   }
-  if (!isExperience && d.scope === "experience") {
+  const minNights = listing.min_nights ?? 1;
+  if (nights < minNights) {
     return {
       ok: false,
-      error: "This listing isn't an experience.",
+      error: `Minimum stay is ${minNights} ${minNights === 1 ? "night" : "nights"}.`,
     };
   }
 
-  // 4. Path-specific date / mode validation.
-  let nights = 0;
-  if (!isExperience) {
-    nights = nightsBetween(d.check_in!, d.check_out!);
-    if (nights <= 0) {
-      return { ok: false, error: "Check-out must be after check-in." };
-    }
-    const minNights = listing.min_nights ?? 1;
-    if (nights < minNights) {
-      return {
-        ok: false,
-        error: `Minimum stay is ${minNights} ${minNights === 1 ? "night" : "nights"}.`,
-      };
-    }
-
-    if (d.scope === "whole_listing" && listing.booking_mode === "rooms_only") {
-      return {
-        ok: false,
-        error: "This listing only takes per-room bookings.",
-      };
-    }
-    // Per-room booking is allowed whenever the listing actually has rooms — even
-    // for whole_listing mode (a guesthouse can be booked by room or whole). The
-    // room-ownership/availability checks below guard against invalid room_ids.
-  } else {
-    if (!d.session_date) {
-      return { ok: false, error: "Pick a session date and time." };
-    }
-    const sessionAt = new Date(`${d.session_date}:00`);
-    if (Number.isNaN(sessionAt.getTime()) || sessionAt < new Date()) {
-      return { ok: false, error: "That session is in the past." };
-    }
-    const min = Math.max(1, listing.min_participants ?? 1);
-    const max = listing.max_participants ?? 50;
-    if (d.guests < min) {
-      return {
-        ok: false,
-        error: `This experience needs at least ${min} ${min === 1 ? "person" : "people"}.`,
-      };
-    }
-    if (d.guests > max) {
-      return {
-        ok: false,
-        error: `This experience tops out at ${max} ${max === 1 ? "person" : "people"}.`,
-      };
-    }
+  if (d.scope === "whole_listing" && listing.booking_mode === "rooms_only") {
+    return {
+      ok: false,
+      error: "This listing only takes per-room bookings.",
+    };
   }
+  // Per-room booking is allowed whenever the listing actually has rooms — even
+  // for whole_listing mode (a guesthouse can be booked by room or whole). The
+  // room-ownership/availability checks below guard against invalid room_ids.
 
   const admin = createAdminClient();
 
@@ -212,66 +174,7 @@ export async function createBookingAction(
     cleaning_fee: number;
   }> = [];
 
-  if (d.scope === "experience") {
-    if (listing.base_price == null) {
-      return {
-        ok: false,
-        error: "This experience has no price set yet — message the host.",
-      };
-    }
-
-    // Capacity check: sum participants across existing pending/confirmed
-    // bookings for this listing at the same session_date, refuse if the new
-    // booking would push past max_participants. When max_participants is
-    // null, we treat the session as unlimited.
-    if (listing.max_participants != null) {
-      const sessionAtIso = `${d.session_date}:00`;
-      const { data: existing } = await admin
-        .from("bookings")
-        .select("guests_count")
-        .eq("listing_id", listing.id)
-        .eq("session_date", sessionAtIso)
-        .in("status", ["pending", "pending_eft", "confirmed", "checked_in"])
-        .is("deleted_at", null);
-      const filled = (existing ?? []).reduce(
-        (acc, b) => acc + (b.guests_count ?? 0),
-        0,
-      );
-      const remaining = listing.max_participants - filled;
-      if (remaining <= 0) {
-        return {
-          ok: false,
-          error: "This session is fully booked. Pick another date.",
-        };
-      }
-      if (d.guests > remaining) {
-        return {
-          ok: false,
-          error: `Only ${remaining} ${
-            remaining === 1 ? "spot" : "spots"
-          } left on that session.`,
-        };
-      }
-    }
-
-    const perPerson = Number(listing.base_price);
-    const headcountTotal = perPerson * d.guests;
-    const groupPrice =
-      listing.private_group_price != null
-        ? Number(listing.private_group_price)
-        : null;
-    // If the host set a private-group rate and the guest fills the session,
-    // honour the lower of (per-person * cap) vs the group rate.
-    const useGroupRate =
-      groupPrice != null &&
-      groupPrice > 0 &&
-      listing.max_participants != null &&
-      d.guests === listing.max_participants &&
-      groupPrice < headcountTotal;
-    baseAmount = useGroupRate ? groupPrice : headcountTotal;
-    cleaning = 0;
-    totalAmount = baseAmount;
-  } else if (d.scope === "rooms") {
+  if (d.scope === "rooms") {
     const roomIds = d.room_ids ?? [];
 
     // 5a. Validate every room_id belongs to this listing + is bookable.
@@ -421,8 +324,6 @@ export async function createBookingAction(
   }
 
   // 5e. Re-fetch eligible addons server-side and snapshot prices.
-  // Experience bookings skip the addon catalog for MVP — addon pricing models
-  // (per_night, per_guest_per_night) assume an accommodation stay.
   const addonInserts: Array<{
     label: string;
     quantity: number;
@@ -445,7 +346,7 @@ export async function createBookingAction(
     }
   };
 
-  if (d.scope !== "experience") {
+  {
     const roomIdScope =
       d.scope === "rooms" ? roomRowsForBooking.map((r) => r.room_id) : [];
     const { data: eligibleAddonRows } = await admin
@@ -559,9 +460,7 @@ export async function createBookingAction(
     totalAmount = baseAmount + cleaning + addonsTotal;
   }
 
-  // 6. Insert booking. Experience bookings use session_date and leave
-  // check_in/check_out NULL; the `nights` column on bookings is GENERATED and
-  // resolves to NULL when both dates are absent.
+  // 6. Insert booking.
   // Manual EFT lands the booking in pending_eft (host verifies the transfer);
   // card payments stay "pending" until Paystack confirms via webhook.
   const isEft = d.payment_method === "eft";
@@ -587,9 +486,9 @@ export async function createBookingAction(
       listing_id: listing.id,
       host_id: listing.host_id,
       guest_id: user.id,
-      check_in: isExperience ? null : d.check_in,
-      check_out: isExperience ? null : d.check_out,
-      session_date: isExperience ? `${d.session_date}:00` : null,
+      check_in: d.check_in,
+      check_out: d.check_out,
+      session_date: null,
       guests_count: d.guests,
       base_amount: baseAmount,
       cleaning_fee: cleaning,

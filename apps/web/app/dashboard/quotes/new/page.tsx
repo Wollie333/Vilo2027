@@ -20,8 +20,6 @@ export default async function NewQuotePage() {
   if (!user) redirect("/login?next=/dashboard/quotes/new");
 
   // Quotes are stay-shaped (dates, nights, per-night × nights pricing).
-  // Experience listings would need a session-slot picker + per-person math
-  // — separate work track post-MVP.
   const { data: listings } = await supabase
     .from("listings")
     .select("id, name, booking_mode, base_price, cleaning_fee, currency")

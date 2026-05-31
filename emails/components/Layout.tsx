@@ -47,8 +47,7 @@ export default function Layout({ preview, children }: Props) {
 
           <Section style={styles.footer}>
             <Text style={styles.footerText}>
-              Vilo — direct-booking management for accommodation hosts and
-              experience operators.
+              Vilo — direct-booking management for accommodation hosts.
             </Text>
             <Text style={styles.footerText}>
               <Link href={APP_URL} style={styles.footerLink}>
