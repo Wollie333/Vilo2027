@@ -88,7 +88,7 @@ export default async function DashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, reference, check_in, guests_count, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email )",
+        "id, reference, check_in, guests_count, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey!inner ( full_name, email )",
       )
       .in("status", ["confirmed", "checked_in"])
       .gte("check_in", today)
@@ -98,7 +98,7 @@ export default async function DashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, payment_status, check_in, check_out, total_amount, currency, listing:listings!inner ( name ), guest:user_profiles!inner ( full_name, email )",
+        "id, reference, status, payment_status, check_in, check_out, total_amount, currency, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey!inner ( full_name, email )",
       )
       .order("created_at", { ascending: false })
       .limit(5),

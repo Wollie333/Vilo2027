@@ -57,7 +57,7 @@ export default async function PaymentsPage() {
   const { data } = await supabase
     .from("payments")
     .select(
-      "id, amount, currency, method, status, provider_reference, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!left ( full_name, email, avatar_url ) )",
+      "id, amount, currency, method, status, provider_reference, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
     )
     .order("created_at", { ascending: false })
     .limit(400);

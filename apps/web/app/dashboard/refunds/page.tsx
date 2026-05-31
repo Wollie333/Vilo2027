@@ -123,7 +123,7 @@ export default async function RefundsPage({
       reason_detail, host_note, decline_reason, created_at, actioned_at,
       initiated_by, is_manual, policy_entitlement,
       booking:bookings ( id, reference, check_in, check_out, listing:listings ( name ) ),
-      guest:user_profiles ( full_name, email )
+      guest:user_profiles!refund_requests_guest_id_fkey ( full_name, email )
     `,
     )
     .eq("host_id", host.id)

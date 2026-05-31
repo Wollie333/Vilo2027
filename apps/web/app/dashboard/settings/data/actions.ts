@@ -136,43 +136,73 @@ export async function deleteAccountAction(input: {
 
   const admin = createAdminClient();
 
-  // Pre-clear children with ON DELETE RESTRICT against user_profiles + hosts.
-  // Anything with CASCADE will cascade automatically from the auth.users
-  // delete at the end (auth.users → user_profiles → CASCADE children).
-  try {
-    // Hosts have a RESTRICT chain: listings RESTRICT, refund_requests RESTRICT.
-    const { data: hostRow } = await admin
-      .from("hosts")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (hostRow?.id) {
-      const hostId = hostRow.id as string;
-      await admin.from("listings").delete().eq("host_id", hostId);
-      await admin.from("refund_requests").delete().eq("host_id", hostId);
-      await admin.from("hosts").delete().eq("id", hostId);
-    }
+  // Resolve the host record (if this user is a host) so we can scope the
+  // safety check + purge to their listings as well as their guest bookings.
+  const { data: hostRow } = await admin
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  const hostId = (hostRow?.id as string | undefined) ?? null;
 
-    // Direct RESTRICT FKs against user_profiles.
-    await admin.from("bookings").delete().eq("guest_id", user.id);
-    await admin.from("reviews").delete().eq("guest_id", user.id);
-    await admin
-      .from("admin_message_batches")
-      .delete()
-      .eq("created_by", user.id);
+  // ── Safety gate ──────────────────────────────────────────────────
+  // A host/guest may NOT delete their account while a booking, payment or
+  // refund is still active — those must be cancelled / settled first. This
+  // mirrors the listing-delete guard: live money/commitments block teardown.
+  const ACTIVE_BOOKING_STATUSES = [
+    "pending",
+    "pending_eft",
+    "pending_eft_review",
+    "confirmed",
+    "checked_in",
+  ];
+  const bookingScope = hostId
+    ? `host_id.eq.${hostId},guest_id.eq.${user.id}`
+    : `guest_id.eq.${user.id}`;
+  const { count: activeBookings } = await admin
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .or(bookingScope)
+    .in("status", ACTIVE_BOOKING_STATUSES);
 
-    // SET NULL columns don't block delete but clear them so the cascade
-    // is unambiguous.
-    await admin
-      .from("messages")
-      .update({ sender_id: null })
-      .eq("sender_id", user.id);
-    await admin.from("data_requests").delete().eq("user_id", user.id);
-  } catch {
+  let openRefunds = 0;
+  if (hostId) {
+    const { count } = await admin
+      .from("refund_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", hostId)
+      .in("status", ["pending", "processing", "escalated"]);
+    openRefunds = count ?? 0;
+  }
+
+  if ((activeBookings ?? 0) > 0 || openRefunds > 0) {
+    const parts: string[] = [];
+    if ((activeBookings ?? 0) > 0)
+      parts.push(
+        `${activeBookings} active booking${activeBookings === 1 ? "" : "s"}`,
+      );
+    if (openRefunds > 0)
+      parts.push(`${openRefunds} open refund${openRefunds === 1 ? "" : "s"}`);
+    return {
+      ok: false,
+      error: `You still have ${parts.join(" and ")}. Cancel or settle ${parts.length > 1 ? "them" : "it"} from your dashboard first, then delete your account.`,
+    };
+  }
+
+  // ── Purge ────────────────────────────────────────────────────────
+  // Gate passed: only historical rows remain (cancelled / expired /
+  // completed bookings + their payments, invoices, reviews, snapshots).
+  // Hard-delete them in FK-safe order via the transactional DB function so
+  // the auth.users → user_profiles cascade isn't blocked by a RESTRICT FK.
+  // (Pre-MVP policy — see migration 20260531000021.)
+  const { error: purgeErr } = await admin.rpc("app_purge_user_account", {
+    p_user_id: user.id,
+  });
+  if (purgeErr) {
     return {
       ok: false,
       error:
-        "We hit a snag clearing your data. Try again or email privacy@viloplatform.com.",
+        "We hit a snag clearing your historical records. Try again or email privacy@viloplatform.com.",
     };
   }
 

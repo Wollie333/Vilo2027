@@ -69,20 +69,34 @@ export default async function ListingsPage({
   })();
   const q = (searchParams?.q ?? "").trim();
 
-  const [{ data: host }, { data: listingsRaw }] = await Promise.all([
-    supabase
-      .from("hosts")
-      .select("id, avg_rating, total_reviews")
-      .is("deleted_at", null)
-      .maybeSingle(),
-    supabase
-      .from("listings")
-      .select(
-        "id, name, slug, listing_type, accommodation_type, experience_type, city, province, base_price, currency, is_published, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
-      )
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false }),
-  ]);
+  // Scope to the logged-in host. `listings` has a `public_read_published`
+  // RLS policy (so guests can browse the directory), which means relying on
+  // RLS alone here would also return every OTHER host's published listing.
+  // The explicit `host_id` filter is what keeps the portfolio private — never
+  // remove it. Likewise resolve the host by `user_id`, not RLS.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: host } = user
+    ? await supabase
+        .from("hosts")
+        .select("id, avg_rating, total_reviews")
+        .eq("user_id", user.id)
+        .is("deleted_at", null)
+        .maybeSingle()
+    : { data: null };
+
+  const { data: listingsRaw } = host
+    ? await supabase
+        .from("listings")
+        .select(
+          "id, name, slug, listing_type, accommodation_type, experience_type, city, province, base_price, currency, is_published, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
+        )
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+    : { data: [] as ListingRow[] };
 
   const all = (listingsRaw as ListingRow[] | null) ?? [];
   const totalAll = all.length;

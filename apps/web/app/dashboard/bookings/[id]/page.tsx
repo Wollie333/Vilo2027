@@ -38,7 +38,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, additional_guests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug, listing_type, meeting_point, duration_minutes ), guest:user_profiles!left ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
+      "id, reference, status, payment_status, scope, check_in, check_out, nights, session_date, guests_count, base_amount, cleaning_fee, total_amount, currency, payment_method, special_requests, additional_guests, internal_notes, created_at, confirmed_at, cancelled_at, checked_in_at, checked_out_at, has_open_refund, guest_id, listing:listings!inner ( name, slug, listing_type, meeting_point, duration_minutes ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) )",
     )
     .eq("id", params.id)
     .maybeSingle();

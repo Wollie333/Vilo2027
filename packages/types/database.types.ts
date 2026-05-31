@@ -4910,6 +4910,10 @@ export type Database = {
             }
             Returns: string
           }
+      app_purge_user_account: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       calculate_booking_price: {
         Args: {
           p_check_in: string

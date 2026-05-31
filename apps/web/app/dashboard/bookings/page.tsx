@@ -96,7 +96,7 @@ export default async function BookingsListPage() {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, origin, guest_id, guest_name, guest_email, check_in, check_out, nights, session_date, guests_count, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_type, listing_photos ( url, sort_order ) ), guest:user_profiles!left ( full_name, email, avatar_url )",
+      "id, reference, status, payment_status, scope, origin, guest_id, guest_name, guest_email, check_in, check_out, nights, session_date, guests_count, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_type, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url )",
     )
     .order("created_at", { ascending: false })
     .limit(400);

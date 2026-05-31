@@ -31,6 +31,54 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Fix: host dashboard data not showing (ambiguous embeds), listings leak, robust account deletion — branch `feat/setup-wizard-rework`
+
+### Fixed (the big one — every host dashboard read was silently empty)
+- **Ambiguous PostgREST embeds returned zero rows.** `bookings` has two FKs to
+  `user_profiles` (`guest_id` + `actioned_by`), so `guest:user_profiles!left(...)`
+  threw *"more than one relationship found"*. The query error was swallowed
+  (`const { data } = …`, no error check) → empty lists **and** all-zero KPI cards.
+  Pinned the explicit FK in all five affected reads:
+  - `dashboard/bookings/page.tsx` (list + Booked-revenue / New-bookings /
+    Occupancy / Avg-nightly-rate cards) → `user_profiles!bookings_guest_id_fkey`
+  - `dashboard/bookings/[id]/page.tsx` (detail page was silently 404-ing)
+  - `dashboard/payments/page.tsx` (payments list + KPIs)
+  - `dashboard/page.tsx` (home upcoming + recent bookings) → `…!bookings_guest_id_fkey!inner`
+  - `dashboard/refunds/page.tsx` (`refund_requests` has 3 user FKs) →
+    `user_profiles!refund_requests_guest_id_fkey`
+
+### Fixed (data isolation)
+- **Listings portfolio leaked other hosts' listings.** `dashboard/listings/page.tsx`
+  queried `listings` with no `host_id` filter, relying on RLS — but `listings`
+  has a `public_read_published` policy, so every *published* listing from every
+  host came back. Now resolves the host by `user_id` and filters
+  `host_id = host.id` explicitly (with a comment warning never to drop it).
+  Same pattern (relying on RLS where a `public_read` policy exists) may affect
+  other dashboard reads of `listing_photos` / `seasonal_pricing` / `reviews` —
+  flagged for the QA pass.
+
+### Fixed (account deletion)
+- `deleteAccountAction` failed with *"Could not finalise account deletion"* — its
+  pre-clear `.delete()` calls ignored returned errors and missed most of the
+  host RESTRICT chain (bookings on own listings, payments, refunds, invoices,
+  reviews, policy_snapshots). Rewrote to: (1) **safety-gate** — refuse while any
+  *active* booking/refund exists, with a specific message telling the founder
+  what to cancel first; (2) on a clear account, hard-delete historical rows in
+  FK-safe order via new transactional RPC `app_purge_user_account`, then
+  `auth.admin.deleteUser`.
+
+### Migrations
+- `20260531000021_purge_user_account_fn.sql` — `app_purge_user_account(uuid)`
+  SECURITY DEFINER teardown helper (service_role only). Applied to linked remote.
+
+### Maintenance
+- Dropped stale test bookings/payments not belonging to the founder's host
+  ("Wolie Se Plek") per founder request — demo-seed rows from past tests.
+
+### Notes
+- `pnpm build` (100 pages) + `pnpm lint` green (only the pre-existing Help
+  `aria-pressed` warning). Types regenerated from linked remote.
+
 ## 2026-05-31 — Consolidated: checkout room picker/calendar + policies redesign — branch `feat/setup-wizard-rework`
 
 ### Built (checkout)
