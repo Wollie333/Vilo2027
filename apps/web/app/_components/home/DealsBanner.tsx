@@ -26,7 +26,7 @@ export function DealsBanner() {
                 the host. No code needed.
               </p>
               <a
-                href="#"
+                href="/explore"
                 className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
               >
                 Browse summer deals <ArrowRight className="h-4 w-4" />
@@ -56,7 +56,7 @@ export function DealsBanner() {
                 working farms — book the whole thing, no per-head haggling.
               </p>
               <a
-                href="#"
+                href="/explore?guests=8"
                 className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-secondary transition-colors hover:bg-brand-accent"
               >
                 See group stays <ArrowRight className="h-4 w-4" />

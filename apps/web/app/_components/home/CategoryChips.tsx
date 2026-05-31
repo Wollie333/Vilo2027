@@ -1,70 +1,80 @@
-"use client";
-
 import {
+  Accessibility,
+  BedDouble,
   Building2,
-  Grape,
+  Car,
+  CheckCircle2,
+  Coffee,
+  Compass,
+  DoorOpen,
+  Flame,
   Home,
+  Hotel,
+  House,
+  Map,
   Mountain,
-  PawPrint,
+  Palette,
   SlidersHorizontal,
   Sparkles,
   Tent,
-  Trees,
-  Warehouse,
-  Waves,
-  Zap,
+  TreePine,
+  Utensils,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
 
-type Chip = { key: string; label: string; icon: LucideIcon };
+import type { HomeChip } from "./home-data";
 
-const CHIPS: Chip[] = [
-  { key: "all", label: "All stays", icon: Sparkles },
-  { key: "cottages", label: "Cottages", icon: Home },
-  { key: "beach", label: "Beach houses", icon: Waves },
-  { key: "lodges", label: "Lodges", icon: Mountain },
-  { key: "bush", label: "Bush & safari", icon: Trees },
-  { key: "vineyards", label: "Vineyards", icon: Grape },
-  { key: "glamping", label: "Glamping", icon: Tent },
-  { key: "farm", label: "Farm stays", icon: Warehouse },
-  { key: "city", label: "City apartments", icon: Building2 },
-  { key: "instant", label: "Instant book", icon: Zap },
-  { key: "pets", label: "Pet friendly", icon: PawPrint },
-];
+const ICONS: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  compass: Compass,
+  home: Home,
+  house: House,
+  "building-2": Building2,
+  hotel: Hotel,
+  tent: Tent,
+  coffee: Coffee,
+  "door-open": DoorOpen,
+  utensils: Utensils,
+  map: Map,
+  mountain: Mountain,
+  palette: Palette,
+  car: Car,
+  "bed-double": BedDouble,
+  flame: Flame,
+  "tree-pine": TreePine,
+  accessibility: Accessibility,
+};
 
-export function CategoryChips() {
-  const [active, setActive] = useState<string>("all");
+export function CategoryChips({ chips }: { chips: HomeChip[] }) {
+  // Always show at least "All stays"; hide the strip only if nothing at all.
+  if (chips.length <= 1) return null;
 
   return (
     <section className="sticky top-16 z-30 border-b border-brand-line bg-white">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="hscroll flex items-center gap-1 overflow-x-auto py-3">
-          {CHIPS.map(({ key, label, icon: Icon }) => {
-            const isActive = active === key;
+          {chips.map(({ slug, label, icon }) => {
+            const Icon = ICONS[icon] ?? CheckCircle2;
+            const href = slug ? `/explore?type=${slug}` : "/explore";
             return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActive(key)}
-                className={`inline-flex shrink-0 items-center gap-2 rounded-pill px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "chip-active"
-                    : "text-brand-mute hover:bg-brand-accent hover:text-brand-ink"
-                }`}
+              <Link
+                key={slug || "all"}
+                href={href}
+                className="inline-flex shrink-0 items-center gap-2 rounded-pill px-4 py-2 text-sm font-medium text-brand-mute transition-colors hover:bg-brand-accent hover:text-brand-ink"
               >
                 <Icon className="h-4 w-4" />
                 {label}
-              </button>
+              </Link>
             );
           })}
-          <button
-            type="button"
+          <Link
+            href="/explore"
             className="ml-auto inline-flex shrink-0 items-center gap-2 rounded border border-brand-line px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
           >
             <SlidersHorizontal className="h-4 w-4" />
             Filters
-          </button>
+          </Link>
         </div>
       </div>
     </section>

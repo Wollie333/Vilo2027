@@ -1,22 +1,30 @@
 import { Calendar, MapPin, Search, Users } from "lucide-react";
+import Link from "next/link";
 
-const POPULAR = [
-  "Cape Town",
-  "Garden Route",
-  "Drakensberg",
-  "Kruger",
-  "Stellenbosch",
-  "Hermanus",
-] as const;
+import type { HomeStats } from "./home-data";
 
-const STATS = [
-  { value: "2 348", label: "Verified properties", mono: true },
-  { value: "216", label: "Trusted hosts", mono: true },
-  { value: "9", label: "Provinces covered", mono: true },
-  { value: "0%", label: "Guest booking fees", mono: false },
-] as const;
+function fmtNum(n: number): string {
+  return n.toLocaleString("en-ZA").replace(/,/g, " ");
+}
 
-export function Hero() {
+export function Hero({
+  stats,
+  popularCities,
+}: {
+  stats: HomeStats;
+  popularCities: string[];
+}) {
+  const statCards = [
+    {
+      value: fmtNum(stats.properties),
+      label: "Verified properties",
+      mono: true,
+    },
+    { value: fmtNum(stats.hosts), label: "Trusted hosts", mono: true },
+    { value: fmtNum(stats.provinces), label: "Provinces covered", mono: true },
+    { value: "0%", label: "Guest booking fees", mono: false },
+  ];
+
   return (
     <section className="relative overflow-hidden">
       <div className="absolute inset-0">
@@ -32,8 +40,10 @@ export function Hero() {
       <div className="relative mx-auto max-w-7xl px-5 pb-24 pt-16 lg:px-8 lg:pb-32 lg:pt-24">
         <div className="max-w-3xl">
           <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/15 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/20 backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />2 348
-            verified properties · book direct with the host
+            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+            {stats.properties > 0
+              ? `${fmtNum(stats.properties)} verified ${stats.properties === 1 ? "property" : "properties"} · book direct with the host`
+              : "Book direct with the host"}
           </span>
           <h1 className="mt-5 font-display text-4xl font-bold leading-[1.04] tracking-tight text-white md:text-5xl lg:text-[64px]">
             Find your next stay.
@@ -118,24 +128,26 @@ export function Hero() {
             </div>
           </form>
 
-          <div className="flex flex-wrap items-center gap-2 border-t border-brand-line px-3 py-2.5">
-            <span className="pl-2 text-xs font-medium text-brand-mute">
-              Popular:
-            </span>
-            {POPULAR.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className="rounded-pill bg-brand-light px-3 py-1 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          {popularCities.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 border-t border-brand-line px-3 py-2.5">
+              <span className="pl-2 text-xs font-medium text-brand-mute">
+                Popular:
+              </span>
+              {popularCities.map((p) => (
+                <Link
+                  key={p}
+                  href={`/explore?where=${encodeURIComponent(p)}`}
+                  className="rounded-pill bg-brand-light px-3 py-1 text-xs font-medium text-brand-ink transition-colors hover:bg-brand-accent"
+                >
+                  {p}
+                </Link>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-12 grid grid-cols-2 gap-6 text-white md:grid-cols-4 lg:mt-16">
-          {STATS.map((s) => (
+          {statCards.map((s) => (
             <div key={s.label}>
               <div
                 className={`font-display text-2xl font-bold md:text-3xl ${s.mono ? "num" : ""}`}

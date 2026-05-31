@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Public homepage wired to live data (no more hardcoded stays/reviews) — branch `main`
+
+### Built
+- `apps/web/app/_components/home/home-data.ts` — single `getHomeData()`
+  server loader that fetches the whole public homepage from Supabase in one
+  parallel batch, mirroring the exact `listings` query shape used by
+  `/explore` and `/c/[slug]`. Resilient: every empty/failed read yields a safe
+  empty slice so the page never throws.
+
+### Changed
+- `app/page.tsx` is now an `async` server component (`dynamic = "force-dynamic"`)
+  and passes real data into every section.
+- **FeaturedListings** — real `is_featured` listings (falls back to top-rated
+  then newest if too few are flagged); cards link to `/listing/[slug]`, price
+  uses the shared rooms_only/experience logic, "Show all N stays" → `/explore`
+  with the real published count.
+- **TrendingDestinations** — real cities aggregated from published listings
+  (count + representative photo), cards link to `/explore?where=<city>`.
+- **RecentReviews** — real published, non-flagged reviews. Anonymised as
+  "Verified guest" + listing name + month/year (user_profiles is not publicly
+  readable — matches `/[handle]`). Dropped the fake "4.83 / 12 489" stat.
+- **BrowseByType** — real top-level accommodation categories with live counts
+  + from-price + category hero image, linking to `/c/[slug]`.
+- **CategoryChips** — now a server component driven by the taxonomy; leaf
+  categories link into `/explore?type=<slug>` (was a dead client toggle).
+- **Hero** — real property/host/province stats, badge count, and popular-city
+  chips (link to `/explore?where=<city>`); "0% guest booking fees" kept.
+- **DealsBanner** — fixed two dead `href="#"` links → `/explore` and
+  `/explore?guests=8`.
+
+### Notes
+- Empty sections (no listings / destinations / reviews) render nothing rather
+  than a broken grid, so a sparse pre-MVP DB still looks intact.
+- `pnpm build` + `pnpm lint` both green; `/` is now server-rendered (ƒ).
+
 ## 2026-05-31 — Calendar redesign: console + KPI layouts, month/timeline, drag-to-block — branch `main`
 
 ### Built (from the `Calendar.html` design pack)
