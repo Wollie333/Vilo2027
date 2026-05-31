@@ -31,6 +31,57 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Public listing page redesign (Listing Page template) — branch `feat/listing-page-redesign`
+
+### Built
+- Reworked the guest listing page (`apps/web/app/listing/[slug]/`) to match the
+  provided "Listing Page" design as a fixed standard layout (no host edit-mode):
+  breadcrumb, Superhost pill, standard verified-host trust card, 5-tile gallery,
+  collapsible About, amenities "show all".
+- **Whole-guesthouse toggle + real discounts**: shared pure `pricing.ts`
+  (`applyStayDiscounts`) used by the booking sidebar/widget/mobile bar AND
+  `createBookingAction` (source of truth) — whole-listing combo % (all active
+  rooms together) + weekly (7+) / monthly (28+) length-of-stay %.
+- **Rates & seasonal section** (live `listing_seasonal_pricing`: current-season
+  callout, legend cards, per-room/whole rate table).
+- **Availability calendar** (two-month, live `blocked_dates`; interactive range
+  picker wired to cart dates; read-only viewer for whole-listing).
+- **Full reviews section**: distribution, per-category bars (6 sub-ratings),
+  trip-type filter pills, "Guests mention" themes, featured pull-quote, review
+  grid with a real Helpful vote (`review_helpful_votes` + trigger). `trip_type`
+  added to the guest review form.
+- **Location**: keyless Leaflet + OSM map (approximate-location circle) +
+  host-curated Eat/Do/Travel neighbourhood (`listing_points_of_interest`).
+- **Meet-your-host** stats card, **Similar stays** grid (same province), and a
+  **mobile sticky booking bar**.
+- **Host editors**: discount % fields in the listing Pricing tab; new
+  `/dashboard/listing-extras` page (CRUD for neighbourhood POIs + review themes).
+
+### Changed
+- `book/actions.ts` now applies combo + length-of-stay discounts server-side
+  (charged total reflects them). Booking sidebar/widget show discount lines.
+- Listing query loads extra host fields, coords, seasonal rows, blocked dates,
+  POIs; reviews now fully loaded (were aggregate-only).
+
+### Migrations
+- `20260531000030_listing_page_redesign.sql` — discount cols on `listings`,
+  `listing_points_of_interest`, `reviews.trip_type`/`helpful_count` +
+  `review_helpful_votes` (+ sync trigger), `listing_review_themes`, feature-gate
+  seeds (open on every plan pre-MVP). Types regenerated; demo seed enriched.
+
+### Notes
+- New deps: `leaflet` + `@types/leaflet` (vanilla, keyless — no react-leaflet).
+- Whole-listing discount applies only to the rooms-combo (all active rooms),
+  not whole-listing-scope bookings (those price off `base_price`); LOS applies
+  to both. "Guests mention" counts are host-curated (can be auto-derived later).
+- Demo: guesthouse listing `the-vines-guesthouse-stellenbosch` exercises every
+  new section (rooms, discounts, seasons, blocks, POIs, themes, 4 reviewers).
+
+### Commit
+- `feat(listing): phases 0–9 — public listing page redesign` — branch `feat/listing-page-redesign`
+
+---
+
 ## 2026-05-31 — Guest portal "My trips" redesign — branch `feat/listing-page-redesign`
 
 ### Built
