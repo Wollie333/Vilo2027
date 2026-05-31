@@ -247,11 +247,21 @@ async function main() {
       bathrooms: 4,
       max_guests: 8,
       base_price: 2400,
+      weekend_price: 2700,
       cleaning_fee: 400,
       currency: "ZAR",
-      cancellation_policy: "strict",
+      min_nights: 2,
+      check_in_time: "15:00",
+      check_out_time: "10:00",
+      cancellation_policy: "moderate",
       accepts_paystack: true,
+      accepts_eft: true,
       booking_mode: "flexible",
+      instant_booking: true,
+      // Combo discounts (listing-page redesign) — applied server-side.
+      whole_listing_discount_pct: 10,
+      weekly_discount_pct: 5,
+      monthly_discount_pct: 10,
       is_published: true,
       published_at: nowIso(),
     },
@@ -565,6 +575,150 @@ async function main() {
       is_published: true,
     },
   ]);
+
+  // ────────────────────────────────────────────────────────────────
+  // 12. Listing-page redesign content (focused on guesthouse LISTING_B)
+  // ────────────────────────────────────────────────────────────────
+
+  // Host enrichment — Superhost + response metrics + highlights/languages.
+  // Direct UPDATE (not upsert): an upsert insert-attempt would violate the
+  // NOT NULL `handle` column since we omit it here.
+  {
+    const { error } = await admin
+      .from("hosts")
+      .update({
+        is_superhost: true,
+        phone_verified: true,
+        payout_verified: true,
+        response_rate: 1.0,
+        avg_response_hours: 1,
+        highlights: ["Lives nearby", "Wine-farm local", "Great with families"],
+        languages_spoken: ["English", "Afrikaans", "isiXhosa"],
+      })
+      .eq("id", HOST_ID);
+    if (error) throw new Error(`update hosts: ${error.message}`);
+  }
+
+  // Gallery photos for LISTING_B (cover PHOTO_B already exists at sort 0).
+  await up("listing_photos", [
+    { id: "0a666666-6666-4666-8666-6666666666b1", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g1.jpg`, url: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200", sort_order: 1, caption: "Vineyard suite" },
+    { id: "0a666666-6666-4666-8666-6666666666b2", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g2.jpg`, url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200", sort_order: 2, caption: "Lounge" },
+    { id: "0a666666-6666-4666-8666-6666666666b3", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g3.jpg`, url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200", sort_order: 3, caption: "Kitchen" },
+    { id: "0a666666-6666-4666-8666-6666666666b4", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g4.jpg`, url: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=1200", sort_order: 4, caption: "Winelands at dusk" },
+    // Per-room cover photos.
+    { id: "0a666666-6666-4666-8666-66666666f6c1", listing_id: LISTING_B, room_id: ROOM_1, storage_path: `listing-photos/${LISTING_B}/r1.jpg`, url: "https://images.unsplash.com/photo-1591088398332-8a7791972843?w=900", sort_order: 5, caption: "Chardonnay Room" },
+    { id: "0a666666-6666-4666-8666-66666666f6c2", listing_id: LISTING_B, room_id: ROOM_2, storage_path: `listing-photos/${LISTING_B}/r2.jpg`, url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=900", sort_order: 6, caption: "Shiraz Suite" },
+  ]);
+
+  // More amenities for LISTING_B.
+  await up("listing_amenities", [
+    { id: "0ad00000-0000-4000-8000-00000000b004", listing_id: LISTING_B, amenity_key: "parking" },
+    { id: "0ad00000-0000-4000-8000-00000000b005", listing_id: LISTING_B, amenity_key: "kitchen" },
+    { id: "0ad00000-0000-4000-8000-00000000b006", listing_id: LISTING_B, amenity_key: "air_conditioning" },
+    { id: "0ad00000-0000-4000-8000-00000000b007", listing_id: LISTING_B, amenity_key: "garden" },
+    { id: "0ad00000-0000-4000-8000-00000000b008", listing_id: LISTING_B, amenity_key: "braai_bbq" },
+    { id: "0ad00000-0000-4000-8000-00000000b009", listing_id: LISTING_B, amenity_key: "mountain_view" },
+  ]);
+
+  // Seasonal pricing tiers for LISTING_B (listing-wide).
+  await up("listing_seasonal_pricing", [
+    { id: "0a555555-5555-4555-8555-5555555555b1", listing_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", price: 1900, currency: "ZAR", priority: 1 },
+    { id: "0a555555-5555-4555-8555-5555555555b2", listing_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", price: 3200, currency: "ZAR", min_nights: 4, priority: 10 },
+  ]);
+
+  // Blocked dates for LISTING_B (manual host blocks — show as unavailable).
+  await up(
+    "blocked_dates",
+    ["2026-12-24", "2026-12-25", "2026-12-26", "2026-12-31", "2027-01-01"].map((date, i) => ({
+      id: `0ab10cd0-0000-4000-8000-00000000b0${(i + 10).toString().padStart(2, "0")}`,
+      listing_id: LISTING_B,
+      date,
+      reason: "Owner stay",
+    })),
+  );
+
+  // Points of interest ("Where you'll be").
+  await up("listing_points_of_interest", [
+    { id: "0a0e0000-0000-4000-8000-0000000000e1", listing_id: LISTING_B, category: "eat", name: "Tokara Restaurant", travel_time: "8 min", sort_order: 0 },
+    { id: "0a0e0000-0000-4000-8000-0000000000e2", listing_id: LISTING_B, category: "eat", name: "The Fat Butcher", travel_time: "10 min", sort_order: 1 },
+    { id: "0a0e0000-0000-4000-8000-0000000000e3", listing_id: LISTING_B, category: "eat", name: "Schoon Café", travel_time: "12 min", sort_order: 2 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d1", listing_id: LISTING_B, category: "do", name: "Stellenbosch wine route", travel_time: "5 min", sort_order: 0 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d2", listing_id: LISTING_B, category: "do", name: "Jonkershoek hikes", travel_time: "20 min", sort_order: 1 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d3", listing_id: LISTING_B, category: "do", name: "Village museum", travel_time: "9 min", sort_order: 2 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c1", listing_id: LISTING_B, category: "travel", name: "Cape Town Intl (CPT)", travel_time: "35 min", sort_order: 0 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c2", listing_id: LISTING_B, category: "travel", name: "Cape Town CBD", travel_time: "50 min", sort_order: 1 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c3", listing_id: LISTING_B, category: "travel", name: "Stellenbosch station", travel_time: "10 min", sort_order: 2 },
+  ]);
+
+  // "Guests mention" review themes.
+  await up("listing_review_themes", [
+    { id: "0a0a0000-0000-4000-8000-0000000000a1", listing_id: LISTING_B, label: "Wine farm setting", icon_key: "grape", mention_count: 41, sort_order: 0 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a2", listing_id: LISTING_B, label: "The host", icon_key: "heart-handshake", mention_count: 58, sort_order: 1 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a3", listing_id: LISTING_B, label: "Spotless", icon_key: "sparkles", mention_count: 47, sort_order: 2 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a4", listing_id: LISTING_B, label: "Quiet", icon_key: "ear-off", mention_count: 24, sort_order: 3 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a5", listing_id: LISTING_B, label: "Breakfast", icon_key: "coffee", mention_count: 33, sort_order: 4 },
+  ]);
+
+  // Extra reviewers → completed bookings on LISTING_B → published reviews
+  // with per-category sub-ratings + trip_type + helpful counts.
+  const REVIEWERS = [
+    { uid: null, email: "nomvula@vilodemo.com", name: "Nomvula Khumalo", bId: "0a777777-7777-4777-8777-7777777777b6", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb6", inDate: "2026-02-10", outDate: "2026-02-13", rating: 5, trip: "couples", helpful: 14, body: "The vineyard views at sunrise are unreal. Thandi left us a bottle of estate red and the warmest welcome. We didn't want to leave." },
+    { uid: null, email: "jacobus@vilodemo.com", name: "Jacobus Visser", bId: "0a777777-7777-4777-8777-7777777777b7", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb7", inDate: "2026-03-05", outDate: "2026-03-10", rating: 5, trip: "friends", helpful: 22, body: "Booked the whole house for a wine weekend with friends. Spotless, quiet, and a 5-minute drive to the best tasting rooms. Faultless." },
+    { uid: null, email: "ayanda@vilodemo.com", name: "Ayanda Radebe", bId: "0a777777-7777-4777-8777-7777777777b8", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb8", inDate: "2026-03-20", outDate: "2026-03-22", rating: 5, trip: "family", helpful: 31, body: "Took my parents for their anniversary. The breakfast each morning was a highlight and the host organised a quiet table at Tokara for us." },
+    { uid: null, email: "sven@vilodemo.com", name: "Sven Petersen", bId: "0a777777-7777-4777-8777-7777777777b9", rId: "0acccccc-cccc-4ccc-8ccc-ccccccccccb9", inDate: "2026-04-02", outDate: "2026-04-06", rating: 4, trip: "solo", helpful: 8, body: "Came to write for a few days and got very little done — too distracted by the gardens. Comfortable bed, great coffee. Road in is bumpy." },
+  ];
+  const subRatings = (r) => ({
+    rating_cleanliness: 5,
+    rating_communication: 5,
+    rating_checkin: 5,
+    rating_accuracy: r >= 5 ? 5 : 4,
+    rating_location: 5,
+    rating_value: r >= 5 ? 5 : 4,
+  });
+  for (const rv of REVIEWERS) {
+    const u = await ensureAuthUser(rv.email, "ViloDemo123!");
+    rv.uid = u.id;
+    await up("user_profiles", [
+      { id: rv.uid, role: "guest", full_name: rv.name, email: rv.email },
+    ]);
+    await seedBooking(
+      {
+        id: rv.bId,
+        listing_id: LISTING_B,
+        host_id: HOST_ID,
+        guest_id: rv.uid,
+        guest_name: rv.name,
+        guest_email: rv.email,
+        check_in: rv.inDate,
+        check_out: rv.outDate,
+        guests_count: 2,
+        base_amount: 4800,
+        cleaning_fee: 400,
+        total_amount: 5200,
+        currency: "ZAR",
+        origin: "guest_request",
+        scope: "whole_listing",
+        payment_method: "paystack",
+        payment_status: "completed",
+      },
+      "completed",
+    );
+    await up("reviews", [
+      {
+        id: rv.rId,
+        booking_id: rv.bId,
+        listing_id: LISTING_B,
+        host_id: HOST_ID,
+        guest_id: rv.uid,
+        rating: rv.rating,
+        body: rv.body,
+        trip_type: rv.trip,
+        helpful_count: rv.helpful,
+        is_published: true,
+        ...subRatings(rv.rating),
+      },
+    ]);
+  }
 
   console.log("\n✅ Demo seed complete.");
   console.log("   Host login:  %s / %s", HOST_EMAIL, HOST_PASSWORD);

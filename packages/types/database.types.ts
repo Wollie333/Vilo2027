@@ -2223,6 +2223,44 @@ export type Database = {
           },
         ]
       }
+      listing_points_of_interest: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          listing_id: string
+          name: string
+          sort_order: number
+          travel_time: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          name: string
+          sort_order?: number
+          travel_time?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          name?: string
+          sort_order?: number
+          travel_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_points_of_interest_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_policies: {
         Row: {
           assigned_at: string
@@ -2318,6 +2356,44 @@ export type Database = {
             foreignKeyName: "listing_rankings_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_review_themes: {
+        Row: {
+          created_at: string
+          icon_key: string
+          id: string
+          label: string
+          listing_id: string
+          mention_count: number | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          icon_key?: string
+          id?: string
+          label: string
+          listing_id: string
+          mention_count?: number | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          icon_key?: string
+          id?: string
+          label?: string
+          listing_id?: string
+          mention_count?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_review_themes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -2557,6 +2633,7 @@ export type Database = {
           meeting_point: string | null
           min_nights: number | null
           min_participants: number | null
+          monthly_discount_pct: number | null
           name: string
           postal_code: string | null
           private_group_price: number | null
@@ -2570,7 +2647,9 @@ export type Database = {
           total_reviews: number
           updated_at: string
           weekend_price: number | null
+          weekly_discount_pct: number | null
           what_to_bring: string | null
+          whole_listing_discount_pct: number | null
         }
         Insert: {
           accepts_eft?: boolean
@@ -2616,6 +2695,7 @@ export type Database = {
           meeting_point?: string | null
           min_nights?: number | null
           min_participants?: number | null
+          monthly_discount_pct?: number | null
           name: string
           postal_code?: string | null
           private_group_price?: number | null
@@ -2629,7 +2709,9 @@ export type Database = {
           total_reviews?: number
           updated_at?: string
           weekend_price?: number | null
+          weekly_discount_pct?: number | null
           what_to_bring?: string | null
+          whole_listing_discount_pct?: number | null
         }
         Update: {
           accepts_eft?: boolean
@@ -2675,6 +2757,7 @@ export type Database = {
           meeting_point?: string | null
           min_nights?: number | null
           min_participants?: number | null
+          monthly_discount_pct?: number | null
           name?: string
           postal_code?: string | null
           private_group_price?: number | null
@@ -2688,7 +2771,9 @@ export type Database = {
           total_reviews?: number
           updated_at?: string
           weekend_price?: number | null
+          weekly_discount_pct?: number | null
           what_to_bring?: string | null
+          whole_listing_discount_pct?: number | null
         }
         Relationships: [
           {
@@ -4139,6 +4224,32 @@ export type Database = {
           },
         ]
       }
+      review_helpful_votes: {
+        Row: {
+          created_at: string
+          review_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          review_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          review_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_helpful_votes_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_request_queue: {
         Row: {
           booking_id: string
@@ -4189,6 +4300,7 @@ export type Database = {
           flagged_at: string | null
           flagged_reason: string | null
           guest_id: string
+          helpful_count: number
           host_id: string
           host_responded_at: string | null
           host_response: string | null
@@ -4205,6 +4317,7 @@ export type Database = {
           rating_value: number | null
           review_token: string | null
           token_expires_at: string | null
+          trip_type: string | null
           updated_at: string
         }
         Insert: {
@@ -4217,6 +4330,7 @@ export type Database = {
           flagged_at?: string | null
           flagged_reason?: string | null
           guest_id: string
+          helpful_count?: number
           host_id: string
           host_responded_at?: string | null
           host_response?: string | null
@@ -4233,6 +4347,7 @@ export type Database = {
           rating_value?: number | null
           review_token?: string | null
           token_expires_at?: string | null
+          trip_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -4245,6 +4360,7 @@ export type Database = {
           flagged_at?: string | null
           flagged_reason?: string | null
           guest_id?: string
+          helpful_count?: number
           host_id?: string
           host_responded_at?: string | null
           host_response?: string | null
@@ -4261,6 +4377,7 @@ export type Database = {
           rating_value?: number | null
           review_token?: string | null
           token_expires_at?: string | null
+          trip_type?: string | null
           updated_at?: string
         }
         Relationships: [
