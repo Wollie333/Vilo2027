@@ -16,6 +16,8 @@ import {
   Paperclip,
   PenSquare,
   Phone,
+  PanelLeftClose,
+  PanelLeftOpen,
   PanelRightOpen,
   Search,
   SendHorizontal,
@@ -218,7 +220,18 @@ export function InboxView({
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [showPaneMobile, setShowPaneMobile] = useState(false);
+  const [foldersHidden, setFoldersHidden] = useState(false);
   const [searchInput, setSearchInput] = useState(search);
+
+  // Persist the folder-rail visibility preference across visits.
+  useEffect(() => {
+    if (localStorage.getItem("vilo:inbox:foldersHidden") === "1") {
+      setFoldersHidden(true);
+    }
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("vilo:inbox:foldersHidden", foldersHidden ? "1" : "0");
+  }, [foldersHidden]);
 
   // Mark selected conversation as read on mount/selection change.
   const markedRef = useRef<string | null>(null);
@@ -295,11 +308,25 @@ export function InboxView({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-      {/* ── Folders rail (only xl+) ─────────────────────────── */}
-      <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white xl:flex">
+      {/* ── Folders rail (only xl+, when not hidden) ────────── */}
+      <aside
+        className={`hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white ${
+          foldersHidden ? "" : "xl:flex"
+        }`}
+      >
         <div className="px-4 pb-3 pt-5">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Folders
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              Folders
+            </span>
+            <button
+              type="button"
+              onClick={() => setFoldersHidden(true)}
+              className="inline-flex h-6 w-6 items-center justify-center rounded text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+              title="Hide folders"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </button>
           </div>
           <div className="space-y-0.5">
             {FOLDERS.map((f) => {
@@ -366,6 +393,16 @@ export function InboxView({
       >
         <div className="mid-head sticky top-0 z-10 border-b border-brand-line bg-white/95 px-4 py-3 backdrop-blur">
           <div className="flex items-center gap-2">
+            {foldersHidden ? (
+              <button
+                type="button"
+                onClick={() => setFoldersHidden(false)}
+                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light xl:inline-flex"
+                title="Show folders"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </button>
+            ) : null}
             <div className="flex h-9 flex-1 items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 focus-within:border-brand-primary focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-primary/15">
               <Search className="h-4 w-4 text-brand-mute" />
               <input
