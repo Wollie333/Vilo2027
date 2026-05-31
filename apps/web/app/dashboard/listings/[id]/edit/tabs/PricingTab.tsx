@@ -46,6 +46,9 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
       base_price: numToStr(listing.base_price),
       weekend_price: numToStr(listing.weekend_price),
       cleaning_fee: numToStr(listing.cleaning_fee),
+      whole_listing_discount_pct: numToStr(listing.whole_listing_discount_pct),
+      weekly_discount_pct: numToStr(listing.weekly_discount_pct),
+      monthly_discount_pct: numToStr(listing.monthly_discount_pct),
       currency: listing.currency || "ZAR",
     },
   });
@@ -56,6 +59,9 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
         base_price: toMoney(values.base_price),
         weekend_price: toMoney(values.weekend_price),
         cleaning_fee: toMoney(values.cleaning_fee),
+        whole_listing_discount_pct: toMoney(values.whole_listing_discount_pct),
+        weekly_discount_pct: toMoney(values.weekly_discount_pct),
+        monthly_discount_pct: toMoney(values.monthly_discount_pct),
         currency: values.currency || "ZAR",
       });
       if (result.ok) toast.success("Pricing saved");
@@ -150,6 +156,83 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+              <div className="font-display text-sm font-semibold text-brand-dark">
+                Discounts{" "}
+                <span className="font-normal text-brand-mute">(optional)</span>
+              </div>
+              <p className="mt-0.5 text-xs text-brand-mute">
+                Applied automatically at checkout. Whole-place needs every
+                active room booked together; length-of-stay kicks in at 7+ / 28+
+                nights.
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="whole_listing_discount_pct"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Whole-place %</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={90}
+                          step="1"
+                          placeholder="10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="weekly_discount_pct"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Weekly % (7+ nights)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={90}
+                          step="1"
+                          placeholder="5"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="monthly_discount_pct"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Monthly % (28+ nights)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={90}
+                          step="1"
+                          placeholder="10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
             <FormField

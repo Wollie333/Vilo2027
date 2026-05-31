@@ -13,6 +13,7 @@ import {
   Home as HomeIcon,
   LayoutDashboard,
   LifeBuoy,
+  MapPin,
   MessageSquare,
   PackagePlus,
   Receipt,
@@ -64,6 +65,12 @@ const MAIN: Item[] = [
     icon: CalendarRange,
   },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
+  {
+    href: "/dashboard/listing-extras",
+    label: "Listing extras",
+    icon: MapPin,
+    match: "prefix",
+  },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
 ];
 

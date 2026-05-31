@@ -100,6 +100,9 @@ export const pricingSchema = z.object({
   base_price: numericString(),
   weekend_price: numericString(),
   cleaning_fee: numericString(),
+  whole_listing_discount_pct: numericString("Must be a number."),
+  weekly_discount_pct: numericString("Must be a number."),
+  monthly_discount_pct: numericString("Must be a number."),
   currency: z.string().trim().min(3, "Use a 3-letter code.").max(3),
 });
 export type PricingInput = z.infer<typeof pricingSchema>;
@@ -241,6 +244,9 @@ export const patchSchema = z.object({
   base_price: z.number().nullable().optional(),
   weekend_price: z.number().nullable().optional(),
   cleaning_fee: z.number().nullable().optional(),
+  whole_listing_discount_pct: z.number().min(0).max(90).nullable().optional(),
+  weekly_discount_pct: z.number().min(0).max(90).nullable().optional(),
+  monthly_discount_pct: z.number().min(0).max(90).nullable().optional(),
   currency: z.string().optional(),
 
   check_in_time: z.string().nullable().optional(),

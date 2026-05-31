@@ -69,6 +69,9 @@ export type EditorListing = {
   base_price: number | null;
   weekend_price: number | null;
   cleaning_fee: number | null;
+  whole_listing_discount_pct: number | null;
+  weekly_discount_pct: number | null;
+  monthly_discount_pct: number | null;
   currency: string;
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
