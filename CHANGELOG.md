@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Calendar redesign: console + KPI layouts, month/timeline, drag-to-block — branch `main`
+
+### Built (from the `Calendar.html` design pack)
+- Rebuilt `/dashboard/calendar` to the mockup. Two layouts, switchable via a
+  persisted **A⇄B toggle** (saved to localStorage, default **A**):
+  - **A · Console** — calendar hero + right rail (occupancy ring, revenue/ADR,
+    origin mix, today's arrivals/departures, upcoming check-ins).
+  - **B · KPI-first** — 4-tile KPI strip, full-width calendar, horizontal
+    upcoming rail.
+- **Month grid** with spanning, lane-packed booking bars (`+N more` overflow),
+  per-day price (seasonal overrides), booking popover, and an add/block/edit
+  popover; **Timeline view** (listings as rows, days across).
+- **Drag-to-block** across days (and single-day block via the popover), wired to
+  a new `setManualBlocksAction` bulk block/unblock (listing-wide manual blocks;
+  booked + quote-held days are protected). Optimistic UI with server resync on
+  error.
+- **Filters** (status + origin) and **field toggles** (avatar/name/status/origin
+  mark/price/rate/check-in time/guests); month nav + listing switcher.
+
+### Data mapping
+- "Channel" → booking **origin** (Direct / Manual / From-quote), since Vilo is
+  direct-booking. External **iCal** blocks render as a distinct hatch + source
+  label — future-proofed (`reason` like `ical:airbnb`); no rows until the iCal
+  import Edge Function ships.
+- All reads host-scoped; bookings use the `user_profiles!bookings_guest_id_fkey`
+  hint; blocks scoped to the host's listing ids (blocked_dates is public-read).
+- Replaced the old basic month grid; removed `CalendarBoard`/`CalendarMonth`/
+  `ListingPicker`/`RoomPicker`/`IcalExportPanel` (iCal export lives on
+  `/dashboard/calendar-sync`).
+
+### Notes
+- New calendar files type-check + lint clean. (Repo-wide `pnpm build` currently
+  blocked by an unrelated in-progress homepage edit in `_components/home/*` —
+  not part of this commit.)
+
 ## 2026-05-31 — Data-isolation sweep + a11y warning — branch `main`
 
 ### Fixed (data isolation — sweep follow-up)
