@@ -49,27 +49,39 @@ export default async function SeasonalPricingPage() {
     );
   }
 
-  const [{ data: featureRaw }, { data: listingsRaw }, { data: rulesRaw }] =
-    await Promise.all([
-      supabase.rpc("check_feature_permission", {
-        p_host_id: host.id,
-        p_feature_key: "seasonal_pricing",
-      }),
-      supabase
-        .from("listings")
-        .select(
-          "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:listing_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
-        )
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
+  // Scope to the logged-in host. `listings` has a `public_read_published`
+  // RLS policy (so guests can browse the directory), which means relying on
+  // RLS alone here would also return every OTHER host's published listing.
+  // The explicit `host_id` filter is what keeps the portfolio private — never
+  // remove it. (Same fix as the rooms/listings pages.)
+  const [{ data: featureRaw }, { data: listingsRaw }] = await Promise.all([
+    supabase.rpc("check_feature_permission", {
+      p_host_id: host.id,
+      p_feature_key: "seasonal_pricing",
+    }),
+    supabase
+      .from("listings")
+      .select(
+        "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:listing_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
+      )
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  // Seasonal rules carry no host_id and have a `public_read_seasonal_pricing`
+  // policy, so they leak too — scope them to this host's listing ids.
+  const hostListingIds = (listingsRaw ?? []).map((l) => l.id);
+  const { data: rulesRaw } = hostListingIds.length
+    ? await supabase
         .from("listing_seasonal_pricing")
         .select(
           "id, listing_id, room_id, label, start_date, end_date, price, currency, min_nights, priority, is_active",
         )
+        .in("listing_id", hostListingIds)
         .order("priority", { ascending: false })
-        .order("start_date", { ascending: true }),
-    ]);
+        .order("start_date", { ascending: true })
+    : { data: null };
 
   const feature = featureRaw as { is_enabled: boolean } | null;
   const enabled = feature?.is_enabled ?? false;

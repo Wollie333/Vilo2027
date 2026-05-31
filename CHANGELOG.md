@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Fix: scope seasonal-pricing page to the logged-in host — branch `feat/seasonal-pricing-redesign`
+
+### Fixed
+- `/dashboard/seasonal-pricing` listed **every other host's** published listings.
+  The page read `listings` relying on RLS alone, but the `public_read_published`
+  policy returns the whole directory. Added an explicit `.eq("host_id", host.id)`
+  filter (same fix already applied to the rooms/listings pages).
+- The seasonal rules read (`listing_seasonal_pricing`) was likewise unscoped and
+  has a `public_read_seasonal_pricing` policy — now scoped to the host's listing
+  ids via `.in("listing_id", hostListingIds)`. Write actions were already guarded
+  by `assertListingOwnership` / `assertRuleOwnership`, so no mutation leak existed.
+
+---
+
 ## 2026-05-31 — Seasonal pricing redesign (Seasonal Pricing template) — branch `feat/seasonal-pricing-redesign`
 
 ### Built
