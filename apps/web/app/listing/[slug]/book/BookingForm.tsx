@@ -15,6 +15,7 @@ import {
   Mail,
   MapPin,
   Minus,
+  Moon,
   PackagePlus,
   Percent,
   Plus,
@@ -1684,34 +1685,12 @@ export function BookingForm({
             >
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
-            {step === 0 ? (
-              <button
-                type="button"
-                onClick={goToPayment}
-                disabled={needsRoom || !datesValid}
-                className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue to payment <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isPending}
-                className="inline-flex min-w-[200px] items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:cursor-progress disabled:opacity-70"
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {payLabel}
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4" />
-                    {payLabel}
-                  </>
-                )}
-              </button>
-            )}
+            <div className="hidden items-center gap-1.5 text-[11px] text-brand-mute lg:flex">
+              {step === 0
+                ? "Continue from your summary"
+                : "Complete payment from your summary"}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
           </div>
 
           {/* Legal disclaimer (payment step) */}
@@ -1729,84 +1708,76 @@ export function BookingForm({
 
         {/* ── Right column: sticky summary ────────────────────────── */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
-          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            <div className="relative h-40 w-full">
+          <div className="relative overflow-hidden rounded-card bg-brand-gradient-dark text-white shadow-peek">
+            {/* ambient glow */}
+            <div className="pointer-events-none absolute -right-16 -top-24 h-56 w-56 rounded-pill bg-brand-primary/25 blur-3xl" />
+
+            {/* cover */}
+            <div className="relative h-36 overflow-hidden">
               {coverImageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={coverImageUrl}
                   alt=""
-                  className="h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-cover"
                 />
               ) : (
-                <div className="h-full w-full bg-brand-gradient-dark" />
+                <div className="absolute inset-0 bg-brand-gradient-dark" />
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/40 to-transparent" />
               {instantBooking ? (
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-pill bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary backdrop-blur">
-                  <Zap className="h-3 w-3" /> Instant Book
+                <span className="absolute left-4 top-3.5 inline-flex items-center gap-1.5 rounded-pill border border-white/15 bg-black/35 px-2.5 py-1 text-[11px] font-semibold backdrop-blur">
+                  <Zap className="h-3 w-3 text-emerald-300" /> Instant Book
                 </span>
               ) : null}
-            </div>
-
-            <div className="border-b border-brand-line px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-                    {locationLine
-                      ? `${listingTypeLabel} · ${listingCity ?? locationLine}`
-                      : listingTypeLabel}
-                  </div>
-                  <div className="mt-0.5 truncate font-display text-lg font-bold text-brand-ink">
-                    {listingName}
-                  </div>
+              <div className="absolute bottom-3 left-4 right-4">
+                <div className="text-[11px] font-medium uppercase tracking-wider text-emerald-200/90">
+                  {locationLine
+                    ? `${listingTypeLabel} · ${listingCity ?? locationLine}`
+                    : listingTypeLabel}
                 </div>
-                {ratingValue != null ? (
-                  <div className="text-right">
-                    <div className="inline-flex items-center gap-1 text-sm font-semibold text-brand-ink">
-                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                      {ratingValue.toFixed(2)}
-                    </div>
-                    <div className="text-[11px] text-brand-mute">
-                      {reviewCount ?? 0}{" "}
-                      {(reviewCount ?? 0) === 1 ? "review" : "reviews"}
-                    </div>
-                  </div>
-                ) : null}
+                <div className="truncate font-display text-xl font-bold leading-tight text-white">
+                  {listingName}
+                </div>
               </div>
             </div>
 
-            <div className="p-5">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded border border-brand-line p-2.5">
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+            <div className="relative p-5">
+              {/* date rail */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-card border border-white/10 bg-white/[0.06] p-3">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-white/50">
                     Check-in
                   </div>
-                  <div className="mt-0.5 text-sm font-medium text-brand-ink">
+                  <div className="mt-0.5 font-display font-bold text-white">
                     {fmtDate(dates.from)}
                   </div>
                 </div>
-                <div className="rounded border border-brand-line p-2.5">
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                    Check-out
-                  </div>
-                  <div className="mt-0.5 text-sm font-medium text-brand-ink">
-                    {fmtDate(dates.to)}
+                <div className="flex flex-col items-center px-1 text-emerald-300">
+                  <Moon className="h-4 w-4" />
+                  <div className="mt-0.5 text-[11px] font-semibold">
+                    {nights}n
                   </div>
                 </div>
-                <div className="col-span-2 rounded border border-brand-line p-2.5">
-                  <div className="text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                    Guests
+                <div className="text-right">
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+                    Check-out
                   </div>
-                  <div className="mt-0.5 text-sm font-medium text-brand-ink">
-                    {effectiveGuests}{" "}
-                    {effectiveGuests === 1 ? "guest" : "guests"}
+                  <div className="mt-0.5 font-display font-bold text-white">
+                    {fmtDate(dates.to)}
                   </div>
                 </div>
               </div>
 
-              {/* Selected rooms */}
-              <div className="mt-5 border-t border-brand-line pt-4">
-                <div className="mb-2.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+              {/* guests */}
+              <div className="mt-3 flex items-center gap-2 text-sm text-white/80">
+                <Users className="h-4 w-4 text-white/55" />
+                {effectiveGuests} {effectiveGuests === 1 ? "guest" : "guests"}
+              </div>
+
+              {/* rooms / whole place */}
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <div className="mb-2.5 text-[10px] font-medium uppercase tracking-wider text-white/45">
                   {isWhole
                     ? "Whole place"
                     : `${selectedRooms.length} ${
@@ -1814,26 +1785,24 @@ export function BookingForm({
                       } selected`}
                 </div>
                 {isWhole ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
-                        <Home className="h-4 w-4" />
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
+                      <Home className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[13px] font-medium text-white">
+                        {listingName}
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-brand-ink">
-                          {listingName}
-                        </div>
-                        <div className="font-mono text-[11px] text-brand-mute">
-                          {fmtR(basePrice, currency)} × {nights}n
-                        </div>
+                      <div className="font-mono text-[10.5px] text-white/45">
+                        {fmtR(basePrice, currency)} × {nights}n
                       </div>
                     </div>
-                    <div className="shrink-0 text-sm font-semibold text-brand-ink">
+                    <div className="shrink-0 text-[13px] font-semibold text-white">
                       {fmtR(subtotal, currency)}
                     </div>
                   </div>
                 ) : selectedRooms.length === 0 ? (
-                  <div className="text-xs italic text-brand-mute">
+                  <div className="text-xs italic text-white/50">
                     No rooms selected yet.
                   </div>
                 ) : (
@@ -1845,22 +1814,22 @@ export function BookingForm({
                           <img
                             src={r.photoUrl}
                             alt=""
-                            className="h-10 w-12 shrink-0 rounded-md object-cover"
+                            className="h-9 w-11 shrink-0 rounded-md object-cover ring-1 ring-white/10"
                           />
                         ) : (
-                          <div className="flex h-10 w-12 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+                          <span className="flex h-9 w-11 shrink-0 items-center justify-center rounded-md bg-white/10 text-emerald-200 ring-1 ring-white/10">
                             <BedDouble className="h-4 w-4" />
-                          </div>
+                          </span>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-brand-ink">
+                          <div className="truncate text-[13px] font-medium text-white">
                             {r.name}
                           </div>
-                          <div className="font-mono text-[11px] text-brand-mute">
+                          <div className="font-mono text-[10.5px] text-white/45">
                             {fmtR(roomNightly(r), currency)} × {nights}n
                           </div>
                         </div>
-                        <div className="shrink-0 text-sm font-semibold text-brand-ink">
+                        <div className="shrink-0 text-[13px] font-semibold text-white">
                           {fmtR(roomNightly(r) * nights, currency)}
                         </div>
                       </div>
@@ -1869,69 +1838,89 @@ export function BookingForm({
                 )}
               </div>
 
-              {/* Breakdown */}
-              <dl className="mt-4 space-y-2 border-t border-brand-line pt-4 text-sm">
-                <div className="flex items-center justify-between text-brand-ink">
-                  <dt>Rooms subtotal</dt>
-                  <dd>{fmtR(subtotal, currency)}</dd>
+              {/* breakdown */}
+              <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4 text-[13px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/85">Rooms subtotal</span>
+                  <span className="text-white">{fmtR(subtotal, currency)}</span>
                 </div>
-                {selectedAddonLines.length > 0 ? (
-                  <div className="border-t border-brand-line/70 pt-2">
-                    <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                      Add-ons
-                    </div>
-                    {selectedAddonLines.map((line) => (
-                      <div
-                        key={line.id}
-                        className="flex items-center justify-between py-0.5 text-[13px] text-brand-ink"
-                      >
-                        <dt className="truncate pr-2">{line.name}</dt>
-                        <dd>{fmtR(line.subtotal, currency)}</dd>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-                {cleaningTotal > 0 ? (
-                  <div className="flex items-center justify-between text-brand-ink">
-                    <dt className="inline-flex items-center gap-1.5">
-                      {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
-                      <span title="One-off cleaning fee charged by the host.">
-                        <Info className="h-3 w-3 text-brand-mute" />
-                      </span>
-                    </dt>
-                    <dd>{fmtR(cleaningTotal, currency)}</dd>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between text-brand-mute">
-                  <dt className="inline-flex items-center gap-1.5">
-                    Vilo service fee
-                    <span title="Vilo charges hosts a subscription. Guests never pay a booking fee.">
-                      <Info className="h-3 w-3" />
+                {selectedAddonLines.map((line) => (
+                  <div
+                    key={line.id}
+                    className="flex items-center justify-between"
+                  >
+                    <span className="min-w-0 truncate pr-2 text-white/65">
+                      {line.name}
                     </span>
-                  </dt>
-                  <dd className="font-medium text-brand-primary">FREE</dd>
-                </div>
-                <div className="flex items-baseline justify-between border-t border-brand-line pt-3">
-                  <dt className="font-display font-semibold text-brand-ink">
-                    Total · {currency}
-                  </dt>
-                  <dd className="font-display text-2xl font-bold text-brand-ink">
-                    {fmtR(total, currency)}
-                  </dd>
-                </div>
-              </dl>
-
-              {/* Refund / safety strip */}
-              <div className="mt-4 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light/60 p-3">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                <div className="text-[11px] leading-relaxed text-brand-mute">
-                  {CANCELLATION_BULLETS[cancellationPolicy][0].text} Vilo holds
-                  payments until your trip is confirmed.
+                    <span className="text-white">
+                      {fmtR(line.subtotal, currency)}
+                    </span>
+                  </div>
+                ))}
+                {cleaningTotal > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/85">
+                      {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
+                    </span>
+                    <span className="text-white">
+                      {fmtR(cleaningTotal, currency)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between">
+                  <span className="text-white/85">Vilo service fee</span>
+                  <span className="font-medium text-emerald-300">FREE</span>
                 </div>
               </div>
 
+              {/* total */}
+              <div className="mt-4 flex items-end justify-between border-t border-white/15 pt-4">
+                <div>
+                  <div className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+                    Total · {currency}
+                  </div>
+                  <div className="text-[11px] text-white/45">
+                    incl. all fees · no booking fee
+                  </div>
+                </div>
+                <div className="font-display text-[28px] font-extrabold leading-none text-white">
+                  {fmtR(total, currency)}
+                </div>
+              </div>
+
+              {/* CTA — travels with the card (desktop) */}
+              {step === 0 ? (
+                <button
+                  type="button"
+                  onClick={goToPayment}
+                  disabled={needsRoom || !datesValid}
+                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
+                >
+                  Continue to payment <ArrowRight className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-progress disabled:opacity-70 lg:inline-flex"
+                >
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Lock className="h-4 w-4" />
+                  )}
+                  {payLabel}
+                </button>
+              )}
+
+              {/* refund / safety strip */}
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+                {CANCELLATION_BULLETS[cancellationPolicy][0].text}
+              </div>
+
               {step === 1 ? (
-                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-brand-mute">
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
                   <Mail className="h-3 w-3" />
                   {method === "eft"
                     ? "You’ll get the host’s banking details to complete payment."
