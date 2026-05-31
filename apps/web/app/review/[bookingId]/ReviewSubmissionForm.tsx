@@ -29,6 +29,17 @@ const CATEGORIES = [
 
 type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
+const TRIP_TYPES = [
+  { key: "couples", label: "Couples" },
+  { key: "family", label: "Family" },
+  { key: "solo", label: "Solo" },
+  { key: "friends", label: "Friends" },
+  { key: "business", label: "Business" },
+  { key: "other", label: "Other" },
+] as const;
+
+type TripTypeKey = (typeof TRIP_TYPES)[number]["key"];
+
 /** Compact 1–5 star row for an optional category rating. */
 function CategoryStars({
   label,
@@ -95,6 +106,7 @@ export function ReviewSubmissionForm({
     rating_location: 0,
     rating_value: 0,
   });
+  const [tripType, setTripType] = useState<TripTypeKey | null>(null);
   const [pending, start] = useTransition();
   const display = hover || rating;
   const remaining = MAX - body.length;
@@ -114,6 +126,7 @@ export function ReviewSubmissionForm({
         rating_accuracy: categories.rating_accuracy || null,
         rating_location: categories.rating_location || null,
         rating_value: categories.rating_value || null,
+        trip_type: tripType,
       });
       if (result.ok) {
         toast.success("Thanks — your review has been submitted.");
@@ -183,6 +196,33 @@ export function ReviewSubmissionForm({
               }
             />
           ))}
+        </div>
+      </fieldset>
+
+      {/* Trip type (optional) */}
+      <fieldset>
+        <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+          Who did you travel with? (optional)
+        </legend>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {TRIP_TYPES.map((t) => {
+            const active = tripType === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                disabled={pending}
+                onClick={() => setTripType(active ? null : t.key)}
+                className={`rounded-pill border px-3 py-1 text-[12px] font-semibold transition-colors ${
+                  active
+                    ? "border-brand-ink bg-brand-ink text-white"
+                    : "border-brand-line bg-brand-light text-brand-secondary hover:bg-brand-accent"
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 

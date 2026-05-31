@@ -38,6 +38,8 @@ import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
+import { loadListingReviews } from "./reviews-data";
+import { ReviewsSection } from "./ReviewsSection";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
@@ -349,6 +351,10 @@ export default async function ListingDetailPage({
   if (!data) notFound();
   const { listing, photos, amenities, rooms, seasons, unavailableDates } = data;
 
+  const reviews = await loadListingReviews(listing.id);
+  const reviewsNode =
+    reviews.count > 0 ? <ReviewsSection data={reviews} /> : null;
+
   const hasRoomsMode = listing.booking_mode !== "whole_listing";
 
   const ratesNode =
@@ -401,6 +407,7 @@ export default async function ListingDetailPage({
               calendarNode={
                 <RoomsCalendarSection unavailable={unavailableDates} />
               }
+              reviewsNode={reviewsNode}
               sidebarNode={
                 <RoomsCartSidebar
                   slug={listing.slug ?? params.slug}
@@ -450,6 +457,7 @@ export default async function ListingDetailPage({
                 </section>
               ) : null
             }
+            reviewsNode={reviewsNode}
             sidebarNode={
               <BookingWidget
                 slug={listing.slug ?? params.slug}
@@ -602,6 +610,7 @@ function ListingBody({
   roomsHeaderAction,
   ratesNode,
   calendarNode,
+  reviewsNode,
   sidebarNode,
 }: {
   listing: RawListing;
@@ -611,19 +620,16 @@ function ListingBody({
   roomsHeaderAction?: React.ReactNode;
   ratesNode?: React.ReactNode;
   calendarNode?: React.ReactNode;
+  reviewsNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
 }) {
-  const hasReviews =
-    listing.avg_rating != null &&
-    listing.total_reviews != null &&
-    listing.total_reviews > 0;
   const sectionLinks = [
     { id: "sec-overview", label: "Overview" },
     { id: "sec-amenities", label: "Amenities" },
     ...(showRoomsGrid ? [{ id: "sec-rooms", label: "Rooms" }] : []),
     ...(ratesNode ? [{ id: "sec-rates", label: "Rates" }] : []),
     ...(calendarNode ? [{ id: "sec-calendar", label: "Calendar" }] : []),
-    ...(hasReviews ? [{ id: "sec-reviews", label: "Reviews" }] : []),
+    ...(reviewsNode ? [{ id: "sec-reviews", label: "Reviews" }] : []),
     { id: "sec-host", label: "Host" },
     { id: "sec-policies", label: "Things to know" },
   ];
@@ -801,68 +807,8 @@ function ListingBody({
           {/* AVAILABILITY CALENDAR */}
           {calendarNode}
 
-          {/* REVIEWS — summary card only (full reviews list not loaded here) */}
-          {hasReviews ? (
-            <section
-              id="sec-reviews"
-              className="border-b border-brand-line py-7"
-            >
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-                    Reviews
-                  </div>
-                  <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">
-                    What guests are saying
-                  </h3>
-                </div>
-              </div>
-
-              <div className="mt-6 grid items-center gap-8 rounded-card border border-brand-line bg-gradient-to-br from-brand-light to-white p-6 lg:grid-cols-12 lg:p-8">
-                <div className="text-center lg:col-span-5 lg:text-left">
-                  <div className="flex items-baseline justify-center gap-2 lg:justify-start">
-                    <span className="font-display text-[68px] font-extrabold leading-none tracking-tight text-brand-ink lg:text-[80px]">
-                      {(listing.avg_rating ?? 0).toFixed(2)}
-                    </span>
-                    <span className="font-display text-2xl text-brand-mute">
-                      / 5
-                    </span>
-                  </div>
-                  <div className="mt-3 inline-flex items-center gap-0.5">
-                    {[0, 1, 2, 3, 4].map((i) => (
-                      <Star
-                        key={i}
-                        className="h-5 w-5 fill-brand-ink stroke-brand-ink"
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-2.5 text-sm text-brand-mute">
-                    From{" "}
-                    <span className="font-mono font-semibold text-brand-ink">
-                      {listing.total_reviews}
-                    </span>{" "}
-                    verified stay
-                    {listing.total_reviews === 1 ? "" : "s"}
-                  </div>
-                </div>
-
-                <div className="lg:col-span-7">
-                  <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Rating trust
-                  </div>
-                  <div className="rounded border border-brand-line bg-white/70 p-4 text-sm leading-relaxed text-brand-dark">
-                    <p className="inline-flex items-start gap-2">
-                      <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                      <span>
-                        Vilo only lets guests who completed a stay leave a
-                        review. Every score above is from a verified booking.
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-          ) : null}
+          {/* REVIEWS — full section (distribution, categories, grid, votes) */}
+          {reviewsNode}
 
           {/* HOST */}
           <section id="sec-host" className="border-b border-brand-line py-7">

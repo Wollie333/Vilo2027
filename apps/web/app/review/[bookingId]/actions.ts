@@ -19,6 +19,10 @@ const submitSchema = z.object({
   rating_accuracy: subRating,
   rating_location: subRating,
   rating_value: subRating,
+  trip_type: z
+    .enum(["couples", "family", "solo", "friends", "business", "other"])
+    .nullable()
+    .optional(),
 });
 
 type ActionResult =
@@ -47,6 +51,14 @@ export async function submitReviewAction(
     rating_accuracy?: number | null;
     rating_location?: number | null;
     rating_value?: number | null;
+    trip_type?:
+      | "couples"
+      | "family"
+      | "solo"
+      | "friends"
+      | "business"
+      | "other"
+      | null;
   },
 ): Promise<ActionResult> {
   const parsed = submitSchema.safeParse(input);
@@ -114,6 +126,7 @@ export async function submitReviewAction(
       rating_accuracy: parsed.data.rating_accuracy ?? null,
       rating_location: parsed.data.rating_location ?? null,
       rating_value: parsed.data.rating_value ?? null,
+      trip_type: parsed.data.trip_type ?? null,
       is_published: false,
       publish_at: publishAt,
     })

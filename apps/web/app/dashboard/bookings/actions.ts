@@ -134,3 +134,35 @@ export async function checkInBookingAction(bookingId: string) {
 export async function checkOutBookingAction(bookingId: string) {
   return applyTransition(bookingId, "checkOut");
 }
+
+// Adds a host-only internal note to a booking. booking_notes is gated by the
+// host_manage_booking_notes RLS policy (host of the parent booking only), so
+// ownership is enforced at the row level — no extra check needed here.
+export async function addBookingNoteAction(
+  bookingId: string,
+  body: string,
+): Promise<BookingActionResult> {
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Note can't be empty." };
+  if (text.length > 2000) {
+    return { ok: false, error: "Note is too long (max 2000 characters)." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { error } = await supabase.from("booking_notes").insert({
+    booking_id: bookingId,
+    author_id: user.id,
+    body: text,
+  });
+  if (error) {
+    return { ok: false, error: "Could not save note. Try again." };
+  }
+
+  revalidatePath(`/dashboard/bookings/${bookingId}`);
+  return { ok: true };
+}
