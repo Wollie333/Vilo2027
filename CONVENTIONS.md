@@ -424,6 +424,20 @@ All Tailwind breakpoints are mobile-first (`sm:`, `md:`, `lg:`). Design for mobi
 ### 7.4 Dark mode
 Use Tailwind's `dark:` variant. The theme toggle is controlled by the `class` strategy in `tailwind.config.ts`.
 
+### 7.5 Logged-in layout shell vs. full-bleed (Inbox)
+Every logged-in page renders inside the **standard content shell** — padded (`px-5 py-6` / `lg:px-8 lg:py-8`) and capped at `max-w-[1280px]`, on a page that grows and scrolls naturally (`min-h-screen`).
+
+The **Inbox is the one exception** and is **full-bleed** on *both* dashboards — host (`/dashboard/inbox`) and guest (`/portal/inbox`): full content width (no horizontal padding, no max-width cap) and full viewport height (`h-[100dvh] overflow-hidden` on the shell so internal scroll regions and the pinned composer resolve). It must **never** revert to the padded shell.
+
+This is enforced by a single rule, not by per-layout copies:
+
+```typescript
+// apps/web/lib/layout/fullBleed.ts — the only place the rule lives
+export const FULL_BLEED_ROUTES = new Set(['/dashboard/inbox', '/portal/inbox']);
+```
+
+Both `app/dashboard/layout.tsx` and `app/portal/layout.tsx` import `isFullBleedRoute()` and branch on it (pathname comes from the `x-pathname` request header set in middleware). **Do not** hardcode the route list in a layout, and **do not** wrap the inbox page in the padded shell. Matching is exact, so child routes (e.g. `/dashboard/inbox/templates`) intentionally keep the standard shell. A full-bleed page owns its own internal padding/scroll.
+
 ---
 
 ## 8. Notifications & Toasts

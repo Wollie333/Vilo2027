@@ -68,109 +68,116 @@ export default async function PortalInboxPage() {
   };
   const list = (rows as Row[] | null) ?? [];
 
+  // Full-bleed surface (see @/lib/layout/fullBleed): fill the content area
+  // height and scroll internally rather than growing the page. Internal
+  // padding lives here on the page, not on the layout shell.
   return (
-    <div>
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
-          Messages
-        </h1>
-        <p className="mt-2 text-sm text-brand-mute">
-          Your conversations with hosts and Vilo support.
-        </p>
-      </header>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 overflow-y-auto px-5 py-6 lg:px-8 lg:py-8">
+        <header className="mb-8">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
+            Messages
+          </h1>
+          <p className="mt-2 text-sm text-brand-mute">
+            Your conversations with hosts and Vilo support.
+          </p>
+        </header>
 
-      {list.length === 0 ? (
-        <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-            <MessageSquare className="h-6 w-6" />
+        {list.length === 0 ? (
+          <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+              <MessageSquare className="h-6 w-6" />
+            </div>
+            <p className="font-display text-lg font-bold text-brand-ink">
+              No conversations yet
+            </p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
+              Message a host from any listing — or start a conversation from
+              your booking page.
+            </p>
+            <Link
+              href="/explore"
+              className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
+            >
+              Browse stays <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
-          <p className="font-display text-lg font-bold text-brand-ink">
-            No conversations yet
-          </p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-            Message a host from any listing — or start a conversation from your
-            booking page.
-          </p>
-          <Link
-            href="/explore"
-            className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
-          >
-            Browse stays <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      ) : (
-        <ul className="divide-y divide-brand-line overflow-hidden rounded-card border border-brand-line bg-white">
-          {list.map((c) => {
-            const host = Array.isArray(c.host) ? c.host[0] : c.host;
-            const listing = Array.isArray(c.listing) ? c.listing[0] : c.listing;
-            const initials = (host?.display_name ?? "?")
-              .slice(0, 2)
-              .toUpperCase();
-            return (
-              <li key={c.id}>
-                <div
-                  className="flex items-start gap-4 p-4 hover:bg-brand-light/60"
-                  title="Conversation viewer ships in the next slice."
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-accent text-xs font-semibold text-brand-secondary">
-                    {host?.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={host.avatar_url}
-                        alt={host.display_name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-display text-sm font-semibold text-brand-ink">
-                        {host?.display_name ?? "Host"}
+        ) : (
+          <ul className="divide-y divide-brand-line overflow-hidden rounded-card border border-brand-line bg-white">
+            {list.map((c) => {
+              const host = Array.isArray(c.host) ? c.host[0] : c.host;
+              const listing = Array.isArray(c.listing)
+                ? c.listing[0]
+                : c.listing;
+              const initials = (host?.display_name ?? "?")
+                .slice(0, 2)
+                .toUpperCase();
+              return (
+                <li key={c.id}>
+                  <div
+                    className="flex items-start gap-4 p-4 hover:bg-brand-light/60"
+                    title="Conversation viewer ships in the next slice."
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-accent text-xs font-semibold text-brand-secondary">
+                      {host?.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={host.avatar_url}
+                          alt={host.display_name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        initials
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="font-display text-sm font-semibold text-brand-ink">
+                          {host?.display_name ?? "Host"}
+                        </div>
+                        {listing?.name ? (
+                          <span className="truncate text-xs text-brand-mute">
+                            · {listing.name}
+                          </span>
+                        ) : null}
+                        {c.is_enquiry ? (
+                          <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                            Enquiry
+                          </span>
+                        ) : null}
                       </div>
-                      {listing?.name ? (
-                        <span className="truncate text-xs text-brand-mute">
-                          · {listing.name}
-                        </span>
-                      ) : null}
-                      {c.is_enquiry ? (
-                        <span className="inline-flex items-center rounded-pill bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                          Enquiry
+                      <p className="mt-1 line-clamp-1 text-sm text-brand-mute">
+                        {c.last_message_preview ?? "No messages yet."}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-[11px] text-brand-mute">
+                        {fmtRelative(c.last_message_at)}
+                      </div>
+                      {c.unread_guest > 0 ? (
+                        <span className="mt-1 inline-flex items-center rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white">
+                          {c.unread_guest}
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-1 line-clamp-1 text-sm text-brand-mute">
-                      {c.last_message_preview ?? "No messages yet."}
-                    </p>
                   </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-[11px] text-brand-mute">
-                      {fmtRelative(c.last_message_at)}
-                    </div>
-                    {c.unread_guest > 0 ? (
-                      <span className="mt-1 inline-flex items-center rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white">
-                        {c.unread_guest}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
 
-      <p className="mt-6 text-xs text-brand-mute">
-        Need help from Vilo?{" "}
-        <Link
-          href="/help"
-          className="font-medium text-brand-primary hover:underline"
-        >
-          Visit the help centre
-        </Link>
-        .
-      </p>
+        <p className="mt-6 text-xs text-brand-mute">
+          Need help from Vilo?{" "}
+          <Link
+            href="/help"
+            className="font-medium text-brand-primary hover:underline"
+          >
+            Visit the help centre
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   );
 }

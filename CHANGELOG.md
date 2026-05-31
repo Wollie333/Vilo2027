@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-05-31 — Inbox full-bleed layout rule (host + guest) — branch `main`
+
+### Built
+- New `apps/web/lib/layout/fullBleed.ts` — single source of truth for which
+  logged-in routes break out of the standard padded `max-w-[1280px]` shell
+  and render full-width + full-height instead. `FULL_BLEED_ROUTES` =
+  `/dashboard/inbox` + `/portal/inbox`; `isFullBleedRoute()` is exact-match.
+
+### Changed
+- `app/dashboard/layout.tsx` now imports the shared rule instead of its own
+  inline `FULL_BLEED_ROUTES` copy (no behaviour change on the host side).
+- `app/portal/layout.tsx` (guest dashboard) now applies the same full-bleed
+  height chain (`h-[100dvh] overflow-hidden` shell, `min-h-0` main, no
+  padding / no max-width cap) when on `/portal/inbox`. Previously the guest
+  inbox was forced into the padded shell.
+- `app/portal/inbox/page.tsx` restructured into a full-height column with an
+  internal scroll region so it fills the full-bleed canvas correctly.
+- `CONVENTIONS.md` §7.5 documents the rule so the inbox can't silently
+  revert to the padded shell on one dashboard.
+
 ## 2026-05-31 — Remove Experiences/tour-guide surface (MVP = accommodation only) — branch `main`
 
 ### Changed

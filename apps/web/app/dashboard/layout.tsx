@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { isFullBleedRoute } from "@/lib/layout/fullBleed";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { MobileBottomNav } from "./_components/MobileBottomNav";
@@ -9,18 +10,8 @@ import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { Sidebar } from "./_components/Sidebar";
 import { Topbar } from "./_components/Topbar";
 
-// Pages allowed to break out of the standard padded + max-w-[1280px]
-// content shell and fill the whole content area edge-to-edge instead.
-// Inbox is the only such page today — message-center UI needs every
-// pixel of width and height. Exact-match only so child routes like
-// /dashboard/inbox/templates still get the normal padded shell.
-const FULL_BLEED_ROUTES = new Set(["/dashboard/inbox"]);
-
-function isFullBleedRoute(pathname: string | null): boolean {
-  if (!pathname) return false;
-  return FULL_BLEED_ROUTES.has(pathname);
-}
-
+// Full-bleed routes (Inbox) come from the shared rule in
+// @/lib/layout/fullBleed so host and guest dashboards stay in lockstep.
 export default async function DashboardLayout({
   children,
 }: {

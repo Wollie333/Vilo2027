@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { isFullBleedRoute } from "@/lib/layout/fullBleed";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PortalSidebar } from "./_components/PortalSidebar";
@@ -63,8 +65,18 @@ export default async function PortalLayout({
     ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"}`
     : null;
 
+  // Full-bleed pages (inbox) need a viewport-bounded height chain so their
+  // internal scroll regions resolve and pinned elements stay put. Normal
+  // pages stay growable (min-h-screen) and scroll the page naturally.
+  // Rule lives in @/lib/layout/fullBleed — shared with the host dashboard.
+  const fullBleed = isFullBleedRoute(headers().get("x-pathname"));
+
   return (
-    <div className="flex min-h-screen bg-brand-light text-brand-ink">
+    <div
+      className={`flex bg-brand-light text-brand-ink ${
+        fullBleed ? "h-[100dvh] overflow-hidden" : "min-h-screen"
+      }`}
+    >
       <PortalSidebar
         displayName={displayName}
         avatarUrl={profile?.avatar_url ?? null}
@@ -74,10 +86,21 @@ export default async function PortalLayout({
         hostDisplayName={host?.display_name ?? null}
         hostBlurb={hostBlurb}
       />
-      <main className="min-w-0 flex-1 pb-20 lg:pb-0">
-        <div className="px-5 py-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[1280px]">{children}</div>
-        </div>
+      <main
+        className={`flex min-w-0 flex-1 flex-col ${
+          fullBleed ? "min-h-0 overflow-hidden pb-16 lg:pb-0" : "pb-20 lg:pb-0"
+        }`}
+      >
+        {fullBleed ? (
+          // Full-bleed: no padding, no max-w cap. Bounded flex column
+          // (min-h-0) so the page's own flex-1 child fills the remaining
+          // height and its internal scroll regions resolve correctly.
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        ) : (
+          <div className="px-5 py-6 lg:px-8 lg:py-8">
+            <div className="mx-auto max-w-[1280px]">{children}</div>
+          </div>
+        )}
       </main>
     </div>
   );
