@@ -150,11 +150,17 @@ export async function validateCouponAction(
     .maybeSingle();
   if (!listing) return { ok: false, error: "This listing isn’t available." };
 
+  // Signed-in guest (if any) so the per-guest cap can be pre-checked.
+  const {
+    data: { user },
+  } = await createServerClient().auth.getUser();
+
   const res = await resolveCoupon(admin, {
     code: v.code,
     hostId: listing.host_id,
     listingId: listing.id,
     nights: nightsBetween(v.check_in, v.check_out),
+    guestId: user?.id ?? null,
     roomIds: v.room_ids,
     accommodationAmount: v.accommodation_amount,
     addonsAmount: v.addons_amount,
@@ -608,6 +614,7 @@ export async function createBookingAction(
         hostId: listing.host_id,
         listingId: listing.id,
         nights,
+        guestId: user.id,
         roomIds:
           d.scope === "rooms"
             ? pricingUnits

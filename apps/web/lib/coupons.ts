@@ -17,6 +17,8 @@ export type CouponContext = {
   hostId: string;
   listingId: string;
   nights: number;
+  /** The signed-in guest, if any — lets us pre-check the per-guest cap. */
+  guestId?: string | null;
   /** Booked room ids (rooms scope) — a room-scoped coupon must match one. */
   roomIds: string[];
   /** Discounted accommodation subtotal (for order/accommodation min-spend). */
@@ -95,6 +97,23 @@ export async function resolveCoupon(
   }
   if (c.max_redemptions != null && c.redeemed_count >= c.max_redemptions) {
     return { ok: false, error: "This coupon has been fully redeemed." };
+  }
+
+  // Per-guest cap — pre-checked here for a friendly message (the final word is
+  // redeem_coupon()'s atomic enforcement at booking time). Only checkable for a
+  // signed-in guest; anonymous checkouts are caught at redemption.
+  if (c.per_guest_limit != null && ctx.guestId) {
+    const { count } = await admin
+      .from("coupon_redemptions")
+      .select("id", { count: "exact", head: true })
+      .eq("coupon_id", c.id)
+      .eq("guest_id", ctx.guestId);
+    if ((count ?? 0) >= c.per_guest_limit) {
+      return {
+        ok: false,
+        error: "You’ve already used this coupon the maximum number of times.",
+      };
+    }
   }
 
   const eligible =
