@@ -47,6 +47,12 @@ import {
   type RoomPricingMode,
 } from "../roomDisplay";
 import {
+  priceStay,
+  type PricingUnit,
+  type SeasonalRule,
+  type StayAddon,
+} from "@/lib/pricing";
+import {
   createBookingAction,
   createCheckoutGuestAccountAction,
 } from "./actions";
@@ -64,6 +70,7 @@ export type RoomOption = {
   cleaningFee: number;
   pricingMode: RoomPricingMode;
   basePrice: number;
+  weekendPrice: number | null;
   pricePerPerson: number | null;
   baseOccupancy: number | null;
   extraGuestPrice: number | null;
@@ -175,6 +182,7 @@ export function BookingForm({
   ratingValue,
   reviewCount,
   basePrice,
+  weekendPrice: listingWeekendPrice,
   cleaningFee,
   currency,
   cancellationPolicy,
@@ -194,6 +202,10 @@ export function BookingForm({
   initialRoomGuests,
   availableAddons,
   hasEftBanking,
+  seasonalRules,
+  wholeListingDiscountPct,
+  weeklyDiscountPct,
+  monthlyDiscountPct,
 }: {
   listingId: string;
   listingSlug: string;
@@ -205,6 +217,7 @@ export function BookingForm({
   ratingValue: number | null;
   reviewCount: number | null;
   basePrice: number;
+  weekendPrice: number | null;
   cleaningFee: number;
   currency: string;
   cancellationPolicy: "flexible" | "moderate" | "strict";
@@ -224,6 +237,10 @@ export function BookingForm({
   initialRoomGuests: Record<string, number>;
   availableAddons: AvailableAddon[];
   hasEftBanking: boolean;
+  seasonalRules: SeasonalRule[];
+  wholeListingDiscountPct: number | null;
+  weeklyDiscountPct: number | null;
+  monthlyDiscountPct: number | null;
 }) {
   const router = useRouter();
   const [isPending, start] = useTransition();
@@ -408,12 +425,6 @@ export function BookingForm({
   const roomNightly = (r: RoomOption) =>
     roomNightlyBase(toPricing(r), guestsForRoom(r));
 
-  const subtotal = isWhole
-    ? basePrice * nights
-    : selectedRooms.reduce((acc, r) => acc + roomNightly(r) * nights, 0);
-  const cleaningTotal = isWhole
-    ? cleaningFee
-    : selectedRooms.reduce((acc, r) => acc + r.cleaningFee, 0);
   const effectiveGuests = isWhole
     ? guestCount
     : selectedRooms.reduce((acc, r) => acc + guestsForRoom(r), 0);
@@ -423,20 +434,72 @@ export function BookingForm({
       ? "rooms"
       : "whole_listing";
 
-  const addonsTotal = useMemo(() => {
-    let sum = 0;
-    for (const [id, qty] of addonQty.entries()) {
-      const a = availableAddons.find((x) => x.id === id);
-      if (!a || qty <= 0) continue;
-      sum += computeAddonSubtotal(
-        a.pricingModel,
-        a.unitPrice,
-        qty,
-        effectiveGuests,
-      );
-    }
-    return sum;
-  }, [addonQty, availableAddons, effectiveGuests]);
+  // ── Live pricing via the canonical engine ─────────────────────
+  // The SAME priceStay() the server charges with, so this estimate equals the
+  // charged total to the cent — seasonal/weekend nights, occupancy, discounts,
+  // cleaning and add-ons all included. Pure + cheap, so computed each render.
+  const breakdown = datesValid
+    ? priceStay({
+        checkIn: dates.from,
+        checkOut: dates.to,
+        units: isWhole
+          ? [
+              {
+                roomId: null,
+                pricing_mode: "per_room",
+                base_price: basePrice,
+                price_per_person: null,
+                base_occupancy: null,
+                extra_guest_price: null,
+                weekend_price: listingWeekendPrice,
+                cleaning_fee: cleaningFee,
+                guests: guestCount,
+              },
+            ]
+          : selectedRooms.map(
+              (r): PricingUnit => ({
+                roomId: r.id,
+                pricing_mode: r.pricingMode,
+                base_price: r.basePrice,
+                price_per_person: r.pricePerPerson,
+                base_occupancy: r.baseOccupancy,
+                extra_guest_price: r.extraGuestPrice,
+                weekend_price: r.weekendPrice,
+                cleaning_fee: r.cleaningFee,
+                guests: guestsForRoom(r),
+              }),
+            ),
+        seasonalRules,
+        currency,
+        totalGuests: effectiveGuests,
+        listingMinNights: minNights,
+        isWholeCombo:
+          scope === "rooms" &&
+          allRooms.length > 1 &&
+          selectedRooms.length === allRooms.length,
+        wholePct: wholeListingDiscountPct,
+        weeklyPct: weeklyDiscountPct,
+        monthlyPct: monthlyDiscountPct,
+        addons: [...addonQty.entries()].flatMap(([id, qty]) => {
+          const a = availableAddons.find((x) => x.id === id);
+          if (!a || qty <= 0) return [];
+          const line: StayAddon = {
+            label: a.name,
+            pricingModel: a.pricingModel,
+            unitPrice: a.unitPrice,
+            quantity: qty,
+          };
+          return [line];
+        }),
+      })
+    : null;
+
+  const subtotal = breakdown?.baseSubtotal ?? 0;
+  const cleaningTotal = breakdown?.cleaningTotal ?? 0;
+  const addonsTotal = breakdown?.addonsTotal ?? 0;
+  const discountTotal = breakdown?.discount.discountTotal ?? 0;
+  const seasonalNights = breakdown?.seasonalNights ?? 0;
+  const weekendNights = breakdown?.weekendNights ?? 0;
 
   const selectedAddonLines = useMemo(() => {
     const lines: Array<{ id: string; name: string; subtotal: number }> = [];
@@ -457,7 +520,7 @@ export function BookingForm({
     return lines;
   }, [addonQty, availableAddons, effectiveGuests]);
 
-  const total = subtotal + cleaningTotal + addonsTotal;
+  const total = breakdown?.total ?? 0;
 
   const needsRoom = roomsMode && !wholeListing && selectedRooms.length === 0;
 
@@ -1841,9 +1904,42 @@ export function BookingForm({
               {/* breakdown */}
               <div className="mt-4 space-y-1.5 border-t border-white/10 pt-4 text-[13px]">
                 <div className="flex items-center justify-between">
-                  <span className="text-white/85">Rooms subtotal</span>
+                  <span className="text-white/85">
+                    {scope === "rooms" ? "Rooms subtotal" : "Stay subtotal"}
+                  </span>
                   <span className="text-white">{fmtR(subtotal, currency)}</span>
                 </div>
+                {seasonalNights > 0 || weekendNights > 0 ? (
+                  <div className="text-[11px] text-white/45">
+                    {[
+                      seasonalNights > 0
+                        ? `${seasonalNights} season-priced night${seasonalNights === 1 ? "" : "s"}`
+                        : null,
+                      weekendNights > 0
+                        ? `${weekendNights} weekend night${weekendNights === 1 ? "" : "s"}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </div>
+                ) : null}
+                {discountTotal > 0 ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-emerald-300/90">
+                      Discount
+                      {breakdown?.discount.losKind === "monthly"
+                        ? " · monthly stay"
+                        : breakdown?.discount.losKind === "weekly"
+                          ? " · weekly stay"
+                          : breakdown && breakdown.discount.wholeSaving > 0
+                            ? " · whole place"
+                            : ""}
+                    </span>
+                    <span className="text-emerald-300">
+                      −{fmtR(discountTotal, currency)}
+                    </span>
+                  </div>
+                ) : null}
                 {selectedAddonLines.map((line) => (
                   <div
                     key={line.id}

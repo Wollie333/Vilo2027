@@ -7,6 +7,8 @@ import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { type SeasonalRule } from "@/lib/pricing";
+
 import { type PricingModel } from "../../../dashboard/addons/schemas";
 import { bedSummary, type RoomPricingMode } from "../roomDisplay";
 import {
@@ -96,7 +98,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, host_id, slug, name, city, province, base_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews",
+      "id, host_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -119,7 +121,7 @@ export default async function BookingPage({
   const { data: roomRows } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, base_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
+      "id, name, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
     )
     .eq("listing_id", listing.id)
     .is("deleted_at", null)
@@ -188,6 +190,7 @@ export default async function BookingPage({
       cleaningFee: Number(r.cleaning_fee ?? 0),
       pricingMode: (r.pricing_mode ?? "per_room") as RoomPricingMode,
       basePrice: Number(r.base_price),
+      weekendPrice: r.weekend_price == null ? null : Number(r.weekend_price),
       pricePerPerson:
         r.price_per_person == null ? null : Number(r.price_per_person),
       baseOccupancy: r.base_occupancy ?? null,
@@ -195,6 +198,29 @@ export default async function BookingPage({
         r.extra_guest_price == null ? null : Number(r.extra_guest_price),
     };
   });
+
+  // Active seasonal rules for this listing — the guest can change dates in the
+  // form, so load them all (not just the requested range) and let the engine
+  // resolve per night. Matches what createBookingAction charges with.
+  const { data: seasonalRows } = await supabase
+    .from("listing_seasonal_pricing")
+    .select(
+      "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+    )
+    .eq("listing_id", listing.id)
+    .eq("is_active", true);
+  const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
+    roomId: s.room_id,
+    startDate: s.start_date,
+    endDate: s.end_date,
+    adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
+    adjustmentValue: Number(s.adjustment_value),
+    label: s.label,
+    priority: s.priority ?? 0,
+    minNights: s.min_nights ?? null,
+    isActive: s.is_active,
+    createdAt: s.created_at,
+  }));
 
   // Initial room selection: honour ?room_ids, else default the first room for
   // rooms-only listings (flexible/whole default to the whole place).
@@ -348,6 +374,11 @@ export default async function BookingPage({
             }
             reviewCount={listing.total_reviews ?? null}
             basePrice={Number(listing.base_price ?? 0)}
+            weekendPrice={
+              listing.weekend_price == null
+                ? null
+                : Number(listing.weekend_price)
+            }
             cleaningFee={Number(listing.cleaning_fee ?? 0)}
             currency={listing.currency}
             cancellationPolicy={listing.cancellation_policy}
@@ -367,6 +398,22 @@ export default async function BookingPage({
             initialRoomGuests={initialRoomGuests}
             availableAddons={availableAddons}
             hasEftBanking={hasEftBanking}
+            seasonalRules={seasonalRules}
+            wholeListingDiscountPct={
+              listing.whole_listing_discount_pct == null
+                ? null
+                : Number(listing.whole_listing_discount_pct)
+            }
+            weeklyDiscountPct={
+              listing.weekly_discount_pct == null
+                ? null
+                : Number(listing.weekly_discount_pct)
+            }
+            monthlyDiscountPct={
+              listing.monthly_discount_pct == null
+                ? null
+                : Number(listing.monthly_discount_pct)
+            }
           />
         )}
 
