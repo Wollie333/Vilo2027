@@ -212,6 +212,11 @@ step, not a nice-to-have.
 - **Changed behaviour** (new rule, new option, pricing change) → update the
   existing article's `body_html` so it reflects the newest detail. Keep the same
   `slug`; the `ON CONFLICT` upsert refreshes it in place.
+- **No article exists yet** → **create one.** This applies even when you're only
+  *editing* an existing feature: if you touch a feature that has no Help Centre
+  article, write its dedicated article in the same session. This is how the
+  back-catalogue of older features (built before this rule) gradually gets full
+  help coverage — every edit is an opportunity to fill a gap, not skip it.
 - **Categorise correctly** — set `category_id` to the right `help_categories`
   slug (e.g. `listings` for pricing/promotions, `payments` for payouts/refunds,
   `bookings`, `channels`, `trust-safety`) and the right `audience`

@@ -29,9 +29,14 @@ export default async function ListingExtrasPage() {
     .maybeSingle();
   if (!host) redirect("/dashboard");
 
+  // Scope to the logged-in host. `listings` has a `public_read_published` RLS
+  // policy, so relying on RLS alone would return every OTHER host's published
+  // listing (and their extras below). The explicit host_id filter keeps the
+  // portfolio private — never remove it. (Same fix as rooms/listings/seasonal.)
   const { data: listingsRaw } = await supabase
     .from("listings")
     .select("id, name")
+    .eq("host_id", host.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
