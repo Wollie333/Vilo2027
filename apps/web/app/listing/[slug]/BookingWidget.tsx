@@ -3,7 +3,7 @@
 import { Star, Users, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { applyStayDiscounts } from "./pricing";
+import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -24,23 +24,29 @@ function nightsBetween(from: string, to: string): number {
 export function BookingWidget({
   slug,
   basePrice,
+  weekendPrice,
   cleaningFee,
   currency,
   maxGuests,
+  minNights,
   instantBooking,
   rating,
   reviewCount,
+  seasonalRules,
   weeklyDiscountPct,
   monthlyDiscountPct,
 }: {
   slug: string;
   basePrice: number | null;
+  weekendPrice: number | null;
   cleaningFee: number | null;
   currency: string;
   maxGuests: number | null;
+  minNights: number | null;
   instantBooking: boolean;
   rating: number | null;
   reviewCount: number | null;
+  seasonalRules: SeasonalRule[];
   weeklyDiscountPct: number | null;
   monthlyDiscountPct: number | null;
 }) {
@@ -51,20 +57,65 @@ export function BookingWidget({
   const nights = nightsBetween(checkIn, checkOut);
   const cap = maxGuests ?? 2;
 
+  // Same engine the checkout + server use, so this whole-listing teaser matches.
   const calc = useMemo(() => {
-    const subtotal = (basePrice ?? 0) * nights;
-    const cleaning = nights > 0 ? (cleaningFee ?? 0) : 0;
-    const d = applyStayDiscounts({
-      base: subtotal,
-      cleaning,
-      nights,
+    if (nights <= 0 || basePrice == null) {
+      return {
+        subtotal: 0,
+        cleaning: 0,
+        total: 0,
+        discount: {
+          losSaving: 0,
+          losKind: null as null | "weekly" | "monthly",
+          losPct: 0,
+        },
+      };
+    }
+    const b = priceStay({
+      checkIn,
+      checkOut,
+      units: [
+        {
+          roomId: null,
+          pricing_mode: "per_room",
+          base_price: basePrice,
+          price_per_person: null,
+          base_occupancy: null,
+          extra_guest_price: null,
+          weekend_price: weekendPrice,
+          cleaning_fee: cleaningFee ?? 0,
+          guests,
+        },
+      ],
+      seasonalRules,
+      currency,
+      totalGuests: guests,
+      listingMinNights: minNights ?? 1,
       isWholeCombo: false,
       wholePct: null,
       weeklyPct: weeklyDiscountPct,
       monthlyPct: monthlyDiscountPct,
     });
-    return { subtotal, cleaning, total: d.total, discount: d };
-  }, [basePrice, cleaningFee, nights, weeklyDiscountPct, monthlyDiscountPct]);
+    return {
+      subtotal: b.baseSubtotal,
+      cleaning: b.cleaningTotal,
+      total: b.total,
+      discount: b.discount,
+    };
+  }, [
+    checkIn,
+    checkOut,
+    basePrice,
+    weekendPrice,
+    cleaningFee,
+    guests,
+    seasonalRules,
+    currency,
+    minNights,
+    nights,
+    weeklyDiscountPct,
+    monthlyDiscountPct,
+  ]);
 
   const canReserve =
     nights > 0 && guests >= 1 && guests <= cap && basePrice != null;
@@ -173,8 +224,7 @@ export function BookingWidget({
         <dl className="mt-4 space-y-2 border-t border-brand-line pt-4 text-sm">
           <div className="flex items-center justify-between">
             <dt className="text-brand-mute">
-              {fmtR(basePrice, currency)} × {nights}{" "}
-              {nights === 1 ? "night" : "nights"}
+              {nights} {nights === 1 ? "night" : "nights"}
             </dt>
             <dd className="font-medium text-brand-dark">
               {fmtR(calc.subtotal, currency)}

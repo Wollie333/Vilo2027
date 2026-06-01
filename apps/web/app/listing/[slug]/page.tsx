@@ -25,6 +25,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { UtilityBar } from "@/app/_components/home/UtilityBar";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { type SeasonalRule } from "@/lib/pricing";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -186,7 +187,9 @@ async function loadListing(slug: string) {
       .order("sort_order", { ascending: true }),
     supabase
       .from("listing_seasonal_pricing")
-      .select("id, label, start_date, end_date, price, room_id, priority")
+      .select(
+        "id, label, start_date, end_date, adjustment_type, adjustment_value, room_id, priority, min_nights, is_active, created_at",
+      )
       .eq("listing_id", listing.id)
       .eq("is_active", true)
       .order("start_date", { ascending: true }),
@@ -299,24 +302,54 @@ async function loadListing(slug: string) {
     monthly_discount_pct: toNum(listing.monthly_discount_pct),
   };
 
-  const seasons: SeasonRow[] = (
-    (seasonRows ?? []) as Array<{
-      id: string;
-      label: string;
-      start_date: string;
-      end_date: string;
-      price: number | string;
-      room_id: string | null;
-      priority: number;
-    }>
-  ).map((r) => ({
+  // Reference base a season is measured against — its room's base, else the
+  // listing base. Lets us resolve a percent rule's display nightly.
+  const listingBaseNum = toNum(listing.base_price) ?? 0;
+  const roomBaseById = new Map(rooms.map((r) => [r.id, r.base_price]));
+  const seasonRowsTyped = (seasonRows ?? []) as Array<{
+    id: string;
+    label: string;
+    start_date: string;
+    end_date: string;
+    adjustment_type: string;
+    adjustment_value: number | string;
+    room_id: string | null;
+    priority: number;
+    min_nights: number | null;
+    is_active: boolean;
+    created_at: string | null;
+  }>;
+  const seasonDisplayPrice = (r: (typeof seasonRowsTyped)[number]): number => {
+    const value = Number(r.adjustment_value);
+    if (r.adjustment_type === "percent") {
+      const refBase =
+        (r.room_id ? roomBaseById.get(r.room_id) : listingBaseNum) ?? 0;
+      return Math.max(0, refBase * (1 + value / 100));
+    }
+    return value;
+  };
+  const seasons: SeasonRow[] = seasonRowsTyped.map((r) => ({
     id: r.id,
     label: r.label,
     startDate: r.start_date,
     endDate: r.end_date,
-    price: Number(r.price),
+    price: seasonDisplayPrice(r),
     roomId: r.room_id,
     priority: r.priority,
+  }));
+
+  // Engine-shaped rules for the sidebar widget's live estimate.
+  const seasonalRules: SeasonalRule[] = seasonRowsTyped.map((r) => ({
+    roomId: r.room_id,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    adjustmentType: r.adjustment_type === "percent" ? "percent" : "absolute",
+    adjustmentValue: Number(r.adjustment_value),
+    label: r.label,
+    priority: r.priority ?? 0,
+    minNights: r.min_nights ?? null,
+    isActive: r.is_active,
+    createdAt: r.created_at,
   }));
 
   const unavailableDates = ((blockedRows ?? []) as Array<{ date: string }>).map(
@@ -343,6 +376,7 @@ async function loadListing(slug: string) {
     amenities,
     rooms,
     seasons,
+    seasonalRules,
     unavailableDates,
     pois,
   };
@@ -374,8 +408,16 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const { listing, photos, amenities, rooms, seasons, unavailableDates, pois } =
-    data;
+  const {
+    listing,
+    photos,
+    amenities,
+    rooms,
+    seasons,
+    seasonalRules,
+    unavailableDates,
+    pois,
+  } = data;
 
   const reviews = await loadListingReviews(listing.id);
   const reviewsNode =
@@ -513,12 +555,15 @@ export default async function ListingDetailPage({
               <BookingWidget
                 slug={listing.slug ?? params.slug}
                 basePrice={listing.base_price}
+                weekendPrice={listing.weekend_price}
                 cleaningFee={listing.cleaning_fee}
                 currency={listing.currency}
                 maxGuests={listing.max_guests}
+                minNights={listing.min_nights}
                 instantBooking={listing.instant_booking}
                 rating={listing.avg_rating}
                 reviewCount={listing.total_reviews}
+                seasonalRules={seasonalRules}
                 weeklyDiscountPct={listing.weekly_discount_pct}
                 monthlyDiscountPct={listing.monthly_discount_pct}
               />
