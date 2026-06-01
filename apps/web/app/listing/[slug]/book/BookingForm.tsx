@@ -49,12 +49,14 @@ import {
 import {
   priceStay,
   type PricingUnit,
+  type ResolvedCoupon,
   type SeasonalRule,
   type StayAddon,
 } from "@/lib/pricing";
 import {
   createBookingAction,
   createCheckoutGuestAccountAction,
+  validateCouponAction,
 } from "./actions";
 import { CheckoutDateEditor } from "./CheckoutDateEditor";
 
@@ -293,6 +295,14 @@ export function BookingForm({
     message: "",
   });
 
+  // ── Coupon ────────────────────────────────────────────────────
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<ResolvedCoupon | null>(
+    null,
+  );
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponPending, startCoupon] = useTransition();
+
   // ── Optional party manifest (name + contact per guest) ─────────
   const [party, setParty] = useState<
     { name: string; email: string; phone: string }[]
@@ -480,6 +490,7 @@ export function BookingForm({
         wholePct: wholeListingDiscountPct,
         weeklyPct: weeklyDiscountPct,
         monthlyPct: monthlyDiscountPct,
+        coupon: appliedCoupon,
         addons: [...addonQty.entries()].flatMap(([id, qty]) => {
           const a = availableAddons.find((x) => x.id === id);
           if (!a || qty <= 0) return [];
@@ -498,8 +509,49 @@ export function BookingForm({
   const cleaningTotal = breakdown?.cleaningTotal ?? 0;
   const addonsTotal = breakdown?.addonsTotal ?? 0;
   const discountTotal = breakdown?.discount.discountTotal ?? 0;
+  const couponDiscount = breakdown?.couponDiscount ?? 0;
   const seasonalNights = breakdown?.seasonalNights ?? 0;
   const weekendNights = breakdown?.weekendNights ?? 0;
+
+  // A coupon is validated against specific dates/rooms/amounts — drop it when
+  // any of those change so a stale discount can't be shown (or charged).
+  useEffect(() => {
+    setAppliedCoupon(null);
+    setCouponError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dates.from, dates.to, selectedRoomIds, wholeListing]);
+
+  function applyCoupon() {
+    const code = couponInput.trim();
+    if (!code || !breakdown) return;
+    setCouponError(null);
+    const accommodationAmount =
+      breakdown.baseSubtotal - breakdown.discount.discountTotal;
+    startCoupon(async () => {
+      const res = await validateCouponAction({
+        code,
+        listing_id: listingId,
+        check_in: dates.from,
+        check_out: dates.to,
+        room_ids: scope === "rooms" ? selectedRooms.map((r) => r.id) : [],
+        accommodation_amount: accommodationAmount,
+        addons_amount: breakdown.addonsTotal,
+      });
+      if (!res.ok) {
+        setAppliedCoupon(null);
+        setCouponError(res.error);
+        return;
+      }
+      setAppliedCoupon(res.coupon);
+      toast.success("Coupon applied");
+    });
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  }
 
   const selectedAddonLines = useMemo(() => {
     const lines: Array<{ id: string; name: string; subtotal: number }> = [];
@@ -621,6 +673,7 @@ export function BookingForm({
         selected_addons: Array.from(addonQty.entries())
           .filter(([, q]) => q > 0)
           .map(([addon_id, quantity]) => ({ addon_id, quantity })),
+        coupon_code: appliedCoupon?.code,
         guest_name: guestNameOut,
         guest_email: guestEmailOut,
         guest_phone: guestPhoneOut,
@@ -1963,10 +2016,66 @@ export function BookingForm({
                     </span>
                   </div>
                 ) : null}
+                {couponDiscount > 0 && appliedCoupon ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-emerald-300/90">
+                      Coupon · {appliedCoupon.code}
+                    </span>
+                    <span className="text-emerald-300">
+                      −{fmtR(couponDiscount, currency)}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between">
                   <span className="text-white/85">Vilo service fee</span>
                   <span className="font-medium text-emerald-300">FREE</span>
                 </div>
+              </div>
+
+              {/* coupon */}
+              <div className="mt-4 border-t border-white/10 pt-4">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between gap-2 text-[13px]">
+                    <span className="text-emerald-300">
+                      Coupon “{appliedCoupon.code}” applied
+                    </span>
+                    <button
+                      type="button"
+                      onClick={removeCoupon}
+                      className="text-white/60 underline hover:text-white"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        value={couponInput}
+                        onChange={(e) =>
+                          setCouponInput(e.target.value.toUpperCase())
+                        }
+                        placeholder="Coupon code"
+                        className="min-w-0 flex-1 rounded bg-white/10 px-3 py-2 text-sm uppercase tracking-wide text-white placeholder-white/40 outline-none focus:bg-white/15"
+                      />
+                      <button
+                        type="button"
+                        onClick={applyCoupon}
+                        disabled={
+                          couponPending || !couponInput.trim() || !datesValid
+                        }
+                        className="rounded bg-white/15 px-3 py-2 text-sm font-medium text-white hover:bg-white/25 disabled:opacity-50"
+                      >
+                        {couponPending ? "…" : "Apply"}
+                      </button>
+                    </div>
+                    {couponError ? (
+                      <p className="mt-1 text-[11px] text-rose-300">
+                        {couponError}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               {/* total */}

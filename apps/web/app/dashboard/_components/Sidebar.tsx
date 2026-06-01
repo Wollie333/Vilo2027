@@ -23,6 +23,7 @@ import {
   Settings,
   ShieldCheck,
   Star,
+  Ticket,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -99,6 +100,7 @@ const TOOLS: Item[] = [
     icon: PackagePlus,
     badge: { text: "PRO", tone: "pro" },
   },
+  { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
   {
     href: "/dashboard/policies",
