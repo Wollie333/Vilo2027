@@ -2,8 +2,23 @@
 // module so SERVER components (e.g. RoomsInfoGrid) can import the functions.
 // Importing them from the "use client" RoomsGrid turns them into client
 // references that throw "roomFlagPills is not a function" at render.
+//
+// The pure pricing maths (RoomPricing, roomNightlyBase, …) live in the
+// canonical engine at @/lib/pricing; re-exported here for existing callers.
 
-export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
+import {
+  roomFromNightly,
+  roomNightlyBase,
+  type RoomPricing,
+  type RoomPricingMode,
+} from "@/lib/pricing/occupancy";
+
+export {
+  roomFromNightly,
+  roomNightlyBase,
+  type RoomPricing,
+  type RoomPricingMode,
+};
 
 export type PublicRoom = {
   id: string;
@@ -32,41 +47,6 @@ export type PublicRoom = {
   inventory_count: number;
   beds: { bed_kind: string; quantity: number }[];
 };
-
-// ── Per-mode pricing — the single source of truth shared by the grid, the
-// cart sidebar, and the server booking action so client + server agree. ──
-
-export type RoomPricing = {
-  pricing_mode: RoomPricingMode;
-  base_price: number;
-  price_per_person: number | null;
-  base_occupancy: number | null;
-  extra_guest_price: number | null;
-};
-
-/** A room's nightly base for a given guest count in that room (excl. cleaning). */
-export function roomNightlyBase(r: RoomPricing, guests: number): number {
-  const g = Math.max(1, guests);
-  switch (r.pricing_mode) {
-    case "per_person":
-      return (r.price_per_person ?? 0) * g;
-    case "per_room_plus_extra": {
-      const covered = r.base_occupancy ?? 1;
-      const extra = Math.max(0, g - covered);
-      return r.base_price + extra * (r.extra_guest_price ?? 0);
-    }
-    case "per_room":
-    default:
-      return r.base_price;
-  }
-}
-
-/** The headline "from" nightly figure (one-guest baseline) used on cards. */
-export function roomFromNightly(r: RoomPricing): number {
-  return r.pricing_mode === "per_person"
-    ? (r.price_per_person ?? 0)
-    : r.base_price;
-}
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
