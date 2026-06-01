@@ -14,8 +14,13 @@ import {
   defaultAddonQuantity,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
-import { applyStayDiscounts } from "../pricing";
-import { roomNightlyBase } from "../roomDisplay";
+import {
+  priceStay,
+  type PriceBreakdown,
+  type PricingUnit,
+  type SeasonalRule,
+} from "@/lib/pricing";
+
 import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
@@ -138,7 +143,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
+      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -172,10 +177,15 @@ export async function createBookingAction(
 
   const admin = createAdminClient();
 
-  // 5. Branch by scope.
-  let baseAmount: number;
-  let cleaning: number;
-  let totalAmount: number;
+  // 5. Branch by scope. Each branch validates the stay and assembles the
+  // priceable units; the canonical pricing engine then prices everything below
+  // (§5f) so client + server + preview never disagree.
+  let baseAmount = 0;
+  let cleaning = 0;
+  let totalAmount = 0;
+  let discountAmount = 0;
+  let priceBreakdown: PriceBreakdown | null = null;
+  let pricingUnits: PricingUnit[] = [];
   // True when the guest booked every active room together — unlocks the
   // whole-listing combo discount. Whole-listing-scope bookings price off the
   // listing base_price directly and don't stack this discount.
@@ -193,7 +203,7 @@ export async function createBookingAction(
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+        "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -270,36 +280,21 @@ export async function createBookingAction(
       };
     }
 
-    // 5d. Server-recalc price per room by its pricing mode (source of truth).
-    baseAmount = 0;
-    cleaning = 0;
-    roomRowsForBooking = roomRows.map((r) => {
-      const rBase =
-        roomNightlyBase(
-          {
-            pricing_mode: (r.pricing_mode ?? "per_room") as
-              | "per_room"
-              | "per_person"
-              | "per_room_plus_extra",
-            base_price: Number(r.base_price),
-            price_per_person:
-              r.price_per_person == null ? null : Number(r.price_per_person),
-            base_occupancy: r.base_occupancy ?? null,
-            extra_guest_price:
-              r.extra_guest_price == null ? null : Number(r.extra_guest_price),
-          },
-          guestsForRoom(r.id),
-        ) * nights;
-      const rClean = Number(r.cleaning_fee ?? 0);
-      baseAmount += rBase;
-      cleaning += rClean;
-      return {
-        room_id: r.id,
-        base_amount: rBase,
-        cleaning_fee: rClean,
-      };
-    });
-    totalAmount = baseAmount + cleaning;
+    // 5d. Assemble the priceable units — the engine prices them in §5f.
+    pricingUnits = roomRows.map((r) => ({
+      roomId: r.id,
+      pricing_mode: (r.pricing_mode ??
+        "per_room") as PricingUnit["pricing_mode"],
+      base_price: Number(r.base_price),
+      price_per_person:
+        r.price_per_person == null ? null : Number(r.price_per_person),
+      base_occupancy: r.base_occupancy ?? null,
+      extra_guest_price:
+        r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+      weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
+      cleaning_fee: Number(r.cleaning_fee ?? 0),
+      guests: guestsForRoom(r.id),
+    }));
 
     // Whole-listing combo: did the guest take every active room? Compare the
     // selection against the listing's full active-room count.
@@ -343,9 +338,20 @@ export async function createBookingAction(
       };
     }
 
-    baseAmount = Number(listing.base_price) * nights;
-    cleaning = Number(listing.cleaning_fee ?? 0);
-    totalAmount = baseAmount + cleaning;
+    pricingUnits = [
+      {
+        roomId: null,
+        pricing_mode: "per_room",
+        base_price: Number(listing.base_price),
+        price_per_person: null,
+        base_occupancy: null,
+        extra_guest_price: null,
+        weekend_price:
+          listing.weekend_price == null ? null : Number(listing.weekend_price),
+        cleaning_fee: Number(listing.cleaning_fee ?? 0),
+        guests: d.guests,
+      },
+    ];
   }
 
   // 5e. Re-fetch eligible addons server-side and snapshot prices.
@@ -373,7 +379,11 @@ export async function createBookingAction(
 
   {
     const roomIdScope =
-      d.scope === "rooms" ? roomRowsForBooking.map((r) => r.room_id) : [];
+      d.scope === "rooms"
+        ? pricingUnits
+            .map((u) => u.roomId)
+            .filter((id): id is string => id !== null)
+        : [];
     const { data: eligibleAddonRows } = await admin
       .from("listing_addons")
       .select(
@@ -447,7 +457,6 @@ export async function createBookingAction(
       }
     }
 
-    let addonsTotal = 0;
     let sortOrder = 0;
     for (const [addonId, qty] of selectedQty.entries()) {
       const entry = eligibleMap.get(addonId);
@@ -469,7 +478,6 @@ export async function createBookingAction(
         clamped,
         d.guests,
       );
-      addonsTotal += subtotal;
       addonInserts.push({
         addon_id: a.id,
         label: a.name,
@@ -483,20 +491,75 @@ export async function createBookingAction(
       });
     }
 
-    // Apply combo + length-of-stay discounts to the room/whole base (never to
-    // cleaning or add-ons). Same pure helper the booking sidebar uses, so the
-    // charged total matches the quoted total exactly.
-    const { discountTotal } = applyStayDiscounts({
-      base: baseAmount,
-      cleaning,
-      nights,
+    // 5f. Price the whole stay through the canonical engine — per-night
+    // seasonal/weekend resolution, occupancy, combo + length-of-stay discounts,
+    // cleaning, and add-ons. This is the SAME engine the checkout sidebar uses,
+    // so the charged total matches the quoted total to the cent, and it never
+    // trusts a client-sent price.
+    const { data: seasonalRows } = await admin
+      .from("listing_seasonal_pricing")
+      .select(
+        "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+      )
+      .eq("listing_id", listing.id)
+      .eq("is_active", true)
+      .lte("start_date", d.check_out!)
+      .gte("end_date", d.check_in!);
+
+    const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
+      roomId: s.room_id,
+      startDate: s.start_date,
+      endDate: s.end_date,
+      adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
+      adjustmentValue: Number(s.adjustment_value),
+      label: s.label,
+      priority: s.priority ?? 0,
+      minNights: s.min_nights ?? null,
+      isActive: s.is_active,
+      createdAt: s.created_at,
+    }));
+
+    const breakdown = priceStay({
+      checkIn: d.check_in!,
+      checkOut: d.check_out!,
+      units: pricingUnits,
+      seasonalRules,
+      currency: listing.currency,
+      totalGuests: d.guests,
+      listingMinNights: listing.min_nights ?? 1,
       isWholeCombo,
       wholePct: numOrNull(listing.whole_listing_discount_pct),
       weeklyPct: numOrNull(listing.weekly_discount_pct),
       monthlyPct: numOrNull(listing.monthly_discount_pct),
+      addons: addonInserts.map((a) => ({
+        label: a.label,
+        pricingModel: a.pricing_model,
+        unitPrice: a.unit_price,
+        quantity: a.quantity,
+      })),
     });
 
-    totalAmount = baseAmount + cleaning + addonsTotal - discountTotal;
+    // Enforce peak-season minimum nights (max of listing + overlapping rules).
+    // Nothing is persisted yet, so a bare return is a clean bail-out.
+    if (nights < breakdown.effectiveMinNights) {
+      return {
+        ok: false,
+        error: `These dates need a minimum stay of ${breakdown.effectiveMinNights} nights.`,
+      };
+    }
+
+    baseAmount = breakdown.baseSubtotal;
+    cleaning = breakdown.cleaningTotal;
+    discountAmount = breakdown.discount.discountTotal;
+    totalAmount = breakdown.total;
+    priceBreakdown = breakdown;
+    roomRowsForBooking = breakdown.units
+      .filter((u) => u.roomId !== null)
+      .map((u) => ({
+        room_id: u.roomId as string,
+        base_amount: u.baseSubtotal,
+        cleaning_fee: u.cleaningFee,
+      }));
   }
 
   // 6. Insert booking.
@@ -531,7 +594,9 @@ export async function createBookingAction(
       guests_count: d.guests,
       base_amount: baseAmount,
       cleaning_fee: cleaning,
+      discount_amount: discountAmount,
       total_amount: totalAmount,
+      price_breakdown: priceBreakdown,
       currency: listing.currency,
       payment_method: d.payment_method,
       status: isEft ? "pending_eft" : "pending",

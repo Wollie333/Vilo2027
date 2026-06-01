@@ -121,7 +121,11 @@ export async function createSeasonalRuleAction(
       label: v.label,
       start_date: v.start_date,
       end_date: v.end_date,
-      price: v.price,
+      adjustment_type: v.adjustment_type,
+      adjustment_value: v.adjustment_value,
+      // Legacy `price` mirror: the absolute nightly for absolute rules, null
+      // for percent rules. The engine reads adjustment_type/value.
+      price: v.adjustment_type === "absolute" ? v.adjustment_value : null,
       currency: v.currency,
       min_nights: v.min_nights,
       priority: v.priority,
@@ -175,7 +179,9 @@ export async function updateSeasonalRuleAction(
       label: v.label,
       start_date: v.start_date,
       end_date: v.end_date,
-      price: v.price,
+      adjustment_type: v.adjustment_type,
+      adjustment_value: v.adjustment_value,
+      price: v.adjustment_type === "absolute" ? v.adjustment_value : null,
       currency: v.currency,
       min_nights: v.min_nights,
       priority: v.priority,
@@ -216,7 +222,8 @@ type CopiedRule = {
   label: string;
   startDate: string;
   endDate: string;
-  price: number;
+  adjustmentType: "absolute" | "percent";
+  adjustmentValue: number;
   currency: string;
   minNights: number | null;
   priority: number;
@@ -251,7 +258,7 @@ export async function copySeasonalRulesToListingAction(
   const { data: source } = await supabase
     .from("listing_seasonal_pricing")
     .select(
-      "label, start_date, end_date, price, currency, min_nights, priority, is_active",
+      "label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
     )
     .eq("listing_id", fromListingId)
     .is("room_id", null);
@@ -273,7 +280,9 @@ export async function copySeasonalRulesToListingAction(
         label: r.label,
         start_date: r.start_date,
         end_date: r.end_date,
-        price: r.price,
+        adjustment_type: r.adjustment_type,
+        adjustment_value: r.adjustment_value,
+        price: r.adjustment_type === "absolute" ? r.adjustment_value : null,
         currency: r.currency,
         min_nights: r.min_nights,
         priority: r.priority,
@@ -281,7 +290,7 @@ export async function copySeasonalRulesToListingAction(
       })),
     )
     .select(
-      "id, listing_id, room_id, label, start_date, end_date, price, currency, min_nights, priority, is_active",
+      "id, listing_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
     );
   if (error || !inserted) {
     return { ok: false, error: "Could not copy seasons. Try again." };
@@ -298,7 +307,10 @@ export async function copySeasonalRulesToListingAction(
         label: r.label,
         startDate: r.start_date,
         endDate: r.end_date,
-        price: Number(r.price),
+        adjustmentType: (r.adjustment_type === "percent"
+          ? "percent"
+          : "absolute") as "absolute" | "percent",
+        adjustmentValue: Number(r.adjustment_value),
         currency: r.currency,
         minNights: r.min_nights,
         priority: r.priority,

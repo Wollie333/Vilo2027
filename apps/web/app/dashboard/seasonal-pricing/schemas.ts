@@ -4,6 +4,11 @@ const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date.");
 
+export const seasonalAdjustmentTypeSchema = z.enum(["absolute", "percent"]);
+export type SeasonalAdjustmentType = z.infer<
+  typeof seasonalAdjustmentTypeSchema
+>;
+
 export const seasonalRuleInputSchema = z
   .object({
     listing_id: z.string().uuid(),
@@ -11,7 +16,9 @@ export const seasonalRuleInputSchema = z
     label: z.string().trim().min(1, "Add a label.").max(80),
     start_date: isoDate,
     end_date: isoDate,
-    price: z.number().positive("Price must be greater than 0.").max(1_000_000),
+    // A rule is EITHER an absolute nightly price OR a +/- % adjustment.
+    adjustment_type: seasonalAdjustmentTypeSchema.default("absolute"),
+    adjustment_value: z.number(),
     currency: z.string().trim().length(3).default("ZAR"),
     min_nights: z
       .number()
@@ -25,7 +32,24 @@ export const seasonalRuleInputSchema = z
   .refine((v) => v.end_date >= v.start_date, {
     path: ["end_date"],
     message: "End date must be on or after start date.",
-  });
+  })
+  .refine(
+    (v) =>
+      v.adjustment_type !== "absolute" ||
+      (v.adjustment_value > 0 && v.adjustment_value <= 1_000_000),
+    { path: ["adjustment_value"], message: "Price must be greater than 0." },
+  )
+  .refine(
+    (v) =>
+      v.adjustment_type !== "percent" ||
+      (v.adjustment_value >= -100 &&
+        v.adjustment_value <= 1000 &&
+        v.adjustment_value !== 0),
+    {
+      path: ["adjustment_value"],
+      message: "Use a percentage from -100 to 1000 (not 0).",
+    },
+  );
 
 export type SeasonalRuleInput = z.infer<typeof seasonalRuleInputSchema>;
 

@@ -79,6 +79,12 @@ export type SeasonalRule = {
   label: string;
   startDate: string;
   endDate: string;
+  /** How the rule is expressed. */
+  adjustmentType: "absolute" | "percent";
+  /** Absolute: nightly price. Percent: signed % on the room's own rate. */
+  adjustmentValue: number;
+  /** Effective nightly rate for display (absolute value, or base×(1±%)),
+   *  computed server-side against the rule's reference base. */
   price: number;
   currency: string;
   minNights: number | null;
@@ -630,8 +636,9 @@ function computeYearCover(
       covered++;
       tierNights[tierFor(winner.price, base)]++;
     } else {
+      // Weekend = Fri (5) + Sat (6), matching the pricing engine.
       const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
-      price = dow === 0 || dow === 6 ? (weekend ?? base) : base;
+      price = dow === 5 || dow === 6 ? (weekend ?? base) : base;
     }
     sum += price;
     uplift += price - base;
@@ -1463,8 +1470,18 @@ function CopyDialog({
         toast.error(result.error);
         return;
       }
-      onCopied(result.data!.rules);
       const target = listings.find((l) => l.id === toId);
+      const refBase = target?.basePrice ?? 0;
+      // Copied rules are listing-wide; resolve each one's display nightly so the
+      // preview matches (absolute = value, percent = base×(1±%)).
+      const copied: SeasonalRule[] = result.data!.rules.map((r) => ({
+        ...r,
+        price:
+          r.adjustmentType === "absolute"
+            ? r.adjustmentValue
+            : Math.max(0, refBase * (1 + r.adjustmentValue / 100)),
+      }));
+      onCopied(copied);
       toast.success(
         `Copied ${result.data!.rules.length} season${
           result.data!.rules.length === 1 ? "" : "s"
@@ -1539,6 +1556,8 @@ function RuleDialog({
           label: "",
           startDate: "",
           endDate: "",
+          adjustmentType: "absolute" as "absolute" | "percent",
+          adjustmentValue: 0,
           price: 0,
           currency: "ZAR",
           minNights: null as number | null,
@@ -1551,7 +1570,10 @@ function RuleDialog({
   const [label, setLabel] = useState(initial.label);
   const [startDate, setStartDate] = useState(initial.startDate);
   const [endDate, setEndDate] = useState(initial.endDate);
-  const [price, setPrice] = useState(String(initial.price || ""));
+  const [adjustmentType, setAdjustmentType] = useState<"absolute" | "percent">(
+    initial.adjustmentType ?? "absolute",
+  );
+  const [value, setValue] = useState(String(initial.adjustmentValue || ""));
   const [minNights, setMinNights] = useState(
     initial.minNights == null ? "" : String(initial.minNights),
   );
@@ -1561,6 +1583,19 @@ function RuleDialog({
 
   const listing = listings.find((l) => l.id === listingId);
   const canPerRoom = listing?.bookingMode !== "whole_listing";
+
+  // Reference base the rule is measured against — the room's own base when
+  // scoped to a room, else the listing base. Drives the % preview + the
+  // display nightly stored on the rule.
+  const refBase =
+    (roomId
+      ? listing?.rooms.find((r) => r.id === roomId)?.basePrice
+      : listing?.basePrice) ?? 0;
+  const valueNum = Number(value) || 0;
+  const displayNightly =
+    adjustmentType === "absolute"
+      ? valueNum
+      : Math.max(0, refBase * (1 + valueNum / 100));
 
   const overlaps = useMemo(() => {
     if (!startDate || !endDate || endDate < startDate) return [];
@@ -1575,13 +1610,22 @@ function RuleDialog({
   }, [existingRules, listingId, roomId, startDate, endDate, target]);
 
   const nights = nightsBetween(startDate, endDate);
-  const priceNum = Number(price) || 0;
-  const total = nights * priceNum;
+  const total = nights * displayNightly;
 
   function submit() {
-    const parsedPrice = Number(price);
-    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      toast.error("Price must be greater than 0.");
+    const parsedValue = Number(value);
+    if (adjustmentType === "absolute") {
+      if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+        toast.error("Price must be greater than 0.");
+        return;
+      }
+    } else if (
+      !Number.isFinite(parsedValue) ||
+      parsedValue === 0 ||
+      parsedValue < -100 ||
+      parsedValue > 1000
+    ) {
+      toast.error("Use a percentage from -100 to 1000 (not 0).");
       return;
     }
     const parsedMin =
@@ -1602,12 +1646,20 @@ function RuleDialog({
       label: label.trim(),
       start_date: startDate,
       end_date: endDate,
-      price: parsedPrice,
+      adjustment_type: adjustmentType,
+      adjustment_value: parsedValue,
       currency: "ZAR",
       min_nights: parsedMin,
       priority: parsedPriority,
       is_active: isActive,
     };
+
+    // Display nightly stored on the merged rule (keeps the preview correct
+    // without a refetch). Recomputed here so percent rules resolve vs refBase.
+    const mergedPrice =
+      adjustmentType === "absolute"
+        ? parsedValue
+        : Math.max(0, refBase * (1 + parsedValue / 100));
 
     start(async () => {
       if (target.mode === "create") {
@@ -1623,7 +1675,9 @@ function RuleDialog({
           label: payload.label,
           startDate,
           endDate,
-          price: parsedPrice,
+          adjustmentType,
+          adjustmentValue: parsedValue,
+          price: mergedPrice,
           currency: "ZAR",
           minNights: parsedMin,
           priority: parsedPriority,
@@ -1643,7 +1697,9 @@ function RuleDialog({
           label: payload.label,
           startDate,
           endDate,
-          price: parsedPrice,
+          adjustmentType,
+          adjustmentValue: parsedValue,
+          price: mergedPrice,
           currency: "ZAR",
           minNights: parsedMin,
           priority: parsedPriority,
@@ -1734,15 +1790,50 @@ function RuleDialog({
           </Field>
         </div>
 
+        <Field label="Rate type">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setAdjustmentType("absolute")}
+              className={`flex-1 rounded-card border px-3 py-2 text-sm font-medium transition-colors ${
+                adjustmentType === "absolute"
+                  ? "border-brand-primary bg-brand-accent text-brand-primary"
+                  : "border-brand-line text-brand-mute hover:bg-brand-light"
+              }`}
+            >
+              Set price
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdjustmentType("percent")}
+              className={`flex-1 rounded-card border px-3 py-2 text-sm font-medium transition-colors ${
+                adjustmentType === "percent"
+                  ? "border-brand-primary bg-brand-accent text-brand-primary"
+                  : "border-brand-line text-brand-mute hover:bg-brand-light"
+              }`}
+            >
+              % change
+            </button>
+          </div>
+        </Field>
+
         <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Price / night (ZAR)">
+          <Field
+            label={
+              adjustmentType === "absolute"
+                ? "Price / night (ZAR)"
+                : "Adjustment (%)"
+            }
+          >
             <Input
               type="number"
               inputMode="decimal"
-              min={0}
-              step="0.01"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
+              step={adjustmentType === "absolute" ? "0.01" : "1"}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={
+                adjustmentType === "absolute" ? "" : "e.g. 40 or -20"
+              }
             />
           </Field>
           <Field label="Min nights (optional)">
@@ -1766,6 +1857,14 @@ function RuleDialog({
           </Field>
         </div>
 
+        {adjustmentType === "percent" && refBase > 0 && valueNum !== 0 && (
+          <p className="text-[11px] text-brand-mute">
+            ≈ {formatZAR(displayNightly)} / night against this{" "}
+            {roomId ? "room" : "listing"}&rsquo;s {formatZAR(refBase)} base. The
+            % scales your per-guest and extra-guest rates too.
+          </p>
+        )}
+
         <p className="text-[11px] text-brand-mute">
           Priority decides which season wins when two cover the same date. Layer
           a short peak (e.g. Christmas week, priority 10) over a longer season
@@ -1782,10 +1881,10 @@ function RuleDialog({
           Active (counts toward booking prices)
         </label>
 
-        {nights > 0 && priceNum > 0 ? (
+        {nights > 0 && displayNightly > 0 ? (
           <div className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-xs text-brand-dark">
             <CalendarRange className="-mt-0.5 mr-1 inline h-3.5 w-3.5" />
-            {formatZAR(priceNum)} × {nights} night
+            {formatZAR(displayNightly)} × {nights} night
             {nights === 1 ? "" : "s"} ={" "}
             <strong className="font-semibold">{formatZAR(total)}</strong>
           </div>
@@ -1819,7 +1918,7 @@ function RuleDialog({
             !label.trim() ||
             !startDate ||
             !endDate ||
-            !price
+            !value
           }
         >
           {pending

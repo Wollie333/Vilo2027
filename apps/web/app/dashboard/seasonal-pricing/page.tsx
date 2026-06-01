@@ -76,7 +76,7 @@ export default async function SeasonalPricingPage() {
     ? await supabase
         .from("listing_seasonal_pricing")
         .select(
-          "id, listing_id, room_id, label, start_date, end_date, price, currency, min_nights, priority, is_active",
+          "id, listing_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, price, currency, min_nights, priority, is_active",
         )
         .in("listing_id", hostListingIds)
         .order("priority", { ascending: false })
@@ -139,19 +139,43 @@ export default async function SeasonalPricingPage() {
     };
   });
 
-  const rules: SeasonalRule[] = (rulesRaw ?? []).map((r) => ({
-    id: r.id,
-    listingId: r.listing_id,
-    roomId: r.room_id,
-    label: r.label,
-    startDate: r.start_date,
-    endDate: r.end_date,
-    price: Number(r.price),
-    currency: r.currency,
-    minNights: r.min_nights,
-    priority: r.priority,
-    isActive: r.is_active,
-  }));
+  // Reference base a rule's rate is measured against — room base when scoped to
+  // a room, else the listing base. Used to resolve a percent rule's display
+  // nightly so the preview matches what guests are charged.
+  const listingBase = new Map<string, number>();
+  const roomBase = new Map<string, number>();
+  for (const l of listings) {
+    listingBase.set(l.id, l.basePrice ?? 0);
+    for (const room of l.rooms) roomBase.set(room.id, room.basePrice);
+  }
+
+  const rules: SeasonalRule[] = (rulesRaw ?? []).map((r) => {
+    const adjustmentType: "absolute" | "percent" =
+      r.adjustment_type === "percent" ? "percent" : "absolute";
+    const adjustmentValue = Number(r.adjustment_value ?? r.price ?? 0);
+    const refBase =
+      (r.room_id ? roomBase.get(r.room_id) : listingBase.get(r.listing_id)) ??
+      0;
+    const price =
+      adjustmentType === "absolute"
+        ? adjustmentValue
+        : Math.max(0, refBase * (1 + adjustmentValue / 100));
+    return {
+      id: r.id,
+      listingId: r.listing_id,
+      roomId: r.room_id,
+      label: r.label,
+      startDate: r.start_date,
+      endDate: r.end_date,
+      adjustmentType,
+      adjustmentValue,
+      price,
+      currency: r.currency,
+      minNights: r.min_nights,
+      priority: r.priority,
+      isActive: r.is_active,
+    };
+  });
 
   if (listings.length === 0) {
     return (
