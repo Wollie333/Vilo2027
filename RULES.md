@@ -217,10 +217,15 @@ step, not a nice-to-have.
   article, write its dedicated article in the same session. This is how the
   back-catalogue of older features (built before this rule) gradually gets full
   help coverage — every edit is an opportunity to fill a gap, not skip it.
-- **Categorise correctly** — set `category_id` to the right `help_categories`
-  slug (e.g. `listings` for pricing/promotions, `payments` for payouts/refunds,
-  `bookings`, `channels`, `trust-safety`) and the right `audience`
-  (`host` / `guest` / `both`).
+- **Categorise correctly — one feature, one category.** Each product feature has
+  its own `help_categories` row (e.g. `seasonal-pricing`, `coupons`,
+  `listing-extras`, `rooms`, `add-ons`, `policies`). File the article under its
+  feature category and set the right `audience` (`host` / `guest` / `both`). If
+  the feature has no category yet, **create one** in the same migration (pick a
+  valid icon from `apps/web/lib/help/icon-map.ts`, adding one if needed). The
+  Help & Docs landing hides empty categories, so a new feature category only
+  appears once its article is published — which keeps the page reflecting real
+  activity automatically.
 
 ### Why
 - Preview === checkout === **docs**: the same single-source-of-truth discipline

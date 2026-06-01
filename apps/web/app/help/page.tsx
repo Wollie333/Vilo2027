@@ -96,7 +96,11 @@ export default async function PublicHelpPage({
 
         <QuickActions contact={settings.contact} overallStatus={overall} />
 
-        <TopicsGrid categories={categories} basePath={BASE_PATH} />
+        {/* Only categories with published articles — reflects real activity. */}
+        <TopicsGrid
+          categories={categories.filter((c) => c.article_count > 0)}
+          basePath={BASE_PATH}
+        />
 
         <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
           <div className="lg:col-span-2">

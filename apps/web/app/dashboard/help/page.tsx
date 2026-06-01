@@ -113,7 +113,13 @@ export default async function HelpPage({
 
       <QuickActions contact={settings.contact} overallStatus={overall} />
 
-      <TopicsGrid categories={categories} basePath={BASE_PATH} />
+      {/* Only show categories that actually have published articles, so the
+          page reflects real activity (feature categories light up as their
+          articles land — see RULES.md §9). */}
+      <TopicsGrid
+        categories={categories.filter((c) => c.article_count > 0)}
+        basePath={BASE_PATH}
+      />
 
       <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
         <div className="lg:col-span-2">
