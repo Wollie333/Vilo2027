@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  finalizeCancellation,
+  policyRefundFor,
+  type PolicyRefund,
+} from "@/lib/bookings/cancel";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -104,5 +109,67 @@ export async function requestRefundAction(input: {
 
   revalidatePath(`/my-trips/${booking.id}`);
   revalidatePath("/dashboard/refunds");
+  return { ok: true };
+}
+
+// ─── Guest-initiated cancellation ─────────────────────────────────
+// The guest cancels their own booking from the portal. Verifies ownership in
+// code (guests have no RLS update on bookings), then runs the shared enterprise
+// flow: policy refund + calendar release + host notification.
+
+type GuestBooking = {
+  id: string;
+  host_id: string;
+  guest_id: string | null;
+  status: string;
+  currency: string | null;
+  total_amount: number | string;
+};
+
+async function loadGuestBooking(
+  bookingId: string,
+): Promise<{ ok: true; booking: GuestBooking } | { ok: false; error: string }> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id, guest_id, status, currency, total_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking || booking.guest_id !== user.id) {
+    return { ok: false, error: "Booking not found." };
+  }
+  return { ok: true, booking };
+}
+
+export async function previewMyCancelRefundAction(
+  bookingId: string,
+): Promise<{ ok: true; refund: PolicyRefund } | { ok: false; error: string }> {
+  const loaded = await loadGuestBooking(bookingId);
+  if (!loaded.ok) return loaded;
+  return { ok: true, refund: await policyRefundFor(bookingId) };
+}
+
+export async function cancelMyBookingAction(input: {
+  bookingId: string;
+  reason?: string | null;
+}): Promise<Result> {
+  const loaded = await loadGuestBooking(input.bookingId);
+  if (!loaded.ok) return loaded;
+
+  const res = await finalizeCancellation(
+    loaded.booking,
+    "guest",
+    input.reason ?? null,
+  );
+  if (!res.ok) return res;
+
+  revalidatePath(`/my-trips/${input.bookingId}`);
+  revalidatePath("/portal/trips");
   return { ok: true };
 }

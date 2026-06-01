@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  finalizeCancellation,
+  policyRefundFor,
+  type PolicyRefund,
+} from "@/lib/bookings/cancel";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -125,8 +130,42 @@ export async function confirmBookingAction(bookingId: string) {
 export async function declineBookingAction(bookingId: string) {
   return applyTransition(bookingId, "decline");
 }
-export async function cancelBookingAction(bookingId: string) {
-  return applyTransition(bookingId, "cancel");
+// Host cancellation runs the enterprise flow: policy-entitled refund, calendar
+// release (via trigger) and guest notification — not the bare status flip.
+export async function cancelBookingAction(
+  bookingId: string,
+  reason?: string,
+): Promise<BookingActionResult> {
+  const supabase = createServerClient();
+  // RLS host_manage_own_bookings — only the owning host can read this row.
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, host_id, guest_id, status, currency, total_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return { ok: false, error: "Booking not found." };
+
+  const res = await finalizeCancellation(booking, "host", reason ?? null);
+  if (!res.ok) return res;
+
+  revalidatePath(`/dashboard/bookings/${bookingId}`);
+  revalidatePath("/dashboard/bookings");
+  return { ok: true };
+}
+
+// The policy-entitled refund a host/guest would get by cancelling now — drives
+// the confirmation modal's "guest will be refunded R X" line.
+export async function previewCancelRefundAction(
+  bookingId: string,
+): Promise<{ ok: true; refund: PolicyRefund } | { ok: false; error: string }> {
+  const supabase = createServerClient();
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return { ok: false, error: "Booking not found." };
+  return { ok: true, refund: await policyRefundFor(bookingId) };
 }
 export async function checkInBookingAction(bookingId: string) {
   return applyTransition(bookingId, "checkIn");

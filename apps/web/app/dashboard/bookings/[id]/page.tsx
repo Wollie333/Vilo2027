@@ -1031,7 +1031,11 @@ export default async function BookingDetailPage({
                       decline to release them.
                     </p>
                   ) : null}
-                  <BookingActions bookingId={booking.id} status={status} />
+                  <BookingActions
+                    bookingId={booking.id}
+                    status={status}
+                    currency={currency}
+                  />
                 </div>
               </Card>
             ) : null}

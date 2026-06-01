@@ -7,6 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 
+import { CancelTripButton } from "./CancelTripButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
 export const metadata: Metadata = {
@@ -126,6 +127,15 @@ export default async function MyTripDetailPage({
     (booking.payment_status === "captured" ||
       booking.payment_status === "completed") &&
     booking.status !== "expired";
+
+  // Guests can cancel before/at confirmation (not once checked-in/completed or
+  // already terminal). The policy decides any refund — shown in the dialog.
+  const canCancel = [
+    "pending",
+    "pending_eft",
+    "pending_eft_review",
+    "confirmed",
+  ].includes(booking.status);
 
   return (
     <div className="bg-brand-light text-brand-ink">
@@ -268,17 +278,25 @@ export default async function MyTripDetailPage({
               ) : null}
             </section>
 
-            {canRequestRefund ? (
-              <RequestRefundButton
-                bookingId={booking.id}
-                totalAmount={Number(booking.total_amount)}
-                currency={booking.currency}
-              />
-            ) : booking.has_open_refund ? (
-              <p className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-[12.5px] text-brand-dark">
-                A refund request for this booking is currently in progress.
-              </p>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {canRequestRefund ? (
+                <RequestRefundButton
+                  bookingId={booking.id}
+                  totalAmount={Number(booking.total_amount)}
+                  currency={booking.currency}
+                />
+              ) : booking.has_open_refund ? (
+                <p className="rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-[12.5px] text-brand-dark">
+                  A refund request for this booking is currently in progress.
+                </p>
+              ) : null}
+              {canCancel ? (
+                <CancelTripButton
+                  bookingId={booking.id}
+                  currency={booking.currency}
+                />
+              ) : null}
+            </div>
 
             {booking.listing?.slug ? (
               <Link

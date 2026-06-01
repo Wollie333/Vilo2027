@@ -1,9 +1,10 @@
 "use client";
 
 import { Check, DoorClosed, DoorOpen, X } from "lucide-react";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
 import { Button } from "@/components/ui/button";
 import { modal } from "@/components/ui/modal-host";
 
@@ -13,16 +14,32 @@ import {
   checkOutBookingAction,
   confirmBookingAction,
   declineBookingAction,
+  previewCancelRefundAction,
 } from "../actions";
 
 export function BookingActions({
   bookingId,
   status,
+  currency,
 }: {
   bookingId: string;
   status: string;
+  currency: string;
 }) {
   const [pending, start] = useTransition();
+  const [cancelOpen, setCancelOpen] = useState(false);
+
+  const cancelDialog = (
+    <CancelBookingDialog
+      open={cancelOpen}
+      onOpenChange={setCancelOpen}
+      bookingId={bookingId}
+      currency={currency}
+      audience="host"
+      loadPreview={previewCancelRefundAction}
+      onConfirm={(reason) => cancelBookingAction(bookingId, reason)}
+    />
+  );
 
   function run(
     kind: "confirm" | "decline" | "cancel" | "checkIn" | "checkOut",
@@ -101,23 +118,14 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={async () => {
-            const ok = await modal.destructive({
-              title: "Cancel this confirmed booking?",
-              description: "The guest will be notified and can't be undone.",
-              confirmLabel: "Cancel booking",
-              cancelLabel: "Keep booking",
-            });
-            if (ok) {
-              run("cancel");
-            }
-          }}
+          onClick={() => setCancelOpen(true)}
           disabled={pending}
           className="gap-1.5"
         >
           <X className="h-4 w-4" />
           Cancel
         </Button>
+        {cancelDialog}
       </div>
     );
   }
@@ -137,23 +145,14 @@ export function BookingActions({
         <Button
           type="button"
           variant="outline"
-          onClick={async () => {
-            const ok = await modal.destructive({
-              title: "Cancel this in-progress stay?",
-              description: "The guest will be notified and can't be undone.",
-              confirmLabel: "Cancel booking",
-              cancelLabel: "Keep booking",
-            });
-            if (ok) {
-              run("cancel");
-            }
-          }}
+          onClick={() => setCancelOpen(true)}
           disabled={pending}
           className="gap-1.5"
         >
           <X className="h-4 w-4" />
           Cancel
         </Button>
+        {cancelDialog}
       </div>
     );
   }
