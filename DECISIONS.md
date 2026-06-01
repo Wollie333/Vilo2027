@@ -513,4 +513,97 @@ Re-evaluate at the pre-launch security checklist.
 
 ---
 
+## ADR-020 — Unified pricing engine + seasonal pricing model
+**Status:** Accepted
+**Date:** 2026-06-01
+
+**Problem:**
+
+Vilo had **three independent pricing implementations that had drifted apart**,
+and the one that actually charged guests was wrong:
+
+| Where | Seasonal? | Weekend? | Used for |
+|-------|-----------|----------|----------|
+| SQL `calculate_booking_price()` | ✅ | ✅ (Sat+Sun) | nothing — called nowhere |
+| `createBookingAction` (base × nights + discounts) | ❌ | ❌ | **the real charged price** |
+| `SeasonalPricingManager` (its own client formula) | ✅ | ✅ | host preview only |
+
+The authoritative booking path computed the nightly cost as `base × nights` with
+**no per-night seasonal or weekend resolution**. So a host could configure a
+December peak rate (and see it in the preview), but it **never reached the
+charged total** — guests silently paid base rate. This is a revenue-correctness
+defect, not a cosmetic one. Vilo's whole promise is a financially exact
+direct-booking experience with no success fee, so the maths must be provably
+correct.
+
+**Decision:**
+
+- **One canonical, pure TypeScript engine** at `apps/web/lib/pricing`
+  (`priceStay`) is the single source of truth. Every consumer calls it: the
+  **server booking action** (authoritative recalculation), the **client
+  estimate** on the listing/booking pages, and the **host seasonal preview**.
+  Preview, checkout, and invoice can no longer disagree.
+- **The 5-stage Vilo Pricing Stack**, applied in fixed order:
+  (1) nightly rate — per night pick exactly one of *seasonal → weekend → base*;
+  (2) occupancy adjustment; (3) stay discounts (whole-place combo, then
+  length-of-stay; % off the nights subtotal only); (4) fees & extras (cleaning
+  once + add-ons, never discounted); (5) total — no success fee.
+- **Seasonal rules support two "What" types:** **absolute** (set the exact
+  nightly price; extra-guest fee still applies on top) and **percentage** (a +/-
+  % that scales base + per-guest + extra-guest together, so it's correct across
+  multi-room and per-person listings). A percentage **replaces** the weekend rate
+  on the nights it covers. Rules **do not stack** — exactly one wins per night,
+  resolved by *more-specific → higher-priority → newest-wins-ties*.
+- **Weekend changed from Saturday + Sunday to Friday + Saturday** (DOW 5,6) — the
+  industry-default leisure nights — and the whole stack was aligned to it.
+- **Audit snapshot on bookings:** a `price_breakdown` JSONB column (per-night
+  rates + source label, discounts, add-ons) plus a `discount_amount` column, so
+  checkout, invoices, refunds, and support all share one frozen, auditable
+  itemisation. Seasonal rules gained `adjustment_type` + `adjustment_value` to
+  carry the absolute/percentage choice.
+
+**Deliberate deviation — engine location:**
+
+The approved plan proposed a new `packages/utils/pricing` workspace package
+(matching the monorepo's "shared pure utilities" convention). We instead placed
+the engine in **`apps/web/lib/pricing`**. Reasons:
+
+- Avoids the cross-package transpile / build-config setup that a new workspace
+  package needs to be consumed cleanly by Next.js 14 (the existing helpers it
+  reuses — occupancy + discounts — already live under `apps/web`).
+- **Every consumer today is in `apps/web`** — the server action, the client
+  estimate, and the host preview. There is no mobile consumer yet.
+- It can be **promoted to `packages/utils` later** when mobile needs it; the
+  engine is already pure (no IO), so the move is a relocation, not a rewrite.
+
+This is a reversible, documented deviation in the spirit of "ship over block."
+
+**Consequences:**
+
+- **Preview === checkout === invoice** — one engine, zero drift. Seasonal and
+  weekend rates now flow all the way to the charged total.
+- The SQL `calculate_booking_price` was **realigned** (Fri+Sat weekend +
+  percentage support) and **kept as a DB-side cross-check** — the TS engine is
+  canonical, but the SQL function is locked to it for shared cases so a future
+  drift is caught.
+- Host/guest journeys are encoded as Vitest tests asserting exact line-by-line
+  totals (the proof of correctness).
+- The published rules are documented in the host help guide
+  (`docs/seasonal-pricing-guide.md`) so hosts can predict every cent.
+
+**Constraint:**
+
+- All pricing surfaces must call `priceStay` — never reintroduce a bespoke
+  nightly-rate formula in a component or action.
+- If the engine is promoted to `packages/utils`, keep it pure (no IO) and update
+  every `apps/web` import in the same change.
+- Any change to the SQL `calculate_booking_price` must keep it aligned with the
+  TS engine for the shared cross-check cases, or the cross-check must be retired
+  deliberately (not left silently diverging).
+
+Related: migration `20260601000001_unified_pricing_engine.sql`; the CHANGELOG
+entry for 2026-06-01; `feedback — ship over block` (the documented deviation).
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

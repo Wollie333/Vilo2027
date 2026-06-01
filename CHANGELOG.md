@@ -31,6 +31,57 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-01 — Unified pricing engine + enterprise seasonal pricing — branch `feat/seasonal-pricing-redesign`
+
+### Built
+- **One canonical pricing engine** at `apps/web/lib/pricing` (`priceStay`) — a
+  pure, fully-tested TypeScript module that is now the single source of truth for
+  the server booking action, the client estimate, and the host seasonal preview.
+  Preview, checkout, and invoice can no longer disagree.
+- **14 host/guest journey tests** asserting exact line-by-line totals — Vitest
+  stood up in `apps/web` (script + config), per `TESTING.md`. These journeys
+  double as the written "host configures X → guest does Y → system charges Z"
+  narrative.
+- **Two seasonal-rule types:** **absolute** (set the exact nightly price; extra-
+  guest fee still applies) and **percentage** (a +/- % that scales base +
+  per-guest + extra-guest together, correct across multi-room and per-person
+  listings). A percentage replaces the weekend rate on the nights it covers.
+- **Host-facing transparency:** a labelled per-night breakdown ("Festive season"
+  / "Weekend" / "Standard") and an explicit discount line at checkout and on the
+  invoice. New host help guide `docs/seasonal-pricing-guide.md` documents the
+  5-stage stack, the 3 golden overlap rules, absolute vs %, worked Rand examples,
+  and common mistakes.
+- **Seasonal manager toggle** for choosing absolute vs percentage per rule (part
+  of this change set).
+
+### Changed
+- **Revenue-correctness fix:** seasonal and weekend pricing now actually reach
+  the **charged total**. The authoritative booking path previously computed
+  `base × nights` with no per-night seasonal/weekend resolution, so configured
+  seasonal (and weekend) rates were **ignored** and guests silently paid base
+  rate. They now flow all the way through.
+- **Weekend changed from Saturday + Sunday to Friday + Saturday** (DOW 5,6) — the
+  industry-default leisure nights — and the whole stack was aligned to it,
+  including the SQL `calculate_booking_price`, which was realigned (Fri+Sat +
+  percentage) and kept as a DB-side cross-check against the TS engine.
+
+### Migrations
+- `20260601000001_unified_pricing_engine.sql` — adds `discount_amount` and a
+  `price_breakdown` JSONB audit snapshot to `bookings`; adds `adjustment_type` +
+  `adjustment_value` to seasonal rules; realigns `calculate_booking_price` to
+  Fri+Sat + percentage.
+
+### Notes
+- ADR-020 records the decision (5-stage Pricing Stack; absolute + percentage
+  rules; Sat+Sun → Fri+Sat weekend change; audit snapshot) and the deliberate
+  deviation that the engine lives in `apps/web/lib/pricing` rather than a new
+  `packages/utils` workspace package — avoids cross-package transpile setup in
+  Next 14, every consumer is in `apps/web`, can be promoted later.
+- The `price_breakdown` snapshot is the frozen, auditable itemisation shared by
+  checkout, invoices, refunds, and support.
+
+---
+
 ## 2026-05-31 — Fix: scope seasonal-pricing page to the logged-in host — branch `feat/seasonal-pricing-redesign`
 
 ### Fixed
