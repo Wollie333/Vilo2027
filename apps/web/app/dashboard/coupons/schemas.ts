@@ -29,6 +29,7 @@ export const couponInputSchema = z
     scope: z.enum(["order", "accommodation", "addons"]),
     listing_id: z.string().uuid().nullable(),
     room_id: z.string().uuid().nullable(),
+    addon_id: z.string().uuid().nullable(),
     min_nights: z.number().int().min(1).max(365).nullable(),
     min_spend: z.number().min(0).max(10_000_000).nullable(),
     starts_at: isoDateOrNull,
@@ -48,6 +49,10 @@ export const couponInputSchema = z
   .refine((v) => v.room_id == null || v.scope === "accommodation", {
     path: ["room_id"],
     message: "Room targeting only applies to accommodation scope.",
+  })
+  .refine((v) => v.addon_id == null || v.scope === "addons", {
+    path: ["addon_id"],
+    message: "Add-on targeting only applies to add-ons scope.",
   })
   .refine((v) => !v.starts_at || !v.ends_at || v.ends_at >= v.starts_at, {
     path: ["ends_at"],

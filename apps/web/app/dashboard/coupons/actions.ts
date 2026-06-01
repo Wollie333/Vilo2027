@@ -70,6 +70,20 @@ function toEnd(d: string | null): string | null {
   return d ? `${d}T23:59:59Z` : null;
 }
 
+async function assertAddonOwnership(
+  addonId: string,
+  hostId: string,
+): Promise<boolean> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("addons")
+    .select("id")
+    .eq("id", addonId)
+    .eq("host_id", hostId)
+    .maybeSingle();
+  return !!data;
+}
+
 async function validateTargets(
   v: CouponInput,
   hostId: string,
@@ -84,6 +98,13 @@ async function validateTargets(
   ) {
     return { ok: false, error: "That room doesn’t belong to this listing." };
   }
+  if (
+    v.scope === "addons" &&
+    v.addon_id &&
+    !(await assertAddonOwnership(v.addon_id, hostId))
+  ) {
+    return { ok: false, error: "That add-on isn’t one of yours." };
+  }
   return { ok: true };
 }
 
@@ -97,6 +118,7 @@ function row(v: CouponInput, hostId: string) {
     scope: v.scope,
     listing_id: v.listing_id,
     room_id: v.scope === "accommodation" ? v.room_id : null,
+    addon_id: v.scope === "addons" ? v.addon_id : null,
     min_nights: v.min_nights,
     min_spend: v.min_spend,
     starts_at: toStart(v.starts_at),

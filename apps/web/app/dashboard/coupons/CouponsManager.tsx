@@ -31,6 +31,7 @@ import {
 import { COUPON_SCOPES, type CouponScope } from "./schemas";
 
 export type CouponRoom = { id: string; name: string };
+export type CouponAddon = { id: string; name: string };
 export type CouponListing = {
   id: string;
   name: string;
@@ -47,6 +48,7 @@ export type CouponRow = {
   scope: CouponScope;
   listingId: string | null;
   roomId: string | null;
+  addonId: string | null;
   currency: string;
   minNights: number | null;
   minSpend: number | null;
@@ -80,9 +82,11 @@ type EditTarget = { mode: "create" } | { mode: "edit"; coupon: CouponRow };
 
 export function CouponsManager({
   listings,
+  addons,
   initialCoupons,
 }: {
   listings: CouponListing[];
+  addons: CouponAddon[];
   initialCoupons: CouponRow[];
 }) {
   const [coupons, setCoupons] = useState<CouponRow[]>(initialCoupons);
@@ -143,6 +147,7 @@ export function CouponsManager({
               key={c.id}
               coupon={c}
               listings={listings}
+              addons={addons}
               onEdit={() => setTarget({ mode: "edit", coupon: c })}
               onChanged={applyUpserted}
               onDeleted={(id) =>
@@ -156,6 +161,7 @@ export function CouponsManager({
       {target ? (
         <CouponDialog
           listings={listings}
+          addons={addons}
           target={target}
           onClose={() => setTarget(null)}
           onSaved={applyUpserted}
@@ -168,12 +174,14 @@ export function CouponsManager({
 function CouponCard({
   coupon,
   listings,
+  addons,
   onEdit,
   onChanged,
   onDeleted,
 }: {
   coupon: CouponRow;
   listings: CouponListing[];
+  addons: CouponAddon[];
   onEdit: () => void;
   onChanged: (c: CouponRow) => void;
   onDeleted: (id: string) => void;
@@ -181,10 +189,13 @@ function CouponCard({
   const [pending, start] = useTransition();
   const listing = listings.find((l) => l.id === coupon.listingId);
   const room = listing?.rooms.find((r) => r.id === coupon.roomId);
+  const addon = addons.find((a) => a.id === coupon.addonId);
 
-  const targetLabel = coupon.listingId
-    ? `${listing?.name ?? "Listing"}${room ? ` · ${room.name}` : ""}`
-    : "All listings";
+  const targetLabel = addon
+    ? `Add-on · ${addon.name}`
+    : coupon.listingId
+      ? `${listing?.name ?? "Listing"}${room ? ` · ${room.name}` : ""}`
+      : "All listings";
 
   const used = coupon.maxRedemptions
     ? `${coupon.redeemedCount}/${coupon.maxRedemptions} used`
@@ -312,11 +323,13 @@ function Field({
 
 function CouponDialog({
   listings,
+  addons,
   target,
   onClose,
   onSaved,
 }: {
   listings: CouponListing[];
+  addons: CouponAddon[];
   target: EditTarget;
   onClose: () => void;
   onSaved: (c: CouponRow) => void;
@@ -333,6 +346,7 @@ function CouponDialog({
           scope: "order" as CouponScope,
           listingId: null as string | null,
           roomId: null as string | null,
+          addonId: null as string | null,
           currency: listings[0]?.currency ?? "ZAR",
           minNights: null as number | null,
           minSpend: null as number | null,
@@ -355,6 +369,7 @@ function CouponDialog({
   const [scope, setScope] = useState<CouponScope>(initial.scope);
   const [listingId, setListingId] = useState<string | null>(initial.listingId);
   const [roomId, setRoomId] = useState<string | null>(initial.roomId);
+  const [addonId, setAddonId] = useState<string | null>(initial.addonId);
   const [minNights, setMinNights] = useState(
     initial.minNights == null ? "" : String(initial.minNights),
   );
@@ -387,6 +402,7 @@ function CouponDialog({
       scope,
       listing_id: listingId,
       room_id: scope === "accommodation" ? roomId : null,
+      addon_id: scope === "addons" ? addonId : null,
       min_nights: numOrNull(minNights),
       min_spend: numOrNull(minSpend),
       starts_at: startsAt || null,
@@ -406,6 +422,7 @@ function CouponDialog({
         scope,
         listingId,
         roomId: payload.room_id,
+        addonId: payload.addon_id,
         currency: listing?.currency ?? "ZAR",
         minNights: payload.min_nights,
         minSpend: payload.min_spend,
@@ -511,6 +528,7 @@ function CouponDialog({
             onValueChange={(v) => {
               setScope(v as CouponScope);
               if (v !== "accommodation") setRoomId(null);
+              if (v !== "addons") setAddonId(null);
             }}
           >
             <SelectTrigger>
@@ -562,6 +580,26 @@ function CouponDialog({
                   {listing.rooms.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          ) : null}
+          {scope === "addons" && addons.length > 0 ? (
+            <Field label="Add-on (optional)">
+              <Select
+                value={addonId ?? "__any__"}
+                onValueChange={(v) => setAddonId(v === "__any__" ? null : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__any__">Any add-on</SelectItem>
+                  {addons.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

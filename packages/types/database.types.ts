@@ -1039,6 +1039,7 @@ export type Database = {
       }
       coupons: {
         Row: {
+          addon_id: string | null
           code: string
           created_at: string
           currency: string
@@ -1061,6 +1062,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          addon_id?: string | null
           code: string
           created_at?: string
           currency?: string
@@ -1083,6 +1085,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          addon_id?: string | null
           code?: string
           created_at?: string
           currency?: string
@@ -1105,6 +1108,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "coupons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "coupons_host_id_fkey"
             columns: ["host_id"]

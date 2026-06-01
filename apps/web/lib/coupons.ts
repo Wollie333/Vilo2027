@@ -21,6 +21,8 @@ export type CouponContext = {
   guestId?: string | null;
   /** Booked room ids (rooms scope) — a room-scoped coupon must match one. */
   roomIds: string[];
+  /** Selected add-on ids — an add-on-targeted coupon must match one. */
+  addonIds: string[];
   /** Discounted accommodation subtotal (for order/accommodation min-spend). */
   accommodationAmount: number;
   /** Add-ons subtotal (for addons/order min-spend). */
@@ -40,6 +42,7 @@ type CouponRow = {
   scope: "order" | "accommodation" | "addons";
   listing_id: string | null;
   room_id: string | null;
+  addon_id: string | null;
   min_nights: number | null;
   min_spend: number | string | null;
   starts_at: string | null;
@@ -66,7 +69,7 @@ export async function resolveCoupon(
   const { data: rows } = await admin
     .from("coupons")
     .select(
-      "id, code, description, discount_type, discount_value, scope, listing_id, room_id, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
+      "id, code, description, discount_type, discount_value, scope, listing_id, room_id, addon_id, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
     )
     .eq("host_id", ctx.hostId)
     .ilike("code", code)
@@ -88,6 +91,9 @@ export async function resolveCoupon(
   }
   if (c.room_id && !ctx.roomIds.includes(c.room_id)) {
     return { ok: false, error: "Add the eligible room to use this coupon." };
+  }
+  if (c.addon_id && !ctx.addonIds.includes(c.addon_id)) {
+    return { ok: false, error: "Add the eligible add-on to use this coupon." };
   }
   if (c.min_nights && ctx.nights < c.min_nights) {
     return {
@@ -139,6 +145,7 @@ export async function resolveCoupon(
       discountValue: Number(c.discount_value),
       scope: c.scope,
       roomId: c.room_id,
+      addonId: c.addon_id,
     },
   };
 }

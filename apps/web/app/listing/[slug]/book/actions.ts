@@ -125,6 +125,7 @@ const validateCouponSchema = z.object({
   check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   room_ids: z.array(z.string().uuid()).optional().default([]),
+  addon_ids: z.array(z.string().uuid()).optional().default([]),
   accommodation_amount: z.number().min(0),
   addons_amount: z.number().min(0),
 });
@@ -162,6 +163,7 @@ export async function validateCouponAction(
     nights: nightsBetween(v.check_in, v.check_out),
     guestId: user?.id ?? null,
     roomIds: v.room_ids,
+    addonIds: v.addon_ids,
     accommodationAmount: v.accommodation_amount,
     addonsAmount: v.addons_amount,
   });
@@ -594,6 +596,7 @@ export async function createBookingAction(
         pricingModel: a.pricing_model,
         unitPrice: a.unit_price,
         quantity: a.quantity,
+        addonId: a.addon_id,
       })),
     });
 
@@ -621,6 +624,7 @@ export async function createBookingAction(
                 .map((u) => u.roomId)
                 .filter((id): id is string => id !== null)
             : [],
+        addonIds: addonInserts.map((a) => a.addon_id),
         accommodationAmount:
           breakdown.baseSubtotal - breakdown.discount.discountTotal,
         addonsAmount: breakdown.addonsTotal,

@@ -499,6 +499,7 @@ export function BookingForm({
             pricingModel: a.pricingModel,
             unitPrice: a.unitPrice,
             quantity: qty,
+            addonId: id,
           };
           return [line];
         }),
@@ -534,6 +535,9 @@ export function BookingForm({
         check_in: dates.from,
         check_out: dates.to,
         room_ids: scope === "rooms" ? selectedRooms.map((r) => r.id) : [],
+        addon_ids: [...addonQty.entries()]
+          .filter(([, q]) => q > 0)
+          .map(([id]) => id),
         accommodation_amount: accommodationAmount,
         addons_amount: breakdown.addonsTotal,
       });

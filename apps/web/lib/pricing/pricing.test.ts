@@ -458,6 +458,42 @@ describe("priceStay — use-case journeys", () => {
     expect(r.total).toBe(3000 - 1000);
   });
 
+  it("J16: add-on-targeted coupon only discounts that add-on", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-10",
+        units: [unit({ roomId: null, base_price: 1000 })],
+        addons: [
+          {
+            label: "Breakfast",
+            pricingModel: "per_stay",
+            unitPrice: 400,
+            quantity: 1,
+            addonId: "a-breakfast",
+          },
+          {
+            label: "Spa",
+            pricingModel: "per_stay",
+            unitPrice: 600,
+            quantity: 1,
+            addonId: "a-spa",
+          },
+        ],
+        coupon: {
+          code: "SPA25",
+          discountType: "percent",
+          discountValue: 25,
+          scope: "addons",
+          addonId: "a-spa",
+        },
+      }),
+    );
+    // only Spa (600) is eligible → 25% = 150; breakfast untouched.
+    expect(r.couponDiscount).toBe(150);
+    expect(r.total).toBe(2000 + 400 + 600 - 150);
+  });
+
   it("J10: a percentage that would go negative is clamped at zero", () => {
     const r = priceStay(
       base({

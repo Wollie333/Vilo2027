@@ -64,6 +64,8 @@ export type StayAddon = {
   unitPrice: number;
   /** For per-night models the quantity already carries the night count. */
   quantity: number;
+  /** Catalog add-on id — lets a coupon target one specific add-on. */
+  addonId?: string | null;
 };
 
 /**
@@ -81,6 +83,8 @@ export type ResolvedCoupon = {
   scope: "order" | "accommodation" | "addons";
   /** Restrict an accommodation coupon to a single room. */
   roomId?: string | null;
+  /** Restrict an add-ons coupon to a single add-on. */
+  addonId?: string | null;
 };
 
 export type PriceStayInput = {
@@ -130,6 +134,7 @@ export type AddonLine = {
   unitPrice: number;
   quantity: number;
   subtotal: number;
+  addonId?: string | null;
 };
 
 export type PriceBreakdown = {
@@ -163,20 +168,26 @@ export function couponDiscountFor(
   coupon: ResolvedCoupon | null | undefined,
   parts: {
     accommodationAfterDiscount: number;
-    addonsTotal: number;
+    addons: AddonLine[];
     units: UnitBreakdown[];
   },
 ): number {
   if (!coupon) return 0;
+  const addonsTotal = parts.addons.reduce((s, a) => s + a.subtotal, 0);
   let eligible: number;
   if (coupon.scope === "addons") {
-    eligible = parts.addonsTotal;
+    // Target one add-on when set, else every add-on in the order.
+    eligible = coupon.addonId
+      ? parts.addons
+          .filter((a) => a.addonId === coupon.addonId)
+          .reduce((s, a) => s + a.subtotal, 0)
+      : addonsTotal;
   } else if (coupon.scope === "accommodation") {
     eligible = coupon.roomId
       ? (parts.units.find((u) => u.roomId === coupon.roomId)?.baseSubtotal ?? 0)
       : parts.accommodationAfterDiscount;
   } else {
-    eligible = parts.accommodationAfterDiscount + parts.addonsTotal;
+    eligible = parts.accommodationAfterDiscount + addonsTotal;
   }
   if (eligible <= 0) return 0;
   const raw =
@@ -366,6 +377,7 @@ export function priceStay(input: PriceStayInput): PriceBreakdown {
     pricingModel: a.pricingModel,
     unitPrice: a.unitPrice,
     quantity: a.quantity,
+    addonId: a.addonId ?? null,
     subtotal: round2(
       computeAddonSubtotal(
         a.pricingModel,
@@ -382,7 +394,7 @@ export function priceStay(input: PriceStayInput): PriceBreakdown {
   );
   const couponDiscount = couponDiscountFor(input.coupon, {
     accommodationAfterDiscount,
-    addonsTotal,
+    addons,
     units,
   });
 
