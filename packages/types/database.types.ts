@@ -1,3 +1,4 @@
+Initialising login role...
 export type Json =
   | string
   | number
@@ -628,6 +629,7 @@ export type Database = {
           currency: string
           declined_at: string | null
           deleted_at: string | null
+          discount_amount: number
           eft_proof_url: string | null
           guest_email: string | null
           guest_id: string | null
@@ -648,6 +650,7 @@ export type Database = {
           policy_acknowledged: boolean
           policy_acknowledged_at: string | null
           previous_status: string | null
+          price_breakdown: Json | null
           quote_id: string | null
           reference: string
           refund_total: number | null
@@ -675,6 +678,7 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          discount_amount?: number
           eft_proof_url?: string | null
           guest_email?: string | null
           guest_id?: string | null
@@ -695,6 +699,7 @@ export type Database = {
           policy_acknowledged?: boolean
           policy_acknowledged_at?: string | null
           previous_status?: string | null
+          price_breakdown?: Json | null
           quote_id?: string | null
           reference?: string
           refund_total?: number | null
@@ -722,6 +727,7 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          discount_amount?: number
           eft_proof_url?: string | null
           guest_email?: string | null
           guest_id?: string | null
@@ -742,6 +748,7 @@ export type Database = {
           policy_acknowledged?: boolean
           policy_acknowledged_at?: string | null
           previous_status?: string | null
+          price_breakdown?: Json | null
           quote_id?: string | null
           reference?: string
           refund_total?: number | null
@@ -2527,6 +2534,8 @@ export type Database = {
       }
       listing_seasonal_pricing: {
         Row: {
+          adjustment_type: string
+          adjustment_value: number
           created_at: string
           currency: string
           end_date: string
@@ -2535,13 +2544,15 @@ export type Database = {
           label: string
           listing_id: string
           min_nights: number | null
-          price: number
+          price: number | null
           priority: number
           room_id: string | null
           start_date: string
           updated_at: string
         }
         Insert: {
+          adjustment_type?: string
+          adjustment_value: number
           created_at?: string
           currency?: string
           end_date: string
@@ -2550,13 +2561,15 @@ export type Database = {
           label: string
           listing_id: string
           min_nights?: number | null
-          price: number
+          price?: number | null
           priority?: number
           room_id?: string | null
           start_date: string
           updated_at?: string
         }
         Update: {
+          adjustment_type?: string
+          adjustment_value?: number
           created_at?: string
           currency?: string
           end_date?: string
@@ -2565,7 +2578,7 @@ export type Database = {
           label?: string
           listing_id?: string
           min_nights?: number | null
-          price?: number
+          price?: number | null
           priority?: number
           room_id?: string | null
           start_date?: string
@@ -6084,3 +6097,5 @@ export const Constants = {
     Enums: {},
   },
 } as const
+A new version of Supabase CLI is available: v2.103.0 (currently installed v2.101.0)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
