@@ -24,6 +24,7 @@ import { notFound } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
+import { PaymentManage } from "../../payments/[id]/PaymentManage";
 import { BookingActions } from "./BookingActions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
@@ -958,6 +959,23 @@ export default async function BookingDetailPage({
                   </Link>
                 ) : null}
               </div>
+
+              {/* EFT settlement — manage the bound payment without leaving the
+                  booking. Verifying confirms the booking; failing declines it. */}
+              {paymentRow &&
+              paymentRow.method === "eft" &&
+              (paymentRow.status === "pending" ||
+                paymentRow.status === "authorised") ? (
+                <div className="mt-4 rounded-[12px] border border-amber-300 bg-amber-50/60 p-4">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">
+                    Awaiting EFT transfer
+                  </div>
+                  <p className="mb-3 mt-1 text-[12.5px] text-amber-900/80">
+                    Confirm once the funds reflect in your account.
+                  </p>
+                  <PaymentManage paymentId={paymentRow.id} />
+                </div>
+              ) : null}
             </div>
           </Card>
 
