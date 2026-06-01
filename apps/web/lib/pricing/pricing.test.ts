@@ -335,6 +335,129 @@ describe("priceStay — use-case journeys", () => {
     expect(r.effectiveMinNights).toBe(5); // booking action rejects 3 < 5
   });
 
+  it("J11: order coupon (percent) discounts accommodation + add-ons, not cleaning", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-10", // 2 nights base
+        units: [unit({ roomId: null, base_price: 1000, cleaning_fee: 300 })],
+        totalGuests: 2,
+        addons: [
+          {
+            label: "Breakfast",
+            pricingModel: "per_night",
+            unitPrice: 100,
+            quantity: 2,
+          },
+        ],
+        coupon: {
+          code: "SAVE10",
+          discountType: "percent",
+          discountValue: 10,
+          scope: "order",
+        },
+      }),
+    );
+    // base 2000 + addons 200 = 2200 eligible; 10% = 220. cleaning 300 untouched.
+    expect(r.couponDiscount).toBe(220);
+    expect(r.couponCode).toBe("SAVE10");
+    expect(r.total).toBe(2000 + 200 + 300 - 220); // 2280
+  });
+
+  it("J12: accommodation-only coupon leaves add-ons alone", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-10",
+        units: [unit({ roomId: null, base_price: 1000 })],
+        addons: [
+          {
+            label: "Spa",
+            pricingModel: "per_stay",
+            unitPrice: 500,
+            quantity: 1,
+          },
+        ],
+        coupon: {
+          code: "ROOMS20",
+          discountType: "percent",
+          discountValue: 20,
+          scope: "accommodation",
+        },
+      }),
+    );
+    // base 2000 × 20% = 400 ; add-ons 500 untouched.
+    expect(r.couponDiscount).toBe(400);
+    expect(r.total).toBe(2000 + 500 - 400); // 2100
+  });
+
+  it("J13: add-ons-only coupon discounts only the extras", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-10",
+        units: [unit({ roomId: null, base_price: 1000 })],
+        addons: [
+          {
+            label: "Dinner",
+            pricingModel: "per_stay",
+            unitPrice: 800,
+            quantity: 1,
+          },
+        ],
+        coupon: {
+          code: "EXTRAS25",
+          discountType: "percent",
+          discountValue: 25,
+          scope: "addons",
+        },
+      }),
+    );
+    expect(r.couponDiscount).toBe(200); // 25% of 800
+    expect(r.total).toBe(2000 + 800 - 200);
+  });
+
+  it("J14: fixed coupon is capped at the eligible amount", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-09", // 1 night → base 1000
+        units: [unit({ roomId: null, base_price: 1000 })],
+        coupon: {
+          code: "MINUS5000",
+          discountType: "fixed",
+          discountValue: 5000,
+          scope: "accommodation",
+        },
+      }),
+    );
+    expect(r.couponDiscount).toBe(1000); // capped at the 1000 base
+    expect(r.total).toBe(0);
+  });
+
+  it("J15: room-targeted coupon only discounts that room", () => {
+    const r = priceStay(
+      base({
+        checkIn: "2026-06-08",
+        checkOut: "2026-06-09", // 1 night
+        units: [
+          unit({ roomId: "r1", base_price: 1000 }),
+          unit({ roomId: "r2", base_price: 2000 }),
+        ],
+        coupon: {
+          code: "R2ONLY",
+          discountType: "percent",
+          discountValue: 50,
+          scope: "accommodation",
+          roomId: "r2",
+        },
+      }),
+    );
+    // only r2 (2000) is eligible → 50% = 1000.
+    expect(r.couponDiscount).toBe(1000);
+    expect(r.total).toBe(3000 - 1000);
+  });
+
   it("J10: a percentage that would go negative is clamped at zero", () => {
     const r = priceStay(
       base({

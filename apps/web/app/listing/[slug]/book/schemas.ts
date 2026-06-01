@@ -57,6 +57,8 @@ export const createBookingSchema = z
       )
       .optional()
       .default([]),
+    // Optional coupon code — server re-validates + re-prices; never trusted.
+    coupon_code: z.string().trim().max(40).optional(),
   })
   .refine(
     (d) =>

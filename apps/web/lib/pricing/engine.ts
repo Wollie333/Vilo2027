@@ -66,6 +66,23 @@ export type StayAddon = {
   quantity: number;
 };
 
+/**
+ * A coupon already validated server-side (code match, window, caps, min-spend).
+ * The engine only applies its MATHS — never trust it for eligibility.
+ *  - scope 'order'         → discounts (discounted accommodation + add-ons)
+ *  - scope 'accommodation' → discounts the room/base subtotal (optionally one room)
+ *  - scope 'addons'        → discounts the add-ons subtotal
+ * Cleaning is never discounted by a coupon.
+ */
+export type ResolvedCoupon = {
+  code: string;
+  discountType: "percent" | "fixed";
+  discountValue: number;
+  scope: "order" | "accommodation" | "addons";
+  /** Restrict an accommodation coupon to a single room. */
+  roomId?: string | null;
+};
+
 export type PriceStayInput = {
   /** 'YYYY-MM-DD' inclusive. */
   checkIn: string;
@@ -84,6 +101,8 @@ export type PriceStayInput = {
   weeklyPct: number | null;
   monthlyPct: number | null;
   addons?: StayAddon[];
+  /** A pre-validated coupon to apply as the final discount stage. */
+  coupon?: ResolvedCoupon | null;
   /** Override the weekend definition (defaults to Fri+Sat). */
   weekendDays?: readonly number[];
 };
@@ -124,12 +143,48 @@ export type PriceBreakdown = {
   cleaningTotal: number;
   addons: AddonLine[];
   addonsTotal: number;
-  /** baseSubtotal − discount.discountTotal + cleaningTotal + addonsTotal. */
+  /** Coupon discount applied (0 when no coupon). */
+  couponDiscount: number;
+  /** The applied coupon code, or null. */
+  couponCode: string | null;
+  /** base − stayDiscount + cleaning + addons − couponDiscount. */
   total: number;
   currency: string;
   /** max(listing min, any overlapping active seasonal rule's min). */
   effectiveMinNights: number;
 };
+
+/**
+ * Coupon maths over an already-priced stay. Returns the rand value to subtract.
+ * Cleaning is never eligible. A room-scoped accommodation coupon only sees that
+ * room's subtotal.
+ */
+export function couponDiscountFor(
+  coupon: ResolvedCoupon | null | undefined,
+  parts: {
+    accommodationAfterDiscount: number;
+    addonsTotal: number;
+    units: UnitBreakdown[];
+  },
+): number {
+  if (!coupon) return 0;
+  let eligible: number;
+  if (coupon.scope === "addons") {
+    eligible = parts.addonsTotal;
+  } else if (coupon.scope === "accommodation") {
+    eligible = coupon.roomId
+      ? (parts.units.find((u) => u.roomId === coupon.roomId)?.baseSubtotal ?? 0)
+      : parts.accommodationAfterDiscount;
+  } else {
+    eligible = parts.accommodationAfterDiscount + parts.addonsTotal;
+  }
+  if (eligible <= 0) return 0;
+  const raw =
+    coupon.discountType === "percent"
+      ? (eligible * coupon.discountValue) / 100
+      : coupon.discountValue;
+  return round2(Math.min(Math.max(0, raw), eligible));
+}
 
 // ── date helpers (UTC, deterministic — no local-tz drift) ──
 function parseUTC(d: string): number {
@@ -322,8 +377,17 @@ export function priceStay(input: PriceStayInput): PriceBreakdown {
   }));
   const addonsTotal = round2(addons.reduce((s, a) => s + a.subtotal, 0));
 
+  const accommodationAfterDiscount = round2(
+    baseSubtotal - discount.discountTotal,
+  );
+  const couponDiscount = couponDiscountFor(input.coupon, {
+    accommodationAfterDiscount,
+    addonsTotal,
+    units,
+  });
+
   const total = round2(
-    baseSubtotal - discount.discountTotal + cleaningTotal + addonsTotal,
+    accommodationAfterDiscount + cleaningTotal + addonsTotal - couponDiscount,
   );
 
   return {
@@ -341,6 +405,8 @@ export function priceStay(input: PriceStayInput): PriceBreakdown {
     cleaningTotal,
     addons,
     addonsTotal,
+    couponDiscount,
+    couponCode: input.coupon && couponDiscount > 0 ? input.coupon.code : null,
     total,
     currency: input.currency,
     effectiveMinNights: effectiveMinNights(input),

@@ -625,6 +625,8 @@ export type Database = {
           checked_out_at: string | null
           cleaning_fee: number
           confirmed_at: string | null
+          coupon_discount: number
+          coupon_id: string | null
           created_at: string
           currency: string
           declined_at: string | null
@@ -674,6 +676,8 @@ export type Database = {
           checked_out_at?: string | null
           cleaning_fee?: number
           confirmed_at?: string | null
+          coupon_discount?: number
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           declined_at?: string | null
@@ -723,6 +727,8 @@ export type Database = {
           checked_out_at?: string | null
           cleaning_fee?: number
           confirmed_at?: string | null
+          coupon_discount?: number
+          coupon_id?: string | null
           created_at?: string
           currency?: string
           declined_at?: string | null
@@ -765,6 +771,13 @@ export type Database = {
             columns: ["actioned_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
             referencedColumns: ["id"]
           },
           {
@@ -968,6 +981,149 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupon_redemptions: {
+        Row: {
+          amount_discounted: number
+          booking_id: string
+          coupon_id: string
+          created_at: string
+          currency: string
+          guest_id: string | null
+          id: string
+        }
+        Insert: {
+          amount_discounted: number
+          booking_id: string
+          coupon_id: string
+          created_at?: string
+          currency?: string
+          guest_id?: string | null
+          id?: string
+        }
+        Update: {
+          amount_discounted?: number
+          booking_id?: string
+          coupon_id?: string
+          created_at?: string
+          currency?: string
+          guest_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          host_id: string
+          id: string
+          is_active: boolean
+          listing_id: string | null
+          max_redemptions: number | null
+          min_nights: number | null
+          min_spend: number | null
+          per_guest_limit: number | null
+          redeemed_count: number
+          room_id: string | null
+          scope: string
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          discount_type?: string
+          discount_value: number
+          ends_at?: string | null
+          host_id: string
+          id?: string
+          is_active?: boolean
+          listing_id?: string | null
+          max_redemptions?: number | null
+          min_nights?: number | null
+          min_spend?: number | null
+          per_guest_limit?: number | null
+          redeemed_count?: number
+          room_id?: string | null
+          scope?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          listing_id?: string | null
+          max_redemptions?: number | null
+          min_nights?: number | null
+          min_spend?: number | null
+          per_guest_limit?: number | null
+          redeemed_count?: number
+          room_id?: string | null
+          scope?: string
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -5317,6 +5473,16 @@ export type Database = {
       recalculate_listing_ranking: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      redeem_coupon: {
+        Args: {
+          p_amount: number
+          p_booking_id: string
+          p_coupon_id: string
+          p_currency: string
+          p_guest_id: string
+        }
+        Returns: boolean
       }
       release_addon_stock: {
         Args: { p_addon_id: string; p_qty: number }

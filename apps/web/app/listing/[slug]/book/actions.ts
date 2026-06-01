@@ -14,10 +14,12 @@ import {
   defaultAddonQuantity,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
+import { resolveCoupon } from "@/lib/coupons";
 import {
   priceStay,
   type PriceBreakdown,
   type PricingUnit,
+  type ResolvedCoupon,
   type SeasonalRule,
 } from "@/lib/pricing";
 
@@ -113,6 +115,54 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return n;
 }
 
+// ─── Guest coupon preview ─────────────────────────────────────────
+// Validates a code against the current stay so the checkout can show the
+// discount before submitting. The booking action re-validates + re-prices
+// authoritatively, so this is advisory only (never the source of the charge).
+const validateCouponSchema = z.object({
+  code: z.string().trim().min(1, "Enter a code.").max(40),
+  listing_id: z.string().uuid(),
+  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  room_ids: z.array(z.string().uuid()).optional().default([]),
+  accommodation_amount: z.number().min(0),
+  addons_amount: z.number().min(0),
+});
+export type ValidateCouponInput = z.infer<typeof validateCouponSchema>;
+
+export type ValidateCouponResult =
+  | { ok: true; coupon: ResolvedCoupon; label: string }
+  | { ok: false; error: string };
+
+export async function validateCouponAction(
+  input: ValidateCouponInput,
+): Promise<ValidateCouponResult> {
+  const parsed = validateCouponSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Enter a valid coupon code." };
+  }
+  const v = parsed.data;
+  const admin = createAdminClient();
+  const { data: listing } = await admin
+    .from("listings")
+    .select("id, host_id")
+    .eq("id", v.listing_id)
+    .maybeSingle();
+  if (!listing) return { ok: false, error: "This listing isn’t available." };
+
+  const res = await resolveCoupon(admin, {
+    code: v.code,
+    hostId: listing.host_id,
+    listingId: listing.id,
+    nights: nightsBetween(v.check_in, v.check_out),
+    roomIds: v.room_ids,
+    accommodationAmount: v.accommodation_amount,
+    addonsAmount: v.addons_amount,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, coupon: res.resolved, label: res.label };
+}
+
 function daysUntil(date: string): number {
   const target = new Date(`${date}T00:00:00Z`).getTime();
   const today = new Date(
@@ -184,6 +234,8 @@ export async function createBookingAction(
   let cleaning = 0;
   let totalAmount = 0;
   let discountAmount = 0;
+  let couponId: string | null = null;
+  let couponDiscount = 0;
   let priceBreakdown: PriceBreakdown | null = null;
   let pricingUnits: PricingUnit[] = [];
   // True when the guest booked every active room together — unlocks the
@@ -548,12 +600,62 @@ export async function createBookingAction(
       };
     }
 
-    baseAmount = breakdown.baseSubtotal;
-    cleaning = breakdown.cleaningTotal;
-    discountAmount = breakdown.discount.discountTotal;
-    totalAmount = breakdown.total;
-    priceBreakdown = breakdown;
-    roomRowsForBooking = breakdown.units
+    // 5g. Coupon — re-validate server-side (never trust the client) and re-price.
+    let finalBreakdown = breakdown;
+    if (d.coupon_code && d.coupon_code.trim().length > 0) {
+      const resolution = await resolveCoupon(admin, {
+        code: d.coupon_code,
+        hostId: listing.host_id,
+        listingId: listing.id,
+        nights,
+        roomIds:
+          d.scope === "rooms"
+            ? pricingUnits
+                .map((u) => u.roomId)
+                .filter((id): id is string => id !== null)
+            : [],
+        accommodationAmount:
+          breakdown.baseSubtotal - breakdown.discount.discountTotal,
+        addonsAmount: breakdown.addonsTotal,
+      });
+      if (!resolution.ok) {
+        return { ok: false, error: resolution.error };
+      }
+      // Re-price with the coupon so the charged total includes it exactly.
+      finalBreakdown = priceStay({
+        checkIn: d.check_in!,
+        checkOut: d.check_out!,
+        units: pricingUnits,
+        seasonalRules,
+        currency: listing.currency,
+        totalGuests: d.guests,
+        listingMinNights: listing.min_nights ?? 1,
+        isWholeCombo,
+        wholePct: numOrNull(listing.whole_listing_discount_pct),
+        weeklyPct: numOrNull(listing.weekly_discount_pct),
+        monthlyPct: numOrNull(listing.monthly_discount_pct),
+        addons: addonInserts.map((a) => ({
+          label: a.label,
+          pricingModel: a.pricing_model,
+          unitPrice: a.unit_price,
+          quantity: a.quantity,
+        })),
+        coupon: resolution.resolved,
+      });
+      // A coupon that resolves to zero off (e.g. nothing eligible) is rejected.
+      if (finalBreakdown.couponDiscount <= 0) {
+        return { ok: false, error: "This coupon doesn’t apply to your order." };
+      }
+      couponId = resolution.couponId;
+      couponDiscount = finalBreakdown.couponDiscount;
+    }
+
+    baseAmount = finalBreakdown.baseSubtotal;
+    cleaning = finalBreakdown.cleaningTotal;
+    discountAmount = finalBreakdown.discount.discountTotal;
+    totalAmount = finalBreakdown.total;
+    priceBreakdown = finalBreakdown;
+    roomRowsForBooking = finalBreakdown.units
       .filter((u) => u.roomId !== null)
       .map((u) => ({
         room_id: u.roomId as string,
@@ -595,6 +697,8 @@ export async function createBookingAction(
       base_amount: baseAmount,
       cleaning_fee: cleaning,
       discount_amount: discountAmount,
+      coupon_id: couponId,
+      coupon_discount: couponDiscount,
       total_amount: totalAmount,
       price_breakdown: priceBreakdown,
       currency: listing.currency,
@@ -614,6 +718,28 @@ export async function createBookingAction(
     .single();
   if (bookingErr || !booking) {
     return { ok: false, error: "Could not start your booking. Try again." };
+  }
+
+  // 6-coupon. Atomically record the redemption (enforces total + per-guest
+  // caps). A race that exhausts the coupon rolls the whole booking back.
+  if (couponId) {
+    const { data: redeemed, error: redeemErr } = await admin.rpc(
+      "redeem_coupon",
+      {
+        p_coupon_id: couponId,
+        p_booking_id: booking.id,
+        p_guest_id: user.id,
+        p_amount: couponDiscount,
+        p_currency: listing.currency,
+      },
+    );
+    if (redeemErr || redeemed !== true) {
+      await admin.from("bookings").delete().eq("id", booking.id);
+      return {
+        ok: false,
+        error: "Sorry — that coupon was just fully redeemed. Try without it.",
+      };
+    }
   }
 
   // 6a. Insert booking_rooms join rows when scope=rooms.
