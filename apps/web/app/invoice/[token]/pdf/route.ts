@@ -18,6 +18,11 @@ type Lines = {
   scope: string;
   base_amount: number;
   cleaning_fee: number;
+  discount_amount?: number;
+  price_breakdown?: {
+    seasonalNights?: number;
+    weekendNights?: number;
+  } | null;
   rooms: { room_name: string; base_amount: number; cleaning_fee: number }[];
   addons: {
     label: string;
@@ -26,6 +31,23 @@ type Lines = {
     subtotal: number;
   }[];
 };
+
+/** "3 season-priced nights · 2 weekend nights" — or null when neither applies. */
+function seasonSummary(pb: Lines["price_breakdown"]): string | null {
+  if (!pb) return null;
+  const parts: string[] = [];
+  if (pb.seasonalNights && pb.seasonalNights > 0) {
+    parts.push(
+      `${pb.seasonalNights} season-priced night${pb.seasonalNights === 1 ? "" : "s"}`,
+    );
+  }
+  if (pb.weekendNights && pb.weekendNights > 0) {
+    parts.push(
+      `${pb.weekendNights} weekend night${pb.weekendNights === 1 ? "" : "s"}`,
+    );
+  }
+  return parts.length ? parts.join(" · ") : null;
+}
 
 type BankingSnap = {
   bank_name?: string;
@@ -217,6 +239,8 @@ export async function GET(
     },
     lines: lineRows,
     subtotal: invoice.subtotal,
+    discountAmount: lines.discount_amount ?? 0,
+    seasonSummary: seasonSummary(lines.price_breakdown),
     vatAmount: invoice.vat_amount,
     totalAmount: invoice.total_amount,
     currency: invoice.currency,

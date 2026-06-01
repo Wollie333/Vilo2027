@@ -52,6 +52,9 @@ export type InvoiceProps = {
   };
   lines: InvoiceLineItem[];
   subtotal: number;
+  discountAmount?: number;
+  /** e.g. "3 season-priced nights · 2 weekend nights" — the "why". */
+  seasonSummary?: string | null;
   vatAmount: number;
   totalAmount: number;
   currency: string;
@@ -190,6 +193,12 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
           </View>
         ))}
 
+        {invoice.seasonSummary ? (
+          <Text style={[styles.td, { marginTop: 6, color: "#6B7280" }]}>
+            Includes {invoice.seasonSummary}.
+          </Text>
+        ) : null}
+
         <View style={styles.totalsBlock}>
           <View style={styles.totalsRow}>
             <Text style={styles.totalsLabel}>Subtotal</Text>
@@ -197,6 +206,14 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
               {formatMoney(invoice.subtotal, invoice.currency)}
             </Text>
           </View>
+          {invoice.discountAmount && invoice.discountAmount > 0 ? (
+            <View style={styles.totalsRow}>
+              <Text style={styles.totalsLabel}>Discount</Text>
+              <Text style={styles.totalsValue}>
+                −{formatMoney(invoice.discountAmount, invoice.currency)}
+              </Text>
+            </View>
+          ) : null}
           {invoice.vatAmount > 0 ? (
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>VAT</Text>

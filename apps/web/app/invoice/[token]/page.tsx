@@ -30,6 +30,7 @@ type Lines = {
   scope: string;
   base_amount: number;
   cleaning_fee: number;
+  discount_amount?: number;
   rooms: { room_name: string; base_amount: number; cleaning_fee: number }[];
   addons: {
     label: string;
@@ -166,6 +167,14 @@ export default async function PublicInvoicePage({
                   </td>
                 </tr>
               ))}
+              {lines.discount_amount && lines.discount_amount > 0 ? (
+                <tr>
+                  <td className="py-2 text-emerald-700">Discount</td>
+                  <td className="py-2 text-right font-medium text-emerald-700">
+                    − {fmt(lines.discount_amount, invoice.currency)}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
             <tfoot>
               <tr>
