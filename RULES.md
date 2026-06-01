@@ -192,6 +192,40 @@ Run through this checklist every time:
 - [ ] Committed with a descriptive conventional commit message
 - [ ] `CURRENT_TASK.md` session notes updated
 - [ ] `CHANGELOG.md` updated with what was built
+- [ ] **Help Centre article created or updated** for the feature touched (see §9)
+
+---
+
+## 9. Keep the Help Centre in Sync with Features
+
+**Whenever you add a feature or change its logic, create or update the matching
+Help Centre article in the same session.** The help docs are how hosts and
+guests learn to use what we build — if the code moves and the docs don't, the
+feature effectively doesn't exist for the people using it. This is a required
+step, not a nice-to-have.
+
+### What to do
+- **New feature** → write a new `help_articles` row (via a seed migration, e.g.
+  `supabase/migrations/*_help_*.sql`, using `INSERT … ON CONFLICT (slug) DO
+  UPDATE` so it's idempotent) explaining what it does and how to use it, with
+  worked examples.
+- **Changed behaviour** (new rule, new option, pricing change) → update the
+  existing article's `body_html` so it reflects the newest detail. Keep the same
+  `slug`; the `ON CONFLICT` upsert refreshes it in place.
+- **Categorise correctly** — set `category_id` to the right `help_categories`
+  slug (e.g. `listings` for pricing/promotions, `payments` for payouts/refunds,
+  `bookings`, `channels`, `trust-safety`) and the right `audience`
+  (`host` / `guest` / `both`).
+
+### Why
+- Preview === checkout === **docs**: the same single-source-of-truth discipline
+  we apply to pricing applies to explanation. A feature the user can't
+  understand is a support ticket waiting to happen.
+- Worked examples in articles should mirror the engine's test journeys so the
+  numbers a host reads are the numbers they'll be charged.
+
+> The article is part of "done". If the feature shipped and the article didn't,
+> the task isn't finished.
 
 ---
 

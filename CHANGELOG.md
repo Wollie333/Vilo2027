@@ -31,6 +31,45 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-01 — Discount coupons + invoice breakdown — branch `feat/unified-pricing-engine`
+
+### Built
+- **Enterprise discount-coupon system.** `coupons` + `coupon_redemptions`
+  tables, `redeem_coupon()` atomic RPC, RLS, and a `coupons` feature gate
+  (migration `20260601000004`). A coupon discounts the **whole order**,
+  **accommodation only**, or **add-ons only**; can target one listing or one
+  room; is percentage or fixed-amount; time-boxed; and capped by total + per-guest
+  redemptions. Cleaning is never coupon-discounted.
+- **Engine integration:** `priceStay` applies a pre-validated coupon as the final
+  discount stage; 5 new journey tests (J11–J15), **19 total green**.
+- **Server:** `resolveCoupon()` shared resolver, `validateCouponAction` (guest
+  preview), and `createBookingAction` re-validates + re-prices + records the
+  redemption atomically (rolls back on a cap race). `bookings` gain `coupon_id`
+  + `coupon_discount`.
+- **Guest UI:** a coupon input on the checkout sidebar (apply / remove, live
+  discount line, auto-clears when dates/rooms change).
+- **Host UI:** new `/dashboard/coupons` management page + nav entry (create /
+  edit / toggle / delete, full targeting + limits).
+- **Invoice breakdown:** the invoice snapshot now carries `discount_amount` +
+  the per-night `price_breakdown` (migration `20260601000003`); the PDF and the
+  public HTML invoice show the discount line and an "includes N season-priced /
+  weekend nights" note.
+- **Help Centre:** new published articles — "How seasonal pricing works" and
+  "Discount coupons" (migrations `20260601000002` / `…005`), categorised under
+  Listings.
+
+### Changed
+- **New standing rule (`RULES.md` §9):** whenever a feature is added or its logic
+  changes, create/update the matching Help Centre article in the same session,
+  categorised correctly. Added to the Definition-of-Done checklist.
+
+### Migrations
+- `20260601000003_invoice_breakdown_detail.sql`
+- `20260601000004_coupons.sql`
+- `20260601000005_help_coupons.sql`
+
+---
+
 ## 2026-06-01 — Unified pricing engine + enterprise seasonal pricing — branch `feat/seasonal-pricing-redesign`
 
 ### Built
