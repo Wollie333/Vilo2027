@@ -179,7 +179,7 @@ async function loadListing(slug: string) {
     supabase
       .from("listing_rooms")
       .select(
-        "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
+        "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -231,6 +231,7 @@ async function loadListing(slug: string) {
       bathrooms: number | null;
       max_guests: number;
       base_price: number | string;
+      weekend_price: number | string | null;
       cleaning_fee: number | string | null;
       pricing_mode: string | null;
       price_per_person: number | string | null;
@@ -261,6 +262,7 @@ async function loadListing(slug: string) {
     bathrooms: r.bathrooms,
     max_guests: r.max_guests,
     base_price: Number(r.base_price),
+    weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
     cleaning_fee: Number(r.cleaning_fee ?? 0),
     pricing_mode: (r.pricing_mode ?? "per_room") as PublicRoom["pricing_mode"],
     price_per_person:
@@ -499,7 +501,10 @@ export default async function ListingDetailPage({
                   rating={listing.avg_rating}
                   reviewCount={listing.total_reviews}
                   basePrice={listing.base_price}
+                  weekendPrice={listing.weekend_price}
                   cleaningFee={listing.cleaning_fee}
+                  minNights={listing.min_nights}
+                  seasonalRules={seasonalRules}
                   wholeDiscountPct={listing.whole_listing_discount_pct}
                   weeklyDiscountPct={listing.weekly_discount_pct}
                   monthlyDiscountPct={listing.monthly_discount_pct}
@@ -511,7 +516,10 @@ export default async function ListingDetailPage({
               rooms={rooms}
               currency={listing.currency}
               basePrice={listing.base_price}
+              weekendPrice={listing.weekend_price}
               cleaningFee={listing.cleaning_fee}
+              minNights={listing.min_nights}
+              seasonalRules={seasonalRules}
               wholeDiscountPct={listing.whole_listing_discount_pct}
               weeklyDiscountPct={listing.weekly_discount_pct}
               monthlyDiscountPct={listing.monthly_discount_pct}

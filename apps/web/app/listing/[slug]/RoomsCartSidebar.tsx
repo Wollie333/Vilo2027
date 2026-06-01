@@ -3,13 +3,38 @@
 import { Home, Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
 import { useMemo } from "react";
 
-import { applyStayDiscounts } from "./pricing";
+import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
+
 import { useRoomsCart } from "./RoomsCartProvider";
 import {
   roomFromNightly,
   roomNightlyBase,
   type PublicRoom,
 } from "./roomDisplay";
+
+/** Map a public room + its guest count to a pricing-engine unit. */
+function toPricingUnit(r: PublicRoom, guests: number): PricingUnit {
+  return {
+    roomId: r.id,
+    pricing_mode: r.pricing_mode,
+    base_price: r.base_price,
+    price_per_person: r.price_per_person,
+    base_occupancy: r.base_occupancy,
+    extra_guest_price: r.extra_guest_price,
+    weekend_price: r.weekend_price ?? null,
+    cleaning_fee: r.cleaning_fee,
+    guests,
+  };
+}
+
+const EMPTY_DISCOUNT = {
+  wholeSaving: 0,
+  losSaving: 0,
+  losKind: null as "weekly" | "monthly" | null,
+  losPct: 0,
+  discountTotal: 0,
+  total: 0,
+};
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -35,7 +60,10 @@ export function RoomsCartSidebar({
   rating,
   reviewCount,
   basePrice,
+  weekendPrice,
   cleaningFee,
+  minNights,
+  seasonalRules,
   wholeDiscountPct,
   weeklyDiscountPct,
   monthlyDiscountPct,
@@ -49,7 +77,11 @@ export function RoomsCartSidebar({
   reviewCount: number | null;
   // Used when mode === "flexible" + flexibleTab === "whole".
   basePrice: number | null;
+  weekendPrice: number | null;
   cleaningFee: number | null;
+  minNights: number | null;
+  // Active seasonal rules — so the cart estimate matches the checkout total.
+  seasonalRules: SeasonalRule[];
   // Combo + length-of-stay discounts (applied server-side; mirrored here).
   wholeDiscountPct: number | null;
   weeklyDiscountPct: number | null;
@@ -90,70 +122,70 @@ export function RoomsCartSidebar({
     return prices.length > 0 ? Math.min(...prices) : null;
   }, [rooms]);
 
-  const roomsCalc = useMemo(() => {
-    const baseSum = selectedRooms.reduce(
-      (acc, r) => acc + roomNightlyBase(r, guestsFor(r.id)) * nights,
-      0,
-    );
-    const cleaningSum = selectedRooms.reduce(
-      (acc, r) => acc + (nights > 0 ? r.cleaning_fee : 0),
-      0,
-    );
-    return {
-      base: baseSum,
-      cleaning: cleaningSum,
-      total: baseSum + cleaningSum,
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedRooms, nights, roomGuests]);
-
-  const wholeCalc = useMemo(() => {
-    const base = (basePrice ?? 0) * nights;
-    const clean = nights > 0 ? (cleaningFee ?? 0) : 0;
-    return { base, cleaning: clean, total: base + clean };
-  }, [basePrice, cleaningFee, nights]);
-
   // All passed rooms are active → booking every one is the whole-place combo.
   const isWholeCombo =
     selectedRooms.length > 1 && selectedRooms.length === rooms.length;
 
-  // Rooms-tab discounts: whole-combo (when all rooms) + length-of-stay.
-  const roomsDiscount = useMemo(
-    () =>
-      applyStayDiscounts({
-        base: roomsCalc.base,
-        cleaning: roomsCalc.cleaning,
-        nights,
-        isWholeCombo,
-        wholePct: wholeDiscountPct,
-        weeklyPct: weeklyDiscountPct,
-        monthlyPct: monthlyDiscountPct,
-      }),
-    [
-      roomsCalc,
-      nights,
-      isWholeCombo,
-      wholeDiscountPct,
-      weeklyDiscountPct,
-      monthlyDiscountPct,
-    ],
-  );
+  // Rooms tab — priced through the canonical engine (seasonal + weekend +
+  // occupancy + discounts), so the cart estimate equals the checkout total.
+  const roomsBreakdown =
+    nights > 0 && selectedRooms.length > 0
+      ? priceStay({
+          checkIn,
+          checkOut,
+          units: selectedRooms.map((r) => toPricingUnit(r, guestsFor(r.id))),
+          seasonalRules,
+          currency,
+          totalGuests: totalRoomGuests,
+          listingMinNights: minNights ?? 1,
+          isWholeCombo,
+          wholePct: wholeDiscountPct,
+          weeklyPct: weeklyDiscountPct,
+          monthlyPct: monthlyDiscountPct,
+        })
+      : null;
+  const roomsCalc = {
+    base: roomsBreakdown?.baseSubtotal ?? 0,
+    cleaning: roomsBreakdown?.cleaningTotal ?? 0,
+    total: roomsBreakdown?.total ?? 0,
+  };
+  const roomsDiscount = roomsBreakdown?.discount ?? EMPTY_DISCOUNT;
 
-  // Whole-tab discounts: length-of-stay only (base_price is the whole-place
-  // rate already; the combo discount doesn't stack on it).
-  const wholeDiscount = useMemo(
-    () =>
-      applyStayDiscounts({
-        base: wholeCalc.base,
-        cleaning: wholeCalc.cleaning,
-        nights,
-        isWholeCombo: false,
-        wholePct: null,
-        weeklyPct: weeklyDiscountPct,
-        monthlyPct: monthlyDiscountPct,
-      }),
-    [wholeCalc, nights, weeklyDiscountPct, monthlyDiscountPct],
-  );
+  // Whole tab — the listing base as a single unit; combo discount doesn't stack.
+  const wholeBreakdown =
+    nights > 0 && basePrice != null
+      ? priceStay({
+          checkIn,
+          checkOut,
+          units: [
+            {
+              roomId: null,
+              pricing_mode: "per_room",
+              base_price: basePrice,
+              price_per_person: null,
+              base_occupancy: null,
+              extra_guest_price: null,
+              weekend_price: weekendPrice,
+              cleaning_fee: cleaningFee ?? 0,
+              guests,
+            },
+          ],
+          seasonalRules,
+          currency,
+          totalGuests: guests,
+          listingMinNights: minNights ?? 1,
+          isWholeCombo: false,
+          wholePct: null,
+          weeklyPct: weeklyDiscountPct,
+          monthlyPct: monthlyDiscountPct,
+        })
+      : null;
+  const wholeCalc = {
+    base: wholeBreakdown?.baseSubtotal ?? 0,
+    cleaning: wholeBreakdown?.cleaningTotal ?? 0,
+    total: wholeBreakdown?.total ?? 0,
+  };
+  const wholeDiscount = wholeBreakdown?.discount ?? EMPTY_DISCOUNT;
 
   const losLabel = (kind: "weekly" | "monthly" | null): string =>
     kind === "monthly" ? "Monthly discount" : "Weekly discount";

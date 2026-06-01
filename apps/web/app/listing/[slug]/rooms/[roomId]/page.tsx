@@ -45,17 +45,43 @@ export default async function PublicRoomPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, slug, name, city, province, currency, booking_mode, instant_booking, is_published",
+      "id, slug, name, city, province, currency, booking_mode, instant_booking, is_published, min_nights, weekly_discount_pct, monthly_discount_pct",
     )
     .eq("slug", params.slug)
     .maybeSingle();
 
   if (!listing || !listing.is_published) notFound();
 
+  // Active seasonal rules for this listing (listing-wide + this room) so the
+  // single-room estimate matches what the booking action charges.
+  const { data: seasonalRows } = await supabase
+    .from("listing_seasonal_pricing")
+    .select(
+      "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+    )
+    .eq("listing_id", listing.id)
+    .eq("is_active", true);
+  const seasonalRules = (seasonalRows ?? [])
+    .filter((s) => s.room_id === null || s.room_id === params.roomId)
+    .map((s) => ({
+      roomId: s.room_id,
+      startDate: s.start_date,
+      endDate: s.end_date,
+      adjustmentType: (s.adjustment_type === "percent"
+        ? "percent"
+        : "absolute") as "absolute" | "percent",
+      adjustmentValue: Number(s.adjustment_value),
+      label: s.label,
+      priority: s.priority ?? 0,
+      minNights: s.min_nights ?? null,
+      isActive: s.is_active,
+      createdAt: s.created_at,
+    }));
+
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, description, bedrooms, bathrooms, max_guests, base_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count",
+      "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count",
     )
     .eq("id", params.roomId)
     .eq("listing_id", listing.id)
@@ -109,6 +135,8 @@ export default async function PublicRoomPage({
     bathrooms: room.bathrooms,
     max_guests: room.max_guests,
     base_price: Number(room.base_price),
+    weekend_price:
+      room.weekend_price == null ? null : Number(room.weekend_price),
     cleaning_fee: Number(room.cleaning_fee ?? 0),
     pricing_mode: (room.pricing_mode ??
       "per_room") as PublicRoom["pricing_mode"],
@@ -435,8 +463,13 @@ export default async function PublicRoomPage({
                 base_occupancy: publicRoom.base_occupancy,
                 extra_guest_price: publicRoom.extra_guest_price,
               }}
+              weekendPrice={publicRoom.weekend_price}
               cleaningFee={publicRoom.cleaning_fee}
               maxGuests={room.max_guests}
+              minNights={listing.min_nights}
+              seasonalRules={seasonalRules}
+              weeklyDiscountPct={listing.weekly_discount_pct}
+              monthlyDiscountPct={listing.monthly_discount_pct}
             />
           </aside>
         </div>

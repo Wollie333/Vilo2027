@@ -28,6 +28,7 @@ export type PublicRoom = {
   bathrooms: number | null;
   max_guests: number;
   base_price: number;
+  weekend_price: number | null;
   cleaning_fee: number;
   photoUrl: string | null;
   // Pricing model — migration 20260530000001.

@@ -508,6 +508,144 @@ describe("priceStay — use-case journeys", () => {
   });
 });
 
+describe("priceStay — grand combination journeys (everything at once)", () => {
+  it("G1: 2-room guesthouse · % season · combo + weekly discount · add-ons · order coupon", () => {
+    // HOST sets up a 2-room guesthouse, a +25% festive season covering the
+    // whole stay, a 10% whole-place combo + 10% weekly discount, two add-ons,
+    // and a SAVE10 order coupon. GUEST books both rooms, 8 nights, 6 guests.
+    const r = priceStay({
+      checkIn: "2026-06-08",
+      checkOut: "2026-06-16", // 8 nights
+      currency: "ZAR",
+      totalGuests: 6,
+      listingMinNights: 1,
+      units: [
+        unit({
+          roomId: "A",
+          pricing_mode: "per_room",
+          base_price: 1000,
+          cleaning_fee: 200,
+          guests: 2,
+        }),
+        unit({
+          roomId: "B",
+          pricing_mode: "per_room_plus_extra",
+          base_price: 1500,
+          base_occupancy: 2,
+          extra_guest_price: 250,
+          cleaning_fee: 300,
+          guests: 4, // 1500 + 2×250 = 2000/night base
+        }),
+      ],
+      seasonalRules: [
+        rule({
+          startDate: "2026-06-08",
+          endDate: "2026-06-15",
+          adjustmentType: "percent",
+          adjustmentValue: 25,
+          label: "Festive",
+        }),
+      ],
+      isWholeCombo: true,
+      wholePct: 10,
+      weeklyPct: 10,
+      monthlyPct: null,
+      addons: [
+        {
+          label: "Breakfast",
+          pricingModel: "per_guest_per_night",
+          unitPrice: 50,
+          quantity: 8, // nights
+          addonId: "x-bfast",
+        },
+        {
+          label: "Welcome basket",
+          pricingModel: "per_stay",
+          unitPrice: 500,
+          quantity: 1,
+          addonId: "x-welcome",
+        },
+      ],
+      coupon: {
+        code: "SAVE10",
+        discountType: "percent",
+        discountValue: 10,
+        scope: "order",
+      },
+    });
+
+    // Nightly: A 1000×1.25=1250 ×8 = 10000 ; B 2000×1.25=2500 ×8 = 20000.
+    expect(r.baseSubtotal).toBe(30000);
+    expect(r.cleaningTotal).toBe(500);
+    // Discounts: whole 10% (3000) then weekly 10% of 27000 (2700).
+    expect(r.discount.wholeSaving).toBe(3000);
+    expect(r.discount.losKind).toBe("weekly");
+    expect(r.discount.losSaving).toBe(2700);
+    expect(r.discount.discountTotal).toBe(5700);
+    // Add-ons: 50×8×6 = 2400 + 500 = 2900 (never discounted by stay discounts).
+    expect(r.addonsTotal).toBe(2900);
+    // Coupon: 10% of (accommodation-after-discount 24300 + add-ons 2900 = 27200).
+    expect(r.couponDiscount).toBe(2720);
+    // Total: 24300 + 500 + 2900 − 2720.
+    expect(r.total).toBe(24980);
+    expect(r.seasonalNights).toBe(16); // 8 nights × 2 rooms
+  });
+
+  it("G2: per-person + per-room rooms · weekend nights · room-targeted fixed coupon", () => {
+    // GUEST books a per-person room and a per-room room, Thu→Sun (3 nights, incl.
+    // Fri+Sat weekend), with a R500 coupon targeted at room B only.
+    const r = priceStay({
+      checkIn: "2026-06-04", // Thu
+      checkOut: "2026-06-07", // 3 nights: Thu, Fri, Sat
+      currency: "ZAR",
+      totalGuests: 5,
+      listingMinNights: 1,
+      units: [
+        unit({
+          roomId: "A",
+          pricing_mode: "per_person",
+          base_price: 0,
+          price_per_person: 400,
+          weekend_price: 9999, // ignored: per_person doesn't use weekend
+          cleaning_fee: 0,
+          guests: 3, // 1200/night flat
+        }),
+        unit({
+          roomId: "B",
+          pricing_mode: "per_room",
+          base_price: 800,
+          weekend_price: 1200,
+          cleaning_fee: 150,
+          guests: 2,
+        }),
+      ],
+      seasonalRules: [],
+      isWholeCombo: false,
+      wholePct: null,
+      weeklyPct: null,
+      monthlyPct: null,
+      coupon: {
+        code: "ROOMB500",
+        discountType: "fixed",
+        discountValue: 500,
+        scope: "accommodation",
+        roomId: "B",
+      },
+    });
+
+    // A: per_person 400×3 = 3600/over 3 nights, weekend ignored.
+    expect(r.units[0].baseSubtotal).toBe(3600);
+    // B: Thu 800 + Fri 1200 + Sat 1200 = 3200 (weekend on Fri+Sat).
+    expect(r.units[1].baseSubtotal).toBe(3200);
+    expect(r.weekendNights).toBe(2);
+    expect(r.baseSubtotal).toBe(6800);
+    // Coupon targets room B only → R500 off (eligible 3200).
+    expect(r.couponDiscount).toBe(500);
+    // Total: 6800 + 150 cleaning − 500.
+    expect(r.total).toBe(6450);
+  });
+});
+
 describe("resolveNightlyRate — precedence rules", () => {
   const u = unit({ roomId: "r1", base_price: 1000, weekend_price: 1500 });
 

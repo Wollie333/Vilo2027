@@ -4,6 +4,8 @@ import { Minus, Plus, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { priceStay, type SeasonalRule } from "@/lib/pricing";
+
 import {
   roomFromNightly,
   roomNightlyBase,
@@ -23,8 +25,13 @@ type Props = {
     base_occupancy: number | null;
     extra_guest_price: number | null;
   };
+  weekendPrice: number | null;
   cleaningFee: number;
   maxGuests: number;
+  minNights: number | null;
+  seasonalRules: SeasonalRule[];
+  weeklyDiscountPct: number | null;
+  monthlyDiscountPct: number | null;
 };
 
 function fmtR(n: number, currency: string): string {
@@ -49,8 +56,13 @@ export function RoomBookingWidget({
   bookingMode,
   instantBook,
   pricing,
+  weekendPrice,
   cleaningFee,
   maxGuests,
+  minNights,
+  seasonalRules,
+  weeklyDiscountPct,
+  monthlyDiscountPct,
 }: Props) {
   const cap = Math.max(1, maxGuests);
   const today = new Date().toISOString().slice(0, 10);
@@ -74,11 +86,39 @@ export function RoomBookingWidget({
   const headlineSuffix =
     pricing.pricing_mode === "per_person" ? "/ person / night" : "/ night";
 
-  // Stay total: when no dates chosen show the single-night base so we never
-  // surface a NaN/zero total. Cleaning is once-off and only counts with nights.
-  const stayNights = nights > 0 ? nights : 1;
-  const accommodation = nightlyBase * stayNights;
-  const total = accommodation + (nights > 0 ? cleaningFee : 0);
+  // Stay total via the canonical engine (seasonal + weekend + length-of-stay
+  // discounts) so it matches checkout. With no dates yet, fall back to the
+  // single-night base so we never surface NaN/zero.
+  const breakdown =
+    nights > 0
+      ? priceStay({
+          checkIn,
+          checkOut,
+          units: [
+            {
+              roomId,
+              pricing_mode: pricing.pricing_mode,
+              base_price: pricing.base_price,
+              price_per_person: pricing.price_per_person,
+              base_occupancy: pricing.base_occupancy,
+              extra_guest_price: pricing.extra_guest_price,
+              weekend_price: weekendPrice,
+              cleaning_fee: cleaningFee,
+              guests,
+            },
+          ],
+          seasonalRules,
+          currency,
+          totalGuests: guests,
+          listingMinNights: minNights ?? 1,
+          isWholeCombo: false,
+          wholePct: null,
+          weeklyPct: weeklyDiscountPct,
+          monthlyPct: monthlyDiscountPct,
+        })
+      : null;
+  const accommodation = breakdown ? breakdown.baseSubtotal : nightlyBase;
+  const total = breakdown ? breakdown.total : nightlyBase;
 
   // Breakdown line for the accommodation row.
   const perNightLabel =
@@ -87,8 +127,9 @@ export function RoomBookingWidget({
           guests === 1 ? "" : "s"
         }`
       : fmtR(nightlyBase, currency);
-  const accommodationLabel = `${perNightLabel} × ${stayNights} night${
-    stayNights === 1 ? "" : "s"
+  const labelNights = nights > 0 ? nights : 1;
+  const accommodationLabel = `${perNightLabel} × ${labelNights} night${
+    labelNights === 1 ? "" : "s"
   }`;
 
   const isWhole = bookingMode === "whole_listing";

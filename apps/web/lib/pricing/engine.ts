@@ -297,7 +297,12 @@ export function resolveNightlyRate(
   }
 
   const dow = new Date(parseUTC(dateStr)).getUTCDay();
-  const isWeekend = weekendDays.includes(dow) && unit.weekend_price != null;
+  // per_person pricing scales purely by headcount and ignores the weekend rate,
+  // so a "weekend night" only counts where it actually changes the price.
+  const isWeekend =
+    unit.pricing_mode !== "per_person" &&
+    weekendDays.includes(dow) &&
+    unit.weekend_price != null;
   const slot = isWeekend ? (unit.weekend_price as number) : unit.base_price;
   const rate = occupancyNightly(unit, slot, unit.guests);
   return {

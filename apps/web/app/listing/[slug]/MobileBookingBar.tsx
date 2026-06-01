@@ -2,13 +2,24 @@
 
 import { useMemo } from "react";
 
-import { applyStayDiscounts } from "./pricing";
+import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
+
 import { useRoomsCart } from "./RoomsCartProvider";
-import {
-  roomFromNightly,
-  roomNightlyBase,
-  type PublicRoom,
-} from "./roomDisplay";
+import { roomFromNightly, type PublicRoom } from "./roomDisplay";
+
+function toPricingUnit(r: PublicRoom, guests: number): PricingUnit {
+  return {
+    roomId: r.id,
+    pricing_mode: r.pricing_mode,
+    base_price: r.base_price,
+    price_per_person: r.price_per_person,
+    base_occupancy: r.base_occupancy,
+    extra_guest_price: r.extra_guest_price,
+    weekend_price: r.weekend_price ?? null,
+    cleaning_fee: r.cleaning_fee,
+    guests,
+  };
+}
 
 function fmtR(n: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
@@ -35,7 +46,10 @@ export function MobileBookingBar({
   rooms,
   currency,
   basePrice,
+  weekendPrice,
   cleaningFee,
+  minNights,
+  seasonalRules,
   wholeDiscountPct,
   weeklyDiscountPct,
   monthlyDiscountPct,
@@ -45,7 +59,10 @@ export function MobileBookingBar({
   rooms: PublicRoom[];
   currency: string;
   basePrice: number | null;
+  weekendPrice: number | null;
   cleaningFee: number | null;
+  minNights: number | null;
+  seasonalRules: SeasonalRule[];
   wholeDiscountPct: number | null;
   weeklyDiscountPct: number | null;
   monthlyDiscountPct: number | null;
@@ -67,20 +84,19 @@ export function MobileBookingBar({
     return ps.length > 0 ? Math.min(...ps) : basePrice;
   }, [rooms, basePrice]);
 
-  const total = useMemo(() => {
+  // Priced through the canonical engine so this sticky total matches checkout.
+  const total = (() => {
+    if (nights <= 0) return 0;
     if (isRoomsTab) {
-      const base = selectedRooms.reduce(
-        (a, r) => a + roomNightlyBase(r, guestsFor(r.id)) * nights,
-        0,
-      );
-      const clean = selectedRooms.reduce(
-        (a, r) => a + (nights > 0 ? r.cleaning_fee : 0),
-        0,
-      );
-      return applyStayDiscounts({
-        base,
-        cleaning: clean,
-        nights,
+      if (selectedRooms.length === 0) return 0;
+      return priceStay({
+        checkIn,
+        checkOut,
+        units: selectedRooms.map((r) => toPricingUnit(r, guestsFor(r.id))),
+        seasonalRules,
+        currency,
+        totalGuests: selectedRooms.reduce((a, r) => a + guestsFor(r.id), 0),
+        listingMinNights: minNights ?? 1,
         isWholeCombo:
           selectedRooms.length > 1 && selectedRooms.length === rooms.length,
         wholePct: wholeDiscountPct,
@@ -88,19 +104,33 @@ export function MobileBookingBar({
         monthlyPct: monthlyDiscountPct,
       }).total;
     }
-    const base = (basePrice ?? 0) * nights;
-    const clean = nights > 0 ? (cleaningFee ?? 0) : 0;
-    return applyStayDiscounts({
-      base,
-      cleaning: clean,
-      nights,
+    if (basePrice == null) return 0;
+    return priceStay({
+      checkIn,
+      checkOut,
+      units: [
+        {
+          roomId: null,
+          pricing_mode: "per_room",
+          base_price: basePrice,
+          price_per_person: null,
+          base_occupancy: null,
+          extra_guest_price: null,
+          weekend_price: weekendPrice,
+          cleaning_fee: cleaningFee ?? 0,
+          guests,
+        },
+      ],
+      seasonalRules,
+      currency,
+      totalGuests: guests,
+      listingMinNights: minNights ?? 1,
       isWholeCombo: false,
       wholePct: null,
       weeklyPct: weeklyDiscountPct,
       monthlyPct: monthlyDiscountPct,
     }).total;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRoomsTab, selectedRooms, nights, roomGuests, basePrice, cleaningFee]);
+  })();
 
   const ready = isRoomsTab
     ? selectedRooms.length > 0 && nights > 0
