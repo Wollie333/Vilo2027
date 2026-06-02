@@ -363,10 +363,11 @@ export async function createBookingAction(
       };
     }
     const totalCap = roomRows.reduce((acc, r) => acc + r.max_guests, 0);
-    if (d.guests > totalCap) {
+    // Adults + children count toward sleeping capacity (infants + pets don't).
+    if (d.guests + (d.children ?? 0) > totalCap) {
       return {
         ok: false,
-        error: `These rooms sleep up to ${totalCap} guests combined.`,
+        error: `These rooms sleep up to ${totalCap} guests combined (adults + children).`,
       };
     }
 
@@ -406,10 +407,13 @@ export async function createBookingAction(
         error: "This listing has no price set yet — message the host.",
       };
     }
-    if (listing.max_guests != null && d.guests > listing.max_guests) {
+    if (
+      listing.max_guests != null &&
+      d.guests + (d.children ?? 0) > listing.max_guests
+    ) {
       return {
         ok: false,
-        error: `This listing sleeps up to ${listing.max_guests} guests.`,
+        error: `This listing sleeps up to ${listing.max_guests} guests (adults + children).`,
       };
     }
 

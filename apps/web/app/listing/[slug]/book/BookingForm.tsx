@@ -462,6 +462,18 @@ export function BookingForm({
     ? guestCount
     : selectedRooms.reduce((acc, r) => acc + guestsForRoom(r), 0);
 
+  // Sleeping capacity: adults (effectiveGuests) + children must fit. Infants +
+  // pets don't count. Caps the children stepper so the room can't be oversold.
+  const capacityLimit = isWhole
+    ? maxGuestsWhole
+    : selectedRooms.reduce((acc, r) => acc + r.maxGuests, 0) || Infinity;
+  const childrenRemaining = Math.max(
+    0,
+    (capacityLimit === Infinity ? 999 : capacityLimit) -
+      effectiveGuests -
+      childrenCount,
+  );
+
   const scope: "whole_listing" | "rooms" =
     roomsMode && !wholeListing && selectedRooms.length > 0
       ? "rooms"
@@ -1123,13 +1135,27 @@ export function BookingForm({
           <div className="mt-3 grid grid-cols-3 gap-2">
             {(
               [
-                ["Children", childrenCount, setChildrenCount, allow.children],
-                ["Infants", infantsCount, setInfantsCount, allow.infants],
-                ["Pets", petsCount, setPetsCount, allow.pets],
+                // [label, value, setter, allowed, atMax] — only children count
+                // toward sleeping capacity, so only it is capped.
+                [
+                  "Children",
+                  childrenCount,
+                  setChildrenCount,
+                  allow.children,
+                  childrenRemaining <= 0,
+                ],
+                [
+                  "Infants",
+                  infantsCount,
+                  setInfantsCount,
+                  allow.infants,
+                  false,
+                ],
+                ["Pets", petsCount, setPetsCount, allow.pets, false],
               ] as const
             )
               .filter(([, , , allowed]) => allowed)
-              .map(([label, value, setter]) => (
+              .map(([label, value, setter, , atMax]) => (
                 <div
                   key={label}
                   className="flex items-center justify-between rounded border border-brand-line bg-white px-3 py-2"
@@ -1152,9 +1178,9 @@ export function BookingForm({
                     </span>
                     <button
                       type="button"
-                      onClick={() => setter(value + 1)}
-                      disabled={isPending}
-                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute"
+                      onClick={() => !atMax && setter(value + 1)}
+                      disabled={isPending || atMax}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
                       aria-label={`More ${label.toLowerCase()}`}
                     >
                       +
@@ -1163,6 +1189,13 @@ export function BookingForm({
                 </div>
               ))}
           </div>
+          {capacityLimit !== Infinity &&
+          effectiveGuests + childrenCount >= capacityLimit ? (
+            <p className="mt-1.5 text-[11px] text-brand-mute">
+              Sleeps up to {capacityLimit} (adults + children). Infants &amp;
+              pets don&rsquo;t count.
+            </p>
+          ) : null}
           {ageExtras.lines.length > 0 ? (
             <div className="mt-2 space-y-0.5">
               {ageExtras.lines.map((l, i) => (

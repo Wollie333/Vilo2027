@@ -273,6 +273,21 @@ export function QuoteForm({
     if (!allow.pets && pets > 0) setPets(0);
   }, [allow, children, infants, pets]);
 
+  // Sleeping capacity — adults + children count toward it (infants + pets don't).
+  // Whole listing → the listing's max; per-room → the booked rooms' combined max.
+  const capacityLimit = useMemo(() => {
+    if (scope === "rooms") {
+      const sel = (listing?.rooms ?? []).filter((r) => selectedRooms[r.id]);
+      const total = sel.reduce((s, r) => s + (r.max_guests ?? 0), 0);
+      return total > 0 ? total : Infinity;
+    }
+    return listing?.max_guests ?? Infinity;
+  }, [scope, listing, selectedRooms]);
+  const partySize = adults + children;
+  const overCapacity = capacityLimit !== Infinity && partySize > capacityLimit;
+  const capacityRemaining =
+    capacityLimit === Infinity ? 999 : Math.max(0, capacityLimit - partySize);
+
   // ── Returning-guest search ───────────────────────────────────────
   const [guestResults, setGuestResults] = useState<
     { name: string; email: string; phone: string | null; stays: number }[]
@@ -586,6 +601,10 @@ export function QuoteForm({
       return toast.error("Add the guest's name and email.");
     if (input.scope === "rooms" && input.rooms.length === 0)
       return toast.error("Select rooms and price them first.");
+    if (overCapacity)
+      return toast.error(
+        `That's more guests than this sleeps (${capacityLimit}). Adults + children must fit.`,
+      );
 
     if (initial?.id) {
       start(async () => {
@@ -950,6 +969,7 @@ export function QuoteForm({
               hint="13 +"
               value={adults}
               min={1}
+              max={adults + capacityRemaining}
               onChange={setAdults}
             />
             {allow.children ? (
@@ -958,6 +978,7 @@ export function QuoteForm({
                 hint="2 – 12"
                 value={children}
                 min={0}
+                max={children + capacityRemaining}
                 onChange={setChildren}
               />
             ) : null}
@@ -980,6 +1001,15 @@ export function QuoteForm({
               />
             ) : null}
           </div>
+          {capacityLimit !== Infinity ? (
+            <p
+              className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
+            >
+              {overCapacity
+                ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
+                : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
+            </p>
+          ) : null}
         </Section>
 
         {/* 5 — Pricing */}
@@ -1676,14 +1706,17 @@ function Stepper({
   hint,
   value,
   min,
+  max,
   onChange,
 }: {
   label: string;
   hint: string;
   value: number;
   min: number;
+  max?: number;
   onChange: (n: number) => void;
 }) {
+  const atMax = max != null && value >= max;
   return (
     <div className="flex items-center justify-between rounded-[10px] border border-brand-line p-3">
       <div>
@@ -1706,8 +1739,9 @@ function Stepper({
         </span>
         <button
           type="button"
-          onClick={() => onChange(value + 1)}
-          className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40"
+          onClick={() => !atMax && onChange(value + 1)}
+          disabled={atMax}
+          className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40 disabled:text-brand-line"
         >
           +
         </button>
