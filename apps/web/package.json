@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:flows": "node --env-file=.env.local scripts/test-booking-flows.mjs",
     "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
     "prepare": "husky"
   },
