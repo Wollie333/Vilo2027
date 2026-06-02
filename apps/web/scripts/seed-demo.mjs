@@ -199,6 +199,26 @@ async function main() {
     },
   ]);
 
+  // 2b. Business details — drives the branded document numbering
+  // (INV-/Q-/CR-/RF- use the trading name) and the invoice/quote PDF header.
+  await up(
+    "host_business_details",
+    [
+      {
+        host_id: HOST_ID,
+        legal_name: "Cape Coast Retreats (Pty) Ltd",
+        trading_name: "Cape Coast Retreats",
+        vat_number: "4123456789",
+        company_registration_number: "2021/123456/07",
+        billing_address_line1: "12 Marine Drive",
+        billing_city: "Hermanus",
+        billing_postcode: "7200",
+        billing_country: "ZA",
+      },
+    ],
+    "host_id",
+  );
+
   // 3. Listings
   await up("listings", [
     {
@@ -340,8 +360,8 @@ async function main() {
       label: "December Peak",
       start_date: "2026-12-15",
       end_date: "2027-01-10",
-      price: 2200,
-      currency: "ZAR",
+      adjustment_type: "absolute",
+      adjustment_value: 2200,
     },
   ]);
 
@@ -610,6 +630,20 @@ async function main() {
     { id: "0a666666-6666-4666-8666-66666666f6c2", listing_id: LISTING_B, room_id: ROOM_2, storage_path: `listing-photos/${LISTING_B}/r2.jpg`, url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=900", sort_order: 6, caption: "Shiraz Suite" },
   ]);
 
+  // Point each room at its cover photo + a size, so room cards (and the rich
+  // quote line items) show a thumbnail, bed type and m².
+  {
+    const { error: e1 } = await admin
+      .from("listing_rooms")
+      .update({ featured_photo_id: "0a666666-6666-4666-8666-66666666f6c1", room_size_sqm: 22 })
+      .eq("id", ROOM_1);
+    const { error: e2 } = await admin
+      .from("listing_rooms")
+      .update({ featured_photo_id: "0a666666-6666-4666-8666-66666666f6c2", room_size_sqm: 30 })
+      .eq("id", ROOM_2);
+    if (e1 || e2) throw new Error(`set room featured photos: ${(e1 ?? e2).message}`);
+  }
+
   // More amenities for LISTING_B.
   await up("listing_amenities", [
     { id: "0ad00000-0000-4000-8000-00000000b004", listing_id: LISTING_B, amenity_key: "parking" },
@@ -622,8 +656,8 @@ async function main() {
 
   // Seasonal pricing tiers for LISTING_B (listing-wide).
   await up("listing_seasonal_pricing", [
-    { id: "0a555555-5555-4555-8555-5555555555b1", listing_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", price: 1900, currency: "ZAR", priority: 1 },
-    { id: "0a555555-5555-4555-8555-5555555555b2", listing_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", price: 3200, currency: "ZAR", min_nights: 4, priority: 10 },
+    { id: "0a555555-5555-4555-8555-5555555555b1", listing_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", adjustment_type: "absolute", adjustment_value: 1900, priority: 1 },
+    { id: "0a555555-5555-4555-8555-5555555555b2", listing_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", adjustment_type: "absolute", adjustment_value: 3200, min_nights: 4, priority: 10 },
   ]);
 
   // Blocked dates for LISTING_B (manual host blocks — show as unavailable).
@@ -723,8 +757,9 @@ async function main() {
   console.log("\n✅ Demo seed complete.");
   console.log("   Host login:  %s / %s", HOST_EMAIL, HOST_PASSWORD);
   console.log("   Guest login: %s / %s", GUEST_EMAIL, GUEST_PASSWORD);
-  console.log("   2 listings, 2 rooms, 2 add-ons, 5 bookings, 4 payments,");
-  console.log("   1 pending refund request, 1 conversation, 1 review.");
+  console.log("   2 listings, 2 rooms (with cover photos), 2 add-ons,");
+  console.log("   5 bookings, 4 payments, 1 pending refund, business details");
+  console.log("   (branded numbering), 1 conversation, reviews.");
 }
 
 main().catch((err) => {

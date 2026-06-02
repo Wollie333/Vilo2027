@@ -852,6 +852,231 @@ async function main() {
     check("M5 quote number is Q-{BIZ}-{id}-NNNNNN", /^Q-[A-Z0-9]+-[A-Z0-9]{5}-\d{6}$/.test(qrow?.quote_number ?? ""), qrow?.quote_number);
   }
 
+  // ── Journey N: quote edit snapshots a version (versioning integrity) ──
+  console.log("\nJourney N — editing a sent quote snapshots a version");
+  {
+    const q = await insertQuote({
+      status: "sent",
+      sent_at: new Date().toISOString(),
+    });
+    // Mimic updateQuoteAction on a sent quote: snapshot v1, then bump to v2.
+    const { error: vErr } = await db.from("quote_versions").insert({
+      quote_id: q.id,
+      version_no: 1,
+      total_amount: 3500,
+      currency: "ZAR",
+      snapshot: {
+        quote_number: "snap",
+        base_amount: 3000,
+        cleaning_fee: 500,
+        total_amount: 3500,
+        rooms: [],
+        addons: [],
+      },
+    });
+    check("N1 version snapshot inserts", !vErr, vErr?.message);
+    await db.from("quotes").update({ version: 2, total_amount: 4000 }).eq("id", q.id);
+    const { error: dupErr } = await db.from("quote_versions").insert({
+      quote_id: q.id,
+      version_no: 1,
+      total_amount: 1,
+      currency: "ZAR",
+      snapshot: {},
+    });
+    check("N2 duplicate (quote, version_no) is rejected", !!dupErr);
+    const { data: qrow } = await db
+      .from("quotes")
+      .select("version")
+      .eq("id", q.id)
+      .maybeSingle();
+    check("N3 live version bumped to 2", qrow?.version === 2, `got ${qrow?.version}`);
+    const { count } = await db
+      .from("quote_versions")
+      .select("id", { count: "exact", head: true })
+      .eq("quote_id", q.id);
+    check("N4 prior version retained", (count ?? 0) === 1, `got ${count}`);
+  }
+
+  // ── Journey O: quote add-on catalog link (rich line items) ──
+  console.log("\nJourney O — catalog add-on links back for thumbnail/description");
+  {
+    const { data: la } = await db
+      .from("listing_addons")
+      .select("addon_id")
+      .eq("listing_id", LISTING_A)
+      .limit(1)
+      .maybeSingle();
+    if (!la?.addon_id) {
+      check("O0 demo catalog add-on present", false, "no listing_addons on LISTING_A");
+    } else {
+      const q = await insertQuote();
+      await db.from("quote_addons").insert([
+        {
+          quote_id: q.id,
+          addon_id: la.addon_id,
+          label: "Welcome wine basket",
+          quantity: 1,
+          unit_price: 350,
+          sort_order: 0,
+        },
+        {
+          quote_id: q.id,
+          addon_id: null,
+          label: "Early check-in",
+          quantity: 1,
+          unit_price: 200,
+          sort_order: 1,
+        },
+      ]);
+      const { data: lines } = await db
+        .from("quote_addons")
+        .select("addon_id, label, subtotal, addon:addons ( name, description )")
+        .eq("quote_id", q.id)
+        .order("sort_order");
+      const cat = lines?.find((l) => l.addon_id);
+      const custom = lines?.find((l) => !l.addon_id);
+      const catMeta = Array.isArray(cat?.addon) ? cat.addon[0] : cat?.addon;
+      check("O1 catalog line keeps its addon_id", !!cat);
+      check("O2 catalog line joins to its add-on description", !!catMeta?.description, JSON.stringify(catMeta ?? null));
+      check("O3 custom line has null addon_id", !!custom && custom.addon_id === null);
+      check(
+        "O4 generated subtotal = qty × unit",
+        !!cat && Number(cat.subtotal) === 350,
+        cat ? `got ${cat.subtotal}` : "none",
+      );
+    }
+  }
+
+  // ── Journey P: convert a ROOMS-scope quote end to end ──
+  console.log("\nJourney P — rooms quote → convert → invoice + room blocks");
+  {
+    const { data: room } = await db
+      .from("listing_rooms")
+      .select("id, bed_type")
+      .eq("listing_id", LISTING_B)
+      .is("deleted_at", null)
+      .eq("is_active", true)
+      .order("sort_order")
+      .limit(1)
+      .maybeSingle();
+    if (!room) {
+      check("P0 demo room present", false, "no active room on LISTING_B");
+    } else {
+      const q = await insertQuote({
+        listing_id: LISTING_B,
+        scope: "rooms",
+        check_in: isoPlus(200),
+        check_out: isoPlus(202),
+        base_amount: 2000,
+        cleaning_fee: 300,
+        total_amount: 2300,
+      });
+      await db.from("quote_rooms").insert({
+        quote_id: q.id,
+        room_id: room.id,
+        base_amount: 2000,
+        cleaning_fee: 300,
+      });
+      // Replicate convertQuoteAction: pending → rooms/addons → snapshot → confirm.
+      const { data: b } = await db
+        .from("bookings")
+        .insert({
+          listing_id: LISTING_B,
+          host_id: HOST_ID,
+          guest_id: GUEST_UID,
+          origin: "quote_converted",
+          quote_id: q.id,
+          scope: "rooms",
+          check_in: isoPlus(200),
+          check_out: isoPlus(202),
+          guests_count: 2,
+          base_amount: 2000,
+          cleaning_fee: 300,
+          total_amount: 2300,
+          currency: "ZAR",
+          status: "pending",
+          payment_status: "completed",
+          payment_method: "eft",
+        })
+        .select("id")
+        .single();
+      created.bookings.push(b.id);
+      await db.from("booking_rooms").insert({
+        booking_id: b.id,
+        room_id: room.id,
+        base_amount: 2000,
+        cleaning_fee: 300,
+      });
+      await db.rpc("snapshot_booking_policies", {
+        p_booking_id: b.id,
+        p_listing_id: LISTING_B,
+      });
+      await db
+        .from("bookings")
+        .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+        .eq("id", b.id);
+
+      const { data: inv } = await db
+        .from("invoices")
+        .select("invoice_number, total_amount, status")
+        .eq("booking_id", b.id)
+        .maybeSingle();
+      check("P1 converted rooms booking mints an invoice", !!inv);
+      check("P2 invoice is paid (payment completed)", inv?.status === "paid", inv?.status);
+      check("P3 invoice total matches", inv && Number(inv.total_amount) === 2300, inv ? `got ${inv.total_amount}` : "none");
+      const { data: blocks } = await db
+        .from("blocked_dates")
+        .select("room_id")
+        .eq("booking_id", b.id);
+      check("P4 confirm blocks 2 nights for the booked room", (blocks?.length ?? 0) === 2, `got ${blocks?.length}`);
+      check(
+        "P5 blocks are scoped to the booked room",
+        (blocks ?? []).every((x) => x.room_id === room.id),
+      );
+      // The room-detail join the quote page relies on resolves.
+      const { data: rj } = await db
+        .from("quote_rooms")
+        .select("room:listing_rooms ( name, bed_type )")
+        .eq("quote_id", q.id)
+        .maybeSingle();
+      const rjRoom = Array.isArray(rj?.room) ? rj.room[0] : rj?.room;
+      check("P6 quote_rooms → listing_rooms join resolves name/bed", !!rjRoom?.name);
+      // The EXACT embed the quote detail page uses — a wrong FK hint here would
+      // 500 the live page for any room quote.
+      const { error: fpErr } = await db
+        .from("quote_rooms")
+        .select(
+          "room:listing_rooms ( name, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
+        )
+        .eq("quote_id", q.id);
+      check("P7 featured_photo embed (quote detail) is valid", !fpErr, fpErr?.message);
+    }
+  }
+
+  // ── Journey Q: per-business invoice numbers are unique + monotonic ──
+  console.log("\nJourney Q — invoice numbers are unique and sequential");
+  {
+    const mk = async () => {
+      const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(210), check_out: isoPlus(212) });
+      await db
+        .from("bookings")
+        .update({ status: "confirmed", payment_status: "completed" })
+        .eq("id", b.id);
+      const { data: inv } = await db
+        .from("invoices")
+        .select("invoice_number")
+        .eq("booking_id", b.id)
+        .maybeSingle();
+      return inv?.invoice_number ?? "";
+    };
+    const n1 = await mk();
+    const n2 = await mk();
+    const seq = (s) => parseInt(s.slice(s.lastIndexOf("-") + 1), 10);
+    check("Q1 two invoices have distinct numbers", n1 !== n2, `${n1} vs ${n2}`);
+    check("Q2 numbers increase per business", seq(n2) === seq(n1) + 1, `${n1} → ${n2}`);
+    check("Q3 same business prefix", n1.slice(0, n1.lastIndexOf("-")) === n2.slice(0, n2.lastIndexOf("-")));
+  }
+
   console.log(
     `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m`,
   );
