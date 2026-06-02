@@ -2,6 +2,7 @@ import "server-only";
 
 import { renderToBuffer } from "@react-pdf/renderer";
 
+import { CreditNoteDocument, type CreditNoteProps } from "./CreditNoteDocument";
 import { InvoiceDocument, type InvoiceProps } from "./InvoiceDocument";
 import { QuoteDocument, type QuoteProps } from "./QuoteDocument";
 
@@ -11,4 +12,10 @@ export async function renderInvoicePdf(invoice: InvoiceProps): Promise<Buffer> {
 
 export async function renderQuotePdf(quote: QuoteProps): Promise<Buffer> {
   return renderToBuffer(<QuoteDocument quote={quote} />);
+}
+
+export async function renderCreditNotePdf(
+  note: CreditNoteProps,
+): Promise<Buffer> {
+  return renderToBuffer(<CreditNoteDocument note={note} />);
 }

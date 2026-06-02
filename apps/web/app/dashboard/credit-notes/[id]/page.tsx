@@ -53,7 +53,7 @@ export default async function CreditNoteDetailPage({
   const { data: cn } = await supabase
     .from("credit_notes")
     .select(
-      "id, credit_note_number, status, origin, issued_at, cancelled_at, subtotal, vat_amount, total_amount, currency, reason, host_snapshot, guest_snapshot, line_items, invoice_id, booking_id",
+      "id, credit_note_number, status, origin, issued_at, cancelled_at, subtotal, vat_amount, total_amount, currency, reason, host_snapshot, guest_snapshot, line_items, invoice_id, booking_id, hosted_token",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -92,6 +92,22 @@ export default async function CreditNoteDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/credit-note/${cn.hosted_token}/pdf`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-3 py-2 text-sm font-medium text-white hover:bg-brand-secondary"
+          >
+            Download PDF
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href={`/credit-note/${cn.hosted_token}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
+          >
+            Share link
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
           <Link
             href={`/dashboard/invoices/${cn.invoice_id}`}
             className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
