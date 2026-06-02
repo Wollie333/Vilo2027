@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -217,7 +218,13 @@ export async function hostInitiatedRefundAction(input: {
     };
   }
 
-  const { data: inserted, error: insertErr } = await supabase
+  // refund_requests has no host INSERT RLS policy (only guest + admin), and the
+  // approved→completed transition isn't covered by host_action_refunds either.
+  // Ownership is already verified above, so write through the admin client —
+  // the same pattern the guest refund + cancellation flows use.
+  const admin = createAdminClient();
+
+  const { data: inserted, error: insertErr } = await admin
     .from("refund_requests")
     .insert({
       booking_id: booking.id,
@@ -243,7 +250,7 @@ export async function hostInitiatedRefundAction(input: {
     };
   }
 
-  const { error: completeErr } = await supabase
+  const { error: completeErr } = await admin
     .from("refund_requests")
     .update({
       status: "completed",
