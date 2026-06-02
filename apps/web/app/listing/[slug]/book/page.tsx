@@ -98,7 +98,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, host_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
+      "id, host_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -121,7 +121,7 @@ export default async function BookingPage({
   const { data: roomRows } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
+      "id, name, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
     )
     .eq("listing_id", listing.id)
     .is("deleted_at", null)
@@ -196,6 +196,9 @@ export default async function BookingPage({
       baseOccupancy: r.base_occupancy ?? null,
       extraGuestPrice:
         r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+      childPrice: Number(r.child_price ?? 0),
+      infantPrice: Number(r.infant_price ?? 0),
+      petFee: Number(r.pet_fee ?? 0),
     };
   });
 
@@ -380,6 +383,9 @@ export default async function BookingPage({
                 : Number(listing.weekend_price)
             }
             cleaningFee={Number(listing.cleaning_fee ?? 0)}
+            listingChildPrice={Number(listing.child_price ?? 0)}
+            listingInfantPrice={Number(listing.infant_price ?? 0)}
+            listingPetFee={Number(listing.pet_fee ?? 0)}
             currency={listing.currency}
             cancellationPolicy={listing.cancellation_policy}
             instantBooking={listing.instant_booking}

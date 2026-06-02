@@ -1077,6 +1077,45 @@ async function main() {
     check("Q3 same business prefix", n1.slice(0, n1.lastIndexOf("-")) === n2.slice(0, n2.lastIndexOf("-")));
   }
 
+  // ── Journey S: age/pet line items flow into the invoice ──
+  console.log("\nJourney S — child/pet charges land on the invoice");
+  {
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      base_amount: 3000,
+      cleaning_fee: 500,
+      total_amount: 3950, // 3500 stay + 450 pet
+      guests_breakdown: { adults: 2, children: 1, infants: 0, pets: 1 },
+      check_in: isoPlus(160),
+      check_out: isoPlus(163),
+    });
+    // A child line + a pet line as booking_addons (addon_id null, like the
+    // checkout/quote age extras).
+    await db.from("booking_addons").insert([
+      { booking_id: b.id, addon_id: null, label: "Children (1 × 200/night × 3 nights)", quantity: 1, unit_price: 600, subtotal: 600, currency: "ZAR", is_required: false, sort_order: 100 },
+      { booking_id: b.id, addon_id: null, label: "Pet fee (150/night × 3 nights)", quantity: 1, unit_price: 450, subtotal: 450, currency: "ZAR", is_required: false, sort_order: 101 },
+    ]);
+    const { data: pay } = await db
+      .from("payments")
+      .insert({ booking_id: b.id, amount: 3950, currency: "ZAR", method: "paystack", status: "completed", captured_at: new Date().toISOString() })
+      .select("id")
+      .single();
+    if (pay) created.payments.push(pay.id);
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed", total_amount: 4550 }).eq("id", b.id);
+
+    const { data: inv } = await db
+      .from("invoices")
+      .select("subtotal, line_items, guest_snapshot")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    // subtotal = base + cleaning + Σ booking_addons = 3000 + 500 + 600 + 450.
+    check("S1 invoice subtotal includes age + pet lines", inv && Number(inv.subtotal) === 4550, inv ? `got ${inv.subtotal}` : "no invoice");
+    const addons = inv?.line_items?.addons ?? [];
+    check("S2 invoice line items list the child + pet lines", Array.isArray(addons) && addons.length >= 2, `got ${addons.length}`);
+    const { data: bk } = await db.from("bookings").select("guests_breakdown").eq("id", b.id).maybeSingle();
+    check("S3 booking keeps the party breakdown", bk?.guests_breakdown?.children === 1 && bk?.guests_breakdown?.pets === 1);
+  }
+
   console.log(
     `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m`,
   );

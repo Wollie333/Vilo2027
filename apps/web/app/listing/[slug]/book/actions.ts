@@ -16,7 +16,9 @@ import {
 } from "../../../dashboard/addons/schemas";
 import { resolveCoupon } from "@/lib/coupons";
 import {
+  computeAgeExtras,
   priceStay,
+  type AgeExtraLine,
   type PriceBreakdown,
   type PricingUnit,
   type ResolvedCoupon,
@@ -201,7 +203,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
+      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -255,6 +257,15 @@ export async function createBookingAction(
     base_amount: number;
     cleaning_fee: number;
   }> = [];
+  // Age/pet rates — listing-level by default; the rooms branch overrides from
+  // the first booked room. Used to price children/infants/pets below.
+  let ageRates = {
+    childPrice: Number(listing.child_price ?? 0),
+    infantPrice: Number(listing.infant_price ?? 0),
+    petFee: Number(listing.pet_fee ?? 0),
+  };
+  // Child/infant/pet line items — computed once the rates + nights are known.
+  let ageLines: AgeExtraLine[] = [];
 
   if (d.scope === "rooms") {
     const roomIds = d.room_ids ?? [];
@@ -263,7 +274,7 @@ export async function createBookingAction(
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+        "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -276,6 +287,12 @@ export async function createBookingAction(
         error: "One or more rooms aren't available. Refresh and try again.",
       };
     }
+    // Age/pet rates for a per-room booking come from the first booked room.
+    ageRates = {
+      childPrice: Number(roomRows[0]?.child_price ?? 0),
+      infantPrice: Number(roomRows[0]?.infant_price ?? 0),
+      petFee: Number(roomRows[0]?.pet_fee ?? 0),
+    };
 
     // Per-room guest counts (default 1 when a room wasn't sent one).
     const guestsByRoom = new Map<string, number>();
@@ -661,10 +678,24 @@ export async function createBookingAction(
       couponDiscount = finalBreakdown.couponDiscount;
     }
 
+    // Age/pet extras (children, infants, pets) priced per the room/listing
+    // rates and added to the charged total.
+    const ageExtras = computeAgeExtras(
+      {
+        adults: 0,
+        children: d.children ?? 0,
+        infants: d.infants ?? 0,
+        pets: d.pets ?? 0,
+      },
+      ageRates,
+      nights,
+    );
+    ageLines = ageExtras.lines;
+
     baseAmount = finalBreakdown.baseSubtotal;
     cleaning = finalBreakdown.cleaningTotal;
     discountAmount = finalBreakdown.discount.discountTotal;
-    totalAmount = finalBreakdown.total;
+    totalAmount = finalBreakdown.total + ageExtras.total;
     priceBreakdown = finalBreakdown;
     roomRowsForBooking = finalBreakdown.units
       .filter((u) => u.roomId !== null)
@@ -705,6 +736,12 @@ export async function createBookingAction(
       check_out: d.check_out,
       session_date: null,
       guests_count: d.guests,
+      guests_breakdown: {
+        adults: Math.max(0, d.guests - (d.children ?? 0)),
+        children: d.children ?? 0,
+        infants: d.infants ?? 0,
+        pets: d.pets ?? 0,
+      },
       base_amount: baseAmount,
       cleaning_fee: cleaning,
       discount_amount: discountAmount,
@@ -766,6 +803,29 @@ export async function createBookingAction(
     if (brErr) {
       await admin.from("bookings").delete().eq("id", booking.id);
       return { ok: false, error: "Could not save room selection. Try again." };
+    }
+  }
+
+  // 6a-ii. Age/pet charges as booking_addons (no catalog stock to reserve).
+  // These flow into the invoice's line items + subtotal automatically.
+  if (ageLines.length > 0) {
+    const { error: ageErr } = await admin.from("booking_addons").insert(
+      ageLines.map((a, i) => ({
+        booking_id: booking.id,
+        addon_id: null,
+        label: a.label,
+        quantity: a.quantity,
+        unit_price: a.unitPrice,
+        currency: listing.currency,
+        is_required: false,
+        subtotal: a.subtotal,
+        sort_order: 100 + i,
+      })),
+    );
+    if (ageErr) {
+      await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
+      await admin.from("bookings").delete().eq("id", booking.id);
+      return { ok: false, error: "Could not save guest charges. Try again." };
     }
   }
 

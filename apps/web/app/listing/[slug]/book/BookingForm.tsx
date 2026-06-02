@@ -47,6 +47,7 @@ import {
   type RoomPricingMode,
 } from "../roomDisplay";
 import {
+  computeAgeExtras,
   priceStay,
   type PricingUnit,
   type ResolvedCoupon,
@@ -76,6 +77,9 @@ export type RoomOption = {
   pricePerPerson: number | null;
   baseOccupancy: number | null;
   extraGuestPrice: number | null;
+  childPrice: number;
+  infantPrice: number;
+  petFee: number;
 };
 
 export type AvailableAddon = {
@@ -186,6 +190,9 @@ export function BookingForm({
   basePrice,
   weekendPrice: listingWeekendPrice,
   cleaningFee,
+  listingChildPrice,
+  listingInfantPrice,
+  listingPetFee,
   currency,
   cancellationPolicy,
   instantBooking,
@@ -221,6 +228,9 @@ export function BookingForm({
   basePrice: number;
   weekendPrice: number | null;
   cleaningFee: number;
+  listingChildPrice: number;
+  listingInfantPrice: number;
+  listingPetFee: number;
   currency: string;
   cancellationPolicy: "flexible" | "moderate" | "strict";
   instantBooking: boolean;
@@ -285,6 +295,10 @@ export function BookingForm({
     Boolean(dates.from && dates.to) && nights >= effectiveMinNights;
   const [wholeListing, setWholeListing] = useState(false);
   const [guestCount, setGuestCount] = useState(wholeGuests);
+  // Party split for age-based pricing (children/infants/pets priced separately).
+  const [childrenCount, setChildrenCount] = useState(0);
+  const [infantsCount, setInfantsCount] = useState(0);
+  const [petsCount, setPetsCount] = useState(0);
 
   // ── Contact / account state ───────────────────────────────────
   const [contact, setContact] = useState({
@@ -576,7 +590,46 @@ export function BookingForm({
     return lines;
   }, [addonQty, availableAddons, effectiveGuests]);
 
-  const total = breakdown?.total ?? 0;
+  // Age/pet extras for the live preview — same maths the server charges with.
+  // Rooms scope uses the first selected room's rates; whole-listing the listing's.
+  const ageExtras = useMemo(() => {
+    if (!datesValid) return { lines: [], total: 0 };
+    const rates =
+      scope === "rooms" && selectedRooms[0]
+        ? {
+            childPrice: selectedRooms[0].childPrice,
+            infantPrice: selectedRooms[0].infantPrice,
+            petFee: selectedRooms[0].petFee,
+          }
+        : {
+            childPrice: listingChildPrice,
+            infantPrice: listingInfantPrice,
+            petFee: listingPetFee,
+          };
+    return computeAgeExtras(
+      {
+        adults: 0,
+        children: childrenCount,
+        infants: infantsCount,
+        pets: petsCount,
+      },
+      rates,
+      nights,
+    );
+  }, [
+    datesValid,
+    scope,
+    selectedRooms,
+    listingChildPrice,
+    listingInfantPrice,
+    listingPetFee,
+    childrenCount,
+    infantsCount,
+    petsCount,
+    nights,
+  ]);
+
+  const total = (breakdown?.total ?? 0) + ageExtras.total;
 
   const needsRoom = roomsMode && !wholeListing && selectedRooms.length === 0;
 
@@ -672,6 +725,9 @@ export function BookingForm({
         check_in: dates.from,
         check_out: dates.to,
         guests: effectiveGuests,
+        children: childrenCount,
+        infants: infantsCount,
+        pets: petsCount,
         payment_method: method,
         policy_acknowledged: true,
         selected_addons: Array.from(addonQty.entries())
@@ -1022,6 +1078,65 @@ export function BookingForm({
               </span>
             </div>
           )}
+
+          {/* Children / infants / pets — priced per the host's room rates. */}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {(
+              [
+                ["Children", childrenCount, setChildrenCount],
+                ["Infants", infantsCount, setInfantsCount],
+                ["Pets", petsCount, setPetsCount],
+              ] as const
+            ).map(([label, value, setter]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded border border-brand-line bg-white px-3 py-2"
+              >
+                <span className="text-xs font-medium text-brand-ink">
+                  {label}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setter(Math.max(0, value - 1))}
+                    disabled={isPending || value <= 0}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
+                    aria-label={`Fewer ${label.toLowerCase()}`}
+                  >
+                    −
+                  </button>
+                  <span className="w-4 text-center text-sm font-semibold text-brand-ink">
+                    {value}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setter(value + 1)}
+                    disabled={isPending}
+                    className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute"
+                    aria-label={`More ${label.toLowerCase()}`}
+                  >
+                    +
+                  </button>
+                </span>
+              </div>
+            ))}
+          </div>
+          {ageExtras.lines.length > 0 ? (
+            <div className="mt-2 space-y-0.5">
+              {ageExtras.lines.map((l, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between text-[11px] text-brand-mute"
+                >
+                  <span>{l.label}</span>
+                  <span className="font-medium text-brand-ink">
+                    {currency === "ZAR" ? "R " : ""}
+                    {Math.round(l.subtotal).toLocaleString("en-ZA")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
       </section>
 

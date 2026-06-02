@@ -26,6 +26,11 @@ export const createBookingSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid check-out date.")
       .optional(),
     guests: z.coerce.number().int().min(1).max(50),
+    // Party split for age-based pricing. `guests` stays the headcount that
+    // counts toward capacity (adults + children); these add the priced extras.
+    children: z.coerce.number().int().min(0).max(50).optional().default(0),
+    infants: z.coerce.number().int().min(0).max(50).optional().default(0),
+    pets: z.coerce.number().int().min(0).max(50).optional().default(0),
     payment_method: z.enum(["paystack", "eft"]),
     // Guest contact details — snapshotted onto the booking so the host's
     // booking card shows complete info even for a brand-new guest account.
