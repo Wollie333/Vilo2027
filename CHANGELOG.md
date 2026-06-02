@@ -31,6 +31,55 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Financial documents: branded PDFs, invoices, credit notes, quote sending — branch `feat/financial-docs`
+
+### Built
+- **Host logo + branded PDFs (Phase 1):** logo uploader on Settings → Business &
+  banking (client-side canvas resize to ≤512px), stored in a public `host-logos`
+  bucket with host-folder RLS. New shared `DocHeader` renders the logo (with a
+  lettered fallback) on every invoice, quote and credit-note PDF; PDFs embed it
+  as a data URI so there's no render-time fetch.
+- **Credit notes domain (Phase 2):** branded `CreditNoteDocument` PDF + public
+  token-gated `/credit-note/[token]` page + PDF route, plus "Download PDF" /
+  "Share link" on the host detail page. (Table, triggers, manual create and the
+  list/detail pages were landed alongside a parallel agent — reconciled.)
+- **Invoice paid-sync + cross-links (Phase 3):** a trigger flips an invoice to
+  `paid` whenever its booking's payment completes (covers EFT-confirmed-then-paid
+  and any later capture). Cross-links wired across booking ↔ invoice ↔ payment ↔
+  credit-note detail pages.
+- **Quote send flows (Phase 4):** the quote "Share with guest" panel now sends via
+  **WhatsApp** (wa.me deep link, SA numbers normalised), **Email** (mailto from the
+  host's own client), **Vilo inbox** (`shareQuoteToInboxAction` posts into an
+  existing host↔guest thread), and **Copy link**.
+- **Tests + help (Phase 5):** `pnpm test:flows` extended with Journey G
+  (refund completion auto-mints a linked credit note) and Journey H (invoice
+  paid-sync) — 33/33 checks green. Help Centre articles for Quotes, Invoices and
+  Branding your documents.
+
+### Changed
+- Sidebar: Payments and Refunds moved under the Finances group.
+
+### Migrations
+- `20260602000004_invoice_paid_sync.sql` — `on_payment_completed_mark_invoice_paid` trigger.
+- `20260602000005_help_quotes_invoices_branding.sql` — three Help Centre articles.
+- (Phase 1/2 logo + credit-note migrations applied earlier in the reconciliation.)
+
+### Notes
+- **Deferred:** the quote *builder* enrichment — engine-priced room multi-select
+  (via `priceStay`), catalog add-on picker, and cancellation-policy snapshot into
+  `quotes.policy_snapshot`. The backend/schema already support `scope: "rooms"` +
+  catalog add-ons; only the builder UI + a `policy_snapshot` column + client-side
+  engine wiring remain. Quotes are fully functional today with manual amounts and
+  custom line items. Pick this up as a focused next session.
+- Provider (Paystack/PayPal) refund automation still optimistic/manual pre-MVP.
+
+### Commit
+- `feat(finances): invoice paid-sync + cross-links` — c8eda50
+- `feat(quotes): send via WhatsApp/email/inbox/copy` — 6eeb531
+- `test+docs(finances): credit-note + paid-sync journeys, help articles` — (this commit)
+
+---
+
 ## 2026-06-02 — Refund payout methods + Credit Notes + Finances sub-menu — branch `feat/unified-pricing-engine`
 
 ### Built

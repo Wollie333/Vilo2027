@@ -46,6 +46,7 @@ async function cleanup() {
     await db.from("refund_requests").delete().eq("id", id);
   for (const id of created.bookings) {
     await db.from("blocked_dates").delete().eq("booking_id", id);
+    await db.from("credit_notes").delete().eq("booking_id", id);
     await db.from("invoices").delete().eq("booking_id", id);
     await db.from("refund_requests").delete().eq("booking_id", id);
     await db.from("payments").delete().eq("booking_id", id);
@@ -423,6 +424,136 @@ async function main() {
     check("E1 price function returns", !error && !!price, error?.message);
     check("E2 nights = 3", price?.nights === 3, `got ${price?.nights}`);
     check("E3 total = base_total + cleaning", price && Number(price.total) === Number(price.base_total) + Number(price.cleaning_fee));
+  }
+
+  // ── Journey G: refund completion auto-creates a credit note ──
+  console.log("\nJourney G — refund completion mints a credit note");
+  {
+    const b = await insertBooking({ guest_id: GUEST_UID });
+    const { data: pay } = await db
+      .from("payments")
+      .insert({
+        booking_id: b.id,
+        amount: 3500,
+        currency: "ZAR",
+        method: "paystack",
+        status: "completed",
+        captured_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (pay) created.payments.push(pay.id);
+    await db.rpc("snapshot_booking_policies", {
+      p_booking_id: b.id,
+      p_listing_id: LISTING_A,
+    });
+    // Confirm → invoice auto-created (the credit note credits against it).
+    await db
+      .from("bookings")
+      .update({ status: "confirmed", payment_status: "completed" })
+      .eq("id", b.id);
+    const { data: inv } = await db
+      .from("invoices")
+      .select("id")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("G1 invoice exists to credit against", !!inv);
+
+    const { data: rr } = await db
+      .from("refund_requests")
+      .insert({
+        booking_id: b.id,
+        payment_id: pay.id,
+        host_id: HOST_ID,
+        guest_id: GUEST_UID,
+        requested_amount: 1200,
+        currency: "ZAR",
+        reason: "Test flow credit note",
+        initiated_by: "host",
+        status: "approved",
+      })
+      .select("id")
+      .single();
+    if (rr) created.refunds.push(rr.id);
+
+    // Complete the refund → on_refund_completed_create_credit_note fires.
+    await db
+      .from("refund_requests")
+      .update({
+        status: "completed",
+        approved_amount: 1200,
+        actioned_at: new Date().toISOString(),
+      })
+      .eq("id", rr.id);
+
+    const { data: cn } = await db
+      .from("credit_notes")
+      .select(
+        "id, credit_note_number, invoice_id, booking_id, total_amount, origin, status",
+      )
+      .eq("refund_request_id", rr.id)
+      .maybeSingle();
+    check("G2 credit note auto-created on completion", !!cn);
+    check(
+      "G3 credit note has a number",
+      !!cn && typeof cn.credit_note_number === "string" && cn.credit_note_number.includes("CN"),
+      cn ? cn.credit_note_number : "no note",
+    );
+    check(
+      "G4 credit note links to booking + invoice",
+      !!cn && cn.booking_id === b.id && cn.invoice_id === (inv && inv.id),
+    );
+    check(
+      "G5 credit amount = approved refund",
+      !!cn && Number(cn.total_amount) === 1200,
+      cn ? `got ${cn.total_amount}` : "no note",
+    );
+    check(
+      "G6 origin=refund_auto, status=issued",
+      !!cn && cn.origin === "refund_auto" && cn.status === "issued",
+    );
+  }
+
+  // ── Journey H: invoice flips to paid when payment completes later ──
+  console.log("\nJourney H — invoice paid-sync when payment lands after confirm");
+  {
+    // EFT-style: confirm while still unpaid, pay later.
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      payment_method: "eft",
+      check_in: isoPlus(60),
+      check_out: isoPlus(63),
+    });
+    await db.rpc("snapshot_booking_policies", {
+      p_booking_id: b.id,
+      p_listing_id: LISTING_A,
+    });
+    await db
+      .from("bookings")
+      .update({ status: "confirmed" }) // payment_status stays 'pending'
+      .eq("id", b.id);
+
+    const { data: inv1 } = await db
+      .from("invoices")
+      .select("id, status")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("H1 invoice created on confirm", !!inv1);
+    check("H2 invoice not yet paid", !!inv1 && inv1.status !== "paid", inv1 ? inv1.status : "none");
+
+    // Payment completes → on_payment_completed_mark_invoice_paid flips it.
+    await db
+      .from("bookings")
+      .update({ payment_status: "completed" })
+      .eq("id", b.id);
+
+    const { data: inv2 } = await db
+      .from("invoices")
+      .select("status, paid_at")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("H3 invoice flips to paid", inv2?.status === "paid", inv2 ? inv2.status : "none");
+    check("H4 paid_at stamped", !!inv2?.paid_at);
   }
 
   console.log(
