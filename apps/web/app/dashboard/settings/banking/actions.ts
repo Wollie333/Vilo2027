@@ -3,14 +3,31 @@
 import { revalidatePath } from "next/cache";
 
 import { encryptAccountNumber } from "@/lib/crypto/banking";
+import {
+  decryptSecret,
+  encryptSecret,
+  secretLast4,
+} from "@/lib/crypto/payments";
+import {
+  createPaystackPaymentLink,
+  validatePaystackSecret,
+} from "@/lib/paystack";
+import { validatePayPalCredentials } from "@/lib/paypal";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
   bankAccountSchema,
   businessDetailsSchema,
+  defaultCurrencySchema,
+  paymentGatewaySchema,
+  paymentLinkSchema,
   resolveBankName,
   type BankAccountInput,
   type BusinessDetailsInput,
+  type DefaultCurrencyInput,
+  type PaymentGateway,
+  type PaymentGatewayInput,
+  type PaymentLinkInput,
 } from "./schemas";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -409,4 +426,221 @@ export async function removeHostLogoAction(): Promise<ActionResult> {
     .eq("host_id", host.hostId);
   revalidatePath("/dashboard/settings/banking");
   return { ok: true };
+}
+
+// ─── Payment gateways (host's own Paystack / PayPal) ──────────────
+// Each host connects their OWN gateway credentials so booking payments settle
+// directly into their account (Vilo takes 0%). Secrets are encrypted at rest
+// (PAYMENT_CIPHER_KEY) and never returned to the client. New secrets are
+// validated live against the gateway before we store them.
+
+const GATEWAY_PLAN_MSG = "Payment gateways aren't available on your plan.";
+
+export async function savePaymentGatewayAction(
+  input: PaymentGatewayInput,
+): Promise<ActionResult> {
+  const parsed = paymentGatewaySchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      ok: false,
+      error: first?.message ?? "Please check the form and try again.",
+    };
+  }
+
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  if (!(await assertFeatureEnabled(host.hostId))) {
+    return { ok: false, error: GATEWAY_PLAN_MSG };
+  }
+
+  const supabase = createServerClient();
+  const { data: existing } = await supabase
+    .from("host_payment_gateways")
+    .select("id")
+    .eq("host_id", host.hostId)
+    .eq("gateway", parsed.data.gateway)
+    .maybeSingle();
+
+  const newSecret = parsed.data.secret ?? "";
+  const hasNewSecret = newSecret.length > 0;
+  if (!existing && !hasNewSecret) {
+    return {
+      ok: false,
+      error:
+        parsed.data.gateway === "paystack"
+          ? "Enter your Paystack secret key."
+          : "Enter your PayPal client secret.",
+    };
+  }
+
+  // Validate live whenever a new secret is supplied — reject bad credentials
+  // rather than storing something that will fail at payment time.
+  let environment = parsed.data.environment;
+  if (hasNewSecret) {
+    if (parsed.data.gateway === "paystack") {
+      const r = await validatePaystackSecret(newSecret);
+      if (!r.valid) {
+        return {
+          ok: false,
+          error: "Paystack rejected that secret key. Double-check it.",
+        };
+      }
+      environment = r.environment; // trust the key prefix (sk_test_ / sk_live_)
+    } else {
+      const ok = await validatePayPalCredentials({
+        clientId: parsed.data.public_identifier,
+        secret: newSecret,
+        env: parsed.data.environment,
+      });
+      if (!ok) {
+        return {
+          ok: false,
+          error:
+            "PayPal rejected those credentials for the selected environment.",
+        };
+      }
+    }
+  }
+
+  const descriptor =
+    parsed.data.gateway === "paystack"
+      ? parsed.data.statement_descriptor || null
+      : null;
+
+  const base = {
+    host_id: host.hostId,
+    gateway: parsed.data.gateway,
+    environment,
+    public_identifier: parsed.data.public_identifier,
+    statement_descriptor: descriptor,
+    is_enabled: parsed.data.is_enabled,
+  };
+
+  if (existing) {
+    const update: Record<string, unknown> = { ...base };
+    if (hasNewSecret) {
+      update.secret_cipher = encryptSecret(newSecret);
+      update.secret_last4 = secretLast4(newSecret);
+      update.last_validated_at = new Date().toISOString();
+    }
+    const { error } = await supabase
+      .from("host_payment_gateways")
+      .update(update)
+      .eq("id", existing.id)
+      .eq("host_id", host.hostId);
+    if (error) return { ok: false, error: "Could not save the gateway." };
+  } else {
+    const { error } = await supabase.from("host_payment_gateways").insert({
+      ...base,
+      secret_cipher: encryptSecret(newSecret),
+      secret_last4: secretLast4(newSecret),
+      last_validated_at: new Date().toISOString(),
+    });
+    if (error) return { ok: false, error: "Could not save the gateway." };
+  }
+
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}
+
+export async function togglePaymentGatewayAction(
+  gateway: PaymentGateway,
+  enabled: boolean,
+): Promise<ActionResult> {
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_payment_gateways")
+    .update({ is_enabled: enabled })
+    .eq("host_id", host.hostId)
+    .eq("gateway", gateway);
+  if (error) return { ok: false, error: "Could not update the gateway." };
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}
+
+export async function deletePaymentGatewayAction(
+  gateway: PaymentGateway,
+): Promise<ActionResult> {
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_payment_gateways")
+    .delete()
+    .eq("host_id", host.hostId)
+    .eq("gateway", gateway);
+  if (error) return { ok: false, error: "Could not remove the gateway." };
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}
+
+export async function setDefaultCurrencyAction(
+  input: DefaultCurrencyInput,
+): Promise<ActionResult> {
+  const parsed = defaultCurrencySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Pick a valid currency." };
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("hosts")
+    .update({ default_currency: parsed.data.default_currency })
+    .eq("id", host.hostId);
+  if (error) {
+    return { ok: false, error: "Could not update the default currency." };
+  }
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}
+
+export type PaymentLinkResult =
+  | { ok: true; url: string; reference: string }
+  | { ok: false; error: string };
+
+/**
+ * Create a shareable Paystack payment link on the host's own account so they
+ * can take a real payment today (pre guest-portal). Money settles directly to
+ * the host; the host's statement descriptor rides along.
+ */
+export async function createPaymentLinkAction(
+  input: PaymentLinkInput,
+): Promise<PaymentLinkResult> {
+  const parsed = paymentLinkSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Please check the form." };
+  }
+  const host = await resolveHost();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_payment_gateways")
+    .select("secret_cipher, statement_descriptor, is_enabled")
+    .eq("host_id", host.hostId)
+    .eq("gateway", "paystack")
+    .maybeSingle();
+  if (!row) return { ok: false, error: "Connect your Paystack account first." };
+  if (!row.is_enabled) {
+    return { ok: false, error: "Enable Paystack before creating a link." };
+  }
+
+  try {
+    const result = await createPaystackPaymentLink({
+      amount: parsed.data.amount,
+      email: parsed.data.email,
+      description: parsed.data.description || undefined,
+      statementDescriptor: row.statement_descriptor,
+      secretKey: decryptSecret(row.secret_cipher),
+    });
+    return { ok: true, url: result.url, reference: result.reference };
+  } catch {
+    return {
+      ok: false,
+      error: "Paystack could not create the link. Re-check your keys.",
+    };
+  }
 }

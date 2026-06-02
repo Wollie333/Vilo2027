@@ -30,6 +30,7 @@ This file documents every environment variable used across the platform, what it
 | `NEXT_PUBLIC_POSTHOG_KEY` | ✅ | ✅ | — | Staging/Prod |
 | `NEXT_PUBLIC_MAPBOX_TOKEN` | ✅ | ✅ | — | ✅ |
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
+| `PAYMENT_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 
 ---
 
@@ -173,6 +174,14 @@ This file documents every environment variable used across the platform, what it
 - **Used in:** Next.js server runtime (Server Actions, PDF route handlers) AND Supabase Edge Functions. Same key, two runtimes.
 - **Environments:** All
 - ⚠️ **Server-side only. Rotating the key requires re-encrypting every `account_number` row with a key-prefix migration; see the `v1.` prefix in `apps/web/lib/crypto/banking.ts`.**
+
+### `PAYMENT_CIPHER_KEY`
+- **What:** AES-256-GCM key used to encrypt the `secret_cipher` column of `host_payment_gateways` — i.e. each host's own Paystack secret key / PayPal client secret for direct booking payments. Separate from `BANKING_CIPHER_KEY` so the two blast radii are independent.
+- **Format:** Base64-encoded 32 bytes — `openssl rand -base64 32`
+- **Where to get:** Generate once per environment; store in Doppler (and Supabase Edge secrets if/when a payment Edge Function needs it).
+- **Used in:** Next.js server runtime (Server Actions). The decrypted secret is used only to call the host's gateway and is NEVER returned to a client.
+- **Environments:** All
+- ⚠️ **Server-side only. If unset, secrets are stored as plain text (round-trips transparently) — fine for local dev, set it everywhere else. Rotating requires re-encrypting via the `v1.` prefix scheme in `apps/web/lib/crypto/payments.ts`.**
 
 ---
 

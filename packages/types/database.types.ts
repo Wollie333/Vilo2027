@@ -1980,6 +1980,89 @@ export type Database = {
           },
         ]
       }
+      fx_rates: {
+        Row: {
+          base_currency: string
+          fetched_at: string
+          is_manual_override: boolean
+          quote_currency: string
+          rate: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          base_currency: string
+          fetched_at?: string
+          is_manual_override?: boolean
+          quote_currency: string
+          rate: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          fetched_at?: string
+          is_manual_override?: boolean
+          quote_currency?: string
+          rate?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      host_payment_gateways: {
+        Row: {
+          created_at: string
+          environment: string
+          gateway: string
+          host_id: string
+          id: string
+          is_enabled: boolean
+          last_validated_at: string | null
+          public_identifier: string
+          secret_cipher: string
+          secret_last4: string
+          statement_descriptor: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          gateway: string
+          host_id: string
+          id?: string
+          is_enabled?: boolean
+          last_validated_at?: string | null
+          public_identifier: string
+          secret_cipher: string
+          secret_last4: string
+          statement_descriptor?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          gateway?: string
+          host_id?: string
+          id?: string
+          is_enabled?: boolean
+          last_validated_at?: string | null
+          public_identifier?: string
+          secret_cipher?: string
+          secret_last4?: string
+          statement_descriptor?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_payment_gateways_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosts: {
         Row: {
           avatar_url: string | null
@@ -1988,6 +2071,7 @@ export type Database = {
           bio: string | null
           cover_photo_url: string | null
           created_at: string
+          default_currency: string
           deleted_at: string | null
           display_name: string
           handle: string
@@ -2014,6 +2098,7 @@ export type Database = {
           bio?: string | null
           cover_photo_url?: string | null
           created_at?: string
+          default_currency?: string
           deleted_at?: string | null
           display_name: string
           handle: string
@@ -2040,6 +2125,7 @@ export type Database = {
           bio?: string | null
           cover_photo_url?: string | null
           created_at?: string
+          default_currency?: string
           deleted_at?: string | null
           display_name?: string
           handle?: string

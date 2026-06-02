@@ -2,6 +2,32 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-02 — branch `feat/host-payment-gateways`, NOT committed):**
+Built host-side **bring-your-own payment gateways** so hosts connect their OWN
+Paystack + PayPal credentials and accept booking payments directly (Vilo takes
+0%; platform monetises via subscription only — a separate, later flow using
+Vilo's own keys). Scope was deliberately **host side only** — guest checkout /
+booking-create wiring (the currency↔gateway toggle) is **deferred to the
+guest-portal task** per founder direction.
+- New `host_payment_gateways` table (secrets encrypted at rest via new
+  `PAYMENT_CIPHER_KEY`, never sent to client), `hosts.default_currency`,
+  `fx_rates` cache. Migrations `20260602000016` + `20260602000017` (help).
+- Settings UI on `/dashboard/settings/banking` → "Payment gateways": connect /
+  edit / enable / remove per gateway, **live validation on save**, Paystack
+  **statement descriptor** field, default-currency picker, and a Paystack
+  **"Request a payment"** link generator (accept money today, pre-portal).
+- Libs: `lib/crypto/payments.ts`, `lib/paypal.ts`, `lib/fx.ts` (ZAR→USD daily
+  cache, open.er-api.com); `lib/paystack.ts` now takes an optional per-host
+  secret (+ descriptor), env key retained for subscription billing.
+- `pnpm build` + `pnpm lint` green. `database.types.ts` HAND-EDITED (Docker
+  down) to add the two tables + `default_currency`.
+**TODO before merge:** (1) `supabase db push --linked` + `supabase gen types
+typescript --linked > packages/types/database.types.ts` (output should match
+the hand-edit); (2) set `PAYMENT_CIPHER_KEY` in `.env.local` + Doppler dev
+(value handed to founder in chat — NOT committed); (3) founder pastes Paystack
+test keys + a PayPal sandbox app and smoke-tests connect → validate → request a
+payment. See CHANGELOG 2026-06-02 top entry.
+
 **Session note (2026-06-02 — branch `feat/unified-pricing-engine`, NOT committed):**
 Three things shipped: (1) refund **payout-method** picker (Paystack/PayPal/EFT/
 Manual) on the Refunds queue + booking Issue-refund panel → persisted on

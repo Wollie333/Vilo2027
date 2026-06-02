@@ -12,7 +12,14 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { BankAccountList } from "./_components/BankAccountList";
 import { BusinessDetailsForm } from "./_components/BusinessDetailsForm";
-import type { BankAccountInput, BusinessDetailsInput } from "./schemas";
+import type { GatewayView } from "./_components/PaymentGatewayDialog";
+import { PaymentGatewaysSection } from "./_components/PaymentGatewaysSection";
+import type {
+  BankAccountInput,
+  BusinessDetailsInput,
+  Currency,
+  PaymentGateway,
+} from "./schemas";
 
 export const metadata: Metadata = {
   title: "Banking & business · Settings · Vilo",
@@ -43,7 +50,7 @@ export default async function BankingSettingsPage() {
 
   const { data: host } = await supabase
     .from("hosts")
-    .select("id")
+    .select("id, default_currency")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!host) redirect("/dashboard/settings");
@@ -53,24 +60,32 @@ export default async function BankingSettingsPage() {
   // block testing. Re-enable in Phase 3 by checking
   // check_feature_permission(host.id, "banking_details").
 
-  const [{ data: accountRows }, { data: businessRow }] = await Promise.all([
-    supabase
-      .from("eft_banking_details")
-      .select(
-        "id, label, bank_name, account_holder, account_number, account_type, branch_code, swift_code, reference_format, is_default, created_at",
-      )
-      .eq("host_id", host.id)
-      .eq("is_archived", false)
-      .order("is_default", { ascending: false })
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("host_business_details")
-      .select(
-        "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country, logo_path",
-      )
-      .eq("host_id", host.id)
-      .maybeSingle(),
-  ]);
+  const [{ data: accountRows }, { data: businessRow }, { data: gatewayRows }] =
+    await Promise.all([
+      supabase
+        .from("eft_banking_details")
+        .select(
+          "id, label, bank_name, account_holder, account_number, account_type, branch_code, swift_code, reference_format, is_default, created_at",
+        )
+        .eq("host_id", host.id)
+        .eq("is_archived", false)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("host_business_details")
+        .select(
+          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country, logo_path",
+        )
+        .eq("host_id", host.id)
+        .maybeSingle(),
+      // Never select secret_cipher — it must not reach the client.
+      supabase
+        .from("host_payment_gateways")
+        .select(
+          "gateway, environment, public_identifier, secret_last4, statement_descriptor, is_enabled, last_validated_at",
+        )
+        .eq("host_id", host.id),
+    ]);
 
   const logoUrl = businessRow?.logo_path
     ? supabase.storage.from("host-logos").getPublicUrl(businessRow.logo_path)
@@ -89,6 +104,17 @@ export default async function BankingSettingsPage() {
     reference_format: row.reference_format,
     is_default: row.is_default,
   }));
+
+  const gateways: GatewayView[] = (gatewayRows ?? []).map((row) => ({
+    gateway: row.gateway as PaymentGateway,
+    environment: row.environment as "test" | "live",
+    public_identifier: row.public_identifier,
+    secret_last4: row.secret_last4,
+    statement_descriptor: row.statement_descriptor,
+    is_enabled: row.is_enabled,
+    last_validated_at: row.last_validated_at,
+  }));
+  const defaultCurrency = (host.default_currency ?? "ZAR") as Currency;
 
   const businessDefaults: BusinessDetailsInput = {
     legal_name: businessRow?.legal_name ?? "",
@@ -119,8 +145,12 @@ export default async function BankingSettingsPage() {
         guests with a confirmed EFT booking.
       </p>
 
-      {/* Business details first, then payout accounts. */}
+      {/* Business details, then card/EFT gateways, then EFT payout accounts. */}
       <BusinessDetailsForm defaults={businessDefaults} logoUrl={logoUrl} />
+      <PaymentGatewaysSection
+        gateways={gateways}
+        defaultCurrency={defaultCurrency}
+      />
       <BankAccountList accounts={accounts} />
     </div>
   );

@@ -133,3 +133,82 @@ export function resolveBankName(input: BankAccountInput): string {
     ? (input.bank_name_other ?? "").trim()
     : input.bank_select;
 }
+
+// ─── Payment gateways (host's own Paystack / PayPal) ──────────────
+export const PAYMENT_GATEWAYS = ["paystack", "paypal"] as const;
+export type PaymentGateway = (typeof PAYMENT_GATEWAYS)[number];
+
+export const PAYMENT_GATEWAY_LABELS: Record<PaymentGateway, string> = {
+  paystack: "Paystack",
+  paypal: "PayPal",
+};
+
+export const CURRENCIES = ["ZAR", "USD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
+// Card-network statement descriptors are short (≈22 chars) and alphanumeric.
+const DESCRIPTOR_RE = /^[A-Za-z0-9 .,&'-]*$/;
+
+export const paymentGatewaySchema = z
+  .object({
+    gateway: z.enum(PAYMENT_GATEWAYS),
+    environment: z.enum(["test", "live"]),
+    // Paystack public key (pk_…) / PayPal client id. Not secret.
+    public_identifier: z
+      .string()
+      .trim()
+      .min(8, "Enter the public key / client id.")
+      .max(300, "That value is too long."),
+    // Empty on edit means "keep the stored secret". Required on create
+    // (enforced in the action).
+    secret: z.string().trim().max(400).optional().or(z.literal("")),
+    // Paystack only: word shown on the guest's bank statement.
+    statement_descriptor: z
+      .string()
+      .trim()
+      .max(22, "Keep it under 22 characters — banks truncate longer.")
+      .regex(DESCRIPTOR_RE, "Letters, numbers and spaces only.")
+      .optional()
+      .or(z.literal("")),
+    is_enabled: z.boolean(),
+  })
+  .superRefine((val, ctx) => {
+    if (
+      val.gateway === "paystack" &&
+      val.public_identifier &&
+      !val.public_identifier.startsWith("pk_")
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["public_identifier"],
+        message: "Paystack public keys start with pk_.",
+      });
+    }
+    if (
+      val.secret &&
+      val.gateway === "paystack" &&
+      !val.secret.startsWith("sk_")
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["secret"],
+        message: "Paystack secret keys start with sk_.",
+      });
+    }
+  });
+export type PaymentGatewayInput = z.infer<typeof paymentGatewaySchema>;
+
+export const defaultCurrencySchema = z.object({
+  default_currency: z.enum(CURRENCIES),
+});
+export type DefaultCurrencyInput = z.infer<typeof defaultCurrencySchema>;
+
+export const paymentLinkSchema = z.object({
+  amount: z.coerce
+    .number({ error: "Enter an amount." })
+    .positive("Enter an amount above 0.")
+    .max(1_000_000, "That amount is too large."),
+  email: z.string().trim().email("Enter the customer's email."),
+  description: z.string().trim().max(120).optional().or(z.literal("")),
+});
+export type PaymentLinkInput = z.infer<typeof paymentLinkSchema>;

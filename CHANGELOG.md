@@ -31,6 +31,53 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Host payment gateways: bring-your-own Paystack & PayPal — branch `feat/host-payment-gateways`
+
+### Built
+- **Per-host payment gateways (0% commission):** hosts connect their OWN
+  Paystack and PayPal credentials so booking payments settle directly into
+  their accounts — Vilo only ever charges a subscription. New
+  `host_payment_gateways` table (one row per host+gateway), secrets encrypted
+  at rest with a dedicated `PAYMENT_CIPHER_KEY` (AES-256-GCM,
+  `lib/crypto/payments.ts`) and never returned to the client (UI shows
+  `••••last4` only).
+- **Settings UI** under `/dashboard/settings/banking` → "Payment gateways":
+  saved-data-card pattern (FormModal), per-gateway Connect/Edit + enable/disable
+  + Remove, **live key validation on save** (Paystack `/balance`, PayPal OAuth
+  token) — invalid keys are rejected.
+- **Statement descriptor** (Paystack): host-entered word shown on the guest's
+  bank statement, stored per-host and forwarded on every transaction.
+- **Default currency** selector on the host (`hosts.default_currency`): ZAR→Paystack,
+  USD→PayPal. Drives the default checkout gateway.
+- **"Request a payment"** — generates a shareable Paystack link on the host's
+  own account so they can take a real payment today (pre guest-portal).
+- **FX conversion** (`lib/fx.ts`): ZAR→USD daily-cached rate (`fx_rates` table)
+  from a free no-key API (open.er-api.com) with admin manual-override support.
+- **Gateway primitives:** `lib/paystack.ts` now accepts a per-host secret +
+  statement descriptor (env key retained as fallback for Vilo subscription
+  billing); new `lib/paypal.ts` (token/validate/createOrder/capture).
+
+### Changed
+- `lib/paystack.ts` `initializeTransaction`/`verifyTransaction` gained optional
+  per-host `secretKey` — existing platform-key callers unchanged.
+
+### Migrations
+- `20260602000016_host_payment_gateways.sql` — `host_payment_gateways`,
+  `hosts.default_currency`, `fx_rates`, `payment_gateways` plan-feature key.
+- `20260602000017_help_payment_gateways.sql` — Help Centre article.
+
+### Notes
+- **Scope:** host side only (load/validate/accept). Guest checkout wiring (the
+  currency↔gateway toggle at booking) is deferred to the dedicated guest-portal
+  work, per founder direction.
+- **Not yet `db push`-ed.** `database.types.ts` hand-edited to match (Docker
+  unavailable) — run `supabase db push --linked` + `supabase gen types
+  typescript --linked` when ready.
+- **Add `PAYMENT_CIPHER_KEY`** to `.env.local` + Doppler before storing real
+  keys (without it secrets are stored as plain text — see ENV_VARS.md §5a).
+- **To verify end-to-end:** paste Paystack test keys + a PayPal sandbox app and
+  connect them in Settings → Banking & business → Payment gateways.
+
 ## 2026-06-02 — Quote editing + versioning, rich line items, payment history — branch `feat/financial-docs`
 
 ### Built
