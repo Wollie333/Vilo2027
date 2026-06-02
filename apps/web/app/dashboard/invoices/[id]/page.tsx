@@ -85,6 +85,15 @@ export default async function InvoiceDetailPage({
     .eq("invoice_id", invoice.id)
     .order("issued_at", { ascending: false });
 
+  // The bound payment, for a quick cross-link.
+  const { data: paymentRow } = await supabase
+    .from("payments")
+    .select("id")
+    .eq("booking_id", invoice.booking_id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   const lines = invoice.line_items as InvoiceLines;
   const host = invoice.host_snapshot as Snap;
   const guest = invoice.guest_snapshot as GuestSnap;
@@ -136,6 +145,15 @@ export default async function InvoiceDetailPage({
             View booking
             <ExternalLink className="h-3.5 w-3.5" />
           </Link>
+          {paymentRow ? (
+            <Link
+              href={`/dashboard/payments/${paymentRow.id}`}
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
+            >
+              View payment
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          ) : null}
         </div>
       </header>
 

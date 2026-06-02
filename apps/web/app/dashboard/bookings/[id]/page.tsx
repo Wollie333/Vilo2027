@@ -9,8 +9,10 @@ import {
   Check,
   CreditCard,
   ExternalLink,
+  FileMinus,
   Languages,
   MapPin,
+  Receipt,
   MessageSquare,
   MessageSquareQuote,
   PlaneLanding,
@@ -188,6 +190,20 @@ export default async function BookingDetailPage({
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // Financial documents attached to this booking.
+  const [{ data: invoiceRow }, { data: creditNoteRows }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, status")
+      .eq("booking_id", booking.id)
+      .maybeSingle(),
+    supabase
+      .from("credit_notes")
+      .select("id, credit_note_number")
+      .eq("booking_id", booking.id)
+      .order("issued_at", { ascending: false }),
+  ]);
 
   // Host-only note thread.
   const { data: notesRaw } = await supabase
@@ -959,6 +975,31 @@ export default async function BookingDetailPage({
                   </Link>
                 ) : null}
               </div>
+
+              {/* Financial documents attached to this booking. */}
+              {invoiceRow || (creditNoteRows && creditNoteRows.length > 0) ? (
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-brand-line pt-4">
+                  {invoiceRow ? (
+                    <Link
+                      href={`/dashboard/invoices/${invoiceRow.id}`}
+                      className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-accent"
+                    >
+                      <Receipt className="h-3.5 w-3.5" /> Invoice{" "}
+                      {invoiceRow.invoice_number}
+                    </Link>
+                  ) : null}
+                  {(creditNoteRows ?? []).map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/dashboard/credit-notes/${c.id}`}
+                      className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-rose-700 transition hover:bg-rose-50"
+                    >
+                      <FileMinus className="h-3.5 w-3.5" />{" "}
+                      {c.credit_note_number}
+                    </Link>
+                  ))}
+                </div>
+              ) : null}
 
               {/* EFT settlement — manage the bound payment without leaving the
                   booking. Verifying confirms the booking; failing declines it. */}

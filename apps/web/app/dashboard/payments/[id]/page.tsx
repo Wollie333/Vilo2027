@@ -109,6 +109,20 @@ export default async function PaymentDetailPage({
     ? booking.listing[0]
     : booking.listing;
 
+  // Cross-links: the invoice for this booking + any refunds on this payment.
+  const [{ data: invoiceRow }, { data: refundRows }] = await Promise.all([
+    supabase
+      .from("invoices")
+      .select("id, invoice_number")
+      .eq("booking_id", booking.id)
+      .maybeSingle(),
+    supabase
+      .from("refund_requests")
+      .select("id, status, requested_amount, approved_amount")
+      .eq("payment_id", payment.id)
+      .order("created_at", { ascending: false }),
+  ]);
+
   const method = METHOD[payment.method] ?? {
     label: payment.method,
     icon: Receipt,
@@ -325,6 +339,25 @@ export default async function PaymentDetailPage({
                 Open booking
                 <ExternalLink className="h-4 w-4" />
               </Link>
+              {invoiceRow ? (
+                <Link
+                  href={`/dashboard/invoices/${invoiceRow.id}`}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-accent"
+                >
+                  Invoice {invoiceRow.invoice_number}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
+              {(refundRows ?? []).length > 0 ? (
+                <Link
+                  href="/dashboard/refunds"
+                  className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-accent"
+                >
+                  {refundRows!.length} refund
+                  {refundRows!.length === 1 ? "" : "s"} on this payment
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              ) : null}
             </div>
           </section>
         </aside>
