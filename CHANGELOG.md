@@ -31,6 +31,32 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Quote editing + versioning, rich line items, payment history — branch `feat/financial-docs`
+
+### Built
+- **Editable quotes (incl. after sending):** Edit button on the quote detail page
+  (draft + sent); new `/quotes/[id]/edit` route rehydrates the full builder —
+  scope, rooms (selected/priced/guests), catalog add-ons (re-linked via addon_id),
+  custom lines.
+- **Quote PDF version history:** editing a sent quote snapshots the prior state
+  into `quote_versions` (bumping `quotes.version`); the detail page lists prior
+  versions with date/time + total, each linking to its frozen PDF
+  (`/quote/[id]/pdf?v=N`). The live quote is always the newest PDF.
+- **Rich quote line items:** "What's included" section with room cards (thumbnail,
+  bed type, m², sleeps, short description) and add-on cards (thumbnail +
+  description), pulled via `quote_addons.addon_id → addons` and
+  `quote_rooms → listing_rooms` featured photo.
+- **Payment History:** the payment detail page's timeline is now a full financial
+  audit trail across quote → booking → payment → invoice → refund → credit note,
+  each event stamped with date + time. Plus the Financial overview anchor row with
+  the Booking ID.
+
+### Migrations
+- `20260602000008_quote_versions.sql`, `20260602000009_quote_addon_link.sql`
+  (applied with the numbering batch).
+
+---
+
 ## 2026-06-02 — Standardised document numbering — branch `feat/financial-docs`
 
 ### Built
