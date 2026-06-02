@@ -381,14 +381,26 @@ export async function updateQuoteAction(
 
   const supabase = createServerClient();
 
-  // Only drafts are editable.
+  // Draft + sent quotes are editable (a guest can ask to change something after
+  // it's sent). Converted / declined / expired quotes are locked.
   const { data: current } = await supabase
     .from("quotes")
-    .select("status")
+    .select("status, version")
     .eq("id", quoteId)
     .maybeSingle();
-  if (!current || current.status !== "draft") {
-    return { ok: false, error: "Only draft quotes can be edited." };
+  if (!current) return { ok: false, error: "Quote not found." };
+  if (current.status !== "draft" && current.status !== "sent") {
+    return {
+      ok: false,
+      error: "This quote can no longer be edited.",
+    };
+  }
+
+  // Editing a quote that's already been sent snapshots the CURRENT (pre-edit)
+  // state into quote_versions so the previously-issued quote — and the PDF that
+  // can be regenerated from it — is preserved. Drafts edit in place.
+  if (current.status === "sent") {
+    await snapshotQuoteVersion(supabase, quoteId, current.version ?? 1);
   }
 
   const { addonsTotal, total } = totalsFor(parsed.data);
@@ -410,6 +422,11 @@ export async function updateQuoteAction(
       total_amount: total,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
+      // Bump the live version when we snapshotted the prior one.
+      version:
+        current.status === "sent"
+          ? (current.version ?? 1) + 1
+          : (current.version ?? 1),
     })
     .eq("id", quoteId);
   if (updErr) return { ok: false, error: "Could not save the quote." };
@@ -432,6 +449,7 @@ export async function updateQuoteAction(
     await supabase.from("quote_addons").insert(
       parsed.data.addons.map((a, i) => ({
         quote_id: quoteId,
+        addon_id: a.addon_id ?? null,
         label: a.label,
         quantity: a.quantity,
         unit_price: a.unit_price,
@@ -443,6 +461,53 @@ export async function updateQuoteAction(
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   return { ok: true };
+}
+
+// Freeze the current quote (header + rooms + addons) into quote_versions so an
+// edit never loses the previously-issued version. Best-effort — failure here
+// shouldn't block the edit.
+async function snapshotQuoteVersion(
+  supabase: ReturnType<typeof createServerClient>,
+  quoteId: string,
+  versionNo: number,
+): Promise<void> {
+  const { data: q } = await supabase
+    .from("quotes")
+    .select(
+      "quote_number, status, created_at, valid_until, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, addons_total, total_amount, currency, notes, listing:listings ( name )",
+    )
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (!q) return;
+
+  const [{ data: rooms }, { data: addons }] = await Promise.all([
+    supabase
+      .from("quote_rooms")
+      .select("room_id, base_amount, cleaning_fee")
+      .eq("quote_id", quoteId),
+    supabase
+      .from("quote_addons")
+      .select("addon_id, label, quantity, unit_price, subtotal, sort_order")
+      .eq("quote_id", quoteId)
+      .order("sort_order"),
+  ]);
+
+  const listingName = Array.isArray(q.listing)
+    ? (q.listing[0] as { name?: string } | undefined)?.name
+    : (q.listing as { name?: string } | null)?.name;
+
+  await supabase.from("quote_versions").insert({
+    quote_id: quoteId,
+    version_no: versionNo,
+    total_amount: q.total_amount,
+    currency: q.currency,
+    snapshot: {
+      ...q,
+      listing_name: listingName ?? null,
+      rooms: rooms ?? [],
+      addons: addons ?? [],
+    },
+  });
 }
 
 export async function sendQuoteAction(

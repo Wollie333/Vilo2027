@@ -51,9 +51,11 @@ function shapeBusiness(row: BusinessRow | null): QuoteBusiness | null {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } },
 ) {
+  // ?v=N renders a previously-issued version from its frozen snapshot.
+  const versionParam = new URL(req.url).searchParams.get("v");
   const supabase = createServerClient();
   const {
     data: { user },
@@ -112,6 +114,65 @@ export async function GET(
     .eq("quote_id", params.id)
     .order("sort_order");
 
+  // A requested version overrides the document content with its frozen snapshot
+  // (host branding always stays live).
+  type Snapshot = {
+    quote_number?: string;
+    status?: string;
+    created_at?: string;
+    valid_until?: string | null;
+    guest_name?: string | null;
+    guest_email?: string | null;
+    guest_phone?: string | null;
+    listing_name?: string | null;
+    check_in?: string | null;
+    check_out?: string | null;
+    headcount?: number;
+    base_amount?: number;
+    cleaning_fee?: number;
+    addons_total?: number;
+    total_amount?: number;
+    notes?: string | null;
+    currency?: string;
+    addons?: {
+      label: string;
+      quantity: number;
+      unit_price: number;
+      subtotal: number;
+    }[];
+  };
+  let snap: Snapshot | null = null;
+  if (versionParam && /^\d+$/.test(versionParam)) {
+    const { data: vrow } = await supabase
+      .from("quote_versions")
+      .select("snapshot")
+      .eq("quote_id", params.id)
+      .eq("version_no", Number(versionParam))
+      .maybeSingle();
+    snap = (vrow?.snapshot as Snapshot | undefined) ?? null;
+  }
+
+  const doc = {
+    quoteNumber: snap?.quote_number ?? quote.quote_number,
+    status: snap?.status ?? quote.status,
+    createdAt: snap?.created_at ?? quote.created_at,
+    validUntil: snap?.valid_until ?? quote.valid_until,
+    guestName: snap?.guest_name ?? quote.guest_name,
+    guestEmail: snap?.guest_email ?? quote.guest_email,
+    guestPhone: snap?.guest_phone ?? quote.guest_phone,
+    listingName: snap?.listing_name ?? listingObj?.name ?? null,
+    checkIn: snap?.check_in ?? quote.check_in,
+    checkOut: snap?.check_out ?? quote.check_out,
+    headcount: snap?.headcount ?? quote.headcount,
+    baseAmount: snap?.base_amount ?? quote.base_amount,
+    cleaningFee: snap?.cleaning_fee ?? quote.cleaning_fee,
+    addonsTotal: snap?.addons_total ?? quote.addons_total ?? 0,
+    total: snap?.total_amount ?? quote.total_amount,
+    notes: snap?.notes ?? quote.notes,
+    currency: snap?.currency ?? quote.currency,
+    addons: snap?.addons ?? addons ?? [],
+  };
+
   // Live banking + business (quotes always reflect the host's current values).
   // RLS gates these tables to the host owner — and we've already verified
   // ownership of the quote above.
@@ -161,20 +222,20 @@ export async function GET(
     subtotal: number;
   }[] = [];
   lineRows.push({
-    description: `${listingObj?.name ?? "Stay"} — base`,
+    description: `${doc.listingName ?? "Stay"} — base`,
     quantity: 1,
-    unit_price: quote.base_amount,
-    subtotal: quote.base_amount,
+    unit_price: doc.baseAmount,
+    subtotal: doc.baseAmount,
   });
-  if (quote.cleaning_fee > 0) {
+  if (doc.cleaningFee > 0) {
     lineRows.push({
       description: "Cleaning",
       quantity: 1,
-      unit_price: quote.cleaning_fee,
-      subtotal: quote.cleaning_fee,
+      unit_price: doc.cleaningFee,
+      subtotal: doc.cleaningFee,
     });
   }
-  for (const a of addons ?? []) {
+  for (const a of doc.addons) {
     lineRows.push({
       description: a.label,
       quantity: a.quantity,
@@ -190,29 +251,30 @@ export async function GET(
   const acceptUrl = `${proto}://${baseHost}/q/${quote.id}/${quote.accept_token}`;
 
   const nights =
-    quote.check_in && quote.check_out
+    doc.checkIn && doc.checkOut
       ? Math.max(
           1,
           Math.round(
-            (new Date(quote.check_out).getTime() -
-              new Date(quote.check_in).getTime()) /
+            (new Date(doc.checkOut).getTime() -
+              new Date(doc.checkIn).getTime()) /
               86_400_000,
           ),
         )
       : 1;
 
   const buffer = await renderQuotePdf({
-    quoteNumber: quote.quote_number,
-    status: quote.status as
+    quoteNumber: doc.quoteNumber,
+    status: doc.status as
       | "draft"
       | "sent"
       | "accepted"
       | "declined"
       | "expired"
       | "converted",
-    createdAt: quote.created_at,
-    validUntil: quote.valid_until,
-    acceptUrl: quote.status === "sent" ? acceptUrl : null,
+    createdAt: doc.createdAt,
+    validUntil: doc.validUntil,
+    // Only the live quote shows an accept link; a historical version is read-only.
+    acceptUrl: !snap && quote.status === "sent" ? acceptUrl : null,
     host: {
       displayName: hostObj.display_name ?? null,
       handle: hostObj.handle ?? null,
@@ -222,31 +284,33 @@ export async function GET(
       business,
     },
     guest: {
-      name: quote.guest_name,
-      email: quote.guest_email,
-      phone: quote.guest_phone,
+      name: doc.guestName,
+      email: doc.guestEmail,
+      phone: doc.guestPhone,
     },
     stay: {
-      listingName: listingObj?.name ?? null,
-      checkIn: quote.check_in,
-      checkOut: quote.check_out,
+      listingName: doc.listingName,
+      checkIn: doc.checkIn,
+      checkOut: doc.checkOut,
       nights,
-      headcount: quote.headcount,
+      headcount: doc.headcount,
     },
     lines: lineRows,
-    subtotal:
-      quote.base_amount + quote.cleaning_fee + (quote.addons_total ?? 0),
-    total: quote.total_amount,
-    currency: quote.currency,
-    notes: quote.notes,
+    subtotal: doc.baseAmount + doc.cleaningFee + doc.addonsTotal,
+    total: doc.total,
+    currency: doc.currency,
+    notes: doc.notes,
     logoUrl: await hostLogoDataUri(hostObj.id),
   });
 
+  const fileName = snap
+    ? `${doc.quoteNumber}-v${versionParam}.pdf`
+    : `${doc.quoteNumber}.pdf`;
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${quote.quote_number}.pdf"`,
+      "Content-Disposition": `inline; filename="${fileName}"`,
       "Cache-Control": "private, max-age=60",
     },
   });

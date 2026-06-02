@@ -75,10 +75,18 @@ export type QuoteFormInitial = {
   checkIn?: string;
   checkOut?: string;
   headcount?: number;
+  scope?: "whole_listing" | "rooms";
   baseAmount?: number;
   cleaningFee?: number;
   notes?: string;
-  addons?: { label: string; quantity: number; unit_price: number }[];
+  rooms?: {
+    room_id: string;
+    guests: number;
+    base_amount: number;
+    cleaning_fee: number;
+  }[];
+  catalogAddons?: { addon_id: string; quantity: number }[];
+  customAddons?: { label: string; quantity: number; unit_price: number }[];
 };
 
 function nightsBetween(checkIn: string, checkOut: string): number {
@@ -111,7 +119,7 @@ export function QuoteForm({
   const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
   const [headcount, setHeadcount] = useState(String(initial?.headcount ?? 2));
   const [scope, setScope] = useState<"whole_listing" | "rooms">(
-    "whole_listing",
+    initial?.scope ?? "whole_listing",
   );
   const [baseAmount, setBaseAmount] = useState(
     String(initial?.baseAmount ?? ""),
@@ -122,20 +130,37 @@ export function QuoteForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
 
   // Per-room selection + the engine-priced amounts for the chosen rooms.
-  const [roomGuests, setRoomGuests] = useState<Record<string, string>>({});
-  const [selectedRooms, setSelectedRooms] = useState<Record<string, boolean>>(
-    {},
+  const [roomGuests, setRoomGuests] = useState<Record<string, string>>(
+    Object.fromEntries(
+      (initial?.rooms ?? []).map((r) => [r.room_id, String(r.guests)]),
+    ),
   );
-  const [pricedRooms, setPricedRooms] = useState<PricedRoom[]>([]);
+  const [selectedRooms, setSelectedRooms] = useState<Record<string, boolean>>(
+    Object.fromEntries((initial?.rooms ?? []).map((r) => [r.room_id, true])),
+  );
+  const [pricedRooms, setPricedRooms] = useState<PricedRoom[]>(
+    (initial?.rooms ?? []).map((r) => ({
+      room_id: r.room_id,
+      base_amount: r.base_amount,
+      cleaning_fee: r.cleaning_fee,
+    })),
+  );
 
   // Catalog add-ons (ticked from the host's catalog) + free-form custom lines.
-  const [catalogSel, setCatalogSel] = useState<Record<string, string>>({}); // addonId → qty
+  const [catalogSel, setCatalogSel] = useState<Record<string, string>>(
+    Object.fromEntries(
+      (initial?.catalogAddons ?? []).map((a) => [
+        a.addon_id,
+        String(a.quantity),
+      ]),
+    ),
+  ); // addonId → qty
   const [customAddons, setCustomAddons] = useState<AddonRow[]>(
-    initial?.addons?.map((a) => ({
+    (initial?.customAddons ?? []).map((a) => ({
       label: a.label,
       quantity: String(a.quantity),
       unitPrice: String(a.unit_price),
-    })) ?? [],
+    })),
   );
 
   const listing = listings.find((l) => l.id === listingId);
@@ -161,7 +186,12 @@ export function QuoteForm({
   // Catalog add-on lines — quantity is shaped per pricing model so the stored
   // subtotal (quantity × unit_price) is correct.
   const catalogLines = useMemo(() => {
-    const out: { label: string; quantity: number; unit_price: number }[] = [];
+    const out: {
+      label: string;
+      quantity: number;
+      unit_price: number;
+      addon_id: string;
+    }[] = [];
     for (const a of listing?.addons ?? []) {
       const raw = catalogSel[a.id];
       if (raw == null) continue;
@@ -171,7 +201,12 @@ export function QuoteForm({
       if (a.pricing_model === "per_night") quantity = Math.max(1, nights || 1);
       if (a.pricing_model === "per_person")
         quantity = Math.max(1, parseInt(headcount, 10) || 1);
-      out.push({ label: a.name, quantity, unit_price: a.unit_price });
+      out.push({
+        label: a.name,
+        quantity,
+        unit_price: a.unit_price,
+        addon_id: a.id,
+      });
     }
     return out;
   }, [listing, catalogSel, nights, headcount]);
@@ -315,6 +350,7 @@ export function QuoteForm({
           label: a.label.trim(),
           quantity: parseFloat(a.quantity) || 0,
           unit_price: parseFloat(a.unitPrice) || 0,
+          addon_id: null as string | null,
         })),
     ];
     return {

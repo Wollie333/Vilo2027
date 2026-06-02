@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import { Download, ExternalLink } from "lucide-react";
+import { Download, ExternalLink, History, Pencil } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -68,6 +68,13 @@ export default async function QuoteDetailPage({
     .eq("quote_id", params.id)
     .order("sort_order");
 
+  // Prior issued versions (snapshotted on each edit of a sent quote).
+  const { data: versions } = await supabase
+    .from("quote_versions")
+    .select("id, version_no, total_amount, currency, created_at")
+    .eq("quote_id", params.id)
+    .order("version_no", { ascending: false });
+
   const status = quote.status as QuoteStatus;
   const tone = STATUS_TONE[status];
 
@@ -102,6 +109,14 @@ export default async function QuoteDetailPage({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {status === "draft" || status === "sent" ? (
+            <Link
+              href={`/dashboard/quotes/${quote.id}/edit`}
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"
+            >
+              <Pencil className="h-4 w-4" /> Edit
+            </Link>
+          ) : null}
           <Link
             href={`/quote/${quote.id}/pdf`}
             target="_blank"
@@ -250,6 +265,46 @@ export default async function QuoteDetailPage({
         total={quote.total_amount}
         currency={quote.currency}
       />
+
+      {versions && versions.length > 0 ? (
+        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <h2 className="flex items-center gap-2 font-display text-base font-bold text-brand-ink">
+            <History className="h-4 w-4 text-brand-mute" /> Version history
+          </h2>
+          <p className="mt-1 text-xs text-brand-mute">
+            Each edit after sending keeps the previous version and its PDF. The
+            current quote above is the latest.
+          </p>
+          <ul className="mt-3 divide-y divide-brand-line">
+            {versions.map((v) => (
+              <li
+                key={v.id}
+                className="flex items-center justify-between py-2.5 text-sm"
+              >
+                <div>
+                  <span className="font-medium text-brand-ink">
+                    Version {v.version_no}
+                  </span>
+                  <span className="ml-2 text-xs text-brand-mute">
+                    {new Intl.DateTimeFormat("en-ZA", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(new Date(v.created_at))}{" "}
+                    · {fmt(Number(v.total_amount), v.currency)}
+                  </span>
+                </div>
+                <Link
+                  href={`/quote/${quote.id}/pdf?v=${v.version_no}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-2.5 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-accent"
+                >
+                  <Download className="h-3.5 w-3.5" /> PDF
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <QuoteActions quoteId={quote.id} status={status} />
     </div>
