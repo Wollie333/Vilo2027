@@ -538,7 +538,7 @@ async function main() {
     check("G2 credit note auto-created on completion", !!cn);
     check(
       "G3 credit note has a number",
-      !!cn && typeof cn.credit_note_number === "string" && cn.credit_note_number.includes("CN"),
+      !!cn && typeof cn.credit_note_number === "string" && cn.credit_note_number.startsWith("CR-"),
       cn ? cn.credit_note_number : "no note",
     );
     check(
@@ -785,6 +785,71 @@ async function main() {
       !!cn && !!inv && Number(cn.total_amount) <= Number(inv.total_amount),
       cn && inv ? `note ${cn.total_amount} vs invoice ${inv.total_amount}` : "missing",
     );
+  }
+
+  // ── Journey M: standardised document numbering ──
+  console.log("\nJourney M — Q-/INV-/CR-/RF-/BK- numbering convention");
+  {
+    // Booking WITHOUT an explicit reference → trigger mints BK-{LISTING}-{ID5}-NNNN.
+    const { data: b } = await db
+      .from("bookings")
+      .insert({
+        listing_id: LISTING_A,
+        host_id: HOST_ID,
+        guest_id: GUEST_UID,
+        check_in: isoPlus(150),
+        check_out: isoPlus(152),
+        guests_count: 2,
+        base_amount: 2000,
+        cleaning_fee: 300,
+        total_amount: 2300,
+        currency: "ZAR",
+        status: "pending",
+        payment_status: "pending",
+        payment_method: "paystack",
+        scope: "whole_listing",
+      })
+      .select("id, reference")
+      .single();
+    created.bookings.push(b.id);
+    check("M1 booking ref is BK-{LISTING}-{id}-NNNN", /^BK-[A-Z0-9]+-[A-Z0-9]{5}-\d{4}$/.test(b.reference ?? ""), b.reference);
+
+    const { data: pay } = await db
+      .from("payments")
+      .insert({ booking_id: b.id, amount: 2300, currency: "ZAR", method: "paystack", status: "completed", captured_at: new Date().toISOString() })
+      .select("id")
+      .single();
+    if (pay) created.payments.push(pay.id);
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed" }).eq("id", b.id);
+
+    const { data: inv } = await db
+      .from("invoices")
+      .select("invoice_number")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("M2 invoice number is INV-{BIZ}-{id}-NNNN", /^INV-[A-Z0-9]+-[A-Z0-9]{5}-\d{5}$/.test(inv?.invoice_number ?? ""), inv?.invoice_number);
+
+    // Refund → RF- reference + CR- credit note.
+    const { data: rr } = await db
+      .from("refund_requests")
+      .insert({ booking_id: b.id, payment_id: pay.id, host_id: HOST_ID, guest_id: GUEST_UID, requested_amount: 500, currency: "ZAR", reason: "Numbering probe", initiated_by: "host", status: "approved" })
+      .select("id, reference")
+      .single();
+    if (rr) created.refunds.push(rr.id);
+    check("M3 refund ref is RF-{BIZ}-{id}-NNNN", /^RF-[A-Z0-9]+-[A-Z0-9]{5}-\d{5}$/.test(rr?.reference ?? ""), rr?.reference);
+
+    await db.from("refund_requests").update({ status: "completed", approved_amount: 500, actioned_at: new Date().toISOString() }).eq("id", rr.id);
+    const { data: cn } = await db
+      .from("credit_notes")
+      .select("credit_note_number")
+      .eq("refund_request_id", rr.id)
+      .maybeSingle();
+    check("M4 credit note number is CR-{BIZ}-{id}-NNNN", /^CR-[A-Z0-9]+-[A-Z0-9]{5}-\d{5}$/.test(cn?.credit_note_number ?? ""), cn?.credit_note_number);
+
+    // Quote → Q-{BIZ}-{id}-NNNNNN.
+    const q = await insertQuote();
+    const { data: qrow } = await db.from("quotes").select("quote_number").eq("id", q.id).maybeSingle();
+    check("M5 quote number is Q-{BIZ}-{id}-NNNNNN", /^Q-[A-Z0-9]+-[A-Z0-9]{5}-\d{6}$/.test(qrow?.quote_number ?? ""), qrow?.quote_number);
   }
 
   console.log(

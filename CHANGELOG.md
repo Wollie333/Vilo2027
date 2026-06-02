@@ -31,6 +31,34 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Standardised document numbering — branch `feat/financial-docs`
+
+### Built
+- **One numbering convention across the app**, each with a prefix, a business/
+  property identifier, a short stable ID suffix, and a running count:
+  - Quote `Q-{BIZ}-{ID5}-000001`, Invoice `INV-{BIZ}-{ID5}-00001`,
+    Credit note `CR-{BIZ}-{ID5}-00001`, Refund `RF-{BIZ}-{ID5}-00001`
+    — one continuous sequence **per business** (host_counters).
+  - Booking `BK-{LISTING}-{ID5}-0001` — counted **per listing** (listing_counters).
+  - `{BIZ}` = business/trading name (fallback handle); `{LISTING}` = listing name;
+    `{ID5}` = 5-char slice of the host/listing id so two same-named businesses or
+    listings can never collide on the global UNIQUE columns.
+- Refunds now carry a human `reference` (RF-…); generated on insert.
+
+### Migrations
+- `20260602000010_doc_numbering_per_listing.sql` — `host_doc_code` /
+  `listing_doc_code` helpers; rewrote `next_quote/invoice/credit_note_number`;
+  added `next_refund_number` + `host_counters.last_refund_number`;
+  `refund_requests.reference` + `bookings.reference` BEFORE INSERT triggers
+  (dropped the old VILO- default); `listing_counters` table.
+- `20260602000008_quote_versions.sql` + `20260602000009_quote_addon_link.sql` —
+  schema for upcoming quote editing/versioning + add-on→catalog link (quote_addons.addon_id).
+
+### Tests
+- `test:flows` Journey M asserts every prefix/format (54 checks green).
+
+---
+
 ## 2026-06-02 — Quote builder enrichment + financial/booking hardening — branch `feat/financial-docs`
 
 ### Built

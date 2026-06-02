@@ -346,6 +346,7 @@ export async function createQuoteAction(
     const { error: addonsErr } = await supabase.from("quote_addons").insert(
       parsed.data.addons.map((a, i) => ({
         quote_id: quote.id,
+        addon_id: a.addon_id ?? null,
         label: a.label,
         quantity: a.quantity,
         unit_price: a.unit_price,

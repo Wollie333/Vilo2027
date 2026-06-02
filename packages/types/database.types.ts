@@ -705,7 +705,7 @@ export type Database = {
           previous_status?: string | null
           price_breakdown?: Json | null
           quote_id?: string | null
-          reference?: string
+          reference: string
           refund_total?: number | null
           scope?: string
           session_date?: string | null
@@ -1900,6 +1900,7 @@ export type Database = {
           last_credit_note_number: number
           last_invoice_number: number
           last_quote_number: number
+          last_refund_number: number
           updated_at: string
         }
         Insert: {
@@ -1907,6 +1908,7 @@ export type Database = {
           last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
+          last_refund_number?: number
           updated_at?: string
         }
         Update: {
@@ -1914,6 +1916,7 @@ export type Database = {
           last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
+          last_refund_number?: number
           updated_at?: string
         }
         Relationships: [
@@ -2464,6 +2467,32 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "listing_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_counters: {
+        Row: {
+          last_booking_number: number
+          listing_id: string
+          updated_at: string
+        }
+        Insert: {
+          last_booking_number?: number
+          listing_id: string
+          updated_at?: string
+        }
+        Update: {
+          last_booking_number?: number
+          listing_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_counters_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -3978,6 +4007,7 @@ export type Database = {
       }
       quote_addons: {
         Row: {
+          addon_id: string | null
           created_at: string
           id: string
           label: string
@@ -3988,6 +4018,7 @@ export type Database = {
           unit_price: number
         }
         Insert: {
+          addon_id?: string | null
           created_at?: string
           id?: string
           label: string
@@ -3998,6 +4029,7 @@ export type Database = {
           unit_price: number
         }
         Update: {
+          addon_id?: string | null
           created_at?: string
           id?: string
           label?: string
@@ -4008,6 +4040,13 @@ export type Database = {
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quote_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quote_addons_quote_id_fkey"
             columns: ["quote_id"]
@@ -4059,6 +4098,44 @@ export type Database = {
           },
         ]
       }
+      quote_versions: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          quote_id: string
+          snapshot: Json
+          total_amount: number
+          version_no: number
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          quote_id: string
+          snapshot: Json
+          total_amount?: number
+          version_no: number
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          quote_id?: string
+          snapshot?: Json
+          total_amount?: number
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_versions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quotes: {
         Row: {
           accept_token: string
@@ -4092,6 +4169,7 @@ export type Database = {
           total_amount: number
           updated_at: string
           valid_until: string | null
+          version: number
         }
         Insert: {
           accept_token?: string
@@ -4125,6 +4203,7 @@ export type Database = {
           total_amount: number
           updated_at?: string
           valid_until?: string | null
+          version?: number
         }
         Update: {
           accept_token?: string
@@ -4158,6 +4237,7 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           valid_until?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -4225,6 +4305,7 @@ export type Database = {
           provider_response: Json | null
           reason: string
           reason_detail: string | null
+          reference: string | null
           refund_method: string | null
           requested_amount: number
           status: string
@@ -4265,6 +4346,7 @@ export type Database = {
           provider_response?: Json | null
           reason: string
           reason_detail?: string | null
+          reference?: string | null
           refund_method?: string | null
           requested_amount: number
           status?: string
@@ -4305,6 +4387,7 @@ export type Database = {
           provider_response?: Json | null
           reason?: string
           reason_detail?: string | null
+          reference?: string | null
           refund_method?: string | null
           requested_amount?: number
           status?: string
@@ -5537,11 +5620,13 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
+      host_doc_code: { Args: { p_host_id: string }; Returns: string }
       increment_help_article_view: {
         Args: { p_article_id: string }
         Returns: undefined
       }
       is_super_admin: { Args: never; Returns: boolean }
+      listing_doc_code: { Args: { p_listing_id: string }; Returns: string }
       listing_is_available_whole: {
         Args: { p_check_in: string; p_check_out: string; p_listing_id: string }
         Returns: boolean
@@ -5564,6 +5649,7 @@ export type Database = {
       next_credit_note_number: { Args: { p_host_id: string }; Returns: string }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
       next_quote_number: { Args: { p_host_id: string }; Returns: string }
+      next_refund_number: { Args: { p_host_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
