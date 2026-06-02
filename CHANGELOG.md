@@ -31,6 +31,51 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Quote builder enrichment + financial/booking hardening — branch `feat/financial-docs`
+
+### Built
+- **Enriched quote builder:** the New Quote form now pulls in the host's real
+  rooms and catalog add-ons. Scope toggle (whole listing vs specific rooms),
+  per-room guest counts, a **"Price from calendar"** button that prices through
+  the canonical `priceStay` engine (seasonal/weekend aware, server-side via new
+  `priceQuoteAction`) with host override, catalog add-on picker + custom lines.
+- **Cancellation policy on quotes:** `createQuoteAction` freezes the listing's
+  policy into `quotes.policy_snapshot`; convert carries it onto the booking.
+- **Payment = finance overview hub:** the payment detail page now lists every
+  related document — the quote it came from, invoices, credit notes and refunds —
+  in one "Financial overview" panel. Payments moved to the top of the Finances nav.
+
+### Changed
+- **Convert is now trigger-correct (bug fix):** `convertQuoteAction` inserted the
+  booking straight as `confirmed`, but the invoice + calendar-block triggers are
+  `AFTER UPDATE OF status` — so converted quotes silently got **no invoice and no
+  calendar block** (double-booking risk). Now it inserts `pending`, attaches
+  rooms/add-ons, snapshots policies, then UPDATEs to `confirmed` so both triggers
+  fire exactly as a direct booking would.
+- New-quote listings are scoped to the logged-in host (was leaking all hosts'
+  listings via public listing RLS).
+
+### Migrations
+- `20260602000006_credit_note_cap.sql` — **bug fix:** the auto credit-note trigger
+  credited the full `approved_amount` with no ceiling; an over-refund could mint a
+  credit note exceeding its invoice. Now clamped to `LEAST(refund, invoice total)`.
+- `20260602000007_help_quotes_builder_update.sql` — refreshed the "Sending quotes"
+  Help article for the new builder.
+
+### Tests
+- `pnpm test:flows` now 49 checks (was 33). New journeys: **I** — confirm fires
+  triggers only via UPDATE (regression guard for the convert bug, both ways);
+  **J** — quote send soft-holds dates / convert clears them; **K** — a confirmed
+  stay blocks every overlapping range (exact/partial/inner) + frees on checkout;
+  **L** — over-refund credit note is capped at the invoice total. Engine units
+  (22) + build + lint all green.
+
+### Notes
+- The break-it sweep surfaced two real bugs (convert skipping invoice/blocks; credit
+  note over-cap) — both fixed and now guarded by tests.
+
+---
+
 ## 2026-06-02 — Financial documents: branded PDFs, invoices, credit notes, quote sending — branch `feat/financial-docs`
 
 ### Built

@@ -91,6 +91,9 @@ const CONNECT: Item[] = [
 
 // Collapsible "Finances" sub-menu — order is intentional.
 const FINANCES: Item[] = [
+  // Payments is the finance overview hub — every payment links out to its
+  // booking, invoice, quote and credit notes — so it leads the group.
+  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   {
     href: "/dashboard/quotes",
     label: "Quotes",
@@ -109,7 +112,6 @@ const FINANCES: Item[] = [
     icon: FileMinus,
     match: "prefix",
   },
-  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 

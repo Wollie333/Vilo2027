@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
 
 import {
   createQuoteSchema,
@@ -14,6 +16,18 @@ import {
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
+
+function numOrNull(v: unknown): number | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function nightsBetween(checkIn: string, checkOut: string): number {
+  const f = new Date(`${checkIn}T00:00:00Z`).getTime();
+  const t = new Date(`${checkOut}T00:00:00Z`).getTime();
+  return Math.round((t - f) / 86_400_000);
+}
 
 async function assertOwnership(
   quoteId: string,
@@ -57,6 +71,177 @@ async function getHostId(): Promise<
   return { ok: true, hostId: host.id };
 }
 
+// Price a quote's accommodation through the canonical engine — the SAME path
+// the guest checkout uses, so an auto-priced quote matches what a booking would
+// charge for the same dates/rooms (seasonal + weekend aware). Add-ons are priced
+// separately as quote lines. Host-only: the listing must belong to the caller.
+export async function priceQuoteAction(input: {
+  listing_id: string;
+  check_in: string;
+  check_out: string;
+  scope: "whole_listing" | "rooms";
+  guests: number;
+  rooms: { room_id: string; guests: number }[];
+}): Promise<
+  ActionResult<{
+    currency: string;
+    nights: number;
+    base_amount: number;
+    cleaning_fee: number;
+    total: number;
+    rooms: { room_id: string; base_amount: number; cleaning_fee: number }[];
+  }>
+> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(input.check_in) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(input.check_out) ||
+    nightsBetween(input.check_in, input.check_out) <= 0
+  ) {
+    return { ok: false, error: "Pick valid check-in and check-out dates." };
+  }
+
+  const admin = createAdminClient();
+  const { data: listing } = await admin
+    .from("listings")
+    .select(
+      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
+    )
+    .eq("id", input.listing_id)
+    .maybeSingle();
+  if (!listing || listing.host_id !== host.hostId) {
+    return { ok: false, error: "Listing not found." };
+  }
+
+  const nights = nightsBetween(input.check_in, input.check_out);
+  let units: PricingUnit[] = [];
+  let isWholeCombo = false;
+
+  if (input.scope === "rooms") {
+    const roomIds = input.rooms.map((r) => r.room_id);
+    if (roomIds.length === 0) {
+      return { ok: false, error: "Pick at least one room to price." };
+    }
+    const { data: roomRows } = await admin
+      .from("listing_rooms")
+      .select(
+        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+      )
+      .eq("listing_id", listing.id)
+      .is("deleted_at", null)
+      .eq("is_active", true)
+      .in("id", roomIds);
+    if (!roomRows || roomRows.length !== roomIds.length) {
+      return { ok: false, error: "One or more rooms are no longer available." };
+    }
+    const guestsByRoom = new Map(input.rooms.map((r) => [r.room_id, r.guests]));
+    units = roomRows.map((r) => ({
+      roomId: r.id,
+      pricing_mode: (r.pricing_mode ??
+        "per_room") as PricingUnit["pricing_mode"],
+      base_price: Number(r.base_price),
+      price_per_person:
+        r.price_per_person == null ? null : Number(r.price_per_person),
+      base_occupancy: r.base_occupancy ?? null,
+      extra_guest_price:
+        r.extra_guest_price == null ? null : Number(r.extra_guest_price),
+      weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
+      cleaning_fee: Number(r.cleaning_fee ?? 0),
+      guests: Math.max(1, guestsByRoom.get(r.id) ?? 1),
+    }));
+    const { count: activeRoomCount } = await admin
+      .from("listing_rooms")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listing.id)
+      .is("deleted_at", null)
+      .eq("is_active", true);
+    isWholeCombo =
+      activeRoomCount != null &&
+      activeRoomCount > 1 &&
+      roomRows.length === activeRoomCount;
+  } else {
+    if (listing.base_price == null) {
+      return { ok: false, error: "This listing has no nightly price set yet." };
+    }
+    units = [
+      {
+        roomId: null,
+        pricing_mode: "per_room",
+        base_price: Number(listing.base_price),
+        price_per_person: null,
+        base_occupancy: null,
+        extra_guest_price: null,
+        weekend_price:
+          listing.weekend_price == null ? null : Number(listing.weekend_price),
+        cleaning_fee: Number(listing.cleaning_fee ?? 0),
+        guests: Math.max(1, input.guests),
+      },
+    ];
+  }
+
+  const { data: seasonalRows } = await admin
+    .from("listing_seasonal_pricing")
+    .select(
+      "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
+    )
+    .eq("listing_id", listing.id)
+    .eq("is_active", true)
+    .lte("start_date", input.check_out)
+    .gte("end_date", input.check_in);
+
+  const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
+    roomId: s.room_id,
+    startDate: s.start_date,
+    endDate: s.end_date,
+    adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
+    adjustmentValue: Number(s.adjustment_value),
+    label: s.label,
+    priority: s.priority ?? 0,
+    minNights: s.min_nights ?? null,
+    isActive: s.is_active,
+    createdAt: s.created_at,
+  }));
+
+  const breakdown = priceStay({
+    checkIn: input.check_in,
+    checkOut: input.check_out,
+    units,
+    seasonalRules,
+    currency: listing.currency ?? "ZAR",
+    totalGuests: Math.max(1, input.guests),
+    listingMinNights: listing.min_nights ?? 1,
+    isWholeCombo,
+    wholePct: numOrNull(listing.whole_listing_discount_pct),
+    weeklyPct: numOrNull(listing.weekly_discount_pct),
+    monthlyPct: numOrNull(listing.monthly_discount_pct),
+  });
+
+  return {
+    ok: true,
+    data: {
+      currency: breakdown.currency,
+      nights,
+      // base_amount here = accommodation after stay discount (what the host
+      // would charge for the rooms before add-ons), to mirror booking semantics.
+      base_amount: breakdown.baseSubtotal - breakdown.discount.discountTotal,
+      cleaning_fee: breakdown.cleaningTotal,
+      total:
+        breakdown.baseSubtotal -
+        breakdown.discount.discountTotal +
+        breakdown.cleaningTotal,
+      rooms: breakdown.units
+        .filter((u) => u.roomId !== null)
+        .map((u) => ({
+          room_id: u.roomId as string,
+          base_amount: u.baseSubtotal,
+          cleaning_fee: u.cleaningFee,
+        })),
+    },
+  };
+}
+
 function totalsFor(input: {
   base_amount: number;
   cleaning_fee: number;
@@ -87,12 +272,21 @@ export async function createQuoteAction(
   // Verify the listing belongs to this host (RLS will also enforce).
   const { data: listing } = await supabase
     .from("listings")
-    .select("id, host_id")
+    .select("id, host_id, cancellation_policy, cancellation_policy_label")
     .eq("id", parsed.data.listing_id)
     .maybeSingle();
   if (!listing || listing.host_id !== host.hostId) {
     return { ok: false, error: "Listing not found." };
   }
+
+  // Freeze the cancellation policy onto the quote so the terms the guest agreed
+  // to never shift if the host re-policies the listing later. Carried onto the
+  // booking's policy snapshot at convert time.
+  const policySnapshot = {
+    cancellation_policy: listing.cancellation_policy ?? null,
+    cancellation_policy_label: listing.cancellation_policy_label ?? null,
+    captured_at: new Date().toISOString(),
+  };
 
   // Per-host quote number via SECURITY DEFINER RPC.
   const { data: numberResult, error: numberErr } = await supabase.rpc(
@@ -124,6 +318,7 @@ export async function createQuoteAction(
       total_amount: total,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
+      policy_snapshot: policySnapshot,
       status: "draft",
     })
     .select("id, quote_number")
@@ -364,7 +559,12 @@ export async function convertQuoteAction(
     .eq("quote_id", quoteId)
     .order("sort_order");
 
-  // Insert the booking.
+  // Insert the booking as PENDING first. The calendar-block + invoice triggers
+  // are AFTER UPDATE OF status — they don't fire on an insert that's already
+  // 'confirmed'. So we insert pending, attach rooms/add-ons, snapshot policies,
+  // then UPDATE to confirmed (§ below) to fire both triggers exactly as a normal
+  // booking would. Inserting straight to confirmed silently skips the invoice
+  // and leaves the calendar un-blocked (double-booking risk).
   const { data: booking, error: bookErr } = await supabase
     .from("bookings")
     .insert({
@@ -387,8 +587,7 @@ export async function convertQuoteAction(
       payment_status: payment.state === "paid" ? "completed" : "pending",
       host_payment_note: payment.note || null,
       special_requests: quote.notes,
-      status: "confirmed",
-      confirmed_at: new Date().toISOString(),
+      status: "pending",
     })
     .select("id")
     .single();
@@ -397,7 +596,7 @@ export async function convertQuoteAction(
   }
 
   if (quote.scope === "rooms" && rooms && rooms.length > 0) {
-    await supabase.from("booking_rooms").insert(
+    const { error: brErr } = await supabase.from("booking_rooms").insert(
       rooms.map((r) => ({
         booking_id: booking.id,
         room_id: r.room_id,
@@ -405,6 +604,10 @@ export async function convertQuoteAction(
         cleaning_fee: r.cleaning_fee,
       })),
     );
+    if (brErr) {
+      await supabase.from("bookings").delete().eq("id", booking.id);
+      return { ok: false, error: "Could not attach the booked rooms." };
+    }
   }
 
   if (addons && addons.length > 0) {
@@ -419,8 +622,27 @@ export async function convertQuoteAction(
     );
   }
 
-  // Flip the quote to converted (trigger clears soft holds; on_booking_confirmed
-  // trigger creates the invoice + locks the booking's calendar block).
+  // Carry the quote's frozen cancellation policy onto the booking so refund
+  // maths (calculate_policy_refund_amount) has a snapshot to read. Best-effort.
+  await supabase.rpc("snapshot_booking_policies", {
+    p_booking_id: booking.id,
+    p_listing_id: quote.listing_id,
+  });
+
+  // Confirm → fires on_booking_confirmed (blocks the calendar) and
+  // on_booking_confirmed_create_invoice (mints the invoice, marked paid when the
+  // payment is already completed). Rooms/add-ons are in place so the block trigger
+  // scopes to the booked rooms.
+  const { error: confirmErr } = await supabase
+    .from("bookings")
+    .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+    .eq("id", booking.id);
+  if (confirmErr) {
+    return { ok: false, error: "Booking created but could not be confirmed." };
+  }
+
+  // Flip the quote to converted (its on_quote_status_change trigger clears the
+  // soft hold the send placed on these dates).
   await supabase
     .from("quotes")
     .update({

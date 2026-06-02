@@ -37,7 +37,13 @@ function check(name, cond, detail = "") {
     console.log(`  \x1b[31m✗ ${name}${detail ? ` — ${detail}` : ""}\x1b[0m`);
   }
 }
-const created = { bookings: [], payments: [], refunds: [], coupons: [] };
+const created = {
+  bookings: [],
+  payments: [],
+  refunds: [],
+  coupons: [],
+  quotes: [],
+};
 
 async function cleanup() {
   // blocked_dates / invoices / booking_addons / booking_rooms cascade or are
@@ -57,6 +63,42 @@ async function cleanup() {
   }
   for (const id of created.coupons)
     await db.from("coupons").delete().eq("id", id);
+  for (const id of created.quotes) {
+    await db.from("blocked_dates").delete().eq("quote_id", id);
+    await db.from("quote_rooms").delete().eq("quote_id", id);
+    await db.from("quote_addons").delete().eq("quote_id", id);
+    await db.from("quotes").delete().eq("id", id);
+  }
+}
+
+async function insertQuote(over = {}) {
+  const { data: qn } = await db.rpc("next_quote_number", {
+    p_host_id: HOST_ID,
+  });
+  const { data, error } = await db
+    .from("quotes")
+    .insert({
+      host_id: HOST_ID,
+      listing_id: LISTING_A,
+      quote_number: qn,
+      guest_name: "Quote Tester",
+      guest_email: GUEST_EMAIL,
+      check_in: isoPlus(80),
+      check_out: isoPlus(83),
+      headcount: 2,
+      scope: "whole_listing",
+      base_amount: 3000,
+      cleaning_fee: 500,
+      total_amount: 3500,
+      currency: "ZAR",
+      status: "draft",
+      ...over,
+    })
+    .select("id, status")
+    .single();
+  if (error) throw new Error(`insertQuote: ${error.message}`);
+  created.quotes.push(data.id);
+  return data;
 }
 
 function isoPlus(days) {
@@ -554,6 +596,195 @@ async function main() {
       .maybeSingle();
     check("H3 invoice flips to paid", inv2?.status === "paid", inv2 ? inv2.status : "none");
     check("H4 paid_at stamped", !!inv2?.paid_at);
+  }
+
+  // ── Journey I: confirm must fire via UPDATE (the convert-quote fix) ──
+  // The invoice + calendar-block triggers are AFTER UPDATE OF status. A booking
+  // inserted *already* confirmed skips them — which is exactly the bug the quote
+  // converter had. This journey pins the contract both ways.
+  console.log("\nJourney I — confirm fires triggers only via status UPDATE");
+  {
+    // I-a: inserted straight as confirmed → NO invoice, NO blocks.
+    const direct = await insertBooking({
+      guest_id: GUEST_UID,
+      status: "confirmed",
+      payment_status: "completed",
+      confirmed_at: new Date().toISOString(),
+      check_in: isoPlus(90),
+      check_out: isoPlus(93),
+    });
+    const { data: invDirect } = await db
+      .from("invoices")
+      .select("id")
+      .eq("booking_id", direct.id)
+      .maybeSingle();
+    check("I1 insert-as-confirmed creates NO invoice (proves the bug)", !invDirect);
+    const { count: blkDirect } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("booking_id", direct.id);
+    check("I2 insert-as-confirmed lays NO calendar block", blkDirect === 0, `got ${blkDirect}`);
+
+    // I-b: the converter's path — insert pending, snapshot, UPDATE → confirmed.
+    const conv = await insertBooking({
+      guest_id: GUEST_UID,
+      origin: "quote_converted",
+      payment_status: "completed",
+      check_in: isoPlus(94),
+      check_out: isoPlus(97),
+    });
+    const { error: snapErr } = await db.rpc("snapshot_booking_policies", {
+      p_booking_id: conv.id,
+      p_listing_id: LISTING_A,
+    });
+    await db
+      .from("bookings")
+      .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
+      .eq("id", conv.id);
+    const { data: invConv } = await db
+      .from("invoices")
+      .select("id, status")
+      .eq("booking_id", conv.id)
+      .maybeSingle();
+    check("I3 pending→confirm mints the invoice", !!invConv);
+    check("I4 converted invoice is paid (payment completed)", invConv?.status === "paid", invConv?.status);
+    const { count: blkConv } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("booking_id", conv.id);
+    check("I5 pending→confirm blocks the calendar", blkConv === 3, `got ${blkConv}`);
+    // The convert path calls snapshot_booking_policies (best-effort). Row count
+    // depends on whether the listing has assigned policies in listing_policies;
+    // the demo listing carries a cancellation_policy enum but no join rows, so we
+    // assert the snapshot call itself succeeds rather than a specific row count.
+    check("I6 convert snapshots policies without error", !snapErr, snapErr?.message);
+  }
+
+  // ── Journey J: quote soft-hold lifecycle ──
+  console.log("\nJourney J — quote send soft-holds dates, convert clears them");
+  {
+    const q = await insertQuote({ check_in: isoPlus(120), check_out: isoPlus(123) });
+    // draft → sent lays per-night holds tagged with the quote id.
+    await db
+      .from("quotes")
+      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", q.id);
+    const { count: holds } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("quote_id", q.id);
+    check("J1 sending a quote soft-holds 3 nights", holds === 3, `got ${holds}`);
+    // Those dates now read unavailable.
+    const { data: avail } = await db.rpc("listing_is_available_whole", {
+      p_listing_id: LISTING_A,
+      p_check_in: isoPlus(120),
+      p_check_out: isoPlus(123),
+    });
+    check("J2 held dates read unavailable", avail === false);
+    // converted → holds clear (the real booking lays its own block).
+    await db
+      .from("quotes")
+      .update({ status: "converted", converted_at: new Date().toISOString() })
+      .eq("id", q.id);
+    const { count: afterHolds } = await db
+      .from("blocked_dates")
+      .select("date", { count: "exact", head: true })
+      .eq("quote_id", q.id);
+    check("J3 converting clears the soft hold", afterHolds === 0, `got ${afterHolds}`);
+  }
+
+  // ── Journey K: double-booking guard (break-it) ──
+  console.log("\nJourney K — a confirmed stay blocks every overlapping range");
+  {
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      check_in: isoPlus(130),
+      check_out: isoPlus(135),
+    });
+    await db.from("bookings").update({ status: "confirmed" }).eq("id", b.id);
+    // Exact, partial-overlap, and inner ranges must all be unavailable.
+    const cases = [
+      ["exact", isoPlus(130), isoPlus(135)],
+      ["overlap-left", isoPlus(128), isoPlus(132)],
+      ["overlap-right", isoPlus(133), isoPlus(137)],
+      ["inner", isoPlus(131), isoPlus(133)],
+    ];
+    for (const [name, ci, co] of cases) {
+      const { data: a } = await db.rpc("listing_is_available_whole", {
+        p_listing_id: LISTING_A,
+        p_check_in: ci,
+        p_check_out: co,
+      });
+      check(`K1 overlapping (${name}) is unavailable`, a === false);
+    }
+    // A non-overlapping range stays available.
+    const { data: free } = await db.rpc("listing_is_available_whole", {
+      p_listing_id: LISTING_A,
+      p_check_in: isoPlus(135),
+      p_check_out: isoPlus(137),
+    });
+    check("K2 the night of checkout is bookable again", free === true);
+  }
+
+  // ── Journey L: credit note never exceeds the invoice (break-it) ──
+  console.log("\nJourney L — a credit note can't exceed its invoice total");
+  {
+    const b = await insertBooking({ guest_id: GUEST_UID, check_in: isoPlus(140), check_out: isoPlus(143) });
+    const { data: pay } = await db
+      .from("payments")
+      .insert({
+        booking_id: b.id,
+        amount: 3500,
+        currency: "ZAR",
+        method: "paystack",
+        status: "completed",
+        captured_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+    if (pay) created.payments.push(pay.id);
+    await db
+      .from("bookings")
+      .update({ status: "confirmed", payment_status: "completed" })
+      .eq("id", b.id);
+    const { data: inv } = await db
+      .from("invoices")
+      .select("id, total_amount")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+
+    // Over-refund: approve MORE than the invoice total and complete it.
+    const { data: rr } = await db
+      .from("refund_requests")
+      .insert({
+        booking_id: b.id,
+        payment_id: pay.id,
+        host_id: HOST_ID,
+        guest_id: GUEST_UID,
+        requested_amount: 9999,
+        currency: "ZAR",
+        reason: "Over-refund probe",
+        initiated_by: "host",
+        status: "approved",
+      })
+      .select("id")
+      .single();
+    if (rr) created.refunds.push(rr.id);
+    await db
+      .from("refund_requests")
+      .update({ status: "completed", approved_amount: 9999, actioned_at: new Date().toISOString() })
+      .eq("id", rr.id);
+    const { data: cn } = await db
+      .from("credit_notes")
+      .select("total_amount")
+      .eq("refund_request_id", rr.id)
+      .maybeSingle();
+    check("L1 over-refund still mints a credit note", !!cn);
+    check(
+      "L2 credit note is capped at the invoice total",
+      !!cn && !!inv && Number(cn.total_amount) <= Number(inv.total_amount),
+      cn && inv ? `note ${cn.total_amount} vs invoice ${inv.total_amount}` : "missing",
+    );
   }
 
   console.log(

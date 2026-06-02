@@ -5,9 +5,11 @@ import {
   Calendar,
   CreditCard,
   ExternalLink,
+  FileMinus,
   FileText,
   Globe,
   Receipt,
+  RotateCcw,
   User,
 } from "lucide-react";
 import Link from "next/link";
@@ -109,19 +111,44 @@ export default async function PaymentDetailPage({
     ? booking.listing[0]
     : booking.listing;
 
-  // Cross-links: the invoice for this booking + any refunds on this payment.
-  const [{ data: invoiceRow }, { data: refundRows }] = await Promise.all([
+  // The full financial picture for this payment's booking — invoices, the quote
+  // it came from, credit notes, and refunds raised on this payment. This page is
+  // the finance overview hub, so it pulls every related document together.
+  const [
+    { data: invoiceRows },
+    { data: quoteRows },
+    { data: creditNoteRows },
+    { data: refundRows },
+  ] = await Promise.all([
     supabase
       .from("invoices")
-      .select("id, invoice_number")
+      .select("id, invoice_number, status, total_amount, currency")
       .eq("booking_id", booking.id)
-      .maybeSingle(),
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("quotes")
+      .select("id, quote_number, status, total_amount, currency")
+      .eq("converted_booking_id", booking.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("credit_notes")
+      .select("id, credit_note_number, status, total_amount, currency")
+      .eq("booking_id", booking.id)
+      .order("issued_at", { ascending: false }),
     supabase
       .from("refund_requests")
-      .select("id, status, requested_amount, approved_amount")
+      .select("id, status, requested_amount, approved_amount, currency")
       .eq("payment_id", payment.id)
       .order("created_at", { ascending: false }),
   ]);
+
+  const invoiceRow = invoiceRows?.[0] ?? null;
+  const docCount =
+    (invoiceRows?.length ?? 0) +
+    (quoteRows?.length ?? 0) +
+    (creditNoteRows?.length ?? 0) +
+    (refundRows?.length ?? 0);
 
   const method = METHOD[payment.method] ?? {
     label: payment.method,
@@ -186,6 +213,81 @@ export default async function PaymentDetailPage({
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         {/* Left: details */}
         <div className="space-y-6">
+          {/* Financial overview — every document tied to this payment. */}
+          <section className="rounded-card border border-brand-line bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-brand-line px-5 py-4">
+              <div>
+                <div className="font-display font-semibold text-brand-ink">
+                  Financial overview
+                </div>
+                <div className="mt-0.5 text-xs text-brand-mute">
+                  Every quote, invoice, credit note and refund attached to this
+                  payment.
+                </div>
+              </div>
+              <span className="rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
+                {docCount} {docCount === 1 ? "record" : "records"}
+              </span>
+            </div>
+            <div className="divide-y divide-brand-line">
+              <DocRow
+                icon={CreditCard}
+                kind="Payment"
+                title={fmtR(Number(payment.amount), payment.currency)}
+                meta={method.label}
+                status={payment.status.replace(/_/g, " ")}
+                href={null}
+              />
+              {(quoteRows ?? []).map((q) => (
+                <DocRow
+                  key={q.id}
+                  icon={FileText}
+                  kind="Quote"
+                  title={q.quote_number}
+                  meta={fmtR(Number(q.total_amount), q.currency)}
+                  status={q.status}
+                  href={`/dashboard/quotes/${q.id}`}
+                />
+              ))}
+              {(invoiceRows ?? []).map((inv) => (
+                <DocRow
+                  key={inv.id}
+                  icon={Receipt}
+                  kind="Invoice"
+                  title={inv.invoice_number}
+                  meta={fmtR(Number(inv.total_amount), inv.currency)}
+                  status={inv.status}
+                  href={`/dashboard/invoices/${inv.id}`}
+                />
+              ))}
+              {(creditNoteRows ?? []).map((cn) => (
+                <DocRow
+                  key={cn.id}
+                  icon={FileMinus}
+                  kind="Credit note"
+                  title={cn.credit_note_number}
+                  meta={`−${fmtR(Number(cn.total_amount), cn.currency)}`}
+                  status={cn.status}
+                  href={`/dashboard/credit-notes/${cn.id}`}
+                />
+              ))}
+              {(refundRows ?? []).map((r) => (
+                <DocRow
+                  key={r.id}
+                  icon={RotateCcw}
+                  kind="Refund"
+                  title={fmtR(
+                    Number(r.approved_amount ?? r.requested_amount),
+                    r.currency ?? payment.currency,
+                  )}
+                  meta="Refund request"
+                  status={r.status}
+                  href="/dashboard/refunds"
+                />
+              ))}
+            </div>
+          </section>
+
           {/* Financial management */}
           <section className="rounded-card border border-brand-line bg-white shadow-card">
             <div className="border-b border-brand-line px-5 py-4">
@@ -363,6 +465,54 @@ export default async function PaymentDetailPage({
         </aside>
       </div>
     </div>
+  );
+}
+
+function DocRow({
+  icon: Icon,
+  kind,
+  title,
+  meta,
+  status,
+  href,
+}: {
+  icon: typeof CreditCard;
+  kind: string;
+  title: string;
+  meta: string;
+  status: string;
+  href: string | null;
+}) {
+  const body = (
+    <div className="flex items-center gap-3 px-5 py-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            {kind}
+          </span>
+          <span className="rounded-pill bg-brand-line/60 px-1.5 py-0.5 text-[9px] font-semibold capitalize text-brand-mute">
+            {status}
+          </span>
+        </div>
+        <div className="truncate font-medium text-brand-ink">{title}</div>
+        <div className="text-xs text-brand-mute">{meta}</div>
+      </div>
+      {href ? (
+        <ExternalLink className="h-4 w-4 shrink-0 text-brand-mute" />
+      ) : null}
+    </div>
+  );
+  if (!href) return <div className="bg-brand-light/30">{body}</div>;
+  return (
+    <Link
+      href={href}
+      className="block transition-colors hover:bg-brand-light/50"
+    >
+      {body}
+    </Link>
   );
 }
 
