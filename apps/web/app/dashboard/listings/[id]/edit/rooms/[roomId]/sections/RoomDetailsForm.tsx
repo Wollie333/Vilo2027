@@ -160,6 +160,9 @@ export const RoomDetailsForm = forwardRef<
   const [childMaxAge, setChildMaxAge] = useState(
     numToStr(room.child_max_age, "12"),
   );
+  const [allowChildren, setAllowChildren] = useState(room.allow_children);
+  const [allowInfants, setAllowInfants] = useState(room.allow_infants);
+  const [allowPets, setAllowPets] = useState(room.allow_pets);
   const [isActive, setIsActive] = useState(room.is_active);
 
   function toggleExperience(label: string) {
@@ -240,9 +243,12 @@ export const RoomDetailsForm = forwardRef<
       extra_guest_price:
         pricingMode === "per_room_plus_extra" ? toNum(extraGuestPrice) : null,
       cleaning_fee: toNum(cleaningFee) ?? 0,
-      child_price: toNum(childPrice) ?? 0,
-      infant_price: toNum(infantPrice) ?? 0,
-      pet_fee: toNum(petFee) ?? 0,
+      child_price: allowChildren ? (toNum(childPrice) ?? 0) : 0,
+      infant_price: allowInfants ? (toNum(infantPrice) ?? 0) : 0,
+      pet_fee: allowPets ? (toNum(petFee) ?? 0) : 0,
+      allow_children: allowChildren,
+      allow_infants: allowInfants,
+      allow_pets: allowPets,
       infant_max_age: Math.max(0, Math.min(17, toInt(infantMaxAge) ?? 2)),
       child_max_age: Math.max(
         Math.max(0, Math.min(17, toInt(infantMaxAge) ?? 2)),
@@ -701,39 +707,33 @@ export const RoomDetailsForm = forwardRef<
               the room rate above. Leave at 0 for free.
             </p>
             <div className="mt-3 grid gap-4 sm:grid-cols-3">
-              <Field label="Child / night">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={childPrice}
-                  onChange={(e) => setChildPrice(e.target.value)}
-                  disabled={pending}
-                />
-              </Field>
-              <Field label="Infant / night">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={infantPrice}
-                  onChange={(e) => setInfantPrice(e.target.value)}
-                  disabled={pending}
-                />
-              </Field>
-              <Field label="Pet fee / night">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={petFee}
-                  onChange={(e) => setPetFee(e.target.value)}
-                  disabled={pending}
-                />
-              </Field>
+              <AgeCategory
+                label="Children"
+                allowed={allowChildren}
+                onToggle={() => setAllowChildren((v) => !v)}
+                priceLabel="Child / night"
+                price={childPrice}
+                onPrice={setChildPrice}
+                disabled={pending}
+              />
+              <AgeCategory
+                label="Infants"
+                allowed={allowInfants}
+                onToggle={() => setAllowInfants((v) => !v)}
+                priceLabel="Infant / night"
+                price={infantPrice}
+                onPrice={setInfantPrice}
+                disabled={pending}
+              />
+              <AgeCategory
+                label="Pets"
+                allowed={allowPets}
+                onToggle={() => setAllowPets((v) => !v)}
+                priceLabel="Pet fee / night"
+                price={petFee}
+                onPrice={setPetFee}
+                disabled={pending}
+              />
             </div>
             <div className="mt-3 grid gap-4 sm:grid-cols-2">
               <Field label="Infant up to age">
@@ -868,6 +868,68 @@ function Field({
         ) : null}
       </label>
       <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
+// One age/pet category: an on/off toggle that gates its price input. Off means
+// guests can't book that category at all (enforced on checkout + quotes).
+function AgeCategory({
+  label,
+  allowed,
+  onToggle,
+  priceLabel,
+  price,
+  onPrice,
+  disabled,
+}: {
+  label: string;
+  allowed: boolean;
+  onToggle: () => void;
+  priceLabel: string;
+  price: string;
+  onPrice: (v: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="rounded-card border border-brand-line bg-white p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[12.5px] font-semibold text-brand-ink">
+          {label}
+        </span>
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={disabled}
+          aria-pressed={allowed}
+          className={`relative h-[18px] w-8 shrink-0 rounded-full transition-colors ${allowed ? "bg-brand-primary" : "bg-brand-line"}`}
+        >
+          <span
+            className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-transform ${allowed ? "translate-x-[16px]" : "translate-x-[2px]"}`}
+          />
+        </button>
+      </div>
+      {allowed ? (
+        <div className="mt-2">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            {priceLabel}
+          </label>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={price}
+            onChange={(e) => onPrice(e.target.value)}
+            disabled={disabled}
+            className="mt-1"
+          />
+        </div>
+      ) : (
+        <p className="mt-2 text-[11px] text-brand-mute">
+          Not allowed — guests can&rsquo;t book {label.toLowerCase()}.
+        </p>
+      )}
     </div>
   );
 }

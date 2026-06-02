@@ -207,6 +207,9 @@ export const roomPatchSchema = z.object({
   pet_fee: z.number().min(0).max(1000000).optional(),
   infant_max_age: z.number().int().min(0).max(17).optional(),
   child_max_age: z.number().int().min(0).max(17).optional(),
+  allow_children: z.boolean().optional(),
+  allow_infants: z.boolean().optional(),
+  allow_pets: z.boolean().optional(),
   // ── Drill-in editor fields ──────────────────────────────────
   room_size_sqm: z.number().min(0).max(10000).nullable().optional(),
   bed_type: z.string().max(40).nullable().optional(),

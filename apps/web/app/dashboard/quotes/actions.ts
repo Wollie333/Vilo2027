@@ -116,7 +116,7 @@ export async function priceQuoteAction(input: {
   const { data: listing } = await admin
     .from("listings")
     .select(
-      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee",
+      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("id", input.listing_id)
     .maybeSingle();
@@ -131,6 +131,11 @@ export async function priceQuoteAction(input: {
     infantPrice: Number(listing.infant_price ?? 0),
     petFee: Number(listing.pet_fee ?? 0),
   };
+  let ageAllow = {
+    children: listing.allow_children ?? true,
+    infants: listing.allow_infants ?? true,
+    pets: listing.allow_pets ?? true,
+  };
 
   const nights = nightsBetween(input.check_in, input.check_out);
   let units: PricingUnit[] = [];
@@ -144,7 +149,7 @@ export async function priceQuoteAction(input: {
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee",
+        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -153,11 +158,17 @@ export async function priceQuoteAction(input: {
     if (!roomRows || roomRows.length !== roomIds.length) {
       return { ok: false, error: "One or more rooms are no longer available." };
     }
-    // Per-room age/pet rates come from the first booked room.
+    // Per-room age/pet rates come from the first booked room; a category is
+    // allowed only if every booked room allows it.
     ageRates = {
       childPrice: Number(roomRows[0]?.child_price ?? 0),
       infantPrice: Number(roomRows[0]?.infant_price ?? 0),
       petFee: Number(roomRows[0]?.pet_fee ?? 0),
+    };
+    ageAllow = {
+      children: roomRows.every((r) => r.allow_children ?? true),
+      infants: roomRows.every((r) => r.allow_infants ?? true),
+      pets: roomRows.every((r) => r.allow_pets ?? true),
     };
     const guestsByRoom = new Map(input.rooms.map((r) => [r.room_id, r.guests]));
     units = roomRows.map((r) => ({
@@ -245,9 +256,9 @@ export async function priceQuoteAction(input: {
   const { lines: ageLines, total: ageTotal } = computeAgeExtras(
     {
       adults: 0,
-      children: input.party?.children ?? 0,
-      infants: input.party?.infants ?? 0,
-      pets: input.party?.pets ?? 0,
+      children: ageAllow.children ? (input.party?.children ?? 0) : 0,
+      infants: ageAllow.infants ? (input.party?.infants ?? 0) : 0,
+      pets: ageAllow.pets ? (input.party?.pets ?? 0) : 0,
     },
     ageRates,
     nights,

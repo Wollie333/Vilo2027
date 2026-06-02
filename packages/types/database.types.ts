@@ -1448,6 +1448,36 @@ export type Database = {
           },
         ]
       }
+      fx_rates: {
+        Row: {
+          base_currency: string
+          fetched_at: string
+          is_manual_override: boolean
+          quote_currency: string
+          rate: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          base_currency: string
+          fetched_at?: string
+          is_manual_override?: boolean
+          quote_currency: string
+          rate: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          fetched_at?: string
+          is_manual_override?: boolean
+          quote_currency?: string
+          rate?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       help_article_feedback: {
         Row: {
           article_id: string
@@ -1979,36 +2009,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      fx_rates: {
-        Row: {
-          base_currency: string
-          fetched_at: string
-          is_manual_override: boolean
-          quote_currency: string
-          rate: number
-          source: string
-          updated_at: string
-        }
-        Insert: {
-          base_currency: string
-          fetched_at?: string
-          is_manual_override?: boolean
-          quote_currency: string
-          rate: number
-          source?: string
-          updated_at?: string
-        }
-        Update: {
-          base_currency?: string
-          fetched_at?: string
-          is_manual_override?: boolean
-          quote_currency?: string
-          rate?: number
-          source?: string
-          updated_at?: string
-        }
-        Relationships: []
       }
       host_payment_gateways: {
         Row: {
@@ -2809,6 +2809,9 @@ export type Database = {
       }
       listing_rooms: {
         Row: {
+          allow_children: boolean
+          allow_infants: boolean
+          allow_pets: boolean
           base_occupancy: number | null
           base_price: number
           bathrooms: number | null
@@ -2850,6 +2853,9 @@ export type Database = {
           wheelchair_accessible: boolean
         }
         Insert: {
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
           base_occupancy?: number | null
           base_price: number
           bathrooms?: number | null
@@ -2891,6 +2897,9 @@ export type Database = {
           wheelchair_accessible?: boolean
         }
         Update: {
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
           base_occupancy?: number | null
           base_price?: number
           bathrooms?: number | null
@@ -3025,6 +3034,9 @@ export type Database = {
           accommodation_type: string | null
           address_line1: string | null
           address_line2: string | null
+          allow_children: boolean
+          allow_infants: boolean
+          allow_pets: boolean
           avg_rating: number | null
           base_price: number | null
           bathrooms: number | null
@@ -3092,6 +3104,9 @@ export type Database = {
           accommodation_type?: string | null
           address_line1?: string | null
           address_line2?: string | null
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
           avg_rating?: number | null
           base_price?: number | null
           bathrooms?: number | null
@@ -3159,6 +3174,9 @@ export type Database = {
           accommodation_type?: string | null
           address_line1?: string | null
           address_line2?: string | null
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
           avg_rating?: number | null
           base_price?: number | null
           bathrooms?: number | null
@@ -4270,6 +4288,10 @@ export type Database = {
           currency: string
           declined_at: string | null
           deleted_at: string | null
+          discount_amount: number
+          discount_reason: string | null
+          discount_type: string | null
+          discount_value: number
           guest_email: string
           guest_id: string | null
           guest_name: string
@@ -4305,6 +4327,10 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          discount_amount?: number
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number
           guest_email: string
           guest_id?: string | null
           guest_name: string
@@ -4340,6 +4366,10 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          discount_amount?: number
+          discount_reason?: string | null
+          discount_type?: string | null
+          discount_value?: number
           guest_email?: string
           guest_id?: string | null
           guest_name?: string

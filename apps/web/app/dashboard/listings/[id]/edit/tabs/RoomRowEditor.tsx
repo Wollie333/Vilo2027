@@ -75,6 +75,10 @@ function toRoomEditorRoom(room: EditorRoom): RoomEditorRoom {
     pet_fee: (room as { pet_fee?: number }).pet_fee ?? 0,
     infant_max_age: (room as { infant_max_age?: number }).infant_max_age ?? 2,
     child_max_age: (room as { child_max_age?: number }).child_max_age ?? 12,
+    allow_children:
+      (room as { allow_children?: boolean }).allow_children ?? true,
+    allow_infants: (room as { allow_infants?: boolean }).allow_infants ?? true,
+    allow_pets: (room as { allow_pets?: boolean }).allow_pets ?? true,
   };
 }
 

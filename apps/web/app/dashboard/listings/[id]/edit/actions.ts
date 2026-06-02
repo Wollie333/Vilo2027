@@ -800,6 +800,9 @@ export type RoomEditorData = {
     pet_fee: number;
     infant_max_age: number;
     child_max_age: number;
+    allow_children: boolean;
+    allow_infants: boolean;
+    allow_pets: boolean;
   };
   photos: { id: string; url: string }[];
   amenityKeys: string[];
@@ -818,7 +821,7 @@ export async function fetchRoomEditorDataAction(
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age",
+      "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets",
     )
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -888,6 +891,9 @@ export async function fetchRoomEditorDataAction(
         pet_fee: Number(room.pet_fee ?? 0),
         infant_max_age: room.infant_max_age ?? 2,
         child_max_age: room.child_max_age ?? 12,
+        allow_children: room.allow_children ?? true,
+        allow_infants: room.allow_infants ?? true,
+        allow_pets: room.allow_pets ?? true,
       },
       photos: (photoRows ?? []).map((p) => ({ id: p.id, url: p.url })),
       amenityKeys: (amenityRows ?? []).map((a) => a.amenity_key),

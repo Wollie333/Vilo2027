@@ -203,7 +203,7 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("listings")
     .select(
-      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee",
+      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -264,6 +264,13 @@ export async function createBookingAction(
     infantPrice: Number(listing.infant_price ?? 0),
     petFee: Number(listing.pet_fee ?? 0),
   };
+  // Disallowed categories can't be booked — clamped to 0 server-side even if a
+  // crafted request sends them.
+  let ageAllow = {
+    children: listing.allow_children ?? true,
+    infants: listing.allow_infants ?? true,
+    pets: listing.allow_pets ?? true,
+  };
   // Child/infant/pet line items — computed once the rates + nights are known.
   let ageLines: AgeExtraLine[] = [];
 
@@ -274,7 +281,7 @@ export async function createBookingAction(
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee",
+        "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -287,11 +294,17 @@ export async function createBookingAction(
         error: "One or more rooms aren't available. Refresh and try again.",
       };
     }
-    // Age/pet rates for a per-room booking come from the first booked room.
+    // Age/pet rates for a per-room booking come from the first booked room; a
+    // category is allowed only if EVERY booked room allows it.
     ageRates = {
       childPrice: Number(roomRows[0]?.child_price ?? 0),
       infantPrice: Number(roomRows[0]?.infant_price ?? 0),
       petFee: Number(roomRows[0]?.pet_fee ?? 0),
+    };
+    ageAllow = {
+      children: roomRows.every((r) => r.allow_children ?? true),
+      infants: roomRows.every((r) => r.allow_infants ?? true),
+      pets: roomRows.every((r) => r.allow_pets ?? true),
     };
 
     // Per-room guest counts (default 1 when a room wasn't sent one).
@@ -683,9 +696,9 @@ export async function createBookingAction(
     const ageExtras = computeAgeExtras(
       {
         adults: 0,
-        children: d.children ?? 0,
-        infants: d.infants ?? 0,
-        pets: d.pets ?? 0,
+        children: ageAllow.children ? (d.children ?? 0) : 0,
+        infants: ageAllow.infants ? (d.infants ?? 0) : 0,
+        pets: ageAllow.pets ? (d.pets ?? 0) : 0,
       },
       ageRates,
       nights,
@@ -737,10 +750,13 @@ export async function createBookingAction(
       session_date: null,
       guests_count: d.guests,
       guests_breakdown: {
-        adults: Math.max(0, d.guests - (d.children ?? 0)),
-        children: d.children ?? 0,
-        infants: d.infants ?? 0,
-        pets: d.pets ?? 0,
+        adults: Math.max(
+          0,
+          d.guests - (ageAllow.children ? (d.children ?? 0) : 0),
+        ),
+        children: ageAllow.children ? (d.children ?? 0) : 0,
+        infants: ageAllow.infants ? (d.infants ?? 0) : 0,
+        pets: ageAllow.pets ? (d.pets ?? 0) : 0,
       },
       base_amount: baseAmount,
       cleaning_fee: cleaning,

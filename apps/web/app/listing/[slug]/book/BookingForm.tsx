@@ -80,6 +80,9 @@ export type RoomOption = {
   childPrice: number;
   infantPrice: number;
   petFee: number;
+  allowChildren: boolean;
+  allowInfants: boolean;
+  allowPets: boolean;
 };
 
 export type AvailableAddon = {
@@ -193,6 +196,9 @@ export function BookingForm({
   listingChildPrice,
   listingInfantPrice,
   listingPetFee,
+  listingAllowChildren,
+  listingAllowInfants,
+  listingAllowPets,
   currency,
   cancellationPolicy,
   instantBooking,
@@ -231,6 +237,9 @@ export function BookingForm({
   listingChildPrice: number;
   listingInfantPrice: number;
   listingPetFee: number;
+  listingAllowChildren: boolean;
+  listingAllowInfants: boolean;
+  listingAllowPets: boolean;
   currency: string;
   cancellationPolicy: "flexible" | "moderate" | "strict";
   instantBooking: boolean;
@@ -589,6 +598,36 @@ export function BookingForm({
     }
     return lines;
   }, [addonQty, availableAddons, effectiveGuests]);
+
+  // Which categories the host allows. Rooms scope: a category is allowed only
+  // if EVERY selected room allows it. Whole-listing: the listing's flags.
+  const allow = useMemo(() => {
+    if (scope === "rooms" && selectedRooms.length > 0) {
+      return {
+        children: selectedRooms.every((r) => r.allowChildren),
+        infants: selectedRooms.every((r) => r.allowInfants),
+        pets: selectedRooms.every((r) => r.allowPets),
+      };
+    }
+    return {
+      children: listingAllowChildren,
+      infants: listingAllowInfants,
+      pets: listingAllowPets,
+    };
+  }, [
+    scope,
+    selectedRooms,
+    listingAllowChildren,
+    listingAllowInfants,
+    listingAllowPets,
+  ]);
+
+  // Reset a category's count when it becomes disallowed (e.g. room change).
+  useEffect(() => {
+    if (!allow.children && childrenCount > 0) setChildrenCount(0);
+    if (!allow.infants && infantsCount > 0) setInfantsCount(0);
+    if (!allow.pets && petsCount > 0) setPetsCount(0);
+  }, [allow, childrenCount, infantsCount, petsCount]);
 
   // Age/pet extras for the live preview — same maths the server charges with.
   // Rooms scope uses the first selected room's rates; whole-listing the listing's.
@@ -1079,47 +1118,50 @@ export function BookingForm({
             </div>
           )}
 
-          {/* Children / infants / pets — priced per the host's room rates. */}
+          {/* Children / infants / pets — only the categories the host allows;
+              priced per the host's room rates. */}
           <div className="mt-3 grid grid-cols-3 gap-2">
             {(
               [
-                ["Children", childrenCount, setChildrenCount],
-                ["Infants", infantsCount, setInfantsCount],
-                ["Pets", petsCount, setPetsCount],
+                ["Children", childrenCount, setChildrenCount, allow.children],
+                ["Infants", infantsCount, setInfantsCount, allow.infants],
+                ["Pets", petsCount, setPetsCount, allow.pets],
               ] as const
-            ).map(([label, value, setter]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between rounded border border-brand-line bg-white px-3 py-2"
-              >
-                <span className="text-xs font-medium text-brand-ink">
-                  {label}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setter(Math.max(0, value - 1))}
-                    disabled={isPending || value <= 0}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
-                    aria-label={`Fewer ${label.toLowerCase()}`}
-                  >
-                    −
-                  </button>
-                  <span className="w-4 text-center text-sm font-semibold text-brand-ink">
-                    {value}
+            )
+              .filter(([, , , allowed]) => allowed)
+              .map(([label, value, setter]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between rounded border border-brand-line bg-white px-3 py-2"
+                >
+                  <span className="text-xs font-medium text-brand-ink">
+                    {label}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setter(value + 1)}
-                    disabled={isPending}
-                    className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute"
-                    aria-label={`More ${label.toLowerCase()}`}
-                  >
-                    +
-                  </button>
-                </span>
-              </div>
-            ))}
+                  <span className="inline-flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setter(Math.max(0, value - 1))}
+                      disabled={isPending || value <= 0}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute disabled:opacity-40"
+                      aria-label={`Fewer ${label.toLowerCase()}`}
+                    >
+                      −
+                    </button>
+                    <span className="w-4 text-center text-sm font-semibold text-brand-ink">
+                      {value}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setter(value + 1)}
+                      disabled={isPending}
+                      className="flex h-6 w-6 items-center justify-center rounded border border-brand-line text-brand-mute"
+                      aria-label={`More ${label.toLowerCase()}`}
+                    >
+                      +
+                    </button>
+                  </span>
+                </div>
+              ))}
           </div>
           {ageExtras.lines.length > 0 ? (
             <div className="mt-2 space-y-0.5">

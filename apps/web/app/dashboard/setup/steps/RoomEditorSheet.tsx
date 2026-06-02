@@ -49,6 +49,9 @@ const BLANK_ROOM: RoomEditorRoom = {
   pet_fee: 0,
   infant_max_age: 2,
   child_max_age: 12,
+  allow_children: true,
+  allow_infants: true,
+  allow_pets: true,
 };
 
 export function RoomEditorSheet({

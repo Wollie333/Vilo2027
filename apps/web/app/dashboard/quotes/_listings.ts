@@ -17,7 +17,7 @@ export async function loadQuoteFormListings(
   const { data: listings } = await supabase
     .from("listings")
     .select(
-      "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests",
+      "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests, allow_children, allow_infants, allow_pets",
     )
     .eq("host_id", hostId)
     .eq("listing_type", "accommodation")
@@ -36,7 +36,7 @@ export async function loadQuoteFormListings(
     supabase
       .from("listing_rooms")
       .select(
-        "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url )",
+        "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, allow_children, allow_infants, allow_pets, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url )",
       )
       .in("listing_id", listingIds)
       .is("deleted_at", null)
@@ -125,6 +125,9 @@ export async function loadQuoteFormListings(
     max_guests: number | null;
     base_occupancy: number | null;
     bed_type: string | null;
+    allow_children: boolean | null;
+    allow_infants: boolean | null;
+    allow_pets: boolean | null;
     featured_photo: { url: string } | { url: string }[] | null;
   };
   const roomsByListing = new Map<string, QuoteFormListing["rooms"]>();
@@ -142,6 +145,9 @@ export async function loadQuoteFormListings(
       base_occupancy: r.base_occupancy,
       bed_type: r.bed_type,
       coverUrl: photo?.url ?? null,
+      allowChildren: r.allow_children ?? true,
+      allowInfants: r.allow_infants ?? true,
+      allowPets: r.allow_pets ?? true,
     });
     roomsByListing.set(r.listing_id, list);
   }
@@ -155,6 +161,9 @@ export async function loadQuoteFormListings(
     currency: string | null;
     city: string | null;
     max_guests: number | null;
+    allow_children: boolean | null;
+    allow_infants: boolean | null;
+    allow_pets: boolean | null;
   };
   return ((listings ?? []) as ListingRow[]).map((l) => ({
     id: l.id,
@@ -165,6 +174,9 @@ export async function loadQuoteFormListings(
     currency: l.currency ?? "ZAR",
     city: l.city,
     max_guests: l.max_guests,
+    allowChildren: l.allow_children ?? true,
+    allowInfants: l.allow_infants ?? true,
+    allowPets: l.allow_pets ?? true,
     coverUrl: coverByListing.get(l.id) ?? null,
     blocked: blockedByListing.get(l.id) ?? [],
     rooms: roomsByListing.get(l.id) ?? [],

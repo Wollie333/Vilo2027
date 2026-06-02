@@ -43,6 +43,9 @@ export type QuoteFormRoom = {
   base_occupancy: number | null;
   bed_type?: string | null;
   coverUrl?: string | null;
+  allowChildren?: boolean;
+  allowInfants?: boolean;
+  allowPets?: boolean;
 };
 
 export type QuoteFormAddon = {
@@ -65,6 +68,9 @@ export type QuoteFormListing = {
   city?: string | null;
   max_guests?: number | null;
   coverUrl?: string | null;
+  allowChildren?: boolean;
+  allowInfants?: boolean;
+  allowPets?: boolean;
   /** YYYY-MM-DD nights already booked/blocked for this listing. */
   blocked?: string[];
   rooms: QuoteFormRoom[];
@@ -212,6 +218,31 @@ export function QuoteForm({
   const nights = nightsBetween(checkIn, checkOut);
   const headcount = Math.max(1, adults + children);
   const blockedSet = useMemo(() => new Set(listing?.blocked ?? []), [listing]);
+
+  // Which age/pet categories the host allows for the current selection. Rooms
+  // scope: every selected room must allow it; whole-listing: the listing's flag.
+  const allow = useMemo(() => {
+    const sel = (listing?.rooms ?? []).filter((r) => selectedRooms[r.id]);
+    if (scope === "rooms" && sel.length > 0) {
+      return {
+        children: sel.every((r) => r.allowChildren !== false),
+        infants: sel.every((r) => r.allowInfants !== false),
+        pets: sel.every((r) => r.allowPets !== false),
+      };
+    }
+    return {
+      children: listing?.allowChildren !== false,
+      infants: listing?.allowInfants !== false,
+      pets: listing?.allowPets !== false,
+    };
+  }, [scope, listing, selectedRooms]);
+
+  // Reset a category when it becomes disallowed.
+  useEffect(() => {
+    if (!allow.children && children > 0) setChildren(0);
+    if (!allow.infants && infants > 0) setInfants(0);
+    if (!allow.pets && pets > 0) setPets(0);
+  }, [allow, children, infants, pets]);
 
   // ── Returning-guest search ───────────────────────────────────────
   const [guestResults, setGuestResults] = useState<
@@ -859,27 +890,33 @@ export function QuoteForm({
               min={1}
               onChange={setAdults}
             />
-            <Stepper
-              label="Children"
-              hint="2 – 12"
-              value={children}
-              min={0}
-              onChange={setChildren}
-            />
-            <Stepper
-              label="Infants"
-              hint="Under 2"
-              value={infants}
-              min={0}
-              onChange={setInfants}
-            />
-            <Stepper
-              label="Pets"
-              hint="Fee may apply"
-              value={pets}
-              min={0}
-              onChange={setPets}
-            />
+            {allow.children ? (
+              <Stepper
+                label="Children"
+                hint="2 – 12"
+                value={children}
+                min={0}
+                onChange={setChildren}
+              />
+            ) : null}
+            {allow.infants ? (
+              <Stepper
+                label="Infants"
+                hint="Under 2"
+                value={infants}
+                min={0}
+                onChange={setInfants}
+              />
+            ) : null}
+            {allow.pets ? (
+              <Stepper
+                label="Pets"
+                hint="Fee may apply"
+                value={pets}
+                min={0}
+                onChange={setPets}
+              />
+            ) : null}
           </div>
         </Section>
 

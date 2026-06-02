@@ -39,7 +39,7 @@ export default async function EditRoomPage({
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
-      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age",
+      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets",
     )
     .eq("id", params.roomId)
     .eq("listing_id", params.id)
@@ -105,6 +105,9 @@ export default async function EditRoomPage({
     pet_fee: Number(room.pet_fee ?? 0),
     infant_max_age: room.infant_max_age ?? 2,
     child_max_age: room.child_max_age ?? 12,
+    allow_children: room.allow_children ?? true,
+    allow_infants: room.allow_infants ?? true,
+    allow_pets: room.allow_pets ?? true,
   };
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, url: p.url }));
   const amenityKeys = (amenityRows ?? []).map((a) => a.amenity_key);

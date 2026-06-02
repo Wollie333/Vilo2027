@@ -63,6 +63,9 @@ export type RoomEditorRoom = {
   pet_fee: number;
   infant_max_age: number;
   child_max_age: number;
+  allow_children: boolean;
+  allow_infants: boolean;
+  allow_pets: boolean;
 };
 
 /** The room's effective "from" nightly figure for the chosen pricing mode. */
