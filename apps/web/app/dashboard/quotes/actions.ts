@@ -314,6 +314,20 @@ function totalsFor(input: {
   return { addonsTotal, subtotal, discountAmount, total };
 }
 
+// Split the total into the deposit due to accept + the balance owed later.
+function depositFor(
+  total: number,
+  type: "deposit" | "full" | "reserve" | undefined,
+  pct: number | undefined,
+) {
+  if (type === "deposit") {
+    const deposit = Math.round((total * Math.min(pct ?? 50, 100)) / 100);
+    return { deposit, balance: total - deposit };
+  }
+  if (type === "reserve") return { deposit: 0, balance: total };
+  return { deposit: total, balance: 0 }; // full
+}
+
 export async function createQuoteAction(
   input: CreateQuoteInput,
 ): Promise<ActionResult<{ id: string; quoteNumber: string }>> {
@@ -357,6 +371,11 @@ export async function createQuoteAction(
   }
 
   const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
+  const { deposit, balance } = depositFor(
+    total,
+    parsed.data.deposit_type,
+    parsed.data.deposit_pct,
+  );
 
   const { data: quote, error: insErr } = await supabase
     .from("quotes")
@@ -379,6 +398,11 @@ export async function createQuoteAction(
       discount_value: parsed.data.discount_value ?? 0,
       discount_reason: parsed.data.discount_reason || null,
       discount_amount: discountAmount,
+      deposit_type: parsed.data.deposit_type ?? "full",
+      deposit_pct: parsed.data.deposit_pct ?? 50,
+      deposit_amount: deposit,
+      balance_amount: balance,
+      balance_due_days: parsed.data.balance_due_days ?? 7,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       policy_snapshot: policySnapshot,
@@ -469,6 +493,11 @@ export async function updateQuoteAction(
   }
 
   const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
+  const { deposit, balance } = depositFor(
+    total,
+    parsed.data.deposit_type,
+    parsed.data.deposit_pct,
+  );
 
   const { error: updErr } = await supabase
     .from("quotes")
@@ -489,6 +518,11 @@ export async function updateQuoteAction(
       discount_value: parsed.data.discount_value ?? 0,
       discount_reason: parsed.data.discount_reason || null,
       discount_amount: discountAmount,
+      deposit_type: parsed.data.deposit_type ?? "full",
+      deposit_pct: parsed.data.deposit_pct ?? 50,
+      deposit_amount: deposit,
+      balance_amount: balance,
+      balance_due_days: parsed.data.balance_due_days ?? 7,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       guests_breakdown: parsed.data.guests_breakdown ?? null,
@@ -676,7 +710,7 @@ export async function convertQuoteAction(
       id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
-      discount_amount
+      discount_amount, deposit_amount, balance_amount, balance_due_days
     `,
     )
     .eq("id", quoteId)
@@ -720,6 +754,18 @@ export async function convertQuoteAction(
       guests_count: quote.headcount,
       guests_breakdown: quote.guests_breakdown ?? null,
       discount_amount: quote.discount_amount ?? 0,
+      deposit_amount: quote.deposit_amount ?? 0,
+      // Outstanding balance + when it's due (check-in minus the agreed days).
+      balance_due: quote.balance_amount ?? 0,
+      balance_due_date:
+        Number(quote.balance_amount ?? 0) > 0 && quote.check_in
+          ? new Date(
+              new Date(`${quote.check_in}T00:00:00Z`).getTime() -
+                (quote.balance_due_days ?? 7) * 86_400_000,
+            )
+              .toISOString()
+              .slice(0, 10)
+          : null,
       base_amount: quote.base_amount,
       cleaning_fee: quote.cleaning_fee,
       total_amount: quote.total_amount,

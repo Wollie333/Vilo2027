@@ -615,6 +615,8 @@ export type Database = {
         Row: {
           actioned_by: string | null
           additional_guests: Json
+          balance_due: number
+          balance_due_date: string | null
           base_amount: number
           cancellation_reason: string | null
           cancelled_at: string | null
@@ -631,6 +633,7 @@ export type Database = {
           currency: string
           declined_at: string | null
           deleted_at: string | null
+          deposit_amount: number
           discount_amount: number
           eft_proof_url: string | null
           guest_email: string | null
@@ -666,6 +669,8 @@ export type Database = {
         Insert: {
           actioned_by?: string | null
           additional_guests?: Json
+          balance_due?: number
+          balance_due_date?: string | null
           base_amount: number
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -682,6 +687,7 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          deposit_amount?: number
           discount_amount?: number
           eft_proof_url?: string | null
           guest_email?: string | null
@@ -717,6 +723,8 @@ export type Database = {
         Update: {
           actioned_by?: string | null
           additional_guests?: Json
+          balance_due?: number
+          balance_due_date?: string | null
           base_amount?: number
           cancellation_reason?: string | null
           cancelled_at?: string | null
@@ -733,6 +741,7 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          deposit_amount?: number
           discount_amount?: number
           eft_proof_url?: string | null
           guest_email?: string | null
@@ -4278,6 +4287,8 @@ export type Database = {
           accept_token: string
           accepted_at: string | null
           addons_total: number
+          balance_amount: number
+          balance_due_days: number
           base_amount: number
           check_in: string
           check_out: string
@@ -4288,6 +4299,9 @@ export type Database = {
           currency: string
           declined_at: string | null
           deleted_at: string | null
+          deposit_amount: number
+          deposit_pct: number
+          deposit_type: string
           discount_amount: number
           discount_reason: string | null
           discount_type: string | null
@@ -4317,6 +4331,8 @@ export type Database = {
           accept_token?: string
           accepted_at?: string | null
           addons_total?: number
+          balance_amount?: number
+          balance_due_days?: number
           base_amount: number
           check_in: string
           check_out: string
@@ -4327,6 +4343,9 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          deposit_amount?: number
+          deposit_pct?: number
+          deposit_type?: string
           discount_amount?: number
           discount_reason?: string | null
           discount_type?: string | null
@@ -4356,6 +4375,8 @@ export type Database = {
           accept_token?: string
           accepted_at?: string | null
           addons_total?: number
+          balance_amount?: number
+          balance_due_days?: number
           base_amount?: number
           check_in?: string
           check_out?: string
@@ -4366,6 +4387,9 @@ export type Database = {
           currency?: string
           declined_at?: string | null
           deleted_at?: string | null
+          deposit_amount?: number
+          deposit_pct?: number
+          deposit_type?: string
           discount_amount?: number
           discount_reason?: string | null
           discount_type?: string | null

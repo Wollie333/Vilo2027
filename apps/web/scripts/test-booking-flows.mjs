@@ -1147,6 +1147,52 @@ async function main() {
     check("T4 subtotal − discount === total", inv && Number(inv.subtotal) - Number(inv.line_items?.discount_amount) === Number(inv.total_amount));
   }
 
+  // ── Journey U: deposit terms on the quote + balance tracking on the booking ──
+  console.log("\nJourney U — deposit terms persist; balance tracked; invoice = full");
+  {
+    const q = await insertQuote({
+      total_amount: 3150,
+      deposit_type: "deposit",
+      deposit_pct: 50,
+      deposit_amount: 1575,
+      balance_amount: 1575,
+      balance_due_days: 7,
+    });
+    const { data: qrow } = await db
+      .from("quotes")
+      .select("deposit_type, deposit_amount, balance_amount")
+      .eq("id", q.id)
+      .maybeSingle();
+    check("U1 quote stores the deposit terms", qrow?.deposit_type === "deposit" && Number(qrow?.deposit_amount) === 1575 && Number(qrow?.balance_amount) === 1575);
+
+    // A converted booking carries the deposit + outstanding balance.
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      total_amount: 3150,
+      base_amount: 2650,
+      cleaning_fee: 500,
+      deposit_amount: 1575,
+      balance_due: 1575,
+      balance_due_date: isoPlus(173),
+      check_in: isoPlus(180),
+      check_out: isoPlus(183),
+    });
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed" }).eq("id", b.id);
+    const { data: bk } = await db
+      .from("bookings")
+      .select("deposit_amount, balance_due, balance_due_date")
+      .eq("id", b.id)
+      .maybeSingle();
+    check("U2 booking tracks deposit + balance", Number(bk?.deposit_amount) === 1575 && Number(bk?.balance_due) === 1575, JSON.stringify(bk));
+    check("U3 balance has a due date", !!bk?.balance_due_date);
+    const { data: inv } = await db
+      .from("invoices")
+      .select("total_amount")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("U4 invoice is the FULL amount (balance is tracking only)", inv && Number(inv.total_amount) === 3150, inv ? `got ${inv.total_amount}` : "none");
+  }
+
   console.log(
     `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m`,
   );

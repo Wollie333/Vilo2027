@@ -52,6 +52,20 @@ export const quoteOrBookingBaseSchema = z
     discount_value: z.coerce.number().min(0).max(1000000).optional().default(0),
     discount_reason: z.string().trim().max(200).optional().or(z.literal("")),
 
+    // Deposit terms — how the guest secures the quote.
+    deposit_type: z
+      .enum(["deposit", "full", "reserve"])
+      .optional()
+      .default("full"),
+    deposit_pct: z.coerce.number().min(0).max(100).optional().default(50),
+    balance_due_days: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(365)
+      .optional()
+      .default(7),
+
     // Party split {adults, children, infants, pets} — drives age/pet pricing.
     guests_breakdown: z
       .object({

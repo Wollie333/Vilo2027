@@ -106,6 +106,9 @@ export type QuoteFormInitial = {
   discountType?: "percent" | "fixed" | null;
   discountValue?: number;
   discountReason?: string;
+  depositType?: "deposit" | "full" | "reserve";
+  depositPct?: number;
+  balanceDueDays?: number;
   rooms?: {
     room_id: string;
     guests: number;
@@ -191,6 +194,16 @@ export function QuoteForm({
   );
   const [discountReason, setDiscountReason] = useState(
     initial?.discountReason ?? "",
+  );
+  // Deposit terms — how the guest secures the quote.
+  const [depositType, setDepositType] = useState<
+    "deposit" | "full" | "reserve"
+  >(initial?.depositType ?? "full");
+  const [depositPct, setDepositPct] = useState(
+    String(initial?.depositPct ?? 50),
+  );
+  const [balanceDueDays, setBalanceDueDays] = useState(
+    String(initial?.balanceDueDays ?? 7),
   );
 
   const [roomGuests, setRoomGuests] = useState<Record<string, string>>(
@@ -546,9 +559,25 @@ export function QuoteForm({
       discount_type: discountOn ? discountType : null,
       discount_value: discountOn ? parseFloat(discountValue) || 0 : 0,
       discount_reason: discountOn ? discountReason.trim() : "",
+      deposit_type: depositType,
+      deposit_pct: parseFloat(depositPct) || 50,
+      balance_due_days: parseInt(balanceDueDays, 10) || 7,
       notes: notes.trim(),
     };
   }
+
+  // Deposit due to accept + balance owed later (display only; server recomputes).
+  const deposit = useMemo(() => {
+    const t = totals.total;
+    if (depositType === "deposit") {
+      const d = Math.round(
+        (t * Math.min(parseFloat(depositPct) || 0, 100)) / 100,
+      );
+      return { due: d, balance: t - d };
+    }
+    if (depositType === "reserve") return { due: 0, balance: t };
+    return { due: t, balance: 0 };
+  }, [totals.total, depositType, depositPct]);
 
   function save(sendAfter: boolean) {
     const input = buildInput();
@@ -1190,7 +1219,11 @@ export function QuoteForm({
         </Section>
 
         {/* 6 — Quote settings (validity; deposit lands in Phase 2) */}
-        <Section n={6} title="Quote settings" sub="How long the offer stands.">
+        <Section
+          n={6}
+          title="Quote settings"
+          sub="How long the offer stands and what the guest pays to lock it in."
+        >
           <FieldLabel>Valid for</FieldLabel>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {[1, 3, 7, 14].map((d) => (
@@ -1206,6 +1239,65 @@ export function QuoteForm({
             <span className="ml-1 inline-flex items-center text-[11px] text-brand-mute">
               Expires {validUntil}
             </span>
+          </div>
+
+          <div className="mt-4">
+            <FieldLabel>To accept, guest pays</FieldLabel>
+            <div className="mt-1">
+              <Seg
+                value={depositType}
+                onChange={(v) =>
+                  setDepositType(v as "deposit" | "full" | "reserve")
+                }
+                options={[
+                  { value: "deposit", label: "Deposit" },
+                  { value: "full", label: "Full amount" },
+                  { value: "reserve", label: "Reserve only" },
+                ]}
+              />
+            </div>
+            {depositType === "deposit" ? (
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <div className="w-20">
+                  <FieldLabel>Deposit %</FieldLabel>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={depositPct}
+                    onChange={(e) => setDepositPct(e.target.value)}
+                  />
+                </div>
+                <div className="w-28">
+                  <FieldLabel>Balance due</FieldLabel>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      value={balanceDueDays}
+                      onChange={(e) => setBalanceDueDays(e.target.value)}
+                      className="w-16"
+                    />
+                    <span className="text-[11px] text-brand-mute">
+                      days before
+                    </span>
+                  </div>
+                </div>
+                <span className="pb-2 text-[12px] text-brand-mute">
+                  Due now{" "}
+                  <span className="font-semibold text-brand-ink">
+                    {fmt(deposit.due, currency)}
+                  </span>{" "}
+                  · balance {fmt(deposit.balance, currency)}
+                </span>
+              </div>
+            ) : (
+              <p className="mt-2 text-[11px] text-brand-mute">
+                {depositType === "full"
+                  ? "Guest pays the full amount to confirm."
+                  : "Guest reserves the dates; you collect payment separately."}
+              </p>
+            )}
           </div>
         </Section>
 
@@ -1393,6 +1485,26 @@ export function QuoteForm({
                 </div>
               ) : null}
             </div>
+            {depositType !== "full" ? (
+              <div className="mt-4 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[11px] font-semibold text-brand-secondary">
+                    {depositType === "reserve"
+                      ? "To reserve"
+                      : `Due to accept (${parseFloat(depositPct) || 0}%)`}
+                  </span>
+                  <span className="font-display text-[16px] font-bold text-brand-secondary">
+                    {fmt(deposit.due, currency)}
+                  </span>
+                </div>
+                {deposit.balance > 0 ? (
+                  <div className="mt-0.5 text-[10.5px] text-brand-mute">
+                    Balance {fmt(deposit.balance, currency)} due{" "}
+                    {balanceDueDays} days before check-in
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mt-4 flex items-center gap-2 rounded-[10px] border border-status-pending/30 bg-status-pending/10 px-3 py-2.5">
               <Clock className="h-4 w-4 shrink-0 text-status-pending" />
               <span className="text-[11.5px] text-brand-ink">
