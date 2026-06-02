@@ -11,6 +11,8 @@ export const addonLineSchema = z.object({
   unit_price: z.coerce.number().min(0, "Must be ≥ 0").max(1000000),
   addon_id: z.string().uuid().nullable().optional(),
   pricing_model: z.string().max(40).optional(),
+  // 'age' = derived child/infant/pet charge (recomputed, not hand-edited).
+  kind: z.enum(["custom", "catalog", "age"]).optional(),
 });
 export type AddonLineInput = z.infer<typeof addonLineSchema>;
 
@@ -43,6 +45,16 @@ export const quoteOrBookingBaseSchema = z
 
     rooms: z.array(roomLineSchema).max(50).default([]),
     addons: z.array(addonLineSchema).max(50).default([]),
+
+    // Party split {adults, children, infants, pets} — drives age/pet pricing.
+    guests_breakdown: z
+      .object({
+        adults: z.coerce.number().int().min(0).max(100).default(0),
+        children: z.coerce.number().int().min(0).max(100).default(0),
+        infants: z.coerce.number().int().min(0).max(100).default(0),
+        pets: z.coerce.number().int().min(0).max(100).default(0),
+      })
+      .optional(),
 
     notes: z.string().trim().max(4000).optional().or(z.literal("")),
   })

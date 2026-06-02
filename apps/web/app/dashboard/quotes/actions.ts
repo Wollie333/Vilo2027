@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
-import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
+import {
+  computeAgeExtras,
+  priceStay,
+  type AgeExtraLine,
+  type PricingUnit,
+  type SeasonalRule,
+} from "@/lib/pricing";
 
 import {
   createQuoteSchema,
@@ -82,6 +88,7 @@ export async function priceQuoteAction(input: {
   scope: "whole_listing" | "rooms";
   guests: number;
   rooms: { room_id: string; guests: number }[];
+  party?: { children: number; infants: number; pets: number };
 }): Promise<
   ActionResult<{
     currency: string;
@@ -90,6 +97,8 @@ export async function priceQuoteAction(input: {
     cleaning_fee: number;
     total: number;
     rooms: { room_id: string; base_amount: number; cleaning_fee: number }[];
+    age_lines: AgeExtraLine[];
+    age_total: number;
   }>
 > {
   const host = await getHostId();
@@ -107,13 +116,21 @@ export async function priceQuoteAction(input: {
   const { data: listing } = await admin
     .from("listings")
     .select(
-      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct",
+      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee",
     )
     .eq("id", input.listing_id)
     .maybeSingle();
   if (!listing || listing.host_id !== host.hostId) {
     return { ok: false, error: "Listing not found." };
   }
+
+  // Age/pet rates: per-room for a rooms quote (the first booked room), else the
+  // listing's. Captured here so the same rates flow to the line items below.
+  let ageRates = {
+    childPrice: Number(listing.child_price ?? 0),
+    infantPrice: Number(listing.infant_price ?? 0),
+    petFee: Number(listing.pet_fee ?? 0),
+  };
 
   const nights = nightsBetween(input.check_in, input.check_out);
   let units: PricingUnit[] = [];
@@ -127,7 +144,7 @@ export async function priceQuoteAction(input: {
     const { data: roomRows } = await admin
       .from("listing_rooms")
       .select(
-        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price",
+        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee",
       )
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -136,6 +153,12 @@ export async function priceQuoteAction(input: {
     if (!roomRows || roomRows.length !== roomIds.length) {
       return { ok: false, error: "One or more rooms are no longer available." };
     }
+    // Per-room age/pet rates come from the first booked room.
+    ageRates = {
+      childPrice: Number(roomRows[0]?.child_price ?? 0),
+      infantPrice: Number(roomRows[0]?.infant_price ?? 0),
+      petFee: Number(roomRows[0]?.pet_fee ?? 0),
+    };
     const guestsByRoom = new Map(input.rooms.map((r) => [r.room_id, r.guests]));
     units = roomRows.map((r) => ({
       roomId: r.id,
@@ -218,6 +241,18 @@ export async function priceQuoteAction(input: {
     monthlyPct: numOrNull(listing.monthly_discount_pct),
   });
 
+  // Child/infant/pet line items from the party + the resolved rates.
+  const { lines: ageLines, total: ageTotal } = computeAgeExtras(
+    {
+      adults: 0,
+      children: input.party?.children ?? 0,
+      infants: input.party?.infants ?? 0,
+      pets: input.party?.pets ?? 0,
+    },
+    ageRates,
+    nights,
+  );
+
   return {
     ok: true,
     data: {
@@ -238,6 +273,8 @@ export async function priceQuoteAction(input: {
           base_amount: u.baseSubtotal,
           cleaning_fee: u.cleaningFee,
         })),
+      age_lines: ageLines,
+      age_total: ageTotal,
     },
   };
 }
@@ -319,6 +356,7 @@ export async function createQuoteAction(
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       policy_snapshot: policySnapshot,
+      guests_breakdown: parsed.data.guests_breakdown ?? null,
       status: "draft",
     })
     .select("id, quote_number")
@@ -350,6 +388,7 @@ export async function createQuoteAction(
         label: a.label,
         quantity: a.quantity,
         unit_price: a.unit_price,
+        kind: a.kind ?? (a.addon_id ? "catalog" : "custom"),
         sort_order: i,
       })),
     );
@@ -422,6 +461,7 @@ export async function updateQuoteAction(
       total_amount: total,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
+      guests_breakdown: parsed.data.guests_breakdown ?? null,
       // Bump the live version when we snapshotted the prior one.
       version:
         current.status === "sent"
@@ -453,6 +493,7 @@ export async function updateQuoteAction(
         label: a.label,
         quantity: a.quantity,
         unit_price: a.unit_price,
+        kind: a.kind ?? (a.addon_id ? "catalog" : "custom"),
         sort_order: i,
       })),
     );
@@ -604,7 +645,7 @@ export async function convertQuoteAction(
       `
       id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
-      addons_total, total_amount, currency, status, notes
+      addons_total, total_amount, currency, status, notes, guests_breakdown
     `,
     )
     .eq("id", quoteId)
@@ -646,6 +687,7 @@ export async function convertQuoteAction(
       check_in: quote.check_in,
       check_out: quote.check_out,
       guests_count: quote.headcount,
+      guests_breakdown: quote.guests_breakdown ?? null,
       base_amount: quote.base_amount,
       cleaning_fee: quote.cleaning_fee,
       total_amount: quote.total_amount,

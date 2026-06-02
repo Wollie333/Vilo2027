@@ -34,7 +34,7 @@ export default async function EditQuotePage({
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "id, listing_id, status, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes",
+      "id, listing_id, status, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes, guests_breakdown",
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -51,7 +51,7 @@ export default async function EditQuotePage({
       .eq("quote_id", params.id),
     supabase
       .from("quote_addons")
-      .select("addon_id, label, quantity, unit_price")
+      .select("addon_id, label, quantity, unit_price, kind")
       .eq("quote_id", params.id)
       .order("sort_order"),
   ]);
@@ -72,6 +72,9 @@ export default async function EditQuotePage({
     unit_price: number;
   }[] = [];
   for (const a of qaddons ?? []) {
+    // Age/pet lines are derived — drop them on rehydration; the form recomputes
+    // them from the saved party so they never double-charge.
+    if (a.kind === "age") continue;
     if (a.addon_id && catalogIds.has(a.addon_id)) {
       catalogAddons.push({
         addon_id: a.addon_id,
@@ -101,6 +104,13 @@ export default async function EditQuotePage({
     baseAmount: Number(quote.base_amount),
     cleaningFee: Number(quote.cleaning_fee),
     notes: quote.notes ?? "",
+    guestsBreakdown:
+      (quote.guests_breakdown as {
+        adults?: number;
+        children?: number;
+        infants?: number;
+        pets?: number;
+      } | null) ?? undefined,
     rooms: (qrooms ?? []).map((r) => ({
       room_id: r.room_id,
       guests: 1,

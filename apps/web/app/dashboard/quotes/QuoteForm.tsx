@@ -87,6 +87,12 @@ export type QuoteFormInitial = {
   checkIn?: string;
   checkOut?: string;
   headcount?: number;
+  guestsBreakdown?: {
+    adults?: number;
+    children?: number;
+    infants?: number;
+    pets?: number;
+  };
   scope?: "whole_listing" | "rooms";
   baseAmount?: number;
   cleaningFee?: number;
@@ -145,11 +151,14 @@ export function QuoteForm({
   const [sendVia, setSendVia] = useState<"both" | "email" | "link">("both");
   const [checkIn, setCheckIn] = useState(initial?.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
+  const initialParty = initial?.guestsBreakdown;
   const initialHead = initial?.headcount ?? 2;
-  const [adults, setAdults] = useState(Math.max(1, initialHead));
-  const [children, setChildren] = useState(0);
-  const [infants, setInfants] = useState(0);
-  const [pets, setPets] = useState(0);
+  const [adults, setAdults] = useState(
+    Math.max(1, initialParty?.adults ?? initialHead),
+  );
+  const [children, setChildren] = useState(initialParty?.children ?? 0);
+  const [infants, setInfants] = useState(initialParty?.infants ?? 0);
+  const [pets, setPets] = useState(initialParty?.pets ?? 0);
   const [scope, setScope] = useState<"whole_listing" | "rooms">(
     initial?.scope ?? "whole_listing",
   );
@@ -192,6 +201,10 @@ export function QuoteForm({
       unitPrice: String(a.unit_price),
     })),
   );
+  // Derived child/infant/pet lines from the engine (recomputed on price).
+  const [ageLines, setAgeLines] = useState<
+    { label: string; quantity: number; unitPrice: number; subtotal: number }[]
+  >([]);
 
   const listing = listings.find((l) => l.id === listingId);
   const currency = listing?.currency ?? "ZAR";
@@ -285,9 +298,24 @@ export function QuoteForm({
         s + (parseFloat(a.quantity) || 0) * (parseFloat(a.unitPrice) || 0),
       0,
     );
-    const addonsSum = catalogSum + customSum;
-    return { base, cleaning, addonsSum, total: base + cleaning + addonsSum };
-  }, [scope, pricedRooms, baseAmount, cleaningFee, catalogLines, customAddons]);
+    const ageSum = ageLines.reduce((s, a) => s + a.subtotal, 0);
+    const addonsSum = catalogSum + customSum + ageSum;
+    return {
+      base,
+      cleaning,
+      addonsSum,
+      ageSum,
+      total: base + cleaning + addonsSum,
+    };
+  }, [
+    scope,
+    pricedRooms,
+    baseAmount,
+    cleaningFee,
+    catalogLines,
+    customAddons,
+    ageLines,
+  ]);
 
   function toggleRoom(roomId: string) {
     setSelectedRooms((prev) => ({ ...prev, [roomId]: !prev[roomId] }));
@@ -324,6 +352,7 @@ export function QuoteForm({
           scope,
           guests: headcount,
           rooms: chosenRooms,
+          party: { children, infants, pets },
         });
         if (!r.ok || !r.data) {
           if (!silent)
@@ -335,6 +364,7 @@ export function QuoteForm({
           setBaseAmount(String(r.data.base_amount));
           setCleaningFee(String(r.data.cleaning_fee));
         }
+        setAgeLines(r.data.age_lines);
       });
     },
     [
@@ -344,6 +374,9 @@ export function QuoteForm({
       nights,
       scope,
       headcount,
+      children,
+      infants,
+      pets,
       selectedRooms,
       roomGuests,
       listing,
@@ -409,7 +442,13 @@ export function QuoteForm({
 
   function buildInput() {
     const addons = [
-      ...catalogLines,
+      ...catalogLines.map((a) => ({
+        label: a.label,
+        quantity: a.quantity,
+        unit_price: a.unit_price,
+        addon_id: a.addon_id as string | null,
+        kind: "catalog" as const,
+      })),
       ...customAddons
         .filter((a) => a.label.trim().length > 0)
         .map((a) => ({
@@ -417,7 +456,16 @@ export function QuoteForm({
           quantity: parseFloat(a.quantity) || 0,
           unit_price: parseFloat(a.unitPrice) || 0,
           addon_id: null as string | null,
+          kind: "custom" as const,
         })),
+      // Derived child/infant/pet lines — tagged so editing recomputes them.
+      ...ageLines.map((a) => ({
+        label: a.label,
+        quantity: a.quantity,
+        unit_price: a.unitPrice,
+        addon_id: null as string | null,
+        kind: "age" as const,
+      })),
     ];
     return {
       listing_id: listingId,
@@ -433,6 +481,7 @@ export function QuoteForm({
       currency,
       rooms: scope === "rooms" ? pricedRooms : [],
       addons,
+      guests_breakdown: { adults, children, infants, pets },
       notes: notes.trim(),
     };
   }
@@ -1164,6 +1213,13 @@ export function QuoteForm({
                     )}
                   />
                 ))}
+              {ageLines.map((a, i) => (
+                <SumRow
+                  key={`a${i}`}
+                  label={a.label}
+                  value={fmt(a.subtotal, currency)}
+                />
+              ))}
             </ul>
             <div className="my-4 h-px bg-brand-line" />
             <div className="flex items-baseline justify-between">

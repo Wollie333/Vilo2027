@@ -4040,6 +4040,7 @@ export type Database = {
           addon_id: string | null
           created_at: string
           id: string
+          kind: string
           label: string
           quantity: number
           quote_id: string
@@ -4051,6 +4052,7 @@ export type Database = {
           addon_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           label: string
           quantity?: number
           quote_id: string
@@ -4062,6 +4064,7 @@ export type Database = {
           addon_id?: string | null
           created_at?: string
           id?: string
+          kind?: string
           label?: string
           quantity?: number
           quote_id?: string
