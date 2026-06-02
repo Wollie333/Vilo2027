@@ -2,7 +2,13 @@
 
 import { Calculator, Plus, Save, Send, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -197,44 +203,93 @@ export function QuoteForm({
     setPricedRooms([]); // selection changed → re-price needed
   }
 
-  function autoPrice() {
-    if (!listingId) return toast.error("Pick a listing first.");
-    if (!checkIn || !checkOut || nights <= 0)
-      return toast.error("Set valid check-in and check-out dates.");
+  const datesValid = !!checkIn && !!checkOut && nights > 0;
 
-    const chosenRooms = (listing?.rooms ?? [])
-      .filter((r) => selectedRooms[r.id])
-      .map((r) => ({
-        room_id: r.id,
-        guests: parseInt(roomGuests[r.id] ?? "", 10) || r.base_occupancy || 1,
-      }));
-    if (scope === "rooms" && chosenRooms.length === 0)
-      return toast.error("Select at least one room.");
-
-    startPricing(async () => {
-      const r = await priceQuoteAction({
-        listing_id: listingId,
-        check_in: checkIn,
-        check_out: checkOut,
-        scope,
-        guests: parseInt(headcount, 10) || 1,
-        rooms: chosenRooms,
-      });
-      if (!r.ok || !r.data) {
-        toast.error(r.ok ? "Could not price this stay." : r.error);
+  const priceStayNow = useCallback(
+    (silent: boolean) => {
+      if (!listingId) {
+        if (!silent) toast.error("Pick a listing first.");
         return;
       }
-      if (scope === "rooms") {
-        setPricedRooms(r.data.rooms);
-      } else {
-        setBaseAmount(String(r.data.base_amount));
-        setCleaningFee(String(r.data.cleaning_fee));
+      if (!checkIn || !checkOut || nights <= 0) {
+        if (!silent) toast.error("Set valid check-in and check-out dates.");
+        return;
       }
-      toast.success(
-        `Priced ${r.data.nights} night${r.data.nights === 1 ? "" : "s"} from your calendar`,
-      );
-    });
-  }
+      const chosenRooms = (listing?.rooms ?? [])
+        .filter((r) => selectedRooms[r.id])
+        .map((r) => ({
+          room_id: r.id,
+          guests: parseInt(roomGuests[r.id] ?? "", 10) || r.base_occupancy || 1,
+        }));
+      if (scope === "rooms" && chosenRooms.length === 0) {
+        if (!silent) toast.error("Select at least one room.");
+        return;
+      }
+
+      startPricing(async () => {
+        const r = await priceQuoteAction({
+          listing_id: listingId,
+          check_in: checkIn,
+          check_out: checkOut,
+          scope,
+          guests: parseInt(headcount, 10) || 1,
+          rooms: chosenRooms,
+        });
+        if (!r.ok || !r.data) {
+          if (!silent)
+            toast.error(r.ok ? "Could not price this stay." : r.error);
+          return;
+        }
+        if (scope === "rooms") {
+          setPricedRooms(r.data.rooms);
+        } else {
+          setBaseAmount(String(r.data.base_amount));
+          setCleaningFee(String(r.data.cleaning_fee));
+        }
+        if (!silent)
+          toast.success(
+            `Priced ${r.data.nights} night${r.data.nights === 1 ? "" : "s"} from your calendar`,
+          );
+      });
+    },
+    [
+      listingId,
+      checkIn,
+      checkOut,
+      nights,
+      scope,
+      headcount,
+      selectedRooms,
+      roomGuests,
+      listing,
+    ],
+  );
+
+  // Auto-price from the calendar the moment there's enough to price on — dates
+  // set (and, for a per-room quote, at least one room ticked). No button click
+  // needed; the amounts flow straight into the totals. It only re-fires when the
+  // dates / rooms / guests / listing change, so a host can still hand-edit the
+  // figure afterwards without it being wiped. The button is just a manual
+  // re-price for when they want to snap back to the calculated price.
+  useEffect(() => {
+    if (!datesValid) return;
+    if (scope === "rooms") {
+      const anyRoom = (listing?.rooms ?? []).some((r) => selectedRooms[r.id]);
+      if (!anyRoom) {
+        setPricedRooms([]);
+        return;
+      }
+    }
+    priceStayNow(true);
+  }, [
+    scope,
+    datesValid,
+    listing,
+    selectedRooms,
+    roomGuests,
+    headcount,
+    priceStayNow,
+  ]);
 
   function addCustom() {
     setCustomAddons((p) => [
@@ -444,8 +499,9 @@ export function QuoteForm({
               Rooms
             </CardTitle>
             <CardDescription className="text-brand-mute">
-              Tick the rooms this quote covers, then price them from your live
-              calendar (seasonal &amp; weekend rates included).
+              Tick the rooms this quote covers — they&rsquo;re priced
+              automatically from your live calendar (seasonal &amp; weekend
+              rates included).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -487,6 +543,14 @@ export function QuoteForm({
                             currency,
                           )}
                         </span>
+                      ) : pricing && datesValid ? (
+                        <span className="text-brand-mute">Pricing…</span>
+                      ) : !datesValid ? (
+                        <span className="text-brand-mute">Add dates</span>
+                      ) : r.base_price != null ? (
+                        <span className="text-brand-mute">
+                          ~{fmt(r.base_price, currency)}/night
+                        </span>
                       ) : null}
                     </span>
                   ) : null}
@@ -503,21 +567,29 @@ export function QuoteForm({
             Pricing
           </CardTitle>
           <CardDescription className="text-brand-mute">
-            Price from your calendar, then fine-tune. Add-ons are charged on
-            top.
+            Priced automatically from your calendar (seasonal &amp; weekend
+            rates included) once dates are set — fine-tune anything below.
+            Add-ons are charged on top.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={autoPrice}
-            disabled={busy}
-            className="gap-1.5"
-          >
-            <Calculator className="h-4 w-4" />
-            {pricing ? "Pricing…" : "Price from calendar"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => priceStayNow(false)}
+              disabled={busy || !datesValid}
+              className="gap-1.5"
+            >
+              <Calculator className="h-4 w-4" />
+              {pricing ? "Pricing…" : "Re-price from calendar"}
+            </Button>
+            {!datesValid ? (
+              <span className="text-xs text-brand-mute">
+                Add check-in &amp; check-out dates above to price.
+              </span>
+            ) : null}
+          </div>
 
           {scope === "whole_listing" ? (
             <div className="grid gap-4 sm:grid-cols-2">

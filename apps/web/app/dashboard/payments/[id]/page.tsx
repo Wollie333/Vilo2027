@@ -144,7 +144,9 @@ export default async function PaymentDetailPage({
   ]);
 
   const invoiceRow = invoiceRows?.[0] ?? null;
+  // Booking + payment anchor rows, plus every related document.
   const docCount =
+    2 +
     (invoiceRows?.length ?? 0) +
     (quoteRows?.length ?? 0) +
     (creditNoteRows?.length ?? 0) +
@@ -230,6 +232,14 @@ export default async function PaymentDetailPage({
               </span>
             </div>
             <div className="divide-y divide-brand-line">
+              <DocRow
+                icon={Calendar}
+                kind="Booking"
+                title={booking.reference}
+                meta={`Booking ID ${booking.id}`}
+                status={booking.status.replace(/_/g, " ")}
+                href={`/dashboard/bookings/${booking.id}`}
+              />
               <DocRow
                 icon={CreditCard}
                 kind="Payment"
