@@ -8,6 +8,7 @@ import { Download, ExternalLink } from "lucide-react";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteActions } from "./QuoteActions";
+import { QuoteShare } from "./QuoteShare";
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "../schemas";
 
 export const metadata: Metadata = {
@@ -238,18 +239,17 @@ export default async function QuoteDetailPage({
         </section>
       ) : null}
 
-      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h2 className="font-display text-base font-bold text-brand-ink">
-          Share with guest
-        </h2>
-        <p className="mt-1 text-xs text-brand-mute">
-          Send this URL to the guest. They can review the quote, accept or
-          decline.
-        </p>
-        <code className="mt-3 block overflow-x-auto rounded border border-brand-line bg-brand-light/40 px-3 py-2 font-mono text-[11px] text-brand-ink">
-          {acceptUrl}
-        </code>
-      </section>
+      <QuoteShare
+        quoteId={quote.id}
+        acceptUrl={acceptUrl}
+        guestName={quote.guest_name}
+        guestEmail={quote.guest_email}
+        guestPhone={quote.guest_phone}
+        quoteNumber={quote.quote_number}
+        listingName={listingName ?? "your stay"}
+        total={quote.total_amount}
+        currency={quote.currency}
+      />
 
       <QuoteActions quoteId={quote.id} status={status} />
     </div>

@@ -438,6 +438,76 @@ export async function convertQuoteAction(
   return { ok: true, data: { bookingId: booking.id } };
 }
 
+// Post the quote link into an existing host↔guest conversation. Conversations
+// are created by the booking/enquiry flow — we only write into one that already
+// exists (matched on the guest's Vilo account). Account-less guests get a clear
+// error so the host falls back to WhatsApp / email.
+export async function shareQuoteToInboxAction(
+  quoteId: string,
+  acceptUrl: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(quoteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data: quote } = await supabase
+    .from("quotes")
+    .select("quote_number, guest_email, guest_id, total_amount, currency")
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (!quote) return { ok: false, error: "Quote not found." };
+
+  // Resolve the guest's account — prefer the linked guest_id, else match email.
+  let guestId = quote.guest_id as string | null;
+  if (!guestId && quote.guest_email) {
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .eq("email", quote.guest_email)
+      .maybeSingle();
+    guestId = profile?.id ?? null;
+  }
+  if (!guestId) {
+    return {
+      ok: false,
+      error: "This guest has no Vilo account yet — use WhatsApp or email.",
+    };
+  }
+
+  const { data: conversation } = await supabase
+    .from("conversations")
+    .select("id")
+    .eq("host_id", own.hostId)
+    .eq("guest_id", guestId)
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (!conversation) {
+    return {
+      ok: false,
+      error: "No inbox thread with this guest yet — use WhatsApp or email.",
+    };
+  }
+
+  const symbol = quote.currency === "ZAR" ? "R " : `${quote.currency} `;
+  const body = `Here's your quote ${quote.quote_number} — ${symbol}${Math.round(
+    quote.total_amount as number,
+  )
+    .toLocaleString("en-ZA")
+    .replace(/,/g, " ")}. View and accept it here: ${acceptUrl}`;
+
+  const { error } = await supabase.from("messages").insert({
+    conversation_id: conversation.id,
+    sender_id: own.userId,
+    body,
+    read_by_host: true,
+  });
+  if (error) return { ok: false, error: "Could not post to the inbox." };
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
 export async function softDeleteQuoteAction(
   quoteId: string,
 ): Promise<ActionResult> {
