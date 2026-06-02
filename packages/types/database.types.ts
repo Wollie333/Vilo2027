@@ -1849,6 +1849,7 @@ export type Database = {
           created_at: string
           host_id: string
           legal_name: string | null
+          logo_path: string | null
           trading_name: string | null
           updated_at: string
           vat_number: string | null
@@ -1863,6 +1864,7 @@ export type Database = {
           created_at?: string
           host_id: string
           legal_name?: string | null
+          logo_path?: string | null
           trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -1877,6 +1879,7 @@ export type Database = {
           created_at?: string
           host_id?: string
           legal_name?: string | null
+          logo_path?: string | null
           trading_name?: string | null
           updated_at?: string
           vat_number?: string | null
@@ -6394,5 +6397,5 @@ export const Constants = {
     Enums: {},
   },
 } as const
-A new version of Supabase CLI is available: v2.103.0 (currently installed v2.101.0)
+A new version of Supabase CLI is available: v2.104.0 (currently installed v2.101.0)
 We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
