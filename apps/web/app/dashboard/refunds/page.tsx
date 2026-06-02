@@ -37,6 +37,13 @@ const STATUS_LABELS: Record<string, string> = {
   disputed: "Disputed",
 };
 
+const REFUND_METHOD_LABELS: Record<string, string> = {
+  paystack: "Paystack (card)",
+  paypal: "PayPal",
+  eft: "EFT / bank transfer",
+  manual: "Manual / other",
+};
+
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-status-pending/10 text-status-pending border-status-pending/30",
   escalated:
@@ -121,9 +128,10 @@ export default async function RefundsPage({
       `
       id, status, requested_amount, approved_amount, currency, reason,
       reason_detail, host_note, decline_reason, created_at, actioned_at,
-      initiated_by, is_manual, policy_entitlement,
+      initiated_by, is_manual, policy_entitlement, refund_method,
       booking:bookings ( id, reference, check_in, check_out, listing:listings ( name ) ),
-      guest:user_profiles!refund_requests_guest_id_fkey ( full_name, email )
+      guest:user_profiles!refund_requests_guest_id_fkey ( full_name, email ),
+      payment:payments!refund_requests_payment_id_fkey ( method )
     `,
     )
     .eq("host_id", host.id)
@@ -151,6 +159,8 @@ export default async function RefundsPage({
     initiated_by: string;
     is_manual: boolean;
     policy_entitlement: number | null;
+    refund_method: string | null;
+    payment: { method: string | null } | { method: string | null }[] | null;
     booking:
       | {
           id: string;
@@ -256,6 +266,16 @@ export default async function RefundsPage({
               ? row.booking[0]
               : row.booking;
             const guest = Array.isArray(row.guest) ? row.guest[0] : row.guest;
+            const payment = Array.isArray(row.payment)
+              ? row.payment[0]
+              : row.payment;
+            const defaultMethod = (
+              ["paystack", "paypal", "eft", "manual"].includes(
+                payment?.method ?? "",
+              )
+                ? payment!.method
+                : "eft"
+            ) as "paystack" | "paypal" | "eft" | "manual";
             const listing = booking
               ? Array.isArray(booking.listing)
                 ? booking.listing[0]
@@ -348,6 +368,16 @@ export default async function RefundsPage({
                   ) : null}
                 </div>
 
+                {row.refund_method ? (
+                  <div className="mt-3 text-[12px] text-brand-mute">
+                    Refunded via{" "}
+                    <span className="font-medium text-brand-ink">
+                      {REFUND_METHOD_LABELS[row.refund_method] ??
+                        row.refund_method}
+                    </span>
+                  </div>
+                ) : null}
+
                 {row.host_note ? (
                   <div className="mt-3 text-sm text-brand-dark">
                     <span className="text-brand-mute">Your note:</span>{" "}
@@ -361,6 +391,7 @@ export default async function RefundsPage({
                       refundId={row.id}
                       requestedAmount={Number(row.requested_amount)}
                       currency={row.currency}
+                      defaultMethod={defaultMethod}
                     />
                   </div>
                 ) : null}

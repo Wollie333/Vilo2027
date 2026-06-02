@@ -31,6 +31,56 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-02 — Refund payout methods + Credit Notes + Finances sub-menu — branch `feat/unified-pricing-engine`
+
+### Built
+- **Refund payout-method selection.** When processing a refund, the host now
+  picks how it's paid out — **Paystack / PayPal / EFT / Manual** — on both the
+  Refunds queue (approve flow) and the booking-page **Issue refund** panel. The
+  selector defaults to the booking's original payment method. EFT/Manual are
+  flagged `is_manual = true` (host sends the money); Paystack/PayPal are
+  provider transactions. The chosen rail is persisted on
+  `refund_requests.refund_method` and shown on actioned refund cards.
+- **Credit Notes (new Finances feature).** A credit note records money credited
+  back to a guest against an invoice. `credit_notes` table mirrors `invoices`
+  (per-host `{handle}-CNYYYY-NNNN` numbering, frozen host/guest snapshots, jsonb
+  line items, hosted token, PDF bucket). Created two ways:
+  - **Auto** — a DB trigger issues one the moment a refund hits `completed`,
+    linked to the booking's invoice (idempotent, one per refund).
+  - **Manual** — "Create credit note" on the invoice detail page.
+  List at `/dashboard/credit-notes`, detail at `/dashboard/credit-notes/[id]`
+  (with cancel action). Invoice detail page now lists its credit notes.
+- **Collapsible "Finances" sub-menu** in the dashboard sidebar containing
+  **Quotes → Invoices → Credit Notes** (in that order). Auto-expands when a
+  child route is active. Added Credit Notes to the ⌘K quick-nav too.
+
+### Changed
+- `approveRefundAction` + `hostInitiatedRefundAction` now take a `method` and
+  derive `is_manual` / completion note from it (replaces the hard-coded
+  "provider integration pending" manual flag).
+- Sidebar `TOOLS` no longer holds Quotes/Invoices (moved to the Finances group).
+
+### Migrations
+- `20260602000000_refund_method.sql` — `refund_requests.refund_method` column.
+- `20260602000002_help_refund_methods_credit_notes.sql` — Help Centre article.
+- `20260602000003_credit_notes.sql` — `credit_notes` table + RLS +
+  `next_credit_note_number()` + `host_counters.last_credit_note_number` +
+  auto-create trigger on refund completion + `credit-note-pdfs` storage bucket.
+  (Renumbered from `…001` to avoid colliding with the parallel
+  `20260602000001_host_logo.sql` migration, which is committed here too.)
+
+### Notes
+- Types in `packages/types/database.types.ts` were **hand-edited** (Docker
+  bypassed): added `credit_notes`, `host_counters.last_credit_note_number`,
+  `refund_requests.refund_method`, and the `next_credit_note_number` RPC.
+  Regenerate properly against the linked remote after `supabase db push`.
+- **Not yet pushed to remote** — run `supabase db push --linked` then
+  `supabase gen types typescript --linked > packages/types/database.types.ts`.
+- Credit-note **PDF + public hosted page deferred** — founder is supplying the
+  invoice/quote/credit-note detail + PDF designs; current styling is minimal on
+  purpose so the designs can be dropped in over working logic.
+- `pnpm build` + `pnpm lint` both green.
+
 ## 2026-06-01 — Discount coupons + invoice breakdown — branch `feat/unified-pricing-engine`
 
 ### Built

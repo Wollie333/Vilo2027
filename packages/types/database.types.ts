@@ -1138,6 +1138,120 @@ export type Database = {
           },
         ]
       }
+      credit_notes: {
+        Row: {
+          booking_id: string
+          cancelled_at: string | null
+          created_at: string
+          credit_note_number: string
+          currency: string
+          guest_id: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token: string
+          id: string
+          invoice_id: string
+          issued_at: string
+          line_items: Json
+          origin: string
+          pdf_storage_path: string | null
+          reason: string | null
+          refund_request_id: string | null
+          status: string
+          subtotal: number
+          total_amount: number
+          updated_at: string
+          vat_amount: number
+        }
+        Insert: {
+          booking_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          credit_note_number: string
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot: Json
+          host_id: string
+          host_snapshot: Json
+          hosted_token?: string
+          id?: string
+          invoice_id: string
+          issued_at?: string
+          line_items?: Json
+          origin?: string
+          pdf_storage_path?: string | null
+          reason?: string | null
+          refund_request_id?: string | null
+          status?: string
+          subtotal: number
+          total_amount: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Update: {
+          booking_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          credit_note_number?: string
+          currency?: string
+          guest_id?: string | null
+          guest_snapshot?: Json
+          host_id?: string
+          host_snapshot?: Json
+          hosted_token?: string
+          id?: string
+          invoice_id?: string
+          issued_at?: string
+          line_items?: Json
+          origin?: string
+          pdf_storage_path?: string | null
+          reason?: string | null
+          refund_request_id?: string | null
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_notes_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_refund_request_id_fkey"
+            columns: ["refund_request_id"]
+            isOneToOne: false
+            referencedRelation: "refund_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_requests: {
         Row: {
           created_at: string
@@ -1780,18 +1894,21 @@ export type Database = {
       host_counters: {
         Row: {
           host_id: string
+          last_credit_note_number: number
           last_invoice_number: number
           last_quote_number: number
           updated_at: string
         }
         Insert: {
           host_id: string
+          last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
           updated_at?: string
         }
         Update: {
           host_id?: string
+          last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
           updated_at?: string
@@ -4105,6 +4222,7 @@ export type Database = {
           provider_response: Json | null
           reason: string
           reason_detail: string | null
+          refund_method: string | null
           requested_amount: number
           status: string
           supporting_doc_url: string | null
@@ -4144,6 +4262,7 @@ export type Database = {
           provider_response?: Json | null
           reason: string
           reason_detail?: string | null
+          refund_method?: string | null
           requested_amount: number
           status?: string
           supporting_doc_url?: string | null
@@ -4183,6 +4302,7 @@ export type Database = {
           provider_response?: Json | null
           reason?: string
           reason_detail?: string | null
+          refund_method?: string | null
           requested_amount?: number
           status?: string
           supporting_doc_url?: string | null
@@ -5438,6 +5558,7 @@ export type Database = {
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_delivery_read: { Args: { p_log_id: string }; Returns: undefined }
+      next_credit_note_number: { Args: { p_host_id: string }; Returns: string }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
       next_quote_number: { Args: { p_host_id: string }; Returns: string }
       populate_geometry_columns:

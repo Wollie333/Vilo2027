@@ -1094,6 +1094,13 @@ export default async function BookingDetailPage({
                       bookingId={booking.id}
                       totalAmount={Number(booking.total_amount)}
                       currency={currency}
+                      defaultMethod={
+                        (["paystack", "paypal", "eft", "manual"].includes(
+                          paymentRow?.method ?? "",
+                        )
+                          ? paymentRow!.method
+                          : "eft") as "paystack" | "paypal" | "eft" | "manual"
+                      }
                     />
                   </div>
                 ) : null}

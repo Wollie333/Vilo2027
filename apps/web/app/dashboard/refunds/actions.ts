@@ -16,9 +16,41 @@ const declineReasons = [
   "other",
 ] as const;
 
+const refundMethods = ["paystack", "paypal", "eft", "manual"] as const;
+type RefundMethod = (typeof refundMethods)[number];
+
+const METHOD_LABELS: Record<RefundMethod, string> = {
+  paystack: "Paystack",
+  paypal: "PayPal",
+  eft: "EFT / bank transfer",
+  manual: "Manual / other",
+};
+
+/**
+ * Completion fields for a refund, given the host's chosen payout rail.
+ * Paystack/PayPal are provider-automated (is_manual = false); EFT/Manual are
+ * sent by the host outside the platform (is_manual = true). Pre-MVP the real
+ * provider calls aren't wired, so everything still completes optimistically —
+ * but the chosen rail is recorded and drives is_manual + the note.
+ */
+function completionPatch(method: RefundMethod) {
+  const isManual = method === "eft" || method === "manual";
+  const label = METHOD_LABELS[method];
+  return {
+    status: "completed" as const,
+    refund_method: method,
+    is_manual: isManual,
+    manual_sent_at: isManual ? new Date().toISOString() : null,
+    manual_note: isManual
+      ? `${label} refund — sent by the host outside the platform.`
+      : `${label} — provider integration pending (pre-MVP); recorded as paid.`,
+  };
+}
+
 const approveSchema = z.object({
   refundId: z.string().uuid(),
   amount: z.number().positive(),
+  method: z.enum(refundMethods),
   note: z.string().max(1000).optional().nullable(),
 });
 
@@ -31,6 +63,7 @@ const declineSchema = z.object({
 const requestSchema = z.object({
   bookingId: z.string().uuid(),
   amount: z.number().positive(),
+  method: z.enum(refundMethods),
   reason: z.string().min(1).max(200),
   reasonDetail: z.string().max(2000).optional().nullable(),
 });
@@ -61,6 +94,7 @@ async function getMyHostId(): Promise<
 export async function approveRefundAction(input: {
   refundId: string;
   amount: number;
+  method: RefundMethod;
   note?: string | null;
 }): Promise<ActionResult> {
   const parsed = approveSchema.safeParse(input);
@@ -96,6 +130,7 @@ export async function approveRefundAction(input: {
     .update({
       status: "approved",
       approved_amount: parsed.data.amount,
+      refund_method: parsed.data.method,
       host_note: parsed.data.note?.trim() || null,
       actioned_at: new Date().toISOString(),
     })
@@ -104,16 +139,11 @@ export async function approveRefundAction(input: {
   if (approveErr) return { ok: false, error: approveErr.message };
 
   // Optimistic completion — flag it as completed so payments.refunded_amount
-  // updates via the existing v11 trigger. Marked as manual so the audit
-  // trail shows it wasn't a provider transaction.
+  // updates via the existing v11 trigger. The chosen payout rail drives
+  // is_manual + the audit note (see completionPatch).
   const { error: completeErr } = await supabase
     .from("refund_requests")
-    .update({
-      status: "completed",
-      is_manual: true,
-      manual_sent_at: new Date().toISOString(),
-      manual_note: "Pre-MVP: provider integration pending",
-    })
+    .update(completionPatch(parsed.data.method))
     .eq("id", refund.id);
 
   if (completeErr) return { ok: false, error: completeErr.message };
@@ -172,6 +202,7 @@ export async function declineRefundAction(input: {
 export async function hostInitiatedRefundAction(input: {
   bookingId: string;
   amount: number;
+  method: RefundMethod;
   reason: string;
   reasonDetail?: string | null;
 }): Promise<ActionResult> {
@@ -233,6 +264,7 @@ export async function hostInitiatedRefundAction(input: {
       guest_id: booking.guest_id,
       requested_amount: parsed.data.amount,
       approved_amount: parsed.data.amount,
+      refund_method: parsed.data.method,
       currency: booking.currency || "ZAR",
       reason: parsed.data.reason,
       reason_detail: parsed.data.reasonDetail?.trim() || null,
@@ -252,12 +284,7 @@ export async function hostInitiatedRefundAction(input: {
 
   const { error: completeErr } = await admin
     .from("refund_requests")
-    .update({
-      status: "completed",
-      is_manual: true,
-      manual_sent_at: new Date().toISOString(),
-      manual_note: "Host-initiated; pre-MVP provider integration pending",
-    })
+    .update(completionPatch(parsed.data.method))
     .eq("id", inserted.id);
 
   if (completeErr) return { ok: false, error: completeErr.message };

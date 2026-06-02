@@ -8,6 +8,7 @@ import {
   Calendar as CalendarIcon,
   CalendarRange,
   CreditCard,
+  FileMinus,
   FileText,
   Home as HomeIcon,
   LayoutDashboard,
@@ -123,6 +124,12 @@ const TOOLS: Route[] = [
     label: "Invoices",
     icon: Receipt,
     keywords: ["billing"],
+  },
+  {
+    href: "/dashboard/credit-notes",
+    label: "Credit Notes",
+    icon: FileMinus,
+    keywords: ["refund", "credit", "billing"],
   },
   {
     href: "/dashboard/addons",

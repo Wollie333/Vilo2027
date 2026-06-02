@@ -9,6 +9,7 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../../quotes/schemas";
 
+import { CreateCreditNote } from "./CreateCreditNote";
 import { InvoiceActions } from "./InvoiceActions";
 
 export const metadata: Metadata = {
@@ -74,6 +75,15 @@ export default async function InvoiceDetailPage({
     .maybeSingle();
 
   if (!invoice) notFound();
+
+  // Credit notes raised against this invoice (auto from refunds + manual).
+  const { data: creditNotes } = await supabase
+    .from("credit_notes")
+    .select(
+      "id, credit_note_number, status, origin, total_amount, currency, issued_at",
+    )
+    .eq("invoice_id", invoice.id)
+    .order("issued_at", { ascending: false });
 
   const lines = invoice.line_items as InvoiceLines;
   const host = invoice.host_snapshot as Snap;
@@ -315,6 +325,57 @@ export default async function InvoiceDetailPage({
         <code className="mt-3 block overflow-x-auto rounded border border-brand-line bg-brand-light/40 px-3 py-2 font-mono text-[11px] text-brand-ink">
           {hostedUrl}
         </code>
+      </section>
+
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-base font-bold text-brand-ink">
+              Credit notes
+            </h2>
+            <p className="mt-1 text-xs text-brand-mute">
+              Money credited back against this invoice. Refunds create these
+              automatically; you can also raise one manually.
+            </p>
+          </div>
+          <CreateCreditNote
+            invoiceId={invoice.id}
+            invoiceTotal={invoice.total_amount}
+            currency={invoice.currency}
+          />
+        </div>
+
+        {creditNotes && creditNotes.length > 0 ? (
+          <ul className="mt-4 divide-y divide-brand-line">
+            {creditNotes.map((cn) => (
+              <li
+                key={cn.id}
+                className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-sm"
+              >
+                <div>
+                  <Link
+                    href={`/dashboard/credit-notes/${cn.id}`}
+                    className="font-medium text-brand-primary hover:underline"
+                  >
+                    {cn.credit_note_number}
+                  </Link>
+                  <span className="ml-2 text-xs text-brand-mute">
+                    {cn.origin === "refund_auto" ? "Refund" : "Manual"} ·{" "}
+                    {new Date(cn.issued_at).toLocaleDateString("en-ZA")}
+                    {cn.status === "cancelled" ? " · cancelled" : ""}
+                  </span>
+                </div>
+                <span className="font-medium text-brand-ink">
+                  {fmt(cn.total_amount, cn.currency)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-brand-mute">
+            No credit notes raised against this invoice yet.
+          </p>
+        )}
       </section>
 
       <InvoiceActions invoiceId={invoice.id} status={status} />

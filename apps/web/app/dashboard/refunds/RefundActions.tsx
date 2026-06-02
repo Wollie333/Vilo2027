@@ -11,6 +11,7 @@ type Props = {
   refundId: string;
   requestedAmount: number;
   currency: string;
+  defaultMethod: RefundMethod;
 };
 
 type DeclineReason =
@@ -28,16 +29,31 @@ const DECLINE_LABELS: Record<DeclineReason, string> = {
   other: "Other (explain below)",
 };
 
+type RefundMethod = "paystack" | "paypal" | "eft" | "manual";
+
+const METHOD_LABELS: Record<RefundMethod, string> = {
+  paystack: "Paystack (card) — automatic",
+  paypal: "PayPal — automatic",
+  eft: "EFT / bank transfer — sent by you",
+  manual: "Manual / other — sent by you",
+};
+
 function fmtR(amount: number, currency: string): string {
   return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
     .toLocaleString("en-ZA")
     .replace(/,/g, " ")}`;
 }
 
-export function RefundActions({ refundId, requestedAmount, currency }: Props) {
+export function RefundActions({
+  refundId,
+  requestedAmount,
+  currency,
+  defaultMethod,
+}: Props) {
   const router = useRouter();
   const [mode, setMode] = useState<"idle" | "approve" | "decline">("idle");
   const [amount, setAmount] = useState<number>(requestedAmount);
+  const [method, setMethod] = useState<RefundMethod>(defaultMethod);
   const [note, setNote] = useState<string>("");
   const [reason, setReason] = useState<DeclineReason>("outside_policy");
   const [pending, start] = useTransition();
@@ -53,6 +69,7 @@ export function RefundActions({ refundId, requestedAmount, currency }: Props) {
       const result = await approveRefundAction({
         refundId,
         amount,
+        method,
         note: note.trim() || null,
       });
       if (result.ok) {
@@ -126,6 +143,29 @@ export function RefundActions({ refundId, requestedAmount, currency }: Props) {
             />
             <span className="mt-1 block text-[11px] text-brand-mute">
               Up to {fmtR(requestedAmount, currency)} requested
+            </span>
+          </label>
+          <label className="block">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              How to refund
+            </span>
+            <select
+              value={method}
+              onChange={(e) => setMethod(e.target.value as RefundMethod)}
+              className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            >
+              {(Object.entries(METHOD_LABELS) as [RefundMethod, string][]).map(
+                ([k, v]) => (
+                  <option key={k} value={k}>
+                    {v}
+                  </option>
+                ),
+              )}
+            </select>
+            <span className="mt-1 block text-[11px] text-brand-mute">
+              {method === "eft" || method === "manual"
+                ? "You'll send this refund yourself; we'll mark it as paid and notify the guest."
+                : "Refunded to the original payment method via the provider."}
             </span>
           </label>
         </>

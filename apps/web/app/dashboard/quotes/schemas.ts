@@ -127,3 +127,19 @@ export const INVOICE_STATUS_LABEL = {
   cancelled: "Cancelled",
 } as const;
 export type InvoiceStatus = keyof typeof INVOICE_STATUS_LABEL;
+
+// ─── Credit notes ─────────────────────────────────────────────
+export const CREDIT_NOTE_STATUS_LABEL = {
+  draft: "Draft",
+  issued: "Issued",
+  cancelled: "Cancelled",
+} as const;
+export type CreditNoteStatus = keyof typeof CREDIT_NOTE_STATUS_LABEL;
+
+// Host creates a credit note against an invoice (manual flow).
+export const createCreditNoteSchema = z.object({
+  invoiceId: z.string().uuid(),
+  amount: z.coerce.number().positive("Must be > 0").max(10000000),
+  reason: z.string().trim().min(1, "Reason is required.").max(300),
+});
+export type CreateCreditNoteInput = z.infer<typeof createCreditNoteSchema>;

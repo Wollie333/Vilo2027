@@ -2,6 +2,19 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-02 — branch `feat/unified-pricing-engine`, NOT committed):**
+Three things shipped: (1) refund **payout-method** picker (Paystack/PayPal/EFT/
+Manual) on the Refunds queue + booking Issue-refund panel → persisted on
+`refund_requests.refund_method`; (2) new **Credit Notes** feature (`credit_notes`
+table, list at `/dashboard/credit-notes`, detail page, auto-created by trigger on
+refund completion + manual create from an invoice); (3) collapsible **Finances**
+sidebar group = Quotes → Invoices → Credit Notes. Migrations `20260602000000/1/2`
+(**not yet `db push`-ed**); types hand-edited. `pnpm build`+`pnpm lint` green.
+**TODO:** push migrations to linked remote + regen types; founder to supply
+invoice/quote/credit-note detail + PDF designs (built logic-first, minimal
+styling); credit-note PDF + public `/credit-note/[token]` page deferred.
+See CHANGELOG 2026-06-02 entry.
+
 **Session note (2026-05-29 — branch `feat/policy-manager`, NOT merged):**
 Built the Policy Manager at `/dashboard/policies` — three separately-assignable
 kinds (refund terms / check-in-out / house rules), listing-wide default +

@@ -15,10 +15,20 @@ const REASONS = [
   "Other",
 ] as const;
 
+type RefundMethod = "paystack" | "paypal" | "eft" | "manual";
+
+const METHOD_LABELS: Record<RefundMethod, string> = {
+  paystack: "Paystack (card) — automatic",
+  paypal: "PayPal — automatic",
+  eft: "EFT / bank transfer — sent by you",
+  manual: "Manual / other — sent by you",
+};
+
 type Props = {
   bookingId: string;
   totalAmount: number;
   currency: string;
+  defaultMethod: RefundMethod;
 };
 
 function fmtR(amount: number, currency: string): string {
@@ -27,10 +37,16 @@ function fmtR(amount: number, currency: string): string {
     .replace(/,/g, " ")}`;
 }
 
-export function IssueRefundButton({ bookingId, totalAmount, currency }: Props) {
+export function IssueRefundButton({
+  bookingId,
+  totalAmount,
+  currency,
+  defaultMethod,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number>(totalAmount);
+  const [method, setMethod] = useState<RefundMethod>(defaultMethod);
   const [reason, setReason] = useState<string>(REASONS[0]);
   const [reasonDetail, setReasonDetail] = useState<string>("");
   const [pending, start] = useTransition();
@@ -46,6 +62,7 @@ export function IssueRefundButton({ bookingId, totalAmount, currency }: Props) {
       const result = await hostInitiatedRefundAction({
         bookingId,
         amount,
+        method,
         reason,
         reasonDetail: reasonDetail.trim() || null,
       });
@@ -93,6 +110,30 @@ export function IssueRefundButton({ bookingId, totalAmount, currency }: Props) {
         />
         <span className="mt-1 block text-[11px] text-brand-mute">
           Up to {fmtR(totalAmount, currency)}
+        </span>
+      </label>
+
+      <label className="block">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+          How to refund
+        </span>
+        <select
+          value={method}
+          onChange={(e) => setMethod(e.target.value as RefundMethod)}
+          className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        >
+          {(Object.entries(METHOD_LABELS) as [RefundMethod, string][]).map(
+            ([k, v]) => (
+              <option key={k} value={k}>
+                {v}
+              </option>
+            ),
+          )}
+        </select>
+        <span className="mt-1 block text-[11px] text-brand-mute">
+          {method === "eft" || method === "manual"
+            ? "You'll send this refund yourself; we'll mark it paid and notify the guest."
+            : "Refunded to the original payment method via the provider."}
         </span>
       </label>
 

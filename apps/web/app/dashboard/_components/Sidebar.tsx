@@ -7,8 +7,10 @@ import {
   CalendarCheck,
   Calendar as CalendarIcon,
   CalendarRange,
+  ChevronDown,
   CreditCard,
   Crown,
+  FileMinus,
   FileText,
   Home as HomeIcon,
   LayoutDashboard,
@@ -25,10 +27,12 @@ import {
   Star,
   Ticket,
   Users,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
@@ -86,14 +90,29 @@ const CONNECT: Item[] = [
   { href: "/dashboard/staff", label: "Staff", icon: Users },
 ];
 
-const TOOLS: Item[] = [
+// Collapsible "Finances" sub-menu — order is intentional.
+const FINANCES: Item[] = [
   {
     href: "/dashboard/quotes",
     label: "Quotes",
     icon: FileText,
     match: "prefix",
   },
-  { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
+  {
+    href: "/dashboard/invoices",
+    label: "Invoices",
+    icon: Receipt,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/credit-notes",
+    label: "Credit Notes",
+    icon: FileMinus,
+    match: "prefix",
+  },
+];
+
+const TOOLS: Item[] = [
   {
     href: "/dashboard/addons",
     label: "Add-ons",
@@ -161,6 +180,56 @@ function NavLink({ item }: { item: Item }) {
         </span>
       ) : null}
     </Link>
+  );
+}
+
+/** A collapsible parent row whose children indent underneath it. */
+function NavGroup({
+  label,
+  icon: Icon,
+  items,
+}: {
+  label: string;
+  icon: LucideIcon;
+  items: Item[];
+}) {
+  const pathname = usePathname();
+  const childActive = items.some(
+    (i) =>
+      pathname === i.href ||
+      (i.match === "prefix" && pathname.startsWith(`${i.href}/`)) ||
+      pathname.startsWith(`${i.href}/`),
+  );
+  const [open, setOpen] = useState(childActive);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors ${
+          childActive
+            ? "text-brand-ink"
+            : "text-brand-mute hover:bg-brand-accent/60 hover:text-brand-ink"
+        }`}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="flex-1 truncate text-left">{label}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+            open ? "rotate-0" : "-rotate-90"
+          }`}
+        />
+      </button>
+      {open ? (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-brand-line pl-3">
+          {items.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -240,6 +309,8 @@ export function Sidebar({
         {MAIN.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
+
+        <NavGroup label="Finances" icon={Wallet} items={FINANCES} />
 
         <SectionLabel>Connect</SectionLabel>
         {CONNECT.map((item) => (
