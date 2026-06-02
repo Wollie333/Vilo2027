@@ -77,6 +77,9 @@ type BookingJoin = {
   session_date: string | null;
   total_amount: number;
   currency: string;
+  created_at: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
   listing:
     | { name: string; slug: string | null }
     | { name: string; slug: string | null }[];
@@ -97,7 +100,7 @@ export default async function PaymentDetailPage({
   const { data: payment } = await supabase
     .from("payments")
     .select(
-      "id, amount, currency, method, status, provider_reference, eft_proof_url, created_at, captured_at, authorised_at, failed_at, booking:bookings!inner ( id, reference, status, payment_status, guest_name, guest_email, check_in, check_out, session_date, total_amount, currency, listing:listings!inner ( name, slug ) )",
+      "id, amount, currency, method, status, provider_reference, eft_proof_url, created_at, captured_at, authorised_at, failed_at, booking:bookings!inner ( id, reference, status, payment_status, guest_name, guest_email, check_in, check_out, session_date, total_amount, currency, created_at, confirmed_at, cancelled_at, listing:listings!inner ( name, slug ) )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -122,23 +125,31 @@ export default async function PaymentDetailPage({
   ] = await Promise.all([
     supabase
       .from("invoices")
-      .select("id, invoice_number, status, total_amount, currency")
+      .select(
+        "id, invoice_number, status, total_amount, currency, created_at, paid_at",
+      )
       .eq("booking_id", booking.id)
       .order("created_at", { ascending: false }),
     supabase
       .from("quotes")
-      .select("id, quote_number, status, total_amount, currency")
+      .select(
+        "id, quote_number, status, total_amount, currency, sent_at, converted_at",
+      )
       .eq("converted_booking_id", booking.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase
       .from("credit_notes")
-      .select("id, credit_note_number, status, total_amount, currency")
+      .select(
+        "id, credit_note_number, status, total_amount, currency, issued_at",
+      )
       .eq("booking_id", booking.id)
       .order("issued_at", { ascending: false }),
     supabase
       .from("refund_requests")
-      .select("id, status, requested_amount, approved_amount, currency")
+      .select(
+        "id, reference, status, requested_amount, approved_amount, currency, created_at, actioned_at",
+      )
       .eq("payment_id", payment.id)
       .order("created_at", { ascending: false }),
   ]);
@@ -152,6 +163,72 @@ export default async function PaymentDetailPage({
     (creditNoteRows?.length ?? 0) +
     (refundRows?.length ?? 0);
 
+  // ── Financial history — a single chronological audit trail of every event
+  // across the quote → booking → payment → invoice → refund → credit note chain.
+  const money = (n: number) => fmtR(n, payment.currency);
+  const history: { at: string; label: string; kind: string }[] = [];
+  const logEvent = (at: string | null, label: string, kind: string) => {
+    if (at) history.push({ at, label, kind });
+  };
+  for (const q of quoteRows ?? []) {
+    logEvent(q.sent_at, `Quote ${q.quote_number} sent to guest`, "Quote");
+    logEvent(
+      q.converted_at,
+      `Quote ${q.quote_number} converted to booking`,
+      "Quote",
+    );
+  }
+  logEvent(
+    booking.created_at,
+    `Booking ${booking.reference} created`,
+    "Booking",
+  );
+  logEvent(booking.confirmed_at, `Booking confirmed`, "Booking");
+  logEvent(booking.cancelled_at, `Booking cancelled`, "Booking");
+  logEvent(
+    payment.created_at,
+    `Payment initiated — ${money(Number(payment.amount))}`,
+    "Payment",
+  );
+  logEvent(payment.authorised_at, `Payment authorised`, "Payment");
+  logEvent(payment.captured_at, `Payment received`, "Payment");
+  logEvent(payment.failed_at, `Payment failed`, "Payment");
+  for (const inv of invoiceRows ?? []) {
+    logEvent(inv.created_at, `Invoice ${inv.invoice_number} issued`, "Invoice");
+    logEvent(
+      inv.paid_at,
+      `Invoice ${inv.invoice_number} marked paid`,
+      "Invoice",
+    );
+  }
+  for (const r of refundRows ?? []) {
+    logEvent(
+      r.created_at,
+      `Refund ${r.reference ?? ""} requested — ${money(Number(r.requested_amount))}`.replace(
+        /\s+/g,
+        " ",
+      ),
+      "Refund",
+    );
+    if (r.status === "completed")
+      logEvent(
+        r.actioned_at,
+        `Refund ${r.reference ?? ""} completed — ${money(Number(r.approved_amount ?? r.requested_amount))}`.replace(
+          /\s+/g,
+          " ",
+        ),
+        "Refund",
+      );
+  }
+  for (const cn of creditNoteRows ?? []) {
+    logEvent(
+      cn.issued_at,
+      `Credit note ${cn.credit_note_number} issued — ${money(Number(cn.total_amount))}`,
+      "Credit note",
+    );
+  }
+  history.sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
   const method = METHOD[payment.method] ?? {
     label: payment.method,
     icon: Receipt,
@@ -160,23 +237,6 @@ export default async function PaymentDetailPage({
   const tone = STATUS_TONES[payment.status] ?? "bg-brand-line text-brand-mute";
 
   const canManage = payment.method === "eft" && payment.status === "pending";
-
-  const timeline: { label: string; at: string | null; done: boolean }[] = [
-    { label: "Created", at: payment.created_at, done: true },
-    {
-      label: "Authorised",
-      at: payment.authorised_at,
-      done: payment.authorised_at != null,
-    },
-    {
-      label: payment.status === "failed" ? "Failed" : "Captured / received",
-      at: payment.status === "failed" ? payment.failed_at : payment.captured_at,
-      done:
-        payment.status === "completed" ||
-        payment.status === "failed" ||
-        payment.captured_at != null,
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -378,27 +438,39 @@ export default async function PaymentDetailPage({
             </section>
           ) : null}
 
-          {/* Timeline */}
+          {/* History — full financial audit trail with date + time. */}
           <section className="rounded-card border border-brand-line bg-white shadow-card">
-            <div className="border-b border-brand-line px-5 py-4 font-display font-semibold text-brand-ink">
-              Timeline
+            <div className="border-b border-brand-line px-5 py-4">
+              <div className="font-display font-semibold text-brand-ink">
+                History
+              </div>
+              <div className="mt-0.5 text-xs text-brand-mute">
+                Every financial event on this booking, in order, with date and
+                time.
+              </div>
             </div>
             <ol className="space-y-4 p-5">
-              {timeline.map((t) => (
-                <li key={t.label} className="flex items-start gap-3">
-                  <span
-                    className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${t.done ? "bg-brand-primary" : "bg-brand-line"}`}
-                  />
-                  <div>
-                    <div
-                      className={`text-sm font-medium ${t.done ? "text-brand-ink" : "text-brand-mute"}`}
-                    >
-                      {t.label}
+              {history.map((e, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-brand-primary" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-pill bg-brand-line/60 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-brand-mute">
+                        {e.kind}
+                      </span>
+                      <span className="text-sm font-medium text-brand-ink">
+                        {e.label}
+                      </span>
                     </div>
-                    <div className="text-xs text-brand-mute">{fmtDt(t.at)}</div>
+                    <div className="mt-0.5 text-xs text-brand-mute">
+                      {fmtDt(e.at)}
+                    </div>
                   </div>
                 </li>
               ))}
+              {history.length === 0 ? (
+                <li className="text-sm text-brand-mute">No events yet.</li>
+              ) : null}
             </ol>
           </section>
         </div>

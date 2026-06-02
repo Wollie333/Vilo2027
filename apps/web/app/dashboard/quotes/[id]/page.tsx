@@ -3,7 +3,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import { Download, ExternalLink, History, Pencil } from "lucide-react";
+import {
+  BedDouble,
+  Download,
+  ExternalLink,
+  History,
+  Pencil,
+  Sparkles,
+} from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -64,9 +71,67 @@ export default async function QuoteDetailPage({
 
   const { data: addons } = await supabase
     .from("quote_addons")
-    .select("label, quantity, unit_price, subtotal")
+    .select(
+      "addon_id, label, quantity, unit_price, subtotal, addon:addons ( description, image_path )",
+    )
     .eq("quote_id", params.id)
     .order("sort_order");
+
+  // Rich room context (thumbnail, bed, size, short description) for the quote.
+  const { data: roomLines } = await supabase
+    .from("quote_rooms")
+    .select(
+      "room_id, base_amount, cleaning_fee, room:listing_rooms ( name, description, bed_type, room_size_sqm, max_guests, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
+    )
+    .eq("quote_id", params.id);
+
+  // Resolve add-on thumbnails from the public addon-images bucket.
+  const firstOf = <T,>(v: T | T[] | null | undefined): T | null =>
+    Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
+
+  const richAddons = (addons ?? []).map((a) => {
+    const meta = firstOf(
+      a.addon as unknown as
+        | { description: string | null; image_path: string | null }
+        | { description: string | null; image_path: string | null }[]
+        | null,
+    );
+    const imageUrl = meta?.image_path
+      ? supabase.storage.from("addon-images").getPublicUrl(meta.image_path).data
+          .publicUrl
+      : null;
+    return {
+      label: a.label,
+      quantity: a.quantity,
+      unit_price: a.unit_price,
+      subtotal: a.subtotal,
+      description: meta?.description ?? null,
+      imageUrl,
+    };
+  });
+
+  const richRooms = (roomLines ?? []).map((r) => {
+    const room = firstOf(
+      r.room as unknown as {
+        name: string;
+        description: string | null;
+        bed_type: string | null;
+        room_size_sqm: number | null;
+        max_guests: number | null;
+        featured_photo: { url: string } | { url: string }[] | null;
+      } | null,
+    );
+    const photo = firstOf(room?.featured_photo ?? null);
+    return {
+      name: room?.name ?? "Room",
+      description: room?.description ?? null,
+      bedType: room?.bed_type ?? null,
+      sizeSqm: room?.room_size_sqm ?? null,
+      maxGuests: room?.max_guests ?? null,
+      imageUrl: photo?.url ?? null,
+      total: Number(r.base_amount) + Number(r.cleaning_fee),
+    };
+  });
 
   // Prior issued versions (snapshotted on each edit of a sent quote).
   const { data: versions } = await supabase
@@ -175,6 +240,88 @@ export default async function QuoteDetailPage({
           ) : null}
         </div>
       </div>
+
+      {richRooms.length > 0 ||
+      richAddons.some((a) => a.imageUrl || a.description) ? (
+        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <h2 className="font-display text-base font-bold text-brand-ink">
+            What&rsquo;s included
+          </h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {richRooms.map((r, i) => (
+              <article
+                key={`room-${i}`}
+                className="flex gap-3 overflow-hidden rounded-card border border-brand-line"
+              >
+                {r.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.imageUrl}
+                    alt={r.name}
+                    className="h-24 w-24 shrink-0 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-brand-light text-brand-mute">
+                    <BedDouble className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="min-w-0 py-2 pr-2">
+                  <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
+                    <BedDouble className="h-3 w-3" /> Room
+                  </div>
+                  <div className="truncate font-display font-semibold text-brand-ink">
+                    {r.name}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-2 text-[11px] text-brand-mute">
+                    {r.bedType ? <span>{r.bedType}</span> : null}
+                    {r.sizeSqm ? <span>· {r.sizeSqm} m²</span> : null}
+                    {r.maxGuests ? <span>· sleeps {r.maxGuests}</span> : null}
+                  </div>
+                  {r.description ? (
+                    <p className="mt-1 line-clamp-2 text-xs text-brand-mute">
+                      {r.description}
+                    </p>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+            {richAddons
+              .filter((a) => a.imageUrl || a.description)
+              .map((a, i) => (
+                <article
+                  key={`addon-${i}`}
+                  className="flex gap-3 overflow-hidden rounded-card border border-brand-line"
+                >
+                  {a.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={a.imageUrl}
+                      alt={a.label}
+                      className="h-24 w-24 shrink-0 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-brand-light text-brand-mute">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                  )}
+                  <div className="min-w-0 py-2 pr-2">
+                    <div className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
+                      <Sparkles className="h-3 w-3" /> Add-on
+                    </div>
+                    <div className="truncate font-display font-semibold text-brand-ink">
+                      {a.label}
+                    </div>
+                    {a.description ? (
+                      <p className="mt-1 line-clamp-2 text-xs text-brand-mute">
+                        {a.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
         <h2 className="font-display text-base font-bold text-brand-ink">
