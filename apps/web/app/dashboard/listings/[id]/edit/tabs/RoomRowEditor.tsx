@@ -70,6 +70,11 @@ function toRoomEditorRoom(room: EditorRoom): RoomEditorRoom {
     price_per_person: room.price_per_person,
     base_occupancy: room.base_occupancy,
     extra_guest_price: room.extra_guest_price,
+    child_price: (room as { child_price?: number }).child_price ?? 0,
+    infant_price: (room as { infant_price?: number }).infant_price ?? 0,
+    pet_fee: (room as { pet_fee?: number }).pet_fee ?? 0,
+    infant_max_age: (room as { infant_max_age?: number }).infant_max_age ?? 2,
+    child_max_age: (room as { child_max_age?: number }).child_max_age ?? 12,
   };
 }
 

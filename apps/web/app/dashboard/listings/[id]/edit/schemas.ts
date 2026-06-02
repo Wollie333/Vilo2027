@@ -201,6 +201,12 @@ export const roomPatchSchema = z.object({
   price_per_person: z.number().min(0).max(1000000).nullable().optional(),
   base_occupancy: z.number().int().min(1).max(50).nullable().optional(),
   extra_guest_price: z.number().min(0).max(1000000).nullable().optional(),
+  // ── Age + pet pricing (flat per-night, migration 20260602000012) ──
+  child_price: z.number().min(0).max(1000000).optional(),
+  infant_price: z.number().min(0).max(1000000).optional(),
+  pet_fee: z.number().min(0).max(1000000).optional(),
+  infant_max_age: z.number().int().min(0).max(17).optional(),
+  child_max_age: z.number().int().min(0).max(17).optional(),
   // ── Drill-in editor fields ──────────────────────────────────
   room_size_sqm: z.number().min(0).max(10000).nullable().optional(),
   bed_type: z.string().max(40).nullable().optional(),

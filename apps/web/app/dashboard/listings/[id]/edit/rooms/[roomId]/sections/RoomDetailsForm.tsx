@@ -148,6 +148,18 @@ export const RoomDetailsForm = forwardRef<
   const [cleaningFee, setCleaningFee] = useState(
     numToStr(room.cleaning_fee, "0"),
   );
+  // Flat per-night age + pet pricing.
+  const [childPrice, setChildPrice] = useState(numToStr(room.child_price, "0"));
+  const [infantPrice, setInfantPrice] = useState(
+    numToStr(room.infant_price, "0"),
+  );
+  const [petFee, setPetFee] = useState(numToStr(room.pet_fee, "0"));
+  const [infantMaxAge, setInfantMaxAge] = useState(
+    numToStr(room.infant_max_age, "2"),
+  );
+  const [childMaxAge, setChildMaxAge] = useState(
+    numToStr(room.child_max_age, "12"),
+  );
   const [isActive, setIsActive] = useState(room.is_active);
 
   function toggleExperience(label: string) {
@@ -228,6 +240,14 @@ export const RoomDetailsForm = forwardRef<
       extra_guest_price:
         pricingMode === "per_room_plus_extra" ? toNum(extraGuestPrice) : null,
       cleaning_fee: toNum(cleaningFee) ?? 0,
+      child_price: toNum(childPrice) ?? 0,
+      infant_price: toNum(infantPrice) ?? 0,
+      pet_fee: toNum(petFee) ?? 0,
+      infant_max_age: Math.max(0, Math.min(17, toInt(infantMaxAge) ?? 2)),
+      child_max_age: Math.max(
+        Math.max(0, Math.min(17, toInt(infantMaxAge) ?? 2)),
+        Math.min(17, toInt(childMaxAge) ?? 12),
+      ),
       is_active: isActive,
       room_size_sqm: toNum(roomSize),
       bed_type: bedType.length > 0 ? bedType : bedSummaryString(beds),
@@ -668,6 +688,84 @@ export const RoomDetailsForm = forwardRef<
                 disabled={pending}
               />
             </Field>
+          </div>
+
+          {/* Age + pet pricing — flat per-night amounts added as quote/booking
+              lines. Leave at 0 for free (infants) or not charged. */}
+          <div className="mt-4 rounded-card border border-brand-line bg-brand-light/40 p-4">
+            <div className="text-[12.5px] font-semibold text-brand-ink">
+              Age &amp; pet pricing
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-brand-mute">
+              Flat per-night charges added on top of the room rate. Adults pay
+              the room rate above. Leave at 0 for free.
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+              <Field label="Child / night">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={childPrice}
+                  onChange={(e) => setChildPrice(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+              <Field label="Infant / night">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={infantPrice}
+                  onChange={(e) => setInfantPrice(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+              <Field label="Pet fee / night">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={petFee}
+                  onChange={(e) => setPetFee(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            </div>
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <Field label="Infant up to age">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={17}
+                  step="1"
+                  value={infantMaxAge}
+                  onChange={(e) => setInfantMaxAge(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+              <Field label="Child up to age">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={17}
+                  step="1"
+                  value={childMaxAge}
+                  onChange={(e) => setChildMaxAge(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            </div>
+            <p className="mt-2 text-[11px] text-brand-mute">
+              Infants 0–{infantMaxAge || "2"} · children{" "}
+              {Number(infantMaxAge || 2) + 1}–{childMaxAge || "12"} · adults{" "}
+              {Number(childMaxAge || 12) + 1}+.
+            </p>
           </div>
         </div>
 

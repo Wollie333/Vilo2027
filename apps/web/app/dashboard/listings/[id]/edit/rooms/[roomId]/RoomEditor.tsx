@@ -57,6 +57,12 @@ export type RoomEditorRoom = {
   price_per_person: number | null;
   base_occupancy: number | null;
   extra_guest_price: number | null;
+  // Flat per-night age + pet pricing.
+  child_price: number;
+  infant_price: number;
+  pet_fee: number;
+  infant_max_age: number;
+  child_max_age: number;
 };
 
 /** The room's effective "from" nightly figure for the chosen pricing mode. */

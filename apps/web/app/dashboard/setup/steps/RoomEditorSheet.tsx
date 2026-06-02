@@ -44,6 +44,11 @@ const BLANK_ROOM: RoomEditorRoom = {
   price_per_person: null,
   base_occupancy: null,
   extra_guest_price: null,
+  child_price: 0,
+  infant_price: 0,
+  pet_fee: 0,
+  infant_max_age: 2,
+  child_max_age: 12,
 };
 
 export function RoomEditorSheet({
