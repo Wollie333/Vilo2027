@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
+import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderQuotePdf } from "@/lib/pdf/render";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -238,6 +239,7 @@ export async function GET(
     total: quote.total_amount,
     currency: quote.currency,
     notes: quote.notes,
+    logoUrl: await hostLogoDataUri(hostObj.id),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

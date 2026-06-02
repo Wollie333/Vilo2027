@@ -66,11 +66,16 @@ export default async function BankingSettingsPage() {
     supabase
       .from("host_business_details")
       .select(
-        "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
+        "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country, logo_path",
       )
       .eq("host_id", host.id)
       .maybeSingle(),
   ]);
+
+  const logoUrl = businessRow?.logo_path
+    ? supabase.storage.from("host-logos").getPublicUrl(businessRow.logo_path)
+        .data.publicUrl
+    : null;
 
   const accounts = (accountRows ?? []).map((row) => ({
     id: row.id,
@@ -115,7 +120,7 @@ export default async function BankingSettingsPage() {
       </p>
 
       {/* Business details first, then payout accounts. */}
-      <BusinessDetailsForm defaults={businessDefaults} />
+      <BusinessDetailsForm defaults={businessDefaults} logoUrl={logoUrl} />
       <BankAccountList accounts={accounts} />
     </div>
   );

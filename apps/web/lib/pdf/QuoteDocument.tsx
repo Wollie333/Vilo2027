@@ -1,5 +1,6 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
+import { DocHeader } from "./DocHeader";
 import { formatDate, formatMoney, styles } from "./styles";
 
 export type QuoteLineItem = {
@@ -57,6 +58,8 @@ export type QuoteProps = {
   total: number;
   currency: string;
   notes?: string | null;
+  /** Host logo (data URI or public URL) for the branded header. */
+  logoUrl?: string | null;
 };
 
 export function QuoteDocument({ quote }: { quote: QuoteProps }) {
@@ -77,13 +80,15 @@ export function QuoteDocument({ quote }: { quote: QuoteProps }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          <View style={styles.brandBlock}>
-            <Text style={styles.brandSquare}>V</Text>
-            <View>
-              <Text style={styles.brandWordmark}>VILO</Text>
-              <Text style={styles.brandTag}>Direct booking platform</Text>
-            </View>
-          </View>
+          <DocHeader
+            logoUrl={quote.logoUrl}
+            businessName={
+              quote.host.business?.tradingName ??
+              quote.host.business?.legalName ??
+              quote.host.displayName ??
+              "Vilo"
+            }
+          />
           <View style={styles.docMeta}>
             <Text style={styles.docKind}>Quote</Text>
             <Text style={styles.docNumber}>{quote.quoteNumber}</Text>

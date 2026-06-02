@@ -40,6 +40,12 @@ export const styles = StyleSheet.create({
     paddingTop: 6,
     marginRight: 10,
   },
+  brandLogo: {
+    width: 44,
+    height: 44,
+    objectFit: "contain",
+    marginRight: 10,
+  },
   brandWordmark: {
     fontSize: 20,
     fontFamily: "Helvetica-Bold",

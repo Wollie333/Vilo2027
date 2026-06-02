@@ -1,5 +1,6 @@
 import { Document, Page, Text, View } from "@react-pdf/renderer";
 
+import { DocHeader } from "./DocHeader";
 import { formatDate, formatMoney, styles } from "./styles";
 
 export type InvoiceLineItem = {
@@ -59,6 +60,8 @@ export type InvoiceProps = {
   totalAmount: number;
   currency: string;
   notes?: string | null;
+  /** Host logo (data URI or public URL) for the branded header. */
+  logoUrl?: string | null;
 };
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
@@ -75,13 +78,15 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          <View style={styles.brandBlock}>
-            <Text style={styles.brandSquare}>V</Text>
-            <View>
-              <Text style={styles.brandWordmark}>VILO</Text>
-              <Text style={styles.brandTag}>Direct booking platform</Text>
-            </View>
-          </View>
+          <DocHeader
+            logoUrl={invoice.logoUrl}
+            businessName={
+              invoice.host.business?.tradingName ??
+              invoice.host.business?.legalName ??
+              invoice.host.displayName ??
+              "Vilo"
+            }
+          />
           <View style={styles.docMeta}>
             <Text style={styles.docKind}>Invoice</Text>
             <Text style={styles.docNumber}>{invoice.invoiceNumber}</Text>

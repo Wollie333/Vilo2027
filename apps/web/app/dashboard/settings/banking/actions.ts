@@ -314,3 +314,99 @@ export async function saveBusinessDetailsAction(
   revalidatePath("/dashboard/settings");
   return { ok: true };
 }
+
+// ─── Host logo (branded financial documents) ─────────────────────
+const LOGO_BUCKET = "host-logos";
+
+export type LogoUploadResult =
+  | { ok: true; url: string }
+  | { ok: false; error: string };
+
+/**
+ * Store the host's logo for branded quotes / invoices / credit notes. The
+ * client resizes the image before upload, so this just validates + stores it
+ * in the public host-logos bucket under the host's own folder (RLS-gated).
+ */
+export async function uploadHostLogoAction(
+  formData: FormData,
+): Promise<LogoUploadResult> {
+  const host = await resolveHost();
+  if (!host.ok) return host;
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "No file selected." };
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    return { ok: false, error: "Logo must be under 5 MB." };
+  }
+  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowed.includes(file.type)) {
+    return { ok: false, error: "Use a JPEG, PNG or WebP image." };
+  }
+
+  const supabase = createServerClient();
+  const ext =
+    file.type === "image/png"
+      ? "png"
+      : file.type === "image/webp"
+        ? "webp"
+        : "jpg";
+  const storagePath = `${host.hostId}/logo-${crypto.randomUUID()}.${ext}`;
+
+  const { data: existing } = await supabase
+    .from("host_business_details")
+    .select("logo_path")
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+
+  const { error: upErr } = await supabase.storage
+    .from(LOGO_BUCKET)
+    .upload(storagePath, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+  if (upErr) return { ok: false, error: "Upload failed. Try a smaller file." };
+
+  const { error: rowErr } = await supabase
+    .from("host_business_details")
+    .upsert(
+      { host_id: host.hostId, logo_path: storagePath },
+      { onConflict: "host_id" },
+    );
+  if (rowErr) {
+    await supabase.storage.from(LOGO_BUCKET).remove([storagePath]);
+    return { ok: false, error: "Upload saved but record failed." };
+  }
+
+  if (existing?.logo_path && existing.logo_path !== storagePath) {
+    await supabase.storage.from(LOGO_BUCKET).remove([existing.logo_path]);
+  }
+
+  const { data: pub } = supabase.storage
+    .from(LOGO_BUCKET)
+    .getPublicUrl(storagePath);
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true, url: pub.publicUrl };
+}
+
+export async function removeHostLogoAction(): Promise<ActionResult> {
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { data: existing } = await supabase
+    .from("host_business_details")
+    .select("logo_path")
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+  if (existing?.logo_path) {
+    await supabase.storage.from(LOGO_BUCKET).remove([existing.logo_path]);
+  }
+  await supabase
+    .from("host_business_details")
+    .update({ logo_path: null })
+    .eq("host_id", host.hostId);
+  revalidatePath("/dashboard/settings/banking");
+  return { ok: true };
+}

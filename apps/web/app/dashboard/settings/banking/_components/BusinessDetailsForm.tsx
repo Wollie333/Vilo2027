@@ -10,12 +10,15 @@ import { Field, TextInput } from "@/app/dashboard/setup/_atoms";
 
 import { saveBusinessDetailsAction } from "../actions";
 import { businessDetailsSchema, type BusinessDetailsInput } from "../schemas";
+import { LogoUploader } from "./LogoUploader";
 
 export function BusinessDetailsForm({
   defaults,
+  logoUrl,
   onSaved,
 }: {
   defaults: BusinessDetailsInput;
+  logoUrl?: string | null;
   onSaved?: () => void;
 }) {
   const [pending, start] = useTransition();
@@ -90,6 +93,11 @@ export function BusinessDetailsForm({
             <Pencil className="h-3 w-3" /> Edit
           </button>
         ) : null}
+      </div>
+
+      {/* Logo — branded onto every financial document. */}
+      <div className="border-b border-brand-line px-5 py-4">
+        <LogoUploader initialUrl={logoUrl ?? null} />
       </div>
 
       {/* Saved summary */}

@@ -76,7 +76,6 @@ const MAIN: Item[] = [
     icon: MapPin,
     match: "prefix",
   },
-  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
 ];
 
 const CONNECT: Item[] = [
@@ -110,6 +109,8 @@ const FINANCES: Item[] = [
     icon: FileMinus,
     match: "prefix",
   },
+  { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
+  { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
 const TOOLS: Item[] = [
@@ -127,7 +128,6 @@ const TOOLS: Item[] = [
     icon: ShieldCheck,
     match: "prefix",
   },
-  { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
 const FOOTER_LINKS: Item[] = [

@@ -5,6 +5,7 @@ import {
   type InvoiceBanking,
   type InvoiceBusiness,
 } from "@/lib/pdf/InvoiceDocument";
+import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderInvoicePdf } from "@/lib/pdf/render";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -146,7 +147,7 @@ export async function GET(
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
-      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, host_snapshot, guest_snapshot, line_items",
+      "invoice_number, status, issued_at, currency, subtotal, vat_amount, total_amount, host_id, host_snapshot, guest_snapshot, line_items",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -154,6 +155,8 @@ export async function GET(
   if (!invoice) {
     return new NextResponse("Not found", { status: 404 });
   }
+
+  const logoUrl = await hostLogoDataUri(invoice.host_id);
 
   const lines = invoice.line_items as Lines;
   const host = invoice.host_snapshot as Snap;
@@ -244,6 +247,7 @@ export async function GET(
     vatAmount: invoice.vat_amount,
     totalAmount: invoice.total_amount,
     currency: invoice.currency,
+    logoUrl,
   });
 
   return new NextResponse(new Uint8Array(buffer), {
