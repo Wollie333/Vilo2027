@@ -294,13 +294,24 @@ function totalsFor(input: {
   base_amount: number;
   cleaning_fee: number;
   addons: { quantity: number; unit_price: number }[];
+  discount_type?: "percent" | "fixed" | null;
+  discount_value?: number;
 }) {
   const addonsTotal = input.addons.reduce(
     (s, a) => s + a.quantity * a.unit_price,
     0,
   );
-  const total = input.base_amount + input.cleaning_fee + addonsTotal;
-  return { addonsTotal, total };
+  const subtotal = input.base_amount + input.cleaning_fee + addonsTotal;
+  // Discount applies to the whole subtotal and can't exceed it.
+  let discountAmount = 0;
+  const v = input.discount_value ?? 0;
+  if (input.discount_type === "percent" && v > 0) {
+    discountAmount = Math.round((subtotal * Math.min(v, 100)) / 100);
+  } else if (input.discount_type === "fixed" && v > 0) {
+    discountAmount = Math.min(v, subtotal);
+  }
+  const total = subtotal - discountAmount;
+  return { addonsTotal, subtotal, discountAmount, total };
 }
 
 export async function createQuoteAction(
@@ -345,7 +356,7 @@ export async function createQuoteAction(
     return { ok: false, error: "Could not assign a quote number." };
   }
 
-  const { addonsTotal, total } = totalsFor(parsed.data);
+  const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
 
   const { data: quote, error: insErr } = await supabase
     .from("quotes")
@@ -364,6 +375,10 @@ export async function createQuoteAction(
       cleaning_fee: parsed.data.cleaning_fee,
       addons_total: addonsTotal,
       total_amount: total,
+      discount_type: parsed.data.discount_type ?? null,
+      discount_value: parsed.data.discount_value ?? 0,
+      discount_reason: parsed.data.discount_reason || null,
+      discount_amount: discountAmount,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       policy_snapshot: policySnapshot,
@@ -453,7 +468,7 @@ export async function updateQuoteAction(
     await snapshotQuoteVersion(supabase, quoteId, current.version ?? 1);
   }
 
-  const { addonsTotal, total } = totalsFor(parsed.data);
+  const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
 
   const { error: updErr } = await supabase
     .from("quotes")
@@ -470,6 +485,10 @@ export async function updateQuoteAction(
       cleaning_fee: parsed.data.cleaning_fee,
       addons_total: addonsTotal,
       total_amount: total,
+      discount_type: parsed.data.discount_type ?? null,
+      discount_value: parsed.data.discount_value ?? 0,
+      discount_reason: parsed.data.discount_reason || null,
+      discount_amount: discountAmount,
       currency: parsed.data.currency,
       notes: parsed.data.notes || null,
       guests_breakdown: parsed.data.guests_breakdown ?? null,
@@ -656,7 +675,8 @@ export async function convertQuoteAction(
       `
       id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
-      addons_total, total_amount, currency, status, notes, guests_breakdown
+      addons_total, total_amount, currency, status, notes, guests_breakdown,
+      discount_amount
     `,
     )
     .eq("id", quoteId)
@@ -699,6 +719,7 @@ export async function convertQuoteAction(
       check_out: quote.check_out,
       guests_count: quote.headcount,
       guests_breakdown: quote.guests_breakdown ?? null,
+      discount_amount: quote.discount_amount ?? 0,
       base_amount: quote.base_amount,
       cleaning_fee: quote.cleaning_fee,
       total_amount: quote.total_amount,

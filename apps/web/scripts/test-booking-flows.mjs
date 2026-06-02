@@ -1116,6 +1116,37 @@ async function main() {
     check("S3 booking keeps the party breakdown", bk?.guests_breakdown?.children === 1 && bk?.guests_breakdown?.pets === 1);
   }
 
+  // ── Journey T: a discount flows through to the invoice ──
+  console.log("\nJourney T — discount lands on the invoice (subtotal − discount = total)");
+  {
+    const b = await insertBooking({
+      guest_id: GUEST_UID,
+      base_amount: 3000,
+      cleaning_fee: 500,
+      discount_amount: 350, // 10% of 3500
+      total_amount: 3150,
+      check_in: isoPlus(170),
+      check_out: isoPlus(173),
+    });
+    const { data: pay } = await db
+      .from("payments")
+      .insert({ booking_id: b.id, amount: 3150, currency: "ZAR", method: "paystack", status: "completed", captured_at: new Date().toISOString() })
+      .select("id")
+      .single();
+    if (pay) created.payments.push(pay.id);
+    await db.from("bookings").update({ status: "confirmed", payment_status: "completed" }).eq("id", b.id);
+
+    const { data: inv } = await db
+      .from("invoices")
+      .select("subtotal, total_amount, line_items")
+      .eq("booking_id", b.id)
+      .maybeSingle();
+    check("T1 invoice subtotal is pre-discount", inv && Number(inv.subtotal) === 3500, inv ? `got ${inv.subtotal}` : "no invoice");
+    check("T2 invoice total is post-discount", inv && Number(inv.total_amount) === 3150, inv ? `got ${inv.total_amount}` : "none");
+    check("T3 invoice records the discount", inv && Number(inv.line_items?.discount_amount) === 350, inv ? `got ${inv.line_items?.discount_amount}` : "none");
+    check("T4 subtotal − discount === total", inv && Number(inv.subtotal) - Number(inv.line_items?.discount_amount) === Number(inv.total_amount));
+  }
+
   console.log(
     `\n${failed === 0 ? "\x1b[32m" : "\x1b[31m"}${passed} passed, ${failed} failed\x1b[0m`,
   );

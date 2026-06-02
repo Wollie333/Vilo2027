@@ -103,6 +103,9 @@ export type QuoteFormInitial = {
   baseAmount?: number;
   cleaningFee?: number;
   notes?: string;
+  discountType?: "percent" | "fixed" | null;
+  discountValue?: number;
+  discountReason?: string;
   rooms?: {
     room_id: string;
     guests: number;
@@ -176,6 +179,19 @@ export function QuoteForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [validDays, setValidDays] = useState(3);
+  // Optional quote-level discount.
+  const [discountOn, setDiscountOn] = useState(
+    !!initial?.discountType && (initial?.discountValue ?? 0) > 0,
+  );
+  const [discountType, setDiscountType] = useState<"percent" | "fixed">(
+    initial?.discountType ?? "percent",
+  );
+  const [discountValue, setDiscountValue] = useState(
+    String(initial?.discountValue ?? ""),
+  );
+  const [discountReason, setDiscountReason] = useState(
+    initial?.discountReason ?? "",
+  );
 
   const [roomGuests, setRoomGuests] = useState<Record<string, string>>(
     Object.fromEntries(
@@ -331,12 +347,23 @@ export function QuoteForm({
     );
     const ageSum = ageLines.reduce((s, a) => s + a.subtotal, 0);
     const addonsSum = catalogSum + customSum + ageSum;
+    const subtotal = base + cleaning + addonsSum;
+    const v = parseFloat(discountValue) || 0;
+    let discountAmount = 0;
+    if (discountOn && v > 0) {
+      discountAmount =
+        discountType === "percent"
+          ? Math.round((subtotal * Math.min(v, 100)) / 100)
+          : Math.min(v, subtotal);
+    }
     return {
       base,
       cleaning,
       addonsSum,
       ageSum,
-      total: base + cleaning + addonsSum,
+      subtotal,
+      discountAmount,
+      total: subtotal - discountAmount,
     };
   }, [
     scope,
@@ -346,6 +373,9 @@ export function QuoteForm({
     catalogLines,
     customAddons,
     ageLines,
+    discountOn,
+    discountType,
+    discountValue,
   ]);
 
   function toggleRoom(roomId: string) {
@@ -513,6 +543,9 @@ export function QuoteForm({
       rooms: scope === "rooms" ? pricedRooms : [],
       addons,
       guests_breakdown: { adults, children, infants, pets },
+      discount_type: discountOn ? discountType : null,
+      discount_value: discountOn ? parseFloat(discountValue) || 0 : 0,
+      discount_reason: discountOn ? discountReason.trim() : "",
       notes: notes.trim(),
     };
   }
@@ -1076,11 +1109,79 @@ export function QuoteForm({
             </button>
           </div>
 
+          {/* Discount */}
+          <div className="mt-4 rounded-[10px] border border-brand-line bg-brand-light/50 p-3">
+            <label className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setDiscountOn((v) => !v)}
+                aria-pressed={discountOn}
+                className={`relative h-[18px] w-8 shrink-0 rounded-full transition-colors ${discountOn ? "bg-brand-primary" : "bg-brand-line"}`}
+              >
+                <span
+                  className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-transform ${discountOn ? "translate-x-[16px]" : "translate-x-[2px]"}`}
+                />
+              </button>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-semibold text-brand-ink">
+                  Apply a discount
+                </span>
+                <span className="block text-[11px] text-brand-mute">
+                  Shown as its own line on the quote.
+                </span>
+              </span>
+            </label>
+            {discountOn ? (
+              <div className="mt-3 flex flex-wrap items-end gap-2">
+                <div>
+                  <FieldLabel>Type</FieldLabel>
+                  <Seg
+                    value={discountType}
+                    onChange={(v) => setDiscountType(v as "percent" | "fixed")}
+                    options={[
+                      { value: "percent", label: "%" },
+                      {
+                        value: "fixed",
+                        label: currency === "ZAR" ? "R" : currency,
+                      },
+                    ]}
+                  />
+                </div>
+                <div className="w-24">
+                  <FieldLabel>Value</FieldLabel>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-[10rem] flex-1">
+                  <FieldLabel>Reason</FieldLabel>
+                  <Input
+                    value={discountReason}
+                    onChange={(e) => setDiscountReason(e.target.value)}
+                    placeholder="Returning guest"
+                  />
+                </div>
+                {totals.discountAmount > 0 ? (
+                  <span className="pb-2 text-[12px] font-medium text-brand-primary">
+                    −{fmt(totals.discountAmount, currency)}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
           <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
             <span className="text-[12px] text-brand-secondary">
               Accommodation {fmt(totals.base, currency)} · cleaning{" "}
               {fmt(totals.cleaning, currency)} · add-ons{" "}
               {fmt(totals.addonsSum, currency)}
+              {totals.discountAmount > 0
+                ? ` · −${fmt(totals.discountAmount, currency)}`
+                : ""}
             </span>
             <span className="font-display text-[15px] font-bold text-brand-secondary">
               Total {fmt(totals.total, currency)}
@@ -1257,6 +1358,19 @@ export function QuoteForm({
                   value={fmt(a.subtotal, currency)}
                 />
               ))}
+              {totals.discountAmount > 0 ? (
+                <li className="flex items-center justify-between">
+                  <span className="text-brand-primary">
+                    {discountReason.trim() || "Discount"}
+                    {discountType === "percent"
+                      ? ` · ${parseFloat(discountValue) || 0}%`
+                      : ""}
+                  </span>
+                  <span className="font-medium text-brand-primary">
+                    −{fmt(totals.discountAmount, currency)}
+                  </span>
+                </li>
+              ) : null}
             </ul>
             <div className="my-4 h-px bg-brand-line" />
             <div className="flex items-baseline justify-between">

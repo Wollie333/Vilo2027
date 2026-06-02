@@ -46,6 +46,12 @@ export const quoteOrBookingBaseSchema = z
     rooms: z.array(roomLineSchema).max(50).default([]),
     addons: z.array(addonLineSchema).max(50).default([]),
 
+    // Optional quote-level discount (shown as its own line; the server computes
+    // the rand value and subtracts it from the total).
+    discount_type: z.enum(["percent", "fixed"]).nullable().optional(),
+    discount_value: z.coerce.number().min(0).max(1000000).optional().default(0),
+    discount_reason: z.string().trim().max(200).optional().or(z.literal("")),
+
     // Party split {adults, children, infants, pets} — drives age/pet pricing.
     guests_breakdown: z
       .object({

@@ -72,6 +72,7 @@ export async function GET(
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
+      discount_amount, discount_reason,
       notes,
       listing:listings ( name ),
       host:hosts!inner ( id, display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
@@ -168,6 +169,8 @@ export async function GET(
     cleaningFee: snap?.cleaning_fee ?? quote.cleaning_fee,
     addonsTotal: snap?.addons_total ?? quote.addons_total ?? 0,
     total: snap?.total_amount ?? quote.total_amount,
+    discountAmount: Number(quote.discount_amount ?? 0),
+    discountReason: quote.discount_reason ?? null,
     notes: snap?.notes ?? quote.notes,
     currency: snap?.currency ?? quote.currency,
     addons: snap?.addons ?? addons ?? [],
@@ -241,6 +244,16 @@ export async function GET(
       quantity: a.quantity,
       unit_price: a.unit_price,
       subtotal: a.subtotal,
+    });
+  }
+  if (doc.discountAmount > 0) {
+    lineRows.push({
+      description: doc.discountReason
+        ? `Discount — ${doc.discountReason}`
+        : "Discount",
+      quantity: 1,
+      unit_price: -doc.discountAmount,
+      subtotal: -doc.discountAmount,
     });
   }
 
