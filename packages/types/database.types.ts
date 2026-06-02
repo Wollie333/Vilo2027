@@ -2728,6 +2728,7 @@ export type Database = {
           bathrooms: number | null
           bed_type: string | null
           bedrooms: number | null
+          child_price: number
           cleaning_fee: number
           created_at: string
           currency: string
@@ -2739,6 +2740,7 @@ export type Database = {
           floor_number: number | null
           has_ensuite_bathroom: boolean
           id: string
+          infant_price: number
           inventory_count: number
           is_active: boolean
           listing_id: string
@@ -2746,6 +2748,7 @@ export type Database = {
           min_guests: number
           min_nights: number
           name: string
+          pet_fee: number
           pets_allowed: boolean
           price_per_person: number | null
           pricing_mode: string
@@ -2764,6 +2767,7 @@ export type Database = {
           bathrooms?: number | null
           bed_type?: string | null
           bedrooms?: number | null
+          child_price?: number
           cleaning_fee?: number
           created_at?: string
           currency?: string
@@ -2775,6 +2779,7 @@ export type Database = {
           floor_number?: number | null
           has_ensuite_bathroom?: boolean
           id?: string
+          infant_price?: number
           inventory_count?: number
           is_active?: boolean
           listing_id: string
@@ -2782,6 +2787,7 @@ export type Database = {
           min_guests?: number
           min_nights?: number
           name: string
+          pet_fee?: number
           pets_allowed?: boolean
           price_per_person?: number | null
           pricing_mode?: string
@@ -2800,6 +2806,7 @@ export type Database = {
           bathrooms?: number | null
           bed_type?: string | null
           bedrooms?: number | null
+          child_price?: number
           cleaning_fee?: number
           created_at?: string
           currency?: string
@@ -2811,6 +2818,7 @@ export type Database = {
           floor_number?: number | null
           has_ensuite_bathroom?: boolean
           id?: string
+          infant_price?: number
           inventory_count?: number
           is_active?: boolean
           listing_id?: string
@@ -2818,6 +2826,7 @@ export type Database = {
           min_guests?: number
           min_nights?: number
           name?: string
+          pet_fee?: number
           pets_allowed?: boolean
           price_per_person?: number | null
           pricing_mode?: string
@@ -2934,6 +2943,7 @@ export type Database = {
           category_id: string | null
           check_in_time: string | null
           check_out_time: string | null
+          child_price: number
           city: string | null
           cleaning_fee: number | null
           country: string
@@ -2946,6 +2956,7 @@ export type Database = {
           host_id: string
           house_rules: string | null
           id: string
+          infant_price: number
           instant_booking: boolean
           is_featured: boolean
           is_non_refundable: boolean
@@ -2963,6 +2974,7 @@ export type Database = {
           min_participants: number | null
           monthly_discount_pct: number | null
           name: string
+          pet_fee: number
           postal_code: string | null
           private_group_price: number | null
           province: string | null
@@ -2996,6 +3008,7 @@ export type Database = {
           category_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          child_price?: number
           city?: string | null
           cleaning_fee?: number | null
           country?: string
@@ -3008,6 +3021,7 @@ export type Database = {
           host_id: string
           house_rules?: string | null
           id?: string
+          infant_price?: number
           instant_booking?: boolean
           is_featured?: boolean
           is_non_refundable?: boolean
@@ -3025,6 +3039,7 @@ export type Database = {
           min_participants?: number | null
           monthly_discount_pct?: number | null
           name: string
+          pet_fee?: number
           postal_code?: string | null
           private_group_price?: number | null
           province?: string | null
@@ -3058,6 +3073,7 @@ export type Database = {
           category_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          child_price?: number
           city?: string | null
           cleaning_fee?: number | null
           country?: string
@@ -3070,6 +3086,7 @@ export type Database = {
           host_id?: string
           house_rules?: string | null
           id?: string
+          infant_price?: number
           instant_booking?: boolean
           is_featured?: boolean
           is_non_refundable?: boolean
@@ -3087,6 +3104,7 @@ export type Database = {
           min_participants?: number | null
           monthly_discount_pct?: number | null
           name?: string
+          pet_fee?: number
           postal_code?: string | null
           private_group_price?: number | null
           province?: string | null
@@ -4155,6 +4173,7 @@ export type Database = {
           guest_id: string | null
           guest_name: string
           guest_phone: string | null
+          guests_breakdown: Json | null
           headcount: number
           host_id: string
           id: string
@@ -4189,6 +4208,7 @@ export type Database = {
           guest_id?: string | null
           guest_name: string
           guest_phone?: string | null
+          guests_breakdown?: Json | null
           headcount?: number
           host_id: string
           id?: string
@@ -4223,6 +4243,7 @@ export type Database = {
           guest_id?: string | null
           guest_name?: string
           guest_phone?: string | null
+          guests_breakdown?: Json | null
           headcount?: number
           host_id?: string
           id?: string

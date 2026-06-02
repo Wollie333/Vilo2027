@@ -3,3 +3,4 @@
 export * from "./occupancy";
 export * from "./discounts";
 export * from "./engine";
+export * from "./extras";
