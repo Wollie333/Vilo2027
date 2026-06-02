@@ -726,6 +726,57 @@ export async function convertQuoteAction(
   return { ok: true, data: { bookingId: booking.id } };
 }
 
+// Type-ahead over the host's past guests (from their bookings) so the quote
+// builder can recognise a returning guest and pre-fill their details.
+export async function searchGuestsAction(
+  query: string,
+): Promise<
+  ActionResult<
+    { name: string; email: string; phone: string | null; stays: number }[]
+  >
+> {
+  const host = await getHostId();
+  if (!host.ok) return host;
+  const q = query.trim();
+  if (q.length < 2) return { ok: true, data: [] };
+
+  const supabase = createServerClient();
+  const { data: rows } = await supabase
+    .from("bookings")
+    .select("guest_name, guest_email, guest_phone, status")
+    .eq("host_id", host.hostId)
+    .or(`guest_name.ilike.%${q}%,guest_email.ilike.%${q}%`)
+    .not("guest_email", "is", null)
+    .limit(100);
+
+  // Collapse to one entry per guest email, counting non-cancelled stays.
+  const byEmail = new Map<
+    string,
+    { name: string; email: string; phone: string | null; stays: number }
+  >();
+  for (const r of rows ?? []) {
+    const email = (r.guest_email ?? "").toLowerCase();
+    if (!email) continue;
+    const existing = byEmail.get(email);
+    const counts = !String(r.status ?? "").startsWith("cancelled");
+    if (existing) {
+      if (counts) existing.stays += 1;
+      if (!existing.phone && r.guest_phone) existing.phone = r.guest_phone;
+    } else {
+      byEmail.set(email, {
+        name: r.guest_name ?? "",
+        email: r.guest_email ?? "",
+        phone: r.guest_phone ?? null,
+        stays: counts ? 1 : 0,
+      });
+    }
+  }
+  return {
+    ok: true,
+    data: [...byEmail.values()].sort((a, b) => b.stays - a.stays).slice(0, 6),
+  };
+}
+
 // Post the quote link into an existing host↔guest conversation. Conversations
 // are created by the booking/enquiry flow — we only write into one that already
 // exists (matched on the guest's Vilo account). Account-less guests get a clear

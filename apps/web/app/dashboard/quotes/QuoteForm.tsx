@@ -1,30 +1,35 @@
 "use client";
 
-import { Calculator, Plus, Save, Send, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  BedDouble,
+  Calculator,
+  Check,
+  Clock,
+  Plus,
+  Send,
+  ShieldCheck,
+  Trash2,
+  User,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
+import { QuoteCalendar } from "./QuoteCalendar";
 import {
   createQuoteAction,
   priceQuoteAction,
+  searchGuestsAction,
   sendQuoteAction,
   updateQuoteAction,
 } from "./actions";
@@ -36,6 +41,8 @@ export type QuoteFormRoom = {
   cleaning_fee: number | null;
   max_guests: number | null;
   base_occupancy: number | null;
+  bed_type?: string | null;
+  coverUrl?: string | null;
 };
 
 export type QuoteFormAddon = {
@@ -55,6 +62,11 @@ export type QuoteFormListing = {
   base_price: number | null;
   cleaning_fee: number | null;
   currency: string;
+  city?: string | null;
+  max_guests?: number | null;
+  coverUrl?: string | null;
+  /** YYYY-MM-DD nights already booked/blocked for this listing. */
+  blocked?: string[];
   rooms: QuoteFormRoom[];
   addons: QuoteFormAddon[];
 };
@@ -97,6 +109,21 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return n > 0 ? n : 0;
 }
 
+function fmtDayLong(iso: string): string {
+  if (!iso) return "—";
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function fmt(amount: number, currency: string): string {
+  const symbol = currency === "ZAR" ? "R" : currency + " ";
+  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
+
 export function QuoteForm({
   listings,
   initial,
@@ -115,9 +142,14 @@ export function QuoteForm({
   const [guestName, setGuestName] = useState(initial?.guestName ?? "");
   const [guestEmail, setGuestEmail] = useState(initial?.guestEmail ?? "");
   const [guestPhone, setGuestPhone] = useState(initial?.guestPhone ?? "");
+  const [sendVia, setSendVia] = useState<"both" | "email" | "link">("both");
   const [checkIn, setCheckIn] = useState(initial?.checkIn ?? "");
   const [checkOut, setCheckOut] = useState(initial?.checkOut ?? "");
-  const [headcount, setHeadcount] = useState(String(initial?.headcount ?? 2));
+  const initialHead = initial?.headcount ?? 2;
+  const [adults, setAdults] = useState(Math.max(1, initialHead));
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [pets, setPets] = useState(0);
   const [scope, setScope] = useState<"whole_listing" | "rooms">(
     initial?.scope ?? "whole_listing",
   );
@@ -128,8 +160,8 @@ export function QuoteForm({
     String(initial?.cleaningFee ?? 0),
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [validDays, setValidDays] = useState(3);
 
-  // Per-room selection + the engine-priced amounts for the chosen rooms.
   const [roomGuests, setRoomGuests] = useState<Record<string, string>>(
     Object.fromEntries(
       (initial?.rooms ?? []).map((r) => [r.room_id, String(r.guests)]),
@@ -145,8 +177,6 @@ export function QuoteForm({
       cleaning_fee: r.cleaning_fee,
     })),
   );
-
-  // Catalog add-ons (ticked from the host's catalog) + free-form custom lines.
   const [catalogSel, setCatalogSel] = useState<Record<string, string>>(
     Object.fromEntries(
       (initial?.catalogAddons ?? []).map((a) => [
@@ -154,7 +184,7 @@ export function QuoteForm({
         String(a.quantity),
       ]),
     ),
-  ); // addonId → qty
+  );
   const [customAddons, setCustomAddons] = useState<AddonRow[]>(
     (initial?.customAddons ?? []).map((a) => ({
       label: a.label,
@@ -167,8 +197,37 @@ export function QuoteForm({
   const currency = listing?.currency ?? "ZAR";
   const hasRooms = (listing?.rooms.length ?? 0) > 0;
   const nights = nightsBetween(checkIn, checkOut);
+  const headcount = Math.max(1, adults + children);
+  const blockedSet = useMemo(() => new Set(listing?.blocked ?? []), [listing]);
 
-  // Switching listing resets anything room/addon-scoped to the old listing.
+  // ── Returning-guest search ───────────────────────────────────────
+  const [guestResults, setGuestResults] = useState<
+    { name: string; email: string; phone: string | null; stays: number }[]
+  >([]);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function onGuestNameChange(v: string) {
+    setGuestName(v);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (v.trim().length < 2) {
+      setGuestResults([]);
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      const r = await searchGuestsAction(v);
+      if (r.ok && r.data) {
+        setGuestResults(r.data);
+        setShowResults(true);
+      }
+    }, 250);
+  }
+  function pickGuest(g: { name: string; email: string; phone: string | null }) {
+    setGuestName(g.name);
+    setGuestEmail(g.email);
+    if (g.phone) setGuestPhone(g.phone);
+    setShowResults(false);
+  }
+
   function changeListing(id: string) {
     setListingId(id);
     setSelectedRooms({});
@@ -183,8 +242,6 @@ export function QuoteForm({
     );
   }
 
-  // Catalog add-on lines — quantity is shaped per pricing model so the stored
-  // subtotal (quantity × unit_price) is correct.
   const catalogLines = useMemo(() => {
     const out: {
       label: string;
@@ -199,8 +256,7 @@ export function QuoteForm({
       if (!Number.isFinite(chosen) || chosen <= 0) continue;
       let quantity = chosen;
       if (a.pricing_model === "per_night") quantity = Math.max(1, nights || 1);
-      if (a.pricing_model === "per_person")
-        quantity = Math.max(1, parseInt(headcount, 10) || 1);
+      if (a.pricing_model === "per_person") quantity = Math.max(1, headcount);
       out.push({
         label: a.name,
         quantity,
@@ -235,7 +291,7 @@ export function QuoteForm({
 
   function toggleRoom(roomId: string) {
     setSelectedRooms((prev) => ({ ...prev, [roomId]: !prev[roomId] }));
-    setPricedRooms([]); // selection changed → re-price needed
+    setPricedRooms([]);
   }
 
   const datesValid = !!checkIn && !!checkOut && nights > 0;
@@ -260,14 +316,13 @@ export function QuoteForm({
         if (!silent) toast.error("Select at least one room.");
         return;
       }
-
       startPricing(async () => {
         const r = await priceQuoteAction({
           listing_id: listingId,
           check_in: checkIn,
           check_out: checkOut,
           scope,
-          guests: parseInt(headcount, 10) || 1,
+          guests: headcount,
           rooms: chosenRooms,
         });
         if (!r.ok || !r.data) {
@@ -275,16 +330,11 @@ export function QuoteForm({
             toast.error(r.ok ? "Could not price this stay." : r.error);
           return;
         }
-        if (scope === "rooms") {
-          setPricedRooms(r.data.rooms);
-        } else {
+        if (scope === "rooms") setPricedRooms(r.data.rooms);
+        else {
           setBaseAmount(String(r.data.base_amount));
           setCleaningFee(String(r.data.cleaning_fee));
         }
-        if (!silent)
-          toast.success(
-            `Priced ${r.data.nights} night${r.data.nights === 1 ? "" : "s"} from your calendar`,
-          );
       });
     },
     [
@@ -300,12 +350,6 @@ export function QuoteForm({
     ],
   );
 
-  // Auto-price from the calendar the moment there's enough to price on — dates
-  // set (and, for a per-room quote, at least one room ticked). No button click
-  // needed; the amounts flow straight into the totals. It only re-fires when the
-  // dates / rooms / guests / listing change, so a host can still hand-edit the
-  // figure afterwards without it being wiped. The button is just a manual
-  // re-price for when they want to snap back to the calculated price.
   useEffect(() => {
     if (!datesValid) return;
     if (scope === "rooms") {
@@ -341,6 +385,28 @@ export function QuoteForm({
     setCustomAddons((p) => p.filter((_, idx) => idx !== i));
   }
 
+  function quickDates(nightsCount: number, fromWeekend: boolean) {
+    const base = new Date();
+    base.setHours(0, 0, 0, 0);
+    if (fromWeekend) {
+      // Next Friday.
+      const day = base.getDay();
+      const add = (5 - day + 7) % 7 || 7;
+      base.setDate(base.getDate() + add);
+    } else {
+      base.setDate(base.getDate() + 7);
+    }
+    const ci = base.toISOString().slice(0, 10);
+    const out = new Date(base);
+    out.setDate(out.getDate() + nightsCount);
+    setCheckIn(ci);
+    setCheckOut(out.toISOString().slice(0, 10));
+  }
+
+  function insertSnippet(text: string) {
+    setNotes((n) => (n.trim() ? `${n.trim()}\n\n${text}` : text));
+  }
+
   function buildInput() {
     const addons = [
       ...catalogLines,
@@ -360,7 +426,7 @@ export function QuoteForm({
       guest_phone: guestPhone.trim(),
       check_in: checkIn,
       check_out: checkOut,
-      headcount: parseInt(headcount, 10) || 1,
+      headcount,
       scope,
       base_amount: totals.base,
       cleaning_fee: totals.cleaning,
@@ -374,8 +440,10 @@ export function QuoteForm({
   function save(sendAfter: boolean) {
     const input = buildInput();
     if (!input.listing_id) return toast.error("Pick a listing.");
+    if (!input.guest_name || !input.guest_email)
+      return toast.error("Add the guest's name and email.");
     if (input.scope === "rooms" && input.rooms.length === 0)
-      return toast.error("Select rooms and click “Price from calendar” first.");
+      return toast.error("Select rooms and price them first.");
 
     if (initial?.id) {
       start(async () => {
@@ -386,7 +454,7 @@ export function QuoteForm({
         }
         if (sendAfter) {
           startSending(async () => {
-            const r = await sendQuoteAction(initial.id!);
+            const r = await sendQuoteAction(initial.id!, validDays);
             if (!r.ok) toast.error(r.error);
             else toast.success("Quote sent");
             router.push(`/dashboard/quotes/${initial.id}`);
@@ -404,7 +472,7 @@ export function QuoteForm({
           return;
         }
         if (sendAfter) {
-          const r = await sendQuoteAction(result.data.id);
+          const r = await sendQuoteAction(result.data.id, validDays);
           if (!r.ok) toast.error(r.error);
           else toast.success("Quote sent");
         } else {
@@ -416,65 +484,173 @@ export function QuoteForm({
   }
 
   const busy = pending || sendingPending || pricing;
+  const validUntil = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + validDays);
+    return d.toLocaleDateString("en-ZA", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }, [validDays]);
 
+  const selectedRoomObjs = (listing?.rooms ?? []).filter(
+    (r) => selectedRooms[r.id],
+  );
+
+  // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <Card className="rounded-card border-brand-line shadow-card">
-        <CardHeader>
-          <CardTitle className="font-display text-xl font-bold text-brand-dark">
-            Quote details
-          </CardTitle>
-          <CardDescription className="text-brand-mute">
-            Pick a listing, dates and headcount. The guest doesn&rsquo;t need a
-            Vilo account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <FieldLabel>Listing</FieldLabel>
-            <select
-              value={listingId}
-              onChange={(e) => changeListing(e.target.value)}
-              className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
-            >
-              {listings.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      {/* LEFT COLUMN */}
+      <div className="space-y-5">
+        {/* 1 — Lead guest */}
+        <Section
+          n={1}
+          title="Who is this for?"
+          sub="The guest who'll receive the quote — Vilo searches your past guests as you type."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="relative">
+              <FieldLabel>Full name *</FieldLabel>
+              <Input
+                value={guestName}
+                onChange={(e) => onGuestNameChange(e.target.value)}
+                onFocus={() => guestResults.length && setShowResults(true)}
+                onBlur={() => setTimeout(() => setShowResults(false), 150)}
+                placeholder="e.g. Aisha Patel"
+              />
+              {showResults && guestResults.length > 0 ? (
+                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
+                  {guestResults.map((g) => (
+                    <button
+                      key={g.email}
+                      type="button"
+                      onMouseDown={() => pickGuest(g)}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
+                        {(g.name || g.email)[0]?.toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium text-brand-ink">
+                          {g.name || g.email}
+                        </span>
+                        <span className="block truncate text-xs text-brand-mute">
+                          {g.email}
+                        </span>
+                      </span>
+                      {g.stays > 0 ? (
+                        <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                          {g.stays} stay{g.stays === 1 ? "" : "s"}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <div>
+              <FieldLabel>Email *</FieldLabel>
+              <Input
+                type="email"
+                value={guestEmail}
+                onChange={(e) => setGuestEmail(e.target.value)}
+                placeholder="guest@email.com"
+              />
+            </div>
+            <div>
+              <FieldLabel>Phone (for WhatsApp)</FieldLabel>
+              <Input
+                value={guestPhone}
+                onChange={(e) => setGuestPhone(e.target.value)}
+                placeholder="+27 …"
+              />
+            </div>
+            <div>
+              <FieldLabel>Send quote via</FieldLabel>
+              <Seg
+                value={sendVia}
+                onChange={(v) => setSendVia(v as typeof sendVia)}
+                options={[
+                  { value: "both", label: "Email + WhatsApp" },
+                  { value: "email", label: "Email only" },
+                  { value: "link", label: "Link" },
+                ]}
+              />
+            </div>
           </div>
+        </Section>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Check-in">
-              <Input
-                type="date"
-                value={checkIn}
-                onChange={(e) => setCheckIn(e.target.value)}
-              />
-            </Field>
-            <Field label="Check-out">
-              <Input
-                type="date"
-                value={checkOut}
-                onChange={(e) => setCheckOut(e.target.value)}
-              />
-            </Field>
-            <Field label="Guests">
-              <Input
-                type="number"
-                min={1}
-                value={headcount}
-                onChange={(e) => setHeadcount(e.target.value)}
-              />
-            </Field>
+        {/* 2 — Listing & room */}
+        <Section
+          n={2}
+          title="Listing & room"
+          sub="What are you quoting on? Nightly rates fill in automatically."
+        >
+          <div className="grid gap-3 sm:grid-cols-3">
+            {listings.map((l) => {
+              const on = l.id === listingId;
+              return (
+                <button
+                  type="button"
+                  key={l.id}
+                  onClick={() => changeListing(l.id)}
+                  className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
+                    on
+                      ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
+                      : "border-brand-line bg-white hover:bg-brand-accent/20"
+                  }`}
+                >
+                  <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                    {l.coverUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={l.coverUrl}
+                        alt={l.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                        <BedDouble className="h-6 w-6" />
+                      </span>
+                    )}
+                    {on ? (
+                      <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="mt-2.5 flex items-start justify-between gap-2">
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-semibold text-brand-ink">
+                        {l.name}
+                      </span>
+                      <span className="block truncate text-[10.5px] text-brand-mute">
+                        {l.city ?? "—"}
+                        {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
+                      </span>
+                    </span>
+                    {l.base_price != null ? (
+                      <span className="text-right">
+                        <span className="block font-display text-[12.5px] font-bold text-brand-ink">
+                          {fmt(l.base_price, l.currency)}
+                        </span>
+                        <span className="block text-[9.5px] text-brand-mute">
+                          / night
+                        </span>
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {hasRooms ? (
-            <div>
-              <FieldLabel>What are you quoting?</FieldLabel>
+            <div className="mt-4">
+              <FieldLabel>Quoting</FieldLabel>
               <div className="mt-1 flex gap-2">
-                <ScopeChip
+                <Chip
                   active={scope === "whole_listing"}
                   onClick={() => {
                     setScope("whole_listing");
@@ -482,154 +658,208 @@ export function QuoteForm({
                   }}
                   label="Whole listing"
                 />
-                <ScopeChip
+                <Chip
                   active={scope === "rooms"}
                   onClick={() => setScope("rooms")}
                   label="Specific rooms"
                 />
               </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-card border-brand-line shadow-card">
-        <CardHeader>
-          <CardTitle className="font-display text-xl font-bold text-brand-dark">
-            Guest contact
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Guest name">
-              <Input
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                placeholder="Jane Smith"
-              />
-            </Field>
-            <Field label="Guest email">
-              <Input
-                type="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                placeholder="jane@example.com"
-              />
-            </Field>
-          </div>
-          <Field label="Phone (optional)">
-            <Input
-              value={guestPhone}
-              onChange={(e) => setGuestPhone(e.target.value)}
-              placeholder="+27 ..."
-            />
-          </Field>
-        </CardContent>
-      </Card>
-
-      {/* Rooms picker — only for per-room quotes. */}
-      {scope === "rooms" && hasRooms ? (
-        <Card className="rounded-card border-brand-line shadow-card">
-          <CardHeader>
-            <CardTitle className="font-display text-xl font-bold text-brand-dark">
-              Rooms
-            </CardTitle>
-            <CardDescription className="text-brand-mute">
-              Tick the rooms this quote covers — they&rsquo;re priced
-              automatically from your live calendar (seasonal &amp; weekend
-              rates included).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {(listing?.rooms ?? []).map((r) => {
-              const priced = pricedRooms.find((p) => p.room_id === r.id);
-              return (
-                <label
-                  key={r.id}
-                  className="flex flex-wrap items-center gap-3 rounded border border-brand-line bg-white px-3 py-2 text-sm"
-                >
-                  <input
-                    type="checkbox"
-                    checked={!!selectedRooms[r.id]}
-                    onChange={() => toggleRoom(r.id)}
-                  />
-                  <span className="font-medium text-brand-ink">{r.name}</span>
-                  {selectedRooms[r.id] ? (
-                    <span className="ml-auto flex items-center gap-2 text-xs text-brand-mute">
-                      <span>Guests</span>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={r.max_guests ?? undefined}
-                        value={
-                          roomGuests[r.id] ?? String(r.base_occupancy ?? 1)
-                        }
-                        onChange={(e) =>
-                          setRoomGuests((p) => ({
-                            ...p,
-                            [r.id]: e.target.value,
-                          }))
-                        }
-                        className="h-8 w-16"
-                      />
-                      {priced ? (
-                        <span className="font-medium text-brand-ink">
-                          {fmt(
-                            priced.base_amount + priced.cleaning_fee,
-                            currency,
+              {scope === "rooms" ? (
+                <div className="mt-3 space-y-2">
+                  {(listing?.rooms ?? []).map((r) => {
+                    const on = !!selectedRooms[r.id];
+                    const priced = pricedRooms.find((p) => p.room_id === r.id);
+                    return (
+                      <div
+                        key={r.id}
+                        className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleRoom(r.id)}
+                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
+                        >
+                          {on ? <Check className="h-3 w-3" /> : null}
+                        </button>
+                        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                          {r.coverUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={r.coverUrl}
+                              alt={r.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                              <BedDouble className="h-4 w-4" />
+                            </span>
                           )}
                         </span>
-                      ) : pricing && datesValid ? (
-                        <span className="text-brand-mute">Pricing…</span>
-                      ) : !datesValid ? (
-                        <span className="text-brand-mute">Add dates</span>
-                      ) : r.base_price != null ? (
-                        <span className="text-brand-mute">
-                          ~{fmt(r.base_price, currency)}/night
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
+                            {r.name}
+                            {r.bed_type ? ` · ${r.bed_type}` : ""}
+                          </span>
+                          <span className="block text-[11px] text-brand-mute">
+                            {r.max_guests ? `sleeps ${r.max_guests}` : ""}
+                          </span>
                         </span>
-                      ) : null}
-                    </span>
-                  ) : null}
-                </label>
-              );
-            })}
-          </CardContent>
-        </Card>
-      ) : null}
+                        {on ? (
+                          <span className="flex items-center gap-2 text-xs text-brand-mute">
+                            <span>Guests</span>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={r.max_guests ?? undefined}
+                              value={
+                                roomGuests[r.id] ??
+                                String(r.base_occupancy ?? 1)
+                              }
+                              onChange={(e) =>
+                                setRoomGuests((p) => ({
+                                  ...p,
+                                  [r.id]: e.target.value,
+                                }))
+                              }
+                              className="h-8 w-16"
+                            />
+                            {priced ? (
+                              <span className="font-medium text-brand-ink">
+                                {fmt(
+                                  priced.base_amount + priced.cleaning_fee,
+                                  currency,
+                                )}
+                              </span>
+                            ) : null}
+                          </span>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </Section>
 
-      <Card className="rounded-card border-brand-line shadow-card">
-        <CardHeader>
-          <CardTitle className="font-display text-xl font-bold text-brand-dark">
-            Pricing
-          </CardTitle>
-          <CardDescription className="text-brand-mute">
-            Priced automatically from your calendar (seasonal &amp; weekend
-            rates included) once dates are set — fine-tune anything below.
-            Add-ons are charged on top.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => priceStayNow(false)}
-              disabled={busy || !datesValid}
-              className="gap-1.5"
-            >
-              <Calculator className="h-4 w-4" />
-              {pricing ? "Pricing…" : "Re-price from calendar"}
-            </Button>
-            {!datesValid ? (
-              <span className="text-xs text-brand-mute">
-                Add check-in &amp; check-out dates above to price.
-              </span>
-            ) : null}
+        {/* 3 — Dates */}
+        <Section
+          n={3}
+          title="Stay dates"
+          sub="Hatched cells are already booked. Dates aren't held until the guest accepts."
+        >
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
+            <div>
+              <FieldLabel>Check-in</FieldLabel>
+              <div className="flex h-[38px] items-center rounded-[10px] border border-brand-line bg-white px-3 text-[13px] text-brand-ink">
+                {checkIn ? fmtDayLong(checkIn) : "Pick a date"}
+              </div>
+            </div>
+            <div>
+              <FieldLabel>Check-out</FieldLabel>
+              <div className="flex h-[38px] items-center rounded-[10px] border border-brand-line bg-white px-3 text-[13px] text-brand-ink">
+                {checkOut ? fmtDayLong(checkOut) : "Pick a date"}
+              </div>
+            </div>
+            <div>
+              <FieldLabel>Nights</FieldLabel>
+              <div className="flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 px-3">
+                <span className="font-display text-[18px] font-bold text-brand-ink">
+                  {nights}
+                </span>
+                <span className="text-[11px] text-brand-mute">nights</span>
+              </div>
+            </div>
           </div>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] font-medium text-brand-mute">
+              Quick add:
+            </span>
+            <Pill onClick={() => quickDates(2, true)}>This weekend</Pill>
+            <Pill onClick={() => quickDates(3, true)}>Long weekend</Pill>
+            <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
+          </div>
+          <div className="mt-4">
+            <QuoteCalendar
+              checkIn={checkIn}
+              checkOut={checkOut}
+              blocked={blockedSet}
+              onChange={(ci, co) => {
+                setCheckIn(ci);
+                setCheckOut(co);
+              }}
+            />
+          </div>
+        </Section>
+
+        {/* 4 — Guest party */}
+        <Section
+          n={4}
+          title="Guest party"
+          sub={
+            listing?.max_guests
+              ? `${listing.name} sleeps ${listing.max_guests}.`
+              : "Who's coming along."
+          }
+        >
+          <div className="grid gap-3 sm:grid-cols-4">
+            <Stepper
+              label="Adults"
+              hint="13 +"
+              value={adults}
+              min={1}
+              onChange={setAdults}
+            />
+            <Stepper
+              label="Children"
+              hint="2 – 12"
+              value={children}
+              min={0}
+              onChange={setChildren}
+            />
+            <Stepper
+              label="Infants"
+              hint="Under 2"
+              value={infants}
+              min={0}
+              onChange={setInfants}
+            />
+            <Stepper
+              label="Pets"
+              hint="Fee may apply"
+              value={pets}
+              min={0}
+              onChange={setPets}
+            />
+          </div>
+        </Section>
+
+        {/* 5 — Pricing */}
+        <Section
+          n={5}
+          title="Pricing"
+          sub="Priced from your calendar — tweak any line or add charges. Guests see exactly this."
+          accent
+        >
+          <button
+            type="button"
+            onClick={() => priceStayNow(false)}
+            disabled={busy || !datesValid}
+            className="mb-3 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-50"
+          >
+            <Calculator className="h-4 w-4" />
+            {pricing ? "Pricing…" : "Re-price from calendar"}
+          </button>
+          {!datesValid ? (
+            <span className="ml-2 text-xs text-brand-mute">
+              Add dates above to price.
+            </span>
+          ) : null}
 
           {scope === "whole_listing" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={`Base amount (${currency})`}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel>{`Accommodation (${currency})`}</FieldLabel>
                 <Input
                   type="number"
                   min={0}
@@ -637,8 +867,9 @@ export function QuoteForm({
                   value={baseAmount}
                   onChange={(e) => setBaseAmount(e.target.value)}
                 />
-              </Field>
-              <Field label={`Cleaning fee (${currency})`}>
+              </div>
+              <div>
+                <FieldLabel>{`Cleaning fee (${currency})`}</FieldLabel>
                 <Input
                   type="number"
                   min={0}
@@ -646,18 +877,17 @@ export function QuoteForm({
                   value={cleaningFee}
                   onChange={(e) => setCleaningFee(e.target.value)}
                 />
-              </Field>
+              </div>
             </div>
           ) : (
             <p className="text-xs text-brand-mute">
-              Per-room amounts come from your calendar once you price the
-              selected rooms above.
+              Per-room amounts come from your calendar once rooms are priced
+              above.
             </p>
           )}
 
-          {/* Catalog add-ons */}
           {listing && listing.addons.length > 0 ? (
-            <div>
+            <div className="mt-4">
               <FieldLabel>Add-ons from your catalog</FieldLabel>
               <div className="mt-2 space-y-1.5">
                 {listing.addons.map((a) => {
@@ -665,7 +895,7 @@ export function QuoteForm({
                   return (
                     <label
                       key={a.id}
-                      className="flex flex-wrap items-center gap-3 rounded border border-brand-line bg-white px-3 py-2 text-sm"
+                      className="flex flex-wrap items-center gap-3 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm"
                     >
                       <input
                         type="checkbox"
@@ -709,8 +939,7 @@ export function QuoteForm({
             </div>
           ) : null}
 
-          {/* Custom line items */}
-          <div>
+          <div className="mt-4">
             <FieldLabel>Custom line items</FieldLabel>
             <div className="mt-2 space-y-2">
               {customAddons.map((a, i) => (
@@ -741,95 +970,326 @@ export function QuoteForm({
                       updateCustom(i, { unitPrice: e.target.value })
                     }
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="icon"
                     onClick={() => removeCustom(i)}
                     aria-label="Remove line"
+                    className="flex items-center justify-center rounded-[8px] border border-brand-line text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </Button>
+                  </button>
                 </div>
               ))}
             </div>
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={addCustom}
-              className="mt-2 gap-1.5"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-[8px] border border-dashed border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
             >
-              <Plus className="h-4 w-4" /> Add line item
-            </Button>
+              <Plus className="h-3.5 w-3.5 text-brand-primary" /> Custom line
+            </button>
           </div>
 
-          <div className="rounded border border-brand-line bg-brand-light/50 p-3 text-sm">
-            <SummaryRow
-              label="Accommodation"
-              value={fmt(totals.base, currency)}
-            />
-            <SummaryRow
-              label="Cleaning"
-              value={fmt(totals.cleaning, currency)}
-            />
-            <SummaryRow
-              label="Add-ons"
-              value={fmt(totals.addonsSum, currency)}
-            />
-            <div className="mt-2 flex items-center justify-between border-t border-brand-line pt-2">
-              <span className="font-display text-base font-bold text-brand-ink">
-                Total
-              </span>
-              <span className="font-display text-lg font-bold text-brand-primary">
-                {fmt(totals.total, currency)}
-              </span>
-            </div>
+          <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
+            <span className="text-[12px] text-brand-secondary">
+              Accommodation {fmt(totals.base, currency)} · cleaning{" "}
+              {fmt(totals.cleaning, currency)} · add-ons{" "}
+              {fmt(totals.addonsSum, currency)}
+            </span>
+            <span className="font-display text-[15px] font-bold text-brand-secondary">
+              Total {fmt(totals.total, currency)}
+            </span>
           </div>
-        </CardContent>
-      </Card>
+        </Section>
 
-      <Card className="rounded-card border-brand-line shadow-card">
-        <CardHeader>
-          <CardTitle className="font-display text-xl font-bold text-brand-dark">
-            Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
+        {/* 6 — Quote settings (validity; deposit lands in Phase 2) */}
+        <Section n={6} title="Quote settings" sub="How long the offer stands.">
+          <FieldLabel>Valid for</FieldLabel>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {[1, 3, 7, 14].map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setValidDays(d)}
+                className={`rounded-pill px-2.5 py-1 text-[11px] font-semibold ${validDays === d ? "bg-brand-accent text-brand-secondary" : "border border-brand-line bg-white text-brand-ink hover:bg-brand-accent/40"}`}
+              >
+                {d === 1 ? "24 hours" : `${d} days`}
+              </button>
+            ))}
+            <span className="ml-1 inline-flex items-center text-[11px] text-brand-mute">
+              Expires {validUntil}
+            </span>
+          </div>
+        </Section>
+
+        {/* 7 — Message */}
+        <Section
+          n={7}
+          title="Message to guest"
+          sub="A short personal note. This appears above the quote."
+        >
+          <textarea
             rows={4}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Anything the guest should know — special arrangements, late check-in, etc."
+            placeholder="Hi — here's a quote for your stay…"
+            className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
           />
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => save(false)}
-          disabled={busy}
-          className="gap-1.5"
-        >
-          <Save className="h-4 w-4" />
-          {pending && !sendingPending ? "Saving…" : "Save draft"}
-        </Button>
-        <Button
-          type="button"
-          onClick={() => save(true)}
-          disabled={busy}
-          className="gap-1.5"
-        >
-          <Send className="h-4 w-4" />
-          {sendingPending ? "Sending…" : "Save & send"}
-        </Button>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            <span className="mr-1 text-[11px] font-medium text-brand-mute">
+              Quick inserts:
+            </span>
+            <Pill
+              onClick={() =>
+                insertSnippet(
+                  "Check-in is from 14:00. I'll send directions and the key code the day before.",
+                )
+              }
+            >
+              + Check-in details
+            </Pill>
+            <Pill
+              onClick={() =>
+                insertSnippet(
+                  "Free cancellation up to 5 days before check-in; 50% refundable after that.",
+                )
+              }
+            >
+              + Cancellation policy
+            </Pill>
+          </div>
+        </Section>
       </div>
+
+      {/* RIGHT COLUMN — sticky summary */}
+      <aside className="lg:sticky lg:top-[88px] lg:self-start">
+        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-lift">
+          <div className="relative bg-brand-gradient-dark p-5 text-white">
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-accent">
+                <span className="h-1.5 w-1.5 rounded-full bg-status-draft" />{" "}
+                {initial?.id ? "Editing" : "New quote"}
+              </span>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-white/10 ring-2 ring-white/20">
+                {listing?.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={listing.coverUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : null}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate font-display text-[15px] font-semibold leading-tight">
+                  {listing?.name ?? "Pick a listing"}
+                </div>
+                <div className="mt-0.5 truncate text-[11px] text-brand-accent/70">
+                  {scope === "rooms"
+                    ? selectedRoomObjs.map((r) => r.name).join(", ") ||
+                      "Select rooms"
+                    : "Whole listing"}
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3">
+              <div className="text-center">
+                <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                  Check-in
+                </div>
+                <div className="mt-1 font-display text-[15px] font-bold leading-none">
+                  {checkIn ? fmtDayLong(checkIn).slice(0, 6) : "—"}
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                  {nights} night{nights === 1 ? "" : "s"}
+                </span>
+                <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
+              </div>
+              <div className="text-center">
+                <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                  Check-out
+                </div>
+                <div className="mt-1 font-display text-[15px] font-bold leading-none">
+                  {checkOut ? fmtDayLong(checkOut).slice(0, 6) : "—"}
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex items-center gap-2 text-[11.5px]">
+              <User className="h-3.5 w-3.5 text-brand-primary" />
+              <span className="text-white">{guestName || "Guest"}</span>
+              <span className="text-brand-accent/50">·</span>
+              <span className="text-brand-accent/70">
+                {adults} adult{adults === 1 ? "" : "s"}
+                {children
+                  ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                  : ""}
+                {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
+              </span>
+            </div>
+          </div>
+
+          <div className="px-5 pt-5 text-[12.5px]">
+            <ul className="space-y-2">
+              <SumRow
+                label="Accommodation"
+                value={fmt(totals.base, currency)}
+              />
+              {totals.cleaning > 0 ? (
+                <SumRow
+                  label="Cleaning fee"
+                  value={fmt(totals.cleaning, currency)}
+                />
+              ) : null}
+              {catalogLines.map((a, i) => (
+                <SumRow
+                  key={`c${i}`}
+                  label={a.label}
+                  value={fmt(a.quantity * a.unit_price, currency)}
+                />
+              ))}
+              {customAddons
+                .filter((a) => a.label.trim())
+                .map((a, i) => (
+                  <SumRow
+                    key={`x${i}`}
+                    label={a.label}
+                    value={fmt(
+                      (parseFloat(a.quantity) || 0) *
+                        (parseFloat(a.unitPrice) || 0),
+                      currency,
+                    )}
+                  />
+                ))}
+            </ul>
+            <div className="my-4 h-px bg-brand-line" />
+            <div className="flex items-baseline justify-between">
+              <div>
+                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                  Quote total
+                </div>
+                <div className="mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
+                  {fmt(totals.total, currency)}
+                </div>
+              </div>
+              {nights > 0 ? (
+                <div className="text-right">
+                  <div className="text-[10.5px] text-brand-mute">
+                    avg / night
+                  </div>
+                  <div className="font-display text-[14px] font-bold text-brand-ink">
+                    {fmt(totals.total / nights, currency)}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <div className="mt-4 flex items-center gap-2 rounded-[10px] border border-status-pending/30 bg-status-pending/10 px-3 py-2.5">
+              <Clock className="h-4 w-4 shrink-0 text-status-pending" />
+              <span className="text-[11.5px] text-brand-ink">
+                Valid until <span className="font-semibold">{validUntil}</span>{" "}
+                · {validDays} day{validDays === 1 ? "" : "s"}
+              </span>
+            </div>
+            <div className="mt-4 pb-5">
+              <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-mute">
+                What happens next
+              </div>
+              <ol className="space-y-2 text-[11.5px]">
+                <NextStep n={1} active>
+                  Guest gets the quote by{" "}
+                  {sendVia === "email"
+                    ? "email"
+                    : sendVia === "link"
+                      ? "a link"
+                      : "email + WhatsApp"}
+                </NextStep>
+                <NextStep n={2}>They accept &amp; pay online</NextStep>
+                <NextStep n={3}>
+                  Vilo confirms the booking &amp; blocks the calendar
+                </NextStep>
+              </ol>
+            </div>
+          </div>
+
+          <div className="space-y-2 border-t border-brand-line bg-white p-4">
+            <button
+              type="button"
+              onClick={() => save(true)}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-4 py-3 text-[14px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
+            >
+              {sendingPending
+                ? "Sending…"
+                : initial?.id
+                  ? "Save & send"
+                  : `Send quote${guestName ? ` to ${guestName.split(" ")[0]}` : ""}`}
+              <Send className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => save(false)}
+              disabled={busy}
+              className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
+            >
+              {pending && !sendingPending ? "Saving…" : "Save draft"}
+            </button>
+            <div className="flex items-center justify-center gap-1.5 pt-1 text-[10.5px] text-brand-mute">
+              <ShieldCheck className="h-3 w-3" /> No charge until the guest
+              accepts &amp; pays
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
 
-function ScopeChip({
+// ── Small presentational helpers ───────────────────────────────────
+function Section({
+  n,
+  title,
+  sub,
+  accent,
+  children,
+}: {
+  n: number;
+  title: string;
+  sub: string;
+  accent?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section
+      className={`rounded-card border bg-white p-6 shadow-card ${accent ? "border-brand-primary/30 ring-1 ring-brand-primary/10" : "border-brand-line"}`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-display text-[11px] font-bold text-brand-accent">
+          {n}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-[17px] font-bold text-brand-ink">
+            {title}
+          </h2>
+          <p className="mt-0.5 text-[12.5px] text-brand-mute">{sub}</p>
+        </div>
+      </div>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-1.5 block text-[11px] font-semibold text-brand-mute">
+      {children}
+    </label>
+  );
+}
+
+function Chip({
   active,
   onClick,
   label,
@@ -842,50 +1302,129 @@ function ScopeChip({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
-        active
-          ? "bg-brand-primary text-white"
-          : "border border-brand-line bg-white text-brand-mute hover:text-brand-ink"
-      }`}
+      className={`rounded-pill px-4 py-1.5 text-sm font-medium transition ${active ? "bg-brand-primary text-white" : "border border-brand-line bg-white text-brand-mute hover:text-brand-ink"}`}
     >
       {label}
     </button>
   );
 }
 
-function Field({
-  label,
+function Pill({
+  onClick,
   children,
 }: {
-  label: string;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <FieldLabel>{label}</FieldLabel>
-      <div className="mt-1">{children}</div>
-    </div>
-  );
-}
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-ink hover:bg-brand-accent/40"
+    >
       {children}
-    </label>
+    </button>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function Seg({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
-    <div className="flex items-center justify-between py-0.5">
-      <span className="text-brand-mute">{label}</span>
-      <span className="text-brand-ink">{value}</span>
+    <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px]">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={`flex-1 rounded-[7px] px-2 py-1.5 text-[12px] font-medium transition ${value === o.value ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   );
 }
 
-function fmt(amount: number, currency: string): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+function Stepper({
+  label,
+  hint,
+  value,
+  min,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  min: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-[10px] border border-brand-line p-3">
+      <div>
+        <div className="text-[12.5px] font-semibold text-brand-ink">
+          {label}
+        </div>
+        <div className="text-[10.5px] text-brand-mute">{hint}</div>
+      </div>
+      <div className="inline-flex items-center overflow-hidden rounded-[10px] border border-brand-line bg-white">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40 disabled:text-brand-line"
+        >
+          −
+        </button>
+        <span className="w-7 text-center text-[13px] font-semibold text-brand-ink">
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(value + 1)}
+          className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SumRow({ label, value }: { label: string; value: string }) {
+  return (
+    <li className="flex items-center justify-between">
+      <span className="text-brand-mute">{label}</span>
+      <span className="font-medium text-brand-ink">{value}</span>
+    </li>
+  );
+}
+
+function NextStep({
+  n,
+  active,
+  children,
+}: {
+  n: number;
+  active?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-2">
+      <span
+        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${active ? "bg-brand-primary text-white" : "bg-brand-line text-brand-mute"}`}
+      >
+        {n}
+      </span>
+      <span className={active ? "text-brand-ink" : "text-brand-mute"}>
+        {children}
+      </span>
+    </li>
+  );
 }

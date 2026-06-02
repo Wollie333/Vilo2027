@@ -4,7 +4,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import { QuoteForm, type QuoteFormListing } from "../../QuoteForm";
+import { QuoteForm } from "../../QuoteForm";
+import { loadQuoteFormListings } from "../../_listings";
 
 export const metadata: Metadata = {
   title: "Edit quote · Vilo",
@@ -30,7 +31,6 @@ export default async function EditQuotePage({
     .maybeSingle();
   if (!host) notFound();
 
-  // The quote being edited (RLS scopes to the owner). Only draft/sent edit.
   const { data: quote } = await supabase
     .from("quotes")
     .select(
@@ -41,7 +41,6 @@ export default async function EditQuotePage({
     .maybeSingle();
   if (!quote) notFound();
   if (quote.status !== "draft" && quote.status !== "sent") {
-    // Locked — bounce back to the read-only detail page.
     redirect(`/dashboard/quotes/${params.id}`);
   }
 
@@ -57,107 +56,14 @@ export default async function EditQuotePage({
       .order("sort_order"),
   ]);
 
-  // Host's listings enriched with rooms + add-on catalog (same shape the New
-  // Quote page builds).
-  const { data: listings } = await supabase
-    .from("listings")
-    .select("id, name, booking_mode, base_price, cleaning_fee, currency")
-    .eq("host_id", host.id)
-    .eq("listing_type", "accommodation")
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+  const list = await loadQuoteFormListings(supabase, host.id);
 
-  const listingIds = (listings ?? []).map((l) => l.id);
-  const [{ data: rooms }, { data: addonLinks }] = listingIds.length
-    ? await Promise.all([
-        supabase
-          .from("listing_rooms")
-          .select(
-            "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy",
-          )
-          .in("listing_id", listingIds)
-          .is("deleted_at", null)
-          .eq("is_active", true)
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("listing_addons")
-          .select(
-            "listing_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_active )",
-          )
-          .in("listing_id", listingIds),
-      ])
-    : [{ data: [] }, { data: [] }];
-
-  type AddonJoin = {
-    listing_id: string;
-    unit_price_override: number | null;
-    addons: {
-      id: string;
-      name: string;
-      pricing_model: string;
-      unit_price: number;
-      currency: string;
-      min_quantity: number;
-      max_quantity: number | null;
-      is_active: boolean;
-    } | null;
-  };
-
-  const addonsByListing = new Map<string, QuoteFormListing["addons"]>();
-  for (const raw of (addonLinks ?? []) as unknown as AddonJoin[]) {
-    const a = Array.isArray(raw.addons) ? raw.addons[0] : raw.addons;
-    if (!a || !a.is_active) continue;
-    const price =
-      raw.unit_price_override == null
-        ? Number(a.unit_price)
-        : Number(raw.unit_price_override);
-    const list = addonsByListing.get(raw.listing_id) ?? [];
-    const existing = list.find((x) => x.id === a.id);
-    if (existing) {
-      if (price < existing.unit_price) existing.unit_price = price;
-    } else {
-      list.push({
-        id: a.id,
-        name: a.name,
-        pricing_model: a.pricing_model,
-        unit_price: price,
-        currency: a.currency,
-        min_quantity: a.min_quantity ?? 1,
-        max_quantity: a.max_quantity,
-      });
-    }
-    addonsByListing.set(raw.listing_id, list);
-  }
-
-  const roomsByListing = new Map<string, QuoteFormListing["rooms"]>();
-  for (const r of rooms ?? []) {
-    const list = roomsByListing.get(r.listing_id) ?? [];
-    list.push({
-      id: r.id,
-      name: r.name,
-      base_price: r.base_price == null ? null : Number(r.base_price),
-      cleaning_fee: r.cleaning_fee == null ? null : Number(r.cleaning_fee),
-      max_guests: r.max_guests,
-      base_occupancy: r.base_occupancy,
-    });
-    roomsByListing.set(r.listing_id, list);
-  }
-
-  const list: QuoteFormListing[] = (listings ?? []).map((l) => ({
-    id: l.id,
-    name: l.name,
-    booking_mode: l.booking_mode as QuoteFormListing["booking_mode"],
-    base_price: l.base_price == null ? null : Number(l.base_price),
-    cleaning_fee: l.cleaning_fee == null ? null : Number(l.cleaning_fee),
-    currency: l.currency ?? "ZAR",
-    rooms: roomsByListing.get(l.id) ?? [],
-    addons: addonsByListing.get(l.id) ?? [],
-  }));
-
-  // Split the quote's saved add-ons: catalog lines (addon_id still in this
-  // listing's catalog) rehydrate the picker; everything else is a custom line.
+  // Split saved add-ons: catalog lines (addon_id still in the listing's catalog)
+  // rehydrate the picker; everything else is a custom line.
   const catalogIds = new Set(
-    (addonsByListing.get(quote.listing_id) ?? []).map((a) => a.id),
+    (list.find((l) => l.id === quote.listing_id)?.addons ?? []).map(
+      (a) => a.id,
+    ),
   );
   const catalogAddons: { addon_id: string; quantity: number }[] = [];
   const customAddons: {
@@ -206,15 +112,15 @@ export default async function EditQuotePage({
   };
 
   return (
-    <div className="space-y-6">
-      <header>
+    <div className="mx-auto max-w-[1280px]">
+      <header className="mb-6">
         <Link
           href={`/dashboard/quotes/${quote.id}`}
           className="text-sm font-medium text-brand-mute hover:text-brand-primary"
         >
           ← Back to quote
         </Link>
-        <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
+        <h1 className="mt-1 font-display text-[30px] font-bold tracking-tight text-brand-ink">
           Edit quote
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
