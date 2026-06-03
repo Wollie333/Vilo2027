@@ -156,6 +156,11 @@ vilo/
 > directly to the linked cloud project with `supabase db push --linked`
 > (see `MIGRATIONS.md`). Regenerate types with `supabase gen types typescript
 > --linked > packages/types/database.types.ts`.
+>
+> **Never pipe stderr into the types file** (no `2>&1` / `| tee`): the CLI
+> writes `Initialising login role...` + a version-notice footer to stderr, and
+> merging them corrupts `database.types.ts` (invalid TS, line 1 must be
+> `export type Json =`). Use `> file` alone, or `> file 2>gen_err.log`.
 
 ### Starting a session
 ```bash

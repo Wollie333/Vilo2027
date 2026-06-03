@@ -17,6 +17,14 @@ supabase migration list --linked     # verify → "Remote database is up to date
 supabase gen types typescript --linked > packages/types/database.types.ts
 ```
 
+> ⚠️ **Never use `2>&1` (or `| tee`) when generating types.** The CLI prints
+> `Initialising login role...` and an "A new version is available" footer to
+> **stderr** — merging stderr into the file writes those log lines *into*
+> `database.types.ts` as line 1 / trailing lines, which is invalid TypeScript
+> and has shipped to `main` before. Keep stderr separate: redirect only stdout
+> (`> file`), or `… > file 2>gen_err.log` if you want to capture the log. After
+> generating, sanity-check that line 1 is `export type Json =`.
+
 The repo is already linked (`supabase/.temp/project-ref` → `zlcivjgvtyeaszikqleu`).
 `supabase db push --linked` is non-destructive: it runs only the timestamped
 files not yet recorded in the remote `supabase_migrations.schema_migrations`
@@ -95,6 +103,7 @@ the red run → **Re-run jobs**), or push any migration change to trigger it.
 - Never edit an existing migration file — always add a new timestamped one.
 - After a schema change, regenerate types: `supabase gen types typescript
   --linked > packages/types/database.types.ts` (CI does this automatically once
-  the secrets are set).
+  the secrets are set). **Do not pipe stderr into the file — see the `2>&1`
+  warning above.**
 - Migrations are forward-only in production; document a `-- DOWN:` block in each
   file for manual reversal if ever needed.
