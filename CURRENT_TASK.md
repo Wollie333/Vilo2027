@@ -2,6 +2,24 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-03 — CONSOLIDATION → pushed to `main`):**
+Two parallel workstreams were merged into one linear branch
+(`feat/host-payment-gateways`) and pushed to `main`: (1) **host payment
+gateways** (BYO Paystack/PayPal — see note below) and (2) **room/quote
+pricing** stacked on top (per-room/listing children/infants/pets allow toggles,
+quote-level discount, quote deposit terms + booking balance tracking, capacity
+guard, listing suitability chips, payment-record page redesign). No file
+overlap except `packages/types/database.types.ts`, which carries both sets of
+hand-edits. Migrations are sequential `…000016`→`…000021`. Combined `pnpm build`
++ `pnpm lint` green.
+**Combined TODO before the DB is live:** (1) `supabase db push --linked`
+(applies `…000016`→`…000021` in order); (2) `supabase gen types typescript
+--linked > packages/types/database.types.ts`; (3) set `PAYMENT_CIPHER_KEY` in
+`.env.local` + Doppler dev (value handed to founder in chat — NOT committed);
+(4) founder pastes Paystack test keys + a PayPal sandbox app and smoke-tests
+Settings → Banking & business → Payment gateways (connect → validate → request a
+payment). See CHANGELOG 2026-06-03 + 2026-06-02 entries.
+
 **Session note (2026-06-02 — branch `feat/host-payment-gateways`, NOT committed):**
 Built host-side **bring-your-own payment gateways** so hosts connect their OWN
 Paystack + PayPal credentials and accept booking payments directly (Vilo takes

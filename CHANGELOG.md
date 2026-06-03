@@ -31,6 +31,42 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Consolidation → main: room/quote pricing + host payment gateways — branch `feat/host-payment-gateways`
+
+Merged two parallel workstreams into one linear branch and pushed to `main`.
+Combined `pnpm build` + `pnpm lint` green. The host-payment-gateways work (see
+the entry below) sits underneath; this entry covers the room/quote pricing work
+stacked on top of it.
+
+### Built (pricing workstream)
+- **Per-room & per-listing allow toggles** for children / infants / pets — OFF
+  removes the category from checkout/quotes entirely; ON exposes its flat
+  per-night rate (`listing_rooms` / `listings.allow_children|infants|pets`).
+- **Quote-level discount** — percentage or flat Rand off a quote (with reason),
+  shown as its own line on the quote/PDF; carries onto the booking on convert.
+- **Quote deposit terms** — deposit (%) / full / reserve, with computed deposit +
+  balance and a balance-due date tracked onto the booking (`bookings.deposit_amount`,
+  `balance_due`, `balance_due_date`). Invoice/payment triggers untouched.
+- **Capacity guard** — adults + children must fit the room/listing capacity at
+  booking time.
+- **Listing suitability** — children/infants/pets suitability chips + extras
+  surfaced on the public listing (`SuitabilityChips`, `RatesSection`).
+- **Payment record page redesign** (`/dashboard/payments/[id]`) to the new layout.
+
+### Migrations (pricing workstream)
+- `20260602000018_quote_discount.sql`
+- `20260602000019_allow_age_categories.sql`
+- `20260602000020_help_age_toggles.sql` (Help article update)
+- `20260602000021_quote_deposit.sql`
+
+### Notes
+- `database.types.ts` is hand-edited for BOTH workstreams (Docker unavailable) and
+  build-verified. **Combined deploy TODO:** `supabase db push --linked` applies
+  migrations `…000016`→`…000021` in order, then
+  `supabase gen types typescript --linked > packages/types/database.types.ts`
+  (output should match the hand-edits).
+- Still required before storing real keys: set `PAYMENT_CIPHER_KEY` (see below).
+
 ## 2026-06-02 — Host payment gateways: bring-your-own Paystack & PayPal — branch `feat/host-payment-gateways`
 
 ### Built
