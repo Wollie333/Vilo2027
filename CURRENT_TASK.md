@@ -2,6 +2,20 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-03 — Comms feature Phase A, branch `feat/trip-quote-detail-design`):**
+Shipped **Phase A** of the guest→host enquiry pipeline (approved multi-phase plan at
+`~/.claude/plans/floating-imagining-toucan.md`): listing "Request a quote" modal →
+passwordless **lead** + enquiry **conversation** (stage `new_quote`) + auto-priced **draft
+quote** + draft-quote card + host notification; host **pipeline folders** in the inbox rail
++ `PipelineControl` (stage chips + quote card) + auto-advance on quote send/decline/accept.
+Shared pricing extracted to `lib/pricing/quote.ts`. Migrations `…000006` (schema) + `…000007`
+(help) pushed to linked DB; types regenerated. build + lint green; query sweep 0/381.
+**Next — Phase B:** guest inbox thread viewer + composer (`sendGuestMessageAction`), account
+claim (set password → `is_lead=false`), Contacts tab + CSV, email acknowledgement. Then
+Phases C (CRM polish: seen/read receipts, needs-reply, waiting timer, quote-expiry, WhatsApp,
+nav badge, pin, assign-to-staff, internal notes, canned replies, pipeline value, convert-direct)
+and D (follow-up/snooze, auto-archive, quiet-hours auto-reply, rate-limit).
+
 **Session note (2026-06-03 — branch `feat/trip-quote-detail-design`, NOT committed):**
 Redesigned two pages to match the founder's reference HTML (`~/Downloads/Trip
 Details.html`, `~/Downloads/Quote Detail.html`), wiring every rich section to

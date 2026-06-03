@@ -46,6 +46,7 @@ import {
   sendMessageAction,
   unarchiveConversationAction,
 } from "./actions";
+import { PipelineControl } from "./PipelineControl";
 
 export type ConversationRow = {
   id: string;
@@ -102,6 +103,14 @@ export type ThreadContext = {
     total: number | null;
     currency: string;
   } | null;
+  pipelineStage: PipelineStage | null;
+  quote: {
+    id: string;
+    status: string;
+    quoteNumber: string | null;
+    total: number;
+    currency: string;
+  } | null;
 };
 
 export type TemplateRow = { id: string; title: string; body: string };
@@ -113,16 +122,50 @@ export type Counts = {
   open: number;
   archived: number;
   unread_total: number;
+  pipeline: {
+    new_quote: number;
+    quote_sent: number;
+    negotiating: number;
+    accepted: number;
+    declined: number;
+    lost: number;
+  };
 };
 
-type Folder = "all" | "unread" | "enquiries" | "open" | "archived";
+type PipelineStage =
+  | "new_quote"
+  | "quote_sent"
+  | "negotiating"
+  | "accepted"
+  | "declined"
+  | "lost";
+type Folder =
+  | "all"
+  | "unread"
+  | "enquiries"
+  | "open"
+  | "archived"
+  | PipelineStage;
 
-const FOLDERS: { key: Folder; label: string; icon: typeof InboxIcon }[] = [
+const FOLDERS: {
+  key: Exclude<Folder, PipelineStage>;
+  label: string;
+  icon: typeof InboxIcon;
+}[] = [
   { key: "all", label: "All inbox", icon: InboxIcon },
   { key: "unread", label: "Unread", icon: MessageCircleQuestion },
   { key: "enquiries", label: "Enquiries", icon: MessageCircleQuestion },
   { key: "open", label: "Open", icon: KeyRound },
   { key: "archived", label: "Archived", icon: Archive },
+];
+
+const PIPELINE: { key: PipelineStage; label: string; dot: string }[] = [
+  { key: "new_quote", label: "New quote", dot: "bg-status-pending" },
+  { key: "quote_sent", label: "Quote sent", dot: "bg-brand-primary" },
+  { key: "negotiating", label: "Negotiating", dot: "bg-status-completed" },
+  { key: "accepted", label: "Accepted", dot: "bg-status-confirmed" },
+  { key: "declined", label: "Declined", dot: "bg-status-cancelled" },
+  { key: "lost", label: "Lost", dot: "bg-brand-mute" },
 ];
 
 function initialsFrom(name: string | null, email: string | null): string {
@@ -348,6 +391,47 @@ export function InboxView({
                     <Icon className="h-4 w-4" /> {f.label}
                   </span>
                   {count !== undefined && count > 0 ? (
+                    <span
+                      className={`num rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
+                        active
+                          ? "bg-brand-secondary text-white"
+                          : "border border-brand-line bg-white text-brand-mute"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pipeline — sorts enquiry threads by deal stage */}
+        <div className="border-t border-brand-line px-4 pb-3 pt-4">
+          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            Pipeline
+          </div>
+          <div className="space-y-0.5">
+            {PIPELINE.map((p) => {
+              const active = folder === p.key;
+              const count = counts.pipeline?.[p.key] ?? 0;
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => navigateWith({ f: p.key, c: null })}
+                  className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] transition-colors ${
+                    active
+                      ? "bg-brand-accent font-semibold text-brand-secondary"
+                      : "text-brand-ink hover:bg-brand-light"
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${p.dot}`} />
+                    {p.label}
+                  </span>
+                  {count > 0 ? (
                     <span
                       className={`num rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
                         active
@@ -1049,6 +1133,14 @@ function BookingPane({
           ) : null}
         </div>
       </div>
+
+      {context.isEnquiry || context.pipelineStage || context.quote ? (
+        <PipelineControl
+          conversationId={context.conversationId}
+          stage={context.pipelineStage}
+          quote={context.quote}
+        />
+      ) : null}
 
       {context.booking ? (
         <div className="border-b border-brand-line px-5 py-5">

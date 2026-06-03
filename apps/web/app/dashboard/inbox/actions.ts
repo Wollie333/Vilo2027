@@ -150,6 +150,47 @@ export async function unarchiveConversationAction(
   return { ok: true };
 }
 
+// ── Pipeline stage ──────────────────────────────────────────
+const PIPELINE_STAGES = [
+  "new_quote",
+  "quote_sent",
+  "negotiating",
+  "accepted",
+  "declined",
+  "lost",
+] as const;
+export type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+// Move an enquiry thread to a pipeline stage (host override). Auto-advances
+// from quote events are handled in the quotes actions; this is the manual move.
+export async function setPipelineStageAction(
+  conversationId: string,
+  stage: PipelineStage,
+  lostReason?: string,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(PIPELINE_STAGES as readonly string[]).includes(stage)) {
+    return { ok: false, error: "Unknown stage." };
+  }
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("conversations")
+    .update({
+      pipeline_stage: stage,
+      lost_reason: stage === "lost" ? lostReason?.trim() || null : null,
+    })
+    .eq("id", conversationId);
+  if (error) return { ok: false, error: "Could not move the thread." };
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
 // ── Templates ───────────────────────────────────────────────
 async function assertTemplateOwnership(
   templateId: string,

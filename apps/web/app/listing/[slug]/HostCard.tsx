@@ -136,13 +136,6 @@ export function HostCard({
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <Link
             href={`/${handle}`}
-            className="inline-flex items-center gap-1.5 rounded bg-brand-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-          >
-            <MessageSquare className="h-4 w-4" /> Message{" "}
-            {displayName.split(" ")[0]}
-          </Link>
-          <Link
-            href={`/${handle}`}
             className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
           >
             View host profile

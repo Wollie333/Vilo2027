@@ -919,10 +919,51 @@ export type Database = {
           },
         ]
       }
+      conversation_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
+          assigned_to: string | null
           booking_id: string | null
           created_at: string
+          follow_up_at: string | null
           guest_id: string
           host_id: string
           id: string
@@ -930,14 +971,19 @@ export type Database = {
           last_message_at: string | null
           last_message_preview: string | null
           listing_id: string | null
+          lost_reason: string | null
+          pinned: boolean
+          pipeline_stage: string | null
           status: string
           unread_guest: number
           unread_host: number
           updated_at: string
         }
         Insert: {
+          assigned_to?: string | null
           booking_id?: string | null
           created_at?: string
+          follow_up_at?: string | null
           guest_id: string
           host_id: string
           id?: string
@@ -945,14 +991,19 @@ export type Database = {
           last_message_at?: string | null
           last_message_preview?: string | null
           listing_id?: string | null
+          lost_reason?: string | null
+          pinned?: boolean
+          pipeline_stage?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number
           updated_at?: string
         }
         Update: {
+          assigned_to?: string | null
           booking_id?: string | null
           created_at?: string
+          follow_up_at?: string | null
           guest_id?: string
           host_id?: string
           id?: string
@@ -960,12 +1011,22 @@ export type Database = {
           last_message_at?: string | null
           last_message_preview?: string | null
           listing_id?: string | null
+          lost_reason?: string | null
+          pinned?: boolean
+          pipeline_stage?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_booking_id_fkey"
             columns: ["booking_id"]
@@ -1930,6 +1991,69 @@ export type Database = {
             foreignKeyName: "host_business_details_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: true
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_contacts: {
+        Row: {
+          blocked: boolean
+          created_at: string
+          email: string
+          guest_id: string | null
+          host_id: string
+          id: string
+          last_seen_at: string
+          last_stage: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          blocked?: boolean
+          created_at?: string
+          email: string
+          guest_id?: string | null
+          host_id: string
+          id?: string
+          last_seen_at?: string
+          last_stage?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          blocked?: boolean
+          created_at?: string
+          email?: string
+          guest_id?: string | null
+          host_id?: string
+          id?: string
+          last_seen_at?: string
+          last_stage?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: string | null
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_contacts_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_contacts_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
             referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
@@ -3401,6 +3525,7 @@ export type Database = {
           created_at: string
           id: string
           is_system_message: boolean
+          quote_id: string | null
           read_at: string | null
           read_by_guest: boolean
           read_by_host: boolean
@@ -3416,6 +3541,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_system_message?: boolean
+          quote_id?: string | null
           read_at?: string | null
           read_by_guest?: boolean
           read_by_host?: boolean
@@ -3431,6 +3557,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_system_message?: boolean
+          quote_id?: string | null
           read_at?: string | null
           read_by_guest?: boolean
           read_by_host?: boolean
@@ -3443,6 +3570,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
             referencedColumns: ["id"]
           },
           {
@@ -4451,6 +4585,7 @@ export type Database = {
           check_in: string
           check_out: string
           cleaning_fee: number
+          conversation_id: string | null
           converted_at: string | null
           converted_booking_id: string | null
           created_at: string
@@ -4495,6 +4630,7 @@ export type Database = {
           check_in: string
           check_out: string
           cleaning_fee?: number
+          conversation_id?: string | null
           converted_at?: string | null
           converted_booking_id?: string | null
           created_at?: string
@@ -4539,6 +4675,7 @@ export type Database = {
           check_in?: string
           check_out?: string
           cleaning_fee?: number
+          conversation_id?: string | null
           converted_at?: string | null
           converted_booking_id?: string | null
           created_at?: string
@@ -4574,6 +4711,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "quotes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "quotes_converted_booking_id_fkey"
             columns: ["converted_booking_id"]
@@ -5530,6 +5674,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_active: boolean
+          is_lead: boolean
           languages: string[]
           marketing_opt_in: boolean
           phone: string | null
@@ -5547,6 +5692,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_active?: boolean
+          is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
           phone?: string | null
@@ -5564,6 +5710,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_active?: boolean
+          is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
           phone?: string | null

@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Guest enquiry → host pipeline inbox (Phase A of the comms feature) — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Guest "Request a quote"** on every listing's Host section (`RequestQuoteButton` + canonical `FormModal`). A visitor submits dates/party/(rooms)/message + contact — no login.
+- **`requestQuoteAction`** (`app/listing/[slug]/actions.ts`): finds-or-creates a **passwordless lead** by email (`is_lead`), upserts a **`host_contacts`** row, opens (or reuses) an enquiry **conversation** at stage `new_quote`, and creates an **auto-priced draft quote** linked to the thread, with a **draft-quote card** message + a host notification (reuses the `new_message` event).
+- **Pipeline inbox**: collapsible-rail **Pipeline** section (New quote → Quote sent → Negotiating → Accepted → Declined → Lost) with per-stage counts + filtering; a **`PipelineControl`** in the thread's right rail (stage chips + the linked quote card with "Complete & send quote").
+- **Auto-advance**: `sendQuoteAction` → `quote_sent` (+ sent card), decline → `declined`, mark-accepted → `accepted`; manual override via `setPipelineStageAction`.
+- Extracted canonical pricing into **`lib/pricing/quote.ts` `computeStayPricing`** (now shared by `priceQuoteAction` and the enquiry flow — no duplication).
+- Help Centre article for the enquiry pipeline.
+
+### Migrations
+- `20260603000006_enquiry_pipeline_inbox.sql` — `conversations` (pipeline_stage, assigned_to, follow_up_at, pinned, lost_reason); `quotes.conversation_id`; `messages.quote_id`; `user_profiles.is_lead`; new `host_contacts` + `conversation_notes` tables (RLS).
+- `20260603000007_help_enquiry_pipeline.sql` — Help article.
+
+### Notes
+- Phase A of the approved multi-phase plan. **Next — Phase B:** guest inbox thread viewer + composer (`sendGuestMessageAction`), account claim (set password), Contacts tab + CSV, email acknowledgement. Phases C/D add CRM polish + automation.
+- `pnpm build` + `pnpm lint` green; live-DB query sweep 0/381.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Trip Details (guest) + Quote Detail (host) redesign to match reference HTML — branch `feat/trip-quote-detail-design`
 
 ### Built

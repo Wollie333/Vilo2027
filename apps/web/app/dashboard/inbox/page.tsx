@@ -19,14 +19,27 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = { c?: string; f?: string; q?: string };
 
+const PIPELINE_STAGES = [
+  "new_quote",
+  "quote_sent",
+  "negotiating",
+  "accepted",
+  "declined",
+  "lost",
+] as const;
 const VALID_FOLDERS = [
   "all",
   "unread",
   "enquiries",
   "open",
   "archived",
+  ...PIPELINE_STAGES,
 ] as const;
 type Folder = (typeof VALID_FOLDERS)[number];
+
+function isPipelineStage(f: Folder): f is (typeof PIPELINE_STAGES)[number] {
+  return (PIPELINE_STAGES as readonly string[]).includes(f);
+}
 
 function parseFolder(raw: string | undefined): Folder {
   if (raw && (VALID_FOLDERS as readonly string[]).includes(raw)) {
@@ -80,10 +93,12 @@ export default async function InboxPage({
   // Counts for chips/folders.
   const { data: countsRaw } = await supabase
     .from("conversations")
-    .select("id, status, is_enquiry, unread_host")
+    .select("id, status, is_enquiry, unread_host, pipeline_stage")
     .eq("host_id", host.id);
 
   const all = countsRaw ?? [];
+  const stageCount = (s: string) =>
+    all.filter((c) => c.status !== "archived" && c.pipeline_stage === s).length;
   const counts = {
     all: all.filter((c) => c.status !== "archived").length,
     unread: all
@@ -93,6 +108,14 @@ export default async function InboxPage({
     open: all.filter((c) => c.status === "open").length,
     archived: all.filter((c) => c.status === "archived").length,
     unread_total: all.reduce((n, c) => n + (c.unread_host ?? 0), 0),
+    pipeline: {
+      new_quote: stageCount("new_quote"),
+      quote_sent: stageCount("quote_sent"),
+      negotiating: stageCount("negotiating"),
+      accepted: stageCount("accepted"),
+      declined: stageCount("declined"),
+      lost: stageCount("lost"),
+    },
   };
 
   // Conversation list — filtered server-side.
@@ -119,6 +142,7 @@ export default async function InboxPage({
     if (folder === "open") query = query.eq("status", "open");
     if (folder === "enquiries") query = query.eq("is_enquiry", true);
     if (folder === "unread") query = query.gt("unread_host", 0);
+    if (isPipelineStage(folder)) query = query.eq("pipeline_stage", folder);
   }
 
   const { data: convRows } = await query;
@@ -214,7 +238,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, created_at,
+            id, status, is_enquiry, pipeline_stage, created_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
@@ -223,6 +247,16 @@ export default async function InboxPage({
         .eq("id", selectedId)
         .maybeSingle(),
     ]);
+
+    // Latest quote on this thread (for the inbox quote card).
+    const { data: quoteRow } = await supabase
+      .from("quotes")
+      .select("id, status, quote_number, total_amount, currency")
+      .eq("conversation_id", selectedId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     messages = (msgs ?? []).map((m) => ({
       id: m.id,
@@ -241,6 +275,7 @@ export default async function InboxPage({
       id: string;
       status: string;
       is_enquiry: boolean;
+      pipeline_stage: string | null;
       created_at: string;
       guest: {
         id: string;
@@ -299,6 +334,24 @@ export default async function InboxPage({
                   ? null
                   : Number(ctx.booking.total_amount),
               currency: ctx.booking.currency,
+            }
+          : null,
+        pipelineStage:
+          (ctx.pipeline_stage as
+            | "new_quote"
+            | "quote_sent"
+            | "negotiating"
+            | "accepted"
+            | "declined"
+            | "lost"
+            | null) ?? null,
+        quote: quoteRow
+          ? {
+              id: quoteRow.id,
+              status: quoteRow.status,
+              quoteNumber: (quoteRow.quote_number as string | null) ?? null,
+              total: Number(quoteRow.total_amount),
+              currency: quoteRow.currency,
             }
           : null,
       };

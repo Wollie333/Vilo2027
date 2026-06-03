@@ -4,13 +4,8 @@ import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
-import {
-  computeAgeExtras,
-  priceStay,
-  type AgeExtraLine,
-  type PricingUnit,
-  type SeasonalRule,
-} from "@/lib/pricing";
+import { type AgeExtraLine } from "@/lib/pricing";
+import { computeStayPricing } from "@/lib/pricing/quote";
 
 import {
   createQuoteSchema,
@@ -22,12 +17,6 @@ import {
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-function numOrNull(v: unknown): number | null {
-  if (v == null || v === "") return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-}
 
 function nightsBetween(checkIn: string, checkOut: string): number {
   const f = new Date(`${checkIn}T00:00:00Z`).getTime();
@@ -142,180 +131,23 @@ export async function priceQuoteAction(input: {
     return { ok: false, error: "Pick valid check-in and check-out dates." };
   }
 
+  // Canonical pricing lives in the shared helper (also used by the public
+  // enquiry flow) so an auto-priced quote matches a real booking.
   const admin = createAdminClient();
-  const { data: listing } = await admin
-    .from("listings")
-    .select(
-      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
-    )
-    .eq("id", input.listing_id)
-    .maybeSingle();
-  if (!listing || listing.host_id !== host.hostId) {
-    return { ok: false, error: "Listing not found." };
-  }
-
-  // Age/pet rates: per-room for a rooms quote (the first booked room), else the
-  // listing's. Captured here so the same rates flow to the line items below.
-  let ageRates = {
-    childPrice: Number(listing.child_price ?? 0),
-    infantPrice: Number(listing.infant_price ?? 0),
-    petFee: Number(listing.pet_fee ?? 0),
-  };
-  let ageAllow = {
-    children: listing.allow_children ?? true,
-    infants: listing.allow_infants ?? true,
-    pets: listing.allow_pets ?? true,
-  };
-
-  const nights = nightsBetween(input.check_in, input.check_out);
-  let units: PricingUnit[] = [];
-  let isWholeCombo = false;
-
-  if (input.scope === "rooms") {
-    const roomIds = input.rooms.map((r) => r.room_id);
-    if (roomIds.length === 0) {
-      return { ok: false, error: "Pick at least one room to price." };
-    }
-    const { data: roomRows } = await admin
-      .from("listing_rooms")
-      .select(
-        "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
-      )
-      .eq("listing_id", listing.id)
-      .is("deleted_at", null)
-      .eq("is_active", true)
-      .in("id", roomIds);
-    if (!roomRows || roomRows.length !== roomIds.length) {
-      return { ok: false, error: "One or more rooms are no longer available." };
-    }
-    // Per-room age/pet rates come from the first booked room; a category is
-    // allowed only if every booked room allows it.
-    ageRates = {
-      childPrice: Number(roomRows[0]?.child_price ?? 0),
-      infantPrice: Number(roomRows[0]?.infant_price ?? 0),
-      petFee: Number(roomRows[0]?.pet_fee ?? 0),
-    };
-    ageAllow = {
-      children: roomRows.every((r) => r.allow_children ?? true),
-      infants: roomRows.every((r) => r.allow_infants ?? true),
-      pets: roomRows.every((r) => r.allow_pets ?? true),
-    };
-    const guestsByRoom = new Map(input.rooms.map((r) => [r.room_id, r.guests]));
-    units = roomRows.map((r) => ({
-      roomId: r.id,
-      pricing_mode: (r.pricing_mode ??
-        "per_room") as PricingUnit["pricing_mode"],
-      base_price: Number(r.base_price),
-      price_per_person:
-        r.price_per_person == null ? null : Number(r.price_per_person),
-      base_occupancy: r.base_occupancy ?? null,
-      extra_guest_price:
-        r.extra_guest_price == null ? null : Number(r.extra_guest_price),
-      weekend_price: r.weekend_price == null ? null : Number(r.weekend_price),
-      cleaning_fee: Number(r.cleaning_fee ?? 0),
-      guests: Math.max(1, guestsByRoom.get(r.id) ?? 1),
-    }));
-    const { count: activeRoomCount } = await admin
-      .from("listing_rooms")
-      .select("id", { count: "exact", head: true })
-      .eq("listing_id", listing.id)
-      .is("deleted_at", null)
-      .eq("is_active", true);
-    isWholeCombo =
-      activeRoomCount != null &&
-      activeRoomCount > 1 &&
-      roomRows.length === activeRoomCount;
-  } else {
-    if (listing.base_price == null) {
-      return { ok: false, error: "This listing has no nightly price set yet." };
-    }
-    units = [
-      {
-        roomId: null,
-        pricing_mode: "per_room",
-        base_price: Number(listing.base_price),
-        price_per_person: null,
-        base_occupancy: null,
-        extra_guest_price: null,
-        weekend_price:
-          listing.weekend_price == null ? null : Number(listing.weekend_price),
-        cleaning_fee: Number(listing.cleaning_fee ?? 0),
-        guests: Math.max(1, input.guests),
-      },
-    ];
-  }
-
-  const { data: seasonalRows } = await admin
-    .from("listing_seasonal_pricing")
-    .select(
-      "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
-    )
-    .eq("listing_id", listing.id)
-    .eq("is_active", true)
-    .lte("start_date", input.check_out)
-    .gte("end_date", input.check_in);
-
-  const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
-    roomId: s.room_id,
-    startDate: s.start_date,
-    endDate: s.end_date,
-    adjustmentType: s.adjustment_type === "percent" ? "percent" : "absolute",
-    adjustmentValue: Number(s.adjustment_value),
-    label: s.label,
-    priority: s.priority ?? 0,
-    minNights: s.min_nights ?? null,
-    isActive: s.is_active,
-    createdAt: s.created_at,
-  }));
-
-  const breakdown = priceStay({
-    checkIn: input.check_in,
-    checkOut: input.check_out,
-    units,
-    seasonalRules,
-    currency: listing.currency ?? "ZAR",
-    totalGuests: Math.max(1, input.guests),
-    listingMinNights: listing.min_nights ?? 1,
-    isWholeCombo,
-    wholePct: numOrNull(listing.whole_listing_discount_pct),
-    weeklyPct: numOrNull(listing.weekly_discount_pct),
-    monthlyPct: numOrNull(listing.monthly_discount_pct),
-  });
-
-  // Child/infant/pet line items from the party + the resolved rates.
-  const { lines: ageLines, total: ageTotal } = computeAgeExtras(
-    {
-      adults: 0,
-      children: ageAllow.children ? (input.party?.children ?? 0) : 0,
-      infants: ageAllow.infants ? (input.party?.infants ?? 0) : 0,
-      pets: ageAllow.pets ? (input.party?.pets ?? 0) : 0,
-    },
-    ageRates,
-    nights,
-  );
-
+  const priced = await computeStayPricing(admin, input, host.hostId);
+  if (!priced.ok) return priced;
+  const d = priced.data;
   return {
     ok: true,
     data: {
-      currency: breakdown.currency,
-      nights,
-      // base_amount here = accommodation after stay discount (what the host
-      // would charge for the rooms before add-ons), to mirror booking semantics.
-      base_amount: breakdown.baseSubtotal - breakdown.discount.discountTotal,
-      cleaning_fee: breakdown.cleaningTotal,
-      total:
-        breakdown.baseSubtotal -
-        breakdown.discount.discountTotal +
-        breakdown.cleaningTotal,
-      rooms: breakdown.units
-        .filter((u) => u.roomId !== null)
-        .map((u) => ({
-          room_id: u.roomId as string,
-          base_amount: u.baseSubtotal,
-          cleaning_fee: u.cleaningFee,
-        })),
-      age_lines: ageLines,
-      age_total: ageTotal,
+      currency: d.currency,
+      nights: d.nights,
+      base_amount: d.base_amount,
+      cleaning_fee: d.cleaning_fee,
+      total: d.total,
+      rooms: d.rooms,
+      age_lines: d.age_lines,
+      age_total: d.age_total,
     },
   };
 }
@@ -645,6 +477,39 @@ async function snapshotQuoteVersion(
   });
 }
 
+// Advance the pipeline stage of the conversation a quote belongs to (if any),
+// keeping the inbox pipeline in sync with quote events. Best-effort.
+async function advanceConversationStage(
+  supabase: ReturnType<typeof createServerClient>,
+  quoteId: string,
+  stage: "quote_sent" | "declined" | "accepted",
+  postCard = false,
+): Promise<void> {
+  const { data: q } = await supabase
+    .from("quotes")
+    .select("conversation_id, quote_number, total_amount, currency")
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (!q?.conversation_id) return;
+  await supabase
+    .from("conversations")
+    .update({ pipeline_stage: stage })
+    .eq("id", q.conversation_id);
+  if (postCard) {
+    const sym = q.currency === "ZAR" ? "R " : `${q.currency} `;
+    await supabase.from("messages").insert({
+      conversation_id: q.conversation_id,
+      sender_id: null,
+      is_system_message: true,
+      system_event: "quote_sent",
+      quote_id: quoteId,
+      body: `Quote ${q.quote_number} sent · ${sym}${Math.round(Number(q.total_amount))}`,
+      read_by_host: true,
+    });
+  }
+  revalidatePath("/dashboard/inbox");
+}
+
 export async function sendQuoteAction(
   quoteId: string,
   validDays = 14,
@@ -675,6 +540,7 @@ export async function sendQuoteAction(
     .eq("id", quoteId);
   if (error) return { ok: false, error: "Could not send the quote." };
 
+  await advanceConversationStage(supabase, quoteId, "quote_sent", true);
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   return { ok: true };
@@ -697,6 +563,7 @@ export async function declineQuoteAction(
     .in("status", ["draft", "sent"]);
   if (error) return { ok: false, error: "Could not decline the quote." };
 
+  await advanceConversationStage(supabase, quoteId, "declined");
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   return { ok: true };
@@ -719,6 +586,7 @@ export async function markAcceptedAction(
     .eq("status", "sent");
   if (error) return { ok: false, error: "Could not mark accepted." };
 
+  await advanceConversationStage(supabase, quoteId, "accepted");
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   return { ok: true };
 }

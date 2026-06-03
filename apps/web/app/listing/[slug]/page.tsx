@@ -43,6 +43,7 @@ import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
+import { RequestQuoteButton } from "./RequestQuoteButton";
 import { loadListingReviews } from "./reviews-data";
 import { ReviewsSection } from "./ReviewsSection";
 import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
@@ -523,6 +524,14 @@ export default async function ListingDetailPage({
                   monthlyDiscountPct={listing.monthly_discount_pct}
                 />
               }
+              quoteButton={
+                <RequestQuoteButton
+                  listingId={listing.id}
+                  listingName={listing.name}
+                  bookingMode={listing.booking_mode}
+                  rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                />
+              }
             />
             <MobileBookingBar
               slug={listing.slug ?? params.slug}
@@ -587,6 +596,14 @@ export default async function ListingDetailPage({
                 seasonalRules={seasonalRules}
                 weeklyDiscountPct={listing.weekly_discount_pct}
                 monthlyDiscountPct={listing.monthly_discount_pct}
+              />
+            }
+            quoteButton={
+              <RequestQuoteButton
+                listingId={listing.id}
+                listingName={listing.name}
+                bookingMode={listing.booking_mode}
+                rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
               />
             }
           />
@@ -736,6 +753,7 @@ function ListingBody({
   reviewsNode,
   locationNode,
   sidebarNode,
+  quoteButton,
 }: {
   listing: RawListing;
   amenities: string[];
@@ -747,6 +765,7 @@ function ListingBody({
   reviewsNode?: React.ReactNode;
   locationNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
+  quoteButton?: React.ReactNode;
 }) {
   const sectionLinks = [
     { id: "sec-overview", label: "Overview" },
@@ -958,6 +977,7 @@ function ListingBody({
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
             />
+            {quoteButton ? <div className="mt-5">{quoteButton}</div> : null}
             <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
               <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
               For your safety, never transfer money or chat outside Vilo.
