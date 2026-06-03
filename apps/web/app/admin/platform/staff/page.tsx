@@ -12,7 +12,7 @@ export default async function PlatformStaffPage() {
       service
         .from("platform_staff")
         .select(
-          "user_id, role_id, is_active, accepted_at, last_active_at, created_at, user_profiles(email, full_name)",
+          "user_id, role_id, is_active, accepted_at, last_active_at, created_at, user_profiles!platform_staff_user_id_fkey(email, full_name)",
         )
         .order("created_at", { ascending: false }),
       service

@@ -337,7 +337,7 @@ export async function fetchGettingStartedState(
     const { data: firstL } = await supabase
       .from("listings")
       .select(
-        "id, name, status, is_published, listing_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
+        "id, name, is_published, listing_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
       )
       .eq("host_id", hostId)
       .is("deleted_at", null)
@@ -348,7 +348,6 @@ export async function fetchGettingStartedState(
       const row = firstL as {
         id: string;
         name?: string;
-        status?: string;
         is_published?: boolean | null;
         listing_type?: string | null;
         booking_mode?: string | null;
@@ -359,7 +358,7 @@ export async function fetchGettingStartedState(
         check_out_time?: string | null;
       };
       const name = row.name ?? "First listing";
-      const status = row.status ?? "draft";
+      const status = row.is_published ? "published" : "draft";
       firstListing = { done: true, meta: `${name} · ${status}` };
       setupListing = row;
 

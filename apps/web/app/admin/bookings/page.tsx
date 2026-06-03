@@ -53,7 +53,7 @@ export default async function AdminBookingsPage({
       check_in, check_out, total_amount, currency, created_at,
       listing:listings ( name ),
       host:hosts ( display_name, handle ),
-      guest:user_profiles ( full_name, email )
+      guest:user_profiles!bookings_guest_id_fkey ( full_name, email )
     `,
       { count: "exact" },
     )

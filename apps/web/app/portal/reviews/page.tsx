@@ -44,7 +44,7 @@ export default async function PortalReviewsPage() {
   // Reviews the guest has already submitted (used to filter out done ones).
   const { data: writtenRows } = await supabase
     .from("reviews")
-    .select("booking_id, rating, content, created_at")
+    .select("booking_id, rating, body, created_at")
     .eq("guest_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -60,7 +60,7 @@ export default async function PortalReviewsPage() {
   type ReviewRow = {
     booking_id: string;
     rating: number;
-    content: string | null;
+    body: string | null;
     created_at: string;
   };
 
@@ -157,9 +157,9 @@ export default async function PortalReviewsPage() {
                     {r.rating.toFixed(1)}
                   </span>
                 </div>
-                {r.content ? (
+                {r.body ? (
                   <p className="mt-2 text-sm leading-relaxed text-brand-dark">
-                    {r.content}
+                    {r.body}
                   </p>
                 ) : null}
                 <div className="mt-2 text-[11px] text-brand-mute">

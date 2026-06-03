@@ -46,7 +46,7 @@ export default async function AdminPaymentsPage({
     .from("payments")
     .select(
       `
-      id, amount, currency, status, provider, provider_reference,
+      id, amount, currency, status, method, provider_reference,
       captured_at, refunded_amount, created_at,
       booking:bookings ( id, reference, host:hosts ( display_name ) )
     `,
@@ -85,7 +85,7 @@ export default async function AdminPaymentsPage({
     amount: number;
     currency: string;
     status: string;
-    provider: string;
+    method: string;
     provider_reference: string | null;
     captured_at: string | null;
     refunded_amount: number | null;
@@ -182,7 +182,7 @@ export default async function AdminPaymentsPage({
                       </span>
                       <StatusPill status={p.status} />
                       <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                        {p.provider}
+                        {p.method}
                       </span>
                     </div>
                     <div className="truncate font-mono text-[11px] text-brand-mute">
