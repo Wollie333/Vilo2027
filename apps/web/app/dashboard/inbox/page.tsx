@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 
 import type { ThreadQuote } from "@/components/inbox/ThreadQuoteCard";
+import {
+  QUOTE_CARD_COLUMNS,
+  mapQuoteRow,
+} from "@/components/inbox/quote-thread";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -367,9 +371,7 @@ export default async function InboxPage({
     if (quoteIds.length > 0) {
       const { data: qRows } = await supabase
         .from("quotes")
-        .select(
-          "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token",
-        )
+        .select(QUOTE_CARD_COLUMNS)
         .in("id", quoteIds);
       const { data: viewRows } = await supabase
         .from("quote_view_events")
@@ -383,27 +385,7 @@ export default async function InboxPage({
         seenBy.set(v.quote_id, cur);
       }
       for (const q of qRows ?? []) {
-        const seen = seenBy.get(q.id);
-        quotesById[q.id] = {
-          id: q.id,
-          quoteNumber: (q.quote_number as string | null) ?? null,
-          status: q.status,
-          currency: q.currency,
-          total: Number(q.total_amount ?? 0),
-          checkIn: q.check_in,
-          checkOut: q.check_out,
-          headcount: q.headcount,
-          scope: q.scope,
-          depositType: q.deposit_type,
-          depositAmount:
-            q.deposit_amount == null ? null : Number(q.deposit_amount),
-          balanceAmount:
-            q.balance_amount == null ? null : Number(q.balance_amount),
-          validUntil: (q.valid_until as string | null) ?? null,
-          acceptToken: (q.accept_token as string | null) ?? null,
-          viewCount: seen?.count ?? 0,
-          lastViewedAt: seen?.last ?? null,
-        };
+        quotesById[q.id] = mapQuoteRow(q, seenBy.get(q.id));
       }
     }
 

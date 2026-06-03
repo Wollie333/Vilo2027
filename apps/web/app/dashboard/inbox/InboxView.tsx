@@ -42,6 +42,7 @@ import {
   ThreadQuoteCard,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
+import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -386,17 +387,10 @@ export function InboxView({
   // One quote → one inline card, rendered at its FIRST message in the thread.
   // The card reads the quote's live state, so the same card shows the request
   // as a draft and then the finished quote once the host sends it.
-  const quoteCardMsgIds = useMemo(() => {
-    const seenQuote = new Set<string>();
-    const ids = new Set<string>();
-    for (const m of messages) {
-      if (m.quoteId && quotesById[m.quoteId] && !seenQuote.has(m.quoteId)) {
-        seenQuote.add(m.quoteId);
-        ids.add(m.id);
-      }
-    }
-    return ids;
-  }, [messages, quotesById]);
+  const quoteCardMsgIds = useMemo(
+    () => firstQuoteMessageIds(messages, quotesById),
+    [messages, quotesById],
+  );
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">

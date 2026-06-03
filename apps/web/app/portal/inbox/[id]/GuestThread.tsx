@@ -8,6 +8,7 @@ import {
   ThreadQuoteCard,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
+import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -62,16 +63,7 @@ export function GuestThread({
 }) {
   // One inline card per quote, at its first message — reflects the quote's
   // live state (request → sent quote with an accept button).
-  const quoteCardMsgIds = new Set<string>();
-  {
-    const seenQuote = new Set<string>();
-    for (const m of messages) {
-      if (m.quoteId && quotesById[m.quoteId] && !seenQuote.has(m.quoteId)) {
-        seenQuote.add(m.quoteId);
-        quoteCardMsgIds.add(m.id);
-      }
-    }
-  }
+  const quoteCardMsgIds = firstQuoteMessageIds(messages, quotesById);
   const [value, setValue] = useState("");
   const [pending, start] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
