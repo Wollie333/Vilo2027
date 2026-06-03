@@ -3,15 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { computeStayPricing } from "@/lib/pricing/quote";
+import type { StayPricingResult } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// NOTE: the email sender (`@/lib/email/send` → `resend`) and the notification
-// dispatcher are imported DYNAMICALLY inside the action below, never at module
-// scope. Both are best-effort side-effects; importing them at the top puts them
-// in this server action's module graph, so if either module throws while
-// loading on the server the whole action 500s before our try/catch can run.
-// Dynamic import keeps a load failure inside the guarded block.
+// NOTE: the pricing engine (`@/lib/pricing/quote`), the email sender
+// (`@/lib/email/send` → `resend`) and the notification dispatcher are imported
+// DYNAMICALLY inside the action below, never at module scope. They're all
+// best-effort/heavy; importing them at the top puts them in this server
+// action's module graph, so if any one throws while loading on the server the
+// whole action 500s before our try/catch can run. Dynamic import keeps a load
+// failure inside the guarded block. (`import type` above is erased at compile,
+// so it adds nothing to the runtime graph.)
 
 // A website visitor requests a quote from a listing. No login required: we
 // find-or-create a passwordless guest "lead", open (or reuse) an enquiry
@@ -276,19 +278,27 @@ export async function requestQuoteAction(
             guests: Math.max(1, Math.ceil(headcount / Math.max(1, roomCount))),
           }))
         : [];
-    const priced = await computeStayPricing(admin, {
-      listing_id: listing.id,
-      check_in: d.check_in,
-      check_out: d.check_out,
-      scope: d.scope,
-      guests: headcount,
-      rooms: roomsInput,
-      party: {
-        children: d.guests_breakdown.children,
-        infants: d.guests_breakdown.infants,
-        pets: d.guests_breakdown.pets,
-      },
-    });
+    let priced: StayPricingResult = { ok: false, error: "pricing-unavailable" };
+    try {
+      const { computeStayPricing } = await import("@/lib/pricing/quote");
+      priced = await computeStayPricing(admin, {
+        listing_id: listing.id,
+        check_in: d.check_in,
+        check_out: d.check_out,
+        scope: d.scope,
+        guests: headcount,
+        rooms: roomsInput,
+        party: {
+          children: d.guests_breakdown.children,
+          infants: d.guests_breakdown.infants,
+          pets: d.guests_breakdown.pets,
+        },
+      });
+    } catch {
+      // Pricing is a best-effort suggestion — the host finalises it. Fall back
+      // to a zero-priced draft rather than failing the whole enquiry.
+      priced = { ok: false, error: "pricing-unavailable" };
+    }
     const baseAmount = priced.ok ? priced.data.base_amount : 0;
     const cleaningFee = priced.ok ? priced.data.cleaning_fee : 0;
     const ageTotal = priced.ok ? priced.data.age_total : 0;
