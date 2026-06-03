@@ -10,8 +10,6 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 
-import { requestQuoteAction } from "./actions";
-
 type RoomOption = { id: string; name: string };
 
 export function RequestQuoteButton({
@@ -84,27 +82,32 @@ export function RequestQuoteButton({
     const scope = selectedRooms.length > 0 ? "rooms" : "whole_listing";
     setPending(true);
     try {
-      const result = await requestQuoteAction({
-        listing_id: listingId,
-        scope,
-        room_ids: scope === "rooms" ? selectedRooms : [],
-        check_in: checkIn,
-        check_out: checkOut,
-        guests_breakdown: { adults, children, infants, pets },
-        message: message.trim(),
-        guest_name: name.trim(),
-        guest_email: email.trim(),
-        guest_phone: phone.trim() || "",
-        hp,
+      const res = await fetch("/api/enquiry", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          listing_id: listingId,
+          scope,
+          room_ids: scope === "rooms" ? selectedRooms : [],
+          check_in: checkIn,
+          check_out: checkOut,
+          guests_breakdown: { adults, children, infants, pets },
+          message: message.trim(),
+          guest_name: name.trim(),
+          guest_email: email.trim(),
+          guest_phone: phone.trim() || "",
+          hp,
+        }),
       });
+      const result = (await res.json()) as { ok: boolean; error?: string };
       if (result.ok) {
         setDone(true);
       } else {
-        toast.error(result.error);
+        toast.error(result.error || "Could not send your request.");
       }
     } catch {
       toast.error(
-        "Something went wrong sending your request. Please try again.",
+        "Couldn't reach the server. Check your connection and try again.",
       );
     } finally {
       setPending(false);
