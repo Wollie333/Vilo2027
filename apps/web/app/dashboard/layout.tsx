@@ -1,8 +1,7 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { AppShellFrame } from "@/app/_components/AppShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
-import { isFullBleedRoute } from "@/lib/layout/fullBleed";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { MobileBottomNav } from "./_components/MobileBottomNav";
@@ -106,33 +105,21 @@ export default async function DashboardLayout({
     .slice(0, 2)
     .toUpperCase();
 
-  // Full-bleed pages (inbox) need a viewport-bounded height chain so their
-  // internal scroll regions resolve and elements like the chat composer pin
-  // to the bottom. Normal pages stay growable (min-h-screen) and scroll the
-  // page naturally.
-  const fullBleed = isFullBleedRoute(headers().get("x-pathname"));
-
+  // The full-bleed decision is reactive to the route (see AppShellFrame) — it
+  // must re-evaluate on client navigation, which a server layout does not.
   return (
     <QuickNavProvider>
-      <div
-        className={`flex bg-brand-light text-brand-ink ${
-          fullBleed ? "h-[100dvh] overflow-hidden" : "min-h-screen"
-        }`}
-      >
-        <Sidebar
-          host={host ? { ...host, listingCount } : null}
-          plan={plan}
-          canHost={canHost}
-          canAdmin={isPlatformStaff}
-          inboxUnread={inboxUnread}
-        />
-        <main
-          className={`flex min-w-0 flex-1 flex-col ${
-            fullBleed
-              ? "min-h-0 overflow-hidden pb-16 lg:pb-0"
-              : "pb-20 lg:pb-0"
-          }`}
-        >
+      <AppShellFrame
+        sidebar={
+          <Sidebar
+            host={host ? { ...host, listingCount } : null}
+            plan={plan}
+            canHost={canHost}
+            canAdmin={isPlatformStaff}
+            inboxUnread={inboxUnread}
+          />
+        }
+        topbar={
           <Topbar
             email={user.email ?? ""}
             initials={initials}
@@ -148,21 +135,12 @@ export default async function DashboardLayout({
               null
             }
           />
-          <BroadcastBanner />
-          {fullBleed ? (
-            // Full-bleed: no padding, no max-w cap. This is a bounded flex
-            // column (min-h-0) so the page's own `flex-1` child fills the
-            // remaining height and its internal scroll regions / pinned
-            // composer resolve correctly.
-            <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-          ) : (
-            <div className="px-5 py-6 lg:px-8 lg:py-8">
-              <div className="mx-auto max-w-[1280px]">{children}</div>
-            </div>
-          )}
-        </main>
-        <MobileBottomNav />
-      </div>
+        }
+        banner={<BroadcastBanner />}
+        bottomNav={<MobileBottomNav />}
+      >
+        {children}
+      </AppShellFrame>
     </QuickNavProvider>
   );
 }
