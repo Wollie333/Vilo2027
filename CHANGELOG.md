@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms Phase B.2: enquiry email ack + lead account claim — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Enquiry acknowledgement email** (`lib/email/send.ts` `sendTransactionalEmail` via Resend, best-effort, never blocks the enquiry). New leads get a **magic link** (`admin.generateLink` → `/auth/confirm?...&next=/claim`); existing accounts get an inbox link.
+- **Account claim**: `/claim` page + `ClaimForm` + `claimGuestAccountAction` — a lead who arrives via the magic link sets a password (`auth.updateUser`) and `user_profiles.is_lead` flips to `false`, turning the lead into a full account. Already-claimed users see a "go to trips" state.
+
+### Notes
+- Completes the comms plan's Phase B. Email **delivery** depends on the Resend sending domain being verified (currently `resend.dev`); the flow is code-complete and works once that's set. `pnpm build` + `pnpm lint` green; sweep 0/386. No schema changes.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Comms Phase B: two-way guest inbox + Contacts/CSV — branch `feat/trip-quote-detail-design`
 
 ### Built

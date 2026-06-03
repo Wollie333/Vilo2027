@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { computeStayPricing } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -326,6 +327,39 @@ export async function requestQuoteAction(
       unread_count: 1,
     },
   });
+
+  // Acknowledge to the guest by email (best-effort, never blocks the enquiry).
+  // A brand-new lead gets a magic link to claim their account + track the quote;
+  // an existing account just gets a link to their inbox.
+  try {
+    const esc = (s: string) =>
+      s.replace(
+        /[<>&]/g,
+        (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c,
+      );
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    let actionHtml = "";
+    if (isLead && appUrl) {
+      const { data: linkData } = await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email: emailLc,
+      });
+      const tokenHash = linkData?.properties?.hashed_token;
+      if (tokenHash) {
+        const claimUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=magiclink&next=${encodeURIComponent("/claim")}`;
+        actionHtml = `<p><a href="${claimUrl}" style="color:#0d9488;font-weight:600">Set a password &amp; track your request &rarr;</a></p>`;
+      }
+    } else if (appUrl) {
+      actionHtml = `<p><a href="${appUrl}/portal/inbox" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
+    }
+    await sendTransactionalEmail({
+      to: emailLc,
+      subject: `We've sent your request to ${hostRow.display_name}`,
+      html: `<p>Hi ${esc(d.guest_name.split(" ")[0])},</p><p>Thanks for your interest in <strong>${esc(listing.name)}</strong>. Your request (${d.check_in} &rarr; ${d.check_out}) has reached ${esc(hostRow.display_name)}, who'll reply with a tailored quote.</p>${actionHtml}<p style="color:#6b7280;font-size:12px">Sent via Vilo</p>`,
+    });
+  } catch {
+    // Email is best-effort — the enquiry already succeeded.
+  }
 
   revalidatePath("/dashboard/inbox");
   return { ok: true, data: { isLead, email: emailLc } };
