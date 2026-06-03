@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms: assign-to-staff + quiet-hours auto-reply + fix enquiry honeypot — branch `feat/trip-quote-detail-design`
+
+### Built (the two previously-deferred items)
+- **Assign-to-staff (E):** assign an inbox thread to the host or a `staff_members` teammate (`assignConversationAction` + an assignee dropdown in the thread pane; `conversations.assigned_to`). Picker only shows when the host has staff.
+- **Quiet-hours auto-reply (G):** new `hosts.enquiry_auto_reply` (set on Settings → Notifications via `AwayAutoReplyCard`/`setEnquiryAutoReplyAction`). When an enquiry arrives during the host's notification quiet hours (`user_notification_settings`), Vilo posts the message into the thread automatically.
+
+### Fixed
+- **Request-a-quote modal silently failed.** The honeypot field was declared as `z.string().max(0)`, so browser autofill of a field named "company" failed Zod validation and blocked the submit before the intended silent-drop ran. Honeypot is now permissive in the schema (renamed `hp`, neutral input name, autocomplete off) — real guests submit reliably; bots that fill it are still dropped. Verified the full enquiry write path end-to-end against the live DB.
+
+### Migrations
+- `20260603000009_host_enquiry_auto_reply.sql` — `hosts.enquiry_auto_reply`. (Cron `…000008` already applied.)
+
+### Notes
+- This completes the entire comms plan (A→D + all enhancements 1–20 + A–G) except convert-direct (#20), intentionally skipped as redundant. `pnpm build` + `pnpm lint` green; sweep 0/395.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Comms Phase C/D tail: nav badge, pipeline value, canned replies, auto-archive — branch `feat/trip-quote-detail-design`
 
 ### Built

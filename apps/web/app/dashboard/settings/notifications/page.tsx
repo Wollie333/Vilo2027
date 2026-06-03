@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 import { PreferencesForm } from "@/components/notifications/PreferencesForm";
 import { loadPreferencesViewModel } from "@/lib/notifications/preferences-loader";
+import { createServerClient } from "@/lib/supabase/server";
+
+import { AwayAutoReplyCard } from "./AwayAutoReplyCard";
 
 export const metadata: Metadata = {
   title: "Notifications · Settings · Vilo",
@@ -36,6 +39,23 @@ export default async function NotificationsSettingsPage() {
         initial={vm}
         revalidate={["/dashboard/settings/notifications"]}
       />
+      <HostAwayAutoReply />
     </section>
   );
+}
+
+// Host-only: the enquiry away auto-reply lives on the hosts row.
+async function HostAwayAutoReply() {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("enquiry_auto_reply")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!host) return null;
+  return <AwayAutoReplyCard initial={host.enquiry_auto_reply ?? null} />;
 }

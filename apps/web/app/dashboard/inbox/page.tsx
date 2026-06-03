@@ -287,7 +287,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, pipeline_stage, pinned, follow_up_at, created_at,
+            id, status, is_enquiry, pipeline_stage, pinned, follow_up_at, assigned_to, created_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
@@ -359,6 +359,7 @@ export default async function InboxPage({
       pipeline_stage: string | null;
       pinned: boolean;
       follow_up_at: string | null;
+      assigned_to: string | null;
       created_at: string;
       guest: {
         id: string;
@@ -421,6 +422,7 @@ export default async function InboxPage({
           : null,
         pinned: ctx.pinned ?? false,
         followUpAt: ctx.follow_up_at ?? null,
+        assignedTo: ctx.assigned_to ?? null,
         pipelineStage:
           (ctx.pipeline_stage as
             | "new_quote"
@@ -456,6 +458,24 @@ export default async function InboxPage({
     .order("sort_order", { ascending: true });
   const templates = templateRows ?? [];
 
+  // Assignable team members (the host + their staff) for the assignee picker.
+  const { data: staffRows } = await supabase
+    .from("staff_members")
+    .select("user_id, user:user_profiles ( full_name )")
+    .eq("host_id", host.id);
+  const assignees = [
+    { id: user.id, name: `${host.display_name} (you)` },
+    ...(staffRows ?? []).map((s) => {
+      const u = Array.isArray(s.user) ? s.user[0] : s.user;
+      return {
+        id: s.user_id as string,
+        name:
+          (u as { full_name: string | null } | null)?.full_name ??
+          "Team member",
+      };
+    }),
+  ];
+
   const hostInitials =
     (host.display_name || "")
       .split(" ")
@@ -476,6 +496,7 @@ export default async function InboxPage({
       messages={messages}
       context={context}
       templates={templates}
+      assignees={assignees}
     />
   );
 }

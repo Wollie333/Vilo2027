@@ -42,6 +42,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import {
   archiveConversationAction,
+  assignConversationAction,
   markConversationReadAction,
   sendMessageAction,
   togglePinAction,
@@ -109,6 +110,7 @@ export type ThreadContext = {
   pipelineStage: PipelineStage | null;
   pinned: boolean;
   followUpAt: string | null;
+  assignedTo: string | null;
   quote: {
     id: string;
     status: string;
@@ -123,6 +125,7 @@ export type ThreadContext = {
 };
 
 export type TemplateRow = { id: string; title: string; body: string };
+export type Assignee = { id: string; name: string };
 
 export type Counts = {
   all: number;
@@ -265,6 +268,7 @@ export function InboxView({
   messages,
   context,
   templates,
+  assignees,
 }: {
   hostInitials: string;
   hostName: string;
@@ -276,6 +280,7 @@ export function InboxView({
   messages: MessageRow[];
   context: ThreadContext | null;
   templates: TemplateRow[];
+  assignees: Assignee[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -808,6 +813,7 @@ export function InboxView({
             {/* Context pane */}
             <BookingPane
               context={context}
+              assignees={assignees}
               visibleOnMobile={showPaneMobile}
               onClose={() => setShowPaneMobile(false)}
             />
@@ -1144,13 +1150,56 @@ function PinToggle({
   );
 }
 
+// ── Assignee select ─────────────────────────────────────────
+function AssigneeSelect({
+  conversationId,
+  assignedTo,
+  assignees,
+}: {
+  conversationId: string;
+  assignedTo: string | null;
+  assignees: Assignee[];
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <div className="border-b border-brand-line px-5 py-4">
+      <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+        Assigned to
+      </label>
+      <select
+        value={assignedTo ?? ""}
+        disabled={pending}
+        onChange={(e) => {
+          const v = e.target.value || null;
+          start(async () => {
+            const r = await assignConversationAction(conversationId, v);
+            if (r.ok) router.refresh();
+            else toast.error(r.error);
+          });
+        }}
+        className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10 disabled:opacity-60"
+      >
+        <option value="">Unassigned</option>
+        {assignees.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // ── Booking context pane ────────────────────────────────────
 function BookingPane({
   context,
+  assignees,
   visibleOnMobile,
   onClose,
 }: {
   context: ThreadContext;
+  assignees: Assignee[];
   visibleOnMobile: boolean;
   onClose: () => void;
 }) {
@@ -1230,6 +1279,14 @@ function BookingPane({
           stage={context.pipelineStage}
           quote={context.quote}
           followUpAt={context.followUpAt}
+        />
+      ) : null}
+
+      {assignees.length > 1 ? (
+        <AssigneeSelect
+          conversationId={context.conversationId}
+          assignedTo={context.assignedTo}
+          assignees={assignees}
         />
       ) : null}
 

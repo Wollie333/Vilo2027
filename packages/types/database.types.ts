@@ -2209,6 +2209,7 @@ export type Database = {
           default_currency: string
           deleted_at: string | null
           display_name: string
+          enquiry_auto_reply: string | null
           handle: string
           highlights: string[]
           id: string
@@ -2236,6 +2237,7 @@ export type Database = {
           default_currency?: string
           deleted_at?: string | null
           display_name: string
+          enquiry_auto_reply?: string | null
           handle: string
           highlights?: string[]
           id?: string
@@ -2263,6 +2265,7 @@ export type Database = {
           default_currency?: string
           deleted_at?: string | null
           display_name?: string
+          enquiry_auto_reply?: string | null
           handle?: string
           highlights?: string[]
           id?: string

@@ -211,6 +211,43 @@ export async function togglePinAction(
   return { ok: true };
 }
 
+export async function assignConversationAction(
+  conversationId: string,
+  assigneeId: string | null,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+
+  const supabase = createServerClient();
+  // Assignee must be the host themselves or a member of their team.
+  if (assigneeId) {
+    let allowed = assigneeId === host.userId;
+    if (!allowed) {
+      const { data: member } = await supabase
+        .from("staff_members")
+        .select("user_id")
+        .eq("host_id", host.hostId)
+        .eq("user_id", assigneeId)
+        .maybeSingle();
+      allowed = !!member;
+    }
+    if (!allowed) {
+      return { ok: false, error: "That person isn't on your team." };
+    }
+  }
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ assigned_to: assigneeId })
+    .eq("id", conversationId);
+  if (error) return { ok: false, error: "Could not assign the thread." };
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
 export async function setFollowUpAction(
   conversationId: string,
   at: string | null,

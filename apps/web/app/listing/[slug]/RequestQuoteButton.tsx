@@ -46,7 +46,7 @@ export function RequestQuoteButton({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [company, setCompany] = useState(""); // honeypot
+  const [hp, setHp] = useState(""); // honeypot
 
   function toggleRoom(id: string) {
     setSelectedRooms((prev) =>
@@ -67,7 +67,7 @@ export function RequestQuoteButton({
     setName("");
     setEmail("");
     setPhone("");
-    setCompany("");
+    setHp("");
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -100,7 +100,7 @@ export function RequestQuoteButton({
       guest_name: name.trim(),
       guest_email: email.trim(),
       guest_phone: phone.trim() || "",
-      company,
+      hp,
     });
     setPending(false);
     if (result.ok) {
@@ -164,13 +164,15 @@ export function RequestQuoteButton({
             onSubmit={onSubmit}
             className="space-y-5"
           >
-            {/* Honeypot — visually hidden, off-screen; bots fill it. */}
+            {/* Honeypot — visually hidden, off-screen; bots fill it. Named
+                neutrally + autocomplete off so browsers don't autofill it. */}
             <input
               type="text"
+              name="vilo_hp"
               tabIndex={-1}
               autoComplete="off"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              value={hp}
+              onChange={(e) => setHp(e.target.value)}
               className="absolute left-[-9999px] h-0 w-0 opacity-0"
               aria-hidden="true"
             />

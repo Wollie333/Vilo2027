@@ -38,8 +38,10 @@ export const guestQuoteRequestSchema = z
     guest_name: z.string().trim().min(2, "Enter your name.").max(120),
     guest_email: z.string().trim().email("Enter a valid email."),
     guest_phone: z.string().trim().max(40).optional().or(z.literal("")),
-    // Honeypot — real users leave this empty; bots fill it.
-    company: z.string().max(0).optional().or(z.literal("")),
+    // Honeypot — real users leave this empty; bots fill it. Permissive on the
+    // schema (a filled value must NOT fail validation, or browser autofill would
+    // block a real guest) — the silent-drop check below handles a filled value.
+    hp: z.string().optional(),
   })
   .refine((v) => v.check_out > v.check_in, {
     message: "Check-out must be after check-in.",
@@ -51,6 +53,45 @@ export const guestQuoteRequestSchema = z
   });
 
 export type GuestQuoteRequestInput = z.infer<typeof guestQuoteRequestSchema>;
+
+function minutesOfDay(t: string | null): number | null {
+  if (!t) return null;
+  const [h, m] = t.split(":");
+  const hh = Number(h);
+  const mm = Number(m);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm)) return null;
+  return hh * 60 + mm;
+}
+
+// Is "now" within the host's notification quiet-hours window (in their tz)?
+// Handles same-day and overnight windows. Best-effort — false on any error.
+function isWithinQuietHours(
+  s: {
+    quiet_hours_enabled: boolean | null;
+    quiet_hours_start: string | null;
+    quiet_hours_end: string | null;
+    quiet_hours_timezone: string | null;
+  } | null,
+): boolean {
+  if (!s?.quiet_hours_enabled) return false;
+  const start = minutesOfDay(s.quiet_hours_start);
+  const end = minutesOfDay(s.quiet_hours_end);
+  if (start == null || end == null || start === end) return false;
+  try {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: s.quiet_hours_timezone || "Africa/Johannesburg",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date());
+    const h = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+    const m = Number(parts.find((p) => p.type === "minute")?.value ?? "0");
+    const now = h * 60 + m;
+    return start < end ? now >= start && now < end : now >= start || now < end;
+  } catch {
+    return false;
+  }
+}
 
 export type RequestQuoteResult =
   | { ok: true; data: { isLead: boolean; email: string } }
@@ -70,7 +111,7 @@ export async function requestQuoteAction(
 
   // Honeypot tripped → pretend success, create nothing.
   const emailLc = d.guest_email.trim().toLowerCase();
-  if (d.company && d.company.trim().length > 0) {
+  if (d.hp && d.hp.trim().length > 0) {
     return { ok: true, data: { isLead: false, email: emailLc } };
   }
 
@@ -97,7 +138,7 @@ export async function requestQuoteAction(
 
   const { data: hostRow } = await admin
     .from("hosts")
-    .select("id, user_id, display_name")
+    .select("id, user_id, display_name, enquiry_auto_reply")
     .eq("id", listing.host_id)
     .maybeSingle();
   if (!hostRow) return { ok: false, error: "Host unavailable." };
@@ -326,6 +367,29 @@ export async function requestQuoteAction(
     body: `Quote request for ${listing.name} · ${d.check_in} → ${d.check_out}`,
     read_by_host: false,
   });
+
+  // Away auto-reply — if the host set one and the enquiry arrives during their
+  // notification quiet hours, post it into the thread so the guest knows.
+  const autoReply = hostRow.enquiry_auto_reply?.trim();
+  if (autoReply) {
+    const { data: qh } = await admin
+      .from("user_notification_settings")
+      .select(
+        "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone",
+      )
+      .eq("user_id", hostRow.user_id)
+      .maybeSingle();
+    if (isWithinQuietHours(qh)) {
+      await admin.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: null,
+        is_system_message: true,
+        system_event: "auto_reply",
+        body: autoReply,
+        read_by_guest: false,
+      });
+    }
+  }
 
   // Notify the host (reuses the existing new_message event). Never throws.
   await dispatchEvent({
