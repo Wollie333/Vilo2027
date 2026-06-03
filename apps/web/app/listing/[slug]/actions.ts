@@ -115,328 +115,340 @@ export async function requestQuoteAction(
     return { ok: true, data: { isLead: false, email: emailLc } };
   }
 
-  const admin = createAdminClient();
+  try {
+    const admin = createAdminClient();
 
-  const { data: listing } = await admin
-    .from("listings")
-    .select(
-      "id, host_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
-    )
-    .eq("id", d.listing_id)
-    .maybeSingle();
-  if (
-    !listing ||
-    !listing.is_published ||
-    listing.is_suspended ||
-    listing.deleted_at
-  ) {
-    return {
-      ok: false,
-      error: "This listing isn't accepting requests right now.",
-    };
-  }
-
-  const { data: hostRow } = await admin
-    .from("hosts")
-    .select("id, user_id, display_name, enquiry_auto_reply")
-    .eq("id", listing.host_id)
-    .maybeSingle();
-  if (!hostRow) return { ok: false, error: "Host unavailable." };
-
-  // Light rate-limit: cap enquiries from one email to this host per hour so a
-  // single visitor can't flood the host. Silently absorb extras.
-  const { count: recentCount } = await admin
-    .from("quotes")
-    .select("id", { count: "exact", head: true })
-    .eq("host_id", listing.host_id)
-    .eq("guest_email", emailLc)
-    .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
-  if ((recentCount ?? 0) >= 5) {
-    return { ok: true, data: { isLead: false, email: emailLc } };
-  }
-
-  // Existing contact? (also carries the block flag.)
-  const { data: contact } = await admin
-    .from("host_contacts")
-    .select("id, blocked")
-    .eq("host_id", listing.host_id)
-    .ilike("email", emailLc)
-    .maybeSingle();
-  // Blocked sender → silently drop (don't reveal the block).
-  if (contact?.blocked)
-    return { ok: true, data: { isLead: false, email: emailLc } };
-
-  // Find-or-create the guest. A new one is a passwordless lead (is_lead=true)
-  // — NOT signed in; they can claim the account later by setting a password.
-  let guestId: string;
-  let isLead = false;
-  const { data: existingProfile } = await admin
-    .from("user_profiles")
-    .select("id, is_lead")
-    .ilike("email", emailLc)
-    .maybeSingle();
-  if (existingProfile) {
-    guestId = existingProfile.id;
-    isLead = existingProfile.is_lead ?? false;
-  } else {
-    const { data: created, error: createErr } =
-      await admin.auth.admin.createUser({
-        email: emailLc,
-        email_confirm: true,
-        user_metadata: { full_name: d.guest_name },
-      });
-    if (createErr || !created.user) {
-      return { ok: false, error: "Could not start your request. Try again." };
+    const { data: listing } = await admin
+      .from("listings")
+      .select(
+        "id, host_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
+      )
+      .eq("id", d.listing_id)
+      .maybeSingle();
+    if (
+      !listing ||
+      !listing.is_published ||
+      listing.is_suspended ||
+      listing.deleted_at
+    ) {
+      return {
+        ok: false,
+        error: "This listing isn't accepting requests right now.",
+      };
     }
-    guestId = created.user.id;
-    isLead = true;
-    await admin
-      .from("user_profiles")
-      .update({
-        full_name: d.guest_name,
-        phone: d.guest_phone || null,
-        role: "guest",
-        is_lead: true,
-      })
-      .eq("id", guestId);
-  }
 
-  // Upsert the host's contact row (manual find-then-write — the unique index is
-  // functional on lower(email), so PostgREST upsert can't target it directly).
-  if (contact) {
-    await admin
+    const { data: hostRow } = await admin
+      .from("hosts")
+      .select("id, user_id, display_name, enquiry_auto_reply")
+      .eq("id", listing.host_id)
+      .maybeSingle();
+    if (!hostRow) return { ok: false, error: "Host unavailable." };
+
+    // Light rate-limit: cap enquiries from one email to this host per hour so a
+    // single visitor can't flood the host. Silently absorb extras.
+    const { count: recentCount } = await admin
+      .from("quotes")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", listing.host_id)
+      .eq("guest_email", emailLc)
+      .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
+    if ((recentCount ?? 0) >= 5) {
+      return { ok: true, data: { isLead: false, email: emailLc } };
+    }
+
+    // Existing contact? (also carries the block flag.)
+    const { data: contact } = await admin
       .from("host_contacts")
-      .update({
-        name: d.guest_name,
-        phone: d.guest_phone || null,
-        guest_id: guestId,
-        last_stage: "new_quote",
-        last_seen_at: new Date().toISOString(),
-      })
-      .eq("id", contact.id);
-  } else {
-    await admin.from("host_contacts").insert({
-      host_id: listing.host_id,
-      guest_id: guestId,
-      email: emailLc,
-      name: d.guest_name,
-      phone: d.guest_phone || null,
-      last_stage: "new_quote",
-    });
-  }
+      .select("id, blocked")
+      .eq("host_id", listing.host_id)
+      .ilike("email", emailLc)
+      .maybeSingle();
+    // Blocked sender → silently drop (don't reveal the block).
+    if (contact?.blocked)
+      return { ok: true, data: { isLead: false, email: emailLc } };
 
-  // Find-or-create the enquiry conversation.
-  let conversationId: string;
-  const { data: conv } = await admin
-    .from("conversations")
-    .select("id")
-    .eq("host_id", listing.host_id)
-    .eq("guest_id", guestId)
-    .eq("listing_id", listing.id)
-    .eq("is_enquiry", true)
-    .neq("status", "archived")
-    .order("last_message_at", { ascending: false, nullsFirst: false })
-    .limit(1)
-    .maybeSingle();
-  if (conv) {
-    conversationId = conv.id;
-  } else {
-    const { data: newConv, error: convErr } = await admin
-      .from("conversations")
-      .insert({
+    // Find-or-create the guest. A new one is a passwordless lead (is_lead=true)
+    // — NOT signed in; they can claim the account later by setting a password.
+    let guestId: string;
+    let isLead = false;
+    const { data: existingProfile } = await admin
+      .from("user_profiles")
+      .select("id, is_lead")
+      .ilike("email", emailLc)
+      .maybeSingle();
+    if (existingProfile) {
+      guestId = existingProfile.id;
+      isLead = existingProfile.is_lead ?? false;
+    } else {
+      const { data: created, error: createErr } =
+        await admin.auth.admin.createUser({
+          email: emailLc,
+          email_confirm: true,
+          user_metadata: { full_name: d.guest_name },
+        });
+      if (createErr || !created.user) {
+        return { ok: false, error: "Could not start your request. Try again." };
+      }
+      guestId = created.user.id;
+      isLead = true;
+      await admin
+        .from("user_profiles")
+        .update({
+          full_name: d.guest_name,
+          phone: d.guest_phone || null,
+          role: "guest",
+          is_lead: true,
+        })
+        .eq("id", guestId);
+    }
+
+    // Upsert the host's contact row (manual find-then-write — the unique index is
+    // functional on lower(email), so PostgREST upsert can't target it directly).
+    if (contact) {
+      await admin
+        .from("host_contacts")
+        .update({
+          name: d.guest_name,
+          phone: d.guest_phone || null,
+          guest_id: guestId,
+          last_stage: "new_quote",
+          last_seen_at: new Date().toISOString(),
+        })
+        .eq("id", contact.id);
+    } else {
+      await admin.from("host_contacts").insert({
         host_id: listing.host_id,
         guest_id: guestId,
+        email: emailLc,
+        name: d.guest_name,
+        phone: d.guest_phone || null,
+        last_stage: "new_quote",
+      });
+    }
+
+    // Find-or-create the enquiry conversation.
+    let conversationId: string;
+    const { data: conv } = await admin
+      .from("conversations")
+      .select("id")
+      .eq("host_id", listing.host_id)
+      .eq("guest_id", guestId)
+      .eq("listing_id", listing.id)
+      .eq("is_enquiry", true)
+      .neq("status", "archived")
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (conv) {
+      conversationId = conv.id;
+    } else {
+      const { data: newConv, error: convErr } = await admin
+        .from("conversations")
+        .insert({
+          host_id: listing.host_id,
+          guest_id: guestId,
+          listing_id: listing.id,
+          is_enquiry: true,
+          status: "open",
+          pipeline_stage: "new_quote",
+        })
+        .select("id")
+        .single();
+      if (convErr || !newConv) {
+        return { ok: false, error: "Could not start the conversation." };
+      }
+      conversationId = newConv.id;
+    }
+
+    // Suggested pricing (best-effort — the host finalises host-only fields).
+    const headcount = Math.max(
+      1,
+      d.guests_breakdown.adults + d.guests_breakdown.children,
+    );
+    const roomCount = d.scope === "rooms" ? d.room_ids.length : 0;
+    const roomsInput =
+      d.scope === "rooms"
+        ? d.room_ids.map((id) => ({
+            room_id: id,
+            guests: Math.max(1, Math.ceil(headcount / Math.max(1, roomCount))),
+          }))
+        : [];
+    const priced = await computeStayPricing(admin, {
+      listing_id: listing.id,
+      check_in: d.check_in,
+      check_out: d.check_out,
+      scope: d.scope,
+      guests: headcount,
+      rooms: roomsInput,
+      party: {
+        children: d.guests_breakdown.children,
+        infants: d.guests_breakdown.infants,
+        pets: d.guests_breakdown.pets,
+      },
+    });
+    const baseAmount = priced.ok ? priced.data.base_amount : 0;
+    const cleaningFee = priced.ok ? priced.data.cleaning_fee : 0;
+    const ageTotal = priced.ok ? priced.data.age_total : 0;
+    const total = baseAmount + cleaningFee + ageTotal;
+    const currency = priced.ok
+      ? priced.data.currency
+      : (listing.currency ?? "ZAR");
+
+    const { data: qnum } = await admin.rpc("next_quote_number", {
+      p_host_id: listing.host_id,
+    });
+
+    const { data: quote, error: qErr } = await admin
+      .from("quotes")
+      .insert({
+        host_id: listing.host_id,
         listing_id: listing.id,
-        is_enquiry: true,
-        status: "open",
-        pipeline_stage: "new_quote",
+        conversation_id: conversationId,
+        quote_number: (qnum as unknown as string) ?? null,
+        guest_name: d.guest_name,
+        guest_email: emailLc,
+        guest_phone: d.guest_phone || null,
+        check_in: d.check_in,
+        check_out: d.check_out,
+        headcount,
+        scope: d.scope,
+        base_amount: baseAmount,
+        cleaning_fee: cleaningFee,
+        addons_total: 0,
+        total_amount: total,
+        discount_type: null,
+        discount_value: 0,
+        discount_amount: 0,
+        deposit_type: "full",
+        deposit_pct: 50,
+        deposit_amount: total,
+        balance_amount: 0,
+        balance_due_days: 7,
+        currency,
+        notes: null,
+        status: "draft",
+        guests_breakdown: d.guests_breakdown,
+        policy_snapshot: {
+          cancellation_policy: listing.cancellation_policy ?? null,
+          cancellation_policy_label: listing.cancellation_policy_label ?? null,
+          captured_at: new Date().toISOString(),
+        },
       })
       .select("id")
       .single();
-    if (convErr || !newConv) {
-      return { ok: false, error: "Could not start the conversation." };
+    if (qErr || !quote) {
+      return { ok: false, error: "Could not create the draft quote." };
     }
-    conversationId = newConv.id;
-  }
 
-  // Suggested pricing (best-effort — the host finalises host-only fields).
-  const headcount = Math.max(
-    1,
-    d.guests_breakdown.adults + d.guests_breakdown.children,
-  );
-  const roomCount = d.scope === "rooms" ? d.room_ids.length : 0;
-  const roomsInput =
-    d.scope === "rooms"
-      ? d.room_ids.map((id) => ({
-          room_id: id,
-          guests: Math.max(1, Math.ceil(headcount / Math.max(1, roomCount))),
-        }))
-      : [];
-  const priced = await computeStayPricing(admin, {
-    listing_id: listing.id,
-    check_in: d.check_in,
-    check_out: d.check_out,
-    scope: d.scope,
-    guests: headcount,
-    rooms: roomsInput,
-    party: {
-      children: d.guests_breakdown.children,
-      infants: d.guests_breakdown.infants,
-      pets: d.guests_breakdown.pets,
-    },
-  });
-  const baseAmount = priced.ok ? priced.data.base_amount : 0;
-  const cleaningFee = priced.ok ? priced.data.cleaning_fee : 0;
-  const ageTotal = priced.ok ? priced.data.age_total : 0;
-  const total = baseAmount + cleaningFee + ageTotal;
-  const currency = priced.ok
-    ? priced.data.currency
-    : (listing.currency ?? "ZAR");
-
-  const { data: qnum } = await admin.rpc("next_quote_number", {
-    p_host_id: listing.host_id,
-  });
-
-  const { data: quote, error: qErr } = await admin
-    .from("quotes")
-    .insert({
-      host_id: listing.host_id,
-      listing_id: listing.id,
-      conversation_id: conversationId,
-      quote_number: (qnum as unknown as string) ?? null,
-      guest_name: d.guest_name,
-      guest_email: emailLc,
-      guest_phone: d.guest_phone || null,
-      check_in: d.check_in,
-      check_out: d.check_out,
-      headcount,
-      scope: d.scope,
-      base_amount: baseAmount,
-      cleaning_fee: cleaningFee,
-      addons_total: 0,
-      total_amount: total,
-      discount_type: null,
-      discount_value: 0,
-      discount_amount: 0,
-      deposit_type: "full",
-      deposit_pct: 50,
-      deposit_amount: total,
-      balance_amount: 0,
-      balance_due_days: 7,
-      currency,
-      notes: null,
-      status: "draft",
-      guests_breakdown: d.guests_breakdown,
-      policy_snapshot: {
-        cancellation_policy: listing.cancellation_policy ?? null,
-        cancellation_policy_label: listing.cancellation_policy_label ?? null,
-        captured_at: new Date().toISOString(),
-      },
-    })
-    .select("id")
-    .single();
-  if (qErr || !quote) {
-    return { ok: false, error: "Could not create the draft quote." };
-  }
-
-  if (d.scope === "rooms" && priced.ok && priced.data.rooms.length > 0) {
-    await admin.from("quote_rooms").insert(
-      priced.data.rooms.map((r) => ({
-        quote_id: quote.id,
-        room_id: r.room_id,
-        base_amount: r.base_amount,
-        cleaning_fee: r.cleaning_fee,
-      })),
-    );
-  }
-
-  // Thread messages: the guest's note, the draft-quote card, then a guest-facing
-  // acknowledgement. Inserted sequentially so created_at orders them correctly.
-  await admin.from("messages").insert({
-    conversation_id: conversationId,
-    sender_id: guestId,
-    body: d.message,
-    read_by_host: false,
-  });
-  await admin.from("messages").insert({
-    conversation_id: conversationId,
-    sender_id: null,
-    is_system_message: true,
-    system_event: "quote_draft",
-    quote_id: quote.id,
-    body: `Quote request for ${listing.name} · ${d.check_in} → ${d.check_out}`,
-    read_by_host: false,
-  });
-
-  // Away auto-reply — if the host set one and the enquiry arrives during their
-  // notification quiet hours, post it into the thread so the guest knows.
-  const autoReply = hostRow.enquiry_auto_reply?.trim();
-  if (autoReply) {
-    const { data: qh } = await admin
-      .from("user_notification_settings")
-      .select(
-        "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone",
-      )
-      .eq("user_id", hostRow.user_id)
-      .maybeSingle();
-    if (isWithinQuietHours(qh)) {
-      await admin.from("messages").insert({
-        conversation_id: conversationId,
-        sender_id: null,
-        is_system_message: true,
-        system_event: "auto_reply",
-        body: autoReply,
-        read_by_guest: false,
-      });
-    }
-  }
-
-  // Notify the host (reuses the existing new_message event). Never throws.
-  await dispatchEvent({
-    kind: "new_message",
-    recipientUserId: hostRow.user_id,
-    hostId: listing.host_id,
-    refs: {
-      conversation_id: conversationId,
-      sender_first_name: d.guest_name.split(" ")[0] || d.guest_name,
-      message_body: d.message,
-      unread_count: 1,
-    },
-  });
-
-  // Acknowledge to the guest by email (best-effort, never blocks the enquiry).
-  // A brand-new lead gets a magic link to claim their account + track the quote;
-  // an existing account just gets a link to their inbox.
-  try {
-    const esc = (s: string) =>
-      s.replace(
-        /[<>&]/g,
-        (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c,
+    if (d.scope === "rooms" && priced.ok && priced.data.rooms.length > 0) {
+      await admin.from("quote_rooms").insert(
+        priced.data.rooms.map((r) => ({
+          quote_id: quote.id,
+          room_id: r.room_id,
+          base_amount: r.base_amount,
+          cleaning_fee: r.cleaning_fee,
+        })),
       );
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-    let actionHtml = "";
-    if (isLead && appUrl) {
-      const { data: linkData } = await admin.auth.admin.generateLink({
-        type: "magiclink",
-        email: emailLc,
-      });
-      const tokenHash = linkData?.properties?.hashed_token;
-      if (tokenHash) {
-        const claimUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=magiclink&next=${encodeURIComponent("/claim")}`;
-        actionHtml = `<p><a href="${claimUrl}" style="color:#0d9488;font-weight:600">Set a password &amp; track your request &rarr;</a></p>`;
-      }
-    } else if (appUrl) {
-      actionHtml = `<p><a href="${appUrl}/portal/inbox" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
     }
-    await sendTransactionalEmail({
-      to: emailLc,
-      subject: `We've sent your request to ${hostRow.display_name}`,
-      html: `<p>Hi ${esc(d.guest_name.split(" ")[0])},</p><p>Thanks for your interest in <strong>${esc(listing.name)}</strong>. Your request (${d.check_in} &rarr; ${d.check_out}) has reached ${esc(hostRow.display_name)}, who'll reply with a tailored quote.</p>${actionHtml}<p style="color:#6b7280;font-size:12px">Sent via Vilo</p>`,
-    });
-  } catch {
-    // Email is best-effort — the enquiry already succeeded.
-  }
 
-  revalidatePath("/dashboard/inbox");
-  return { ok: true, data: { isLead, email: emailLc } };
+    // Thread messages: the guest's note, the draft-quote card, then a guest-facing
+    // acknowledgement. Inserted sequentially so created_at orders them correctly.
+    await admin.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: guestId,
+      body: d.message,
+      read_by_host: false,
+    });
+    await admin.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: null,
+      is_system_message: true,
+      system_event: "quote_draft",
+      quote_id: quote.id,
+      body: `Quote request for ${listing.name} · ${d.check_in} → ${d.check_out}`,
+      read_by_host: false,
+    });
+
+    // Away auto-reply — if the host set one and the enquiry arrives during their
+    // notification quiet hours, post it into the thread so the guest knows.
+    const autoReply = hostRow.enquiry_auto_reply?.trim();
+    if (autoReply) {
+      const { data: qh } = await admin
+        .from("user_notification_settings")
+        .select(
+          "quiet_hours_enabled, quiet_hours_start, quiet_hours_end, quiet_hours_timezone",
+        )
+        .eq("user_id", hostRow.user_id)
+        .maybeSingle();
+      if (isWithinQuietHours(qh)) {
+        await admin.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: null,
+          is_system_message: true,
+          system_event: "auto_reply",
+          body: autoReply,
+          read_by_guest: false,
+        });
+      }
+    }
+
+    // Notify the host (reuses the existing new_message event). Never throws.
+    await dispatchEvent({
+      kind: "new_message",
+      recipientUserId: hostRow.user_id,
+      hostId: listing.host_id,
+      refs: {
+        conversation_id: conversationId,
+        sender_first_name: d.guest_name.split(" ")[0] || d.guest_name,
+        message_body: d.message,
+        unread_count: 1,
+      },
+    });
+
+    // Acknowledge to the guest by email (best-effort, never blocks the enquiry).
+    // A brand-new lead gets a magic link to claim their account + track the quote;
+    // an existing account just gets a link to their inbox.
+    try {
+      const esc = (s: string) =>
+        s.replace(
+          /[<>&]/g,
+          (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] ?? c,
+        );
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+      let actionHtml = "";
+      if (isLead && appUrl) {
+        const { data: linkData } = await admin.auth.admin.generateLink({
+          type: "magiclink",
+          email: emailLc,
+        });
+        const tokenHash = linkData?.properties?.hashed_token;
+        if (tokenHash) {
+          const claimUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=magiclink&next=${encodeURIComponent("/claim")}`;
+          actionHtml = `<p><a href="${claimUrl}" style="color:#0d9488;font-weight:600">Set a password &amp; track your request &rarr;</a></p>`;
+        }
+      } else if (appUrl) {
+        actionHtml = `<p><a href="${appUrl}/portal/inbox" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
+      }
+      await sendTransactionalEmail({
+        to: emailLc,
+        subject: `We've sent your request to ${hostRow.display_name}`,
+        html: `<p>Hi ${esc(d.guest_name.split(" ")[0])},</p><p>Thanks for your interest in <strong>${esc(listing.name)}</strong>. Your request (${d.check_in} &rarr; ${d.check_out}) has reached ${esc(hostRow.display_name)}, who'll reply with a tailored quote.</p>${actionHtml}<p style="color:#6b7280;font-size:12px">Sent via Vilo</p>`,
+      });
+    } catch {
+      // Email is best-effort — the enquiry already succeeded.
+    }
+
+    revalidatePath("/dashboard/inbox");
+    return { ok: true, data: { isLead, email: emailLc } };
+  } catch (e) {
+    // Surface the real reason so a misconfig (e.g. a missing server env var)
+    // is visible instead of hanging the client. The enquiry creates nothing on
+    // a throw, so it's safe to report and let the guest retry.
+    return {
+      ok: false,
+      error: `Couldn't send your request — ${
+        e instanceof Error ? e.message : "unexpected error"
+      }`,
+    };
+  }
 }
