@@ -211,6 +211,25 @@ export async function togglePinAction(
   return { ok: true };
 }
 
+export async function setFollowUpAction(
+  conversationId: string,
+  at: string | null,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("conversations")
+    .update({ follow_up_at: at })
+    .eq("id", conversationId);
+  if (error) return { ok: false, error: "Could not set the reminder." };
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
 export async function addConversationNoteAction(
   conversationId: string,
   body: string,

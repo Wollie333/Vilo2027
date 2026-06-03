@@ -102,6 +102,18 @@ export async function requestQuoteAction(
     .maybeSingle();
   if (!hostRow) return { ok: false, error: "Host unavailable." };
 
+  // Light rate-limit: cap enquiries from one email to this host per hour so a
+  // single visitor can't flood the host. Silently absorb extras.
+  const { count: recentCount } = await admin
+    .from("quotes")
+    .select("id", { count: "exact", head: true })
+    .eq("host_id", listing.host_id)
+    .eq("guest_email", emailLc)
+    .gte("created_at", new Date(Date.now() - 3_600_000).toISOString());
+  if ((recentCount ?? 0) >= 5) {
+    return { ok: true, data: { isLead: false, email: emailLc } };
+  }
+
   // Existing contact? (also carries the block flag.)
   const { data: contact } = await admin
     .from("host_contacts")

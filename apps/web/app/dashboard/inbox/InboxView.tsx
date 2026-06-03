@@ -78,6 +78,7 @@ export type MessageRow = {
   isSystem: boolean;
   systemEvent: string | null;
   readByHost: boolean;
+  readByGuest: boolean;
   createdAt: string;
 };
 
@@ -107,6 +108,7 @@ export type ThreadContext = {
   } | null;
   pipelineStage: PipelineStage | null;
   pinned: boolean;
+  followUpAt: string | null;
   quote: {
     id: string;
     status: string;
@@ -125,6 +127,8 @@ export type TemplateRow = { id: string; title: string; body: string };
 export type Counts = {
   all: number;
   unread: number;
+  needs_reply: number;
+  follow_up: number;
   enquiries: number;
   open: number;
   archived: number;
@@ -149,6 +153,8 @@ type PipelineStage =
 type Folder =
   | "all"
   | "unread"
+  | "needs_reply"
+  | "follow_up"
   | "enquiries"
   | "open"
   | "archived"
@@ -161,6 +167,8 @@ const FOLDERS: {
 }[] = [
   { key: "all", label: "All inbox", icon: InboxIcon },
   { key: "unread", label: "Unread", icon: MessageCircleQuestion },
+  { key: "needs_reply", label: "Needs reply", icon: PenSquare },
+  { key: "follow_up", label: "Follow up", icon: CalendarCheck },
   { key: "enquiries", label: "Enquiries", icon: MessageCircleQuestion },
   { key: "open", label: "Open", icon: KeyRound },
   { key: "archived", label: "Archived", icon: Archive },
@@ -862,6 +870,11 @@ function ConvRow({
           {conv.status === "archived" ? (
             <Pill tone="cancelled">Archived</Pill>
           ) : null}
+          {unread && conv.lastMessageAt ? (
+            <Pill tone="pending">
+              Waiting {relativeTime(conv.lastMessageAt)}
+            </Pill>
+          ) : null}
           {unread ? (
             <span className="num ml-auto rounded-pill bg-brand-primary px-1.5 py-0.5 text-[10px] font-bold leading-[1.4] text-white">
               {conv.unreadCount}
@@ -940,7 +953,13 @@ function MessageBubble({
           }`}
         >
           {isFromHost ? (
-            <CheckCheck className="h-3 w-3 text-brand-primary" />
+            msg.readByGuest ? (
+              <span className="inline-flex items-center gap-0.5 text-brand-primary">
+                <CheckCheck className="h-3 w-3" /> Seen
+              </span>
+            ) : (
+              <CheckCheck className="h-3 w-3 text-brand-mute" />
+            )
           ) : null}
           {timeOfDay(msg.createdAt)}
         </div>
@@ -1199,6 +1218,7 @@ function BookingPane({
           conversationId={context.conversationId}
           stage={context.pipelineStage}
           quote={context.quote}
+          followUpAt={context.followUpAt}
         />
       ) : null}
 

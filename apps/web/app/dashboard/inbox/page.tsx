@@ -30,6 +30,8 @@ const PIPELINE_STAGES = [
 const VALID_FOLDERS = [
   "all",
   "unread",
+  "needs_reply",
+  "follow_up",
   "enquiries",
   "open",
   "archived",
@@ -91,9 +93,10 @@ export default async function InboxPage({
   const search = (searchParams?.q ?? "").trim();
 
   // Counts for chips/folders.
+  const nowIso = new Date().toISOString();
   const { data: countsRaw } = await supabase
     .from("conversations")
-    .select("id, status, is_enquiry, unread_host, pipeline_stage")
+    .select("id, status, is_enquiry, unread_host, pipeline_stage, follow_up_at")
     .eq("host_id", host.id);
 
   const all = countsRaw ?? [];
@@ -104,6 +107,14 @@ export default async function InboxPage({
     unread: all
       .filter((c) => c.status !== "archived")
       .reduce((n, c) => n + (c.unread_host > 0 ? 1 : 0), 0),
+    needs_reply: all.filter((c) => c.status !== "archived" && c.unread_host > 0)
+      .length,
+    follow_up: all.filter(
+      (c) =>
+        c.status !== "archived" &&
+        c.follow_up_at != null &&
+        c.follow_up_at <= nowIso,
+    ).length,
     enquiries: all.filter((c) => c.is_enquiry && c.status === "open").length,
     open: all.filter((c) => c.status === "open").length,
     archived: all.filter((c) => c.status === "archived").length,
@@ -142,7 +153,10 @@ export default async function InboxPage({
     query = query.neq("status", "archived");
     if (folder === "open") query = query.eq("status", "open");
     if (folder === "enquiries") query = query.eq("is_enquiry", true);
-    if (folder === "unread") query = query.gt("unread_host", 0);
+    if (folder === "unread" || folder === "needs_reply")
+      query = query.gt("unread_host", 0);
+    if (folder === "follow_up")
+      query = query.not("follow_up_at", "is", null).lte("follow_up_at", nowIso);
     if (isPipelineStage(folder)) query = query.eq("pipeline_stage", folder);
   }
 
@@ -231,7 +245,7 @@ export default async function InboxPage({
       supabase
         .from("messages")
         .select(
-          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, read_by_host, read_at, created_at",
+          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, read_by_host, read_by_guest, read_at, created_at",
         )
         .eq("conversation_id", selectedId)
         .order("created_at", { ascending: true }),
@@ -239,7 +253,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, pipeline_stage, pinned, created_at,
+            id, status, is_enquiry, pipeline_stage, pinned, follow_up_at, created_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
@@ -300,6 +314,7 @@ export default async function InboxPage({
       isSystem: m.is_system_message,
       systemEvent: m.system_event,
       readByHost: m.read_by_host,
+      readByGuest: m.read_by_guest,
       createdAt: m.created_at,
     }));
 
@@ -309,6 +324,7 @@ export default async function InboxPage({
       is_enquiry: boolean;
       pipeline_stage: string | null;
       pinned: boolean;
+      follow_up_at: string | null;
       created_at: string;
       guest: {
         id: string;
@@ -370,6 +386,7 @@ export default async function InboxPage({
             }
           : null,
         pinned: ctx.pinned ?? false,
+        followUpAt: ctx.follow_up_at ?? null,
         pipelineStage:
           (ctx.pipeline_stage as
             | "new_quote"

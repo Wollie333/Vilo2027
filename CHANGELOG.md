@@ -31,6 +31,24 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms Phase C2 + D (part 1): receipts, timers, follow-ups, rate-limit — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Read receipts (A):** host messages show "Seen" once the guest has read them (`messages.read_by_guest`).
+- **Waiting timer (C):** unanswered threads show a "Waiting Nh" pill in the conversation list.
+- **Needs-reply folder (#12):** new inbox folder for threads with unread guest messages.
+- **Follow-up reminders (Phase D):** `setFollowUpAction` + snooze controls (Tomorrow / In 3 days / Clear) in `PipelineControl`, plus a **Follow up** folder surfacing reminders that are due (`conversations.follow_up_at`).
+- **Enquiry rate-limit (#8):** `requestQuoteAction` silently caps a single email to 5 enquiries per host per hour.
+
+### Notes
+- Remaining tail: inbox nav badge (#14), pipeline value per folder (#6), canned replies (#4), assign-to-staff (E), quiet-hours auto-reply (G), auto-archive cron (D), source tag (#9), convert-direct (#20).
+- `pnpm build` + `pnpm lint` green; sweep 0/389. No schema changes (reused Phase A columns).
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Comms Phase C (part 1): thread CRM — branch `feat/trip-quote-detail-design`
 
 ### Built (reuse-heavy CRM polish on the host inbox thread)

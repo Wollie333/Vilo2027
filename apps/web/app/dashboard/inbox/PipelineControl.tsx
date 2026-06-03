@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { setPipelineStageAction, type PipelineStage } from "./actions";
+import {
+  setFollowUpAction,
+  setPipelineStageAction,
+  type PipelineStage,
+} from "./actions";
 
 const STAGES: { key: PipelineStage; label: string }[] = [
   { key: "new_quote", label: "New quote" },
@@ -44,10 +48,12 @@ export function PipelineControl({
   conversationId,
   stage,
   quote,
+  followUpAt,
 }: {
   conversationId: string;
   stage: PipelineStage | null;
   quote: ThreadQuote | null;
+  followUpAt: string | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -58,6 +64,27 @@ export function PipelineControl({
       const r = await setPipelineStageAction(conversationId, next);
       if (r.ok) {
         toast.success(`Moved to ${STAGES.find((s) => s.key === next)?.label}`);
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function snooze(days: number | null) {
+    if (pending) return;
+    const at =
+      days == null
+        ? null
+        : (() => {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return d.toISOString();
+          })();
+    start(async () => {
+      const r = await setFollowUpAction(conversationId, at);
+      if (r.ok) {
+        toast.success(at ? "Reminder set" : "Reminder cleared");
         router.refresh();
       } else {
         toast.error(r.error);
@@ -92,6 +119,48 @@ export function PipelineControl({
             </button>
           );
         })}
+      </div>
+
+      {/* Follow-up reminder */}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <span className="text-brand-mute">Follow up:</span>
+        {followUpAt ? (
+          <>
+            <span className="font-medium text-brand-ink">
+              {new Date(followUpAt).toLocaleDateString("en-ZA", {
+                day: "numeric",
+                month: "short",
+              })}
+            </span>
+            <button
+              type="button"
+              onClick={() => snooze(null)}
+              disabled={pending}
+              className="rounded-pill border border-brand-line px-2 py-0.5 font-medium text-brand-mute hover:bg-brand-light disabled:opacity-60"
+            >
+              Clear
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => snooze(1)}
+              disabled={pending}
+              className="rounded-pill border border-brand-line px-2 py-0.5 font-medium text-brand-mute hover:bg-brand-light disabled:opacity-60"
+            >
+              Tomorrow
+            </button>
+            <button
+              type="button"
+              onClick={() => snooze(3)}
+              disabled={pending}
+              className="rounded-pill border border-brand-line px-2 py-0.5 font-medium text-brand-mute hover:bg-brand-light disabled:opacity-60"
+            >
+              In 3 days
+            </button>
+          </>
+        )}
       </div>
 
       {/* Linked quote card */}
