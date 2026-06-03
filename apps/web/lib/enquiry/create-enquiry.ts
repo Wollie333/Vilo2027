@@ -59,7 +59,18 @@ export const guestQuoteRequestSchema = z
 export type GuestQuoteRequestInput = z.infer<typeof guestQuoteRequestSchema>;
 
 export type RequestQuoteResult =
-  | { ok: true; data: { isLead: boolean; email: string } }
+  | {
+      ok: true;
+      data: {
+        isLead: boolean;
+        email: string;
+        conversationId?: string;
+        // Where to send the guest next: a magic-link URL that signs a new lead
+        // in and lands them on the claim screen, or a login URL for an existing
+        // account. Absent for silently-dropped requests (honeypot / rate-limit).
+        redirectTo?: string;
+      };
+    }
   | { ok: false; error: string };
 
 function minutesOfDay(t: string | null): number | null {
@@ -424,9 +435,35 @@ export async function createEnquiry(
     // Notification is best-effort — the enquiry already succeeded.
   }
 
+  // Decide where the guest goes after submitting, and (for a new/unclaimed
+  // lead) mint a single magic-link token reused by BOTH the in-app redirect and
+  // the email link — generating two would invalidate the first.
+  //   • lead  → /auth/confirm signs them in, then the claim screen (set a
+  //             password) which finally lands them on this thread.
+  //   • account → /login, returning to this thread.
+  const claimNext = encodeURIComponent(`/claim?c=${conversationId}`);
+  const inboxNext = encodeURIComponent(`/portal/inbox/${conversationId}`);
+  let redirectTo = `/login?next=${inboxNext}`;
+  let claimTokenHash: string | null = null;
+  if (isLead) {
+    try {
+      const { data: linkData } = await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email: emailLc,
+      });
+      claimTokenHash = linkData?.properties?.hashed_token ?? null;
+    } catch {
+      claimTokenHash = null;
+    }
+    if (claimTokenHash) {
+      redirectTo = `/auth/confirm?token_hash=${claimTokenHash}&type=magiclink&next=${claimNext}`;
+    } else {
+      // Couldn't mint a link — fall back to the thread (login will gate it).
+      redirectTo = `/portal/inbox/${conversationId}`;
+    }
+  }
+
   // Acknowledge to the guest by email (best-effort, never blocks the enquiry).
-  // A brand-new lead gets a magic link to claim their account + track the quote;
-  // an existing account just gets a link to their inbox.
   try {
     const esc = (s: string) =>
       s.replace(
@@ -435,18 +472,11 @@ export async function createEnquiry(
       );
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
     let actionHtml = "";
-    if (isLead && appUrl) {
-      const { data: linkData } = await admin.auth.admin.generateLink({
-        type: "magiclink",
-        email: emailLc,
-      });
-      const tokenHash = linkData?.properties?.hashed_token;
-      if (tokenHash) {
-        const claimUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=magiclink&next=${encodeURIComponent("/claim")}`;
-        actionHtml = `<p><a href="${claimUrl}" style="color:#0d9488;font-weight:600">Set a password &amp; track your request &rarr;</a></p>`;
-      }
+    if (isLead && appUrl && claimTokenHash) {
+      const claimUrl = `${appUrl}/auth/confirm?token_hash=${claimTokenHash}&type=magiclink&next=${claimNext}`;
+      actionHtml = `<p><a href="${claimUrl}" style="color:#0d9488;font-weight:600">Set a password &amp; track your request &rarr;</a></p>`;
     } else if (appUrl) {
-      actionHtml = `<p><a href="${appUrl}/portal/inbox" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
+      actionHtml = `<p><a href="${appUrl}/portal/inbox/${conversationId}" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
     }
     const { sendTransactionalEmail } = await import("@/lib/email/send");
     await sendTransactionalEmail({
@@ -458,5 +488,8 @@ export async function createEnquiry(
     // Email is best-effort — the enquiry already succeeded.
   }
 
-  return { ok: true, data: { isLead, email: emailLc } };
+  return {
+    ok: true,
+    data: { isLead, email: emailLc, conversationId, redirectTo },
+  };
 }

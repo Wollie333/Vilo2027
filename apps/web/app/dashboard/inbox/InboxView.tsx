@@ -38,6 +38,10 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import {
+  ThreadQuoteCard,
+  type ThreadQuote,
+} from "@/components/inbox/ThreadQuoteCard";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -78,6 +82,7 @@ export type MessageRow = {
   attachmentFilename: string | null;
   isSystem: boolean;
   systemEvent: string | null;
+  quoteId: string | null;
   readByHost: boolean;
   readByGuest: boolean;
   createdAt: string;
@@ -260,6 +265,8 @@ function fmtDate(iso: string | null): string {
 export function InboxView({
   hostInitials,
   hostName,
+  hostAvatarUrl,
+  selfUserId,
   folder,
   counts,
   search,
@@ -267,11 +274,14 @@ export function InboxView({
   selectedId,
   messages,
   context,
+  quotesById,
   templates,
   assignees,
 }: {
   hostInitials: string;
   hostName: string;
+  hostAvatarUrl: string | null;
+  selfUserId: string;
   folder: Folder;
   counts: Counts;
   search: string;
@@ -279,6 +289,7 @@ export function InboxView({
   selectedId: string | null;
   messages: MessageRow[];
   context: ThreadContext | null;
+  quotesById: Record<string, ThreadQuote>;
   templates: TemplateRow[];
   assignees: Assignee[];
 }) {
@@ -371,6 +382,21 @@ export function InboxView({
 
   const groups = useMemo(() => groupByDay(conversations), [conversations]);
   const messageDays = useMemo(() => groupMessagesByDay(messages), [messages]);
+
+  // One quote → one inline card, rendered at its FIRST message in the thread.
+  // The card reads the quote's live state, so the same card shows the request
+  // as a draft and then the finished quote once the host sends it.
+  const quoteCardMsgIds = useMemo(() => {
+    const seenQuote = new Set<string>();
+    const ids = new Set<string>();
+    for (const m of messages) {
+      if (m.quoteId && quotesById[m.quoteId] && !seenQuote.has(m.quoteId)) {
+        seenQuote.add(m.quoteId);
+        ids.add(m.id);
+      }
+    }
+    return ids;
+  }, [messages, quotesById]);
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
@@ -786,17 +812,30 @@ export function InboxView({
                         <span>{label}</span>
                         <span className="h-px flex-1 bg-brand-line" />
                       </div>
-                      {items.map((m) => (
-                        <MessageBubble
-                          key={m.id}
-                          msg={m}
-                          guestInitials={initialsFrom(
-                            context.guest?.fullName ?? null,
-                            context.guest?.email ?? null,
-                          )}
-                          hostInitials={hostInitials}
-                        />
-                      ))}
+                      {items.map((m) =>
+                        m.quoteId &&
+                        quoteCardMsgIds.has(m.id) &&
+                        quotesById[m.quoteId] ? (
+                          <ThreadQuoteCard
+                            key={m.id}
+                            quote={quotesById[m.quoteId]}
+                            viewer="host"
+                          />
+                        ) : (
+                          <MessageBubble
+                            key={m.id}
+                            msg={m}
+                            selfUserId={selfUserId}
+                            guestInitials={initialsFrom(
+                              context.guest?.fullName ?? null,
+                              context.guest?.email ?? null,
+                            )}
+                            hostInitials={hostInitials}
+                            hostAvatarUrl={hostAvatarUrl}
+                            guestAvatarUrl={context.guest?.avatarUrl ?? null}
+                          />
+                        ),
+                      )}
                     </div>
                   ))
                 )}
@@ -910,12 +949,18 @@ function ConvRow({
 // ── Message bubble ──────────────────────────────────────────
 function MessageBubble({
   msg,
+  selfUserId,
   guestInitials,
   hostInitials,
+  hostAvatarUrl,
+  guestAvatarUrl,
 }: {
   msg: MessageRow;
+  selfUserId: string;
   guestInitials: string;
   hostInitials: string;
+  hostAvatarUrl: string | null;
+  guestAvatarUrl: string | null;
 }) {
   if (msg.isSystem) {
     return (
@@ -927,15 +972,19 @@ function MessageBubble({
     );
   }
 
-  // We don't carry viewer-id into the bubble; messages the host authored
-  // are inserted with read_by_host=true, which is the cleanest marker here.
-  const isFromHost = msg.senderId != null && msg.readByHost === true;
+  // The host's own messages are authored by their user id. (Read flags can't be
+  // used — marking a thread read flips read_by_host on the guest's messages too.)
+  const isFromHost = msg.senderId === selfUserId;
 
   return (
     <div
       className={`flex max-w-[78%] gap-2.5 ${isFromHost ? "ml-auto flex-row-reverse" : "mr-auto"}`}
     >
-      <Avatar initials={isFromHost ? hostInitials : guestInitials} size={32} />
+      <Avatar
+        initials={isFromHost ? hostInitials : guestInitials}
+        imageUrl={isFromHost ? hostAvatarUrl : guestAvatarUrl}
+        size={32}
+      />
       <div className="min-w-0">
         <div
           className={`rounded-2xl px-3.5 py-2.5 text-sm leading-[1.55] shadow-[0_1px_1px_rgba(6,78,59,0.04)] ${
@@ -1008,17 +1057,22 @@ function Composer({
     const body = value.trim();
     if (!body || sending) return;
     setSending(true);
-    const res = await sendMessageAction({
-      conversation_id: conversationId,
-      body,
-    });
-    setSending(false);
-    if (!res.ok) {
-      toast.error(res.error);
-      return;
+    try {
+      const res = await sendMessageAction({
+        conversation_id: conversationId,
+        body,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      setValue("");
+      router.refresh();
+    } catch {
+      toast.error("Couldn't send your message. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setValue("");
-    router.refresh();
   }
 
   function onKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -1415,11 +1469,26 @@ function Avatar({
   initials,
   size,
   className = "",
+  imageUrl = null,
 }: {
   initials: string;
   size: number;
   className?: string;
+  imageUrl?: string | null;
 }) {
+  if (imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imageUrl}
+        alt=""
+        width={size}
+        height={size}
+        className={`shrink-0 rounded-full object-cover ${className}`}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
   const fontSize =
     size >= 56 ? "text-[18px]" : size >= 40 ? "text-[12px]" : "text-[10px]";
   return (

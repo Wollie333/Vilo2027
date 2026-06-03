@@ -99,8 +99,20 @@ export function RequestQuoteButton({
           hp,
         }),
       });
-      const result = (await res.json()) as { ok: boolean; error?: string };
+      const result = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        data?: { redirectTo?: string };
+      };
       if (result.ok) {
+        // Hand off to the claim flow (new lead) or login (existing account),
+        // which lands the guest on their enquiry thread. Keep the button
+        // spinning through the navigation.
+        const dest = result.data?.redirectTo;
+        if (dest) {
+          window.location.assign(dest);
+          return;
+        }
         setDone(true);
       } else {
         toast.error(result.error || "Could not send your request.");

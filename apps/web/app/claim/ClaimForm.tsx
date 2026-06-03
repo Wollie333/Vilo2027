@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { claimGuestAccountAction } from "./actions";
 
-export function ClaimForm() {
+export function ClaimForm({ next = "/portal/trips" }: { next?: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -30,7 +30,7 @@ export function ClaimForm() {
       if (result.ok) {
         setDone(true);
         toast.success("Account secured");
-        setTimeout(() => router.push("/portal/trips"), 900);
+        setTimeout(() => router.push(next), 900);
       } else {
         toast.error(result.error);
       }
@@ -44,7 +44,7 @@ export function ClaimForm() {
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <p className="mt-3 text-sm text-brand-mute">
-          Your account is set. Taking you to your trips…
+          Your account is set. Taking you there…
         </p>
       </div>
     );

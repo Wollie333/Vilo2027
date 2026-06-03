@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+import type { ThreadQuote } from "@/components/inbox/ThreadQuoteCard";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { GuestThread, type GuestMessage } from "./GuestThread";
@@ -57,7 +59,7 @@ export default async function GuestThreadPage({
 
   const { data: msgs } = await supabase
     .from("messages")
-    .select("id, sender_id, body, is_system_message, created_at")
+    .select("id, sender_id, body, is_system_message, quote_id, created_at")
     .eq("conversation_id", params.id)
     .order("created_at", { ascending: true });
 
@@ -66,8 +68,48 @@ export default async function GuestThreadPage({
     senderId: m.sender_id,
     body: m.body,
     isSystem: m.is_system_message,
+    quoteId: (m as { quote_id: string | null }).quote_id ?? null,
     createdAt: m.created_at,
   }));
+
+  // Quotes referenced in the thread, rendered as inline cards. Guests can't
+  // read `quotes` via RLS (guest access is token-gated), so we fetch with the
+  // admin client — safe because we've already confirmed this conversation
+  // belongs to the signed-in guest, and we scope the read to its id.
+  const quotesById: Record<string, ThreadQuote> = {};
+  const quoteIds = Array.from(
+    new Set(messages.map((m) => m.quoteId).filter((id): id is string => !!id)),
+  );
+  if (quoteIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: qRows } = await admin
+      .from("quotes")
+      .select(
+        "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token",
+      )
+      .eq("conversation_id", params.id)
+      .in("id", quoteIds);
+    for (const q of qRows ?? []) {
+      quotesById[q.id] = {
+        id: q.id,
+        quoteNumber: (q.quote_number as string | null) ?? null,
+        status: q.status,
+        currency: q.currency,
+        total: Number(q.total_amount ?? 0),
+        checkIn: q.check_in,
+        checkOut: q.check_out,
+        headcount: q.headcount,
+        scope: q.scope,
+        depositType: q.deposit_type,
+        depositAmount:
+          q.deposit_amount == null ? null : Number(q.deposit_amount),
+        balanceAmount:
+          q.balance_amount == null ? null : Number(q.balance_amount),
+        validUntil: (q.valid_until as string | null) ?? null,
+        acceptToken: (q.accept_token as string | null) ?? null,
+      };
+    }
+  }
 
   return (
     <div className="mx-auto max-w-[760px]">
@@ -83,8 +125,10 @@ export default async function GuestThreadPage({
           conversationId={conv.id}
           selfId={user.id}
           hostName={host?.display_name ?? "Host"}
+          hostAvatarUrl={host?.avatar_url ?? null}
           listingName={listing?.name ?? null}
           messages={messages}
+          quotesById={quotesById}
         />
       </div>
     </div>

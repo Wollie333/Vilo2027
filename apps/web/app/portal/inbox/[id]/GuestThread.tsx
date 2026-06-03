@@ -4,6 +4,10 @@ import { Loader2, SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import {
+  ThreadQuoteCard,
+  type ThreadQuote,
+} from "@/components/inbox/ThreadQuoteCard";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -16,6 +20,7 @@ export type GuestMessage = {
   senderId: string | null;
   body: string | null;
   isSystem: boolean;
+  quoteId: string | null;
   createdAt: string;
 };
 
@@ -28,19 +33,45 @@ function fmtTime(iso: string): string {
   });
 }
 
+function hostInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return (
+    parts
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("") || "H"
+  );
+}
+
 export function GuestThread({
   conversationId,
   selfId,
   hostName,
+  hostAvatarUrl,
   listingName,
   messages,
+  quotesById,
 }: {
   conversationId: string;
   selfId: string;
   hostName: string;
+  hostAvatarUrl: string | null;
   listingName: string | null;
   messages: GuestMessage[];
+  quotesById: Record<string, ThreadQuote>;
 }) {
+  // One inline card per quote, at its first message — reflects the quote's
+  // live state (request → sent quote with an accept button).
+  const quoteCardMsgIds = new Set<string>();
+  {
+    const seenQuote = new Set<string>();
+    for (const m of messages) {
+      if (m.quoteId && quotesById[m.quoteId] && !seenQuote.has(m.quoteId)) {
+        seenQuote.add(m.quoteId);
+        quoteCardMsgIds.add(m.id);
+      }
+    }
+  }
   const [value, setValue] = useState("");
   const [pending, start] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -97,13 +128,29 @@ export function GuestThread({
 
   return (
     <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="border-b border-brand-line px-5 py-3.5">
-        <div className="font-display text-[15px] font-bold text-brand-ink">
-          {hostName}
+      <div className="flex items-center gap-3 border-b border-brand-line px-5 py-3.5">
+        {hostAvatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hostAvatarUrl}
+            alt=""
+            className="h-9 w-9 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[12px] font-bold text-white">
+            {hostInitials(hostName)}
+          </span>
+        )}
+        <div className="min-w-0">
+          <div className="font-display text-[15px] font-bold text-brand-ink">
+            {hostName}
+          </div>
+          {listingName ? (
+            <div className="truncate text-[12px] text-brand-mute">
+              {listingName}
+            </div>
+          ) : null}
         </div>
-        {listingName ? (
-          <div className="text-[12px] text-brand-mute">{listingName}</div>
-        ) : null}
       </div>
 
       <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 py-5">
@@ -113,6 +160,19 @@ export function GuestThread({
           </p>
         ) : (
           messages.map((m) => {
+            if (
+              m.quoteId &&
+              quoteCardMsgIds.has(m.id) &&
+              quotesById[m.quoteId]
+            ) {
+              return (
+                <ThreadQuoteCard
+                  key={m.id}
+                  quote={quotesById[m.quoteId]}
+                  viewer="guest"
+                />
+              );
+            }
             if (m.isSystem) {
               return (
                 <div key={m.id} className="text-center">
@@ -126,8 +186,22 @@ export function GuestThread({
             return (
               <div
                 key={m.id}
-                className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
               >
+                {!mine ? (
+                  hostAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={hostAvatarUrl}
+                      alt=""
+                      className="h-7 w-7 shrink-0 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[10px] font-bold text-white">
+                      {hostInitials(hostName)}
+                    </span>
+                  )
+                ) : null}
                 <div className="max-w-[78%]">
                   <div
                     className={`whitespace-pre-line rounded-[14px] px-3.5 py-2 text-[13.5px] leading-relaxed ${

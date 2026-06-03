@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 
+import type { ThreadQuote } from "@/components/inbox/ThreadQuoteCard";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -273,13 +274,14 @@ export default async function InboxPage({
   // Thread + context.
   let messages: MessageRow[] = [];
   let context: ThreadContext | null = null;
+  const quotesById: Record<string, ThreadQuote> = {};
 
   if (selectedId) {
     const [{ data: msgs }, { data: ctxRaw }] = await Promise.all([
       supabase
         .from("messages")
         .select(
-          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, read_by_host, read_by_guest, read_at, created_at",
+          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, quote_id, read_by_host, read_by_guest, read_at, created_at",
         )
         .eq("conversation_id", selectedId)
         .order("created_at", { ascending: true }),
@@ -347,10 +349,63 @@ export default async function InboxPage({
       attachmentFilename: m.attachment_filename,
       isSystem: m.is_system_message,
       systemEvent: m.system_event,
+      quoteId: (m as { quote_id: string | null }).quote_id ?? null,
       readByHost: m.read_by_host,
       readByGuest: m.read_by_guest,
       createdAt: m.created_at,
     }));
+
+    // Quotes referenced by thread messages → rendered inline as quote cards
+    // that reflect each quote's live state (draft request → sent quote).
+    const quoteIds = Array.from(
+      new Set(
+        (msgs ?? [])
+          .map((m) => (m as { quote_id: string | null }).quote_id)
+          .filter((id): id is string => !!id),
+      ),
+    );
+    if (quoteIds.length > 0) {
+      const { data: qRows } = await supabase
+        .from("quotes")
+        .select(
+          "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token",
+        )
+        .in("id", quoteIds);
+      const { data: viewRows } = await supabase
+        .from("quote_view_events")
+        .select("quote_id, opened_at")
+        .in("quote_id", quoteIds);
+      const seenBy = new Map<string, { count: number; last: string | null }>();
+      for (const v of viewRows ?? []) {
+        const cur = seenBy.get(v.quote_id) ?? { count: 0, last: null };
+        cur.count += 1;
+        if (!cur.last || v.opened_at > cur.last) cur.last = v.opened_at;
+        seenBy.set(v.quote_id, cur);
+      }
+      for (const q of qRows ?? []) {
+        const seen = seenBy.get(q.id);
+        quotesById[q.id] = {
+          id: q.id,
+          quoteNumber: (q.quote_number as string | null) ?? null,
+          status: q.status,
+          currency: q.currency,
+          total: Number(q.total_amount ?? 0),
+          checkIn: q.check_in,
+          checkOut: q.check_out,
+          headcount: q.headcount,
+          scope: q.scope,
+          depositType: q.deposit_type,
+          depositAmount:
+            q.deposit_amount == null ? null : Number(q.deposit_amount),
+          balanceAmount:
+            q.balance_amount == null ? null : Number(q.balance_amount),
+          validUntil: (q.valid_until as string | null) ?? null,
+          acceptToken: (q.accept_token as string | null) ?? null,
+          viewCount: seen?.count ?? 0,
+          lastViewedAt: seen?.last ?? null,
+        };
+      }
+    }
 
     const ctx = ctxRaw as unknown as {
       id: string;
@@ -488,6 +543,8 @@ export default async function InboxPage({
     <InboxView
       hostInitials={hostInitials}
       hostName={host.display_name}
+      hostAvatarUrl={host.avatar_url ?? null}
+      selfUserId={user.id}
       folder={folder}
       counts={counts}
       search={search}
@@ -495,6 +552,7 @@ export default async function InboxPage({
       selectedId={selectedId}
       messages={messages}
       context={context}
+      quotesById={quotesById}
       templates={templates}
       assignees={assignees}
     />
