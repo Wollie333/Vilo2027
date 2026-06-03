@@ -94,6 +94,8 @@ export function RatesSection({
   cleaningFee,
   currency,
   weeklyDiscountPct,
+  childPrice = 0,
+  petFee = 0,
 }: {
   rooms: PublicRoom[];
   seasons: SeasonRow[];
@@ -102,6 +104,8 @@ export function RatesSection({
   cleaningFee: number | null;
   currency: string;
   weeklyDiscountPct: number | null;
+  childPrice?: number;
+  petFee?: number;
 }) {
   const groups = groupSeasons(seasons);
   const hasRooms = rooms.length > 0;
@@ -301,6 +305,20 @@ export function RatesSection({
             </tbody>
           </table>
         </div>
+        {childPrice > 0 || petFee > 0 ? (
+          <div className="border-t border-brand-line bg-brand-light/30 px-5 py-3 text-[11px] text-brand-mute">
+            <span className="font-medium text-brand-ink">Extras</span> —{" "}
+            {[
+              childPrice > 0
+                ? `children ${fmtR(childPrice, currency)}/night`
+                : null,
+              petFee > 0 ? `pets ${fmtR(petFee, currency)}/night` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            , charged per night on top of the rate.
+          </div>
+        ) : null}
         {weeklyDiscountPct && weeklyDiscountPct > 0 ? (
           <div className="border-t border-brand-line bg-brand-light/30 px-5 py-3">
             <div className="inline-flex items-start gap-1.5 text-[11px] leading-relaxed text-brand-mute">

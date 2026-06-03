@@ -38,6 +38,7 @@ import { LocationSection, type Poi } from "./LocationSection";
 import { MobileBookingBar } from "./MobileBookingBar";
 import { RoomsCalendarSection } from "./RoomsCalendarSection";
 import { SimilarListings } from "./SimilarListings";
+import { SuitabilityChips } from "./SuitabilityChips";
 import { TrustCard } from "./TrustCard";
 import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
@@ -81,6 +82,14 @@ type RawListing = {
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
   instant_booking: boolean;
+  allow_children: boolean | null;
+  allow_infants: boolean | null;
+  allow_pets: boolean | null;
+  child_price: number | null;
+  infant_price: number | null;
+  pet_fee: number | null;
+  infant_max_age: number | null;
+  child_max_age: number | null;
   whole_listing_discount_pct: number | null;
   weekly_discount_pct: number | null;
   monthly_discount_pct: number | null;
@@ -140,6 +149,8 @@ async function loadListing(slug: string) {
         check_in_time, check_out_time,
         base_price, weekend_price, cleaning_fee, currency, booking_mode,
         cancellation_policy, house_rules, instant_booking,
+        allow_children, allow_infants, allow_pets,
+        child_price, infant_price, pet_fee, infant_max_age, child_max_age,
         whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct,
         avg_rating, total_reviews,
         host:hosts!inner (
@@ -449,6 +460,8 @@ export default async function ListingDetailPage({
         cleaningFee={listing.cleaning_fee}
         currency={listing.currency}
         weeklyDiscountPct={listing.weekly_discount_pct}
+        childPrice={Number(listing.child_price ?? 0)}
+        petFee={Number(listing.pet_fee ?? 0)}
       />
     ) : null;
 
@@ -956,7 +969,25 @@ function ListingBody({
             <h3 className="font-display text-xl font-bold text-brand-ink">
               Things to know
             </h3>
-            <div className="mt-5 grid gap-6 md:grid-cols-3">
+            <div className="mt-5">
+              <div className="mb-2 text-[13px] font-semibold text-brand-ink">
+                Who it suits
+              </div>
+              <SuitabilityChips
+                s={{
+                  allowChildren: listing.allow_children ?? true,
+                  allowInfants: listing.allow_infants ?? true,
+                  allowPets: listing.allow_pets ?? true,
+                  childPrice: Number(listing.child_price ?? 0),
+                  infantPrice: Number(listing.infant_price ?? 0),
+                  petFee: Number(listing.pet_fee ?? 0),
+                  infantMaxAge: listing.infant_max_age ?? 2,
+                  childMaxAge: listing.child_max_age ?? 12,
+                  currency: listing.currency,
+                }}
+              />
+            </div>
+            <div className="mt-6 grid gap-6 md:grid-cols-3">
               <div>
                 <div className="font-display font-semibold text-brand-ink">
                   House rules
