@@ -81,12 +81,6 @@ export function RequestQuoteButton({
       toast.error("Pick at least one room.");
       return;
     }
-    if (message.trim().length < 10) {
-      toast.error(
-        "Tell the host a little about your stay (min 10 characters).",
-      );
-      return;
-    }
     const scope = selectedRooms.length > 0 ? "rooms" : "whole_listing";
     setPending(true);
     try {

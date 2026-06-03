@@ -3,10 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { sendTransactionalEmail } from "@/lib/email/send";
-import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { computeStayPricing } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+// NOTE: the email sender (`@/lib/email/send` → `resend`) and the notification
+// dispatcher are imported DYNAMICALLY inside the action below, never at module
+// scope. Both are best-effort side-effects; importing them at the top puts them
+// in this server action's module graph, so if either module throws while
+// loading on the server the whole action 500s before our try/catch can run.
+// Dynamic import keeps a load failure inside the guarded block.
 
 // A website visitor requests a quote from a listing. No login required: we
 // find-or-create a passwordless guest "lead", open (or reuse) an enquiry
@@ -30,11 +35,9 @@ export const guestQuoteRequestSchema = z
       infants: z.coerce.number().int().min(0).max(100).default(0),
       pets: z.coerce.number().int().min(0).max(100).default(0),
     }),
-    message: z
-      .string()
-      .trim()
-      .min(10, "Tell the host a little about your stay.")
-      .max(2000),
+    // Optional — a guest shouldn't be blocked from reaching the host over a
+    // message-length rule. We default an empty note to a sensible line below.
+    message: z.string().trim().max(2000).optional().default(""),
     guest_name: z.string().trim().min(2, "Enter your name.").max(120),
     guest_email: z.string().trim().email("Enter a valid email."),
     guest_phone: z.string().trim().max(40).optional().or(z.literal("")),
@@ -353,10 +356,11 @@ export async function requestQuoteAction(
 
     // Thread messages: the guest's note, the draft-quote card, then a guest-facing
     // acknowledgement. Inserted sequentially so created_at orders them correctly.
+    const noteBody = d.message || `Quote request for ${listing.name}.`;
     await admin.from("messages").insert({
       conversation_id: conversationId,
       sender_id: guestId,
-      body: d.message,
+      body: noteBody,
       read_by_host: false,
     });
     await admin.from("messages").insert({
@@ -392,18 +396,25 @@ export async function requestQuoteAction(
       }
     }
 
-    // Notify the host (reuses the existing new_message event). Never throws.
-    await dispatchEvent({
-      kind: "new_message",
-      recipientUserId: hostRow.user_id,
-      hostId: listing.host_id,
-      refs: {
-        conversation_id: conversationId,
-        sender_first_name: d.guest_name.split(" ")[0] || d.guest_name,
-        message_body: d.message,
-        unread_count: 1,
-      },
-    });
+    // Notify the host (reuses the existing new_message event). Best-effort and
+    // dynamically imported so a dispatcher load/runtime error can't 500 the
+    // enquiry, which has already been written at this point.
+    try {
+      const { dispatchEvent } = await import("@/lib/notifications/dispatch");
+      await dispatchEvent({
+        kind: "new_message",
+        recipientUserId: hostRow.user_id,
+        hostId: listing.host_id,
+        refs: {
+          conversation_id: conversationId,
+          sender_first_name: d.guest_name.split(" ")[0] || d.guest_name,
+          message_body: noteBody,
+          unread_count: 1,
+        },
+      });
+    } catch {
+      // Notification is best-effort — the enquiry already succeeded.
+    }
 
     // Acknowledge to the guest by email (best-effort, never blocks the enquiry).
     // A brand-new lead gets a magic link to claim their account + track the quote;
@@ -429,6 +440,7 @@ export async function requestQuoteAction(
       } else if (appUrl) {
         actionHtml = `<p><a href="${appUrl}/portal/inbox" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
       }
+      const { sendTransactionalEmail } = await import("@/lib/email/send");
       await sendTransactionalEmail({
         to: emailLc,
         subject: `We've sent your request to ${hostRow.display_name}`,
