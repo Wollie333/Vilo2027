@@ -92,6 +92,8 @@ export default async function EditListingPage({
     { data: listingAddonRows },
     { data: policyRows },
     { data: listingPolicyRows },
+    { data: accessRow },
+    { data: localPickRows },
   ] = await Promise.all([
     supabase
       .from("listing_amenities")
@@ -135,6 +137,18 @@ export default async function EditListingPage({
       .from("listing_policies")
       .select("policy_id, policy_type, room_id")
       .eq("listing_id", params.id),
+    supabase
+      .from("listing_access")
+      .select(
+        "check_in_method, check_in_instructions, door_code, wifi_network, wifi_password",
+      )
+      .eq("listing_id", params.id)
+      .maybeSingle(),
+    supabase
+      .from("listing_local_picks")
+      .select("category, title, blurb, distance_label, sort_order")
+      .eq("listing_id", params.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const amenities: EditorAmenity[] = (amenityRows ?? []).map((r) => ({
@@ -227,6 +241,22 @@ export default async function EditListingPage({
     }),
   );
 
+  const access = accessRow
+    ? {
+        check_in_method: accessRow.check_in_method ?? null,
+        check_in_instructions: accessRow.check_in_instructions ?? null,
+        door_code: accessRow.door_code ?? null,
+        wifi_network: accessRow.wifi_network ?? null,
+        wifi_password: accessRow.wifi_password ?? null,
+      }
+    : null;
+  const localPicks = (localPickRows ?? []).map((r) => ({
+    category: r.category as "eat" | "drink" | "do" | "see" | "shop" | "other",
+    title: r.title,
+    blurb: r.blurb ?? "",
+    distance_label: r.distance_label ?? "",
+  }));
+
   const [categoryLeavesAll, amenityGroups] = await Promise.all([
     getCategoriesForKind(listing.listing_type),
     getAmenityCatalog(),
@@ -254,6 +284,8 @@ export default async function EditListingPage({
       assignedPolicies={assignedPolicies}
       categoryLeaves={categoryLeaves}
       amenityGroups={amenityGroups}
+      access={access}
+      localPicks={localPicks}
       initialTab={searchParams?.tab}
       autoCreateRoom={searchParams?.add === "1"}
     />

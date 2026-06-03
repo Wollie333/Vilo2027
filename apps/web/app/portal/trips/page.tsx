@@ -185,7 +185,7 @@ export default async function PortalTripsPage() {
       hostAvatar: host?.avatar_url ?? null,
       image: hero,
       slug: listing?.slug ?? null,
-      detailHref: `/my-trips/${b.id}`,
+      detailHref: `/portal/trips/${b.id}`,
     };
   });
 

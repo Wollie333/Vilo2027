@@ -123,7 +123,7 @@ export default async function PortalOverviewPage() {
         </h2>
         {trip ? (
           <Link
-            href={`/my-trips/${trip.id}`}
+            href={`/portal/trips/${trip.id}`}
             className="block rounded-card border border-brand-line bg-white p-5 shadow-card transition hover:border-brand-primary/40 hover:shadow-lift"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">

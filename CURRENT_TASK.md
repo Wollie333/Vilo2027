@@ -2,6 +2,32 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-03 — branch `feat/trip-quote-detail-design`, NOT committed):**
+Redesigned two pages to match the founder's reference HTML (`~/Downloads/Trip
+Details.html`, `~/Downloads/Quote Detail.html`), wiring every rich section to
+real data + new host-editing surfaces (approved approach: add real DB backing,
+not placeholder content).
+- **Guest Trip Details** moved into the portal shell → new
+  `app/portal/trips/[id]/page.tsx` (old `/my-trips/[id]` is now a redirect; its
+  Cancel/Refund components + actions moved alongside the new page). Trips list
+  `detailHref` + notification/confirmation deep links repointed to
+  `/portal/trips/[id]`.
+- **Host Quote Detail** rewritten at `app/dashboard/quotes/[id]/page.tsx`
+  (status stepper, activity timeline, dark conversion card, internal-notes thread
+  `QuoteInternalNotes`); reuses existing `QuoteActions`/`QuoteShare`.
+- **Host editing:** new "Guest access" tab on the listing editor
+  (`tabs/GuestAccessTab.tsx` + `saveListingAccessAction`/`replaceLocalPicksAction`),
+  welcome-note card on booking detail (`updateBookingHostMessageAction`),
+  `addQuoteNoteAction` on quotes.
+- **Quote open-tracking** wired into the public `app/q/[id]/[token]/page.tsx`
+  (bumps `view_count`, logs `quote_view_events`).
+- Migrations `…000001`→`…000005` (listing_access [host-only] + listing_local_picks
+  [public], bookings.host_message, quote_notes, quote_view_events, help articles)
+  — **already pushed via `supabase db push --linked` and types regenerated**.
+- `pnpm build` + `pnpm lint` green. **Not committed** (awaiting founder go-ahead).
+- Follow-ups: local-pick image upload (text-only for now); founder smoke-test of
+  the host-access tab + a guest viewing `/portal/trips/[id]`.
+
 **Session note (2026-06-03 — CONSOLIDATION → pushed to `main`):**
 Two parallel workstreams were merged into one linear branch
 (`feat/host-payment-gateways`) and pushed to `main`: (1) **host payment

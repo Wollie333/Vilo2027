@@ -31,6 +31,65 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Trip Details (guest) + Quote Detail (host) redesign to match reference HTML — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Guest Trip Details page** rebuilt to the founder's reference design, now living
+  inside the guest-portal shell at `/portal/trips/[id]` (was a bare `SiteHeader`
+  page at `/my-trips/[id]`). Real-data sections: status + days-to-go, bento photo
+  gallery, host welcome note, getting-there/access (with gated door code + Wi-Fi),
+  amenities, host local picks, house rules, receipt, refund history, a dark
+  countdown rail, host card (real `avg_rating`/`response_rate`/superhost/languages
+  + review count) and a manage-booking rail (reuses Cancel + Request-refund).
+- **Host Quote Detail page** rebuilt to the reference: big value header + key-facts
+  strip, live **status stepper** (Created→Sent→Viewed→Accepted→Booked), open-tracking
+  nudge, the stay card, price breakdown with payout, guest message, an **activity
+  timeline** from real timestamps + view events, dark conversion card, guest card,
+  and a host-only **internal notes** thread. Reuses existing `QuoteActions`/`QuoteShare`.
+- **Host-editing surfaces** for the new data: a **Guest access** tab on the listing
+  editor (check-in method/instructions, door code, Wi-Fi + a local-picks repeater),
+  a guest-facing **welcome note** card on the booking detail page, and an
+  **add internal note** action on the quote.
+- **Quote open-tracking**: the public quote page now bumps `quotes.view_count` and
+  logs a coarse (device-only, no PII) `quote_view_events` row per open.
+- Help Centre articles for guest access + local picks, welcome notes, and quote
+  tracking/internal notes.
+
+### Changed
+- `/my-trips` and `/my-trips/[id]` are now permanent redirects into `/portal/trips`.
+  Notification deep links + booking-confirmation links repointed to `/portal/trips/[id]`.
+- Trips list `detailHref` → `/portal/trips/${id}`.
+
+### Security
+- Sensitive access details (door code, Wi-Fi password) live in a new **host-only**
+  `listing_access` table — never on `listings` (which has a public `SELECT *`
+  policy). Guests receive them server-side (service role) on their own booking only,
+  with the code/password gated to ≤24h before check-in.
+
+### Migrations
+- `20260603000001_listing_access_and_local_picks.sql` — `listing_access` (host-only)
+  + `listing_local_picks` (public-read) tables.
+- `20260603000002_booking_host_message.sql` — `bookings.host_message`.
+- `20260603000003_quote_notes.sql` — host-only quote internal-notes thread.
+- `20260603000004_quote_view_events.sql` — per-open quote tracking.
+- `20260603000005_help_trip_quote_detail.sql` — Help articles.
+
+### Notes
+- Honest adaptations vs the mock: real host stats instead of "<1h / 187 reviews",
+  an "Open in Maps" deep link instead of a live map embed, payout shown as the full
+  total (Vilo 0% commission) rather than an invented fee, and graceful empty/withheld
+  states (local-picks card hidden when empty; access secrets gated by date). Local
+  picks are text-only for now (image upload can be added later — they render a
+  category tile when no image).
+- Page chrome adapts to each existing shell: the quote page uses the dashboard's
+  global Topbar + an in-page breadcrumb; the trip page uses an in-content header
+  (the portal shell has no Topbar and is scroll-based).
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Rule: EFT is the payment backbone (publish gate + gateway fallback) — branch `feat/host-payment-gateways`
 
 ### Built

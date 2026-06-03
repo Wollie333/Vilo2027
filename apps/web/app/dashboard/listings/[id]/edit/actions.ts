@@ -14,11 +14,15 @@ import {
   bedInputSchema,
   bedKindLabel,
   bookingModeSchema,
+  listingAccessSchema,
+  localPickSchema,
   patchSchema,
   roomCapacityFromBeds,
   roomPatchSchema,
   type BedInput,
   type BookingModeInput,
+  type ListingAccessInput,
+  type LocalPickInput,
   type PatchInput,
   type RoomPatch,
 } from "./schemas";
@@ -88,6 +92,102 @@ export async function saveListingPatchAction(
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+// ─── Guest access + local picks (Trip Details page) ──────────────
+
+const cleanStr = (v: string | undefined): string | null =>
+  typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
+
+export async function saveListingAccessAction(
+  listingId: string,
+  input: ListingAccessInput,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = listingAccessSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Some fields look wrong. Check the form." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase.from("listing_access").upsert(
+    {
+      listing_id: listingId,
+      check_in_method: cleanStr(parsed.data.check_in_method),
+      check_in_instructions: cleanStr(parsed.data.check_in_instructions),
+      door_code: cleanStr(parsed.data.door_code),
+      wifi_network: cleanStr(parsed.data.wifi_network),
+      wifi_password: cleanStr(parsed.data.wifi_password),
+    },
+    { onConflict: "listing_id" },
+  );
+  if (error) {
+    return { ok: false, error: "Could not save access details. Try again." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true };
+}
+
+export type LocalPickRow = {
+  id: string;
+  category: string;
+  title: string;
+  blurb: string | null;
+  distance_label: string | null;
+  sort_order: number;
+};
+
+export async function replaceLocalPicksAction(
+  listingId: string,
+  picks: LocalPickInput[],
+): Promise<ActionResult<LocalPickRow[]>> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = z.array(localPickSchema).max(24).safeParse(picks);
+  if (!parsed.success) {
+    return { ok: false, error: "Some picks look wrong. Check the list." };
+  }
+
+  const supabase = createServerClient();
+
+  // Full replacement — wipe this listing's picks then re-insert in order.
+  const { error: delErr } = await supabase
+    .from("listing_local_picks")
+    .delete()
+    .eq("listing_id", listingId);
+  if (delErr) {
+    return { ok: false, error: "Could not update local picks." };
+  }
+
+  if (parsed.data.length > 0) {
+    const rows = parsed.data.map((p, i) => ({
+      listing_id: listingId,
+      category: p.category,
+      title: p.title.trim(),
+      blurb: cleanStr(p.blurb),
+      distance_label: cleanStr(p.distance_label),
+      sort_order: i,
+    }));
+    const { error: insErr } = await supabase
+      .from("listing_local_picks")
+      .insert(rows);
+    if (insErr) {
+      return { ok: false, error: "Could not save local picks." };
+    }
+  }
+
+  const { data: fresh } = await supabase
+    .from("listing_local_picks")
+    .select("id, category, title, blurb, distance_label, sort_order")
+    .eq("listing_id", listingId)
+    .order("sort_order", { ascending: true });
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  return { ok: true, data: (fresh ?? []) as LocalPickRow[] };
 }
 
 export type AmenityRow = {

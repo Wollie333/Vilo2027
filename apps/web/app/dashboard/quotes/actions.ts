@@ -77,6 +77,36 @@ async function getHostId(): Promise<
   return { ok: true, hostId: host.id };
 }
 
+// Add a host-only internal note to a quote (quote_notes). Never shown to the
+// guest — distinct from quotes.notes (the guest-facing message). RLS scopes the
+// row to the owning host; we also assert ownership for a friendly error.
+export async function addQuoteNoteAction(
+  quoteId: string,
+  body: string,
+): Promise<ActionResult<{ id: string; body: string; created_at: string }>> {
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Note can't be empty." };
+  if (text.length > 2000) {
+    return { ok: false, error: "Note is too long (max 2000 characters)." };
+  }
+
+  const own = await assertOwnership(quoteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("quote_notes")
+    .insert({ quote_id: quoteId, author_id: own.userId, body: text })
+    .select("id, body, created_at")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: "Could not save note. Try again." };
+  }
+
+  revalidatePath(`/dashboard/quotes/${quoteId}`);
+  return { ok: true, data };
+}
+
 // Price a quote's accommodation through the canonical engine — the SAME path
 // the guest checkout uses, so an auto-priced quote matches what a booking would
 // charge for the same dates/rooms (seasonal + weekend aware). Add-ons are priced

@@ -107,7 +107,7 @@ export async function requestRefundAction(input: {
 
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath(`/my-trips/${booking.id}`);
+  revalidatePath(`/portal/trips/${booking.id}`);
   revalidatePath("/dashboard/refunds");
   return { ok: true };
 }
@@ -169,7 +169,7 @@ export async function cancelMyBookingAction(input: {
   );
   if (!res.ok) return res;
 
-  revalidatePath(`/my-trips/${input.bookingId}`);
+  revalidatePath(`/portal/trips/${input.bookingId}`);
   revalidatePath("/portal/trips");
   return { ok: true };
 }

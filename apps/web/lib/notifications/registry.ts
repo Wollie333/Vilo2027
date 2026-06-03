@@ -222,14 +222,14 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Booking confirmed! 🎉",
       body: clip(`Your stay at ${r.listing_name ?? "your stay"} is confirmed.`),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
       sound: "default",
       priority: "high",
     }),
     inApp: (r) => ({
       title: "Booking confirmed",
       body: r.listing_name ?? "Your stay is locked in.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `booking_confirmed_guest:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
@@ -251,7 +251,7 @@ export const NOTIFICATION_REGISTRY = {
     inApp: (r) => ({
       title: "Booking declined",
       body: r.listing_name ?? "The host couldn't accept this stay.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `booking_declined:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
@@ -267,14 +267,14 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `Your booking at ${r.listing_name ?? "your stay"} was cancelled. A refund is on its way.`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
       sound: "default",
       priority: "high",
     }),
     inApp: (r) => ({
       title: "Booking cancelled by host",
       body: r.listing_name ?? "Please check your refund email.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `booking_cancelled_guest:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
@@ -289,12 +289,12 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `${r.listing_name ?? "Your stay"}${r.check_in_time ? ` · Check in at ${r.check_in_time}` : ""}`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
     }),
     inApp: (r) => ({
       title: "Check-in tomorrow",
       body: r.listing_name ?? "Your stay starts soon",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `checkin_guest:${r.booking_id}`,
   } satisfies EventBuilder<BookingRefs>,
@@ -309,7 +309,7 @@ export const NOTIFICATION_REGISTRY = {
     inApp: (r) => ({
       title: "EFT payment instructions",
       body: r.listing_name ?? "Bank transfer details for your booking",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `eft_instructions:${r.booking_id}`,
   } satisfies EventBuilder<EftRefs>,
@@ -348,12 +348,12 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `Your refund for ${r.listing_name ?? "your booking"} has been sent.`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
     }),
     inApp: (r) => ({
       title: "EFT refund sent",
       body: r.listing_name ?? "Your refund is on its way.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `eft_refund:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,
@@ -395,13 +395,13 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `Your refund${r.refund_amount ? ` of ${r.refund_amount}` : ""} for ${r.listing_name ?? "your booking"} is on its way.`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
       sound: "default",
     }),
     inApp: (r) => ({
       title: "Refund approved",
       body: r.listing_name ?? "Your refund is on its way.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `refund_approved:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,
@@ -417,13 +417,13 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `Your refund request for ${r.listing_name ?? "your booking"} wasn't approved.`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
       sound: "default",
     }),
     inApp: (r) => ({
       title: "Refund declined",
       body: r.listing_name ?? "Tap to view details and dispute if needed.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `refund_declined:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,
@@ -439,12 +439,12 @@ export const NOTIFICATION_REGISTRY = {
       body: clip(
         `Your refund for ${r.listing_name ?? "your booking"} has been processed.`,
       ),
-      data: link("/my-trips/[id]", { id: r.booking_id }),
+      data: link("/portal/trips/[id]", { id: r.booking_id }),
     }),
     inApp: (r) => ({
       title: "Refund completed",
       body: r.listing_name ?? "Funds returned.",
-      link: `/my-trips/${r.booking_id}`,
+      link: `/portal/trips/${r.booking_id}`,
     }),
     dedupeKey: (r) => `refund_completed:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,

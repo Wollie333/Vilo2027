@@ -128,6 +128,40 @@ export const settingsSchema = z.object({
 });
 export type SettingsInput = z.infer<typeof settingsSchema>;
 
+// ── Guest access + local picks (Trip Details page) ──────────────
+// Sensitive access details live in the listing_access table (never publicly
+// readable); local picks live in listing_local_picks (public marketing).
+export const LOCAL_PICK_CATEGORIES = [
+  { value: "eat", label: "Eat" },
+  { value: "drink", label: "Drink" },
+  { value: "do", label: "Do" },
+  { value: "see", label: "See" },
+  { value: "shop", label: "Shop" },
+  { value: "other", label: "Other" },
+] as const;
+
+export const listingAccessSchema = z.object({
+  check_in_method: z.string().trim().max(120).optional().or(z.literal("")),
+  check_in_instructions: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .or(z.literal("")),
+  door_code: z.string().trim().max(60).optional().or(z.literal("")),
+  wifi_network: z.string().trim().max(120).optional().or(z.literal("")),
+  wifi_password: z.string().trim().max(120).optional().or(z.literal("")),
+});
+export type ListingAccessInput = z.infer<typeof listingAccessSchema>;
+
+export const localPickSchema = z.object({
+  category: z.enum(["eat", "drink", "do", "see", "shop", "other"]),
+  title: z.string().trim().min(1, "Add a name.").max(120),
+  blurb: z.string().trim().max(400).optional().or(z.literal("")),
+  distance_label: z.string().trim().max(60).optional().or(z.literal("")),
+});
+export type LocalPickInput = z.infer<typeof localPickSchema>;
+
 // ── Per-room schemas ──────────────────────────────────────────
 
 export const BOOKING_MODES = [

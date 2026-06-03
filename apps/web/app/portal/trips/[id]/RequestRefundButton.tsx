@@ -74,16 +74,16 @@ export function RequestRefundButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-light"
       >
-        <RotateCcw className="h-4 w-4" />
+        <RotateCcw className="h-4 w-4 text-brand-primary" />
         Request refund
       </button>
     );
   }
 
   return (
-    <div className="space-y-3 rounded border border-brand-line bg-brand-light/40 p-4">
+    <div className="space-y-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
         Request a refund
       </div>
@@ -103,7 +103,7 @@ export function RequestRefundButton({
           step={1}
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
-          className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+          className="mt-1 block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
         />
         <span className="mt-1 block text-[11px] text-brand-mute">
           Up to {fmtR(totalAmount, currency)} paid
@@ -117,7 +117,7 @@ export function RequestRefundButton({
         <select
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+          className="mt-1 block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
         >
           {REASONS.map((r) => (
             <option key={r}>{r}</option>
@@ -136,7 +136,7 @@ export function RequestRefundButton({
           value={reasonDetail}
           onChange={(e) => setReasonDetail(e.target.value.slice(0, 2000))}
           placeholder="Helpful context speeds up the decision."
-          className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+          className="mt-1 block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
         />
       </label>
 
@@ -145,7 +145,7 @@ export function RequestRefundButton({
           type="button"
           onClick={() => setOpen(false)}
           disabled={pending}
-          className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+          className="rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
         >
           Cancel
         </button>
@@ -153,7 +153,7 @@ export function RequestRefundButton({
           type="button"
           onClick={submit}
           disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
         >
           {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
           Send request

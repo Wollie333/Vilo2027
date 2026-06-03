@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
-import { Button } from "@/components/ui/button";
 
 import { cancelMyBookingAction, previewMyCancelRefundAction } from "./actions";
 
@@ -21,14 +20,13 @@ export function CancelTripButton({
 
   return (
     <>
-      <Button
+      <button
         type="button"
-        variant="outline"
         onClick={() => setOpen(true)}
-        className="border-status-cancelled/40 text-status-cancelled hover:bg-status-cancelled/5"
+        className="inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-[12.5px] font-medium text-status-cancelled transition hover:bg-status-cancelled/5"
       >
         Cancel booking
-      </Button>
+      </button>
       <CancelBookingDialog
         open={open}
         onOpenChange={setOpen}

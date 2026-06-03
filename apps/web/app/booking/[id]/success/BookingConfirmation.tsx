@@ -970,7 +970,7 @@ function HostCard({ data }: { data: ConfirmationData }) {
           </div>
         </div>
         <Link
-          href={`/my-trips/${data.bookingId}`}
+          href={`/portal/trips/${data.bookingId}`}
           className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded border border-brand-primary bg-brand-primary px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
         >
           <MessageSquare className="h-4 w-4" /> Message host
@@ -1103,7 +1103,7 @@ export function BookingConfirmation({ data }: { data: ConfirmationData }) {
             <ArrowLeft className="h-4 w-4" /> Back to listing
           </Link>
           <Link
-            href={`/my-trips/${data.bookingId}`}
+            href={`/portal/trips/${data.bookingId}`}
             className="inline-flex items-center gap-2 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
           >
             View my booking <ArrowRight className="h-4 w-4" />

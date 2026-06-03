@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Home,
   Image as ImageIcon,
+  KeyRound,
   ListChecks,
   Link2,
   MapPin,
@@ -32,6 +33,7 @@ import {
 import { AmenitiesTab } from "./tabs/AmenitiesTab";
 import { BasicTab } from "./tabs/BasicTab";
 import { DangerTab } from "./tabs/DangerTab";
+import { GuestAccessTab, type AccessInitial } from "./tabs/GuestAccessTab";
 import { LocationTab } from "./tabs/LocationTab";
 import { PhotosTab } from "./tabs/PhotosTab";
 import {
@@ -42,6 +44,7 @@ import {
 import { PricingTab } from "./tabs/PricingTab";
 import { RoomsTab } from "./tabs/RoomsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
+import type { LocalPickInput } from "./schemas";
 
 export type EditorListing = {
   id: string;
@@ -146,6 +149,7 @@ type TabKey =
   | "addons"
   | "pricing"
   | "policies"
+  | "access"
   | "settings"
   | "danger";
 
@@ -160,6 +164,7 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "addons", label: "Add-ons", icon: PackagePlus },
   { key: "pricing", label: "Pricing", icon: Receipt },
   { key: "policies", label: "Policies", icon: CalendarClock },
+  { key: "access", label: "Guest access", icon: KeyRound },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
@@ -175,6 +180,8 @@ export function Editor({
   assignedPolicies,
   categoryLeaves,
   amenityGroups,
+  access,
+  localPicks,
   initialTab,
   autoCreateRoom = false,
 }: {
@@ -188,6 +195,8 @@ export function Editor({
   assignedPolicies: AssignedPolicy[];
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
+  access: AccessInitial | null;
+  localPicks: LocalPickInput[];
   /** Deep-link the editor to a tab (e.g. ?tab=rooms). Falls back to Basic info. */
   initialTab?: string;
   /** ?add=1 on the rooms tab — auto-open a fresh room form. */
@@ -563,6 +572,13 @@ export function Editor({
             rooms={rooms}
             available={availablePolicies}
             assigned={assignedPolicies}
+          />
+        ) : null}
+        {active === "access" ? (
+          <GuestAccessTab
+            listingId={listing.id}
+            access={access}
+            picks={localPicks}
           />
         ) : null}
         {active === "settings" ? <SettingsTab listing={listing} /> : null}

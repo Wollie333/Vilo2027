@@ -174,6 +174,32 @@ export async function checkOutBookingAction(bookingId: string) {
   return applyTransition(bookingId, "checkOut");
 }
 
+// Sets the guest-facing welcome note on a booking (bookings.host_message),
+// shown as "a note from your host" on the guest's Trip Details page. RLS
+// host_manage_own_bookings enforces ownership on the UPDATE — a non-owner's
+// update simply matches zero rows.
+export async function updateBookingHostMessageAction(
+  bookingId: string,
+  message: string,
+): Promise<BookingActionResult> {
+  const text = message.trim();
+  if (text.length > 2000) {
+    return { ok: false, error: "Note is too long (max 2000 characters)." };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ host_message: text.length > 0 ? text : null })
+    .eq("id", bookingId);
+  if (error) {
+    return { ok: false, error: "Could not save the note. Try again." };
+  }
+
+  revalidatePath(`/dashboard/bookings/${bookingId}`);
+  return { ok: true };
+}
+
 // Adds a host-only internal note to a booking. booking_notes is gated by the
 // host_manage_booking_notes RLS policy (host of the parent booking only), so
 // ownership is enforced at the row level — no extra check needed here.

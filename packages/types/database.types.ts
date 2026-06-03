@@ -643,6 +643,7 @@ export type Database = {
           guests_count: number
           has_open_refund: boolean | null
           host_id: string
+          host_message: string | null
           host_payment_note: string | null
           id: string
           internal_notes: string | null
@@ -697,6 +698,7 @@ export type Database = {
           guests_count?: number
           has_open_refund?: boolean | null
           host_id: string
+          host_message?: string | null
           host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
@@ -751,6 +753,7 @@ export type Database = {
           guests_count?: number
           has_open_refund?: boolean | null
           host_id?: string
+          host_message?: string | null
           host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
@@ -2393,6 +2396,47 @@ export type Database = {
           },
         ]
       }
+      listing_access: {
+        Row: {
+          check_in_instructions: string | null
+          check_in_method: string | null
+          created_at: string
+          door_code: string | null
+          listing_id: string
+          updated_at: string
+          wifi_network: string | null
+          wifi_password: string | null
+        }
+        Insert: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          listing_id: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Update: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          listing_id?: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_access_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_addons: {
         Row: {
           addon_id: string
@@ -2586,6 +2630,53 @@ export type Database = {
             foreignKeyName: "listing_counters_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_local_picks: {
+        Row: {
+          blurb: string | null
+          category: string
+          created_at: string
+          distance_label: string | null
+          id: string
+          image_path: string | null
+          listing_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          blurb?: string | null
+          category?: string
+          created_at?: string
+          distance_label?: string | null
+          id?: string
+          image_path?: string | null
+          listing_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          blurb?: string | null
+          category?: string
+          created_at?: string
+          distance_label?: string | null
+          id?: string
+          image_path?: string | null
+          listing_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_local_picks_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
             referencedRelation: "listings"
             referencedColumns: ["id"]
           },
@@ -4201,6 +4292,45 @@ export type Database = {
           },
         ]
       }
+      quote_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          quote_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          quote_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_notes_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quote_rooms: {
         Row: {
           base_amount: number
@@ -4274,6 +4404,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "quote_versions_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quote_view_events: {
+        Row: {
+          device: string | null
+          id: string
+          opened_at: string
+          quote_id: string
+        }
+        Insert: {
+          device?: string | null
+          id?: string
+          opened_at?: string
+          quote_id: string
+        }
+        Update: {
+          device?: string | null
+          id?: string
+          opened_at?: string
+          quote_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_view_events_quote_id_fkey"
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
