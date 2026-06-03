@@ -31,6 +31,24 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms Phase C/D tail: nav badge, pipeline value, canned replies, auto-archive — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Inbox nav badge (#14):** the dashboard sidebar Inbox item shows a count of conversations with unread guest messages (computed in `dashboard/layout.tsx`, passed to `Sidebar`).
+- **Pipeline value (#6):** each pipeline folder shows the summed value of its threads (latest quote total per conversation, by stage).
+- **Canned replies (#4):** the host composer's quick-reply row is now live — chips inserted from the host's `message_templates`, with a "Manage" link.
+- **Auto-archive (#19):** new pg_cron job archives Lost/Declined enquiry threads idle for 30 days (`…000008_auto_archive_cron.sql`).
+- **Source tag (#9):** already covered — the originating listing shows on the conversation row + booking pane.
+
+### Notes
+- Completes the comms plan **except two deferred items**: **assign-to-staff (E)** — needs the host↔staff membership model wired into the inbox; and **quiet-hours auto-reply (G)** — needs a host-set auto-reply message + the quiet-hours prefs lookup. **Convert-direct (#20)** intentionally skipped (redundant — host converts from the quote detail page). These can be a small follow-up.
+- `pnpm build` + `pnpm lint` green; sweep 0/391. Migration `…000008` pushed (cron only).
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Comms Phase C2 + D (part 1): receipts, timers, follow-ups, rate-limit — branch `feat/trip-quote-detail-design`
 
 ### Built

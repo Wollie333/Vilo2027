@@ -62,21 +62,29 @@ export default async function DashboardLayout({
 
   let listingCount = 0;
   let plan: string | null = null;
+  let inboxUnread = 0;
 
   if (host) {
-    const [{ count }, { data: subscription }] = await Promise.all([
-      supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", host.id),
-      supabase
-        .from("subscriptions")
-        .select("plan")
-        .eq("host_id", host.id)
-        .maybeSingle(),
-    ]);
+    const [{ count }, { data: subscription }, { count: unread }] =
+      await Promise.all([
+        supabase
+          .from("listings")
+          .select("id", { count: "exact", head: true })
+          .eq("host_id", host.id),
+        supabase
+          .from("subscriptions")
+          .select("plan")
+          .eq("host_id", host.id)
+          .maybeSingle(),
+        supabase
+          .from("conversations")
+          .select("id", { count: "exact", head: true })
+          .eq("host_id", host.id)
+          .gt("unread_host", 0),
+      ]);
     listingCount = count ?? 0;
     plan = subscription?.plan ?? null;
+    inboxUnread = unread ?? 0;
   }
 
   // canHost for the workspace switcher: true if they have a hosts row OR
@@ -116,6 +124,7 @@ export default async function DashboardLayout({
           plan={plan}
           canHost={canHost}
           canAdmin={isPlatformStaff}
+          inboxUnread={inboxUnread}
         />
         <main
           className={`flex min-w-0 flex-1 flex-col ${

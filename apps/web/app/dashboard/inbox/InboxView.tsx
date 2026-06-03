@@ -141,6 +141,7 @@ export type Counts = {
     declined: number;
     lost: number;
   };
+  pipelineValue: Record<string, number>;
 };
 
 type PipelineStage =
@@ -263,6 +264,7 @@ export function InboxView({
   selectedId,
   messages,
   context,
+  templates,
 }: {
   hostInitials: string;
   hostName: string;
@@ -273,6 +275,7 @@ export function InboxView({
   selectedId: string | null;
   messages: MessageRow[];
   context: ThreadContext | null;
+  templates: TemplateRow[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -431,6 +434,7 @@ export function InboxView({
             {PIPELINE.map((p) => {
               const active = folder === p.key;
               const count = counts.pipeline?.[p.key] ?? 0;
+              const value = counts.pipelineValue?.[p.key] ?? 0;
               return (
                 <button
                   key={p.key}
@@ -442,13 +446,23 @@ export function InboxView({
                       : "text-brand-ink hover:bg-brand-light"
                   }`}
                 >
-                  <span className="inline-flex items-center gap-2">
-                    <span className={`h-2 w-2 rounded-full ${p.dot}`} />
-                    {p.label}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${p.dot}`} />
+                      {p.label}
+                    </span>
+                    {value > 0 ? (
+                      <span className="num mt-0.5 block pl-4 text-[10px] font-normal text-brand-mute">
+                        R{" "}
+                        {Math.round(value)
+                          .toLocaleString("en-ZA")
+                          .replace(/,/g, " ")}
+                      </span>
+                    ) : null}
                   </span>
                   {count > 0 ? (
                     <span
-                      className={`num rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
+                      className={`num shrink-0 rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
                         active
                           ? "bg-brand-secondary text-white"
                           : "border border-brand-line bg-white text-brand-mute"
@@ -787,6 +801,7 @@ export function InboxView({
               <Composer
                 conversationId={context.conversationId}
                 hostName={hostName}
+                templates={templates}
               />
             </div>
 
@@ -972,9 +987,11 @@ function MessageBubble({
 function Composer({
   conversationId,
   hostName,
+  templates,
 }: {
   conversationId: string;
   hostName: string;
+  templates: TemplateRow[];
 }) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
@@ -1007,39 +1024,33 @@ function Composer({
 
   return (
     <div className="shrink-0 border-t border-brand-line bg-white px-5 py-3">
-      {/* Quick replies — coming-soon placeholder; visuals only, no actions. */}
-      <div
-        className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2 opacity-70"
-        aria-disabled="true"
-      >
-        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-          Quick replies
-        </span>
-        <span
-          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
-          title="Coming soon"
-        >
-          Confirm dates
-        </span>
-        <span
-          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
-          title="Coming soon"
-        >
-          Check-in details
-        </span>
-        <span
-          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1 text-[12px] font-medium text-brand-mute"
-          title="Coming soon"
-        >
-          Banking details
-        </span>
-        <span
-          className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-pill border border-dashed border-brand-line bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand-mute"
-          title="Coming soon"
-        >
-          Soon
-        </span>
-      </div>
+      {/* Canned replies — click to insert a saved template into the draft. */}
+      {templates.length > 0 ? (
+        <div className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2">
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+            Quick replies
+          </span>
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() =>
+                setValue((v) => (v.trim() ? `${v}\n${t.body}` : t.body))
+              }
+              title={t.body}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1 text-[12px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              {t.title}
+            </button>
+          ))}
+          <Link
+            href="/dashboard/inbox/templates"
+            className="inline-flex shrink-0 items-center rounded-pill border border-dashed border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute hover:bg-brand-light"
+          >
+            Manage
+          </Link>
+        </div>
+      ) : null}
 
       <div className="rounded-card border border-brand-line bg-white transition-shadow focus-within:border-brand-primary focus-within:ring-4 focus-within:ring-brand-primary/15">
         <textarea

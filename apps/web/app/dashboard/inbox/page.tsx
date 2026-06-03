@@ -102,6 +102,39 @@ export default async function InboxPage({
   const all = countsRaw ?? [];
   const stageCount = (s: string) =>
     all.filter((c) => c.status !== "archived" && c.pipeline_stage === s).length;
+
+  // Pipeline value: the latest quote total per conversation, summed by stage.
+  const { data: stageQuotes } = await supabase
+    .from("quotes")
+    .select(
+      "conversation_id, total_amount, conversation:conversations ( pipeline_stage )",
+    )
+    .eq("host_id", host.id)
+    .not("conversation_id", "is", null)
+    .order("created_at", { ascending: false });
+  const seenConv = new Set<string>();
+  const pipelineValue: Record<string, number> = {
+    new_quote: 0,
+    quote_sent: 0,
+    negotiating: 0,
+    accepted: 0,
+    declined: 0,
+    lost: 0,
+  };
+  for (const q of stageQuotes ?? []) {
+    const cid = q.conversation_id as string | null;
+    if (!cid || seenConv.has(cid)) continue;
+    seenConv.add(cid);
+    const conv = Array.isArray(q.conversation)
+      ? q.conversation[0]
+      : q.conversation;
+    const stage = (conv as { pipeline_stage: string | null } | null)
+      ?.pipeline_stage;
+    if (stage && stage in pipelineValue) {
+      pipelineValue[stage] += Number(q.total_amount ?? 0);
+    }
+  }
+
   const counts = {
     all: all.filter((c) => c.status !== "archived").length,
     unread: all
@@ -127,6 +160,7 @@ export default async function InboxPage({
       declined: stageCount("declined"),
       lost: stageCount("lost"),
     },
+    pipelineValue,
   };
 
   // Conversation list — filtered server-side.
@@ -413,8 +447,14 @@ export default async function InboxPage({
     }
   }
 
-  // Quick-reply templates are a post-MVP feature — UI is rendered as a
-  // disabled "coming soon" placeholder in InboxView. Skip the DB read.
+  // Canned replies — the host's saved message templates, shown as quick-reply
+  // chips in the composer.
+  const { data: templateRows } = await supabase
+    .from("message_templates")
+    .select("id, title, body")
+    .eq("host_id", host.id)
+    .order("sort_order", { ascending: true });
+  const templates = templateRows ?? [];
 
   const hostInitials =
     (host.display_name || "")
@@ -435,6 +475,7 @@ export default async function InboxPage({
       selectedId={selectedId}
       messages={messages}
       context={context}
+      templates={templates}
     />
   );
 }

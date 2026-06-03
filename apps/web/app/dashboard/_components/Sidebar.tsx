@@ -240,12 +240,15 @@ export function Sidebar({
   plan,
   canHost,
   canAdmin = false,
+  inboxUnread = 0,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
   /** True if the user has a hosts row OR user_profiles.role='host'. */
   canHost?: boolean;
   canAdmin?: boolean;
+  /** Count of conversations with unread guest messages — badges the Inbox nav. */
+  inboxUnread?: number;
 }) {
   const planLabel =
     plan === "free"
@@ -309,7 +312,17 @@ export function Sidebar({
       {/* Nav */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-1">
         {MAIN.map((item) => (
-          <NavLink key={item.href} item={item} />
+          <NavLink
+            key={item.href}
+            item={
+              item.href === "/dashboard/inbox" && inboxUnread > 0
+                ? {
+                    ...item,
+                    badge: { text: String(inboxUnread), tone: "alert" },
+                  }
+                : item
+            }
+          />
         ))}
 
         <NavGroup label="Finances" icon={Wallet} items={FINANCES} />
