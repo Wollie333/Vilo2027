@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, FileText, Loader2 } from "lucide-react";
+import { ArrowRight, Clock, Eye, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -23,11 +23,21 @@ export type ThreadQuote = {
   quoteNumber: string | null;
   total: number;
   currency: string;
+  validUntil: string | null;
+  viewCount: number;
+  lastViewedAt: string | null;
 };
 
 function fmt(total: number, currency: string): string {
   const sym = currency === "ZAR" ? "R " : `${currency} `;
   return `${sym}${Math.round(total).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+}
+
+function expiryLabel(iso: string): { text: string; expired: boolean } {
+  const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  if (days < 0) return { text: "Expired", expired: true };
+  if (days === 0) return { text: "Expires today", expired: false };
+  return { text: `Expires in ${days}d`, expired: false };
 }
 
 export function PipelineControl({
@@ -101,6 +111,28 @@ export function PipelineControl({
           {quote.quoteNumber ? (
             <div className="num mt-0.5 font-mono text-[11px] text-brand-mute">
               {quote.quoteNumber}
+            </div>
+          ) : null}
+          {(quote.status === "sent" && quote.validUntil) ||
+          quote.viewCount > 0 ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+              {quote.status === "sent" && quote.validUntil
+                ? (() => {
+                    const e = expiryLabel(quote.validUntil);
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 ${e.expired ? "text-status-cancelled" : "text-brand-mute"}`}
+                      >
+                        <Clock className="h-3 w-3" /> {e.text}
+                      </span>
+                    );
+                  })()
+                : null}
+              {quote.viewCount > 0 ? (
+                <span className="inline-flex items-center gap-1 font-medium text-brand-secondary">
+                  <Eye className="h-3 w-3" /> Seen {quote.viewCount}×
+                </span>
+              ) : null}
             </div>
           ) : null}
           <Link

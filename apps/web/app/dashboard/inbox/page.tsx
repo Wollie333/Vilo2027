@@ -131,6 +131,7 @@ export default async function InboxPage({
       `,
     )
     .eq("host_id", host.id)
+    .order("pinned", { ascending: false })
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false })
     .limit(100);
@@ -238,7 +239,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, pipeline_stage, created_at,
+            id, status, is_enquiry, pipeline_stage, pinned, created_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
@@ -251,12 +252,43 @@ export default async function InboxPage({
     // Latest quote on this thread (for the inbox quote card).
     const { data: quoteRow } = await supabase
       .from("quotes")
-      .select("id, status, quote_number, total_amount, currency")
+      .select("id, status, quote_number, total_amount, currency, valid_until")
       .eq("conversation_id", selectedId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    // Quote open-tracking (seen receipt) + host-only internal notes.
+    let quoteSeen = { count: 0, lastViewedAt: null as string | null };
+    if (quoteRow) {
+      const { data: views, count } = await supabase
+        .from("quote_view_events")
+        .select("opened_at", { count: "exact" })
+        .eq("quote_id", quoteRow.id)
+        .order("opened_at", { ascending: false })
+        .limit(1);
+      quoteSeen = {
+        count: count ?? 0,
+        lastViewedAt: views?.[0]?.opened_at ?? null,
+      };
+    }
+
+    const { data: noteRows } = await supabase
+      .from("conversation_notes")
+      .select("id, body, created_at, author:user_profiles ( full_name )")
+      .eq("conversation_id", selectedId)
+      .order("created_at", { ascending: true });
+    const notes = (noteRows ?? []).map((n) => {
+      const a = Array.isArray(n.author) ? n.author[0] : n.author;
+      return {
+        id: n.id,
+        body: n.body,
+        authorName:
+          (a as { full_name: string | null } | null)?.full_name ?? "You",
+        createdAt: n.created_at,
+      };
+    });
 
     messages = (msgs ?? []).map((m) => ({
       id: m.id,
@@ -276,6 +308,7 @@ export default async function InboxPage({
       status: string;
       is_enquiry: boolean;
       pipeline_stage: string | null;
+      pinned: boolean;
       created_at: string;
       guest: {
         id: string;
@@ -336,6 +369,7 @@ export default async function InboxPage({
               currency: ctx.booking.currency,
             }
           : null,
+        pinned: ctx.pinned ?? false,
         pipelineStage:
           (ctx.pipeline_stage as
             | "new_quote"
@@ -352,8 +386,12 @@ export default async function InboxPage({
               quoteNumber: (quoteRow.quote_number as string | null) ?? null,
               total: Number(quoteRow.total_amount),
               currency: quoteRow.currency,
+              validUntil: (quoteRow.valid_until as string | null) ?? null,
+              viewCount: quoteSeen.count,
+              lastViewedAt: quoteSeen.lastViewedAt,
             }
           : null,
+        notes,
       };
     }
   }

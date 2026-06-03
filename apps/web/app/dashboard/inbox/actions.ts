@@ -191,6 +191,57 @@ export async function setPipelineStageAction(
   return { ok: true };
 }
 
+// ── Pin + internal notes ────────────────────────────────────
+export async function togglePinAction(
+  conversationId: string,
+  pinned: boolean,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("conversations")
+    .update({ pinned })
+    .eq("id", conversationId);
+  if (error) return { ok: false, error: "Could not update." };
+  revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
+export async function addConversationNoteAction(
+  conversationId: string,
+  body: string,
+): Promise<ActionResult<{ id: string }>> {
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Note can't be empty." };
+  if (text.length > 2000) {
+    return { ok: false, error: "Note is too long (max 2000 characters)." };
+  }
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("conversation_notes")
+    .insert({
+      conversation_id: conversationId,
+      author_id: host.userId,
+      body: text,
+    })
+    .select("id")
+    .single();
+  if (error || !data) {
+    return { ok: false, error: "Could not save note. Try again." };
+  }
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, data: { id: data.id } };
+}
+
 // ── Contacts export ─────────────────────────────────────────
 export async function exportContactsAction(): Promise<
   ActionResult<{ csv: string; filename: string }>

@@ -44,8 +44,10 @@ import {
   archiveConversationAction,
   markConversationReadAction,
   sendMessageAction,
+  togglePinAction,
   unarchiveConversationAction,
 } from "./actions";
+import { ConversationNotes, type ConvNote } from "./ConversationNotes";
 import { PipelineControl } from "./PipelineControl";
 
 export type ConversationRow = {
@@ -104,13 +106,18 @@ export type ThreadContext = {
     currency: string;
   } | null;
   pipelineStage: PipelineStage | null;
+  pinned: boolean;
   quote: {
     id: string;
     status: string;
     quoteNumber: string | null;
     total: number;
     currency: string;
+    validUntil: string | null;
+    viewCount: number;
+    lastViewedAt: string | null;
   } | null;
+  notes: ConvNote[];
 };
 
 export type TemplateRow = { id: string; title: string; body: string };
@@ -1074,6 +1081,39 @@ function Composer({
   );
 }
 
+// ── Pin toggle ──────────────────────────────────────────────
+function PinToggle({
+  conversationId,
+  pinned,
+}: {
+  conversationId: string;
+  pinned: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const r = await togglePinAction(conversationId, !pinned);
+          if (r.ok) router.refresh();
+          else toast.error(r.error);
+        })
+      }
+      className={`ml-auto inline-flex h-7 w-7 items-center justify-center rounded transition-colors disabled:opacity-50 ${
+        pinned
+          ? "text-status-pending"
+          : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+      }`}
+      title={pinned ? "Unpin" : "Pin to top"}
+    >
+      <Star className={`h-4 w-4 ${pinned ? "fill-current" : ""}`} />
+    </button>
+  );
+}
+
 // ── Booking context pane ────────────────────────────────────
 function BookingPane({
   context,
@@ -1097,10 +1137,14 @@ function BookingPane({
         <div className="font-display text-[13.5px] font-semibold text-brand-ink">
           Guest &amp; booking
         </div>
+        <PinToggle
+          conversationId={context.conversationId}
+          pinned={context.pinned}
+        />
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-brand-light xl:hidden"
+          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-brand-light xl:hidden"
           title="Hide details"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -1138,6 +1182,16 @@ function BookingPane({
             <Pill tone="cancelled">Archived</Pill>
           ) : null}
         </div>
+        {context.guest?.phone ? (
+          <a
+            href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <Phone className="h-3.5 w-3.5 text-brand-primary" /> WhatsApp
+          </a>
+        ) : null}
       </div>
 
       {context.isEnquiry || context.pipelineStage || context.quote ? (
@@ -1147,6 +1201,11 @@ function BookingPane({
           quote={context.quote}
         />
       ) : null}
+
+      <ConversationNotes
+        conversationId={context.conversationId}
+        notes={context.notes}
+      />
 
       {context.booking ? (
         <div className="border-b border-brand-line px-5 py-5">

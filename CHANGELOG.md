@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms Phase C (part 1): thread CRM — branch `feat/trip-quote-detail-design`
+
+### Built (reuse-heavy CRM polish on the host inbox thread)
+- **Quote card upgrades** in `PipelineControl`: **expiry countdown** (from `quotes.valid_until`) + **"Seen N×" receipt** (from `quote_view_events`) so the host knows the guest opened the sent quote.
+- **Internal notes** on a conversation — `ConversationNotes` panel + `addConversationNoteAction` (host-only, `conversation_notes` table). Loaded into the thread context.
+- **WhatsApp quick-contact** button in the thread's guest panel (`wa.me/<phone>`).
+- **Pin** threads — `togglePinAction` + a star toggle; pinned conversations sort to the top of the list.
+
+### Notes
+- Phase C part 1 of the comms plan. **Remaining (part 2):** read receipts on host messages (A), needs-reply folder (#12), waiting timer (C), inbox nav badge (#14), assign-to-staff (E), canned replies (#4), pipeline value (#6), source tag (#9), convert-direct (#20). Then Phase D (automation).
+- `pnpm build` + `pnpm lint` green; sweep 0/388. No schema changes (reused Phase A columns/tables).
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Comms Phase B.2: enquiry email ack + lead account claim — branch `feat/trip-quote-detail-design`
 
 ### Built
