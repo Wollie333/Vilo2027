@@ -108,7 +108,7 @@ export default async function QuoteDetailPage({
     .from("quotes")
     .select(
       `
-      id, quote_number, status, view_count,
+      id, quote_number, status,
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount, scope,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -128,7 +128,7 @@ export default async function QuoteDetailPage({
     { data: addons },
     { data: roomLines },
     { data: versions },
-    { data: viewEvents },
+    viewEventsRes,
     { data: noteRows },
   ] = await Promise.all([
     supabase
@@ -151,7 +151,7 @@ export default async function QuoteDetailPage({
       .order("version_no", { ascending: false }),
     supabase
       .from("quote_view_events")
-      .select("id, device, opened_at")
+      .select("id, device, opened_at", { count: "exact" })
       .eq("quote_id", params.id)
       .order("opened_at", { ascending: false })
       .limit(20),
@@ -214,9 +214,12 @@ export default async function QuoteDetailPage({
       .sort((a, b) => a.sort_order - b.sort_order)[0]?.url ??
     null;
 
+  // Open tracking is derived from quote_view_events (the source of truth).
+  const viewEvents = viewEventsRes.data ?? [];
+  const views = viewEventsRes.count ?? 0;
+
   const nights = nightsBetween(quote.check_in, quote.check_out);
-  const views = quote.view_count ?? 0;
-  const lastViewed = viewEvents && viewEvents.length > 0 ? viewEvents[0] : null;
+  const lastViewed = viewEvents.length > 0 ? viewEvents[0] : null;
 
   // Expiry
   const now = Date.now();

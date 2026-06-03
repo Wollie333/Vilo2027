@@ -26,25 +26,18 @@ function deviceFromUserAgent(ua: string | null): string {
   return "desktop";
 }
 
-// Record a guest open of a sent quote: bump view_count and log a view event.
-// Runs with the service role (the token already authed the page). Best-effort —
-// never blocks or breaks the render.
+// Record a guest open of a sent quote as a quote_view_events row (the source of
+// truth for the host's open count + activity). Runs with the service role (the
+// token already authed the page). Best-effort — never blocks or breaks render.
 async function recordQuoteView(
   supabase: ReturnType<typeof createAdminClient>,
   quoteId: string,
-  currentViews: number,
 ): Promise<void> {
   try {
     const ua = headers().get("user-agent");
-    await Promise.all([
-      supabase
-        .from("quotes")
-        .update({ view_count: currentViews + 1 })
-        .eq("id", quoteId),
-      supabase
-        .from("quote_view_events")
-        .insert({ quote_id: quoteId, device: deviceFromUserAgent(ua) }),
-    ]);
+    await supabase
+      .from("quote_view_events")
+      .insert({ quote_id: quoteId, device: deviceFromUserAgent(ua) });
   } catch {
     // Tracking must never affect the guest's view of the quote.
   }
@@ -62,7 +55,7 @@ export default async function PublicQuotePage({
     .from("quotes")
     .select(
       `
-      id, quote_number, status, accept_token, view_count,
+      id, quote_number, status, accept_token,
       guest_name, guest_email,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -81,7 +74,7 @@ export default async function PublicQuotePage({
   // Track the open (best-effort) — powers the host's view count, stepper and
   // activity log. Only count a live quote the guest can still act on.
   if (!["accepted", "declined", "converted"].includes(quote.status)) {
-    await recordQuoteView(supabase, quote.id, quote.view_count ?? 0);
+    await recordQuoteView(supabase, quote.id);
   }
 
   const { data: addons } = await supabase
