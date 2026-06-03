@@ -12,8 +12,14 @@ guard, listing suitability chips, payment-record page redesign). No file
 overlap except `packages/types/database.types.ts`, which carries both sets of
 hand-edits. Migrations are sequential `…000016`→`…000021`. Combined `pnpm build`
 + `pnpm lint` green.
+Then added **AGENT_RULES §4.5/§4.6**: a listing can't go live without a valid
+default EFT account (app gate in `togglePublishAction` + DB trigger
+`trg_listing_requires_bank`), and checkout always falls back to EFT if
+Paystack/PayPal fail (`book/actions.ts`). Single source of truth
+`lib/payments/eft.ts › hostHasValidEft`. Migrations `…000022` (trigger) +
+`…000023` (help). Logic-only, no type changes. build + lint green.
 **Combined TODO before the DB is live:** (1) `supabase db push --linked`
-(applies `…000016`→`…000021` in order); (2) `supabase gen types typescript
+(applies `…000016`→`…000023` in order); (2) `supabase gen types typescript
 --linked > packages/types/database.types.ts`; (3) set `PAYMENT_CIPHER_KEY` in
 `.env.local` + Doppler dev (value handed to founder in chat — NOT committed);
 (4) founder pastes Paystack test keys + a PayPal sandbox app and smoke-tests

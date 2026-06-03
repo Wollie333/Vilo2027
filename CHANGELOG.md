@@ -31,6 +31,32 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Rule: EFT is the payment backbone (publish gate + gateway fallback) — branch `feat/host-payment-gateways`
+
+### Built
+- **No listing goes live without a valid bank account.** "Valid" = a default,
+  non-archived `eft_banking_details` row. New single source of truth
+  `apps/web/lib/payments/eft.ts › hostHasValidEft(hostId)`. Enforced at two
+  layers: the app gate in `togglePublishAction` (tightened from "any
+  non-archived account" → "default account") and a new DB trigger
+  `trg_listing_requires_bank` on `listings` (fires only on the `is_published`
+  false→true transition, so seeds/tests that INSERT published rows are
+  unaffected).
+- **Payments always fall back to EFT.** When Paystack/PayPal init fails during
+  checkout, the booking no longer dies — it keeps the booking + reserved
+  inventory, switches to `payment_method = 'eft'` / status `pending_eft`, and
+  sends the guest to the awaiting-transfer view. (`book/actions.ts` catch.)
+- Codified both as **AGENT_RULES.md §4.5 / §4.6**; Help article updated.
+
+### Migrations
+- `20260602000022_listing_requires_bank.sql` — publish-requires-bank trigger.
+- `20260602000023_help_payment_fallback.sql` — Help article update.
+
+### Notes
+- Logic + trigger only — no new columns, so `database.types.ts` is unchanged.
+- `hostHasValidEft` matches the predicate the checkout already used in
+  `book/page.tsx`; that inline check was left as-is (already correct).
+
 ## 2026-06-03 — Consolidation → main: room/quote pricing + host payment gateways — branch `feat/host-payment-gateways`
 
 Merged two parallel workstreams into one linear branch and pushed to `main`.

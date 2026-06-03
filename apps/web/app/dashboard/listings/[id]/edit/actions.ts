@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { hostHasValidEft } from "@/lib/payments/eft";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { computeSetupCompletion } from "@/lib/setup/completion";
@@ -507,7 +508,7 @@ export async function togglePublishAction(
   // wizard uses, enforced here so no surface (editor/portfolio) can bypass it.
   const [
     { data: hostRow },
-    { count: bankCount },
+    hasBankAccount,
     { count: photoCount },
     { count: roomCount },
     { count: cancelCount },
@@ -517,11 +518,10 @@ export async function togglePublishAction(
       .select("bio, avatar_url, languages_spoken")
       .eq("id", listing.host_id)
       .maybeSingle(),
-    supabase
-      .from("eft_banking_details")
-      .select("id", { count: "exact", head: true })
-      .eq("host_id", listing.host_id)
-      .eq("is_archived", false),
+    // A listing can't go live without a VALID (default, non-archived) bank
+    // account — it's the guaranteed payment fallback (AGENT_RULES.md §4.5/§4.6).
+    // The DB trigger trg_listing_requires_bank enforces the same at the DB layer.
+    hostHasValidEft(listing.host_id),
     supabase
       .from("listing_photos")
       .select("id", { count: "exact", head: true })
@@ -542,7 +542,7 @@ export async function togglePublishAction(
 
   const completion = computeSetupCompletion({
     host: hostRow ?? null,
-    hasBankAccount: (bankCount ?? 0) > 0,
+    hasBankAccount,
     listing,
     photoCount: photoCount ?? 0,
     roomCount: roomCount ?? 0,

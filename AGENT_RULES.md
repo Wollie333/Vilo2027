@@ -121,6 +121,12 @@ Validate `approvedAmount <= payment.amount` before calling any provider API.
 ### 4.4 EFT banking details masked in all non-EFT contexts
 Only expose when `payment_method = 'eft'` and status is `pending_eft` or `pending_eft_review`.
 
+### 4.5 A listing cannot go live without a valid bank account
+"Valid" = a **default, non-archived** `eft_banking_details` row for the host (`is_default = true AND is_archived = false`). Use the single source of truth `hostHasValidEft(hostId)` in `apps/web/lib/payments/eft.ts` — never re-implement the predicate. Enforced at two layers: the app gate in `togglePublishAction` (friendly error) **and** the DB trigger `trg_listing_requires_bank` on `listings` (fires on the `is_published` false→true transition). Both must stay in place.
+
+### 4.6 Payments always fall back to the host's EFT account
+If a card gateway (Paystack / PayPal) fails or isn't usable at payment time, the booking must degrade to manual **EFT** rather than failing — keep the booking + any reserved inventory, set `payment_method = 'eft'` and status `pending_eft`, and send the guest to the booking's awaiting-transfer view. Because §4.5 guarantees every live listing's host has a valid default account, this fallback is always available. Never delete a booking solely because a gateway call threw.
+
 ---
 
 ## 5. Code Quality Rules

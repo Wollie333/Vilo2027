@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { initializeTransaction } from "@/lib/paystack";
+import { hostHasValidEft } from "@/lib/payments/eft";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -955,6 +956,24 @@ export async function createBookingAction(
       },
     });
   } catch {
+    // Gateway fallback (AGENT_RULES.md §4.6): never lose a booking to a
+    // Paystack/PayPal outage — fall back to the host's EFT account. A published
+    // listing always has a valid default account (§4.5), so this is reliable;
+    // we keep the booking + reserved add-ons and just switch it to manual EFT.
+    if (await hostHasValidEft(listing.host_id)) {
+      await admin
+        .from("bookings")
+        .update({ payment_method: "eft", status: "pending_eft" })
+        .eq("id", booking.id);
+      await admin
+        .from("payments")
+        .update({ method: "eft" })
+        .eq("id", payment.id);
+      redirect(`/booking/${booking.id}/success`);
+    }
+
+    // No EFT fallback configured (shouldn't happen for a live listing) — roll
+    // the booking back rather than leaving it stuck.
     await releaseReserved();
     await admin.from("payments").delete().eq("id", payment.id);
     await admin.from("booking_addons").delete().eq("booking_id", booking.id);
@@ -962,7 +981,7 @@ export async function createBookingAction(
     await admin.from("bookings").delete().eq("id", booking.id);
     return {
       ok: false,
-      error: "Couldn't reach Paystack. Try again in a moment.",
+      error: "Couldn't reach the payment provider. Try again in a moment.",
     };
   }
 
