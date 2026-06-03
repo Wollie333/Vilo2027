@@ -449,6 +449,12 @@ export function InboxView({
         </div>
 
         <div className="mt-auto border-t border-brand-line px-4 py-4">
+          <Link
+            href="/dashboard/inbox/contacts"
+            className="mb-3 flex items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            <User className="h-4 w-4" /> Contacts
+          </Link>
           <div
             className="block rounded-card bg-brand-light p-3 opacity-70"
             aria-disabled="true"

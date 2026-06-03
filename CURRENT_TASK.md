@@ -2,6 +2,15 @@
 
 > ⚠️ **Reset this file at the start of every Claude Code session.** This is your session contract — the agent will not work outside this scope without asking first.
 
+**Session note (2026-06-03 — Comms feature Phase B, branch `feat/trip-quote-detail-design`):**
+Shipped **Phase B**: guest inbox is two-way — `/portal/inbox/[id]` thread viewer + composer
+(`GuestThread` + `sendGuestMessageAction`/`markGuestConversationReadAction`), list links into it;
+**Contacts tab** at `/dashboard/inbox/contacts` (host_contacts table view) + `exportContactsAction`
+CSV download + a Contacts link in the inbox rail. No schema change. build + lint green; sweep 0/385.
+**Deferred to Phase B.2** (needs the transactional-email / Supabase magic-link path — currently
+deferred infra): lead **account-claim** (set password → is_lead=false) + **email acknowledgement**
+on enquiry. Then Phase C (CRM polish) + Phase D (automation).
+
 **Session note (2026-06-03 — Comms feature Phase A, branch `feat/trip-quote-detail-design`):**
 Shipped **Phase A** of the guest→host enquiry pipeline (approved multi-phase plan at
 `~/.claude/plans/floating-imagining-toucan.md`): listing "Request a quote" modal →

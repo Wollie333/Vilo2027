@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-03 — Comms Phase B: two-way guest inbox + Contacts/CSV — branch `feat/trip-quote-detail-design`
+
+### Built
+- **Guest inbox is now two-way.** New `/portal/inbox/[id]` thread viewer + composer (`GuestThread`) with realtime + mark-read; the messages list now links into it. New guest-side `sendGuestMessageAction` + `markGuestConversationReadAction` (ownership via `guest_id = auth.uid()`, RLS-scoped).
+- **Contacts tab + CSV.** New `/dashboard/inbox/contacts` page lists the host's auto-collected `host_contacts` (name/email/phone/last stage/last seen); `exportContactsAction` streams a CSV download. A "Contacts" link was added to the inbox folder rail.
+
+### Notes
+- Phase B of the approved plan. **Deferred to Phase B.2** (depends on the transactional-email / Supabase magic-link path, which is itself deferred infra): the lead **account-claim** flow (set a password → `is_lead=false`) and the **email acknowledgement** to the guest on enquiry. Phases C (CRM polish) and D (automation) still to come.
+- `pnpm build` + `pnpm lint` green; live-DB query sweep 0/385. No schema changes this phase.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-03 — Guest enquiry → host pipeline inbox (Phase A of the comms feature) — branch `feat/trip-quote-detail-design`
 
 ### Built

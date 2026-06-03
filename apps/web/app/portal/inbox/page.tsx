@@ -114,9 +114,9 @@ export default async function PortalInboxPage() {
                 .toUpperCase();
               return (
                 <li key={c.id}>
-                  <div
+                  <Link
+                    href={`/portal/inbox/${c.id}`}
                     className="flex items-start gap-4 p-4 hover:bg-brand-light/60"
-                    title="Conversation viewer ships in the next slice."
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-accent text-xs font-semibold text-brand-secondary">
                       {host?.avatar_url ? (
@@ -160,7 +160,7 @@ export default async function PortalInboxPage() {
                         </span>
                       ) : null}
                     </div>
-                  </div>
+                  </Link>
                 </li>
               );
             })}
