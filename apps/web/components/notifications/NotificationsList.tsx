@@ -129,8 +129,10 @@ export function NotificationsList({ initial }: Props) {
 
   const unreadCount = items.filter((i) => !i.read_at).length;
 
-  // Group categories under their display label so e.g. security + subscription
-  // + calendar collapse into a single "System" tab.
+  // The full canonical tab set always renders (even with zero notifications) so
+  // the categories read as a stable structure. Several categories collapse into
+  // one label (e.g. security + subscription + calendar → "System"). Any label
+  // present in the data but not in TAB_ORDER is appended after the canonical set.
   const tabs = React.useMemo(() => {
     const unreadByLabel = new Map<string, number>();
     for (const it of items) {
@@ -140,13 +142,13 @@ export function NotificationsList({ initial }: Props) {
         (unreadByLabel.get(label) ?? 0) + (it.read_at ? 0 : 1),
       );
     }
-    return Array.from(unreadByLabel.keys())
-      .sort((a, b) => {
-        const ia = TAB_ORDER.indexOf(a);
-        const ib = TAB_ORDER.indexOf(b);
-        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-      })
-      .map((label) => ({ label, unread: unreadByLabel.get(label) ?? 0 }));
+    const extra = Array.from(unreadByLabel.keys()).filter(
+      (l) => !TAB_ORDER.includes(l),
+    );
+    return [...TAB_ORDER, ...extra].map((label) => ({
+      label,
+      unread: unreadByLabel.get(label) ?? 0,
+    }));
   }, [items]);
 
   const visible =
@@ -208,25 +210,23 @@ export function NotificationsList({ initial }: Props) {
         ) : null}
       </header>
 
-      {tabs.length > 1 ? (
-        <nav className="flex flex-wrap gap-1.5">
+      <nav className="flex flex-wrap gap-1.5">
+        <TabChip
+          active={activeTab === "all"}
+          onClick={() => setActiveTab("all")}
+          label="All"
+          count={items.length || undefined}
+        />
+        {tabs.map((t) => (
           <TabChip
-            active={activeTab === "all"}
-            onClick={() => setActiveTab("all")}
-            label="All"
-            count={items.length || undefined}
+            key={t.label}
+            active={activeTab === t.label}
+            onClick={() => setActiveTab(t.label)}
+            label={t.label}
+            count={t.unread > 0 ? t.unread : undefined}
           />
-          {tabs.map((t) => (
-            <TabChip
-              key={t.label}
-              active={activeTab === t.label}
-              onClick={() => setActiveTab(t.label)}
-              label={t.label}
-              count={t.unread > 0 ? t.unread : undefined}
-            />
-          ))}
-        </nav>
-      ) : null}
+        ))}
+      </nav>
 
       {visible.length === 0 ? (
         <div className="rounded-card border border-brand-line bg-white px-6 py-12 text-center">
@@ -270,9 +270,19 @@ export function NotificationsList({ initial }: Props) {
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-medium text-brand-ink">
-                        {n.title}
-                      </div>
+                      {n.link ? (
+                        <button
+                          type="button"
+                          onClick={() => onLinkClick(n)}
+                          className="text-left font-medium text-brand-ink hover:text-brand-primary hover:underline"
+                        >
+                          {n.title}
+                        </button>
+                      ) : (
+                        <div className="font-medium text-brand-ink">
+                          {n.title}
+                        </div>
+                      )}
                       <Badge className="border-0 bg-brand-light text-[10px] uppercase tracking-wide text-brand-mute">
                         {prettify(n.category_id)}
                       </Badge>
@@ -299,9 +309,9 @@ export function NotificationsList({ initial }: Props) {
                         <button
                           type="button"
                           onClick={() => onLinkClick(n)}
-                          className="font-medium text-brand-primary hover:underline"
+                          className="font-semibold text-brand-primary hover:underline"
                         >
-                          Open →
+                          View →
                         </button>
                       ) : null}
                       {truncated ? (
