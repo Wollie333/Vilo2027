@@ -415,20 +415,20 @@ export async function createEnquiry(
     }
   }
 
-  // Notify the host (reuses the existing new_message event). Best-effort and
-  // dynamically imported so a dispatcher load/runtime error can't fail the
-  // enquiry, which has already been written at this point.
+  // Notify the host via the dedicated quote-request event so it lands in the
+  // "Quote requests" bell tab (not "Messages"). Best-effort and dynamically
+  // imported so a dispatcher load/runtime error can't fail the enquiry, which
+  // has already been written at this point.
   try {
     const { dispatchEvent } = await import("@/lib/notifications/dispatch");
     await dispatchEvent({
-      kind: "new_message",
+      kind: "quote_request_host",
       recipientUserId: hostRow.user_id,
       hostId: listing.host_id,
       refs: {
         conversation_id: conversationId,
-        sender_first_name: d.guest_name.split(" ")[0] || d.guest_name,
-        message_body: noteBody,
-        unread_count: 1,
+        guest_first_name: d.guest_name.split(" ")[0] || d.guest_name,
+        listing_name: listing.name,
       },
     });
   } catch {

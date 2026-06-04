@@ -73,6 +73,12 @@ export type MessageRefs = {
   unread_count?: number;
 };
 
+export type QuoteRequestRefs = {
+  conversation_id: string;
+  guest_first_name?: string;
+  listing_name?: string;
+};
+
 export type ICalRefs = {
   listing_id: string;
   feed_label: string;
@@ -624,6 +630,31 @@ export const NOTIFICATION_REGISTRY = {
     // recipient_email since EMAIL_REGISTRY marks this 'custom' recipient).
     dedupeKey: () => null,
   } satisfies EventBuilder<Record<string, unknown>>,
+
+  // ─── Quote requests (host)
+  quote_request_host: {
+    category: "quote_requests",
+    feature: "message",
+    severity: "high",
+    push: (r) => ({
+      title: "New quote request",
+      body: clip(
+        `${r.guest_first_name ?? "A guest"} requested a quote${r.listing_name ? ` for ${r.listing_name}` : ""}`,
+      ),
+      data: link("/dashboard/inbox", {
+        f: "enquiries",
+        c: r.conversation_id,
+      }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "New quote request",
+      body: `${r.guest_first_name ?? "A guest"}${r.listing_name ? ` · ${r.listing_name}` : ""}`,
+      link: `/dashboard/inbox?f=enquiries&c=${r.conversation_id}`,
+    }),
+    dedupeKey: (r) => `quote_request:${r.conversation_id}`,
+  } satisfies EventBuilder<QuoteRequestRefs>,
 
   // ─── Messages
   new_message: {

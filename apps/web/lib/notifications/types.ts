@@ -13,6 +13,7 @@ export type CategoryId =
   | "bookings"
   | "payments_refunds"
   | "messages"
+  | "quote_requests"
   | "reviews"
   | "calendar_sync"
   | "subscription"

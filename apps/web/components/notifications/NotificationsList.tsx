@@ -25,19 +25,33 @@ type Props = {
   initial: ListNotification[];
 };
 
-// Human labels for the category filter chips. Falls back to a prettified
-// version of the id so new categories work without a code change.
+// Display label per category. Several categories deliberately share a label so
+// they collapse into one filter tab (e.g. security + subscription + calendar →
+// "System"; platform broadcasts + product updates → "Announcements"). Unknown
+// ids fall back to a prettified version so new categories work without a change.
 const CATEGORY_LABELS: Record<string, string> = {
   bookings: "Bookings",
-  payments_refunds: "Payments",
+  quote_requests: "Quote requests",
   messages: "Messages",
+  payments_refunds: "Payments",
   reviews: "Reviews",
-  calendar_sync: "Calendar",
-  subscription: "Subscription",
-  account_security: "Security",
+  calendar_sync: "System",
+  subscription: "System",
+  account_security: "System",
   admin_broadcasts: "Announcements",
-  marketing_tips: "Tips",
+  marketing_tips: "Announcements",
 };
+
+// Stable left-to-right order for the tabs that are present.
+const TAB_ORDER = [
+  "Bookings",
+  "Quote requests",
+  "Messages",
+  "Payments",
+  "Reviews",
+  "System",
+  "Announcements",
+];
 
 function prettify(id: string): string {
   return (
@@ -115,20 +129,30 @@ export function NotificationsList({ initial }: Props) {
 
   const unreadCount = items.filter((i) => !i.read_at).length;
 
-  const categories = React.useMemo(() => {
-    const seen = new Map<string, { id: string; unread: number }>();
+  // Group categories under their display label so e.g. security + subscription
+  // + calendar collapse into a single "System" tab.
+  const tabs = React.useMemo(() => {
+    const unreadByLabel = new Map<string, number>();
     for (const it of items) {
-      const cur = seen.get(it.category_id) ?? { id: it.category_id, unread: 0 };
-      if (!it.read_at) cur.unread += 1;
-      seen.set(it.category_id, cur);
+      const label = prettify(it.category_id);
+      unreadByLabel.set(
+        label,
+        (unreadByLabel.get(label) ?? 0) + (it.read_at ? 0 : 1),
+      );
     }
-    return Array.from(seen.values());
+    return Array.from(unreadByLabel.keys())
+      .sort((a, b) => {
+        const ia = TAB_ORDER.indexOf(a);
+        const ib = TAB_ORDER.indexOf(b);
+        return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+      })
+      .map((label) => ({ label, unread: unreadByLabel.get(label) ?? 0 }));
   }, [items]);
 
   const visible =
     activeTab === "all"
       ? items
-      : items.filter((i) => i.category_id === activeTab);
+      : items.filter((i) => prettify(i.category_id) === activeTab);
 
   async function markRead(id: string) {
     setItems((prev) =>
@@ -184,7 +208,7 @@ export function NotificationsList({ initial }: Props) {
         ) : null}
       </header>
 
-      {categories.length > 1 ? (
+      {tabs.length > 1 ? (
         <nav className="flex flex-wrap gap-1.5">
           <TabChip
             active={activeTab === "all"}
@@ -192,13 +216,13 @@ export function NotificationsList({ initial }: Props) {
             label="All"
             count={items.length || undefined}
           />
-          {categories.map((c) => (
+          {tabs.map((t) => (
             <TabChip
-              key={c.id}
-              active={activeTab === c.id}
-              onClick={() => setActiveTab(c.id)}
-              label={prettify(c.id)}
-              count={c.unread > 0 ? c.unread : undefined}
+              key={t.label}
+              active={activeTab === t.label}
+              onClick={() => setActiveTab(t.label)}
+              label={t.label}
+              count={t.unread > 0 ? t.unread : undefined}
             />
           ))}
         </nav>
@@ -213,7 +237,7 @@ export function NotificationsList({ initial }: Props) {
           <div className="mt-1 text-xs text-brand-mute">
             {activeTab === "all"
               ? "New activity will show up here as it happens."
-              : `Nothing in ${prettify(activeTab)} yet.`}
+              : `Nothing in ${activeTab} yet.`}
           </div>
         </div>
       ) : (
