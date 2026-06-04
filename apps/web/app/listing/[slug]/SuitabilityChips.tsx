@@ -1,12 +1,10 @@
 import { Baby, Check, Dog, Users, X } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
+
 // Surfaces the host's children / infants / pets settings (allowed + per-night
 // price + age bands) as small chips. Purely presentational; drops into existing
 // sections without changing the listing layout.
-function money(n: number, currency: string): string {
-  const symbol = currency === "ZAR" ? "R" : `${currency} `;
-  return `${symbol}${Math.round(n).toLocaleString("en-ZA")}`;
-}
 
 export type Suitability = {
   allowChildren: boolean;
@@ -51,17 +49,17 @@ function Chip({
 export function SuitabilityChips({ s }: { s: Suitability }) {
   const childLabel = s.allowChildren
     ? s.childPrice > 0
-      ? `Children welcome — ${money(s.childPrice, s.currency)}/night`
+      ? `Children welcome — ${formatMoney(s.childPrice, s.currency)}/night`
       : "Children welcome"
     : "Adults only";
   const infantLabel = s.allowInfants
     ? s.infantPrice > 0
-      ? `Infants — ${money(s.infantPrice, s.currency)}/night`
+      ? `Infants — ${formatMoney(s.infantPrice, s.currency)}/night`
       : "Infants free"
     : "No infants";
   const petLabel = s.allowPets
     ? s.petFee > 0
-      ? `Pets welcome — ${money(s.petFee, s.currency)}/night`
+      ? `Pets welcome — ${formatMoney(s.petFee, s.currency)}/night`
       : "Pets welcome"
     : "No pets";
 

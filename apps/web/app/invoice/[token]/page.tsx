@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Download } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -58,6 +59,7 @@ export default async function PublicInvoicePage({
   const host = invoice.host_snapshot as HostSnap;
   const guest = invoice.guest_snapshot as GuestSnap;
   const status = invoice.status as InvoiceStatus;
+  const brandName = await getBrandName();
 
   return (
     <div className="min-h-screen bg-brand-light px-4 py-10">
@@ -65,7 +67,7 @@ export default async function PublicInvoicePage({
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded bg-brand-primary text-2xl font-bold text-white">
-              V
+              {brandName[0]?.toUpperCase() ?? "V"}
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
@@ -187,8 +189,7 @@ export default async function PublicInvoicePage({
 
         <p className="text-center text-[11px] text-brand-mute">
           Issued via{" "}
-          <span className="font-semibold text-brand-primary">VILO</span> ·
-          viloplatform.com
+          <span className="font-semibold text-brand-primary">{brandName}</span>
         </p>
       </div>
     </div>

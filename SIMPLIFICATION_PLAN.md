@@ -88,15 +88,15 @@ per-site for now (options vary too much for a single helper).
   `formatMoney`. `BookingConfirmation.fmtMoney` verified safe (its `Number(n)||0`
   null-guard never fires — all call sites pass typed numbers, and `0` formats
   identically). `RoomEditor.formatPrice` was already output-identical.
-- **Formatter migration is now essentially complete.** Deliberately left THREE
-  inline spots that are NOT output-identical to `formatMoney` (would change a
-  displayed amount, which the no-behaviour-change rule forbids) — flagged here
-  as latent display inconsistencies to fix on purpose later, not silently:
-  1. `quotes/actions.ts` — the `quote_sent` inbox message body (bare
-     `Math.round()`, no grouping → `R 1500`).
-  2. `SuitabilityChips.money` — `R` with no trailing space AND no
-     comma-stripping → `R1,500`.
-  3. `listing/[slug]/book/BookingForm.tsx` (~line 1204) — an add-on line subtotal
-     rendered inline with no comma-stripping → `R 1,500`.
-  Each differs from the canonical `R 1 500`. A separate "normalise these three to
-  formatMoney" change can fix them intentionally (they're genuine inconsistencies).
+- **Inconsistency cleanup (done):** the three previously-flagged non-identical
+  inline formatters were normalised to `formatMoney` as a **deliberate** display
+  fix (founder asked to close loose ends — this is the intentional change the
+  no-behaviour-change rule had deferred):
+  1. `quotes/actions.ts` `quote_sent` body: `R 1500` → `R 1 500`.
+  2. `SuitabilityChips`: `R1,500` → `R 1 500`.
+  3. `book/BookingForm` add-on line: `R 1,500` → `R 1 500`.
+- **Formatter migration is COMPLETE.** Every money amount in the app now renders
+  through `lib/format.ts#formatMoney`. The only remaining `=== "ZAR"` references
+  are two symbol-only input-prefix helpers (`ManualBookingForm`, `QuoteForm`)
+  that return `"R"`/currency-code for adornments, not formatted money — correct
+  as-is.

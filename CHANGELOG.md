@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Polish: normalise last 3 money formatters + de-brand public invoice/credit-note pages — branch `main`
+
+### Changed
+- **Money consistency:** normalised the three remaining non-canonical inline formatters to `formatMoney` (a deliberate display fix — they previously rendered `R 1500` / `R1,500` / `R 1,500` instead of the canonical `R 1 500`): the `quote_sent` inbox message body (`quotes/actions.ts`), `SuitabilityChips`, and a `book/BookingForm` add-on line. **The formatMoney migration is now fully complete** — every amount in the app renders through one helper.
+- **Brand:** the public hosted `/invoice/[token]` and `/credit-note/[token]` pages no longer hardcode the brand — the header initial + footer now render the configurable brand name via `getBrandName()`, and the placeholder `viloplatform.com` domain was dropped (consistent with the PDF footers).
+
+### Notes
+- No new features (feature freeze for MVP). `pnpm build` + `pnpm lint` green. Remaining brand tail: help/marketing copy strings + a few metadata `description` strings (catalogued in the brand memory note).
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Refactor: migrate guest-facing listing money formatters to formatMoney — branch `main`
 
 ### Changed

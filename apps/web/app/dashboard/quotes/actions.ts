@@ -497,14 +497,13 @@ async function advanceConversationStage(
     .update({ pipeline_stage: stage })
     .eq("id", q.conversation_id);
   if (postCard) {
-    const sym = q.currency === "ZAR" ? "R " : `${q.currency} `;
     await supabase.from("messages").insert({
       conversation_id: q.conversation_id,
       sender_id: null,
       is_system_message: true,
       system_event: "quote_sent",
       quote_id: quoteId,
-      body: `Quote ${q.quote_number} sent · ${sym}${Math.round(Number(q.total_amount))}`,
+      body: `Quote ${q.quote_number} sent · ${formatMoney(Number(q.total_amount), q.currency)}`,
       read_by_host: true,
     });
   }

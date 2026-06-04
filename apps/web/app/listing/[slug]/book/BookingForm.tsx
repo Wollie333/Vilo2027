@@ -1203,8 +1203,7 @@ export function BookingForm({
                 >
                   <span>{l.label}</span>
                   <span className="font-medium text-brand-ink">
-                    {currency === "ZAR" ? "R " : ""}
-                    {Math.round(l.subtotal).toLocaleString("en-ZA")}
+                    {formatMoney(l.subtotal, currency)}
                   </span>
                 </div>
               ))}
