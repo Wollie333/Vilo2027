@@ -137,8 +137,10 @@ export async function uploadAvatarAction(
   if (!(file instanceof File)) {
     return { ok: false, error: "No file received." };
   }
-  if (file.size > 5 * 1024 * 1024) {
-    return { ok: false, error: "Image is too large — max 5MB." };
+  // 4MB stays under the Vercel Server-Action body cap (~4.5MB) and matches the
+  // client-side guard in HostProfileForm.
+  if (file.size > 4 * 1024 * 1024) {
+    return { ok: false, error: "Image is too large — max 4MB." };
   }
   if (!file.type.startsWith("image/")) {
     return { ok: false, error: "Only image files are allowed." };

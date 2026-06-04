@@ -109,8 +109,11 @@ export function HostProfileForm({
     if (!file) return;
     if (!file.type.startsWith("image/"))
       return toast.error("Choose an image file.");
-    if (file.size > 8 * 1024 * 1024)
-      return toast.error("Image must be 8 MB or smaller.");
+    // Keep under the Vercel Server-Action body cap (~4.5MB) so the upload
+    // reaches uploadAvatarAction and returns a friendly error instead of an
+    // opaque platform 413. Server enforces the same limit.
+    if (file.size > 4 * 1024 * 1024)
+      return toast.error("Image must be 4 MB or smaller.");
     setUploading(true);
     try {
       const fd = new FormData();
