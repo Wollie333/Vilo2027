@@ -3,8 +3,10 @@ import {
   ArrowRight,
   Banknote,
   BarChart3,
+  Bell,
   CalendarCheck,
   CalendarClock,
+  FileText,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -45,6 +47,31 @@ function endOfMonth(d: Date): Date {
 
 const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"] as const;
 
+const BOOKING_STATUS: Record<string, { label: string; cls: string }> = {
+  pending: { label: "Pending", cls: "bg-amber-100 text-amber-800" },
+  pending_eft: { label: "Pending EFT", cls: "bg-amber-100 text-amber-800" },
+  confirmed: { label: "Confirmed", cls: "bg-green-100 text-green-800" },
+  checked_in: { label: "Checked in", cls: "bg-emerald-100 text-emerald-800" },
+  completed: { label: "Completed", cls: "bg-indigo-100 text-indigo-800" },
+  cancelled_by_guest: { label: "Cancelled", cls: "bg-red-100 text-red-700" },
+  cancelled_by_host: { label: "Cancelled", cls: "bg-red-100 text-red-700" },
+  declined: { label: "Declined", cls: "bg-red-100 text-red-700" },
+  expired: { label: "Expired", cls: "bg-brand-line text-brand-mute" },
+  no_show: { label: "No-show", cls: "bg-red-100 text-red-700" },
+};
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return new Date(iso).toLocaleDateString("en-ZA");
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -74,12 +101,15 @@ export default async function DashboardPage({
     .eq("user_id", user!.id)
     .maybeSingle();
 
+  const fallbackHostId = "00000000-0000-0000-0000-000000000000";
   const [
     { data: monthBookings },
     { data: upcomingCheckIns },
     { data: recentBookings },
     { data: listings },
     { count: pendingCount },
+    { data: enquiries },
+    { data: recentNotifications },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -108,7 +138,7 @@ export default async function DashboardPage({
       .select(
         "id, name, slug, is_published, booking_mode, listing_rooms ( id )",
       )
-      .eq("host_id", host?.id ?? "00000000-0000-0000-0000-000000000000")
+      .eq("host_id", host?.id ?? fallbackHostId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .limit(5),
@@ -116,6 +146,23 @@ export default async function DashboardPage({
       .from("bookings")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
+    // Open quote-request enquiries (host inbox) — the freshest first.
+    supabase
+      .from("conversations")
+      .select(
+        "id, unread_host, last_message_at, last_message_preview, pipeline_stage, guest:user_profiles!conversations_guest_id_fkey ( full_name, email ), listing:listings ( name )",
+      )
+      .eq("host_id", host?.id ?? fallbackHostId)
+      .eq("is_enquiry", true)
+      .eq("status", "open")
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(6),
+    // The host's own recent in-app notifications.
+    supabase
+      .from("in_app_notifications")
+      .select("id, title, body, link, read_at, created_at, severity")
+      .order("created_at", { ascending: false })
+      .limit(6),
   ]);
 
   // ── KPIs ──
@@ -284,16 +331,19 @@ export default async function DashboardPage({
             />
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-            {/* Recent bookings */}
+          {/* Operational grid — what needs the host's attention now. */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            {/* Bookings */}
             <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Recent bookings
+                    Bookings
                   </div>
                   <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    Latest 5
+                    {pendingCount && pendingCount > 0
+                      ? `${pendingCount} pending · latest`
+                      : "Latest"}
                   </div>
                 </div>
                 <Link
@@ -318,6 +368,9 @@ export default async function DashboardPage({
                       full_name: string | null;
                       email: string | null;
                     };
+                    const meta =
+                      BOOKING_STATUS[b.status as string] ??
+                      BOOKING_STATUS.pending;
                     return (
                       <li key={b.id} className="flex items-center gap-3 py-3">
                         <div className="min-w-0 flex-1">
@@ -325,8 +378,15 @@ export default async function DashboardPage({
                             {guest.full_name || guest.email || "Guest"} ·{" "}
                             {listing.name}
                           </div>
-                          <div className="font-mono text-[11px] text-brand-mute">
-                            {b.reference} · {b.check_in} → {b.check_out}
+                          <div className="mt-0.5 flex items-center gap-2">
+                            <span
+                              className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${meta.cls}`}
+                            >
+                              {meta.label}
+                            </span>
+                            <span className="font-mono text-[11px] text-brand-mute">
+                              {b.check_in} → {b.check_out}
+                            </span>
                           </div>
                         </div>
                         <div className="shrink-0 text-right text-xs">
@@ -335,9 +395,9 @@ export default async function DashboardPage({
                           </div>
                           <Link
                             href={`/dashboard/bookings/${b.id}`}
-                            className="text-[11px] font-medium text-brand-primary hover:underline"
+                            className="text-[11px] font-semibold text-brand-primary hover:underline"
                           >
-                            Open →
+                            View →
                           </Link>
                         </div>
                       </li>
@@ -347,12 +407,12 @@ export default async function DashboardPage({
               )}
             </section>
 
-            {/* Upcoming check-ins */}
+            {/* Arrivals (check-ins) */}
             <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Upcoming check-ins
+                    Arrivals
                   </div>
                   <div className="mt-1 font-display text-base font-semibold text-brand-ink">
                     Next 7 days
@@ -380,6 +440,7 @@ export default async function DashboardPage({
                       full_name: string | null;
                       email: string | null;
                     };
+                    const isToday = b.check_in === today;
                     return (
                       <li key={b.id} className="flex items-center gap-3 py-3">
                         <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-card border border-brand-line bg-brand-light text-brand-ink">
@@ -393,8 +454,15 @@ export default async function DashboardPage({
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-brand-dark">
-                            {guest.full_name || guest.email || "Guest"}
+                          <div className="flex items-center gap-2">
+                            <span className="truncate text-sm font-medium text-brand-dark">
+                              {guest.full_name || guest.email || "Guest"}
+                            </span>
+                            {isToday ? (
+                              <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-semibold text-white">
+                                Today
+                              </span>
+                            ) : null}
                           </div>
                           <div className="truncate text-[11px] text-brand-mute">
                             {listing.name} · {b.guests_count}{" "}
@@ -403,9 +471,9 @@ export default async function DashboardPage({
                         </div>
                         <Link
                           href={`/dashboard/bookings/${b.id}`}
-                          className="shrink-0 text-xs font-medium text-brand-primary hover:underline"
+                          className="shrink-0 text-xs font-semibold text-brand-primary hover:underline"
                         >
-                          Open →
+                          View →
                         </Link>
                       </li>
                     );
@@ -413,78 +481,154 @@ export default async function DashboardPage({
                 </ul>
               )}
             </section>
-          </div>
 
-          {/* Listings */}
-          {listings && listings.length > 0 ? (
+            {/* Quote requests (open enquiries) */}
             <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
                   <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Your listings
+                    Quote requests
                   </div>
                   <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    {listings.length}{" "}
-                    {listings.length === 1 ? "listing" : "listings"}
+                    Open enquiries
                   </div>
                 </div>
                 <Link
-                  href="/dashboard/listings"
+                  href="/dashboard/inbox?f=enquiries"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
+                >
+                  Inbox
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              {!enquiries || enquiries.length === 0 ? (
+                <EmptyState
+                  icon={FileText}
+                  title="No open quote requests"
+                  body="New enquiries from guests on your listings show up here."
+                />
+              ) : (
+                <ul className="divide-y divide-brand-line">
+                  {enquiries.map((c) => {
+                    const guest = c.guest as unknown as {
+                      full_name: string | null;
+                      email: string | null;
+                    } | null;
+                    const listing = c.listing as unknown as {
+                      name: string;
+                    } | null;
+                    const unread = (c.unread_host ?? 0) > 0;
+                    return (
+                      <li key={c.id} className="flex items-start gap-3 py-3">
+                        <span
+                          aria-hidden
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            unread ? "bg-brand-primary" : "bg-transparent"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-brand-dark">
+                            {guest?.full_name || guest?.email || "Guest"}
+                            {listing?.name ? (
+                              <span className="text-brand-mute">
+                                {" "}
+                                · {listing.name}
+                              </span>
+                            ) : null}
+                          </div>
+                          {c.last_message_preview ? (
+                            <div className="truncate text-[11px] text-brand-mute">
+                              {c.last_message_preview}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {c.last_message_at ? (
+                            <div className="text-[11px] text-brand-mute">
+                              {timeAgo(c.last_message_at)}
+                            </div>
+                          ) : null}
+                          <Link
+                            href={`/dashboard/inbox?f=enquiries&c=${c.id}`}
+                            className="text-[11px] font-semibold text-brand-primary hover:underline"
+                          >
+                            Open →
+                          </Link>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {/* Notifications */}
+            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Notifications
+                  </div>
+                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
+                    Recent activity
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/notifications"
                   className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
                 >
                   See all
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
-              <ul className="divide-y divide-brand-line">
-                {listings.map((l) => {
-                  const roomCount =
-                    (l.listing_rooms as Array<{ id: string }> | null)?.length ??
-                    0;
-                  return (
-                    <li key={l.id} className="flex items-center gap-3 py-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-brand-dark">
-                          {l.name}
+              {!recentNotifications || recentNotifications.length === 0 ? (
+                <EmptyState
+                  icon={Bell}
+                  title="Nothing yet"
+                  body="Bookings, payments and announcements will show up here."
+                />
+              ) : (
+                <ul className="divide-y divide-brand-line">
+                  {recentNotifications.map((n) => {
+                    const unread = !n.read_at;
+                    return (
+                      <li key={n.id} className="flex items-start gap-3 py-3">
+                        <span
+                          aria-hidden
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            unread
+                              ? n.severity === "critical"
+                                ? "bg-red-600"
+                                : n.severity === "high"
+                                  ? "bg-amber-500"
+                                  : "bg-brand-primary"
+                              : "bg-transparent"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          {n.link ? (
+                            <Link
+                              href={n.link}
+                              className="block truncate text-sm font-medium text-brand-dark hover:text-brand-primary hover:underline"
+                            >
+                              {n.title}
+                            </Link>
+                          ) : (
+                            <div className="truncate text-sm font-medium text-brand-dark">
+                              {n.title}
+                            </div>
+                          )}
+                          <div className="text-[11px] text-brand-mute">
+                            {timeAgo(n.created_at)}
+                          </div>
                         </div>
-                      </div>
-                      {l.booking_mode !== "whole_listing" && roomCount > 0 ? (
-                        <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
-                          {roomCount} {roomCount === 1 ? "room" : "rooms"}
-                        </span>
-                      ) : null}
-                      <span
-                        className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
-                          l.is_published
-                            ? "bg-green-100 text-green-800"
-                            : "bg-brand-line text-brand-mute"
-                        }`}
-                      >
-                        {l.is_published ? "Published" : "Draft"}
-                      </span>
-                      {l.is_published && l.slug ? (
-                        <Link
-                          href={`/listing/${l.slug}`}
-                          target="_blank"
-                          className="text-xs font-medium text-brand-mute hover:text-brand-primary"
-                        >
-                          View
-                        </Link>
-                      ) : null}
-                      <Link
-                        href={`/dashboard/listings/${l.id}/edit`}
-                        className="text-xs font-medium text-brand-primary hover:underline"
-                      >
-                        Edit →
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </section>
-          ) : (
-            <EmptyListings />
-          )}
+          </div>
 
           {/* While setup is in progress, surface educational content and a
               preview of what the dashboard will look like once they have a
@@ -545,28 +689,5 @@ function EmptyState({
       </div>
       <p className="text-xs text-brand-mute">{body}</p>
     </div>
-  );
-}
-
-function EmptyListings() {
-  return (
-    <section className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
-      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-        <Sparkles className="h-6 w-6" />
-      </div>
-      <h3 className="font-display text-lg font-bold text-brand-ink">
-        No listings yet
-      </h3>
-      <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-        Your first listing was created during onboarding. If you removed it, add
-        another.
-      </p>
-      <Link
-        href="/dashboard/listings/new"
-        className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-      >
-        New listing
-      </Link>
-    </section>
   );
 }
