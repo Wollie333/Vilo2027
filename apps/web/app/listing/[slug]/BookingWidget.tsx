@@ -3,13 +3,8 @@
 import { Star, Users, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { formatMoney } from "@/lib/format";
 import { priceStay, type SeasonalRule } from "@/lib/pricing";
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function nightsBetween(from: string, to: string): number {
   if (!from || !to) return 0;
@@ -131,7 +126,7 @@ export function BookingWidget({
           {basePrice != null ? (
             <>
               <span className="font-display text-2xl font-bold text-brand-ink">
-                {fmtR(basePrice, currency)}
+                {formatMoney(basePrice, currency)}
               </span>
               <span className="ml-1 text-sm text-brand-mute">/ night</span>
             </>
@@ -212,7 +207,7 @@ export function BookingWidget({
         }`}
       >
         {nights > 0
-          ? `Reserve · ${fmtR(calc.total, currency)}`
+          ? `Reserve · ${formatMoney(calc.total, currency)}`
           : "Pick your dates"}
       </a>
 
@@ -227,7 +222,7 @@ export function BookingWidget({
               {nights} {nights === 1 ? "night" : "nights"}
             </dt>
             <dd className="font-medium text-brand-dark">
-              {fmtR(calc.subtotal, currency)}
+              {formatMoney(calc.subtotal, currency)}
             </dd>
           </div>
           {calc.discount.losSaving > 0 ? (
@@ -237,7 +232,7 @@ export function BookingWidget({
                 discount · {calc.discount.losPct}%
               </dt>
               <dd className="font-medium">
-                − {fmtR(calc.discount.losSaving, currency)}
+                − {formatMoney(calc.discount.losSaving, currency)}
               </dd>
             </div>
           ) : null}
@@ -245,14 +240,14 @@ export function BookingWidget({
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">Cleaning fee</dt>
               <dd className="font-medium text-brand-dark">
-                {fmtR(calc.cleaning, currency)}
+                {formatMoney(calc.cleaning, currency)}
               </dd>
             </div>
           ) : null}
           <div className="flex items-center justify-between border-t border-brand-line pt-2">
             <dt className="font-display font-semibold text-brand-ink">Total</dt>
             <dd className="font-display font-bold text-brand-ink">
-              {fmtR(calc.total, currency)}
+              {formatMoney(calc.total, currency)}
             </dd>
           </div>
         </dl>

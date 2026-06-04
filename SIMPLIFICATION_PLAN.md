@@ -78,11 +78,24 @@ per-site for now (options vary too much for a single helper).
   `dashboard/page` (home), `dashboard/listings/page`, `dashboard/coupons/CouponsManager`,
   and `dashboard/addons/AddonsArchive` to `formatMoney`. All standard type-A
   copies, identical ZAR output.
-- **Remaining money-formatter batches (queued):** guest-facing listing/explore
-  pages (`listing/[slug]/*`, `explore`, `c/[slug]`, `[handle]`, `_components/home`,
-  `booking/[id]/success`) + the public `roomDisplay.ts` util. These carry the
-  edge cases to handle deliberately: `BookingConfirmation.fmtMoney` uses
-  `Number(n)||0` (renders `R 0` for null where `formatMoney` renders `—`);
-  `SuitabilityChips.money` + `RoomEditor` use a no-trailing-space `R` symbol with
-  differing concatenation; `book/BookingForm` has an extra inline formatter at
-  the price line (~1208) beyond its `fmtR`. Verify each before swapping.
+- **Guest-facing listing/explore batch (done):** migrated 15 files —
+  `c/[slug]`, `explore`, `[handle]`, `_components/home/home-data`,
+  `booking/[id]/success/BookingConfirmation`, `RoomEditor`, the public
+  `roomDisplay.ts` util, and the `listing/[slug]/*` components (`BookingWidget`,
+  `MobileBookingBar`, `RatesSection`, `RoomsCartSidebar`, `SimilarListings`,
+  `book/BookingForm`, `rooms/[roomId]/page`, `RoomBookingWidget`) to
+  `formatMoney`. `BookingConfirmation.fmtMoney` verified safe (its `Number(n)||0`
+  null-guard never fires — all call sites pass typed numbers, and `0` formats
+  identically). `RoomEditor.formatPrice` was already output-identical.
+- **Formatter migration is now essentially complete.** Deliberately left THREE
+  inline spots that are NOT output-identical to `formatMoney` (would change a
+  displayed amount, which the no-behaviour-change rule forbids) — flagged here
+  as latent display inconsistencies to fix on purpose later, not silently:
+  1. `quotes/actions.ts` — the `quote_sent` inbox message body (bare
+     `Math.round()`, no grouping → `R 1500`).
+  2. `SuitabilityChips.money` — `R` with no trailing space AND no
+     comma-stripping → `R1,500`.
+  3. `listing/[slug]/book/BookingForm.tsx` (~line 1204) — an add-on line subtotal
+     rendered inline with no comma-stripping → `R 1,500`.
+  Each differs from the canonical `R 1 500`. A separate "normalise these three to
+  formatMoney" change can fix them intentionally (they're genuine inconsistencies).

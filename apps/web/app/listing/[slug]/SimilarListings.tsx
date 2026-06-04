@@ -1,6 +1,7 @@
 import { ArrowRight, MapPin, Star, Zap } from "lucide-react";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
 import { HeartButton } from "@/app/_components/home/HeartButton";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -26,12 +27,6 @@ type Row = {
       }[]
     | null;
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function heroPhoto(photos: Row["photos"]): string | null {
   if (!photos || photos.length === 0) return null;
@@ -169,7 +164,7 @@ export async function SimilarListings({
               {amt != null ? (
                 <div className="mt-1 text-sm text-brand-ink">
                   <span className="font-display font-bold">
-                    {fmtR(amt, l.currency)}
+                    {formatMoney(amt, l.currency)}
                   </span>{" "}
                   <span className="text-xs text-brand-mute">/ night</span>
                 </div>

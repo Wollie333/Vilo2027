@@ -22,6 +22,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { updateRoomAction } from "../../actions";
 import { RoomAmenitiesSection } from "./sections/RoomAmenitiesSection";
 import {
@@ -89,29 +91,23 @@ const NAV: { id: SectionId; label: string; icon: typeof Settings }[] = [
   { id: "sec-amenities", label: "Amenities", icon: Sparkles },
 ];
 
-function formatPrice(amount: number, currency: string): string {
-  const prefix = currency === "ZAR" ? "R " : `${currency} `;
-  const rounded = Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ");
-  return `${prefix}${rounded}`;
-}
-
 function priceLabel(
   room: RoomEditorRoom,
   currency: string,
 ): { amount: string; sub: string } {
   if (room.pricing_mode === "per_person") {
     return {
-      amount: formatPrice(room.price_per_person ?? 0, currency),
+      amount: formatMoney(room.price_per_person ?? 0, currency),
       sub: "per person",
     };
   }
   if (room.pricing_mode === "per_room_plus_extra") {
     return {
-      amount: formatPrice(room.base_price, currency),
+      amount: formatMoney(room.base_price, currency),
       sub: "from / night",
     };
   }
-  return { amount: formatPrice(room.base_price, currency), sub: "per night" };
+  return { amount: formatMoney(room.base_price, currency), sub: "per night" };
 }
 
 export function RoomEditor({
@@ -367,7 +363,7 @@ export function RoomEditor({
                 />
                 <HeroStat
                   label="Cleaning"
-                  value={formatPrice(room.cleaning_fee, currency)}
+                  value={formatMoney(room.cleaning_fee, currency)}
                   sub="once-off"
                 />
               </div>
@@ -612,7 +608,7 @@ export function RoomEditor({
                       </div>
                       {room.cleaning_fee > 0 ? (
                         <span className="text-[10.5px] text-brand-mute">
-                          +{formatPrice(room.cleaning_fee, currency)} clean
+                          +{formatMoney(room.cleaning_fee, currency)} clean
                         </span>
                       ) : null}
                     </div>

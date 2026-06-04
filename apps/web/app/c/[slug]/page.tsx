@@ -3,6 +3,7 @@ import { BadgeCheck, MapPin, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -266,7 +267,7 @@ export default async function CategoryLandingPage({
                       <div className="mt-2 flex items-baseline gap-1.5">
                         <span className="num font-display font-bold text-brand-ink">
                           {fromLabel ? "from " : ""}
-                          {fmtR(amount, l.currency)}
+                          {formatMoney(amount, l.currency)}
                         </span>
                         <span className="text-xs text-brand-mute">
                           {perLabel}
@@ -328,12 +329,6 @@ export default async function CategoryLandingPage({
       <SiteFooter />
     </div>
   );
-}
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 function splitParagraphs(input: string): string[] {

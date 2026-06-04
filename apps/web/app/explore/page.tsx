@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -30,12 +31,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 24;
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 const TYPE_LABEL: Record<string, string> = {
   hotel: "Hotel",
@@ -324,7 +319,7 @@ export default async function ExplorePage({
                         <div className="mt-2 flex items-baseline gap-1.5">
                           <span className="num font-display font-bold text-brand-ink">
                             {fromLabel ? "from " : ""}
-                            {fmtR(amount, l.currency)}
+                            {formatMoney(amount, l.currency)}
                           </span>
                           <span className="text-xs text-brand-mute">
                             {perLabel}

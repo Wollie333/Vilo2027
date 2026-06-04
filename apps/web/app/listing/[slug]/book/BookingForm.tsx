@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -100,12 +101,6 @@ export type AvailableAddon = {
   isRequired: boolean;
   leadTimeDays: number;
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function fmtDate(iso: string): string {
   if (!iso) return "—";
@@ -811,7 +806,7 @@ export function BookingForm({
         : "Redirecting to Paystack…"
     : method === "eft"
       ? "Reserve & get bank details"
-      : `Pay ${fmtR(total, currency)}`;
+      : `Pay ${formatMoney(total, currency)}`;
 
   const cardLabel = "rounded-card border border-brand-line bg-white";
   const sectionHead =
@@ -898,9 +893,9 @@ export function BookingForm({
               <div className="min-w-0">
                 <div className="font-medium text-brand-ink">{listingName}</div>
                 <div className="text-xs text-brand-mute">
-                  {fmtR(basePrice, currency)} / night
+                  {formatMoney(basePrice, currency)} / night
                   {cleaningFee > 0
-                    ? ` · ${fmtR(cleaningFee, currency)} cleaning`
+                    ? ` · ${formatMoney(cleaningFee, currency)} cleaning`
                     : ""}
                 </div>
               </div>
@@ -983,18 +978,21 @@ export function BookingForm({
                         <div className="mt-2 flex items-baseline justify-between gap-3">
                           <div className="text-xs text-brand-mute">
                             <span className="font-semibold text-brand-ink">
-                              {fmtR(roomFromNightly(toPricing(r)), currency)}
+                              {formatMoney(
+                                roomFromNightly(toPricing(r)),
+                                currency,
+                              )}
                             </span>{" "}
                             / night
                             {r.cleaningFee > 0
-                              ? ` · ${fmtR(r.cleaningFee, currency)} cleaning`
+                              ? ` · ${formatMoney(r.cleaningFee, currency)} cleaning`
                               : ""}
                           </div>
                           {selected ? (
                             <div className="font-mono text-[11px] text-brand-secondary">
                               × {nights} ={" "}
                               <span className="font-semibold">
-                                {fmtR(
+                                {formatMoney(
                                   nightly * nights + r.cleaningFee,
                                   currency,
                                 )}
@@ -1063,9 +1061,9 @@ export function BookingForm({
             <div className="min-w-0">
               <div className="font-medium text-brand-ink">{listingName}</div>
               <div className="text-xs text-brand-mute">
-                {fmtR(basePrice, currency)} / night
+                {formatMoney(basePrice, currency)} / night
                 {cleaningFee > 0
-                  ? ` · ${fmtR(cleaningFee, currency)} cleaning`
+                  ? ` · ${formatMoney(cleaningFee, currency)} cleaning`
                   : ""}
               </div>
             </div>
@@ -1229,7 +1227,7 @@ export function BookingForm({
                   <span className="font-medium text-brand-primary">
                     {" "}
                     · {selectedAddonLines.length} selected ·{" "}
-                    {fmtR(addonsTotal, currency)}
+                    {formatMoney(addonsTotal, currency)}
                   </span>
                 ) : null}
               </div>
@@ -1323,7 +1321,7 @@ export function BookingForm({
                       <div className="mt-2 flex items-baseline justify-between gap-3">
                         <div className="text-xs">
                           <span className="font-semibold text-brand-ink">
-                            {fmtR(a.unitPrice, currency)}
+                            {formatMoney(a.unitPrice, currency)}
                           </span>
                           <span className="text-brand-mute">
                             {" "}
@@ -1332,7 +1330,7 @@ export function BookingForm({
                         </div>
                         {checked && lineTotal > 0 ? (
                           <div className="font-mono text-[11px] text-brand-secondary">
-                            = {fmtR(lineTotal, currency)}
+                            = {formatMoney(lineTotal, currency)}
                           </div>
                         ) : null}
                       </div>
@@ -1759,7 +1757,7 @@ export function BookingForm({
               <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
                 When you tap{" "}
                 <span className="font-medium text-brand-ink">
-                  Pay {fmtR(total, currency)}
+                  Pay {formatMoney(total, currency)}
                 </span>{" "}
                 below, you&rsquo;ll be taken to Paystack&rsquo;s secure page to
                 enter your card. Vilo never sees or stores your card number, and
@@ -2104,11 +2102,11 @@ export function BookingForm({
                         {listingName}
                       </div>
                       <div className="font-mono text-[10.5px] text-white/45">
-                        {fmtR(basePrice, currency)} × {nights}n
+                        {formatMoney(basePrice, currency)} × {nights}n
                       </div>
                     </div>
                     <div className="shrink-0 text-[13px] font-semibold text-white">
-                      {fmtR(subtotal, currency)}
+                      {formatMoney(subtotal, currency)}
                     </div>
                   </div>
                 ) : selectedRooms.length === 0 ? (
@@ -2136,11 +2134,11 @@ export function BookingForm({
                             {r.name}
                           </div>
                           <div className="font-mono text-[10.5px] text-white/45">
-                            {fmtR(roomNightly(r), currency)} × {nights}n
+                            {formatMoney(roomNightly(r), currency)} × {nights}n
                           </div>
                         </div>
                         <div className="shrink-0 text-[13px] font-semibold text-white">
-                          {fmtR(roomNightly(r) * nights, currency)}
+                          {formatMoney(roomNightly(r) * nights, currency)}
                         </div>
                       </div>
                     ))}
@@ -2154,7 +2152,9 @@ export function BookingForm({
                   <span className="text-white/85">
                     {scope === "rooms" ? "Rooms subtotal" : "Stay subtotal"}
                   </span>
-                  <span className="text-white">{fmtR(subtotal, currency)}</span>
+                  <span className="text-white">
+                    {formatMoney(subtotal, currency)}
+                  </span>
                 </div>
                 {seasonalNights > 0 || weekendNights > 0 ? (
                   <div className="text-[11px] text-white/45">
@@ -2183,7 +2183,7 @@ export function BookingForm({
                             : ""}
                     </span>
                     <span className="text-emerald-300">
-                      −{fmtR(discountTotal, currency)}
+                      −{formatMoney(discountTotal, currency)}
                     </span>
                   </div>
                 ) : null}
@@ -2196,7 +2196,7 @@ export function BookingForm({
                       {line.name}
                     </span>
                     <span className="text-white">
-                      {fmtR(line.subtotal, currency)}
+                      {formatMoney(line.subtotal, currency)}
                     </span>
                   </div>
                 ))}
@@ -2206,7 +2206,7 @@ export function BookingForm({
                       {scope === "rooms" ? "Cleaning fees" : "Cleaning fee"}
                     </span>
                     <span className="text-white">
-                      {fmtR(cleaningTotal, currency)}
+                      {formatMoney(cleaningTotal, currency)}
                     </span>
                   </div>
                 ) : null}
@@ -2216,7 +2216,7 @@ export function BookingForm({
                       Coupon · {appliedCoupon.code}
                     </span>
                     <span className="text-emerald-300">
-                      −{fmtR(couponDiscount, currency)}
+                      −{formatMoney(couponDiscount, currency)}
                     </span>
                   </div>
                 ) : null}
@@ -2283,7 +2283,7 @@ export function BookingForm({
                   </div>
                 </div>
                 <div className="font-display text-[28px] font-extrabold leading-none text-white">
-                  {fmtR(total, currency)}
+                  {formatMoney(total, currency)}
                 </div>
               </div>
 
@@ -2337,7 +2337,7 @@ export function BookingForm({
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="font-display text-base font-bold text-brand-ink">
-                {fmtR(total, currency)}
+                {formatMoney(total, currency)}
               </div>
               <div className="truncate text-[11px] text-brand-mute">
                 {nights} {nights === 1 ? "night" : "nights"} · {effectiveGuests}{" "}

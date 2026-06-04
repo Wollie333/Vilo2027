@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { formatMoney } from "@/lib/format";
 import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
 
 import { useRoomsCart } from "./RoomsCartProvider";
@@ -19,12 +20,6 @@ function toPricingUnit(r: PublicRoom, guests: number): PricingUnit {
     cleaning_fee: r.cleaning_fee,
     guests,
   };
-}
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 function nightsBetween(from: string, to: string): number {
@@ -162,7 +157,7 @@ export function MobileBookingBar({
       <div className="min-w-0 flex-1">
         {ready ? (
           <div className="font-display text-base font-bold text-brand-ink">
-            {fmtR(total, currency)}{" "}
+            {formatMoney(total, currency)}{" "}
             <span className="text-xs font-normal text-brand-mute">
               total · {nights} {nights === 1 ? "night" : "nights"}
             </span>
@@ -170,7 +165,7 @@ export function MobileBookingBar({
         ) : (
           <div className="font-display text-base font-bold text-brand-ink">
             {minPrice != null
-              ? `From ${fmtR(minPrice, currency)}`
+              ? `From ${formatMoney(minPrice, currency)}`
               : "Price on request"}{" "}
             <span className="text-xs font-normal text-brand-mute">/ night</span>
           </div>

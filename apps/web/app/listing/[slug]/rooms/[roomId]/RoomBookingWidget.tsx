@@ -4,6 +4,7 @@ import { Minus, Plus, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { formatMoney } from "@/lib/format";
 import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
 import {
@@ -33,12 +34,6 @@ type Props = {
   weeklyDiscountPct: number | null;
   monthlyDiscountPct: number | null;
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function nightsBetween(from: string, to: string): number {
   if (!from || !to) return 0;
@@ -82,7 +77,7 @@ export function RoomBookingWidget({
   const fromNightly = useMemo(() => roomFromNightly(pricing), [pricing]);
 
   // Headline (one-guest baseline) — never NaN.
-  const headlineAmount = fmtR(fromNightly, currency);
+  const headlineAmount = formatMoney(fromNightly, currency);
   const headlineSuffix =
     pricing.pricing_mode === "per_person" ? "/ person / night" : "/ night";
 
@@ -123,10 +118,10 @@ export function RoomBookingWidget({
   // Breakdown line for the accommodation row.
   const perNightLabel =
     pricing.pricing_mode === "per_person"
-      ? `${fmtR(pricing.price_per_person ?? 0, currency)} × ${guests} guest${
+      ? `${formatMoney(pricing.price_per_person ?? 0, currency)} × ${guests} guest${
           guests === 1 ? "" : "s"
         }`
-      : fmtR(nightlyBase, currency);
+      : formatMoney(nightlyBase, currency);
   const labelNights = nights > 0 ? nights : 1;
   const accommodationLabel = `${perNightLabel} × ${labelNights} night${
     labelNights === 1 ? "" : "s"
@@ -147,7 +142,7 @@ export function RoomBookingWidget({
 
   const reserveLabel = isWhole
     ? "See the full listing"
-    : `Reserve · ${fmtR(total, currency)}`;
+    : `Reserve · ${formatMoney(total, currency)}`;
 
   return (
     <>
@@ -170,7 +165,7 @@ export function RoomBookingWidget({
         <div className="mt-1 text-xs text-brand-mute">
           Sleeps up to {cap}
           {cleaningFee > 0
-            ? ` · ${fmtR(cleaningFee, currency)} cleaning fee`
+            ? ` · ${formatMoney(cleaningFee, currency)} cleaning fee`
             : ""}
         </div>
 
@@ -244,14 +239,14 @@ export function RoomBookingWidget({
               <div className="flex items-center justify-between text-brand-dark">
                 <dt className="text-brand-mute">{accommodationLabel}</dt>
                 <dd className="num tabular-nums">
-                  {fmtR(accommodation, currency)}
+                  {formatMoney(accommodation, currency)}
                 </dd>
               </div>
               {cleaningFee > 0 ? (
                 <div className="flex items-center justify-between text-brand-dark">
                   <dt className="text-brand-mute">Cleaning fee</dt>
                   <dd className="num tabular-nums">
-                    {nights > 0 ? fmtR(cleaningFee, currency) : "—"}
+                    {nights > 0 ? formatMoney(cleaningFee, currency) : "—"}
                   </dd>
                 </div>
               ) : null}
@@ -261,7 +256,9 @@ export function RoomBookingWidget({
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-brand-line pt-3 font-display text-base font-bold text-brand-ink">
                 <dt>Total</dt>
-                <dd className="num tabular-nums">{fmtR(total, currency)}</dd>
+                <dd className="num tabular-nums">
+                  {formatMoney(total, currency)}
+                </dd>
               </div>
               <div className="text-right text-[11px] text-brand-mute">
                 {nights > 0
@@ -298,7 +295,7 @@ export function RoomBookingWidget({
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-brand-line bg-white px-5 py-3 shadow-lift lg:hidden">
           <div className="min-w-0">
             <div className="num truncate font-display text-base font-bold tabular-nums text-brand-ink">
-              {fmtR(total, currency)}
+              {formatMoney(total, currency)}
             </div>
             <div className="truncate text-[11px] text-brand-mute">
               {nights > 0

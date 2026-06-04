@@ -3,6 +3,7 @@
 import { Home, Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
 import { useMemo } from "react";
 
+import { formatMoney } from "@/lib/format";
 import { priceStay, type PricingUnit, type SeasonalRule } from "@/lib/pricing";
 
 import { useRoomsCart } from "./RoomsCartProvider";
@@ -35,12 +36,6 @@ const EMPTY_DISCOUNT = {
   discountTotal: 0,
   total: 0,
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function nightsBetween(from: string, to: string): number {
   if (!from || !to) return 0;
@@ -241,7 +236,7 @@ export function RoomsCartSidebar({
                 </span>
                 <div>
                   <span className="font-display text-2xl font-bold text-brand-ink">
-                    {fmtR(minRoomsPrice, currency)}
+                    {formatMoney(minRoomsPrice, currency)}
                   </span>
                   <span className="ml-1 text-sm text-brand-mute">/ night</span>
                 </div>
@@ -252,7 +247,7 @@ export function RoomsCartSidebar({
           ) : basePrice != null ? (
             <>
               <span className="font-display text-2xl font-bold text-brand-ink">
-                {fmtR(basePrice, currency)}
+                {formatMoney(basePrice, currency)}
               </span>
               <span className="ml-1 text-sm text-brand-mute">/ night</span>
             </>
@@ -385,13 +380,13 @@ export function RoomsCartSidebar({
                           {r.name}
                         </div>
                         <div className="text-[11px] text-brand-mute">
-                          {fmtR(nightly, currency)}
+                          {formatMoney(nightly, currency)}
                           {nights > 0 ? ` × ${nights}` : ""}
                           {r.cleaning_fee > 0
-                            ? ` + ${fmtR(r.cleaning_fee, currency)} cleaning`
+                            ? ` + ${formatMoney(r.cleaning_fee, currency)} cleaning`
                             : ""}
                           {r.pricing_mode === "per_person"
-                            ? ` · ${fmtR(r.price_per_person ?? 0, currency)}/person`
+                            ? ` · ${formatMoney(r.price_per_person ?? 0, currency)}/person`
                             : ""}
                         </div>
                       </div>
@@ -466,9 +461,9 @@ export function RoomsCartSidebar({
               ? "Pick your dates"
               : `Reserve ${selectedRooms.length} ${
                   selectedRooms.length === 1 ? "room" : "rooms"
-                } · ${fmtR(roomsDiscount.total, currency)}`
+                } · ${formatMoney(roomsDiscount.total, currency)}`
           : nights > 0 && basePrice != null
-            ? `Reserve · ${fmtR(wholeDiscount.total, currency)}`
+            ? `Reserve · ${formatMoney(wholeDiscount.total, currency)}`
             : "Pick your dates"}
       </a>
 
@@ -483,7 +478,7 @@ export function RoomsCartSidebar({
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">Rooms × {nights} nights</dt>
               <dd className="font-medium text-brand-dark">
-                {fmtR(roomsCalc.base, currency)}
+                {formatMoney(roomsCalc.base, currency)}
               </dd>
             </div>
             {roomsDiscount.wholeSaving > 0 ? (
@@ -493,7 +488,7 @@ export function RoomsCartSidebar({
                   {wholeDiscountPct}%
                 </dt>
                 <dd className="font-medium">
-                  − {fmtR(roomsDiscount.wholeSaving, currency)}
+                  − {formatMoney(roomsDiscount.wholeSaving, currency)}
                 </dd>
               </div>
             ) : null}
@@ -503,7 +498,7 @@ export function RoomsCartSidebar({
                   {losLabel(roomsDiscount.losKind)} · {roomsDiscount.losPct}%
                 </dt>
                 <dd className="font-medium">
-                  − {fmtR(roomsDiscount.losSaving, currency)}
+                  − {formatMoney(roomsDiscount.losSaving, currency)}
                 </dd>
               </div>
             ) : null}
@@ -511,7 +506,7 @@ export function RoomsCartSidebar({
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fees</dt>
                 <dd className="font-medium text-brand-dark">
-                  {fmtR(roomsCalc.cleaning, currency)}
+                  {formatMoney(roomsCalc.cleaning, currency)}
                 </dd>
               </div>
             ) : null}
@@ -520,7 +515,7 @@ export function RoomsCartSidebar({
                 Total
               </dt>
               <dd className="font-display font-bold text-brand-ink">
-                {fmtR(roomsDiscount.total, currency)}
+                {formatMoney(roomsDiscount.total, currency)}
               </dd>
             </div>
           </dl>
@@ -528,11 +523,11 @@ export function RoomsCartSidebar({
           <dl className="mt-4 space-y-2 border-t border-brand-line pt-4 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">
-                {fmtR(basePrice, currency)} × {nights}{" "}
+                {formatMoney(basePrice, currency)} × {nights}{" "}
                 {nights === 1 ? "night" : "nights"}
               </dt>
               <dd className="font-medium text-brand-dark">
-                {fmtR(wholeCalc.base, currency)}
+                {formatMoney(wholeCalc.base, currency)}
               </dd>
             </div>
             {wholeDiscount.losSaving > 0 ? (
@@ -541,7 +536,7 @@ export function RoomsCartSidebar({
                   {losLabel(wholeDiscount.losKind)} · {wholeDiscount.losPct}%
                 </dt>
                 <dd className="font-medium">
-                  − {fmtR(wholeDiscount.losSaving, currency)}
+                  − {formatMoney(wholeDiscount.losSaving, currency)}
                 </dd>
               </div>
             ) : null}
@@ -549,7 +544,7 @@ export function RoomsCartSidebar({
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fee</dt>
                 <dd className="font-medium text-brand-dark">
-                  {fmtR(wholeCalc.cleaning, currency)}
+                  {formatMoney(wholeCalc.cleaning, currency)}
                 </dd>
               </div>
             ) : null}
@@ -558,7 +553,7 @@ export function RoomsCartSidebar({
                 Total
               </dt>
               <dd className="font-display font-bold text-brand-ink">
-                {fmtR(wholeDiscount.total, currency)}
+                {formatMoney(wholeDiscount.total, currency)}
               </dd>
             </div>
           </dl>

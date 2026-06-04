@@ -6,6 +6,7 @@
 // The pure pricing maths (RoomPricing, roomNightlyBase, …) live in the
 // canonical engine at @/lib/pricing; re-exported here for existing callers.
 
+import { formatMoney } from "@/lib/format";
 import {
   roomFromNightly,
   roomNightlyBase,
@@ -49,12 +50,6 @@ export type PublicRoom = {
   beds: { bed_kind: string; quantity: number }[];
 };
 
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
-
 /** Card price label, e.g. "R900 / night", "R300 / person / night", "from R900 / night". */
 export function roomPriceLabel(
   r: RoomPricing,
@@ -63,14 +58,17 @@ export function roomPriceLabel(
   switch (r.pricing_mode) {
     case "per_person":
       return {
-        amount: fmtR(r.price_per_person ?? 0, currency),
+        amount: formatMoney(r.price_per_person ?? 0, currency),
         suffix: "/ person / night",
       };
     case "per_room_plus_extra":
-      return { amount: fmtR(r.base_price, currency), suffix: "/ night base" };
+      return {
+        amount: formatMoney(r.base_price, currency),
+        suffix: "/ night base",
+      };
     case "per_room":
     default:
-      return { amount: fmtR(r.base_price, currency), suffix: "/ night" };
+      return { amount: formatMoney(r.base_price, currency), suffix: "/ night" };
   }
 }
 

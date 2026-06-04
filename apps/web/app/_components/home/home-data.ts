@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 import type { CategoryNode } from "@/lib/taxonomy/types";
@@ -77,12 +78,6 @@ function heroPhoto(photos: PhotoRow[] | null): string | null {
   );
 }
 
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
-
 /** Lowest bookable price for a listing — shared by cards and category rollup. */
 function listingAmount(l: {
   booking_mode: string | null;
@@ -154,7 +149,7 @@ function toListingCard(l: ListingCardRow): HomeListingCard {
     detail: detailBits.join(" · "),
     price:
       amount != null
-        ? `${fromLabel ? "from " : ""}${fmtR(amount, l.currency)}`
+        ? `${fromLabel ? "from " : ""}${formatMoney(amount, l.currency)}`
         : null,
     perLabel,
     badge,
@@ -334,7 +329,7 @@ export async function getHomeData(): Promise<HomeData> {
       title: b.label,
       meta:
         b.from != null
-          ? `${b.count} ${b.count === 1 ? "stay" : "stays"} from ${fmtR(b.from, "ZAR")}`
+          ? `${b.count} ${b.count === 1 ? "stay" : "stays"} from ${formatMoney(b.from, "ZAR")}`
           : `${b.count} ${b.count === 1 ? "stay" : "stays"}`,
       href: `/c/${slug}`,
       image: b.image,

@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -27,12 +28,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 export default async function PublicRoomPage({
   params,
@@ -189,22 +184,22 @@ export default async function PublicRoomPage({
   // ── "Good to know" pricing line, derived from pricing_mode. ──
   const cleaningSentence =
     publicRoom.cleaning_fee > 0
-      ? ` A once-off ${fmtR(publicRoom.cleaning_fee, listing.currency)} cleaning fee applies.`
+      ? ` A once-off ${formatMoney(publicRoom.cleaning_fee, listing.currency)} cleaning fee applies.`
       : "";
   let pricingLine: string;
   switch (publicRoom.pricing_mode) {
     case "per_person":
-      pricingLine = `Priced per person — ${fmtR(
+      pricingLine = `Priced per person — ${formatMoney(
         publicRoom.price_per_person ?? 0,
         listing.currency,
       )} per person, per night.${cleaningSentence}`;
       break;
     case "per_room_plus_extra": {
       const occ = publicRoom.base_occupancy ?? 1;
-      pricingLine = `Priced per room — ${fmtR(
+      pricingLine = `Priced per room — ${formatMoney(
         publicRoom.base_price,
         listing.currency,
-      )} per night for up to ${occ} guest${occ === 1 ? "" : "s"}, then ${fmtR(
+      )} per night for up to ${occ} guest${occ === 1 ? "" : "s"}, then ${formatMoney(
         publicRoom.extra_guest_price ?? 0,
         listing.currency,
       )} per extra guest, per night.${cleaningSentence}`;
@@ -212,7 +207,7 @@ export default async function PublicRoomPage({
     }
     case "per_room":
     default:
-      pricingLine = `Priced per room — ${fmtR(
+      pricingLine = `Priced per room — ${formatMoney(
         publicRoom.base_price,
         listing.currency,
       )} per night, regardless of guests.${cleaningSentence}`;

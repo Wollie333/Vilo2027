@@ -28,6 +28,8 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { formatMoney } from "@/lib/format";
+
 /* -------------------------------------------------------------------------- */
 /*  Shared data shape (built server-side in page.tsx)                          */
 /* -------------------------------------------------------------------------- */
@@ -114,12 +116,6 @@ export type ConfirmationData = {
 /* -------------------------------------------------------------------------- */
 /*  Money                                                                      */
 /* -------------------------------------------------------------------------- */
-function fmtMoney(n: number, currency: string): string {
-  const v = Math.round(Number(n) || 0)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ");
-  return `${currency === "ZAR" ? "R " : `${currency} `}${v}`;
-}
 
 /* -------------------------------------------------------------------------- */
 /*  Analytics dataLayer — fires a single `purchase` event once the booking is  */
@@ -644,14 +640,14 @@ function RoomsCard({ data }: { data: ConfirmationData }) {
               <div className="mt-2 flex items-baseline justify-between">
                 {room.perNight != null && data.stay.nights ? (
                   <div className="font-mono text-xs text-brand-mute">
-                    {fmtMoney(room.perNight, data.currency)} ×{" "}
+                    {formatMoney(room.perNight, data.currency)} ×{" "}
                     {data.stay.nights}n
                   </div>
                 ) : (
                   <span />
                 )}
                 <div className="text-sm font-semibold text-brand-ink">
-                  {fmtMoney(room.total, data.currency)}
+                  {formatMoney(room.total, data.currency)}
                 </div>
               </div>
             </div>
@@ -686,12 +682,12 @@ function AddOnsCard({ data }: { data: ConfirmationData }) {
             <div className="min-w-0 flex-1">
               <div className="text-sm font-medium text-brand-ink">{a.name}</div>
               <div className="font-mono text-[11px] text-brand-mute">
-                {fmtMoney(a.unitPrice, data.currency)} · {a.unitLabel}
+                {formatMoney(a.unitPrice, data.currency)} · {a.unitLabel}
                 {a.qty > 1 ? ` × ${a.qty}` : ""}
               </div>
             </div>
             <div className="shrink-0 text-sm font-semibold text-brand-ink">
-              {fmtMoney(a.total, data.currency)}
+              {formatMoney(a.total, data.currency)}
             </div>
           </div>
         ))}
@@ -851,7 +847,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                   </span>
                 ) : null}
               </span>
-              <span>{fmtMoney(r.total, data.currency)}</span>
+              <span>{formatMoney(r.total, data.currency)}</span>
             </div>
           ))
         ) : data.accommodationTotal != null ? (
@@ -865,7 +861,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                 </span>
               ) : null}
             </span>
-            <span>{fmtMoney(data.accommodationTotal, data.currency)}</span>
+            <span>{formatMoney(data.accommodationTotal, data.currency)}</span>
           </div>
         ) : null}
 
@@ -885,7 +881,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
                     </span>
                   ) : null}
                 </span>
-                <span>{fmtMoney(a.total, data.currency)}</span>
+                <span>{formatMoney(a.total, data.currency)}</span>
               </div>
             ))}
           </div>
@@ -894,7 +890,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
         {data.cleaningFee > 0 ? (
           <div className="flex items-center justify-between border-t border-brand-line/70 pt-2 text-brand-ink">
             <span>Cleaning fee</span>
-            <span>{fmtMoney(data.cleaningFee, data.currency)}</span>
+            <span>{formatMoney(data.cleaningFee, data.currency)}</span>
           </div>
         ) : null}
         <div className="flex items-center justify-between text-brand-mute">
@@ -908,7 +904,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
             Total {data.isConfirmed ? "paid" : "due"} · {data.currency}
           </span>
           <span className="font-display text-2xl font-bold text-brand-ink">
-            {fmtMoney(data.totalAmount, data.currency)}
+            {formatMoney(data.totalAmount, data.currency)}
           </span>
         </div>
         {data.cancellationDeadlineLabel ? (

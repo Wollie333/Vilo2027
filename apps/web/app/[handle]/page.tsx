@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -86,12 +87,6 @@ type Listing = {
 
 function typeLabel(l: Pick<Listing, "accommodation_type">) {
   return ACC_LABEL[l.accommodation_type ?? "other"] ?? "Stay";
-}
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 function priceForListing(
@@ -593,7 +588,7 @@ export default async function HostProfilePage({
                                   <span className="text-brand-mute">from </span>
                                 ) : null}
                                 <span className="num font-semibold">
-                                  {fmtR(price.amount, l.currency)}
+                                  {formatMoney(price.amount, l.currency)}
                                 </span>{" "}
                                 <span className="text-brand-mute">/ night</span>
                               </span>

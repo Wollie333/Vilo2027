@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Refactor: migrate guest-facing listing money formatters to formatMoney — branch `main`
+
+### Changed
+- Replaced 15 private money formatters with canonical `lib/format.ts#formatMoney` across the guest-facing surface: `c/[slug]`, `explore`, `[handle]`, `_components/home/home-data`, `booking/[id]/success/BookingConfirmation`, `RoomEditor`, the public `roomDisplay.ts` util, and the `listing/[slug]/*` components (`BookingWidget`, `MobileBookingBar`, `RatesSection`, `RoomsCartSidebar`, `SimilarListings`, `book/BookingForm`, `rooms/[roomId]/page`, `RoomBookingWidget`).
+
+### Notes
+- Behaviour-preserving for ZAR (verified each — incl. `BookingConfirmation.fmtMoney`, whose `Number(n)||0` null-guard can't fire since all call sites pass typed numbers and `0` formats identically). This **completes the bulk formatter migration**. Three non-identical inline spots were deliberately left untouched and flagged in `SIMPLIFICATION_PLAN.md` (the `quote_sent` message body, `SuitabilityChips.money`, and a `BookingForm` add-on line — each renders a slightly different grouping/symbol and migrating would change a displayed amount). `pnpm build` + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Refactor: migrate host/admin dashboard money formatters to formatMoney — branch `main`
 
 ### Changed

@@ -1,5 +1,7 @@
 import { BadgePercent, CalendarClock, Home, Info } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
+
 import type { PublicRoom } from "./roomDisplay";
 
 export type SeasonRow = {
@@ -19,12 +21,6 @@ type SeasonGroup = {
   rows: SeasonRow[];
   isCurrent: boolean;
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function fmtDay(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-ZA", {
@@ -208,8 +204,8 @@ export function RatesSection({
           {cleaningFee && cleaningFee > 0 ? (
             <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
               <Info className="h-3 w-3" />
-              Cleaning fee ({fmtR(cleaningFee, currency)}) and any add-ons are
-              separate
+              Cleaning fee ({formatMoney(cleaningFee, currency)}) and any
+              add-ons are separate
             </div>
           ) : null}
         </div>
@@ -252,7 +248,7 @@ export function RatesSection({
                       </div>
                     </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                      {fmtR(room.base_price, currency)}
+                      {formatMoney(room.base_price, currency)}
                     </td>
                     {groups.map((g) => {
                       const p = priceForRoom(g, room.id);
@@ -262,8 +258,8 @@ export function RatesSection({
                           className="px-4 py-3.5 font-mono text-amber-800"
                         >
                           {p != null
-                            ? fmtR(p, currency)
-                            : fmtR(room.base_price, currency)}
+                            ? formatMoney(p, currency)
+                            : formatMoney(room.base_price, currency)}
                         </td>
                       );
                     })}
@@ -278,12 +274,12 @@ export function RatesSection({
                     </div>
                     {weekendPrice != null ? (
                       <div className="text-[11px] text-brand-mute">
-                        Weekends {fmtR(weekendPrice, currency)}
+                        Weekends {formatMoney(weekendPrice, currency)}
                       </div>
                     ) : null}
                   </td>
                   <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                    {basePrice != null ? fmtR(basePrice, currency) : "—"}
+                    {basePrice != null ? formatMoney(basePrice, currency) : "—"}
                   </td>
                   {groups.map((g) => {
                     const p = priceForWhole(g);
@@ -293,9 +289,9 @@ export function RatesSection({
                         className="px-4 py-3.5 font-mono text-amber-800"
                       >
                         {p != null
-                          ? fmtR(p, currency)
+                          ? formatMoney(p, currency)
                           : basePrice != null
-                            ? fmtR(basePrice, currency)
+                            ? formatMoney(basePrice, currency)
                             : "—"}
                       </td>
                     );
@@ -310,9 +306,9 @@ export function RatesSection({
             <span className="font-medium text-brand-ink">Extras</span> —{" "}
             {[
               childPrice > 0
-                ? `children ${fmtR(childPrice, currency)}/night`
+                ? `children ${formatMoney(childPrice, currency)}/night`
                 : null,
-              petFee > 0 ? `pets ${fmtR(petFee, currency)}/night` : null,
+              petFee > 0 ? `pets ${formatMoney(petFee, currency)}/night` : null,
             ]
               .filter(Boolean)
               .join(" · ")}
