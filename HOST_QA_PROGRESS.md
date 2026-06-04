@@ -89,7 +89,10 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   `…000008`, so reachable pre-MVP); delete/toggle skip the gate by design (manage existing
   owned rules); thorough ownership (`assertRuleOwnership`/`assertListingOwnership`/room→listing);
   Zod; no `any`/logs. **Founder live-check pending.**
-- [⬜] 8. Add-ons — `/dashboard/addons`
+- [⚠️] 8. Add-ons — `/dashboard/addons`. Audited: 9 actions auth-gated, host-scoped, no
+  `any`/logs, Zod. Fixed: add-on image upload had no client guard + 8MB server limit (Vercel
+  body-cap footgun) → added client type+4MB guard, server capped to 4MB (`43b471f`). (3rd
+  instance of this upload pattern — see avatar #2, listing-photo #5.) **Founder live-check pending.**
 - [⬜] 9. Availability calendar — `/dashboard/calendar`
 - [⬜] 10. iCal calendar-sync — `/dashboard/calendar-sync`
 - [⬜] 11. Bookings board + detail — `/dashboard/bookings`
@@ -144,6 +147,9 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - **2026-06-04 (cont.)** — Audited #7 Seasonal pricing — clean, no changes (gold-standard:
   real `check_feature_permission` gate, seeded for free, thorough ownership + Zod). **NEXT:
   founder live-checks #2–#7, then #8 Add-ons.**
+- **2026-06-04 (cont.)** — Audited #8 Add-ons. Fixed the add-on image upload body-cap footgun
+  (no client guard + 8MB server → 4MB both sides, `43b471f`) — 3rd instance of this pattern.
+  Rest clean (auth-gated, host-scoped, Zod). **NEXT: founder live-checks #2–#8, then #9 Calendar.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
