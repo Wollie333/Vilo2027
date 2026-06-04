@@ -148,6 +148,7 @@ export const listingAccessSchema = z.object({
     .max(2000)
     .optional()
     .or(z.literal("")),
+  gate_code: z.string().trim().max(60).optional().or(z.literal("")),
   door_code: z.string().trim().max(60).optional().or(z.literal("")),
   wifi_network: z.string().trim().max(120).optional().or(z.literal("")),
   wifi_password: z.string().trim().max(120).optional().or(z.literal("")),

@@ -140,7 +140,7 @@ export default async function EditListingPage({
     supabase
       .from("listing_access")
       .select(
-        "check_in_method, check_in_instructions, door_code, wifi_network, wifi_password",
+        "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
       )
       .eq("listing_id", params.id)
       .maybeSingle(),
@@ -245,6 +245,7 @@ export default async function EditListingPage({
     ? {
         check_in_method: accessRow.check_in_method ?? null,
         check_in_instructions: accessRow.check_in_instructions ?? null,
+        gate_code: accessRow.gate_code ?? null,
         door_code: accessRow.door_code ?? null,
         wifi_network: accessRow.wifi_network ?? null,
         wifi_password: accessRow.wifi_password ?? null,

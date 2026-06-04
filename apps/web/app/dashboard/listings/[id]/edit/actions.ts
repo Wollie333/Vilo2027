@@ -117,6 +117,7 @@ export async function saveListingAccessAction(
       listing_id: listingId,
       check_in_method: cleanStr(parsed.data.check_in_method),
       check_in_instructions: cleanStr(parsed.data.check_in_instructions),
+      gate_code: cleanStr(parsed.data.gate_code),
       door_code: cleanStr(parsed.data.door_code),
       wifi_network: cleanStr(parsed.data.wifi_network),
       wifi_password: cleanStr(parsed.data.wifi_password),
@@ -780,6 +781,52 @@ export async function updateRoomAction(
   await recomputeListingFromRooms(supabase, listingId);
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+// Per-room guest access (gate/door code, Wi-Fi, self check-in). Same shape as
+// listing access; falls back to listing access per field on the guest's Trip
+// page. Sensitive — host-manage RLS only.
+export async function updateRoomAccessAction(
+  listingId: string,
+  roomId: string,
+  input: ListingAccessInput,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const parsed = listingAccessSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: "Some fields look wrong. Check the form." };
+  }
+
+  const supabase = createServerClient();
+  // Confirm the room belongs to this listing before writing access for it.
+  const { data: room } = await supabase
+    .from("listing_rooms")
+    .select("id")
+    .eq("id", roomId)
+    .eq("listing_id", listingId)
+    .maybeSingle();
+  if (!room) return { ok: false, error: "Room not found." };
+
+  const { error } = await supabase.from("listing_room_access").upsert(
+    {
+      room_id: roomId,
+      check_in_method: cleanStr(parsed.data.check_in_method),
+      check_in_instructions: cleanStr(parsed.data.check_in_instructions),
+      gate_code: cleanStr(parsed.data.gate_code),
+      door_code: cleanStr(parsed.data.door_code),
+      wifi_network: cleanStr(parsed.data.wifi_network),
+      wifi_password: cleanStr(parsed.data.wifi_password),
+    },
+    { onConflict: "room_id" },
+  );
+  if (error) {
+    return { ok: false, error: "Could not save room access. Try again." };
+  }
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit/rooms/${roomId}`);
   return { ok: true };
 }
 

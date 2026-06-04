@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Eye,
   Image as ImageIcon,
+  KeyRound,
   Lightbulb,
   Link2,
   PartyPopper,
@@ -31,6 +32,10 @@ import {
   type RoomDetailsFormHandle,
 } from "./sections/RoomDetailsForm";
 import { RoomPhotosSection } from "./sections/RoomPhotosSection";
+import {
+  RoomAccessSection,
+  type RoomAccessInitial,
+} from "./sections/RoomAccessSection";
 
 export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";
 
@@ -83,12 +88,13 @@ export function effectiveNightly(room: {
 
 export type RoomEditorPhoto = { id: string; url: string };
 
-type SectionId = "sec-details" | "sec-photos" | "sec-amenities";
+type SectionId = "sec-details" | "sec-photos" | "sec-amenities" | "sec-access";
 
 const NAV: { id: SectionId; label: string; icon: typeof Settings }[] = [
   { id: "sec-details", label: "Details, beds & pricing", icon: Settings },
   { id: "sec-photos", label: "Photos", icon: ImageIcon },
   { id: "sec-amenities", label: "Amenities", icon: Sparkles },
+  { id: "sec-access", label: "Guest access", icon: KeyRound },
 ];
 
 function priceLabel(
@@ -118,6 +124,7 @@ export function RoomEditor({
   room: initialRoom,
   initialPhotos,
   initialAmenityKeys,
+  initialAccess,
 }: {
   listingId: string;
   listingName: string;
@@ -126,6 +133,7 @@ export function RoomEditor({
   room: RoomEditorRoom;
   initialPhotos: RoomEditorPhoto[];
   initialAmenityKeys: string[];
+  initialAccess: RoomAccessInitial | null;
 }) {
   const [room, setRoom] = useState<RoomEditorRoom>(initialRoom);
   const [photos, setPhotos] = useState<RoomEditorPhoto[]>(initialPhotos);
@@ -547,6 +555,14 @@ export function RoomEditor({
               roomId={room.id}
               amenityKeys={amenityKeys}
               onChange={setAmenityKeys}
+            />
+          </div>
+
+          <div id="sec-access" className="scroll-mt-32">
+            <RoomAccessSection
+              listingId={listingId}
+              roomId={room.id}
+              access={initialAccess}
             />
           </div>
         </div>

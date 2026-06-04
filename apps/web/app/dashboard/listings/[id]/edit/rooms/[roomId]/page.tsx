@@ -52,26 +52,37 @@ export default async function EditRoomPage({
     .maybeSingle();
   if (!room) notFound();
 
-  // Per-room photos + per-room amenities + bed composition.
-  const [{ data: photoRows }, { data: amenityRows }, { data: bedRows }] =
-    await Promise.all([
-      supabase
-        .from("listing_photos")
-        .select("id, url, sort_order")
-        .eq("listing_id", params.id)
-        .eq("room_id", params.roomId)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("listing_amenities")
-        .select("amenity_key")
-        .eq("listing_id", params.id)
-        .eq("room_id", params.roomId),
-      supabase
-        .from("room_beds")
-        .select("bed_kind, quantity, sleeps, sort_order")
-        .eq("room_id", params.roomId)
-        .order("sort_order", { ascending: true }),
-    ]);
+  // Per-room photos + per-room amenities + bed composition + access.
+  const [
+    { data: photoRows },
+    { data: amenityRows },
+    { data: bedRows },
+    { data: accessRow },
+  ] = await Promise.all([
+    supabase
+      .from("listing_photos")
+      .select("id, url, sort_order")
+      .eq("listing_id", params.id)
+      .eq("room_id", params.roomId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_amenities")
+      .select("amenity_key")
+      .eq("listing_id", params.id)
+      .eq("room_id", params.roomId),
+    supabase
+      .from("room_beds")
+      .select("bed_kind, quantity, sleeps, sort_order")
+      .eq("room_id", params.roomId)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("listing_room_access")
+      .select(
+        "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
+      )
+      .eq("room_id", params.roomId)
+      .maybeSingle(),
+  ]);
 
   const roomShape: RoomEditorRoom = {
     id: room.id,
@@ -116,6 +127,16 @@ export default async function EditRoomPage({
   };
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, url: p.url }));
   const amenityKeys = (amenityRows ?? []).map((a) => a.amenity_key);
+  const access = accessRow
+    ? {
+        check_in_method: accessRow.check_in_method ?? null,
+        check_in_instructions: accessRow.check_in_instructions ?? null,
+        gate_code: accessRow.gate_code ?? null,
+        door_code: accessRow.door_code ?? null,
+        wifi_network: accessRow.wifi_network ?? null,
+        wifi_password: accessRow.wifi_password ?? null,
+      }
+    : null;
 
   return (
     <RoomEditor
@@ -126,6 +147,7 @@ export default async function EditRoomPage({
       room={roomShape}
       initialPhotos={photos}
       initialAmenityKeys={amenityKeys}
+      initialAccess={access}
     />
   );
 }

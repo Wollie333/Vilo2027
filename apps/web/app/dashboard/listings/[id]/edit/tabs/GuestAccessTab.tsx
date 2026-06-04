@@ -46,6 +46,7 @@ import {
 export type AccessInitial = {
   check_in_method: string | null;
   check_in_instructions: string | null;
+  gate_code: string | null;
   door_code: string | null;
   wifi_network: string | null;
   wifi_password: string | null;
@@ -81,6 +82,7 @@ function AccessForm({
     defaultValues: {
       check_in_method: access?.check_in_method ?? "",
       check_in_instructions: access?.check_in_instructions ?? "",
+      gate_code: access?.gate_code ?? "",
       door_code: access?.door_code ?? "",
       wifi_network: access?.wifi_network ?? "",
       wifi_password: access?.wifi_password ?? "",
@@ -157,6 +159,24 @@ function AccessForm({
             <div className="grid gap-5 sm:grid-cols-2">
               <FormField
                 control={form.control}
+                name="gate_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1.5 text-sm font-semibold text-brand-dark">
+                      <KeyRound className="h-4 w-4 text-brand-mute" /> Gate code
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. 1234 (estate/complex gate)"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="door_code"
                 render={({ field }) => (
                   <FormItem>
@@ -170,6 +190,9 @@ function AccessForm({
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="wifi_network"
@@ -185,26 +208,26 @@ function AccessForm({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="wifi_password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1.5 text-sm font-semibold text-brand-dark">
+                      <Lock className="h-4 w-4 text-brand-mute" /> Wi-Fi
+                      password
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Shared with the guest near check-in"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
-
-            <FormField
-              control={form.control}
-              name="wifi_password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1.5 text-sm font-semibold text-brand-dark">
-                    <Lock className="h-4 w-4 text-brand-mute" /> Wi-Fi password
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Shared with the guest near check-in"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <div className="flex justify-end">
               <Button type="submit" disabled={pending} className="gap-1.5">
