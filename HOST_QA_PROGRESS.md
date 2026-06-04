@@ -72,7 +72,13 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   (launch-blocker, NOT a bug):** real Paystack/PayPal subscription billing is intentionally
   stubbed pre-MVP — `switchPlanAction` records state only; wire provider + webhooks before
   launch (founder ops/keys). **Founder live-check pending.**
-- [⬜] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`
+- [⚠️] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`. Audited:
+  all 20 edit actions auth-gated (`assertOwnership`), no `any`/logs; photos use the direct
+  browser→Storage pair (`createListingPhotoUploadUrl` + `registerListingPhotoAction`, no body
+  cap); publish gate enforces required fields + `hostHasValidEft` + full `computeSetupCompletion`
+  at the app layer AND the `trg_listing_requires_bank` DB trigger. Fixed: removed the dead
+  `uploadListingPhotoAction` (8MB-through-action body-cap footgun, zero callers) (`cfd0e64`).
+  **Founder live-check pending** (editor tabs, photo upload UX, publish flow).
 - [⬜] 6. Rooms — `/dashboard/rooms`
 - [⬜] 7. Seasonal pricing — `/dashboard/seasonal-pricing`
 - [⬜] 8. Add-ons — `/dashboard/addons`
@@ -120,6 +126,10 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   reactivate actions auth-gated + Zod + RLS, no `any`/logs; PlanPicker checks are switcher UX).
   Only gap is real provider billing, stubbed pre-MVP — a launch-blocker, not a bug. No code
   changes. **NEXT: founder live-checks #2/#3/#4, then #5 Listings.**
+- **2026-06-04 (cont.)** — Audited #5 Listings — high-risk surfaces clean: 20 edit actions
+  auth-gated, photos use direct browser→Storage uploads, publish gate enforces EFT + completion
+  (app + DB trigger). Removed the dead `uploadListingPhotoAction` body-cap footgun (`cfd0e64`).
+  **NEXT: founder live-checks #2–#5, then #6 Rooms.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
