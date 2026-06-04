@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Notifications: quote-requests tab + grouped bell tabs — branch `main`
+
+### Built
+- New **Quote requests** notification category + `quote_request_host` event; guest enquiries now notify the host through it, so quote requests get their own bell tab instead of being lumped into Messages.
+
+### Changed
+- Dashboard/portal notifications list now groups categories under display-label tabs: `account_security` + `subscription` + `calendar_sync` → **System**; `admin_broadcasts` + `marketing_tips` → **Announcements**. Tabs render in a stable order: Bookings / Quote requests / Messages / Payments / Reviews / System / Announcements.
+
+### Migrations
+- `20260604000008_notification_quote_requests.sql` — quote_requests category + quote_request_host event.
+
+### Notes
+- Notification tabs still surface only for categories that have notifications (existing behaviour). Regular inbox messages keep using `new_message` (Messages tab). `pnpm build` + `pnpm lint` green.
+
+### Commit
+- `feat(notifications): quote-requests category + grouped bell tabs` — `92046df`
+
+---
+
 ## 2026-06-04 — Guest portal: complete & harden (quotes hub, in-portal browse, settings, book-again) — branch `main`
 
 ### Built
