@@ -79,7 +79,10 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   at the app layer AND the `trg_listing_requires_bank` DB trigger. Fixed: removed the dead
   `uploadListingPhotoAction` (8MB-through-action body-cap footgun, zero callers) (`cfd0e64`).
   **Founder live-check pending** (editor tabs, photo upload UX, publish flow).
-- [⬜] 6. Rooms — `/dashboard/rooms`
+- [⚠️] 6. Rooms — `/dashboard/rooms` (cross-listing overview; the room editor lives under
+  #5). Audited CLEAN: no `any`/logs; the only mutation (`setBookingModeAction`) is the
+  auth-gated listings action; page reads are explicitly `host_id`-scoped (the dashboard
+  query gotcha — public-readable tables filtered to the owner). **Founder live-check pending.**
 - [⬜] 7. Seasonal pricing — `/dashboard/seasonal-pricing`
 - [⬜] 8. Add-ons — `/dashboard/addons`
 - [⬜] 9. Availability calendar — `/dashboard/calendar`
@@ -130,6 +133,9 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   auth-gated, photos use direct browser→Storage uploads, publish gate enforces EFT + completion
   (app + DB trigger). Removed the dead `uploadListingPhotoAction` body-cap footgun (`cfd0e64`).
   **NEXT: founder live-checks #2–#5, then #6 Rooms.**
+- **2026-06-04 (cont.)** — Audited #6 Rooms (`/dashboard/rooms`) — clean, no changes: mutation
+  via the auth-gated `setBookingModeAction`, page reads explicitly `host_id`-scoped. **NEXT:
+  founder live-checks #2–#6, then #7 Seasonal pricing.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
