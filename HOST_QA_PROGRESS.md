@@ -56,7 +56,11 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   (details+photos+amenities, create-first); 1c shell redesign (dark hero, progress ring, step
   chips, active glow, globals CSS); 1d About WYSIWYG + banking reveal; 1e guest-preview review
   with per-section Edit buttons + confetti on publish. Earlier: avatar-hang fix (StepProfile).
-- [⬜] 2. Host profile — `/dashboard/settings/host`
+- [⚠️] 2. Host profile — lives at `/dashboard/settings` (`/dashboard/settings/host` is a redirect).
+  Code audited: RHF+Zod, server-action-only mutations, RLS-scoped host update, no `any` ✅.
+  Fixed: (a) leftover `viloplatform.com` handle hint → relative public path (`1bfe568`);
+  (b) avatar size limit mismatch 8MB client vs 5MB server → aligned to 4MB both sides, under
+  the Vercel Server-Action body cap (`8194853`). **Founder live-check pending.**
 - [⬜] 3. Banking details — `/dashboard/settings/banking`
 - [⬜] 4. Subscription & billing — `/dashboard/settings/subscription`
 - [⬜] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`
@@ -95,6 +99,12 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-04** — Feature #1 wrap-up: the `feat/setup-wizard-rework` branch was already
+  fully merged into `main` (0 commits ahead), so the stale remote branch was deleted — no
+  merge needed, nothing reverted. Audited feature #2 (Host profile, at `/dashboard/settings`):
+  code is sound; fixed two concrete issues in small commits — the `viloplatform.com` handle
+  hint (`1bfe568`) and the 8MB-client/5MB-server avatar limit mismatch → 4MB both sides under
+  the Vercel body cap (`8194853`). **NEXT: founder live-checks Host profile, then #3 Banking.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
