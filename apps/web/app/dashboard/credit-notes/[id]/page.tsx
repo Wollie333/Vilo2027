@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ExternalLink } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -24,11 +25,6 @@ const STATUS_TONE: Record<CreditNoteStatus, string> = {
   issued: "bg-status-confirmed/15 text-status-confirmed",
   cancelled: "bg-status-cancelled/15 text-status-cancelled",
 };
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 type Snap = {
   display_name?: string;
@@ -172,7 +168,7 @@ export default async function CreditNoteDetailPage({
               <tr>
                 <td className="py-2 text-brand-ink">{cn.reason ?? "Credit"}</td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(cn.total_amount, cn.currency)}
+                  {formatMoney(cn.total_amount, cn.currency)}
                 </td>
               </tr>
             ) : (
@@ -180,7 +176,7 @@ export default async function CreditNoteDetailPage({
                 <tr key={i}>
                   <td className="py-2 text-brand-ink">{l.label}</td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(l.amount, cn.currency)}
+                    {formatMoney(l.amount, cn.currency)}
                   </td>
                 </tr>
               ))
@@ -190,14 +186,14 @@ export default async function CreditNoteDetailPage({
             <tr>
               <td className="pt-3 text-right text-brand-mute">Subtotal</td>
               <td className="pt-3 text-right text-brand-ink">
-                {fmt(cn.subtotal, cn.currency)}
+                {formatMoney(cn.subtotal, cn.currency)}
               </td>
             </tr>
             {cn.vat_amount > 0 ? (
               <tr>
                 <td className="pt-1 text-right text-brand-mute">VAT</td>
                 <td className="pt-1 text-right text-brand-ink">
-                  {fmt(cn.vat_amount, cn.currency)}
+                  {formatMoney(cn.vat_amount, cn.currency)}
                 </td>
               </tr>
             ) : null}
@@ -206,7 +202,7 @@ export default async function CreditNoteDetailPage({
                 Total credited
               </td>
               <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                {fmt(cn.total_amount, cn.currency)}
+                {formatMoney(cn.total_amount, cn.currency)}
               </td>
             </tr>
           </tfoot>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -19,11 +20,6 @@ const STATUS_TONE: Record<CreditNoteStatus, string> = {
   issued: "bg-status-confirmed/15 text-status-confirmed",
   cancelled: "bg-status-cancelled/15 text-status-cancelled",
 };
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 export default async function CreditNotesPage({
   searchParams,
@@ -144,7 +140,7 @@ export default async function CreditNotesPage({
                       {new Date(cn.issued_at).toLocaleDateString("en-ZA")}
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-brand-ink">
-                      {fmt(cn.total_amount, cn.currency)}
+                      {formatMoney(cn.total_amount, cn.currency)}
                     </td>
                     <td className="px-4 py-3">
                       <span

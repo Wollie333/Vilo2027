@@ -31,6 +31,32 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Refactor: migrate invoice + credit-note money formatters to formatMoney — branch `main`
+
+### Changed
+- Replaced six more private money formatters (`fmt`) with canonical `lib/format.ts#formatMoney`: `credit-note/[token]/page`, `dashboard/credit-notes/page`, `dashboard/credit-notes/[id]/page`, `dashboard/invoices/[id]/CreateCreditNote`, `dashboard/invoices/[id]/page`, and `invoice/[token]/page`.
+
+### Notes
+- Behaviour-preserving for ZAR (identical output, verified each copy by hand — they used differing `symbol`/spacing forms that all collapsed to `R 1 500`). Non-ZAR now renders `USD 1 500` (some copies previously emitted a double-spaced `USD  1 500`; `formatMoney` fixes that). `pnpm build` + `pnpm lint` green. See `SIMPLIFICATION_PLAN.md`.
+
+### Commit
+- _pending_
+
+---
+
+## 2026-06-04 — Refactor: migrate payments + refunds money formatters to formatMoney — branch `main`
+
+### Changed
+- Replaced seven copy-pasted private money formatters (`fmtR` / `money`) with canonical `lib/format.ts#formatMoney`: `PaymentsBoard`, `payments/[id]/page`, `admin/payments/page`, `refunds/page`, `RefundActions`, `portal/trips/[id]/RequestRefundButton`, and `components/booking/CancelBookingDialog`.
+
+### Notes
+- Behaviour-preserving for ZAR (the only live currency); non-ZAR now gains the ISO-code prefix (`USD 1 500`), the same tradeoff as the bookings batch. `pnpm build` + `pnpm lint` green. (CHANGELOG entry was deferred from commit `c9567c0` to avoid a concurrent-session collision on this file.)
+
+### Commit
+- `refactor(format): migrate payments + refunds money formatters to formatMoney` — `c9567c0`
+
+---
+
 ## 2026-06-04 — Quotes: show the guest's original request as context on the quote form — branch `main`
 
 ### Built

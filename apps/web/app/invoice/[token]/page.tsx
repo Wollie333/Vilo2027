@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Download } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -16,11 +17,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 type Lines = {
   listing_name: string | null;
@@ -145,14 +141,14 @@ export default async function PublicInvoicePage({
               <tr>
                 <td className="py-2 text-brand-ink">Stay — base</td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(lines.base_amount, invoice.currency)}
+                  {formatMoney(lines.base_amount, invoice.currency)}
                 </td>
               </tr>
               {lines.cleaning_fee > 0 ? (
                 <tr>
                   <td className="py-2 text-brand-ink">Cleaning</td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(lines.cleaning_fee, invoice.currency)}
+                    {formatMoney(lines.cleaning_fee, invoice.currency)}
                   </td>
                 </tr>
               ) : null}
@@ -163,7 +159,7 @@ export default async function PublicInvoicePage({
                     <span className="ml-1 text-brand-mute">× {a.quantity}</span>
                   </td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(a.subtotal, invoice.currency)}
+                    {formatMoney(a.subtotal, invoice.currency)}
                   </td>
                 </tr>
               ))}
@@ -171,7 +167,7 @@ export default async function PublicInvoicePage({
                 <tr>
                   <td className="py-2 text-emerald-700">Discount</td>
                   <td className="py-2 text-right font-medium text-emerald-700">
-                    − {fmt(lines.discount_amount, invoice.currency)}
+                    − {formatMoney(lines.discount_amount, invoice.currency)}
                   </td>
                 </tr>
               ) : null}
@@ -182,7 +178,7 @@ export default async function PublicInvoicePage({
                   Total
                 </td>
                 <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                  {fmt(invoice.total_amount, invoice.currency)}
+                  {formatMoney(invoice.total_amount, invoice.currency)}
                 </td>
               </tr>
             </tfoot>

@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { Download, ExternalLink } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../../quotes/schemas";
@@ -24,11 +25,6 @@ const STATUS_TONE: Record<InvoiceStatus, string> = {
   paid: "bg-status-confirmed/15 text-status-confirmed",
   cancelled: "bg-status-cancelled/15 text-status-cancelled",
 };
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 type InvoiceLines = {
   listing_name: string | null;
@@ -250,10 +246,10 @@ export default async function InvoiceDetailPage({
                   </td>
                   <td className="py-2 text-right text-brand-mute">1</td>
                   <td className="py-2 text-right text-brand-mute">
-                    {fmt(r.base_amount, invoice.currency)}
+                    {formatMoney(r.base_amount, invoice.currency)}
                   </td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(r.base_amount, invoice.currency)}
+                    {formatMoney(r.base_amount, invoice.currency)}
                   </td>
                 </tr>
               ))
@@ -264,10 +260,10 @@ export default async function InvoiceDetailPage({
                 </td>
                 <td className="py-2 text-right text-brand-mute">1</td>
                 <td className="py-2 text-right text-brand-mute">
-                  {fmt(lines.base_amount, invoice.currency)}
+                  {formatMoney(lines.base_amount, invoice.currency)}
                 </td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(lines.base_amount, invoice.currency)}
+                  {formatMoney(lines.base_amount, invoice.currency)}
                 </td>
               </tr>
             )}
@@ -276,10 +272,10 @@ export default async function InvoiceDetailPage({
                 <td className="py-2 text-brand-ink">Cleaning</td>
                 <td className="py-2 text-right text-brand-mute">1</td>
                 <td className="py-2 text-right text-brand-mute">
-                  {fmt(lines.cleaning_fee, invoice.currency)}
+                  {formatMoney(lines.cleaning_fee, invoice.currency)}
                 </td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(lines.cleaning_fee, invoice.currency)}
+                  {formatMoney(lines.cleaning_fee, invoice.currency)}
                 </td>
               </tr>
             ) : null}
@@ -290,10 +286,10 @@ export default async function InvoiceDetailPage({
                   {a.quantity}
                 </td>
                 <td className="py-2 text-right text-brand-mute">
-                  {fmt(a.unit_price, invoice.currency)}
+                  {formatMoney(a.unit_price, invoice.currency)}
                 </td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(a.subtotal, invoice.currency)}
+                  {formatMoney(a.subtotal, invoice.currency)}
                 </td>
               </tr>
             ))}
@@ -304,7 +300,7 @@ export default async function InvoiceDetailPage({
                 Subtotal
               </td>
               <td className="pt-3 text-right text-brand-ink">
-                {fmt(invoice.subtotal, invoice.currency)}
+                {formatMoney(invoice.subtotal, invoice.currency)}
               </td>
             </tr>
             {invoice.vat_amount > 0 ? (
@@ -313,7 +309,7 @@ export default async function InvoiceDetailPage({
                   VAT
                 </td>
                 <td className="pt-1 text-right text-brand-ink">
-                  {fmt(invoice.vat_amount, invoice.currency)}
+                  {formatMoney(invoice.vat_amount, invoice.currency)}
                 </td>
               </tr>
             ) : null}
@@ -325,7 +321,7 @@ export default async function InvoiceDetailPage({
                 Total
               </td>
               <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                {fmt(invoice.total_amount, invoice.currency)}
+                {formatMoney(invoice.total_amount, invoice.currency)}
               </td>
             </tr>
           </tfoot>
@@ -384,7 +380,7 @@ export default async function InvoiceDetailPage({
                   </span>
                 </div>
                 <span className="font-medium text-brand-ink">
-                  {fmt(cn.total_amount, cn.currency)}
+                  {formatMoney(cn.total_amount, cn.currency)}
                 </span>
               </li>
             ))}

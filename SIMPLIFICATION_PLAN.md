@@ -60,6 +60,12 @@ per-site for now (options vary too much for a single helper).
   private copies removed; ZAR output unchanged. Non-ZAR now shows the ISO code
   prefix (`USD 1 500`) instead of a bare number — strictly more correct, same
   tradeoff as the bookings batch.
-- **Remaining money-formatter batches (queued):** invoices/credit-notes,
-  quotes builder + `/q` page, listings & pricing, public listing/explore pages,
-  dashboard home. To be done in feature-sized commits with a check each.
+- **Invoices + credit-notes batch (done):** migrated `credit-note/[token]/page`,
+  `credit-notes/page`, `credit-notes/[id]/page`, `invoices/[id]/CreateCreditNote`,
+  `invoices/[id]/page`, and `invoice/[token]/page` (`fmt`) to `formatMoney`. Six
+  copies removed. These used differing `symbol`/spacing forms — verified each
+  collapses to identical ZAR output before swapping; non-ZAR double-space bug
+  fixed as a side effect.
+- **Remaining money-formatter batches (queued):** quotes builder + `/q` page,
+  listings & pricing, public listing/explore pages, dashboard home. To be done
+  in feature-sized commits with a check each.

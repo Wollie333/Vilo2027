@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { createCreditNoteAction } from "../../credit-notes/actions";
 
 type Props = {
@@ -12,11 +14,6 @@ type Props = {
   invoiceTotal: number;
   currency: string;
 };
-
-function fmt(amount: number, currency: string): string {
-  const symbol = currency === "ZAR" ? "R " : currency + " ";
-  return `${symbol}${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 export function CreateCreditNote({ invoiceId, invoiceTotal, currency }: Props) {
   const router = useRouter();
@@ -28,7 +25,7 @@ export function CreateCreditNote({ invoiceId, invoiceTotal, currency }: Props) {
   function submit() {
     if (amount <= 0 || amount > invoiceTotal) {
       toast.error(
-        `Amount must be between R 1 and ${fmt(invoiceTotal, currency)}.`,
+        `Amount must be between R 1 and ${formatMoney(invoiceTotal, currency)}.`,
       );
       return;
     }
@@ -85,7 +82,7 @@ export function CreateCreditNote({ invoiceId, invoiceTotal, currency }: Props) {
           className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
         />
         <span className="mt-1 block text-[11px] text-brand-mute">
-          Up to {fmt(invoiceTotal, currency)}
+          Up to {formatMoney(invoiceTotal, currency)}
         </span>
       </label>
       <label className="block">

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Download } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
@@ -23,12 +24,6 @@ type HostSnap = {
 };
 type GuestSnap = { name?: string; email?: string };
 type CnLine = { label: string; amount: number | string };
-
-function fmt(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 export default async function PublicCreditNotePage({
   params,
@@ -123,7 +118,7 @@ export default async function PublicCreditNotePage({
                 <tr key={i}>
                   <td className="py-2 text-brand-ink">{l.label}</td>
                   <td className="py-2 text-right font-medium text-rose-700">
-                    − {fmt(Number(l.amount), cn.currency)}
+                    − {formatMoney(Number(l.amount), cn.currency)}
                   </td>
                 </tr>
               ))}
@@ -134,7 +129,7 @@ export default async function PublicCreditNotePage({
                   Total credited
                 </td>
                 <td className="pt-3 text-right font-display text-lg font-bold text-rose-700">
-                  − {fmt(Number(cn.total_amount), cn.currency)}
+                  − {formatMoney(Number(cn.total_amount), cn.currency)}
                 </td>
               </tr>
             </tfoot>
