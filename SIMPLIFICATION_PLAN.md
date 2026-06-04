@@ -78,7 +78,8 @@ per-site for now (options vary too much for a single helper).
   `dashboard/page` (home), `dashboard/listings/page`, `dashboard/coupons/CouponsManager`,
   and `dashboard/addons/AddonsArchive` to `formatMoney`. All standard type-A
   copies, identical ZAR output.
-- **Guest-facing listing/explore batch (done):** migrated 15 files —
+- **Guest-facing listing/explore batch (done):** migrated 16 files (incl. the
+  guest trip-detail `portal/trips/[id]/page`, caught on a final sweep) —
   `c/[slug]`, `explore`, `[handle]`, `_components/home/home-data`,
   `booking/[id]/success/BookingConfirmation`, `RoomEditor`, the public
   `roomDisplay.ts` util, and the `listing/[slug]/*` components (`BookingWidget`,

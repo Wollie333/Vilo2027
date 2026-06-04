@@ -31,6 +31,7 @@ import {
   Wifi,
 } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -47,12 +48,6 @@ export const dynamic = "force-dynamic";
 function one<T>(v: T | T[] | null | undefined): T | null {
   if (Array.isArray(v)) return v[0] ?? null;
   return v ?? null;
-}
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : `${currency} `}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 function fmtDay(iso: string | null): string {
@@ -589,7 +584,7 @@ export default async function PortalTripDetailPage({
               />
               <Glance
                 label="Total"
-                value={fmtR(Number(booking.total_amount), currency)}
+                value={formatMoney(Number(booking.total_amount), currency)}
                 sub={
                   booking.payment_status === "completed" ||
                   booking.payment_status === "captured"
@@ -909,35 +904,37 @@ export default async function PortalTripDetailPage({
                 <li className="flex items-center justify-between">
                   <span className="text-brand-mute">
                     {booking.nights
-                      ? `${fmtR(Number(booking.base_amount) / booking.nights, currency)} × ${booking.nights} night${booking.nights === 1 ? "" : "s"}`
+                      ? `${formatMoney(Number(booking.base_amount) / booking.nights, currency)} × ${booking.nights} night${booking.nights === 1 ? "" : "s"}`
                       : "Accommodation"}
                   </span>
                   <span className="num font-medium text-brand-ink">
-                    {fmtR(Number(booking.base_amount), currency)}
+                    {formatMoney(Number(booking.base_amount), currency)}
                   </span>
                 </li>
                 {Number(booking.cleaning_fee ?? 0) > 0 ? (
                   <li className="flex items-center justify-between">
                     <span className="text-brand-mute">Cleaning fee</span>
                     <span className="num font-medium text-brand-ink">
-                      {fmtR(Number(booking.cleaning_fee), currency)}
+                      {formatMoney(Number(booking.cleaning_fee), currency)}
                     </span>
                   </li>
                 ) : null}
                 {discount > 0 ? (
                   <li className="flex items-center justify-between text-brand-primary">
                     <span>Discount</span>
-                    <span className="num">– {fmtR(discount, currency)}</span>
+                    <span className="num">
+                      – {formatMoney(discount, currency)}
+                    </span>
                   </li>
                 ) : null}
                 <li className="flex items-center justify-between text-brand-primary">
                   <span>Vilo booking fee</span>
-                  <span className="num">{fmtR(0, currency)}</span>
+                  <span className="num">{formatMoney(0, currency)}</span>
                 </li>
                 <li className="flex items-center justify-between border-t border-brand-line pt-3">
                   <span className="font-semibold text-brand-ink">Total</span>
                   <span className="num font-display text-[18px] font-bold text-brand-ink">
-                    {fmtR(Number(booking.total_amount), currency)}
+                    {formatMoney(Number(booking.total_amount), currency)}
                   </span>
                 </li>
               </ul>
@@ -970,7 +967,7 @@ export default async function PortalTripDetailPage({
                       {r.status}
                     </span>
                     <span className="num text-brand-mute">
-                      {fmtR(
+                      {formatMoney(
                         Number(r.approved_amount ?? r.requested_amount),
                         r.currency,
                       )}{" "}
@@ -1034,7 +1031,7 @@ export default async function PortalTripDetailPage({
                       Total
                     </div>
                     <div className="num mt-1 text-[13px] font-semibold">
-                      {fmtR(Number(booking.total_amount), currency)}
+                      {formatMoney(Number(booking.total_amount), currency)}
                     </div>
                   </div>
                 </div>
