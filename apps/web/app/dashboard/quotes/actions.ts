@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { type AgeExtraLine } from "@/lib/pricing";
@@ -846,12 +847,10 @@ export async function shareQuoteToInboxAction(
     };
   }
 
-  const symbol = quote.currency === "ZAR" ? "R " : `${quote.currency} `;
-  const body = `Here's your quote ${quote.quote_number} — ${symbol}${Math.round(
+  const body = `Here's your quote ${quote.quote_number} — ${formatMoney(
     quote.total_amount as number,
-  )
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}. View and accept it here: ${acceptUrl}`;
+    quote.currency,
+  )}. View and accept it here: ${acceptUrl}`;
 
   const { error } = await supabase.from("messages").insert({
     conversation_id: conversation.id,

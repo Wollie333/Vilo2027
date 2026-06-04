@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 
 import { shareQuoteToInboxAction } from "../actions";
 
@@ -40,8 +41,7 @@ export function QuoteShare({
 }) {
   const [pending, start] = useTransition();
 
-  const symbol = currency === "ZAR" ? "R " : `${currency} `;
-  const amount = `${symbol}${Math.round(total).toLocaleString("en-ZA").replace(/,/g, " ")}`;
+  const amount = formatMoney(total, currency);
   const firstName = guestName.trim().split(/\s+/)[0] || "there";
   const message = `Hi ${firstName}, here's your quote ${quoteNumber} for ${listingName} — ${amount}. View and accept it here: ${acceptUrl}`;
 

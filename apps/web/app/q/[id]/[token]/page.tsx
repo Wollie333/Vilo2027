@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { QuoteResponseActions } from "./QuoteResponseActions";
@@ -11,11 +12,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 // Coarse, non-PII device bucket from the user agent — drives the host's
 // activity log ("opened on mobile"). No IP, no fingerprinting.
@@ -144,14 +140,14 @@ export default async function PublicQuotePage({
               <tr>
                 <td className="py-2 text-brand-ink">Stay — base</td>
                 <td className="py-2 text-right font-medium text-brand-ink">
-                  {fmt(quote.base_amount, quote.currency)}
+                  {formatMoney(quote.base_amount, quote.currency)}
                 </td>
               </tr>
               {quote.cleaning_fee > 0 ? (
                 <tr>
                   <td className="py-2 text-brand-ink">Cleaning</td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(quote.cleaning_fee, quote.currency)}
+                    {formatMoney(quote.cleaning_fee, quote.currency)}
                   </td>
                 </tr>
               ) : null}
@@ -162,7 +158,7 @@ export default async function PublicQuotePage({
                     <span className="ml-1 text-brand-mute">× {a.quantity}</span>
                   </td>
                   <td className="py-2 text-right font-medium text-brand-ink">
-                    {fmt(a.subtotal, quote.currency)}
+                    {formatMoney(a.subtotal, quote.currency)}
                   </td>
                 </tr>
               ))}
@@ -173,7 +169,7 @@ export default async function PublicQuotePage({
                   Total
                 </td>
                 <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                  {fmt(quote.total_amount, quote.currency)}
+                  {formatMoney(quote.total_amount, quote.currency)}
                 </td>
               </tr>
             </tfoot>

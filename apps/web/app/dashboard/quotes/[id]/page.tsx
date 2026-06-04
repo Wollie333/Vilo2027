@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteActions } from "./QuoteActions";
@@ -47,11 +48,6 @@ const STATUS_TONE: Record<QuoteStatus, string> = {
   expired: "bg-brand-light text-brand-mute ring-brand-line",
   converted: "bg-brand-accent text-brand-secondary ring-brand-primary/25",
 };
-
-function fmt(amount: number, currency = "ZAR"): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -362,7 +358,7 @@ export default async function QuoteDetailPage({
             </div>
             <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
               <h1 className="num font-display text-[38px] font-extrabold leading-none tracking-tight text-brand-ink lg:text-[44px]">
-                {fmt(quote.total_amount, quote.currency)}
+                {formatMoney(quote.total_amount, quote.currency)}
               </h1>
               <span
                 className={`mb-1 inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11.5px] font-semibold ring-1 ${tone}`}
@@ -441,7 +437,10 @@ export default async function QuoteDetailPage({
             }
             tone={expired ? "text-status-cancelled" : undefined}
           />
-          <Fact label="Your payout" value={fmt(payout, quote.currency)} />
+          <Fact
+            label="Your payout"
+            value={formatMoney(payout, quote.currency)}
+          />
         </div>
       </section>
 
@@ -593,18 +592,18 @@ export default async function QuoteDetailPage({
                 <li className="flex items-center justify-between">
                   <span className="text-brand-mute">
                     {nights
-                      ? `${fmt(Number(quote.base_amount) / nights, quote.currency)} × ${nights} night${nights === 1 ? "" : "s"}`
+                      ? `${formatMoney(Number(quote.base_amount) / nights, quote.currency)} × ${nights} night${nights === 1 ? "" : "s"}`
                       : "Accommodation"}
                   </span>
                   <span className="num font-medium text-brand-ink">
-                    {fmt(quote.base_amount, quote.currency)}
+                    {formatMoney(quote.base_amount, quote.currency)}
                   </span>
                 </li>
                 {quote.cleaning_fee > 0 ? (
                   <li className="flex items-center justify-between">
                     <span className="text-brand-mute">Cleaning fee</span>
                     <span className="num font-medium text-brand-ink">
-                      {fmt(quote.cleaning_fee, quote.currency)}
+                      {formatMoney(quote.cleaning_fee, quote.currency)}
                     </span>
                   </li>
                 ) : null}
@@ -619,7 +618,7 @@ export default async function QuoteDetailPage({
                       ) : null}
                     </span>
                     <span className="num font-medium text-brand-ink">
-                      {fmt(a.subtotal, quote.currency)}
+                      {formatMoney(a.subtotal, quote.currency)}
                     </span>
                   </li>
                 ))}
@@ -628,7 +627,7 @@ export default async function QuoteDetailPage({
                     Total guest pays
                   </span>
                   <span className="num font-display text-[18px] font-bold text-brand-ink">
-                    {fmt(quote.total_amount, quote.currency)}
+                    {formatMoney(quote.total_amount, quote.currency)}
                   </span>
                 </li>
                 <li className="flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-3 py-2.5">
@@ -636,7 +635,7 @@ export default async function QuoteDetailPage({
                     Your payout · Vilo takes 0%
                   </span>
                   <span className="num font-display text-[16px] font-bold text-brand-secondary">
-                    {fmt(payout, quote.currency)}
+                    {formatMoney(payout, quote.currency)}
                   </span>
                 </li>
               </ul>
@@ -721,7 +720,7 @@ export default async function QuoteDetailPage({
                       </span>
                       <span className="num ml-2 text-xs text-brand-mute">
                         {fmtDateTime(v.created_at)} ·{" "}
-                        {fmt(Number(v.total_amount), v.currency)}
+                        {formatMoney(Number(v.total_amount), v.currency)}
                       </span>
                     </div>
                     <Link
@@ -767,12 +766,12 @@ export default async function QuoteDetailPage({
                   Quote value
                 </div>
                 <div className="num mt-1 font-display text-[30px] font-extrabold leading-none">
-                  {fmt(quote.total_amount, quote.currency)}
+                  {formatMoney(quote.total_amount, quote.currency)}
                 </div>
                 <div className="mt-2 text-[12.5px] text-brand-accent/75">
                   Your payout{" "}
                   <span className="num font-semibold text-white">
-                    {fmt(payout, quote.currency)}
+                    {formatMoney(payout, quote.currency)}
                   </span>
                   {quote.valid_until
                     ? ` · expires ${fmtDate(quote.valid_until)}`

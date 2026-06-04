@@ -66,6 +66,14 @@ per-site for now (options vary too much for a single helper).
   copies removed. These used differing `symbol`/spacing forms — verified each
   collapses to identical ZAR output before swapping; non-ZAR double-space bug
   fixed as a side effect.
-- **Remaining money-formatter batches (queued):** quotes builder + `/q` page,
-  listings & pricing, public listing/explore pages, dashboard home. To be done
-  in feature-sized commits with a check each.
+- **Quotes batch (done):** migrated `QuoteForm`, `quotes/[id]/page`, the public
+  `q/[id]/[token]/page`, `QuoteShare` (inline), and one equivalent inline spot in
+  `quotes/actions.ts` to `formatMoney`. **Left one inline spot in `actions.ts`
+  untouched** (the `quote_sent` system-message body) — it used bare
+  `Math.round()` with NO thousands grouping (`R 1500`), so it is NOT
+  output-identical to `formatMoney` (`R 1 500`). Migrating it would change a
+  displayed amount, which violates the no-behaviour-change rule — flagged as a
+  latent inconsistency to fix deliberately, not silently under a refactor.
+- **Remaining money-formatter batches (queued):** listings & pricing, public
+  listing/explore pages, dashboard home. To be done in feature-sized commits
+  with a check each.

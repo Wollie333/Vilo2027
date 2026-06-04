@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
+import { formatMoney } from "@/lib/format";
 
 import { QuoteCalendar } from "./QuoteCalendar";
 import {
@@ -135,11 +136,6 @@ function fmtDayLong(iso: string): string {
     month: "short",
     year: "numeric",
   });
-}
-
-function fmt(amount: number, currency: string): string {
-  const symbol = currency === "ZAR" ? "R" : currency + " ";
-  return `${symbol} ${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
 }
 
 export function QuoteForm({
@@ -794,7 +790,7 @@ export function QuoteForm({
                     {l.base_price != null ? (
                       <span className="text-right">
                         <span className="block font-display text-[12.5px] font-bold text-brand-ink">
-                          {fmt(l.base_price, l.currency)}
+                          {formatMoney(l.base_price, l.currency)}
                         </span>
                         <span className="block text-[9.5px] text-brand-mute">
                           / night
@@ -886,7 +882,7 @@ export function QuoteForm({
                             />
                             {priced ? (
                               <span className="font-medium text-brand-ink">
-                                {fmt(
+                                {formatMoney(
                                   priced.base_amount + priced.cleaning_fee,
                                   currency,
                                 )}
@@ -1092,7 +1088,7 @@ export function QuoteForm({
                         {a.name}
                       </span>
                       <span className="text-xs text-brand-mute">
-                        {fmt(a.unit_price, a.currency)} ·{" "}
+                        {formatMoney(a.unit_price, a.currency)} ·{" "}
                         {a.pricing_model.replace(/_/g, " ")}
                       </span>
                       {checked && a.pricing_model === "per_unit" ? (
@@ -1226,7 +1222,7 @@ export function QuoteForm({
                 </div>
                 {totals.discountAmount > 0 ? (
                   <span className="pb-2 text-[12px] font-medium text-brand-primary">
-                    −{fmt(totals.discountAmount, currency)}
+                    −{formatMoney(totals.discountAmount, currency)}
                   </span>
                 ) : null}
               </div>
@@ -1235,15 +1231,15 @@ export function QuoteForm({
 
           <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
             <span className="text-[12px] text-brand-secondary">
-              Accommodation {fmt(totals.base, currency)} · cleaning{" "}
-              {fmt(totals.cleaning, currency)} · add-ons{" "}
-              {fmt(totals.addonsSum, currency)}
+              Accommodation {formatMoney(totals.base, currency)} · cleaning{" "}
+              {formatMoney(totals.cleaning, currency)} · add-ons{" "}
+              {formatMoney(totals.addonsSum, currency)}
               {totals.discountAmount > 0
-                ? ` · −${fmt(totals.discountAmount, currency)}`
+                ? ` · −${formatMoney(totals.discountAmount, currency)}`
                 : ""}
             </span>
             <span className="font-display text-[15px] font-bold text-brand-secondary">
-              Total {fmt(totals.total, currency)}
+              Total {formatMoney(totals.total, currency)}
             </span>
           </div>
         </Section>
@@ -1316,9 +1312,9 @@ export function QuoteForm({
                 <span className="pb-2 text-[12px] text-brand-mute">
                   Due now{" "}
                   <span className="font-semibold text-brand-ink">
-                    {fmt(deposit.due, currency)}
+                    {formatMoney(deposit.due, currency)}
                   </span>{" "}
-                  · balance {fmt(deposit.balance, currency)}
+                  · balance {formatMoney(deposit.balance, currency)}
                 </span>
               </div>
             ) : (
@@ -1445,19 +1441,19 @@ export function QuoteForm({
             <ul className="space-y-2">
               <SumRow
                 label="Accommodation"
-                value={fmt(totals.base, currency)}
+                value={formatMoney(totals.base, currency)}
               />
               {totals.cleaning > 0 ? (
                 <SumRow
                   label="Cleaning fee"
-                  value={fmt(totals.cleaning, currency)}
+                  value={formatMoney(totals.cleaning, currency)}
                 />
               ) : null}
               {catalogLines.map((a, i) => (
                 <SumRow
                   key={`c${i}`}
                   label={a.label}
-                  value={fmt(a.quantity * a.unit_price, currency)}
+                  value={formatMoney(a.quantity * a.unit_price, currency)}
                 />
               ))}
               {customAddons
@@ -1466,7 +1462,7 @@ export function QuoteForm({
                   <SumRow
                     key={`x${i}`}
                     label={a.label}
-                    value={fmt(
+                    value={formatMoney(
                       (parseFloat(a.quantity) || 0) *
                         (parseFloat(a.unitPrice) || 0),
                       currency,
@@ -1477,7 +1473,7 @@ export function QuoteForm({
                 <SumRow
                   key={`a${i}`}
                   label={a.label}
-                  value={fmt(a.subtotal, currency)}
+                  value={formatMoney(a.subtotal, currency)}
                 />
               ))}
               {totals.discountAmount > 0 ? (
@@ -1489,7 +1485,7 @@ export function QuoteForm({
                       : ""}
                   </span>
                   <span className="font-medium text-brand-primary">
-                    −{fmt(totals.discountAmount, currency)}
+                    −{formatMoney(totals.discountAmount, currency)}
                   </span>
                 </li>
               ) : null}
@@ -1501,7 +1497,7 @@ export function QuoteForm({
                   Quote total
                 </div>
                 <div className="mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
-                  {fmt(totals.total, currency)}
+                  {formatMoney(totals.total, currency)}
                 </div>
               </div>
               {nights > 0 ? (
@@ -1510,7 +1506,7 @@ export function QuoteForm({
                     avg / night
                   </div>
                   <div className="font-display text-[14px] font-bold text-brand-ink">
-                    {fmt(totals.total / nights, currency)}
+                    {formatMoney(totals.total / nights, currency)}
                   </div>
                 </div>
               ) : null}
@@ -1524,12 +1520,12 @@ export function QuoteForm({
                       : `Due to accept (${parseFloat(depositPct) || 0}%)`}
                   </span>
                   <span className="font-display text-[16px] font-bold text-brand-secondary">
-                    {fmt(deposit.due, currency)}
+                    {formatMoney(deposit.due, currency)}
                   </span>
                 </div>
                 {deposit.balance > 0 ? (
                   <div className="mt-0.5 text-[10.5px] text-brand-mute">
-                    Balance {fmt(deposit.balance, currency)} due{" "}
+                    Balance {formatMoney(deposit.balance, currency)} due{" "}
                     {balanceDueDays} days before check-in
                   </div>
                 ) : null}

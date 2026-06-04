@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Refactor: migrate quote money formatters to formatMoney — branch `main`
+
+### Changed
+- Replaced the private `fmt`/inline money formatters in the quotes area with canonical `lib/format.ts#formatMoney`: `QuoteForm`, `quotes/[id]/page`, the guest-facing public `q/[id]/[token]/page`, `QuoteShare` (WhatsApp/email share message), and one equivalent inline spot in `quotes/actions.ts` (the quote-sent inbox message body).
+
+### Notes
+- Behaviour-preserving for ZAR (verified identical output). **Deliberately left one inline formatter in `quotes/actions.ts` untouched** — the `quote_sent` system-message body used bare `Math.round()` with no thousands grouping (`R 1500`), so it is *not* identical to `formatMoney` (`R 1 500`); migrating it would change a displayed amount, which the no-behaviour-change rule forbids. Logged in `SIMPLIFICATION_PLAN.md` as a latent inconsistency to fix on purpose later. `pnpm build` + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Refactor: migrate invoice + credit-note money formatters to formatMoney — branch `main`
 
 ### Changed
