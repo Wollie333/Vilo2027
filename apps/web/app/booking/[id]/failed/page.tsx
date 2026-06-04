@@ -8,7 +8,7 @@ import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Payment failed · Vilo",
+  title: "Payment failed",
 };
 
 export const dynamic = "force-dynamic";

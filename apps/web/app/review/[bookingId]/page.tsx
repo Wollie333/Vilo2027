@@ -8,7 +8,7 @@ import { verifyReviewToken } from "@/lib/review-token";
 import { ReviewSubmissionForm } from "./ReviewSubmissionForm";
 
 export const metadata: Metadata = {
-  title: "Leave a review · Vilo",
+  title: "Leave a review",
 };
 
 export const dynamic = "force-dynamic";

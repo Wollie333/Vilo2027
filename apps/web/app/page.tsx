@@ -16,7 +16,7 @@ import { UtilityBar } from "./_components/home/UtilityBar";
 import { getHomeData } from "./_components/home/home-data";
 
 export const metadata: Metadata = {
-  title: "Vilo — South Africa's direct booking directory",
+  title: "South Africa's direct booking directory",
   description:
     "From a cottage in the Karoo to a lodge in the Drakensberg — every booking goes straight to the host. No middle-man, no booking fees, no fine print.",
 };

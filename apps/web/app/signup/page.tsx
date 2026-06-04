@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Create your Vilo account",
+  title: "Create your account",
   description:
     "Pick how you want to use Vilo — book stays as a guest, or host your own property.",
 };

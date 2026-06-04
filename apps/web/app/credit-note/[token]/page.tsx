@@ -7,7 +7,7 @@ import { Download } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
-  title: "Credit note · Vilo",
+  title: "Credit note",
 };
 
 export const dynamic = "force-dynamic";

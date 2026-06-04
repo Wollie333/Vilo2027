@@ -6,7 +6,7 @@ import {
 } from "../_components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Vilo",
+  title: "Privacy Policy",
   description:
     "How Vilo collects, uses, and protects personal information for hosts and guests on the platform.",
 };

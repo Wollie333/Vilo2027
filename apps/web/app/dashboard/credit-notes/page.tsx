@@ -9,7 +9,7 @@ import {
 } from "../quotes/schemas";
 
 export const metadata: Metadata = {
-  title: "Credit notes · Vilo",
+  title: "Credit notes",
 };
 
 export const dynamic = "force-dynamic";

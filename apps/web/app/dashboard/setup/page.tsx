@@ -24,7 +24,7 @@ function last4FromCipher(stored: string | null): string {
 }
 
 export const metadata: Metadata = {
-  title: "Finish setting up · Vilo",
+  title: "Finish setting up",
 };
 
 export const dynamic = "force-dynamic";

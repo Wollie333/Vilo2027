@@ -14,7 +14,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { GuestThread, type GuestMessage } from "./GuestThread";
 
 export const metadata: Metadata = {
-  title: "Conversation · Vilo",
+  title: "Conversation",
 };
 
 export const dynamic = "force-dynamic";

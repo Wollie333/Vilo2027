@@ -17,7 +17,7 @@ import { ReviewCard, type ReviewCardProps } from "./ReviewCard";
 import { StarRow } from "./StarRow";
 
 export const metadata: Metadata = {
-  title: "Reviews · Vilo",
+  title: "Reviews",
 };
 
 export const dynamic = "force-dynamic";

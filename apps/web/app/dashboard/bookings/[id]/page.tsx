@@ -34,7 +34,7 @@ import { WelcomeNoteCard } from "./WelcomeNoteCard";
 import { IssueRefundButton } from "./IssueRefundButton";
 
 export const metadata: Metadata = {
-  title: "Booking · Vilo",
+  title: "Booking",
 };
 
 export const dynamic = "force-dynamic";

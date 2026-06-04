@@ -32,7 +32,7 @@ import { QuoteInternalNotes, type QuoteNote } from "./QuoteInternalNotes";
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "../schemas";
 
 export const metadata: Metadata = {
-  title: "Quote · Vilo",
+  title: "Quote",
 };
 
 export const dynamic = "force-dynamic";

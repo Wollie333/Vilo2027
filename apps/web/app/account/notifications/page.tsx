@@ -8,7 +8,7 @@ import {
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Notifications · Vilo",
+  title: "Notifications",
 };
 
 export const dynamic = "force-dynamic";

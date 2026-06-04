@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import { VLogo } from "./VLogo";
 
 const EXPLORE = [
@@ -34,7 +36,8 @@ const COMPANY = [
   { href: "/terms", label: "Terms" },
 ] as const;
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const brand = await getBrandName();
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -43,7 +46,7 @@ export function SiteFooter() {
             <div className="flex items-center gap-2.5">
               <VLogo size={32} gradientId="home-footer-logo" />
               <span className="font-display text-[17px] font-bold tracking-tight text-white">
-                Vilo
+                {brand}
               </span>
             </div>
             <p className="mt-5 max-w-xs text-sm leading-relaxed">

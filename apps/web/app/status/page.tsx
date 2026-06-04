@@ -31,7 +31,7 @@ async function checkSupabaseConnection() {
 }
 
 export const metadata = {
-  title: "Status — Vilo",
+  title: "Status",
   description: "Live readout of the Vilo platform stack.",
 };
 

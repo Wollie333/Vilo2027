@@ -5,7 +5,7 @@ import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { SentNotice } from "./SentNotice";
 
 export const metadata: Metadata = {
-  title: "Reset your password · Vilo",
+  title: "Reset your password",
   description: "Send yourself a password reset link.",
 };
 

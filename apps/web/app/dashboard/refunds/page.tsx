@@ -7,7 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { RefundActions } from "./RefundActions";
 
 export const metadata: Metadata = {
-  title: "Refunds · Vilo",
+  title: "Refunds",
 };
 
 export const dynamic = "force-dynamic";

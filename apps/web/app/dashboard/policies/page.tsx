@@ -9,7 +9,7 @@ import { PolicyLibrary, type PolicyCard } from "./PolicyLibrary";
 import { isLockedPreset, type CheckInMethod, type PolicyType } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Policies · Vilo",
+  title: "Policies",
 };
 
 export const dynamic = "force-dynamic";

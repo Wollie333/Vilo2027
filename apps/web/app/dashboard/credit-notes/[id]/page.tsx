@@ -14,7 +14,7 @@ import {
 import { CreditNoteActions } from "./CreditNoteActions";
 
 export const metadata: Metadata = {
-  title: "Credit note · Vilo",
+  title: "Credit note",
 };
 
 export const dynamic = "force-dynamic";

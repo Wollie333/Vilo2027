@@ -5,7 +5,7 @@ import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccoun
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Data & privacy · Account · Vilo",
+  title: "Data & privacy · Account",
 };
 
 export const dynamic = "force-dynamic";

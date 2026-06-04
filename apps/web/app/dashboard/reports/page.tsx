@@ -4,7 +4,7 @@ import { BarChart3 } from "lucide-react";
 import { ComingSoon } from "../_components/ComingSoon";
 
 export const metadata: Metadata = {
-  title: "Reports · Vilo",
+  title: "Reports",
 };
 
 export default function ReportsPage() {

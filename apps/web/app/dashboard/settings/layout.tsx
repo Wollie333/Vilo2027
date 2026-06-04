@@ -5,7 +5,7 @@ import { SettingsHero } from "@/components/settings/SettingsHero";
 import { SettingsTabs } from "./_components/SettingsTabs";
 
 export const metadata: Metadata = {
-  title: "Settings · Vilo",
+  title: "Settings",
 };
 
 export default function SettingsLayout({

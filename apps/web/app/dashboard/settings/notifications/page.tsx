@@ -7,7 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { AwayAutoReplyCard } from "./AwayAutoReplyCard";
 
 export const metadata: Metadata = {
-  title: "Notifications · Settings · Vilo",
+  title: "Notifications · Settings",
 };
 
 export const dynamic = "force-dynamic";

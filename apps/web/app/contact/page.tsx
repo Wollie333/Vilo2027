@@ -5,7 +5,7 @@ import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Contact — Vilo",
+  title: "Contact",
   description:
     "Get in touch with the Vilo team — support, partnerships, press, or just to say hi.",
 };

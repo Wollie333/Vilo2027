@@ -30,7 +30,7 @@ const ACC_TYPE_LABEL: Record<string, string> = {
 };
 
 export const metadata: Metadata = {
-  title: "Confirm and pay · Vilo",
+  title: "Confirm and pay",
 };
 
 // Guest-facing data (add-ons, rooms, pricing, availability) must always be read

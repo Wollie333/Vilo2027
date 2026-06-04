@@ -11,7 +11,7 @@ import {
 import { type AddonCategory, type PricingModel } from "../schemas";
 
 export const metadata: Metadata = {
-  title: "Edit add-on · Vilo",
+  title: "Edit add-on",
 };
 
 export const dynamic = "force-dynamic";

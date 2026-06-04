@@ -9,7 +9,7 @@ import {
 } from "./PaymentsBoard";
 
 export const metadata: Metadata = {
-  title: "Payments · Vilo",
+  title: "Payments",
 };
 
 export const dynamic = "force-dynamic";

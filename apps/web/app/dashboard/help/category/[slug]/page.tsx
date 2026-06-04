@@ -28,7 +28,7 @@ export async function generateMetadata({
 }: {
   params: Params;
 }): Promise<Metadata> {
-  return { title: `${prettySlug(params.slug)} · Vilo help` };
+  return { title: `${prettySlug(params.slug)}` };
 }
 
 function prettySlug(slug: string): string {

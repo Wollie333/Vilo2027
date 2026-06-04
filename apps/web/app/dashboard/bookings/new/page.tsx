@@ -14,7 +14,7 @@ import {
 } from "./ManualBookingForm";
 
 export const metadata: Metadata = {
-  title: "New booking · Vilo",
+  title: "New booking",
 };
 
 export const dynamic = "force-dynamic";

@@ -21,7 +21,7 @@ import type { EditorRoom } from "../listings/[id]/edit/Editor";
 import { type BedKind, bedKindLabel } from "../listings/[id]/edit/schemas";
 
 export const metadata: Metadata = {
-  title: "Rooms · Vilo",
+  title: "Rooms",
 };
 
 export const dynamic = "force-dynamic";

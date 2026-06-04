@@ -6,7 +6,7 @@ import { AuthShell } from "../_components/AuthShell";
 import { RegisterForm } from "./RegisterForm";
 
 export const metadata: Metadata = {
-  title: "Accept your invite · Vilo",
+  title: "Accept your invite",
   description: "Set a password to finish joining your team on Vilo.",
 };
 

@@ -7,7 +7,7 @@ import { AuthShell } from "../_components/AuthShell";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
 export const metadata: Metadata = {
-  title: "Choose a new password · Vilo",
+  title: "Choose a new password",
   description: "Set a new password for your Vilo account.",
 };
 

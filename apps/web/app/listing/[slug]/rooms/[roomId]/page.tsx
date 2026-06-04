@@ -23,7 +23,7 @@ import { bedSummary, roomFlagPills, type PublicRoom } from "../../roomDisplay";
 import { RoomBookingWidget } from "./RoomBookingWidget";
 
 export const metadata: Metadata = {
-  title: "Room · Vilo",
+  title: "Room",
 };
 
 export const dynamic = "force-dynamic";

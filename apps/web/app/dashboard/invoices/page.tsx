@@ -6,7 +6,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../quotes/schemas";
 
 export const metadata: Metadata = {
-  title: "Invoices · Vilo",
+  title: "Invoices",
 };
 
 export const dynamic = "force-dynamic";

@@ -15,7 +15,7 @@ import { PlanPicker } from "./PlanPicker";
 import { findPlan, formatZar, type PlanKey } from "./plans";
 
 export const metadata: Metadata = {
-  title: "Subscription · Settings · Vilo",
+  title: "Subscription · Settings",
 };
 
 export const dynamic = "force-dynamic";

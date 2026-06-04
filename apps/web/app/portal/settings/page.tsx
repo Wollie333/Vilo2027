@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { SettingsForms } from "./SettingsForms";
 
 export const metadata: Metadata = {
-  title: "Settings · Vilo",
+  title: "Settings",
 };
 
 export const dynamic = "force-dynamic";

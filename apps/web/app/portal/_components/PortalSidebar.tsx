@@ -17,6 +17,7 @@ import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 
 import { VLogo } from "@/app/dashboard/_components/VLogo";
+import { BrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 type Item = {
@@ -97,7 +98,7 @@ export function PortalSidebar({
         <VLogo size={36} gradientId="portal-logo" />
         <div className="leading-none">
           <div className="font-display text-[15px] font-bold tracking-tight text-brand-ink">
-            Vilo
+            <BrandName />
           </div>
           <div className="mt-1 text-[10px] text-brand-mute">Guest portal</div>
         </div>

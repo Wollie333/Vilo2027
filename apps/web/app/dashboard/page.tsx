@@ -24,7 +24,7 @@ import { buildSetupSteps } from "./_components/setupSteps";
 import { WelcomeToast } from "./WelcomeToast";
 
 export const metadata: Metadata = {
-  title: "Dashboard · Vilo",
+  title: "Dashboard",
 };
 
 export const dynamic = "force-dynamic";

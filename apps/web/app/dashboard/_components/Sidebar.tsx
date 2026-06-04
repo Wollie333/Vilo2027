@@ -34,6 +34,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { BrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 import { useQuickNav } from "./QuickNavPalette";
@@ -264,7 +265,7 @@ export function Sidebar({
         <VLogo size={36} gradientId="sb-logo" />
         <div className="leading-none">
           <div className="font-display text-[15px] font-bold tracking-tight text-brand-ink">
-            Vilo
+            <BrandName />
           </div>
           <div className="mt-1 text-[10px] text-brand-mute">Host dashboard</div>
         </div>

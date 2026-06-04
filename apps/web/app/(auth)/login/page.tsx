@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign in · Vilo",
+  title: "Sign in",
   description: "Sign in to manage your listings, bookings, and guests.",
 };
 

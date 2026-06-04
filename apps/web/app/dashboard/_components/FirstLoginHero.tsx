@@ -1,6 +1,8 @@
 import { ArrowRight, Check, Link2, Play } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import { type SetupStep, setupProgress } from "./setupSteps";
 
 type Props = {
@@ -13,7 +15,8 @@ type Props = {
 // design — gradient left side with the greeting + handle pill + CTAs,
 // dark right side with a progress ring and the four most-prominent step
 // chips. The full 6-row checklist lives below in SetupChecklist.
-export function FirstLoginHero({ firstName, handle, steps }: Props) {
+export async function FirstLoginHero({ firstName, handle, steps }: Props) {
+  const brand = await getBrandName();
   const { done, total, pct, nextStep } = setupProgress(steps);
   // The four chip-form steps that summarize progress at a glance. We pick
   // the most action-y subset rather than rendering all six twice — the
@@ -53,7 +56,7 @@ export function FirstLoginHero({ firstName, handle, steps }: Props) {
               Account created · today
             </div>
             <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-              Welcome to Vilo, {firstName}.
+              Welcome to {brand}, {firstName}.
             </h2>
             <p className="mt-2 max-w-md text-[14px] leading-relaxed text-brand-accent/80">
               Your direct-booking page is reserved. Finish a few quick steps and

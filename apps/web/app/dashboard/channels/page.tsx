@@ -4,7 +4,7 @@ import { Cable } from "lucide-react";
 import { ComingSoon } from "../_components/ComingSoon";
 
 export const metadata: Metadata = {
-  title: "Channels · Vilo",
+  title: "Channels",
 };
 
 export default function ChannelsPage() {

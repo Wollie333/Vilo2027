@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import { VLogo } from "./VLogo";
 
 const NAV = [
@@ -11,18 +13,19 @@ const NAV = [
   { href: "#faq", label: "FAQ" },
 ] as const;
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const brand = await getBrandName();
   return (
     <header className="sticky top-0 z-40 border-b border-brand-line/70 bg-brand-light/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-5 lg:px-8">
         <Link
           href="/"
-          aria-label="Vilo home"
+          aria-label={`${brand} home`}
           className="flex shrink-0 items-center gap-2.5"
         >
           <VLogo size="md" gradientId="bm-nav-logo" />
           <span className="font-display text-[17px] font-bold tracking-tight text-brand-ink">
-            Vilo
+            {brand}
           </span>
         </Link>
 

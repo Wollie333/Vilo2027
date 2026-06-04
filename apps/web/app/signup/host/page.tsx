@@ -7,7 +7,7 @@ import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 import { Wizard } from "./Wizard";
 
 export const metadata: Metadata = {
-  title: "Become a host · Vilo",
+  title: "Become a host",
   description:
     "Set up your Vilo host profile and your first listing — five quick steps.",
 };

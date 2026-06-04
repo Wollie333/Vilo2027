@@ -24,7 +24,7 @@ import { TopicsGrid } from "../dashboard/help/_components/TopicsGrid";
 import { VideoTutorials } from "../dashboard/help/_components/VideoTutorials";
 
 export const metadata: Metadata = {
-  title: "Help & docs · Vilo",
+  title: "Help & docs",
   description:
     "Articles, video tutorials, and FAQ for hosts and guests on Vilo. Direct-booking management for South African accommodation.",
 };

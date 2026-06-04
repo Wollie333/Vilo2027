@@ -13,6 +13,7 @@ import Link from "next/link";
 import { forwardRef, useEffect, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/(auth)/actions";
+import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { createClient } from "@/lib/supabase/client";
 
 import { VLogo } from "./VLogo";
@@ -32,6 +33,7 @@ type Session = {
 } | null;
 
 export function SiteHeader() {
+  const brand = useBrandName();
   const [elevated, setElevated] = useState(false);
   const [session, setSession] = useState<Session>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -121,13 +123,13 @@ export function SiteHeader() {
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 lg:px-8">
         <Link
           href="/"
-          aria-label="Vilo home"
+          aria-label={`${brand} home`}
           className="flex shrink-0 items-center gap-2.5"
         >
           <VLogo size={36} gradientId="home-nav-logo" />
           <div className="leading-none">
             <div className="font-display text-[18px] font-bold tracking-tight text-brand-ink">
-              Vilo
+              <BrandName />
             </div>
             <div className="mt-0.5 hidden text-[10px] text-brand-mute sm:block">
               Direct stays. Direct hosts.
@@ -191,7 +193,7 @@ export function SiteHeader() {
                 href="/signup"
                 className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
               >
-                Join Vilo
+                Join {brand}
               </Link>
             </>
           )}

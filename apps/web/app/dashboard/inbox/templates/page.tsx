@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Quick reply templates · Inbox · Vilo",
+  title: "Quick reply templates · Inbox",
 };
 
 export default function TemplatesComingSoonPage() {

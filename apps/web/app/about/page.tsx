@@ -5,7 +5,7 @@ import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "About — Vilo",
+  title: "About",
   description:
     "Vilo is South Africa's direct-stay platform. Hosts keep more, guests pay less, and bookings don't get lost in inbox roulette.",
 };

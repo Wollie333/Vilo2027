@@ -12,7 +12,7 @@ import {
 } from "../../dashboard/quotes/schemas";
 
 export const metadata: Metadata = {
-  title: "Invoice · Vilo",
+  title: "Invoice",
 };
 
 export const dynamic = "force-dynamic";

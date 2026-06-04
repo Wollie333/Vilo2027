@@ -13,7 +13,7 @@ import { CreateCreditNote } from "./CreateCreditNote";
 import { InvoiceActions } from "./InvoiceActions";
 
 export const metadata: Metadata = {
-  title: "Invoice · Vilo",
+  title: "Invoice",
 };
 
 export const dynamic = "force-dynamic";

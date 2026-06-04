@@ -6,7 +6,7 @@ import { SettingsHero } from "@/components/settings/SettingsHero";
 import { AccountSettingsTabs } from "./_components/AccountSettingsTabs";
 
 export const metadata: Metadata = {
-  title: "Account settings · Vilo",
+  title: "Account settings",
 };
 
 // Guest-facing settings shell. Tabs render via a client component so the

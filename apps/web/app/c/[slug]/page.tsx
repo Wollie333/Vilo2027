@@ -23,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const category = await getCategoryBySlug(params.slug);
   if (!category) {
-    return { title: "Category not found · Vilo" };
+    return { title: "Category not found" };
   }
   const title = category.meta_title || `${category.label} · Vilo`;
   const description =

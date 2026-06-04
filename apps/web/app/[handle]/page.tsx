@@ -284,9 +284,9 @@ export async function generateMetadata({
   params: { handle: string };
 }): Promise<Metadata> {
   const data = await loadHost(params.handle);
-  if (!data) return { title: "Host not found · Vilo" };
+  if (!data) return { title: "Host not found" };
   return {
-    title: `${data.host.display_name} · Vilo`,
+    title: `${data.host.display_name}`,
     description:
       data.host.bio?.slice(0, 200) ??
       `Book directly with ${data.host.display_name} on Vilo.`,

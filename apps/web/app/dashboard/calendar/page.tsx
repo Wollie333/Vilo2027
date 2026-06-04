@@ -20,7 +20,7 @@ import {
 import { CalendarWorkspace } from "./CalendarWorkspace";
 
 export const metadata: Metadata = {
-  title: "Calendar · Vilo",
+  title: "Calendar",
 };
 
 export const dynamic = "force-dynamic";

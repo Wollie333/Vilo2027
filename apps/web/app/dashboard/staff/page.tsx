@@ -10,7 +10,7 @@ import { StaffManager } from "./StaffManager";
 import { STAFF_ROLE_LABEL, type StaffRole } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Staff · Vilo",
+  title: "Staff",
 };
 
 export const dynamic = "force-dynamic";

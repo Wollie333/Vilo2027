@@ -3,7 +3,7 @@ import { ArrowLeft, Lock } from "lucide-react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "No access · Admin · Vilo",
+  title: "No access · Admin",
 };
 
 // Landing page for permission denials surfaced by requirePermission()

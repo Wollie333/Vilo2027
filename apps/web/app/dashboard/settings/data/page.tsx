@@ -8,7 +8,7 @@ import { DeleteAccountSection } from "./DeleteAccountSection";
 import { RequestSection } from "./RequestForm";
 
 export const metadata: Metadata = {
-  title: "Data & privacy · Settings · Vilo",
+  title: "Data & privacy · Settings",
 };
 
 export const dynamic = "force-dynamic";

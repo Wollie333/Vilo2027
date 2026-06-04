@@ -22,7 +22,7 @@ import { SearchBar } from "./SearchBar";
 import { TypeChips } from "./TypeChips";
 
 export const metadata: Metadata = {
-  title: "Explore stays · Vilo",
+  title: "Explore stays",
   description:
     "Search direct-booking stays across South Africa — book straight with the host.",
 };

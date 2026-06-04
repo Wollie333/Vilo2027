@@ -8,7 +8,7 @@ import { QuoteForm } from "../../QuoteForm";
 import { loadQuoteFormListings } from "../../_listings";
 
 export const metadata: Metadata = {
-  title: "Edit quote · Vilo",
+  title: "Edit quote",
 };
 
 export const dynamic = "force-dynamic";

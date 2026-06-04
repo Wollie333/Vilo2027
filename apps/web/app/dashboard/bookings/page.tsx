@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { BookingsBoard, type BookingRow, type Kpis } from "./BookingsBoard";
 
 export const metadata: Metadata = {
-  title: "Bookings · Vilo",
+  title: "Bookings",
 };
 
 export const dynamic = "force-dynamic";

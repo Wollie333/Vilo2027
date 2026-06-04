@@ -7,7 +7,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { FeedManager, type Feed } from "./FeedManager";
 
 export const metadata: Metadata = {
-  title: "Calendar sync · Vilo",
+  title: "Calendar sync",
 };
 
 export const dynamic = "force-dynamic";

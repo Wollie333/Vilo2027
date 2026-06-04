@@ -26,9 +26,9 @@ export async function generateMetadata({
   params: Params;
 }): Promise<Metadata> {
   const article = await fetchHelpArticleBySlug(params.slug);
-  if (!article) return { title: "Article not found · Vilo help" };
+  if (!article) return { title: "Article not found" };
   return {
-    title: `${article.title} · Vilo help`,
+    title: `${article.title}`,
     description: article.excerpt || undefined,
     alternates: { canonical: `/help/${article.slug}` },
   };

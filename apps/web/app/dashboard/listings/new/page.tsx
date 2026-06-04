@@ -9,7 +9,7 @@ import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 import { NewListingForm } from "./NewListingForm";
 
 export const metadata: Metadata = {
-  title: "New listing · Vilo",
+  title: "New listing",
 };
 
 export default async function NewListingPage() {

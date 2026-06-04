@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = { as?: string };
 
 export const metadata: Metadata = {
-  title: "All help articles · Vilo",
+  title: "All help articles",
   description:
     "Every published help article on Vilo, sorted by most recently updated. Bookings, payments, channels, listings, account, and trust & safety.",
   alternates: { canonical: "/help/articles" },

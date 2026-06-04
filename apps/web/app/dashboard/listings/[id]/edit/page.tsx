@@ -18,7 +18,7 @@ import type { AssignedAddon, AvailableAddon } from "./tabs/AddonsTab";
 import type { AssignedPolicy, AvailablePolicy } from "./tabs/PoliciesTab";
 
 export const metadata: Metadata = {
-  title: "Edit listing · Vilo",
+  title: "Edit listing",
 };
 
 export default async function EditListingPage({

@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/admin/requirePermission";
 import { BroadcastForm } from "../BroadcastForm";
 
 export const metadata: Metadata = {
-  title: "New broadcast · Admin · Vilo",
+  title: "New broadcast · Admin",
 };
 
 export const dynamic = "force-dynamic";

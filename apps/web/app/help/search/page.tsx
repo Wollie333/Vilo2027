@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 type SearchParams = { q?: string; as?: string };
 
 export const metadata: Metadata = {
-  title: "Search help · Vilo",
+  title: "Search help",
   robots: { index: false, follow: true },
 };
 

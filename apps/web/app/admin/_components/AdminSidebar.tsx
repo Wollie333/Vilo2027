@@ -28,6 +28,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { BrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 import { VLogo } from "../../dashboard/_components/VLogo";
@@ -236,7 +237,7 @@ export function AdminSidebar({
         <VLogo size={36} gradientId="admin-logo" />
         <div className="leading-none">
           <div className="font-display text-[15px] font-bold tracking-tight text-brand-ink">
-            Vilo
+            <BrandName />
           </div>
           <div className="mt-1 text-[10px] uppercase tracking-wider text-brand-primary">
             Admin

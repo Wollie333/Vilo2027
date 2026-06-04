@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = { q?: string; as?: string };
 
-export const metadata: Metadata = { title: "Search help · Vilo" };
+export const metadata: Metadata = { title: "Search help" };
 
 function resolveAudience(value: string | undefined): HelpAudience {
   return value === "guest" ? "guest" : "host";

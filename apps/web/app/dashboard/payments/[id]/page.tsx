@@ -25,7 +25,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { PaymentManage } from "./PaymentManage";
 
 export const metadata: Metadata = {
-  title: "Payment · Vilo",
+  title: "Payment",
 };
 
 export const dynamic = "force-dynamic";

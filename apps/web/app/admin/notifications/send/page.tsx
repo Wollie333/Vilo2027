@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/admin/requirePermission";
 import { SendForm } from "./SendForm";
 
 export const metadata: Metadata = {
-  title: "Send notification · Admin · Vilo",
+  title: "Send notification · Admin",
 };
 
 export const dynamic = "force-dynamic";

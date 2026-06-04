@@ -15,7 +15,7 @@ import {
 import { AcceptButton } from "./AcceptButton";
 
 export const metadata: Metadata = {
-  title: "Join the team · Vilo",
+  title: "Join the team",
 };
 
 export const dynamic = "force-dynamic";

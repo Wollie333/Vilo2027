@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { CancelButton } from "./CancelButton";
 
 export const metadata: Metadata = {
-  title: "Broadcast · Admin · Vilo",
+  title: "Broadcast · Admin",
 };
 
 export const dynamic = "force-dynamic";

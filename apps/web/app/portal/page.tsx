@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Portal · Vilo",
+  title: "Portal",
 };
 
 export const dynamic = "force-dynamic";

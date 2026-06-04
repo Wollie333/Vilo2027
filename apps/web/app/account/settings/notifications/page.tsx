@@ -4,7 +4,7 @@ import { PreferencesForm } from "@/components/notifications/PreferencesForm";
 import { loadPreferencesViewModel } from "@/lib/notifications/preferences-loader";
 
 export const metadata: Metadata = {
-  title: "Notifications · Account · Vilo",
+  title: "Notifications · Account",
 };
 
 export const dynamic = "force-dynamic";

@@ -7,7 +7,7 @@ import { PageFooter } from "../booking-management/_components/PageFooter";
 import { SiteHeader } from "../booking-management/_components/SiteHeader";
 
 export const metadata: Metadata = {
-  title: "Changelog · Vilo",
+  title: "Changelog",
   description:
     "Every shipped slice — status, scope, decisions and notes — straight from the source CHANGELOG.md.",
 };

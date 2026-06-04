@@ -22,7 +22,7 @@ import type {
 } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Banking & business · Settings · Vilo",
+  title: "Banking & business · Settings",
 };
 
 export const dynamic = "force-dynamic";

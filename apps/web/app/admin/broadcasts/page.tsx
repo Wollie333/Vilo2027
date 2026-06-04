@@ -8,7 +8,7 @@ import { requirePermission } from "@/lib/admin/requirePermission";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
-  title: "Broadcasts · Admin · Vilo",
+  title: "Broadcasts · Admin",
 };
 
 export const dynamic = "force-dynamic";

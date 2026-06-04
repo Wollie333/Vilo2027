@@ -17,7 +17,7 @@ import {
 } from "./InboxView";
 
 export const metadata: Metadata = {
-  title: "Inbox · Vilo",
+  title: "Inbox",
 };
 
 export const dynamic = "force-dynamic";

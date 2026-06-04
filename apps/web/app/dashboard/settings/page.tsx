@@ -8,7 +8,7 @@ import { HostProfileForm } from "@/components/host/HostProfileForm";
 import { PasswordCard } from "./PasswordCard";
 
 export const metadata: Metadata = {
-  title: "Profile · Settings · Vilo",
+  title: "Profile · Settings",
 };
 
 export const dynamic = "force-dynamic";

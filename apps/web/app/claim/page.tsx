@@ -22,7 +22,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ClaimForm } from "./ClaimForm";
 
 export const metadata: Metadata = {
-  title: "Claim your account · Vilo",
+  title: "Claim your account",
 };
 
 export const dynamic = "force-dynamic";

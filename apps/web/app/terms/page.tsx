@@ -6,7 +6,7 @@ import {
 } from "../_components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — Vilo",
+  title: "Terms of Service",
   description:
     "The terms that govern your use of the Vilo direct-booking platform as a host or guest.",
 };

@@ -18,7 +18,7 @@ import {
 } from "./BookingConfirmation";
 
 export const metadata: Metadata = {
-  title: "Booking confirmed · Vilo",
+  title: "Booking confirmed",
 };
 
 // Always SSR so we re-read the latest booking + payment state. The webhook

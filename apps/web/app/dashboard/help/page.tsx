@@ -26,7 +26,7 @@ import { TopicsGrid } from "./_components/TopicsGrid";
 import { VideoTutorials } from "./_components/VideoTutorials";
 
 export const metadata: Metadata = {
-  title: "Help & docs · Vilo",
+  title: "Help & docs",
 };
 
 export const dynamic = "force-dynamic";

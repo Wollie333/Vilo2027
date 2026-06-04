@@ -13,7 +13,7 @@ import {
 } from "./SeasonalPricingManager";
 
 export const metadata: Metadata = {
-  title: "Seasonal pricing · Vilo",
+  title: "Seasonal pricing",
 };
 
 export const dynamic = "force-dynamic";

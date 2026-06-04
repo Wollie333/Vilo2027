@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { QuoteResponseActions } from "./QuoteResponseActions";
 
 export const metadata: Metadata = {
-  title: "Your quote · Vilo",
+  title: "Your quote",
 };
 
 export const dynamic = "force-dynamic";

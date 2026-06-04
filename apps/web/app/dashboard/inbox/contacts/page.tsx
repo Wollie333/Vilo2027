@@ -8,7 +8,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { ContactsExportButton } from "./ContactsExportButton";
 
 export const metadata: Metadata = {
-  title: "Contacts · Vilo",
+  title: "Contacts",
 };
 
 export const dynamic = "force-dynamic";

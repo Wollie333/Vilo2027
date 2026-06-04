@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-export function AuthShell({ children }: { children: React.ReactNode }) {
+import { getBrandName } from "@/lib/brand";
+
+export async function AuthShell({ children }: { children: React.ReactNode }) {
+  const brand = await getBrandName();
   return (
     <main className="relative min-h-screen overflow-hidden bg-brand-light text-brand-ink">
       <div
@@ -12,11 +15,11 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           <Link href="/" className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-card bg-brand-gradient text-white shadow-glow">
               <span className="font-display text-base font-bold leading-none">
-                V
+                {brand.charAt(0).toUpperCase()}
               </span>
             </div>
             <span className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand-mute">
-              Vilo
+              {brand}
             </span>
           </Link>
           <Link

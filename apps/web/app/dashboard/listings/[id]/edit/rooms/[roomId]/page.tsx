@@ -6,7 +6,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { RoomEditor, type RoomEditorRoom } from "./RoomEditor";
 
 export const metadata: Metadata = {
-  title: "Edit room · Vilo",
+  title: "Edit room",
 };
 
 export const dynamic = "force-dynamic";

@@ -13,7 +13,7 @@ import {
 } from "./CouponsManager";
 
 export const metadata: Metadata = {
-  title: "Coupons · Vilo",
+  title: "Coupons",
 };
 
 export const dynamic = "force-dynamic";

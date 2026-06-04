@@ -402,12 +402,12 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const data = await loadListing(params.slug);
-  if (!data) return { title: "Listing not found · Vilo" };
+  if (!data) return { title: "Listing not found" };
   const { listing } = data;
   const where = locationLabel(listing);
   const plain = listing.description ? stripHtml(listing.description) : "";
   return {
-    title: `${listing.name}${where ? ` · ${where}` : ""} · Vilo`,
+    title: `${listing.name}${where ? ` · ${where}` : ""}`,
     description:
       plain.length > 0
         ? plain.slice(0, 200)

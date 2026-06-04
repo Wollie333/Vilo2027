@@ -39,9 +39,9 @@ export async function generateMetadata({
     .eq("is_published", true)
     .is("deleted_at", null)
     .maybeSingle();
-  if (!cat) return { title: "Topic not found · Vilo help" };
+  if (!cat) return { title: "Topic not found" };
   return {
-    title: `${(cat as { name: string }).name} · Vilo help`,
+    title: `${(cat as { name: string }).name}`,
     description: (cat as { description?: string }).description || undefined,
     alternates: { canonical: `/help/category/${params.slug}` },
   };

@@ -38,7 +38,7 @@ import { CancelTripButton } from "./CancelTripButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
 export const metadata: Metadata = {
-  title: "Your trip · Vilo",
+  title: "Your trip",
 };
 
 export const dynamic = "force-dynamic";

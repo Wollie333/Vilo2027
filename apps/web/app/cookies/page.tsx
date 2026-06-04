@@ -6,7 +6,7 @@ import {
 } from "../_components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Cookies Policy — Vilo",
+  title: "Cookies Policy",
   description:
     "How Vilo uses cookies and similar technologies on the platform, and how you can manage them.",
 };

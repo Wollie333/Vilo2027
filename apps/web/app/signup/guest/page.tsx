@@ -6,7 +6,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { Wizard } from "./Wizard";
 
 export const metadata: Metadata = {
-  title: "Create your Vilo account · Vilo",
+  title: "Create your account",
   description:
     "Set up your guest profile and start booking direct stays — three quick steps.",
 };

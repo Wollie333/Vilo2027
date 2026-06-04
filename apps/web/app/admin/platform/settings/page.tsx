@@ -1,16 +1,26 @@
 import { requirePermission } from "@/lib/admin";
+import { getBrandName } from "@/lib/brand";
 
-import { PlaceholderPage } from "../../_components/PlaceholderPage";
+import { BrandNameForm } from "./BrandNameForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformSettingsPage() {
   await requirePermission("platform.settings");
+  const brand = await getBrandName();
+
   return (
-    <PlaceholderPage
-      title="Platform settings"
-      phase="E"
-      description="Key-value editor for platform_settings (ranking weights, trial length, sender emails, default policies)."
-    />
+    <div className="space-y-6">
+      <header>
+        <h1 className="font-display text-xl font-bold text-brand-ink">
+          Platform settings
+        </h1>
+        <p className="mt-1 text-sm text-brand-mute">
+          Runtime configuration for the platform.
+        </p>
+      </header>
+
+      <BrandNameForm initial={brand} />
+    </div>
   );
 }

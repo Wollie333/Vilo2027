@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import { VLogo } from "./VLogo";
 
 const PRODUCT_LINKS = [
@@ -31,7 +33,8 @@ const LEGAL_LINKS = [
   { label: "POPIA", href: "#" },
 ] as const;
 
-export function PageFooter() {
+export async function PageFooter() {
+  const brand = await getBrandName();
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -40,7 +43,7 @@ export function PageFooter() {
             <div className="flex items-center gap-2.5">
               <VLogo size="md" gradientId="bm-footer-logo" />
               <span className="font-display text-[17px] font-bold tracking-tight text-white">
-                Vilo
+                {brand}
               </span>
             </div>
             <p className="mt-5 max-w-xs text-sm leading-relaxed">

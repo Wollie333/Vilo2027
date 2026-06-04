@@ -8,7 +8,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Quotes · Vilo",
+  title: "Quotes",
 };
 
 export const dynamic = "force-dynamic";

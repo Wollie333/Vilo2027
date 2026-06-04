@@ -12,7 +12,7 @@ import {
   type ThemeItem,
 } from "./ExtrasManager";
 
-export const metadata: Metadata = { title: "Listing page extras · Vilo" };
+export const metadata: Metadata = { title: "Listing page extras" };
 export const dynamic = "force-dynamic";
 
 export default async function ListingExtrasPage() {

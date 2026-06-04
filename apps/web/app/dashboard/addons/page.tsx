@@ -10,7 +10,7 @@ import { AddonsArchive, type AddonCard } from "./AddonsArchive";
 import { type AddonCategory, type PricingModel } from "./schemas";
 
 export const metadata: Metadata = {
-  title: "Add-ons · Vilo",
+  title: "Add-ons",
 };
 
 export const dynamic = "force-dynamic";

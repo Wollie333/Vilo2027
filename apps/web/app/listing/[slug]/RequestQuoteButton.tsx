@@ -141,16 +141,39 @@ export function RequestQuoteButton({
 
       <FormModal
         open={open}
-        onOpenChange={setOpen}
+        // Lock the modal while the request is in flight so the guest can't
+        // dismiss it mid-send (the spinner runs through the redirect too).
+        onOpenChange={(v) => {
+          if (!pending) setOpen(v);
+        }}
         size="lg"
-        title={done ? "Request sent" : `Request a quote · ${listingName}`}
+        title={
+          pending
+            ? "Sending your request…"
+            : done
+              ? "Request sent"
+              : `Request a quote · ${listingName}`
+        }
         description={
-          done
+          pending || done
             ? undefined
             : "Tell the host your dates and party — they'll reply with a tailored quote. No payment now."
         }
       >
-        {done ? (
+        {pending ? (
+          <div className="py-8 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/10 text-brand-primary">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+            <h3 className="mt-3 font-display text-lg font-bold text-brand-ink">
+              Sending your request…
+            </h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-brand-mute">
+              Just a second — we&rsquo;re notifying {listingName}&rsquo;s host
+              and setting up your thread. Please don&rsquo;t close this window.
+            </p>
+          </div>
+        ) : done ? (
           <div className="py-4 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-status-confirmed/10 text-status-confirmed">
               <CheckCircle2 className="h-6 w-6" />
