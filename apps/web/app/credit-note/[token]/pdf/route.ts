@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getBrandName } from "@/lib/brand";
 import type { InvoiceBusiness } from "@/lib/pdf/InvoiceDocument";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderCreditNotePdf } from "@/lib/pdf/render";
@@ -106,6 +107,7 @@ export async function GET(
     total: Number(cn.total_amount),
     currency: cn.currency,
     logoUrl: await hostLogoDataUri(cn.host_id),
+    brandName: await getBrandName(),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

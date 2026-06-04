@@ -5,6 +5,7 @@ import {
   type InvoiceBanking,
   type InvoiceBusiness,
 } from "@/lib/pdf/InvoiceDocument";
+import { getBrandName } from "@/lib/brand";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
 import { renderInvoicePdf } from "@/lib/pdf/render";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -248,6 +249,7 @@ export async function GET(
     totalAmount: invoice.total_amount,
     currency: invoice.currency,
     logoUrl,
+    brandName: await getBrandName(),
   });
 
   return new NextResponse(new Uint8Array(buffer), {

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { getBrandName } from "@/lib/brand";
 import { decryptAccountNumber } from "@/lib/crypto/banking";
 import { type QuoteBanking, type QuoteBusiness } from "@/lib/pdf/QuoteDocument";
 import { hostLogoDataUri } from "@/lib/pdf/logo";
@@ -314,6 +315,7 @@ export async function GET(
     currency: doc.currency,
     notes: doc.notes,
     logoUrl: await hostLogoDataUri(hostObj.id),
+    brandName: await getBrandName(),
   });
 
   const fileName = snap

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getBrandName } from "@/lib/brand";
 import { renderInvoicePdf } from "@/lib/pdf/render";
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -181,6 +182,7 @@ export async function generateInvoicePdfAction(
     vatAmount: invoice.vat_amount,
     totalAmount: invoice.total_amount,
     currency: invoice.currency,
+    brandName: await getBrandName(),
   });
 
   // Upload via service-role client (the host doesn't have insert RLS on the
