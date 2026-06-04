@@ -4,7 +4,7 @@ import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { BrandProvider } from "@/components/brand/BrandProvider";
 import { ModalHost } from "@/components/ui/modal-host";
 import { Toaster } from "@/components/ui/sonner";
-import { getBrandName } from "@/lib/brand";
+import { getBranding, getBrandName } from "@/lib/brand";
 
 import { CookieBanner } from "./_components/CookieBanner";
 import "./globals.css";
@@ -41,14 +41,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const brand = await getBrandName();
+  const branding = await getBranding();
   return (
     <html
       lang="en"
       className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans antialiased">
-        <BrandProvider name={brand}>
+        <BrandProvider value={branding}>
           {children}
           <CookieBanner />
           <Toaster richColors position="top-center" />

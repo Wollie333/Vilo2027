@@ -2,28 +2,56 @@
 
 import { createContext, useContext } from "react";
 
-// Makes the configurable brand name available to client components. The value
-// is resolved server-side (lib/brand.ts#getBrandName) and injected once at the
-// root layout, so client code never queries it. Use:
-//   const brand = useBrandName();           // "Vilo" (or the configured name)
-//   <BrandName />                            // renders the name as text
+// Makes the configurable brand + company identity available to client
+// components. Values are resolved server-side (lib/brand.ts) and injected once
+// at the root layout, so client code never queries them. Use:
+//   const brand = useBrandName();        // "Vilo" (or the configured name)
+//   <BrandName />                        // renders the brand name as text
+//   const co = useCompanyName();         // "Vilo Platform (Pty) Ltd"
+//   const loc = useCompanyLocation();    // "Cape Town, South Africa"
 
-const BrandContext = createContext<string>("Vilo");
+export type Branding = {
+  brandName: string;
+  companyName: string;
+  companyLocation: string;
+};
+
+const DEFAULTS: Branding = {
+  brandName: "Vilo",
+  companyName: "Vilo Platform (Pty) Ltd",
+  companyLocation: "Cape Town, South Africa",
+};
+
+const BrandContext = createContext<Branding>(DEFAULTS);
 
 export function BrandProvider({
-  name,
+  value,
   children,
 }: {
-  name: string;
+  value: Branding;
   children: React.ReactNode;
 }) {
-  return <BrandContext.Provider value={name}>{children}</BrandContext.Provider>;
+  return (
+    <BrandContext.Provider value={value}>{children}</BrandContext.Provider>
+  );
 }
 
-export function useBrandName(): string {
+export function useBranding(): Branding {
   return useContext(BrandContext);
 }
 
+export function useBrandName(): string {
+  return useContext(BrandContext).brandName;
+}
+
+export function useCompanyName(): string {
+  return useContext(BrandContext).companyName;
+}
+
+export function useCompanyLocation(): string {
+  return useContext(BrandContext).companyLocation;
+}
+
 export function BrandName() {
-  return <>{useContext(BrandContext)}</>;
+  return <>{useContext(BrandContext).brandName}</>;
 }

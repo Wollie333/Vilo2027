@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Building2, Mail, MessageSquare } from "lucide-react";
 
+import { getCompanyLegalName, getCompanyLocation } from "@/lib/brand";
+
 import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
 
@@ -36,7 +38,11 @@ const CONTACTS: Array<{
   },
 ];
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const [companyName, companyLocation] = await Promise.all([
+    getCompanyLegalName(),
+    getCompanyLocation(),
+  ]);
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -87,9 +93,9 @@ export default function ContactPage() {
             Where we are
           </h2>
           <p className="mt-2 text-[15px] leading-relaxed text-brand-mute">
-            Vilo Platform (Pty) Ltd is based in Cape Town, South Africa. Our
-            infrastructure currently runs in Frankfurt (with a planned migration
-            to Cape Town before public launch — see our{" "}
+            {companyName} is based in {companyLocation}. Our infrastructure
+            currently runs in Frankfurt (with a planned migration to Cape Town
+            before public launch — see our{" "}
             <a
               href="/privacy"
               className="text-brand-primary underline-offset-2 hover:underline"

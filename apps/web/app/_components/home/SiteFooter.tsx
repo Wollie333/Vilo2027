@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { getBrandName } from "@/lib/brand";
+import {
+  getBrandName,
+  getCompanyLegalName,
+  getCompanyLocation,
+} from "@/lib/brand";
 
 import { VLogo } from "./VLogo";
 
@@ -37,7 +41,12 @@ const COMPANY = [
 ] as const;
 
 export async function SiteFooter() {
-  const brand = await getBrandName();
+  const [brand, companyName, companyLocation] = await Promise.all([
+    getBrandName(),
+    getCompanyLegalName(),
+    getCompanyLocation(),
+  ]);
+  const year = new Date().getFullYear();
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -109,7 +118,9 @@ export async function SiteFooter() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
-          <div>© 2026 Vilo Platform (Pty) Ltd · Cape Town, South Africa</div>
+          <div>
+            © {year} {companyName} · {companyLocation}
+          </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:ml-auto">
             <Link href="/terms" className="hover:text-white">
               Terms

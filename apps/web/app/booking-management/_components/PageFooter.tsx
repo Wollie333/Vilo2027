@@ -1,6 +1,10 @@
 import Link from "next/link";
 
-import { getBrandName } from "@/lib/brand";
+import {
+  getBrandName,
+  getCompanyLegalName,
+  getCompanyLocation,
+} from "@/lib/brand";
 
 import { VLogo } from "./VLogo";
 
@@ -34,7 +38,12 @@ const LEGAL_LINKS = [
 ] as const;
 
 export async function PageFooter() {
-  const brand = await getBrandName();
+  const [brand, companyName, companyLocation] = await Promise.all([
+    getBrandName(),
+    getCompanyLegalName(),
+    getCompanyLocation(),
+  ]);
+  const year = new Date().getFullYear();
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -106,7 +115,9 @@ export async function PageFooter() {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
-          <div>© 2026 Vilo Platform (Pty) Ltd. Cape Town, South Africa.</div>
+          <div>
+            © {year} {companyName}. {companyLocation}.
+          </div>
           <div className="flex items-center gap-3 font-mono md:ml-auto">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />

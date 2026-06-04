@@ -1,13 +1,13 @@
 import { requirePermission } from "@/lib/admin";
-import { getBrandName } from "@/lib/brand";
+import { getBranding } from "@/lib/brand";
 
-import { BrandNameForm } from "./BrandNameForm";
+import { BrandingForm } from "./BrandNameForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformSettingsPage() {
   await requirePermission("platform.settings");
-  const brand = await getBrandName();
+  const { brandName, companyName, companyLocation } = await getBranding();
 
   return (
     <div className="space-y-6">
@@ -20,7 +20,11 @@ export default async function PlatformSettingsPage() {
         </p>
       </header>
 
-      <BrandNameForm initial={brand} />
+      <BrandingForm
+        brandName={brandName}
+        companyName={companyName}
+        companyLocation={companyLocation}
+      />
     </div>
   );
 }

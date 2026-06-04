@@ -1,9 +1,31 @@
 import type { Metadata } from "next";
 
+import { getBrandName, getCompanyLegalName } from "@/lib/brand";
+
 import {
   LegalPage,
   type LegalSectionData,
 } from "../_components/legal/LegalPage";
+
+// Swap the placeholder brand/company tokens for the configured values. Replace
+// the full legal name first (it contains the brand word), then brand mentions.
+function applyIdentity(
+  sections: ReadonlyArray<LegalSectionData>,
+  companyName: string,
+  brand: string,
+): LegalSectionData[] {
+  return sections.map((s) => ({
+    ...s,
+    body:
+      typeof s.body === "string"
+        ? s.body
+            .split("Vilo Platform (Pty) Ltd")
+            .join(companyName)
+            .split("Vilo")
+            .join(brand)
+        : s.body,
+  }));
+}
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -72,12 +94,16 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
 ];
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const [companyName, brand] = await Promise.all([
+    getCompanyLegalName(),
+    getBrandName(),
+  ]);
   return (
     <LegalPage
       title="Terms of Service"
       lastUpdated={LAST_UPDATED}
-      sections={SECTIONS}
+      sections={applyIdentity(SECTIONS, companyName, brand)}
     />
   );
 }

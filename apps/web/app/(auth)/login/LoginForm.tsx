@@ -20,6 +20,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useCompanyName } from "@/components/brand/BrandProvider";
+
 import { loginAction, magicLinkAction } from "../actions";
 
 export function LoginForm({
@@ -358,6 +360,7 @@ function OAuthOutlineButton({
 }
 
 function Showcase() {
+  const companyName = useCompanyName();
   return (
     <aside className="relative flex min-h-[260px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:min-h-0 lg:p-14 xl:p-16">
       <div
@@ -474,7 +477,9 @@ function Showcase() {
           ))}
         </div>
         <div className="mt-8 flex items-center justify-between text-[11px] text-emerald-200/55">
-          <div>© 2026 Vilo Platform (Pty) Ltd</div>
+          <div>
+            © {new Date().getFullYear()} {companyName}
+          </div>
           <div className="flex gap-4">
             <Link href="/status" className="hover:text-white">
               Status

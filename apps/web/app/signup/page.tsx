@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getCompanyLegalName } from "@/lib/brand";
+
 export const metadata: Metadata = {
   title: "Create your account",
   description:
@@ -112,7 +114,8 @@ function ChoiceCard({
   );
 }
 
-function Showcase() {
+async function Showcase() {
+  const companyName = await getCompanyLegalName();
   return (
     <aside className="relative flex min-h-[260px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:min-h-0 lg:p-14 xl:p-16">
       <div
@@ -207,7 +210,9 @@ function Showcase() {
       </div>
 
       <div className="relative mt-8 flex items-center justify-between text-[11px] text-emerald-200/55">
-        <div>© 2026 Vilo Platform (Pty) Ltd</div>
+        <div>
+          © {new Date().getFullYear()} {companyName}
+        </div>
         <div className="flex gap-4">
           <Link href="/help" className="hover:text-white">
             Help
