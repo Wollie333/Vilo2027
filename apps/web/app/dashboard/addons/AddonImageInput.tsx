@@ -23,6 +23,12 @@ export function AddonImageInput({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (!file.type.startsWith("image/"))
+      return toast.error("Choose an image file.");
+    // Keep under the Vercel Server-Action body cap (~4.5MB) — the action
+    // enforces the same 4MB limit server-side.
+    if (file.size > 4 * 1024 * 1024)
+      return toast.error("Image must be 4 MB or smaller.");
 
     setUploading(true);
     const formData = new FormData();

@@ -275,8 +275,10 @@ export async function uploadAddonImageAction(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "No file selected." };
   }
-  if (file.size > 8 * 1024 * 1024) {
-    return { ok: false, error: "Image must be under 8 MB." };
+  // 4MB stays under the Vercel Server-Action body cap (~4.5MB); the client
+  // guards the same so large files fail fast with a friendly message.
+  if (file.size > 4 * 1024 * 1024) {
+    return { ok: false, error: "Image must be under 4 MB." };
   }
   const allowed = ["image/jpeg", "image/png", "image/webp"];
   if (!allowed.includes(file.type)) {
