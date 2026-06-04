@@ -24,6 +24,14 @@ const prefsSchema = z.object({
   marketing_opt_in: z.boolean().default(false),
 });
 
+const emailSchema = z.object({
+  email: z.string().trim().email("Enter a valid email address."),
+});
+
+const passwordSchema = z.object({
+  password: z.string().min(8, "Use at least 8 characters.").max(72),
+});
+
 export async function updateProfileAction(
   input: z.infer<typeof profileSchema>,
 ): Promise<ActionResult> {
@@ -114,5 +122,65 @@ export async function updatePrefsAction(
   if (error) return { ok: false, error: "Could not save. Try again." };
 
   revalidatePath("/portal/settings");
+  return { ok: true };
+}
+
+// Change the account's sign-in email. Supabase sends a confirmation link to the
+// NEW address; the change only takes effect once the guest clicks it.
+export async function updateEmailAction(
+  input: z.infer<typeof emailSchema>,
+): Promise<ActionResult> {
+  const parsed = emailSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Enter a valid email.",
+    };
+  }
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Your session expired." };
+
+  if (parsed.data.email.toLowerCase() === (user.email ?? "").toLowerCase()) {
+    return { ok: false, error: "That's already your email address." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    email: parsed.data.email,
+  });
+  if (error) {
+    return {
+      ok: false,
+      error: "Could not start the email change. Try again.",
+    };
+  }
+  return { ok: true };
+}
+
+// Set a new account password for the signed-in guest.
+export async function updatePasswordAction(
+  input: z.infer<typeof passwordSchema>,
+): Promise<ActionResult> {
+  const parsed = passwordSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Choose a stronger password.",
+    };
+  }
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Your session expired." };
+
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+  if (error) {
+    return { ok: false, error: "Could not update your password. Try again." };
+  }
   return { ok: true };
 }

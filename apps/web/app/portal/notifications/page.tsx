@@ -16,25 +16,15 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 100;
 
-// Guest-side notifications view. Mirrors /dashboard/notifications but
-// rendered inside the public /account chrome (no host sidebar).
-
-export default async function GuestNotificationsListPage() {
+// Guest notifications inbox, rendered inside the portal shell. Relocated from
+// the orphaned /account/notifications route.
+export default async function PortalNotificationsPage() {
   const brandName = await getBrandName();
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return (
-      <section className="mx-auto max-w-3xl px-4 py-8">
-        <p className="text-sm text-brand-mute">
-          Sign in to view your notifications.
-        </p>
-      </section>
-    );
-  }
+  if (!user) return null;
 
   const { data } = await supabase
     .from("in_app_notifications")
@@ -47,13 +37,13 @@ export default async function GuestNotificationsListPage() {
   const initial = (data ?? []) as ListNotification[];
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div>
       <BroadcastBanner />
       <header className="mb-6">
-        <h1 className="font-display text-2xl font-bold text-brand-ink md:text-3xl">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
           Notifications
         </h1>
-        <p className="mt-1 text-sm text-brand-mute">
+        <p className="mt-2 text-sm text-brand-mute">
           Trip confirmations, refunds, reviews and announcements from{" "}
           {brandName}.
         </p>

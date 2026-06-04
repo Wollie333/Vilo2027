@@ -5,12 +5,12 @@ import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccoun
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Data & privacy · Account",
+  title: "Data & privacy · Settings",
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function GuestDataSettingsPage() {
+export default async function PortalDataSettingsPage() {
   const supabase = createServerClient();
   const {
     data: { user },

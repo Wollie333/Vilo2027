@@ -37,7 +37,7 @@ export type PreferencesViewModel = {
 
 // Loads everything the preferences form needs in one round trip. Used by
 // both the host (/dashboard/settings/notifications) and guest
-// (/account/settings/notifications) pages.
+// (/portal/settings/notifications) pages.
 
 export async function loadPreferencesViewModel(): Promise<PreferencesViewModel | null> {
   const supabase = createServerClient();

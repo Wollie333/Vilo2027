@@ -1,11 +1,9 @@
 "use client";
 
 import { Camera, Check, Loader2, Upload } from "lucide-react";
-import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccountSection";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName, splitName } from "@/lib/profile/name";
 import { uploadAvatarAction } from "@/app/signup/guest/actions";
@@ -32,20 +30,12 @@ export type SettingsInitial = {
   marketing_opt_in: boolean;
 };
 
-export function SettingsForms({
-  initial,
-  email,
-}: {
-  initial: SettingsInitial;
-  email: string;
-}) {
+export function SettingsForms({ initial }: { initial: SettingsInitial }) {
   return (
     <div className="space-y-8">
       <ProfileSection initial={initial} />
       <ContactSection initial={initial} />
       <PrefsSection initial={initial} />
-      <AccountSection email={email} />
-      <DeleteAccountSection email={email} />
     </div>
   );
 }
@@ -420,36 +410,6 @@ function PrefsSection({ initial }: { initial: SettingsInitial }) {
             {pending ? "Saving…" : "Save preferences"}
           </button>
         </div>
-      </div>
-    </SectionCard>
-  );
-}
-
-function AccountSection({ email }: { email: string }) {
-  return (
-    <SectionCard
-      title="Account"
-      description="Your sign-in details and security."
-    >
-      <div className="space-y-4">
-        <div className="flex items-center justify-between rounded border border-brand-line bg-brand-light/40 p-4">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-              Email
-            </div>
-            <div className="mt-1 font-mono text-sm text-brand-ink">{email}</div>
-          </div>
-          <div className="text-xs text-brand-mute">
-            Email change ships with the account-management slice.
-          </div>
-        </div>
-
-        <Link
-          href="/forgot-password"
-          className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
-        >
-          Change password
-        </Link>
       </div>
     </SectionCard>
   );

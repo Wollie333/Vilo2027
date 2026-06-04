@@ -50,7 +50,7 @@ export async function ackBroadcastAction(input: Input): Promise<{
 
   // Refresh any layout the banner is mounted in.
   revalidatePath("/dashboard");
-  revalidatePath("/account");
+  revalidatePath("/portal");
   revalidatePath("/admin");
   return { ok: true };
 }
