@@ -83,7 +83,12 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   #5). Audited CLEAN: no `any`/logs; the only mutation (`setBookingModeAction`) is the
   auth-gated listings action; page reads are explicitly `host_id`-scoped (the dashboard
   query gotcha — public-readable tables filtered to the owner). **Founder live-check pending.**
-- [⬜] 7. Seasonal pricing — `/dashboard/seasonal-pricing`
+- [⚠️] 7. Seasonal pricing — `/dashboard/seasonal-pricing`. Audited CLEAN (best-in-codebase
+  gating): all 5 actions auth-gated (`getHost`); create/update/copy use the real
+  `check_feature_permission` RPC (`seasonal_pricing` seeded `true` for free in mig
+  `…000008`, so reachable pre-MVP); delete/toggle skip the gate by design (manage existing
+  owned rules); thorough ownership (`assertRuleOwnership`/`assertListingOwnership`/room→listing);
+  Zod; no `any`/logs. **Founder live-check pending.**
 - [⬜] 8. Add-ons — `/dashboard/addons`
 - [⬜] 9. Availability calendar — `/dashboard/calendar`
 - [⬜] 10. iCal calendar-sync — `/dashboard/calendar-sync`
@@ -136,6 +141,9 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - **2026-06-04 (cont.)** — Audited #6 Rooms (`/dashboard/rooms`) — clean, no changes: mutation
   via the auth-gated `setBookingModeAction`, page reads explicitly `host_id`-scoped. **NEXT:
   founder live-checks #2–#6, then #7 Seasonal pricing.**
+- **2026-06-04 (cont.)** — Audited #7 Seasonal pricing — clean, no changes (gold-standard:
+  real `check_feature_permission` gate, seeded for free, thorough ownership + Zod). **NEXT:
+  founder live-checks #2–#7, then #8 Add-ons.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
