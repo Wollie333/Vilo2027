@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
+
 // A quote rendered inline in a conversation thread. The SAME card is shown to
 // the host and the guest; it reflects the quote's LIVE state, so a draft (the
 // guest's request) becomes a full, priced quote in place once the host sends
@@ -34,12 +36,6 @@ export type ThreadQuote = {
   viewCount?: number;
   lastViewedAt?: string | null;
 };
-
-function money(amount: number | null, currency: string): string {
-  if (amount == null) return "—";
-  const symbol = currency === "ZAR" ? "R " : `${currency} `;
-  return `${symbol}${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -177,7 +173,7 @@ export function ThreadQuoteCard({
                 {isDraft ? "Suggested total" : "Total"}
               </span>
               <span className="num font-display text-base font-bold text-brand-ink">
-                {money(quote.total, quote.currency)}
+                {formatMoney(quote.total, quote.currency)}
               </span>
             </div>
             {!isDraft &&
@@ -186,7 +182,7 @@ export function ThreadQuoteCard({
               <div className="mt-1 flex items-center justify-between text-[11.5px] text-brand-mute">
                 <span>Due now (deposit)</span>
                 <span className="num">
-                  {money(quote.depositAmount, quote.currency)}
+                  {formatMoney(quote.depositAmount, quote.currency)}
                 </span>
               </div>
             ) : null}

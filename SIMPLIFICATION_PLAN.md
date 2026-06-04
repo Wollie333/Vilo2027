@@ -30,6 +30,25 @@ reviewed/reverted in isolation.
       to replace the ~half-dozen private copies (email, pdf, inbox, bookings…).
       Done last because it touches the most files.
 
+## Key finding
+The single biggest source of bloat is **duplicated display formatting**: the
+`currency === "ZAR" ? "R " : …` money snippet is copy-pasted in **40+ files**
+and ad-hoc `toLocaleDateString("en-ZA", …)` date formatting in **~50**. This
+dwarfs any per-feature structural duplication. So Pass 5 (shared formatters) is
+really the highest-value work — but the copies differ subtly (non-ZAR handling,
+decimal/rounding, date options), so they must be migrated in **small verified
+batches**, never a blind find-replace, to avoid changing displayed amounts.
+
+`lib/format.ts` now holds the canonical `formatMoney`. Date formatting stays
+per-site for now (options vary too much for a single helper).
+
 ## Progress log
-- Pass 1 started: extracted shared quote-thread helpers into
+- **Pass 1 (done):** extracted shared quote-thread helpers into
   `components/inbox/quote-thread.ts`; rewired host + guest loaders and threads.
+- **Formatter foundation (done):** added `lib/format.ts#formatMoney`; migrated
+  the inbox batch — `ThreadQuoteCard`, `InboxView` (`fmtZAR`), `PipelineControl`
+  (`fmt`). Output identical for ZAR (the only live currency).
+- **Remaining money-formatter batches (queued):** bookings (board/detail/manual),
+  payments, invoices/credit-notes, quotes builder + `/q` page, listings &
+  pricing, public listing/explore pages, dashboard home/admin. ~37 files, to be
+  done in feature-sized commits with a visual check each.

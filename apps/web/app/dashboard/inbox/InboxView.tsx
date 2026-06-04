@@ -43,6 +43,7 @@ import {
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
 import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
+import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -246,12 +247,6 @@ function dayLabel(iso: string): string {
     month: "short",
     year: diffDays > 365 ? "numeric" : undefined,
   });
-}
-
-function fmtZAR(amount: number | null, currency: string): string {
-  if (amount == null) return "—";
-  const symbol = currency === "ZAR" ? "R " : "";
-  return `${symbol}${Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ")}`;
 }
 
 function fmtDate(iso: string | null): string {
@@ -772,7 +767,7 @@ export function InboxView({
                       <div className="text-right">
                         <div className="text-[11px] text-brand-mute">Total</div>
                         <div className="num font-display text-base font-bold text-brand-ink">
-                          {fmtZAR(
+                          {formatMoney(
                             context.booking.total,
                             context.booking.currency,
                           )}
@@ -1370,7 +1365,7 @@ function BookingPane({
             <div className="my-2 border-t border-brand-line" />
             <Row label="Total">
               <span className="num font-display font-bold text-brand-ink">
-                {fmtZAR(context.booking.total, context.booking.currency)}
+                {formatMoney(context.booking.total, context.booking.currency)}
               </span>
             </Row>
             <Row label="Status">

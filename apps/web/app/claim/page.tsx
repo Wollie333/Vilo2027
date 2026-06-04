@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, MessageSquare } from "lucide-react";
+import {
+  BadgePercent,
+  CalendarDays,
+  Mail,
+  MessageCircle,
+  MessageSquare,
+  ShieldCheck,
+} from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -46,6 +53,7 @@ export default async function ClaimPage({
     .maybeSingle();
 
   const alreadyClaimed = profile ? profile.is_lead === false : false;
+  const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
   // The enquiry thread to drop them into after claiming (passed as ?c=). Where
   // they land = the thread that holds the quote request they just sent.
@@ -110,17 +118,17 @@ export default async function ClaimPage({
             {alreadyClaimed
               ? "Your account is ready"
               : enquiry
-                ? "Your request is in!"
+                ? `Thanks${firstName ? `, ${firstName}` : ""} — your request is in!`
                 : "Claim your account"}
           </h1>
           <p className="mt-1 text-sm text-brand-mute">
             {alreadyClaimed
               ? "You've already set a password — you can sign in any time."
-              : `Set a password${
-                  profile?.full_name
-                    ? `, ${profile.full_name.split(" ")[0]}`
-                    : ""
-                } to track this quote and message the host any time.`}
+              : enquiry
+                ? "We've sent your details straight to the host. You'll get their reply by email and WhatsApp — usually within a few hours."
+                : `Set a password${
+                    firstName ? `, ${firstName}` : ""
+                  } to track this quote and message the host any time.`}
           </p>
         </div>
 

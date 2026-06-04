@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import {
   setFollowUpAction,
   setPipelineStageAction,
@@ -31,11 +33,6 @@ export type ThreadQuote = {
   viewCount: number;
   lastViewedAt: string | null;
 };
-
-function fmt(total: number, currency: string): string {
-  const sym = currency === "ZAR" ? "R " : `${currency} `;
-  return `${sym}${Math.round(total).toLocaleString("en-ZA").replace(/,/g, " ")}`;
-}
 
 function expiryLabel(iso: string): { text: string; expired: boolean } {
   const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -174,7 +171,7 @@ export function PipelineControl({
                 : `Quote · ${quote.status}`}
             </div>
             <span className="num font-display text-[15px] font-bold text-brand-ink">
-              {fmt(quote.total, quote.currency)}
+              {formatMoney(quote.total, quote.currency)}
             </span>
           </div>
           {quote.quoteNumber ? (
