@@ -157,5 +157,26 @@ export function BookingActions({
     );
   }
 
+  // Manual-EFT bookings awaiting the guest's transfer (or under review) are
+  // cancellable per CANCELLABLE_STATUSES, but had no host action surfaced — the
+  // host couldn't cancel an unpaid EFT booking. Offer Cancel here too.
+  if (status === "pending_eft" || status === "pending_eft_review") {
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setCancelOpen(true)}
+          disabled={pending}
+          className="gap-1.5"
+        >
+          <X className="h-4 w-4" />
+          Cancel booking
+        </Button>
+        {cancelDialog}
+      </div>
+    );
+  }
+
   return null;
 }
