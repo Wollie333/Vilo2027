@@ -31,6 +31,32 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Guest portal: complete & harden (quotes hub, in-portal browse, settings, book-again) — branch `main`
+
+### Built
+- **In-portal Quotes hub** (`/portal/quotes` list + `/portal/quotes/[id]` detail): guests now see every quote a host has sent them, with status pills, and accept/decline in-app instead of via emailed token links. Accept/decline run through session-gated, ownership-checked server actions (no `accept_token`).
+- **In-portal Browse** (`/portal/browse`): the `/explore` search/results rendered inside the portal shell so guests can find and book another stay without leaving. Extracted shared `searchListings` + `<BrowseResults>` and added a `basePath` prop to `SearchBar`/`TypeChips`.
+- **Book again**: a deduped "Book again" block on the portal overview plus rebook CTAs on trip cards and the trip-detail action bar, deep-linking to `/listing/[slug]/book?guests=N`.
+- **Consolidated tabbed Settings** (`/portal/settings`: Profile / Notifications / Data & privacy / Security), including a real **Security** tab to change sign-in email (with confirmation) and password via `auth.updateUser`.
+
+### Changed
+- Request-a-quote now session-aware: a signed-in guest no longer re-enters name/email/phone and is routed straight to their portal inbox thread (anonymous lead + magic-link path unchanged).
+- Relocated the orphaned `/account/*` routes into the portal (notification preferences, data/privacy, and the notifications inbox → `/portal/notifications`); deleted the `/account` tree. Portal sidebar gained a Quotes link and "Browse stays" now points at `/portal/browse`.
+- Public token quote page `/q/[id]/[token]` renders the dynamic brand name (no hardcoded "VILO").
+
+### Migrations
+- `20260604000004_quotes_guest_read.sql` — guest SELECT RLS on quotes/quote_rooms/quote_addons (`guest_id = auth.uid()`).
+- `20260604000005_help_guest_quotes.sql`, `20260604000006_help_message_host.sql`, `20260604000007_help_account_security.sql` — guest Help Centre articles.
+
+### Notes
+- Reuse-heavy: forked the public quote accept/decline + detail markup, the explore search, and existing notification/data page bodies rather than rebuilding. Verification tracked in `GUEST_PORTAL_QA.md`. `pnpm build` + `pnpm lint` green at each step; committed/pushed per chunk.
+- Follow-up: no notification bell in the portal sidebar yet (inbox reachable via Settings → Notifications); add when the notification system work resumes.
+
+### Commit
+- `migration: quotes guest read` … `docs(qa): guest-portal verification pass` — `2213816`…`5d54e2d`
+
+---
+
 ## 2026-06-04 — Brand: full dynamic brand-name sweep (marketing, app UI, metadata) — branch `main`
 
 ### Changed
