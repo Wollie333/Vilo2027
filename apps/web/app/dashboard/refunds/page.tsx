@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Hourglass, RotateCcw, Wallet } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { RefundActions } from "./RefundActions";
@@ -59,12 +60,6 @@ const STATUS_STYLES: Record<string, string> = {
     "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/30",
   cancelled: "bg-brand-light text-brand-mute border-brand-line",
 };
-
-function fmtR(amount: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function fmtDate(iso: string): string {
   return new Intl.DateTimeFormat("en-ZA", {
@@ -334,7 +329,7 @@ export default async function RefundsPage({
 
                   <div className="shrink-0 text-right">
                     <div className="font-display text-xl font-bold text-brand-ink">
-                      {fmtR(
+                      {formatMoney(
                         Number(row.approved_amount ?? row.requested_amount),
                         row.currency,
                       )}
@@ -343,14 +338,21 @@ export default async function RefundsPage({
                     Number(row.approved_amount) <
                       Number(row.requested_amount) ? (
                       <div className="text-[11px] text-brand-mute">
-                        of {fmtR(Number(row.requested_amount), row.currency)}{" "}
+                        of{" "}
+                        {formatMoney(
+                          Number(row.requested_amount),
+                          row.currency,
+                        )}{" "}
                         requested
                       </div>
                     ) : null}
                     {row.policy_entitlement != null ? (
                       <div className="text-[11px] text-brand-mute">
                         Policy says{" "}
-                        {fmtR(Number(row.policy_entitlement), row.currency)}
+                        {formatMoney(
+                          Number(row.policy_entitlement),
+                          row.currency,
+                        )}
                       </div>
                     ) : null}
                   </div>

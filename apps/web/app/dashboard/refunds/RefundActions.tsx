@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { approveRefundAction, declineRefundAction } from "./actions";
 
 type Props = {
@@ -38,12 +40,6 @@ const METHOD_LABELS: Record<RefundMethod, string> = {
   manual: "Manual / other — sent by you",
 };
 
-function fmtR(amount: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
-
 export function RefundActions({
   refundId,
   requestedAmount,
@@ -61,7 +57,7 @@ export function RefundActions({
   function approve() {
     if (amount <= 0 || amount > requestedAmount) {
       toast.error(
-        `Amount must be between R 1 and ${fmtR(requestedAmount, currency)}.`,
+        `Amount must be between R 1 and ${formatMoney(requestedAmount, currency)}.`,
       );
       return;
     }
@@ -142,7 +138,7 @@ export function RefundActions({
               className="mt-1 block w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
             />
             <span className="mt-1 block text-[11px] text-brand-mute">
-              Up to {fmtR(requestedAmount, currency)} requested
+              Up to {formatMoney(requestedAmount, currency)} requested
             </span>
           </label>
           <label className="block">

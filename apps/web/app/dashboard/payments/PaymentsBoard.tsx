@@ -10,6 +10,8 @@ import {
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 
+import { formatMoney } from "@/lib/format";
+
 // ── Shared shapes (built server-side in page.tsx) ───────────────────
 export type PaymentRow = {
   id: string;
@@ -41,10 +43,6 @@ const DAY = 86_400_000;
 function dts(s: string): number {
   const base = s.length <= 10 ? `${s}T12:00:00Z` : s;
   return new Date(base).getTime();
-}
-function fmtR(n: number, currency: string): string {
-  const body = Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
-  return `${currency === "ZAR" ? "R " : ""}${body}`;
 }
 function fmtDt(iso: string): string {
   return new Intl.DateTimeFormat("en-ZA", {
@@ -337,7 +335,7 @@ export function PaymentsBoard({
               Collected
             </span>
             <div className="num mt-2 font-display text-[30px] font-bold leading-none">
-              {fmtR(kpis.collected, currency)}
+              {formatMoney(kpis.collected, currency)}
             </div>
             <div className="num mt-1 text-[11.5px] text-brand-accent/70">
               across {kpis.completedCount}{" "}
@@ -583,7 +581,7 @@ function PaymentRowItem({
         <div
           className={`num font-display text-[14px] font-bold ${isNegative ? "text-brand-mute line-through" : "text-brand-ink"}`}
         >
-          {fmtR(row.amount, row.currency)}
+          {formatMoney(row.amount, row.currency)}
         </div>
       </div>
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
 
@@ -21,12 +22,6 @@ const STATUSES = [
 
 function isStatus(v: string | undefined): v is (typeof STATUSES)[number] {
   return STATUSES.includes((v ?? "") as (typeof STATUSES)[number]);
-}
-
-function fmtR(amount: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 export default async function AdminPaymentsPage({
@@ -119,7 +114,10 @@ export default async function AdminPaymentsPage({
 
       {/* KPI tiles */}
       <section className="grid gap-3 sm:grid-cols-3">
-        <Kpi label="Total collected" value={fmtR(totalCollected, "ZAR")} />
+        <Kpi
+          label="Total collected"
+          value={formatMoney(totalCollected, "ZAR")}
+        />
         <Kpi label="Pending" value={String(pendingCount ?? 0)} />
         <Kpi label="Failed" value={String(failedCount ?? 0)} />
       </section>
@@ -178,7 +176,7 @@ export default async function AdminPaymentsPage({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="num font-medium text-brand-ink">
-                        {fmtR(Number(p.amount), p.currency)}
+                        {formatMoney(Number(p.amount), p.currency)}
                       </span>
                       <StatusPill status={p.status} />
                       <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">

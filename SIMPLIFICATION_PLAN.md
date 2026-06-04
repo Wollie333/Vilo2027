@@ -52,6 +52,14 @@ per-site for now (options vary too much for a single helper).
   `bookings/[id]/page` (`fmtR`), `IssueRefundButton` (`fmtR`),
   `ManualBookingForm` (`fmt`) to `formatMoney`. Four private copies removed;
   ZAR output unchanged. `symbolFor` (input-prefix helper) kept.
-- **Remaining money-formatter batches (queued):** payments, invoices/credit-notes,
+- **Payments + refunds batch (done):** migrated `PaymentsBoard` (`fmtR`),
+  `payments/[id]/page` (`money`), `admin/payments/page` (`fmtR`),
+  `refunds/page` (`fmtR`), `RefundActions` (`fmtR`),
+  `portal/trips/[id]/RequestRefundButton` (`fmtR`), and
+  `components/booking/CancelBookingDialog` (`fmtR`) to `formatMoney`. Seven
+  private copies removed; ZAR output unchanged. Non-ZAR now shows the ISO code
+  prefix (`USD 1 500`) instead of a bare number — strictly more correct, same
+  tradeoff as the bookings batch.
+- **Remaining money-formatter batches (queued):** invoices/credit-notes,
   quotes builder + `/q` page, listings & pricing, public listing/explore pages,
-  dashboard home/admin. To be done in feature-sized commits with a check each.
+  dashboard home. To be done in feature-sized commits with a check each.

@@ -12,18 +12,13 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 import { Label } from "@/components/ui/label";
+import { formatMoney } from "@/lib/format";
 
 export type RefundPreview = {
   refundAmount: number;
   refundPercent: number;
   ruleApplied: string | null;
 };
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 /**
  * Enterprise cancellation dialog shared by the host booking page and the guest
@@ -91,7 +86,7 @@ export function CancelBookingDialog({
   const refundLine = loadingPreview
     ? "Checking the cancellation policy…"
     : preview && preview.refundAmount > 0
-      ? `${audience === "host" ? "The guest" : "You"} will be refunded ${fmtR(
+      ? `${audience === "host" ? "The guest" : "You"} will be refunded ${formatMoney(
           preview.refundAmount,
           currency,
         )}${preview.refundPercent ? ` (${preview.refundPercent}% under the cancellation policy)` : ""}.`

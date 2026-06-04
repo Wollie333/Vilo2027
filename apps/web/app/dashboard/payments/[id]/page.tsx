@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PaymentManage } from "./PaymentManage";
@@ -29,12 +30,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function money(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function fmtDt(iso: string | null): string {
   if (!iso) return "—";
@@ -246,7 +241,7 @@ export default async function PaymentDetailPage({
     });
 
   // ── History — a chronological audit trail. ──
-  const m = (n: number) => money(n, ccy);
+  const m = (n: number) => formatMoney(n, ccy);
   const history: { at: string; label: string; kind: string }[] = [];
   const log = (at: string | null, label: string, kind: string) => {
     if (at) history.push({ at, label, kind });
@@ -318,7 +313,7 @@ export default async function PaymentDetailPage({
             </div>
             <div className="mt-2 flex flex-wrap items-end gap-x-3 gap-y-2">
               <h1 className="font-display text-[38px] font-extrabold leading-none tracking-tight text-brand-ink lg:text-[44px]">
-                {money(Number(payment.amount), ccy)}
+                {formatMoney(Number(payment.amount), ccy)}
               </h1>
               <span
                 className={`mb-1 inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11.5px] font-semibold ${st.tone}`}
@@ -370,7 +365,7 @@ export default async function PaymentDetailPage({
           <Fact label="Booking" value={booking.status.replace(/_/g, " ")} />
           <Fact
             label={refundedTotal > 0 ? "Net of refunds" : "Net to you"}
-            value={money(Number(payment.amount) - refundedTotal, ccy)}
+            value={formatMoney(Number(payment.amount) - refundedTotal, ccy)}
             strong
           />
         </div>
@@ -405,7 +400,7 @@ export default async function PaymentDetailPage({
                       className={`font-medium ${l.amount < 0 ? "text-brand-primary" : "text-brand-ink"}`}
                     >
                       {l.amount < 0 ? "−" : ""}
-                      {money(Math.abs(l.amount), ccy)}
+                      {formatMoney(Math.abs(l.amount), ccy)}
                     </span>
                   </li>
                 ))}
@@ -416,14 +411,14 @@ export default async function PaymentDetailPage({
                       : "Total"}
                   </span>
                   <span className="font-display text-[18px] font-bold text-brand-ink">
-                    {money(Number(booking.total_amount), ccy)}
+                    {formatMoney(Number(booking.total_amount), ccy)}
                   </span>
                 </li>
                 {refundedTotal > 0 ? (
                   <li className="flex items-center justify-between">
                     <span className="text-status-cancelled">Refunded</span>
                     <span className="font-medium text-status-cancelled">
-                      −{money(refundedTotal, ccy)}
+                      −{formatMoney(refundedTotal, ccy)}
                     </span>
                   </li>
                 ) : null}
@@ -433,7 +428,7 @@ export default async function PaymentDetailPage({
                       Balance still due
                     </span>
                     <span className="font-semibold text-amber-700">
-                      {money(Number(booking.balance_due), ccy)}
+                      {formatMoney(Number(booking.balance_due), ccy)}
                     </span>
                   </li>
                 ) : null}
@@ -635,7 +630,7 @@ export default async function PaymentDetailPage({
                       kind="Refund"
                       title={
                         r.reference ??
-                        money(
+                        formatMoney(
                           Number(r.approved_amount ?? r.requested_amount),
                           ccy,
                         )
@@ -653,7 +648,7 @@ export default async function PaymentDetailPage({
                 <div className={eyebrow}>Refunds</div>
                 {refundedTotal > 0 ? (
                   <span className="inline-flex items-center gap-1 rounded-pill bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
-                    {money(refundedTotal, ccy)} refunded
+                    {formatMoney(refundedTotal, ccy)} refunded
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-semibold text-status-confirmed">
@@ -664,7 +659,7 @@ export default async function PaymentDetailPage({
               <div className="p-5">
                 <p className="text-[12.5px] text-brand-mute">
                   {payment.status === "completed"
-                    ? `${money(Number(payment.amount), ccy)} captured.`
+                    ? `${formatMoney(Number(payment.amount), ccy)} captured.`
                     : "This payment isn't captured yet."}{" "}
                   Issue a refund from the booking.
                 </p>

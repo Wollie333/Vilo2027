@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { requestRefundAction } from "./actions";
 
 const REASONS = [
@@ -15,12 +17,6 @@ const REASONS = [
   "Booked the wrong dates",
   "Other",
 ];
-
-function fmtR(amount: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 export function RequestRefundButton({
   bookingId,
@@ -41,7 +37,7 @@ export function RequestRefundButton({
   function submit() {
     if (amount <= 0 || amount > totalAmount) {
       toast.error(
-        `Amount must be between R 1 and ${fmtR(totalAmount, currency)}.`,
+        `Amount must be between R 1 and ${formatMoney(totalAmount, currency)}.`,
       );
       return;
     }
@@ -106,7 +102,7 @@ export function RequestRefundButton({
           className="mt-1 block w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
         />
         <span className="mt-1 block text-[11px] text-brand-mute">
-          Up to {fmtR(totalAmount, currency)} paid
+          Up to {formatMoney(totalAmount, currency)} paid
         </span>
       </label>
 
