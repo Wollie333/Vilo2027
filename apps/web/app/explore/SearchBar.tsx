@@ -16,11 +16,13 @@ export function SearchBar({
   guests,
   currentType,
   currentSort,
+  basePath = "/explore",
 }: {
   where: string;
   guests: number;
   currentType: string;
   currentSort: string;
+  basePath?: string;
 }) {
   const router = useRouter();
   const [w, setW] = useState(where);
@@ -35,7 +37,7 @@ export function SearchBar({
     if (currentType) params.set("type", currentType);
     if (s && s !== "newest") params.set("sort", s);
     const qs = params.toString();
-    router.push(qs ? `/explore?${qs}` : "/explore");
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   }
 
   return (

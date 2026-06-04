@@ -150,7 +150,7 @@ export function PortalSidebar({
           Discover
         </div>
         <Link
-          href="/explore"
+          href="/portal/browse"
           className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium text-brand-mute transition-colors hover:bg-brand-accent/60 hover:text-brand-ink"
         >
           <Compass className="h-4 w-4 shrink-0" />

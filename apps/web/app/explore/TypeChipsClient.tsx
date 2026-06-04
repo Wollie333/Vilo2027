@@ -49,9 +49,11 @@ const ICONS: Record<string, LucideIcon> = {
 export function TypeChipsClient({
   chips,
   currentType,
+  basePath = "/explore",
 }: {
   chips: Array<{ key: string; label: string; icon: string }>;
   currentType: string;
+  basePath?: string;
 }) {
   const sp = useSearchParams();
 
@@ -61,7 +63,7 @@ export function TypeChipsClient({
     if (typeKey) next.set("type", typeKey);
     else next.delete("type");
     const qs = next.toString();
-    return qs ? `/explore?${qs}` : "/explore";
+    return qs ? `${basePath}?${qs}` : basePath;
   }
 
   return (

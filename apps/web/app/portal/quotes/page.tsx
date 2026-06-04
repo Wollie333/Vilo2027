@@ -98,7 +98,7 @@ export default async function PortalQuotesPage() {
             tailored pricing. Their reply lands here.
           </p>
           <Link
-            href="/explore"
+            href="/portal/browse"
             className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
           >
             Browse stays

@@ -4,7 +4,13 @@ import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
 import { TypeChipsClient } from "./TypeChipsClient";
 
-export async function TypeChips({ currentType }: { currentType: string }) {
+export async function TypeChips({
+  currentType,
+  basePath = "/explore",
+}: {
+  currentType: string;
+  basePath?: string;
+}) {
   const tree = await getCategoryTree();
 
   const chips: Array<{ key: string; label: string; icon: string }> = [
@@ -17,7 +23,13 @@ export async function TypeChips({ currentType }: { currentType: string }) {
     }
   }
 
-  return <TypeChipsClient chips={chips} currentType={currentType} />;
+  return (
+    <TypeChipsClient
+      chips={chips}
+      currentType={currentType}
+      basePath={basePath}
+    />
+  );
 }
 
 // Re-export icon name → component map for the client component.
