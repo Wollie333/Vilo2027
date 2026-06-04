@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Bell,
   Compass,
   FileText,
   LayoutDashboard,
@@ -57,7 +58,7 @@ function useIsActive(href: string, match: "exact" | "prefix" = "exact") {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavLink({ item }: { item: Item }) {
+function NavLink({ item, badge }: { item: Item; badge?: number }) {
   const isActive = useIsActive(item.href, item.match);
   const Icon = item.icon;
   return (
@@ -72,6 +73,11 @@ function NavLink({ item }: { item: Item }) {
     >
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1 truncate">{item.label}</span>
+      {badge && badge > 0 ? (
+        <span className="inline-flex min-w-[18px] items-center justify-center rounded-pill bg-brand-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -84,6 +90,7 @@ export function PortalSidebar({
   canAdmin = false,
   hostDisplayName = null,
   hostBlurb = null,
+  unreadNotifications = 0,
 }: {
   displayName: string;
   avatarUrl: string | null;
@@ -92,6 +99,7 @@ export function PortalSidebar({
   canAdmin?: boolean;
   hostDisplayName?: string | null;
   hostBlurb?: string | null;
+  unreadNotifications?: number;
 }) {
   const initials = displayName.slice(0, 2).toUpperCase();
   return (
@@ -145,6 +153,15 @@ export function PortalSidebar({
         {MAIN.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
+        <NavLink
+          item={{
+            href: "/portal/notifications",
+            label: "Notifications",
+            icon: Bell,
+            match: "prefix",
+          }}
+          badge={unreadNotifications}
+        />
 
         <div className="px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
           Discover

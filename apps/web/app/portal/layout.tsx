@@ -23,25 +23,33 @@ export default async function PortalLayout({
   // experience. Hosts who want to act as guests (browse listings, view
   // their own bookings as a traveller) hop in via the WorkspaceSwitcher
   // at the top of the sidebar. Platform staff get the same toggle.
-  const [{ data: host }, { data: staff }, { data: profile }] =
-    await Promise.all([
-      supabase
-        .from("hosts")
-        .select("id, display_name")
-        .eq("user_id", user.id)
-        .is("deleted_at", null)
-        .maybeSingle(),
-      supabase
-        .from("platform_staff")
-        .select("is_active")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("user_profiles")
-        .select("full_name, avatar_url, role")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: host },
+    { data: staff },
+    { data: profile },
+    { count: unreadNotifications },
+  ] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("id, display_name")
+      .eq("user_id", user.id)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    supabase
+      .from("platform_staff")
+      .select("is_active")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("full_name, avatar_url, role")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("in_app_notifications")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null),
+  ]);
 
   const displayName = profile?.full_name ?? user.email ?? "Guest";
   // canHost = hosts row OR user_profiles.role='host'. Lets the switcher
@@ -77,6 +85,7 @@ export default async function PortalLayout({
           canAdmin={staff?.is_active === true}
           hostDisplayName={host?.display_name ?? null}
           hostBlurb={hostBlurb}
+          unreadNotifications={unreadNotifications ?? 0}
         />
       }
     >

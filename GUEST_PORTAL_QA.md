@@ -30,7 +30,7 @@ invariants below before it's marked clean.
 | Inbox + thread | `/portal/inbox` | ✅ | ✅ guest_id | n/a | n/a | ✅ existing | reply + mark-read |
 | Reviews | `/portal/reviews` | ✅ | ✅ guest_id | n/a | n/a | ✅ existing | |
 | Browse (in-portal) | `/portal/browse` | ✅ | public published listings | n/a | ✅ | (explore) | shares searchListings + BrowseResults |
-| Notifications inbox | `/portal/notifications` | ✅ | ✅ own | n/a | ✅ | n/a | relocated from /account |
+| Notifications inbox | `/portal/notifications` | ✅ | ✅ own | n/a | ✅ | n/a | relocated from /account; sidebar Bell + unread badge |
 | Settings · Profile | `/portal/settings` | ✅ | ✅ self | n/a | ✅ | ✅ existing | |
 | Settings · Notifications | `/portal/settings/notifications` | ✅ | ✅ self | n/a | ✅ | ✅ | preferences |
 | Settings · Data & privacy | `/portal/settings/data` | ✅ | ✅ self | (delete via section) | ✅ | ✅ existing | POPIA |
@@ -40,6 +40,6 @@ invariants below before it's marked clean.
 ## Known follow-ups (out of this pass)
 - The public token quote page `/q/[id]/[token]` now renders the dynamic brand
   name (no hardcoded "VILO").
-- Notifications inbox has no bell entry in the portal sidebar yet — reachable
-  from the Settings → Notifications tab link. Add a sidebar/topbar bell when the
-  notification system work resumes (see memory "notification system pending").
+- Portal sidebar now has a **Notifications** entry (Bell icon) with a live
+  unread badge, linking to `/portal/notifications` — also reachable from the
+  Settings → Notifications tab.
