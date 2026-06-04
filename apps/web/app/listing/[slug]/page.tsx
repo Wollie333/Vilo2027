@@ -137,6 +137,34 @@ function locationLabel(l: RawListing): string {
   return [l.city, l.province].filter(Boolean).join(", ");
 }
 
+type GuestPrefill = {
+  isAuthed: boolean;
+  name: string;
+  email: string;
+  phone: string;
+};
+
+// Read the signed-in guest's contact details (if any) to prefill the
+// quote-request form. Anonymous visitors get a non-authed blank prefill.
+async function loadGuestPrefill(): Promise<GuestPrefill> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { isAuthed: false, name: "", email: "", phone: "" };
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("full_name, phone")
+    .eq("id", user.id)
+    .maybeSingle();
+  return {
+    isAuthed: true,
+    name: profile?.full_name ?? "",
+    email: user.email ?? "",
+    phone: profile?.phone ?? "",
+  };
+}
+
 async function loadListing(slug: string) {
   const supabase = createServerClient();
   // RLS `public_read_published` filters out unpublished + deleted listings.
@@ -435,6 +463,11 @@ export default async function ListingDetailPage({
     pois,
   } = data;
 
+  // If the visitor is signed in, prefill (and hide) the contact fields on the
+  // quote-request form so they don't re-type details we already have. The
+  // enquiry then matches their existing profile and lands them in their inbox.
+  const guest = await loadGuestPrefill();
+
   const reviews = await loadListingReviews(listing.id);
   const reviewsNode =
     reviews.count > 0 ? <ReviewsSection data={reviews} /> : null;
@@ -532,6 +565,10 @@ export default async function ListingDetailPage({
                   listingName={listing.name}
                   bookingMode={listing.booking_mode}
                   rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                  isAuthed={guest.isAuthed}
+                  prefillName={guest.name}
+                  prefillEmail={guest.email}
+                  prefillPhone={guest.phone}
                 />
               }
             />
@@ -606,6 +643,10 @@ export default async function ListingDetailPage({
                 listingName={listing.name}
                 bookingMode={listing.booking_mode}
                 rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                isAuthed={guest.isAuthed}
+                prefillName={guest.name}
+                prefillEmail={guest.email}
+                prefillPhone={guest.phone}
               />
             }
           />

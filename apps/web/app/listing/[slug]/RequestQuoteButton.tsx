@@ -19,6 +19,10 @@ export function RequestQuoteButton({
   rooms,
   initialCheckIn = "",
   initialCheckOut = "",
+  isAuthed = false,
+  prefillName = "",
+  prefillEmail = "",
+  prefillPhone = "",
 }: {
   listingId: string;
   listingName: string;
@@ -26,6 +30,12 @@ export function RequestQuoteButton({
   rooms: RoomOption[];
   initialCheckIn?: string;
   initialCheckOut?: string;
+  // When the visitor is signed in we prefill (and hide) the contact fields and
+  // submit their session details, so the enquiry matches their existing account.
+  isAuthed?: boolean;
+  prefillName?: string;
+  prefillEmail?: string;
+  prefillPhone?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
@@ -41,9 +51,9 @@ export function RequestQuoteButton({
   const [pets, setPets] = useState(0);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [message, setMessage] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [name, setName] = useState(prefillName);
+  const [email, setEmail] = useState(prefillEmail);
+  const [phone, setPhone] = useState(prefillPhone);
   const [hp, setHp] = useState(""); // honeypot
 
   function toggleRoom(id: string) {
@@ -62,9 +72,9 @@ export function RequestQuoteButton({
     setPets(0);
     setSelectedRooms([]);
     setMessage("");
-    setName("");
-    setEmail("");
-    setPhone("");
+    setName(prefillName);
+    setEmail(prefillEmail);
+    setPhone(prefillPhone);
     setHp("");
   }
 
@@ -297,34 +307,47 @@ export function RequestQuoteButton({
               />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Your name">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className={inputCls}
-                  required
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={inputCls}
-                  required
-                />
-              </Field>
-            </div>
-            <Field label="Phone (optional)">
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className={inputCls}
-              />
-            </Field>
+            {isAuthed ? (
+              <p className="rounded-[10px] border border-brand-line bg-brand-light/60 px-3 py-2 text-xs text-brand-mute">
+                Sending as{" "}
+                <span className="font-medium text-brand-ink">
+                  {name || email}
+                </span>
+                {name && email ? ` · ${email}` : ""}. Update these in your
+                profile settings.
+              </p>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Your name">
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className={inputCls}
+                      required
+                    />
+                  </Field>
+                  <Field label="Email">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={inputCls}
+                      required
+                    />
+                  </Field>
+                </div>
+                <Field label="Phone (optional)">
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className={inputCls}
+                  />
+                </Field>
+              </>
+            )}
 
             <FormModalFooter>
               <FormModalCancel>Cancel</FormModalCancel>

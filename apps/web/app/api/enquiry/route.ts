@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 
 import { createEnquiry } from "@/lib/enquiry/create-enquiry";
+import { createServerClient } from "@/lib/supabase/server";
 
 // Public "request a quote" endpoint. Deliberately a Route Handler rather than a
 // Server Action: a route handler controls its own JSON response, so any error
@@ -26,7 +27,21 @@ export async function POST(req: Request) {
 
   try {
     const result = await createEnquiry(body);
-    if (result.ok) revalidatePath("/dashboard/inbox");
+    if (result.ok) {
+      revalidatePath("/dashboard/inbox");
+      // If the visitor is already signed in, skip the magic-link / login bounce
+      // that createEnquiry returns (it's written for anonymous leads) and send
+      // them straight to the enquiry thread in their portal inbox.
+      if (result.data.conversationId) {
+        const supabase = createServerClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          result.data.redirectTo = `/portal/inbox/${result.data.conversationId}`;
+        }
+      }
+    }
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
     // Surface the real reason. Pre-MVP there are no real users to protect from
