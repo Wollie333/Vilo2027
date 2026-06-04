@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
 import { fetchGettingStartedState } from "@/lib/help/queries";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -28,12 +29,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function fmtR(n: number, currency = "ZAR"): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -256,7 +251,7 @@ export default async function DashboardPage({
             <KpiTile
               icon={Banknote}
               label="Revenue · this month"
-              value={fmtR(revenue, "ZAR")}
+              value={formatMoney(revenue, "ZAR")}
               sub={`${confirmedCount} confirmed booking${confirmedCount === 1 ? "" : "s"}`}
             />
             <KpiTile
@@ -334,7 +329,7 @@ export default async function DashboardPage({
                         </div>
                         <div className="shrink-0 text-right text-xs">
                           <div className="font-display font-bold text-brand-ink">
-                            {fmtR(Number(b.total_amount), b.currency)}
+                            {formatMoney(Number(b.total_amount), b.currency)}
                           </div>
                           <Link
                             href={`/dashboard/bookings/${b.id}`}

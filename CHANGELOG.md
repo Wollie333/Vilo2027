@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Refactor: migrate host/admin dashboard money formatters to formatMoney — branch `main`
+
+### Changed
+- Replaced five standard private `fmtR` copies with canonical `lib/format.ts#formatMoney`: `admin/bookings/page`, `dashboard/page` (home), `dashboard/listings/page`, `dashboard/coupons/CouponsManager`, `dashboard/addons/AddonsArchive`.
+
+### Notes
+- All type-A copies — identical ZAR output. Remaining formatter work is the guest-facing listing/explore pages, which carry edge cases (null-guard, symbol-spacing, an extra inline formatter) documented in `SIMPLIFICATION_PLAN.md` for a careful follow-up pass. `pnpm build` + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Refactor: migrate quote money formatters to formatMoney — branch `main`
 
 ### Changed

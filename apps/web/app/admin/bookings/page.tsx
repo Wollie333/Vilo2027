@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 
+import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
 
@@ -24,12 +25,6 @@ const STATUSES = [
 
 function isStatus(v: string | undefined): v is (typeof STATUSES)[number] {
   return STATUSES.includes((v ?? "") as (typeof STATUSES)[number]);
-}
-
-function fmtR(amount: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(amount)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 }
 
 export default async function AdminBookingsPage({
@@ -192,7 +187,7 @@ export default async function AdminBookingsPage({
                   </div>
                   <div className="hidden text-right text-[12px] text-brand-mute sm:block">
                     <div className="num font-medium text-brand-ink">
-                      {fmtR(Number(b.total_amount), b.currency)}
+                      {formatMoney(Number(b.total_amount), b.currency)}
                     </div>
                     <div>
                       {new Date(b.created_at).toLocaleDateString("en-ZA")}

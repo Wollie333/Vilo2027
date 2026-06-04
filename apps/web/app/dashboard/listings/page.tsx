@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -18,12 +19,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
 
 const TYPE_LABEL: Record<string, string> = {
   hotel: "Hotel",
@@ -585,7 +580,7 @@ function ListingCard({
           {listing.base_price != null ? (
             <div className="shrink-0 text-right">
               <div className="num font-display text-[14px] font-bold text-brand-ink">
-                {fmtR(Number(listing.base_price), listing.currency)}
+                {formatMoney(Number(listing.base_price), listing.currency)}
               </div>
               <div className="text-[10px] text-brand-mute">/ night</div>
             </div>

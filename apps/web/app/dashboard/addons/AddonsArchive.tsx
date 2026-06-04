@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { createDraftAddonAction } from "./actions";
 import { AddonTemplatesModal } from "./AddonTemplatesModal";
 import {
@@ -49,11 +51,6 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "price_desc", label: "Sort: Price ↓" },
   { value: "status", label: "Sort: Status" },
 ];
-
-const fmtR = (n: number, c: string) =>
-  `${c === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
 
 export function AddonsArchive({ initial }: { initial: AddonCard[] }) {
   const router = useRouter();
@@ -421,7 +418,7 @@ function AddonGridCard({ addon: a }: { addon: AddonCard }) {
         <div className="mt-auto flex items-end justify-between gap-2 border-t border-brand-line pt-3">
           <div className="min-w-0">
             <span className="font-display text-[20px] font-bold text-brand-ink">
-              {fmtR(a.unitPrice, a.currency)}
+              {formatMoney(a.unitPrice, a.currency)}
             </span>
             <span className="text-[11.5px] text-brand-mute"> {suffix}</span>
           </div>

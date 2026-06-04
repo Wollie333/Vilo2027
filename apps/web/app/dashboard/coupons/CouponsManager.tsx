@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Pencil, Plus, Ticket, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
   FormModal,
@@ -66,16 +67,10 @@ const SCOPE_LABEL: Record<CouponScope, string> = {
   addons: "Add-ons",
 };
 
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
-
 function discountLabel(c: CouponRow): string {
   return c.discountType === "percent"
     ? `${c.discountValue}% off`
-    : `${fmtR(c.discountValue, c.currency)} off`;
+    : `${formatMoney(c.discountValue, c.currency)} off`;
 }
 
 type EditTarget = { mode: "create" } | { mode: "edit"; coupon: CouponRow };

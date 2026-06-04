@@ -74,6 +74,15 @@ per-site for now (options vary too much for a single helper).
   output-identical to `formatMoney` (`R 1 500`). Migrating it would change a
   displayed amount, which violates the no-behaviour-change rule — flagged as a
   latent inconsistency to fix deliberately, not silently under a refactor.
-- **Remaining money-formatter batches (queued):** listings & pricing, public
-  listing/explore pages, dashboard home. To be done in feature-sized commits
-  with a check each.
+- **Host/admin dashboard batch (done):** migrated `admin/bookings/page`,
+  `dashboard/page` (home), `dashboard/listings/page`, `dashboard/coupons/CouponsManager`,
+  and `dashboard/addons/AddonsArchive` to `formatMoney`. All standard type-A
+  copies, identical ZAR output.
+- **Remaining money-formatter batches (queued):** guest-facing listing/explore
+  pages (`listing/[slug]/*`, `explore`, `c/[slug]`, `[handle]`, `_components/home`,
+  `booking/[id]/success`) + the public `roomDisplay.ts` util. These carry the
+  edge cases to handle deliberately: `BookingConfirmation.fmtMoney` uses
+  `Number(n)||0` (renders `R 0` for null where `formatMoney` renders `—`);
+  `SuitabilityChips.money` + `RoomEditor` use a no-trailing-space `R` symbol with
+  differing concatenation; `book/BookingForm` has an extra inline formatter at
+  the price line (~1208) beyond its `fmtR`. Verify each before swapping.
