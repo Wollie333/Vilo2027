@@ -31,6 +31,27 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Guest access: per-room + gate code, 1h unlock — branch `main`
+
+### Built
+- Per-room guest access: new `listing_room_access` table + a **gate code** field on both listing and room access. Host edits room access in the room editor (new Guest access section) and listing access in the Guest access tab (gate code added).
+- Guest trip page resolves access by **booking scope**: whole-listing → listing access; room booking(s) → each booked room's access (two rooms = two blocks), each merging room values over listing values **per field** (fallback).
+
+### Changed
+- Sensitive codes (gate/door) + Wi-Fi password now unlock **1 hour before check-in** (was 24h), using the listing check-in time of day.
+
+### Migrations
+- `20260604000009_room_access_and_gate_code.sql` — gate_code + listing_room_access.
+- `20260604000010_help_room_access.sql` — refreshed host help article.
+
+### Notes
+- Follow-up (not yet built): auto-post a designed access card into the guest's inbox 1h before check-in (needs a 15-min cron + conversation find-or-create + a card renderer). Real Paystack refunds also still pending (see prior note). `pnpm build` + `pnpm lint` green.
+
+### Commit
+- `migration: per-room guest access...` → `migration: update guest-access help...` — `6b7e631`…`ad3249c`
+
+---
+
 ## 2026-06-04 — Notifications: quote-requests tab + grouped bell tabs — branch `main`
 
 ### Built
