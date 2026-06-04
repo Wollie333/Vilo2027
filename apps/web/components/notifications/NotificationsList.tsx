@@ -79,11 +79,13 @@ function severityBorder(
   s: ListNotification["severity"],
   unread: boolean,
 ): string {
+  // Cards are always white; unread state is conveyed by the dot + a tinted
+  // border (stronger for higher severity), so they read as clean cards.
   if (s === "critical")
-    return unread ? "border-red-400 bg-red-50" : "border-red-200";
+    return unread ? "border-red-400 bg-white" : "border-red-200 bg-white";
   if (s === "high")
-    return unread ? "border-amber-400 bg-amber-50" : "border-amber-200";
-  if (unread) return "border-brand-primary bg-brand-accent/30";
+    return unread ? "border-amber-400 bg-white" : "border-amber-200 bg-white";
+  if (unread) return "border-brand-primary bg-white";
   return "border-brand-line bg-white";
 }
 
