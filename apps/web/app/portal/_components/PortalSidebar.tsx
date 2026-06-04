@@ -2,6 +2,7 @@
 
 import {
   Compass,
+  FileText,
   LayoutDashboard,
   LifeBuoy,
   LogOut,
@@ -30,6 +31,7 @@ type Item = {
 const MAIN: Item[] = [
   { href: "/portal", label: "Overview", icon: LayoutDashboard, match: "exact" },
   { href: "/portal/trips", label: "My trips", icon: Luggage, match: "prefix" },
+  { href: "/portal/quotes", label: "Quotes", icon: FileText, match: "prefix" },
   {
     href: "/portal/inbox",
     label: "Messages",
