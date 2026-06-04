@@ -61,7 +61,11 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   Fixed: (a) leftover `viloplatform.com` handle hint → relative public path (`1bfe568`);
   (b) avatar size limit mismatch 8MB client vs 5MB server → aligned to 4MB both sides, under
   the Vercel Server-Action body cap (`8194853`). **Founder live-check pending.**
-- [⬜] 3. Banking details — `/dashboard/settings/banking`
+- [⚠️] 3. Banking details — `/dashboard/settings/banking`. Code audited CLEAN, no changes:
+  all 12 actions auth-gated via `resolveHost()`; account numbers + gateway secrets encrypted
+  at rest and decrypted server-side ONLY for outbound Paystack calls (never returned to client);
+  no `any`, no stray logs; RHF+Zod (schemas.ts); logo upload resizes client-side to ≤512px
+  before posting (no body-cap risk). **Founder live-check pending.**
 - [⬜] 4. Subscription & billing — `/dashboard/settings/subscription`
 - [⬜] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`
 - [⬜] 6. Rooms — `/dashboard/rooms`
@@ -104,7 +108,9 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   merge needed, nothing reverted. Audited feature #2 (Host profile, at `/dashboard/settings`):
   code is sound; fixed two concrete issues in small commits — the `viloplatform.com` handle
   hint (`1bfe568`) and the 8MB-client/5MB-server avatar limit mismatch → 4MB both sides under
-  the Vercel body cap (`8194853`). **NEXT: founder live-checks Host profile, then #3 Banking.**
+  the Vercel body cap (`8194853`). Then audited #3 Banking — clean, no changes needed (secrets
+  encrypted + server-only, all 12 actions auth-gated, logo resizes client-side before upload).
+  **NEXT: founder live-checks Host profile + Banking, then #4 Subscription.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
