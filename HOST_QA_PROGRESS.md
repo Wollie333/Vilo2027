@@ -66,7 +66,12 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   at rest and decrypted server-side ONLY for outbound Paystack calls (never returned to client);
   no `any`, no stray logs; RHF+Zod (schemas.ts); logo upload resizes client-side to ≤512px
   before posting (no body-cap risk). **Founder live-check pending.**
-- [⬜] 4. Subscription & billing — `/dashboard/settings/subscription`
+- [⚠️] 4. Subscription & billing — `/dashboard/settings/subscription`. Code audited CLEAN:
+  switch/cancel/reactivate actions all auth-gated (`getMyHostId`), Zod-validated, RLS-scoped,
+  no `any`/logs; PlanPicker `plan ===` checks are switcher UX, not feature gates. **Known gap
+  (launch-blocker, NOT a bug):** real Paystack/PayPal subscription billing is intentionally
+  stubbed pre-MVP — `switchPlanAction` records state only; wire provider + webhooks before
+  launch (founder ops/keys). **Founder live-check pending.**
 - [⬜] 5. Listings (portfolio/new/edit/photos/amenities) — `/dashboard/listings`
 - [⬜] 6. Rooms — `/dashboard/rooms`
 - [⬜] 7. Seasonal pricing — `/dashboard/seasonal-pricing`
@@ -111,6 +116,10 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   the Vercel body cap (`8194853`). Then audited #3 Banking — clean, no changes needed (secrets
   encrypted + server-only, all 12 actions auth-gated, logo resizes client-side before upload).
   **NEXT: founder live-checks Host profile + Banking, then #4 Subscription.**
+- **2026-06-04 (cont.)** — Audited #4 Subscription & billing — code clean (switch/cancel/
+  reactivate actions auth-gated + Zod + RLS, no `any`/logs; PlanPicker checks are switcher UX).
+  Only gap is real provider billing, stubbed pre-MVP — a launch-blocker, not a bug. No code
+  changes. **NEXT: founder live-checks #2/#3/#4, then #5 Listings.**
 - **2026-05-29 (setup redesign):** Decoded the real `Setup Flow (standalone).html`
   mockup (web-archive: gzip+base64 JSX resources extracted via Node) and rebuilt
   `/dashboard/setup` to match: single-scroll page, sticky left ProgressRail (% bar +
