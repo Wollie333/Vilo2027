@@ -316,7 +316,11 @@ function StatusBadge({ status }: { status: TripStatus }) {
 }
 
 function TripActions({ trip }: { trip: Trip }) {
-  const rebookHref = trip.slug ? `/listing/${trip.slug}` : "/explore";
+  // Deep-link to the listing's checkout with the same party size prefilled;
+  // dates are left blank for the guest to pick. Falls back to in-portal browse.
+  const rebookHref = trip.slug
+    ? `/listing/${trip.slug}/book?guests=${trip.guests}`
+    : "/portal/browse";
 
   if (trip.status === "confirmed") {
     return (
@@ -555,7 +559,7 @@ export function TripsClient({
           </p>
         </div>
         <Link
-          href="/explore"
+          href="/portal/browse"
           className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
         >
           <Search className="h-4 w-4 text-brand-primary" /> Find a stay
@@ -628,10 +632,10 @@ export function TripsClient({
           </p>
           {tab === "upcoming" && (
             <Link
-              href="/explore"
+              href="/portal/browse"
               className="mt-5 inline-flex items-center gap-2 rounded bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
             >
-              Explore stays <ArrowRight className="h-4 w-4" />
+              Browse stays <ArrowRight className="h-4 w-4" />
             </Link>
           )}
         </div>
