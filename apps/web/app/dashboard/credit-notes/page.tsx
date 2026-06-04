@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { notFound } from "next/navigation";
+
 import { formatMoney } from "@/lib/format";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -27,6 +30,8 @@ export default async function CreditNotesPage({
   searchParams?: { q?: string; status?: string };
 }) {
   const supabase = createServerClient();
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
   const q = (searchParams?.q ?? "").trim();
   const status = (searchParams?.status ?? "").trim();
 
@@ -35,6 +40,7 @@ export default async function CreditNotesPage({
     .select(
       "id, credit_note_number, status, origin, issued_at, total_amount, currency, invoice_id, guest_snapshot",
     )
+    .eq("host_id", myHostId)
     .order("issued_at", { ascending: false });
 
   if (q.length > 0) query = query.ilike("credit_note_number", `%${q}%`);

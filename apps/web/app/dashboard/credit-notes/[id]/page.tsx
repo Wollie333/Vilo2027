@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -46,12 +47,16 @@ export default async function CreditNoteDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/credit-notes/${params.id}`);
 
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
+
   const { data: cn } = await supabase
     .from("credit_notes")
     .select(
       "id, credit_note_number, status, origin, issued_at, cancelled_at, subtotal, vat_amount, total_amount, currency, reason, host_snapshot, guest_snapshot, line_items, invoice_id, booking_id, hosted_token",
     )
     .eq("id", params.id)
+    .eq("host_id", myHostId)
     .maybeSingle();
 
   if (!cn) notFound();

@@ -22,6 +22,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PaymentManage } from "./PaymentManage";
@@ -142,12 +143,16 @@ export default async function PaymentDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/payments/${params.id}`);
 
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
+
   const { data: payment } = await supabase
     .from("payments")
     .select(
       "id, amount, currency, method, status, provider_reference, eft_proof_url, created_at, captured_at, authorised_at, failed_at, booking:bookings!inner ( id, reference, status, payment_status, guest_name, guest_email, check_in, check_out, nights, session_date, base_amount, cleaning_fee, discount_amount, balance_due, total_amount, currency, created_at, confirmed_at, cancelled_at, listing:listings!inner ( name, slug ) )",
     )
     .eq("id", params.id)
+    .eq("booking.host_id", myHostId)
     .maybeSingle();
 
   if (!payment) notFound();

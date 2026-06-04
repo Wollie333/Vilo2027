@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { RoomEditor, type RoomEditorRoom } from "./RoomEditor";
@@ -26,11 +27,15 @@ export default async function EditRoomPage({
     );
   }
 
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
+
   // RLS host_manage_own_listings filters to listings the host owns.
   const { data: listing } = await supabase
     .from("listings")
     .select("id, name, slug, currency")
     .eq("id", params.id)
+    .eq("host_id", myHostId)
     .is("deleted_at", null)
     .maybeSingle();
   if (!listing) notFound();

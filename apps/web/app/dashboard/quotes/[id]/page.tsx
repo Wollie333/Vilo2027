@@ -26,6 +26,7 @@ import {
 
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteActions } from "./QuoteActions";
@@ -102,6 +103,9 @@ export default async function QuoteDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/quotes/${params.id}`);
 
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
+
   const { data: quote } = await supabase
     .from("quotes")
     .select(
@@ -117,6 +121,7 @@ export default async function QuoteDetailPage({
     `,
     )
     .eq("id", params.id)
+    .eq("host_id", myHostId)
     .is("deleted_at", null)
     .maybeSingle();
 

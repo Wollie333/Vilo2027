@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -52,13 +54,16 @@ function methodShort(m: string): string {
 
 export default async function PaymentsPage() {
   const supabase = createServerClient();
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
 
-  // RLS host_read_own_payments — only payments for this host's bookings.
+  // Scope to this host's bookings (RLS alone would let admin/staff see all).
   const { data } = await supabase
     .from("payments")
     .select(
       "id, amount, currency, method, status, provider_reference, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
     )
+    .eq("booking.host_id", myHostId)
     .order("created_at", { ascending: false })
     .limit(400);
 

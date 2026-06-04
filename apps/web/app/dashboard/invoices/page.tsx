@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { notFound } from "next/navigation";
+
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../quotes/schemas";
@@ -24,6 +27,8 @@ export default async function InvoicesPage({
   searchParams?: { q?: string; status?: string };
 }) {
   const supabase = createServerClient();
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
   const q = (searchParams?.q ?? "").trim();
   const status = (searchParams?.status ?? "").trim();
 
@@ -32,6 +37,7 @@ export default async function InvoicesPage({
     .select(
       "id, invoice_number, status, issued_at, total_amount, currency, booking_id, guest_snapshot",
     )
+    .eq("host_id", myHostId)
     .order("issued_at", { ascending: false });
 
   if (q.length > 0) {

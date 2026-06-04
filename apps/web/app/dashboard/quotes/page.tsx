@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { notFound } from "next/navigation";
+
 import { Plus } from "lucide-react";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "./schemas";
@@ -28,6 +31,8 @@ export default async function QuotesListPage({
   searchParams?: { q?: string; status?: string };
 }) {
   const supabase = createServerClient();
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
 
   const q = (searchParams?.q ?? "").trim();
   const status = (searchParams?.status ?? "").trim();
@@ -37,6 +42,7 @@ export default async function QuotesListPage({
     .select(
       "id, quote_number, guest_name, guest_email, check_in, check_out, total_amount, currency, status, created_at, listing:listings ( name )",
     )
+    .eq("host_id", myHostId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 

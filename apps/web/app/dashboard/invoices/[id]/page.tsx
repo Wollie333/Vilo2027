@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { Download, ExternalLink } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../../quotes/schemas";
@@ -62,12 +63,16 @@ export default async function InvoiceDetailPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/dashboard/invoices/${params.id}`);
 
+  const myHostId = await getMyHostId(supabase);
+  if (!myHostId) notFound();
+
   const { data: invoice } = await supabase
     .from("invoices")
     .select(
       "id, invoice_number, status, issued_at, paid_at, total_amount, subtotal, vat_amount, currency, host_snapshot, guest_snapshot, line_items, booking_id, hosted_token, pdf_storage_path",
     )
     .eq("id", params.id)
+    .eq("host_id", myHostId)
     .maybeSingle();
 
   if (!invoice) notFound();
