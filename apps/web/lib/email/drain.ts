@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { Resend } from "resend";
 
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { EMAIL_REGISTRY, type EmailRegistryEntry } from "./registry";
@@ -42,6 +43,9 @@ export async function drainEmailQueue(): Promise<DrainResult> {
 
   const resend = new Resend(apiKey);
   const supabase = createAdminClient();
+  // Brand name is injected into every email payload so subjects/templates can
+  // use the configured name (falling back to "Vilo") instead of hardcoding it.
+  const brandName = await getBrandName();
 
   const { data: rows, error: fetchError } = await supabase
     .from("notification_queue")
@@ -107,7 +111,11 @@ export async function drainEmailQueue(): Promise<DrainResult> {
         continue;
       }
     }
-    const payload: Record<string, unknown> = { ...resolved, ...rawPayload };
+    const payload: Record<string, unknown> = {
+      brand_name: brandName,
+      ...resolved,
+      ...rawPayload,
+    };
 
     // Defense-in-depth: re-check the recipient's preference at send time.
     // The dispatcher already gated at enqueue, but a category toggled off

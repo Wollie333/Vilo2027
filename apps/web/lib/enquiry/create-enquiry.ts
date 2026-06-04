@@ -478,11 +478,13 @@ export async function createEnquiry(
     } else if (appUrl) {
       actionHtml = `<p><a href="${appUrl}/portal/inbox/${conversationId}" style="color:#0d9488;font-weight:600">View your request in your inbox &rarr;</a></p>`;
     }
+    const { getBrandName } = await import("@/lib/brand");
+    const brand = await getBrandName();
     const { sendTransactionalEmail } = await import("@/lib/email/send");
     await sendTransactionalEmail({
       to: emailLc,
       subject: `We've sent your request to ${hostRow.display_name}`,
-      html: `<p>Hi ${esc(d.guest_name.split(" ")[0])},</p><p>Thanks for your interest in <strong>${esc(listing.name)}</strong>. Your request (${d.check_in} &rarr; ${d.check_out}) has reached ${esc(hostRow.display_name)}, who'll reply with a tailored quote.</p>${actionHtml}<p style="color:#6b7280;font-size:12px">Sent via Vilo</p>`,
+      html: `<p>Hi ${esc(d.guest_name.split(" ")[0])},</p><p>Thanks for your interest in <strong>${esc(listing.name)}</strong>. Your request (${d.check_in} &rarr; ${d.check_out}) has reached ${esc(hostRow.display_name)}, who'll reply with a tailored quote.</p>${actionHtml}<p style="color:#6b7280;font-size:12px">Sent via ${esc(brand)}</p>`,
     });
   } catch {
     // Email is best-effort — the enquiry already succeeded.

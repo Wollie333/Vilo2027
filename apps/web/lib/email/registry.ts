@@ -45,7 +45,7 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   welcome_host: {
     Template: WelcomeHost as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: () => "Welcome to Vilo",
+    subject: (p) => `Welcome to ${str(p.brand_name, "Vilo")}`,
   },
 
   booking_request_host: {
@@ -118,14 +118,15 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   subscription_welcome: {
     Template: SubscriptionWelcome as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: (p) => `Welcome to Vilo ${str(p.planName, "")}`.trim(),
+    subject: (p) =>
+      `Welcome to ${str(p.brand_name, "Vilo")} ${str(p.planName, "")}`.trim(),
   },
 
   subscription_expiring: {
     Template: SubscriptionExpiring as ComponentType<Record<string, unknown>>,
     recipient: "host",
     subject: (p) =>
-      `Your Vilo ${str(p.planName, "")} subscription renews soon`.replace(
+      `Your ${str(p.brand_name, "Vilo")} ${str(p.planName, "")} subscription renews soon`.replace(
         /\s+/g,
         " ",
       ),
@@ -134,19 +135,22 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   subscription_failed: {
     Template: SubscriptionFailed as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: () => "Action required: Your Vilo payment failed",
+    subject: (p) =>
+      `Action required: Your ${str(p.brand_name, "Vilo")} payment failed`,
   },
 
   subscription_restricted: {
     Template: SubscriptionRestricted as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: () => "Your Vilo account has been restricted",
+    subject: (p) =>
+      `Your ${str(p.brand_name, "Vilo")} account has been restricted`,
   },
 
   account_suspended: {
     Template: AccountSuspended as ComponentType<Record<string, unknown>>,
     recipient: "host",
-    subject: () => "Your Vilo account has been suspended",
+    subject: (p) =>
+      `Your ${str(p.brand_name, "Vilo")} account has been suspended`,
   },
 
   refund_request_host: {
@@ -203,7 +207,7 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     Template: StaffInvite as ComponentType<Record<string, unknown>>,
     recipient: "custom",
     subject: (p) =>
-      `${str(p.hostName, "A host")} invited you to manage ${str(p.propertyName, "their property")} on Vilo`,
+      `${str(p.hostName, "A host")} invited you to manage ${str(p.propertyName, "their property")} on ${str(p.brand_name, "Vilo")}`,
   },
 
   refund_escalated_admin: {
@@ -218,7 +222,8 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   broadcast_critical: {
     Template: BroadcastCritical as ComponentType<Record<string, unknown>>,
     recipient: "custom",
-    subject: (p) => str(p.title, "Important announcement from Vilo"),
+    subject: (p) =>
+      str(p.title, `Important announcement from ${str(p.brand_name, "Vilo")}`),
   },
 
   // Admin individual sends. The send action loops per recipient and writes
@@ -227,7 +232,7 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
   admin_message_generic: {
     Template: AdminMessageGeneric as ComponentType<Record<string, unknown>>,
     recipient: "custom",
-    subject: (p) => str(p.title, "A message from Vilo"),
+    subject: (p) => str(p.title, `A message from ${str(p.brand_name, "Vilo")}`),
   },
 
   // Digest drain inserts one queue row per (user, cadence) with
@@ -236,7 +241,10 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     Template: NotificationDigest as ComponentType<Record<string, unknown>>,
     recipient: "custom",
     subject: (p) =>
-      `Your ${str(p.cadence, "daily")} Vilo digest`.replace(/\s+/g, " "),
+      `Your ${str(p.cadence, "daily")} ${str(p.brand_name, "Vilo")} digest`.replace(
+        /\s+/g,
+        " ",
+      ),
   },
 };
 
