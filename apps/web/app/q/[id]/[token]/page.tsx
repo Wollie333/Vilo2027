@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -46,6 +47,7 @@ export default async function PublicQuotePage({
 }) {
   // Service-role bypasses RLS — the token is the auth.
   const supabase = createAdminClient();
+  const brandName = await getBrandName();
 
   const { data: quote } = await supabase
     .from("quotes")
@@ -91,7 +93,7 @@ export default async function PublicQuotePage({
       <div className="mx-auto max-w-2xl space-y-6">
         <header className="text-center">
           <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded bg-brand-primary text-2xl font-bold text-white">
-            V
+            {brandName.charAt(0).toUpperCase()}
           </div>
           <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
             Quote · {quote.quote_number}
@@ -214,8 +216,7 @@ export default async function PublicQuotePage({
 
         <p className="text-center text-[11px] text-brand-mute">
           Sent via{" "}
-          <span className="font-semibold text-brand-primary">VILO</span> ·
-          viloplatform.com
+          <span className="font-semibold text-brand-primary">{brandName}</span>
         </p>
       </div>
     </div>
