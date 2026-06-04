@@ -227,7 +227,7 @@ export default async function PortalTripDetailPage({
         local_picks:listing_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
       ),
       host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at ),
-      booking_rooms ( room:listing_rooms ( name ) )
+      booking_rooms ( room:listing_rooms ( id, name ) )
     `,
     )
     .eq("id", params.id)
@@ -262,7 +262,12 @@ export default async function PortalTripDetailPage({
     listing: ListingEmbed | ListingEmbed[] | null;
     host: HostEmbed | HostEmbed[] | null;
     booking_rooms:
-      | { room: { name: string } | { name: string }[] | null }[]
+      | {
+          room:
+            | { id: string; name: string }
+            | { id: string; name: string }[]
+            | null;
+        }[]
       | null;
   };
 
@@ -272,21 +277,32 @@ export default async function PortalTripDetailPage({
 
   // Sensitive access details: fetched with the service role (the booking is
   // verified as this guest's above) so secrets never depend on public RLS.
-  let access: {
+  type AccessShape = {
     check_in_method: string | null;
     check_in_instructions: string | null;
+    gate_code: string | null;
     door_code: string | null;
     wifi_network: string | null;
     wifi_password: string | null;
-  } | null = null;
+  };
+  // Each booked room (or the whole listing) gets its own access block. Room
+  // access falls back to the listing access per field where left blank.
+  type AccessBlock = { label: string | null; access: AccessShape };
+
+  // Rooms actually booked (presence drives per-room vs whole-listing access).
+  const bookedRooms = (booking.booking_rooms ?? [])
+    .map((br) => one(br.room))
+    .filter((r): r is { id: string; name: string } => Boolean(r?.id));
+
+  let accessBlocks: AccessBlock[] = [];
   let hostReviewCount = 0;
   if (listing?.id) {
     const admin = createAdminClient();
-    const [{ data: accessRow }, { count }] = await Promise.all([
+    const [{ data: listingAccess }, { count }] = await Promise.all([
       admin
         .from("listing_access")
         .select(
-          "check_in_method, check_in_instructions, door_code, wifi_network, wifi_password",
+          "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
         )
         .eq("listing_id", listing.id)
         .maybeSingle(),
@@ -295,9 +311,56 @@ export default async function PortalTripDetailPage({
         .select("id", { count: "exact", head: true })
         .eq("host_id", booking.host_id),
     ]);
-    access = accessRow ?? null;
     hostReviewCount = count ?? 0;
+
+    const listingShape: AccessShape = {
+      check_in_method: listingAccess?.check_in_method ?? null,
+      check_in_instructions: listingAccess?.check_in_instructions ?? null,
+      gate_code: listingAccess?.gate_code ?? null,
+      door_code: listingAccess?.door_code ?? null,
+      wifi_network: listingAccess?.wifi_network ?? null,
+      wifi_password: listingAccess?.wifi_password ?? null,
+    };
+    // Per-field fallback: use the room's value, else the listing's.
+    const fb = (room: Partial<AccessShape> | null): AccessShape => ({
+      check_in_method: room?.check_in_method || listingShape.check_in_method,
+      check_in_instructions:
+        room?.check_in_instructions || listingShape.check_in_instructions,
+      gate_code: room?.gate_code || listingShape.gate_code,
+      door_code: room?.door_code || listingShape.door_code,
+      wifi_network: room?.wifi_network || listingShape.wifi_network,
+      wifi_password: room?.wifi_password || listingShape.wifi_password,
+    });
+
+    if (bookedRooms.length > 0) {
+      const { data: roomAccessRows } = await admin
+        .from("listing_room_access")
+        .select(
+          "room_id, check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
+        )
+        .in(
+          "room_id",
+          bookedRooms.map((r) => r.id),
+        );
+      const byRoom = new Map((roomAccessRows ?? []).map((r) => [r.room_id, r]));
+      accessBlocks = bookedRooms.map((r) => ({
+        label: r.name,
+        access: fb(byRoom.get(r.id) ?? null),
+      }));
+    } else {
+      accessBlocks = [{ label: null, access: listingShape }];
+    }
   }
+  // Any access info at all to show?
+  const hasAnyAccess = accessBlocks.some(
+    (b) =>
+      b.access.check_in_method ||
+      b.access.check_in_instructions ||
+      b.access.gate_code ||
+      b.access.door_code ||
+      b.access.wifi_network ||
+      b.access.wifi_password,
+  );
 
   // Refund history (guest reads own via RLS).
   const { data: refunds } = await supabase
@@ -329,11 +392,19 @@ export default async function PortalTripDetailPage({
   const isLive = ["confirmed", "checked_in"].includes(booking.status);
   const isCancelled = booking.status.startsWith("cancelled");
 
-  // Access secrets unlock from 24h before check-in (a physical-key courtesy)
-  // and only for a live/completed booking.
+  // Access secrets (gate/door codes, Wi-Fi password) unlock from 1 hour before
+  // check-in (a physical-key courtesy) and only for a live/completed booking.
+  // The check-in time-of-day is applied when available, else midnight.
+  const HOUR_MS = 3_600_000;
+  const checkInWithTime =
+    booking.check_in != null
+      ? new Date(
+          `${booking.check_in}T${listing?.check_in_time ?? "00:00"}:00`,
+        ).getTime()
+      : null;
   const accessUnlocked =
-    checkInMs != null &&
-    now >= checkInMs - dayMs &&
+    checkInWithTime != null &&
+    now >= checkInWithTime - HOUR_MS &&
     ["confirmed", "checked_in", "completed", "checked_out"].includes(
       booking.status,
     );
@@ -652,19 +723,22 @@ export default async function PortalTripDetailPage({
           ) : null}
 
           {/* GETTING THERE & CHECKING IN */}
-          {addressLines.length > 0 ||
-          access?.check_in_method ||
-          access?.wifi_network ||
-          access?.door_code ? (
+          {addressLines.length > 0 || hasAnyAccess ? (
             <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
               <div className="border-b border-brand-line px-6 py-4">
                 <div className="font-display text-[15px] font-bold text-brand-ink">
                   Getting there &amp; checking in
                 </div>
                 {!accessUnlocked &&
-                (access?.door_code || access?.wifi_password) ? (
+                accessBlocks.some(
+                  (b) =>
+                    b.access.gate_code ||
+                    b.access.door_code ||
+                    b.access.wifi_password,
+                ) ? (
                   <div className="mt-0.5 text-[12px] text-brand-mute">
-                    Your access details unlock 24 hours before arrival
+                    Your gate/door codes &amp; Wi-Fi password unlock 1 hour
+                    before check-in
                   </div>
                 ) : null}
               </div>
@@ -699,81 +773,117 @@ export default async function PortalTripDetailPage({
                 </div>
               ) : null}
 
-              <div className="divide-y divide-brand-line border-t border-brand-line">
-                {access?.check_in_method ? (
-                  <AccessRow
-                    icon={<DoorOpen className="h-4 w-4 text-brand-mute" />}
-                    label="Check-in method"
-                    value={
-                      <span className="text-[13px] font-semibold text-brand-ink">
-                        {access.check_in_method}
-                      </span>
-                    }
-                  />
-                ) : null}
-                {access?.door_code ? (
-                  <AccessRow
-                    icon={<KeyRound className="h-4 w-4 text-brand-mute" />}
-                    label="Door code"
-                    value={
-                      accessUnlocked ? (
-                        <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
-                          {access.door_code}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11.5px] font-medium text-brand-mute">
-                          <Lock className="h-3.5 w-3.5" /> Unlocks{" "}
-                          {checkInMs
-                            ? fmtDay(
-                                new Date(checkInMs - dayMs)
-                                  .toISOString()
-                                  .slice(0, 10),
-                              )
-                            : "near check-in"}
-                        </span>
-                      )
-                    }
-                  />
-                ) : null}
-                {access?.wifi_network ? (
-                  <AccessRow
-                    icon={<Wifi className="h-4 w-4 text-brand-mute" />}
-                    label="Wi-Fi network"
-                    value={
-                      <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
-                        {access.wifi_network}
-                      </span>
-                    }
-                  />
-                ) : null}
-                {access?.wifi_password ? (
-                  <AccessRow
-                    icon={<Lock className="h-4 w-4 text-brand-mute" />}
-                    label="Wi-Fi password"
-                    value={
-                      accessUnlocked ? (
-                        <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
-                          {access.wifi_password}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11.5px] font-medium text-brand-mute">
-                          <Lock className="h-3.5 w-3.5" /> Unlocks near check-in
-                        </span>
-                      )
-                    }
-                  />
-                ) : null}
-                {access?.check_in_instructions ? (
-                  <div className="px-6 py-3.5">
-                    <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-mute">
-                      Arrival instructions
+              {accessBlocks.map((block, bi) => {
+                const a = block.access;
+                const blockHasContent =
+                  a.check_in_method ||
+                  a.check_in_instructions ||
+                  a.gate_code ||
+                  a.door_code ||
+                  a.wifi_network ||
+                  a.wifi_password;
+                if (!blockHasContent) return null;
+                const lockedPill = (
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11.5px] font-medium text-brand-mute">
+                    <Lock className="h-3.5 w-3.5" /> Unlocks 1 hour before
+                    check-in
+                  </span>
+                );
+                return (
+                  <div key={bi} className="border-t border-brand-line">
+                    {block.label ? (
+                      <div className="bg-brand-light/50 px-6 py-2.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-secondary">
+                        {block.label}
+                      </div>
+                    ) : null}
+                    <div className="divide-y divide-brand-line">
+                      {a.check_in_method ? (
+                        <AccessRow
+                          icon={
+                            <DoorOpen className="h-4 w-4 text-brand-mute" />
+                          }
+                          label="Check-in method"
+                          value={
+                            <span className="text-[13px] font-semibold text-brand-ink">
+                              {a.check_in_method}
+                            </span>
+                          }
+                        />
+                      ) : null}
+                      {a.gate_code ? (
+                        <AccessRow
+                          icon={
+                            <KeyRound className="h-4 w-4 text-brand-mute" />
+                          }
+                          label="Gate code"
+                          value={
+                            accessUnlocked ? (
+                              <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
+                                {a.gate_code}
+                              </span>
+                            ) : (
+                              lockedPill
+                            )
+                          }
+                        />
+                      ) : null}
+                      {a.door_code ? (
+                        <AccessRow
+                          icon={
+                            <KeyRound className="h-4 w-4 text-brand-mute" />
+                          }
+                          label="Door code"
+                          value={
+                            accessUnlocked ? (
+                              <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
+                                {a.door_code}
+                              </span>
+                            ) : (
+                              lockedPill
+                            )
+                          }
+                        />
+                      ) : null}
+                      {a.wifi_network ? (
+                        <AccessRow
+                          icon={<Wifi className="h-4 w-4 text-brand-mute" />}
+                          label="Wi-Fi network"
+                          value={
+                            <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
+                              {a.wifi_network}
+                            </span>
+                          }
+                        />
+                      ) : null}
+                      {a.wifi_password ? (
+                        <AccessRow
+                          icon={<Lock className="h-4 w-4 text-brand-mute" />}
+                          label="Wi-Fi password"
+                          value={
+                            accessUnlocked ? (
+                              <span className="num font-mono text-[12.5px] font-semibold text-brand-ink">
+                                {a.wifi_password}
+                              </span>
+                            ) : (
+                              lockedPill
+                            )
+                          }
+                        />
+                      ) : null}
+                      {a.check_in_instructions ? (
+                        <div className="px-6 py-3.5">
+                          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-mute">
+                            Arrival instructions
+                          </div>
+                          <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-brand-ink">
+                            {a.check_in_instructions}
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
-                    <p className="mt-1 whitespace-pre-line text-[13px] leading-relaxed text-brand-ink">
-                      {access.check_in_instructions}
-                    </p>
                   </div>
-                ) : null}
-              </div>
+                );
+              })}
             </section>
           ) : null}
 
