@@ -19,6 +19,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useMemo, useState } from "react";
 
+import { formatMoney } from "@/lib/format";
+
 // ── Shared shapes (built server-side in page.tsx) ───────────────────
 export type BookingRow = {
   id: string;
@@ -85,10 +87,6 @@ function fmtDay(s: string): string {
     day: "2-digit",
     month: "short",
   });
-}
-function fmtR(n: number, currency: string): string {
-  const body = Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
-  return `${currency === "ZAR" ? "R " : ""}${body}`;
 }
 
 // ── Channel (Vilo is direct-booking — map origin, not OTA channels) ──
@@ -434,7 +432,7 @@ export function BookingsBoard({
             r.status === "pending_eft_review"
               ? `Review EFT proof — ${r.guestName}`
               : `Confirm booking — ${r.guestName}`,
-          sub: `${fmtR(r.totalAmount, r.currency)} · ${r.listingName}`,
+          sub: `${formatMoney(r.totalAmount, r.currency)} · ${r.listingName}`,
           href: `/dashboard/bookings/${r.id}`,
         });
       } else if (
@@ -569,11 +567,11 @@ export function BookingsBoard({
               ) : null}
             </div>
             <div className="num mt-2 font-display text-[30px] font-bold leading-none">
-              {fmtR(kpis.revenue.total, kpis.currency)}
+              {formatMoney(kpis.revenue.total, kpis.currency)}
             </div>
             <div className="num mt-1 text-[11.5px] text-brand-accent/70">
-              {fmtR(kpis.revenue.prevTotal, kpis.currency)} · same period last
-              month
+              {formatMoney(kpis.revenue.prevTotal, kpis.currency)} · same period
+              last month
             </div>
             <svg viewBox="0 0 200 40" className="mt-3 h-9 w-full">
               <defs>
@@ -696,7 +694,7 @@ export function BookingsBoard({
             Avg nightly rate
           </span>
           <div className="num mt-2 font-display text-[30px] font-bold leading-none text-brand-ink">
-            {fmtR(kpis.adr.value, kpis.currency)}
+            {formatMoney(kpis.adr.value, kpis.currency)}
           </div>
           <div className="mt-1 text-[11.5px] text-brand-mute">
             avg stay{" "}
@@ -713,7 +711,7 @@ export function BookingsBoard({
                   className="rounded bg-brand-light px-2 py-1.5"
                 >
                   <div className="num font-display text-[13px] font-bold text-brand-ink">
-                    {fmtR(l.adr, kpis.currency)}
+                    {formatMoney(l.adr, kpis.currency)}
                   </div>
                   <div className="truncate text-[9.5px] text-brand-mute">
                     {l.name}
@@ -1131,7 +1129,7 @@ function BookingRowItem({
         <div
           className={`num font-display text-[14px] font-bold text-brand-ink ${isCancelled ? "text-brand-mute line-through" : ""}`}
         >
-          {fmtR(row.totalAmount, row.currency)}
+          {formatMoney(row.totalAmount, row.currency)}
         </div>
         <div className="mt-0.5 text-[10.5px] text-brand-mute">{payHint}</div>
       </div>

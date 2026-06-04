@@ -48,7 +48,10 @@ per-site for now (options vary too much for a single helper).
 - **Formatter foundation (done):** added `lib/format.ts#formatMoney`; migrated
   the inbox batch — `ThreadQuoteCard`, `InboxView` (`fmtZAR`), `PipelineControl`
   (`fmt`). Output identical for ZAR (the only live currency).
-- **Remaining money-formatter batches (queued):** bookings (board/detail/manual),
-  payments, invoices/credit-notes, quotes builder + `/q` page, listings &
-  pricing, public listing/explore pages, dashboard home/admin. ~37 files, to be
-  done in feature-sized commits with a visual check each.
+- **Bookings batch (done):** migrated `BookingsBoard` (`fmtR`),
+  `bookings/[id]/page` (`fmtR`), `IssueRefundButton` (`fmtR`),
+  `ManualBookingForm` (`fmt`) to `formatMoney`. Four private copies removed;
+  ZAR output unchanged. `symbolFor` (input-prefix helper) kept.
+- **Remaining money-formatter batches (queued):** payments, invoices/credit-notes,
+  quotes builder + `/q` page, listings & pricing, public listing/explore pages,
+  dashboard home/admin. To be done in feature-sized commits with a check each.

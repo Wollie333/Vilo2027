@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PaymentManage } from "../../payments/[id]/PaymentManage";
@@ -39,12 +40,6 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 // ─── formatting helpers ──────────────────────────────────────────────
-function fmtR(n: number, currency: string): string {
-  return `${currency === "ZAR" ? "R " : ""}${Math.round(n)
-    .toLocaleString("en-ZA")
-    .replace(/,/g, " ")}`;
-}
-
 function parseDateOnly(s: string | null): Date | null {
   if (!s) return null;
   const d = new Date(s.length <= 10 ? `${s}T00:00:00` : s);
@@ -547,7 +542,7 @@ export default async function BookingDetailPage({
             <HeroTile
               label="Length"
               big={`${nights} night${nights === 1 ? "" : "s"}`}
-              sub={perNight ? `${fmtR(perNight, currency)} / night` : ""}
+              sub={perNight ? `${formatMoney(perNight, currency)} / night` : ""}
             />
             <HeroTile
               label="Guests"
@@ -561,7 +556,7 @@ export default async function BookingDetailPage({
                 {paidInFull ? "Total paid" : "Total due"}
               </div>
               <div className="mt-1.5 font-display text-[20px] font-bold leading-none">
-                {fmtR(Number(booking.total_amount), currency)}
+                {formatMoney(Number(booking.total_amount), currency)}
               </div>
               <div className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] text-white/85">
                 {paidInFull ? (
@@ -685,7 +680,7 @@ export default async function BookingDetailPage({
                     }
                   />
                   <Stat
-                    value={fmtR(guestLifetime, currency)}
+                    value={formatMoney(guestLifetime, currency)}
                     label="lifetime value"
                   />
                   <Stat
@@ -831,7 +826,7 @@ export default async function BookingDetailPage({
                           {br.room?.name ?? "Room"}
                         </span>
                         <span className="text-[13px] font-semibold text-brand-ink">
-                          {fmtR(
+                          {formatMoney(
                             Number(br.base_amount) +
                               Number(br.cleaning_fee ?? 0),
                             currency,
@@ -867,8 +862,8 @@ export default async function BookingDetailPage({
                           {Number(a.subtotal) === 0
                             ? a.is_required
                               ? "Included"
-                              : fmtR(0, a.currency)
-                            : fmtR(Number(a.subtotal), a.currency)}
+                              : formatMoney(0, a.currency)
+                            : formatMoney(Number(a.subtotal), a.currency)}
                         </span>
                       </li>
                     ))}
@@ -898,13 +893,13 @@ export default async function BookingDetailPage({
                     {booking.scope === "rooms"
                       ? "Rooms"
                       : perNight
-                        ? `${fmtR(perNight, currency)} × ${nights} night${
+                        ? `${formatMoney(perNight, currency)} × ${nights} night${
                             nights === 1 ? "" : "s"
                           }`
                         : "Base"}
                   </span>
                   <span className="text-brand-ink">
-                    {fmtR(Number(booking.base_amount), currency)}
+                    {formatMoney(Number(booking.base_amount), currency)}
                   </span>
                 </li>
                 {addons.map((a) =>
@@ -915,7 +910,7 @@ export default async function BookingDetailPage({
                     >
                       <span className="text-brand-mute">{a.label}</span>
                       <span className="text-brand-ink">
-                        {fmtR(Number(a.subtotal), a.currency)}
+                        {formatMoney(Number(a.subtotal), a.currency)}
                       </span>
                     </li>
                   ) : null,
@@ -928,7 +923,7 @@ export default async function BookingDetailPage({
                         : "Cleaning fee"}
                     </span>
                     <span className="text-brand-ink">
-                      {fmtR(Number(booking.cleaning_fee), currency)}
+                      {formatMoney(Number(booking.cleaning_fee), currency)}
                     </span>
                   </li>
                 ) : null}
@@ -937,13 +932,13 @@ export default async function BookingDetailPage({
                     <span className="inline-flex items-center gap-1.5">
                       <Tag className="h-3.5 w-3.5" /> Refunded
                     </span>
-                    <span>– {fmtR(refundTotal, currency)}</span>
+                    <span>– {formatMoney(refundTotal, currency)}</span>
                   </li>
                 ) : null}
                 <li className="flex items-center justify-between border-t border-brand-line pt-3">
                   <span className="font-semibold text-brand-ink">Total</span>
                   <span className="font-display text-[18px] font-bold text-brand-ink">
-                    {fmtR(Number(booking.total_amount), currency)}
+                    {formatMoney(Number(booking.total_amount), currency)}
                   </span>
                 </li>
               </ul>

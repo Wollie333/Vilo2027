@@ -23,6 +23,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { formatMoney } from "@/lib/format";
+
 import { computeAddonSubtotal, PRICING_LABEL } from "../../addons/schemas";
 
 import { createManualBookingAction } from "./actions";
@@ -508,7 +510,7 @@ export function ManualBookingForm({
                       {l.base_price != null && (
                         <div className="text-right">
                           <div className="num font-display text-[12.5px] font-bold text-brand-ink">
-                            {fmt(l.base_price, l.currency)}
+                            {formatMoney(l.base_price, l.currency)}
                           </div>
                           <div className="text-[9.5px] text-brand-mute">
                             / night
@@ -856,7 +858,7 @@ export function ManualBookingForm({
                 onChange={setNightlyRate}
                 hint={
                   listing?.base_price != null
-                    ? `Default · ${fmt(listing.base_price, currency)}`
+                    ? `Default · ${formatMoney(listing.base_price, currency)}`
                     : undefined
                 }
                 symbol={symbolFor(currency)}
@@ -1001,7 +1003,7 @@ export function ManualBookingForm({
                           </span>
                           <div className="relative z-[1] flex items-center gap-2">
                             <span className="num font-display text-[13px] font-bold text-brand-ink">
-                              {fmt(a.unit_price, a.currency)}
+                              {formatMoney(a.unit_price, a.currency)}
                             </span>
                             {sel && (
                               <Stepper
@@ -1034,7 +1036,7 @@ export function ManualBookingForm({
                     </span>
                   </div>
                   <div className="num font-display text-[14px] font-bold text-brand-secondary">
-                    + {fmt(addonsTotal, currency)}
+                    + {formatMoney(addonsTotal, currency)}
                   </div>
                 </div>
               )}
@@ -1228,25 +1230,25 @@ export function ManualBookingForm({
               <ul className="space-y-2 px-5 pt-5 text-[12.5px]">
                 <li className="flex items-center justify-between">
                   <span className="text-brand-mute">
-                    {fmt(nightly, currency)} × {nights || 0}{" "}
+                    {formatMoney(nightly, currency)} × {nights || 0}{" "}
                     {nights === 1 ? "night" : "nights"}
                   </span>
                   <span className="num font-medium text-brand-ink">
-                    {fmt(grossBase, currency)}
+                    {formatMoney(grossBase, currency)}
                   </span>
                 </li>
                 {discountVal > 0 && (
                   <li className="flex items-center justify-between">
                     <span className="text-brand-mute">Discount</span>
                     <span className="num font-medium text-brand-primary">
-                      − {fmt(discountVal, currency)}
+                      − {formatMoney(discountVal, currency)}
                     </span>
                   </li>
                 )}
                 <li className="flex items-center justify-between">
                   <span className="text-brand-mute">Cleaning fee</span>
                   <span className="num font-medium text-brand-ink">
-                    {fmt(cleaning, currency)}
+                    {formatMoney(cleaning, currency)}
                   </span>
                 </li>
               </ul>
@@ -1275,7 +1277,7 @@ export function ManualBookingForm({
                           )}
                         </span>
                         <span className="num font-medium text-brand-ink">
-                          {fmt(a.subtotal, currency)}
+                          {formatMoney(a.subtotal, currency)}
                         </span>
                       </li>
                     ))}
@@ -1285,7 +1287,7 @@ export function ManualBookingForm({
                       Add-ons subtotal
                     </span>
                     <span className="num font-display text-[12.5px] font-bold text-brand-secondary">
-                      + {fmt(addonsTotal, currency)}
+                      + {formatMoney(addonsTotal, currency)}
                     </span>
                   </div>
                 </div>
@@ -1300,7 +1302,7 @@ export function ManualBookingForm({
                       Guest pays
                     </div>
                     <div className="num mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
-                      {fmt(total, currency)}
+                      {formatMoney(total, currency)}
                     </div>
                   </div>
                   {nights > 0 && (
@@ -1309,7 +1311,7 @@ export function ManualBookingForm({
                         avg / night
                       </div>
                       <div className="num font-display text-[14px] font-bold text-brand-ink">
-                        {fmt(total / nights, currency)}
+                        {formatMoney(total / nights, currency)}
                       </div>
                     </div>
                   )}
@@ -1785,12 +1787,6 @@ function nextSteps(state: PayState): string[] {
 
 function symbolFor(currency: string): string {
   return currency === "ZAR" ? "R" : currency;
-}
-
-function fmt(amount: number, currency: string): string {
-  const symbol = symbolFor(currency);
-  const n = Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ");
-  return currency === "ZAR" ? `R ${n}` : `${symbol} ${n}`;
 }
 
 function prettyDate(s: string, short = false): string {
