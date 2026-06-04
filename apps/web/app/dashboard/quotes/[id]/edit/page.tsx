@@ -5,6 +5,10 @@ import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../../QuoteForm";
+import {
+  QuoteRequestCard,
+  type QuoteRequestContext,
+} from "../../QuoteRequestCard";
 import { loadQuoteFormListings } from "../../_listings";
 
 export const metadata: Metadata = {
@@ -34,7 +38,7 @@ export default async function EditQuotePage({
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "id, listing_id, status, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days",
+      "id, listing_id, status, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -57,6 +61,40 @@ export default async function EditQuotePage({
   ]);
 
   const list = await loadQuoteFormListings(supabase, host.id);
+
+  // If this quote came from a guest's public "Request a quote" enquiry (only
+  // those carry a conversation_id), surface what they originally asked for —
+  // including their own message — as read-only context above the form. The
+  // message is the first non-system line the guest posted in the thread.
+  let requestCtx: QuoteRequestContext | null = null;
+  if (quote.conversation_id) {
+    const { data: firstMsg } = await supabase
+      .from("messages")
+      .select("body")
+      .eq("conversation_id", quote.conversation_id)
+      .eq("is_system_message", false)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const party =
+      (quote.guests_breakdown as {
+        adults?: number;
+        children?: number;
+        infants?: number;
+        pets?: number;
+      } | null) ?? null;
+    requestCtx = {
+      guestName: quote.guest_name,
+      checkIn: quote.check_in,
+      checkOut: quote.check_out,
+      party,
+      headcount: quote.headcount,
+      scope: quote.scope,
+      roomCount: (qrooms ?? []).length,
+      message: firstMsg?.body?.trim() || null,
+      requestedAt: quote.created_at,
+    };
+  }
 
   // Split saved add-ons: catalog lines (addon_id still in the listing's catalog)
   // rehydrate the picker; everything else is a custom line.
@@ -146,6 +184,11 @@ export default async function EditQuotePage({
             : "Make your changes and save the draft."}
         </p>
       </header>
+      {requestCtx ? (
+        <div className="mb-6">
+          <QuoteRequestCard ctx={requestCtx} />
+        </div>
+      ) : null}
       <QuoteForm listings={list} initial={initial} />
     </div>
   );

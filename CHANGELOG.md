@@ -31,6 +31,36 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Quotes: show the guest's original request as context on the quote form — branch `main`
+
+### Built
+- New `QuoteRequestCard` (read-only) rendered at the top of the **edit quote** form (`/dashboard/quotes/[id]/edit`) when a quote originated from a guest's public "Request a quote" enquiry. It snapshots what the visitor actually asked for so the host has that context while pricing: their **own message**, the requested **dates + nights**, the **party breakdown** (adults/children/infants/pets), and the **scope** (whole place / N rooms), plus when the request came in.
+
+### Notes
+- A quote is treated as enquiry-originated when it carries a `conversation_id` (host-created quotes via `/new` never do), so the card only shows for real requests. The guest's message is the first non-system line in the linked conversation thread. No schema change. `pnpm build` + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
+## 2026-06-04 — Fix: host inbox showed "Guest" instead of the visitor's name — branch `main`
+
+### Fixed
+- Quote-request (and all) inbox threads displayed **"Guest"** instead of the name the visitor entered, with email/phone showing as `—`. Root cause: the inbox embeds the guest via `user_profiles!conversations_guest_id_fkey`, but `user_profiles` had no host-read RLS policy (only `users_read_own` + `admin_read_all`), so the embedded guest resolved to `null` and the UI fell back to the literal `"Guest"`. The name was being captured correctly all along (`createEnquiry` stores `full_name`); the host simply couldn't read the row.
+
+### Migrations
+- `20260604000003_host_read_guest_profiles.sql` — adds a `user_profiles` SELECT policy letting a host (or their staff) read the profile of any guest they share a **conversation or booking** with. Scoped to the host's own relationships via `get_my_host_id()` / `get_my_host_id_as_staff()` (both SECURITY DEFINER, return NULL for non-hosts → no broader directory exposure). Applied to remote.
+
+### Notes
+- No app-code or type changes — the inbox query already selected `full_name/email/phone`. Fix is purely the missing RLS grant, so it corrects the name across every host thread, not just enquiries.
+- Migration was renamed from `…000001` to `…000003` to avoid a version collision with parallel-session migrations (`brand_name_setting`, `company_identity_settings`) already on remote.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Brand: dynamic brand name in push / in-app notifications — branch `main`
 
 ### Changed
