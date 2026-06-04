@@ -2529,6 +2529,7 @@ export type Database = {
           check_in_method: string | null
           created_at: string
           door_code: string | null
+          gate_code: string | null
           listing_id: string
           updated_at: string
           wifi_network: string | null
@@ -2539,6 +2540,7 @@ export type Database = {
           check_in_method?: string | null
           created_at?: string
           door_code?: string | null
+          gate_code?: string | null
           listing_id: string
           updated_at?: string
           wifi_network?: string | null
@@ -2549,6 +2551,7 @@ export type Database = {
           check_in_method?: string | null
           created_at?: string
           door_code?: string | null
+          gate_code?: string | null
           listing_id?: string
           updated_at?: string
           wifi_network?: string | null
@@ -3029,6 +3032,50 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: false
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_room_access: {
+        Row: {
+          check_in_instructions: string | null
+          check_in_method: string | null
+          created_at: string
+          door_code: string | null
+          gate_code: string | null
+          room_id: string
+          updated_at: string
+          wifi_network: string | null
+          wifi_password: string | null
+        }
+        Insert: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          room_id: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Update: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          room_id?: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_room_access_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
         ]
