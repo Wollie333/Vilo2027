@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { verifyTransaction } from "@/lib/paystack";
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -80,6 +81,7 @@ export default async function BookingSuccessPage({
   searchParams?: { reference?: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -294,7 +296,7 @@ export default async function BookingSuccessPage({
 
   let calendarUrl: string | null = null;
   if (isConfirmed) {
-    const calTitle = encodeURIComponent(`Vilo · ${listing.name}`);
+    const calTitle = encodeURIComponent(`${brandName} · ${listing.name}`);
     const calDetails = encodeURIComponent(`Booking ref: ${booking.reference}`);
     const calLoc = encodeURIComponent(
       address ?? [listing.city, listing.province].filter(Boolean).join(", "),

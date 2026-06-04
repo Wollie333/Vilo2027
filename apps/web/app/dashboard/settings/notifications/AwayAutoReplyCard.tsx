@@ -4,9 +4,12 @@ import { Loader2, MoonStar, Save } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import { setEnquiryAutoReplyAction } from "./actions";
 
 export function AwayAutoReplyCard({ initial }: { initial: string | null }) {
+  const brandName = useBrandName();
   const [value, setValue] = useState(initial ?? "");
   const [pending, start] = useTransition();
   const dirty = value.trim() !== (initial ?? "").trim();
@@ -31,8 +34,8 @@ export function AwayAutoReplyCard({ initial }: { initial: string | null }) {
       <p className="mt-1 text-sm text-brand-mute">
         When a guest requests a quote during your{" "}
         <span className="font-medium text-brand-ink">quiet hours</span> (set
-        above), Vilo posts this message into the thread so they know when to
-        expect a reply. Leave blank to turn it off.
+        above), {brandName} posts this message into the thread so they know when
+        to expect a reply. Leave blank to turn it off.
       </p>
       <textarea
         value={value}

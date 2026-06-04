@@ -28,11 +28,13 @@ function applyIdentity(
   }));
 }
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "How Vilo collects, uses, and protects personal information for hosts and guests on the platform.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Privacy Policy",
+    description: `How ${brandName} collects, uses, and protects personal information for hosts and guests on the platform.`,
+  };
+}
 
 const LAST_UPDATED = "2026-05-23";
 

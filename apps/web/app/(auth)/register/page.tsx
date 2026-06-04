@@ -2,13 +2,18 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { getBrandName } from "@/lib/brand";
+
 import { AuthShell } from "../_components/AuthShell";
 import { RegisterForm } from "./RegisterForm";
 
-export const metadata: Metadata = {
-  title: "Accept your invite",
-  description: "Set a password to finish joining your team on Vilo.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Accept your invite",
+    description: `Set a password to finish joining your team on ${brandName}.`,
+  };
+}
 
 // /register is intentionally not a public signup. It only stays alive as the
 // landing page for the staff-invite acceptance flow at /staff/accept/<token>,

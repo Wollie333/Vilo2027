@@ -20,6 +20,7 @@ import {
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -135,6 +136,7 @@ export default async function PaymentDetailPage({
   params: { id: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -435,7 +437,7 @@ export default async function PaymentDetailPage({
               </ul>
               <div className="mt-4 flex items-center gap-2 rounded-[10px] bg-brand-light px-3 py-2 text-[11.5px] text-brand-mute">
                 <Info className="h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                Vilo takes no commission — you keep the full amount. Card
+                {brandName} takes no commission — you keep the full amount. Card
                 processing fees (if any) are deducted by the provider at payout.
               </div>
             </div>

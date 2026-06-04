@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
 import { Wizard } from "./Wizard";
 
-export const metadata: Metadata = {
-  title: "Become a host",
-  description:
-    "Set up your Vilo host profile and your first listing — five quick steps.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Become a host",
+    description: `Set up your ${brandName} host profile and your first listing — five quick steps.`,
+  };
+}
 
 export const dynamic = "force-dynamic";
 

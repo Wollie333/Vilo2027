@@ -10,15 +10,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { getCompanyLegalName } from "@/lib/brand";
+import { getBrandName, getCompanyLegalName } from "@/lib/brand";
 
-export const metadata: Metadata = {
-  title: "Create your account",
-  description:
-    "Pick how you want to use Vilo — book stays as a guest, or host your own property.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Create your account",
+    description: `Pick how you want to use ${brandName} — book stays as a guest, or host your own property.`,
+  };
+}
 
-export default function SignupChoicePage() {
+export default async function SignupChoicePage() {
+  const brandName = await getBrandName();
   return (
     <div className="grid min-h-screen lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.05fr_1fr]">
       <Showcase />
@@ -30,7 +33,7 @@ export default function SignupChoicePage() {
               Get started
             </div>
             <h1 className="mt-2 font-display text-[32px] font-bold leading-[1.1] tracking-tight text-brand-ink sm:text-[36px]">
-              How do you want to use Vilo?
+              How do you want to use {brandName}?
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-brand-mute">
               Pick one — you can always add the other later from your settings.
@@ -115,7 +118,10 @@ function ChoiceCard({
 }
 
 async function Showcase() {
-  const companyName = await getCompanyLegalName();
+  const [companyName, brandName] = await Promise.all([
+    getCompanyLegalName(),
+    getBrandName(),
+  ]);
   return (
     <aside className="relative flex min-h-[260px] flex-col overflow-hidden bg-brand-gradient-dark p-8 text-white lg:min-h-0 lg:p-14 xl:p-16">
       <div
@@ -161,7 +167,7 @@ async function Showcase() {
           </svg>
           <div className="leading-none">
             <div className="font-display text-[19px] font-bold tracking-tight">
-              Vilo
+              {brandName}
             </div>
             <div className="mt-0.5 text-[10px] text-emerald-300/80">
               Direct booking platform

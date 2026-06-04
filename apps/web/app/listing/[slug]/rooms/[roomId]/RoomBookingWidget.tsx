@@ -4,6 +4,7 @@ import { Minus, Plus, ShieldCheck, Zap } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
@@ -59,6 +60,7 @@ export function RoomBookingWidget({
   weeklyDiscountPct,
   monthlyDiscountPct,
 }: Props) {
+  const brandName = useBrandName();
   const cap = Math.max(1, maxGuests);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -251,7 +253,7 @@ export function RoomBookingWidget({
                 </div>
               ) : null}
               <div className="flex items-center justify-between text-brand-dark">
-                <dt className="text-brand-mute">Vilo service fee</dt>
+                <dt className="text-brand-mute">{brandName} service fee</dt>
                 <dd className="font-semibold text-brand-primary">FREE</dd>
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-brand-line pt-3 font-display text-base font-bold text-brand-ink">
@@ -283,8 +285,8 @@ export function RoomBookingWidget({
             </p>
             <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-relaxed text-brand-mute">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-              Full refund up to 5 days before check-in. Vilo holds payment until
-              your trip is confirmed.
+              Full refund up to 5 days before check-in. {brandName} holds
+              payment until your trip is confirmed.
             </p>
           </>
         ) : null}

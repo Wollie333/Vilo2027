@@ -4,6 +4,7 @@ import {
   NotificationsList,
   type ListNotification,
 } from "@/components/notifications/NotificationsList";
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -16,6 +17,7 @@ const PAGE_SIZE = 100;
 
 export default async function DashboardNotificationsPage() {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -48,9 +50,9 @@ export default async function DashboardNotificationsPage() {
           Notifications
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
-          Everything Vilo has sent you — bookings, payments, announcements and
-          more. Filter by category, mark items read, or open them to jump to the
-          related page.
+          Everything {brandName} has sent you — bookings, payments,
+          announcements and more. Filter by category, mark items read, or open
+          them to jump to the related page.
         </p>
       </header>
       <NotificationsList initial={initial} />

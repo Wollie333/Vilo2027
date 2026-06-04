@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -201,6 +202,7 @@ export default async function PortalTripDetailPage({
   params: { id: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -928,7 +930,7 @@ export default async function PortalTripDetailPage({
                   </li>
                 ) : null}
                 <li className="flex items-center justify-between text-brand-primary">
-                  <span>Vilo booking fee</span>
+                  <span>{brandName} booking fee</span>
                   <span className="num">{formatMoney(0, currency)}</span>
                 </li>
                 <li className="flex items-center justify-between border-t border-brand-line pt-3">

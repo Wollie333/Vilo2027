@@ -1,15 +1,31 @@
 import type { Metadata } from "next";
 
+import { getBrandName } from "@/lib/brand";
+
 import {
   LegalPage,
   type LegalSectionData,
 } from "../_components/legal/LegalPage";
 
-export const metadata: Metadata = {
-  title: "Cookies Policy",
-  description:
-    "How Vilo uses cookies and similar technologies on the platform, and how you can manage them.",
-};
+// Swap the placeholder brand token for the configured value at render time.
+function applyBrand(
+  sections: ReadonlyArray<LegalSectionData>,
+  brand: string,
+): LegalSectionData[] {
+  return sections.map((s) => ({
+    ...s,
+    body:
+      typeof s.body === "string" ? s.body.split("Vilo").join(brand) : s.body,
+  }));
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Cookies Policy",
+    description: `How ${brandName} uses cookies and similar technologies on the platform, and how you can manage them.`,
+  };
+}
 
 const LAST_UPDATED = "2026-05-23";
 
@@ -44,12 +60,13 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
   },
 ];
 
-export default function CookiesPage() {
+export default async function CookiesPage() {
+  const brand = await getBrandName();
   return (
     <LegalPage
       title="Cookies Policy"
       lastUpdated={LAST_UPDATED}
-      sections={SECTIONS}
+      sections={applyBrand(SECTIONS, brand)}
     />
   );
 }

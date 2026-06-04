@@ -1,6 +1,9 @@
 import { ArrowRight } from "lucide-react";
 
-export function FinalCTA() {
+import { getBrandName } from "@/lib/brand";
+
+export async function FinalCTA() {
+  const brandName = await getBrandName();
   return (
     <section
       id="cta"
@@ -50,7 +53,7 @@ export function FinalCTA() {
                   type="text"
                   name="handle"
                   placeholder="your-handle"
-                  aria-label="Choose your Vilo handle"
+                  aria-label={`Choose your ${brandName} handle`}
                   className="min-w-0 flex-1 bg-transparent font-mono text-sm text-brand-dark outline-none placeholder:text-brand-mute/60"
                 />
               </form>

@@ -1,5 +1,7 @@
 import { CheckCircle2, XCircle } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 type Cell =
   | { kind: "check" }
   | { kind: "x" }
@@ -83,7 +85,8 @@ function CellView({ cell }: { cell: Cell }) {
   return <span className={toneClass}>{cell.text}</span>;
 }
 
-export function Comparison() {
+export async function Comparison() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line bg-white">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -92,7 +95,7 @@ export function Comparison() {
             Side by side
           </div>
           <h2 className="mt-3 font-display text-3xl font-bold leading-[1.08] tracking-tight text-brand-dark md:text-4xl lg:text-5xl">
-            How Vilo stacks up.
+            How {brandName} stacks up.
           </h2>
         </div>
 
@@ -104,7 +107,7 @@ export function Comparison() {
                   Feature
                 </th>
                 <th className="px-5 py-4 text-left font-display font-semibold text-brand-primary">
-                  Vilo
+                  {brandName}
                 </th>
                 <th className="px-5 py-4 text-left font-display font-medium text-brand-mute">
                   Airbnb

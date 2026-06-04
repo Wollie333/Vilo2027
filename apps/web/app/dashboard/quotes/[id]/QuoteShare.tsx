@@ -4,6 +4,7 @@ import { Copy, Mail, MessageCircle, MessagesSquare } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { Button } from "@/components/ui/button";
 import { formatMoney } from "@/lib/format";
 
@@ -39,6 +40,7 @@ export function QuoteShare({
   total: number;
   currency: string;
 }) {
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
 
   const amount = formatMoney(total, currency);
@@ -74,7 +76,7 @@ export function QuoteShare({
       </h2>
       <p className="mt-1 text-xs text-brand-mute">
         Send the guest their quote link — they can review, accept or decline
-        without a Vilo account.
+        without a {brandName} account.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -99,7 +101,7 @@ export function QuoteShare({
           className="gap-1.5"
         >
           <MessagesSquare className="h-4 w-4" />
-          {pending ? "Posting…" : "Vilo inbox"}
+          {pending ? "Posting…" : `${brandName} inbox`}
         </Button>
         <Button
           type="button"

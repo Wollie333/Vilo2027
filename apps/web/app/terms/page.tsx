@@ -27,11 +27,13 @@ function applyIdentity(
   }));
 }
 
-export const metadata: Metadata = {
-  title: "Terms of Service",
-  description:
-    "The terms that govern your use of the Vilo direct-booking platform as a host or guest.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Terms of Service",
+    description: `The terms that govern your use of the ${brandName} direct-booking platform as a host or guest.`,
+  };
+}
 
 const LAST_UPDATED = "2026-05-23";
 

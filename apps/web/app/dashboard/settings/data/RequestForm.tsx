@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import { cancelDataRequestAction, createDataRequestAction } from "./actions";
 
 type Existing = {
@@ -23,6 +25,7 @@ export function RequestSection({
   existing: Existing | null;
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [notes, setNotes] = useState("");
   const [confirm, setConfirm] = useState(false);
   const [pending, start] = useTransition();
@@ -145,7 +148,7 @@ export function RequestSection({
           </h2>
           <p className="mt-1 text-[13px] text-brand-mute">
             {isExport
-              ? "Get a copy of every piece of personal information Vilo holds about you — profile, bookings, messages, reviews. Delivered as JSON within 30 days."
+              ? `Get a copy of every piece of personal information ${brandName} holds about you — profile, bookings, messages, reviews. Delivered as JSON within 30 days.`
               : "Permanently delete your account. Bookings, reviews, and messages tied to it are anonymised. Some data is retained where law requires (tax, dispute records)."}
           </p>
 

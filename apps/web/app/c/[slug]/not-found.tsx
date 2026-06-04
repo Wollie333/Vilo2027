@@ -2,8 +2,10 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { getBrandName } from "@/lib/brand";
 
-export default function CategoryNotFound() {
+export default async function CategoryNotFound() {
+  const brandName = await getBrandName();
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -13,7 +15,7 @@ export default function CategoryNotFound() {
         </h1>
         <p className="mt-3 text-brand-mute">
           That category doesn&rsquo;t exist (or has been unpublished). Try
-          browsing everything on Vilo.
+          browsing everything on {brandName}.
         </p>
         <Link
           href="/explore"

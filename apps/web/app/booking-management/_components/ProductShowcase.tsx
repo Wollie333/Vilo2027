@@ -11,6 +11,8 @@ import {
   Zap,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 const TRUST_POINTS = [
   {
     icon: Zap,
@@ -38,7 +40,8 @@ const TRUST_POINTS = [
   },
 ] as const;
 
-export function ProductShowcase() {
+export async function ProductShowcase() {
+  const brandName = await getBrandName();
   return (
     <section id="directory" className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -163,7 +166,7 @@ export function ProductShowcase() {
                   <div className="mb-1.5 flex items-center gap-2">
                     <Icon className={`h-4 w-4 ${iconClass}`} />
                     <div className="text-sm font-semibold text-brand-dark">
-                      {title}
+                      {title.replace("Vilo", brandName)}
                     </div>
                   </div>
                   <p className="text-xs leading-relaxed text-brand-mute">

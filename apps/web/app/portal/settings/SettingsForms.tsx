@@ -6,6 +6,7 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { DeleteAccountSection } from "@/app/dashboard/settings/data/DeleteAccountSection";
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName, splitName } from "@/lib/profile/name";
 import { uploadAvatarAction } from "@/app/signup/guest/actions";
 import {
@@ -340,6 +341,7 @@ function ContactSection({ initial }: { initial: SettingsInitial }) {
 }
 
 function PrefsSection({ initial }: { initial: SettingsInitial }) {
+  const brandName = useBrandName();
   const [cities, setCities] = useState<string[]>(initial.preferred_cities);
   const [opt, setOpt] = useState(initial.marketing_opt_in);
   const [pending, startTransition] = useTransition();
@@ -358,7 +360,7 @@ function PrefsSection({ initial }: { initial: SettingsInitial }) {
   return (
     <SectionCard
       title="Travel preferences"
-      description="Helps Vilo surface the right stays for you on the home page."
+      description={`Helps ${brandName} surface the right stays for you on the home page.`}
     >
       <div className="space-y-5">
         <div>

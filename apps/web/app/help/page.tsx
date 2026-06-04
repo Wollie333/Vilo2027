@@ -9,6 +9,7 @@ import {
   fetchHelpVideos,
 } from "@/lib/help/queries";
 import type { HelpAudience, HelpStatusComponentStatus } from "@/lib/help/types";
+import { getBrandName } from "@/lib/brand";
 
 import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
@@ -23,11 +24,13 @@ import { SystemStatusPanel } from "../dashboard/help/_components/SystemStatusPan
 import { TopicsGrid } from "../dashboard/help/_components/TopicsGrid";
 import { VideoTutorials } from "../dashboard/help/_components/VideoTutorials";
 
-export const metadata: Metadata = {
-  title: "Help & docs",
-  description:
-    "Articles, video tutorials, and FAQ for hosts and guests on Vilo. Direct-booking management for South African accommodation.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Help & docs",
+    description: `Articles, video tutorials, and FAQ for hosts and guests on ${brandName}. Direct-booking management for South African accommodation.`,
+  };
+}
 
 export const dynamic = "force-dynamic";
 

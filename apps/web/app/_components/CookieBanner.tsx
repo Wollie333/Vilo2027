@@ -4,6 +4,8 @@ import { Cookie, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { BrandName } from "@/components/brand/BrandProvider";
+
 const STORAGE_KEY = "vilo_cookie_consent";
 const COOKIE_NAME = "vilo_cookie_consent";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
@@ -70,7 +72,7 @@ export function CookieBanner() {
           </div>
           <div className="flex-1 text-sm text-brand-ink">
             <p className="font-display font-semibold leading-snug">
-              Cookies on Vilo
+              Cookies on <BrandName />
             </p>
             <p className="mt-1 text-[13px] leading-relaxed text-brand-mute">
               We use strictly necessary cookies to keep you signed in and

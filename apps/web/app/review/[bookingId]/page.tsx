@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Star } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
@@ -34,6 +35,7 @@ export default async function ReviewSubmissionPage({
   params,
   searchParams,
 }: Props) {
+  const brandName = await getBrandName();
   const token = (searchParams?.token ?? "").trim();
   if (!token || !verifyReviewToken(params.bookingId, token)) {
     return (
@@ -43,8 +45,8 @@ export default async function ReviewSubmissionPage({
         </h1>
         <p className="mt-2 text-sm text-brand-mute">
           The link may have expired, or it was copied incorrectly. If you stayed
-          at a Vilo listing recently and didn&apos;t receive a fresh email, get
-          in touch at{" "}
+          at a {brandName} listing recently and didn&apos;t receive a fresh
+          email, get in touch at{" "}
           <a
             className="text-brand-primary underline-offset-2 hover:underline"
             href="mailto:hello@viloplatform.com"
@@ -158,7 +160,7 @@ export default async function ReviewSubmissionPage({
     <ReviewShell>
       <header className="mb-6 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-primary">
-          Vilo review
+          {brandName} review
         </p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-brand-ink">
           How was your stay?

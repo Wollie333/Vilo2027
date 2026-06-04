@@ -1,5 +1,7 @@
 import { Sparkles } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 type Step = {
   n: number;
   label: string;
@@ -28,7 +30,8 @@ const STEPS: Step[] = [
   },
 ];
 
-export function HowItWorks() {
+export async function HowItWorks() {
+  const brandName = await getBrandName();
   return (
     <section id="how" className="border-b border-brand-line bg-white">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -38,7 +41,7 @@ export function HowItWorks() {
               How it works
             </div>
             <h2 className="mt-3 font-display text-3xl font-bold leading-[1.08] tracking-tight text-brand-dark md:text-4xl lg:text-5xl">
-              Live on Vilo in{" "}
+              Live on {brandName} in{" "}
               <span className="text-brand-primary">under 20 minutes.</span>
             </h2>
           </div>
@@ -88,7 +91,7 @@ export function HowItWorks() {
                   Share &amp; book
                 </h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-brand-mute">
-                  Share your link. Vilo handles the rest — payments,
+                  Share your link. {brandName} handles the rest — payments,
                   confirmations, reviews.
                 </p>
               </div>

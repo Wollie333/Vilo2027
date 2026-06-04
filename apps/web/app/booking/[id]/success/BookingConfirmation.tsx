@@ -28,6 +28,7 @@ import {
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
 /* -------------------------------------------------------------------------- */
@@ -807,6 +808,7 @@ function TimelineCard({ data }: { data: ConfirmationData }) {
 /*  Payment summary                                                            */
 /* -------------------------------------------------------------------------- */
 function PriceCard({ data }: { data: ConfirmationData }) {
+  const brandName = useBrandName();
   return (
     <SectionCard>
       <div className="flex items-center justify-between border-b border-brand-line px-5 py-4">
@@ -894,7 +896,7 @@ function PriceCard({ data }: { data: ConfirmationData }) {
           </div>
         ) : null}
         <div className="flex items-center justify-between text-brand-mute">
-          <span>Vilo service fee</span>
+          <span>{brandName} service fee</span>
           <span className="font-medium text-brand-primary">FREE</span>
         </div>
       </div>

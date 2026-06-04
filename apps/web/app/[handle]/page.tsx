@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -280,11 +281,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const data = await loadHost(params.handle);
   if (!data) return { title: "Host not found" };
+  const brandName = await getBrandName();
   return {
     title: `${data.host.display_name}`,
     description:
       data.host.bio?.slice(0, 200) ??
-      `Book directly with ${data.host.display_name} on Vilo.`,
+      `Book directly with ${data.host.display_name} on ${brandName}.`,
   };
 }
 

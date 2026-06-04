@@ -23,6 +23,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName } from "@/lib/profile/name";
 
 import {
@@ -129,6 +130,7 @@ function zodIssuesToFieldErrors(
 }
 
 export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
+  const brandName = useBrandName();
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [data, setData] = useState<WizardData>(() =>
@@ -282,7 +284,9 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <ViloMark size={28} />
-            <div className="font-display font-bold text-brand-ink">Vilo</div>
+            <div className="font-display font-bold text-brand-ink">
+              {brandName}
+            </div>
           </div>
           <Link
             href="/login"
@@ -349,7 +353,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
                 </div>
               </div>
               <div className="mx-auto mt-3 w-full max-w-3xl text-center text-[11px] text-brand-mute lg:text-left">
-                By continuing, you agree to Vilo&apos;s Terms of Service.
+                By continuing, you agree to {brandName}&apos;s Terms of Service.
               </div>
             </div>
           ) : null}
@@ -363,6 +367,7 @@ export function Wizard({ prefilledEmail }: { prefilledEmail: string | null }) {
 
 function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
   const c = SIDE_RAIL[stepKey];
+  const brandName = useBrandName();
   return (
     <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:h-screen lg:p-12 xl:p-14">
       <div
@@ -376,7 +381,9 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
         <div className="flex items-center gap-2.5">
           <ViloMark size={36} glow />
           <div>
-            <div className="font-display font-bold leading-none">Vilo</div>
+            <div className="font-display font-bold leading-none">
+              {brandName}
+            </div>
             <div className="mt-0.5 text-[10px] text-emerald-200/70">
               Guest onboarding
             </div>
@@ -428,7 +435,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
             Chat with support
           </Link>
         </span>
-        <span>© Vilo 2026</span>
+        <span>© {brandName} 2026</span>
       </div>
     </aside>
   );
@@ -519,11 +526,12 @@ function StepAccount({
   pending: boolean;
   stepIndex: number;
 }) {
+  const brandName = useBrandName();
   return (
     <div className="vilo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
-        title="Create your Vilo account"
+        title={`Create your ${brandName} account`}
         subtitle="Just the basics — you can edit everything from your profile later."
       />
 
@@ -618,7 +626,7 @@ function StepAccount({
               className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
             />
             <span className="text-xs leading-relaxed text-brand-mute">
-              I agree to Vilo&apos;s{" "}
+              I agree to {brandName}&apos;s{" "}
               <Link
                 href="/terms"
                 className="text-brand-primary hover:underline"
@@ -938,6 +946,7 @@ function StepWelcome({
   data: WizardData;
   finalizePending: boolean;
 }) {
+  const brandName = useBrandName();
   return (
     <div className="vilo-step-enter">
       <div className="inline-flex items-center gap-2 rounded-pill bg-brand-accent px-3 py-1 text-[11px] font-semibold text-brand-secondary">
@@ -945,7 +954,7 @@ function StepWelcome({
         {finalizePending ? "Wrapping up…" : "You're in"}
       </div>
       <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-brand-ink md:text-4xl">
-        Welcome to Vilo, {(data.fullName || "guest").split(" ")[0]}.
+        Welcome to {brandName}, {(data.fullName || "guest").split(" ")[0]}.
       </h2>
       <p className="mt-2 max-w-xl text-sm text-brand-mute md:text-base">
         Your account is live. From here you can book direct stays, message
@@ -989,7 +998,7 @@ function StepWelcome({
                 <Icon className="h-5 w-5" />
               </div>
               <div className="font-display text-sm font-semibold text-brand-ink">
-                {t.title}
+                {t.title.replace("Vilo", brandName)}
               </div>
               <div className="mt-1 text-xs leading-relaxed text-brand-mute">
                 {t.desc}

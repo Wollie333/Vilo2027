@@ -113,7 +113,13 @@ export async function SiteFooter() {
 
           <FooterColumn title="Explore" links={EXPLORE} />
           <FooterColumn title="Guests" links={GUESTS} />
-          <FooterColumn title="Hosts" links={HOSTS} />
+          <FooterColumn
+            title="Hosts"
+            links={HOSTS.map((l) => ({
+              ...l,
+              label: l.label.replace("Vilo", brand),
+            }))}
+          />
           <FooterColumn title="Company" links={COMPANY} />
         </div>
 

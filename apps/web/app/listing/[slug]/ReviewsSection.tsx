@@ -21,6 +21,8 @@ import {
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import type { ReviewsData, TripType } from "./reviews-data";
 import { voteReviewHelpfulAction } from "./reviews-actions";
 
@@ -63,6 +65,7 @@ function relMonth(iso: string): string {
 }
 
 export function ReviewsSection({ data }: { data: ReviewsData }) {
+  const brandName = useBrandName();
   const [tripFilter, setTripFilter] = useState<TripType | "all">("all");
   const [query, setQuery] = useState("");
   const [votes, setVotes] = useState<
@@ -344,8 +347,8 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
       {/* FOOTER TRUST */}
       <div className="mt-8 max-w-md text-xs leading-relaxed text-brand-mute">
         <ShieldCheck className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-primary" />
-        Vilo only lets guests who completed a stay leave a review. Every score
-        is from a verified booking.
+        {brandName} only lets guests who completed a stay leave a review. Every
+        score is from a verified booking.
       </div>
     </section>
   );

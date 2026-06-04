@@ -1,6 +1,8 @@
 import { Home, Hotel, Plus, Building2, Tent } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 const TILES = [
   {
     Icon: Home,
@@ -35,7 +37,8 @@ const TILES = [
 // "Step 2 of 4" listing-teaser card from the design. Shown only when the
 // host has not yet created their first listing. Each tile deep-links to
 // /dashboard/listings/new with the relevant type pre-selected.
-export function FirstListingTeaser() {
+export async function FirstListingTeaser() {
+  const brandName = await getBrandName();
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="grid gap-0 md:grid-cols-[1fr_1.2fr]">
@@ -61,7 +64,8 @@ export function FirstListingTeaser() {
             Create your first listing
           </h3>
           <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-brand-mute">
-            A villa, a guest cottage, a city apartment, a Karoo farmhouse — Vilo
+            A villa, a guest cottage, a city apartment, a Karoo farmhouse —{" "}
+            {brandName}
             handles all of it. Most hosts finish in under ten minutes.
           </p>
 

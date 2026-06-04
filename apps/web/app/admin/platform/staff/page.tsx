@@ -1,10 +1,12 @@
 import { requirePermission } from "@/lib/admin";
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformStaffPage() {
   await requirePermission("platform.staff");
+  const brandName = await getBrandName();
   const service = createAdminClient();
 
   const [{ data: staff }, { data: invites }, { data: roles }] =
@@ -31,7 +33,7 @@ export default async function PlatformStaffPage() {
     <div className="space-y-8">
       <header>
         <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Vilo staff
+          {brandName} staff
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
           Invite teammates, assign roles, deactivate access. MFA enrolment is

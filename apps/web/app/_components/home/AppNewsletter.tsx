@@ -1,12 +1,15 @@
 import { Check, Smartphone } from "lucide-react";
 
-export function AppNewsletter() {
+import { getBrandName } from "@/lib/brand";
+
+export async function AppNewsletter() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 lg:grid-cols-12 lg:px-8 lg:py-20">
         <div className="lg:col-span-7">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            The Vilo Weekly
+            The {brandName} Weekly
           </div>
           <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
             New stays in your inbox every Friday.

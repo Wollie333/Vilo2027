@@ -24,6 +24,7 @@ import {
   Zap,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -95,6 +96,7 @@ export default async function QuoteDetailPage({
   params: { id: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -632,7 +634,7 @@ export default async function QuoteDetailPage({
                 </li>
                 <li className="flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-3 py-2.5">
                   <span className="font-semibold text-brand-secondary">
-                    Your payout · Vilo takes 0%
+                    Your payout · {brandName} takes 0%
                   </span>
                   <span className="num font-display text-[16px] font-bold text-brand-secondary">
                     {formatMoney(payout, quote.currency)}

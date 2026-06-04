@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-export function HostCard({
+import { getBrandName } from "@/lib/brand";
+
+export async function HostCard({
   displayName,
   handle,
   bio,
@@ -34,6 +36,7 @@ export function HostCard({
   rating: number | null;
   reviewCount: number | null;
 }) {
+  const brandName = await getBrandName();
   const initials = displayName.slice(0, 2).toUpperCase();
   const years = hostingYears(hostingSince);
   const hasRating = rating != null && (reviewCount ?? 0) > 0;
@@ -122,7 +125,7 @@ export function HostCard({
           {isVerified ? (
             <div className="flex items-center gap-3">
               <BadgeCheck className="h-4 w-4 text-brand-primary" />
-              Identity verified by Vilo
+              Identity verified by {brandName}
             </div>
           ) : null}
           {hasRating ? (

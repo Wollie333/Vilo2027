@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import type {
   Host,
   Listing,
@@ -43,6 +45,7 @@ function ListingPaper({
   rooms: Room[];
   mobile: boolean;
 }) {
+  const brandName = useBrandName();
   const cover = photos[0];
   const rest = photos.slice(1, 5);
   const rate = listing.base_price ?? 0;
@@ -57,12 +60,12 @@ function ListingPaper({
       {/* public top nav */}
       <div className="flex items-center gap-3 border-b border-brand-line px-5 py-3">
         <div className="font-display text-[15px] font-bold tracking-tight text-brand-secondary">
-          Vilo
+          {brandName}
         </div>
         <div className="ml-auto flex items-center gap-2 text-[12px]">
           {!mobile ? <span className="text-brand-mute">Sign in</span> : null}
           <span className="rounded bg-brand-primary px-3 py-1.5 font-medium text-white">
-            Join Vilo
+            Join {brandName}
           </span>
         </div>
       </div>
@@ -274,6 +277,7 @@ export function SetupPreview({
   onPublish: () => void;
   onJump: (key: SetupStepKey) => void;
 }) {
+  const brandName = useBrandName();
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const mobile = device === "mobile";
   const slug = (listing.name || "listing")
@@ -377,7 +381,8 @@ export function SetupPreview({
             </div>
             {ready ? (
               <p className="mt-0.5 text-sm text-brand-mute">
-                Publishing makes your listing bookable and lists it in the Vilo
+                Publishing makes your listing bookable and lists it in the{" "}
+                {brandName}
                 directory.
               </p>
             ) : (

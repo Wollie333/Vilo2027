@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
 import { computeAddonSubtotal, PRICING_LABEL } from "../../addons/schemas";
@@ -138,6 +139,7 @@ export function ManualBookingForm({
   pastGuests: PastGuest[];
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
   const todayStr = ymd(new Date());
 
@@ -448,8 +450,8 @@ export function ManualBookingForm({
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-brand-mute">
             Useful for phone calls, walk-ins, returning guests, or imports from
-            another channel. Vilo blocks the calendar and (optionally) takes
-            payment.
+            another channel. {brandName} blocks the calendar and (optionally)
+            takes payment.
           </p>
         </div>
       </section>
@@ -618,7 +620,7 @@ export function ManualBookingForm({
             n={next()}
             done={Boolean(checkIn && checkOut && nights > 0 && !rangeConflict)}
             title="Stay dates"
-            subtitle="Vilo blocks the calendar across the stay. Hatched cells are already booked."
+            subtitle={`${brandName} blocks the calendar across the stay. Hatched cells are already booked.`}
           >
             <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
               <ReadField

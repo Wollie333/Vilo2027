@@ -31,6 +31,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
@@ -259,6 +260,7 @@ export function BookingForm({
   monthlyDiscountPct: number | null;
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [isPending, start] = useTransition();
   const [loggingOut, startLogout] = useTransition();
 
@@ -1679,7 +1681,8 @@ export function BookingForm({
           Choose how you&rsquo;ll pay
         </h2>
         <p className="mt-1.5 text-sm text-brand-mute">
-          All payments are processed securely. Vilo never charges a booking fee.
+          All payments are processed securely. {brandName} never charges a
+          booking fee.
         </p>
       </header>
 
@@ -1759,8 +1762,8 @@ export function BookingForm({
                   Pay {formatMoney(total, currency)}
                 </span>{" "}
                 below, you&rsquo;ll be taken to Paystack&rsquo;s secure page to
-                enter your card. Vilo never sees or stores your card number, and
-                you won&rsquo;t be charged a booking fee.
+                enter your card. {brandName} never sees or stores your card
+                number, and you won&rsquo;t be charged a booking fee.
               </p>
               <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
                 {[
@@ -1818,7 +1821,7 @@ export function BookingForm({
           {
             Icon: Percent,
             t: "No booking fees",
-            s: "Vilo never charges guests a fee.",
+            s: `${brandName} never charges guests a fee.`,
           },
           {
             Icon: ShieldCheck,
@@ -2005,8 +2008,8 @@ export function BookingForm({
             <div className="mt-4 max-w-xl text-[11px] leading-relaxed text-brand-mute">
               By tapping{" "}
               <span className="font-medium text-brand-ink">{payLabel}</span>,
-              you agree to Vilo&rsquo;s Terms and the host&rsquo;s house rules,
-              and that Vilo may charge your payment method per the{" "}
+              you agree to {brandName}&rsquo;s Terms and the host&rsquo;s house
+              rules, and that {brandName} may charge your payment method per the{" "}
               <span className="capitalize">{cancellationPolicy}</span>{" "}
               cancellation policy if you cancel or fail to check in.
             </div>
@@ -2220,7 +2223,7 @@ export function BookingForm({
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between">
-                  <span className="text-white/85">Vilo service fee</span>
+                  <span className="text-white/85">{brandName} service fee</span>
                   <span className="font-medium text-emerald-300">FREE</span>
                 </div>
               </div>

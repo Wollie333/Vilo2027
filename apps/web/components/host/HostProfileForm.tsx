@@ -16,6 +16,7 @@ import { useRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName, splitName } from "@/lib/profile/name";
 import { LANGUAGE_OPTIONS } from "@/app/signup/host/schemas";
 import {
@@ -44,6 +45,7 @@ export function HostProfileForm({
   submitLabel?: string;
   onSaved?: (values: ProfileInput) => void;
 }) {
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
   const [uploading, setUploading] = useState(false);
   const [highlightDraft, setHighlightDraft] = useState("");
@@ -246,7 +248,7 @@ export function HostProfileForm({
           </div>
 
           <Field
-            label="Your Vilo handle"
+            label={`Your ${brandName} handle`}
             hint={host ? `viloplatform.com/${host.handle}` : undefined}
           >
             <div className="relative">

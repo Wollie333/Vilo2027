@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteForm } from "../QuoteForm";
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NewQuotePage() {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -61,8 +63,8 @@ export default async function NewQuotePage() {
           </h1>
           <p className="mt-1 max-w-xl text-[13px] text-brand-mute">
             Put together a custom price for an enquiry and send it over. The
-            guest can accept and pay online — Vilo turns an accepted quote
-            straight into a confirmed booking.
+            guest can accept and pay online — {brandName} turns an accepted
+            quote straight into a confirmed booking.
           </p>
         </div>
         <Link

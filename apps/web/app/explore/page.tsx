@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -68,6 +69,7 @@ export default async function ExplorePage({
   searchParams?: SearchParams;
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
 
   const where = (searchParams?.where ?? "").trim();
   const type = searchParams?.type ?? "";
@@ -216,7 +218,7 @@ export default async function ExplorePage({
             </h2>
             <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
               Try a different city, change the type, or drop the guests filter.
-              New hosts join Vilo every week.
+              New hosts join {brandName} every week.
             </p>
           </div>
         ) : (

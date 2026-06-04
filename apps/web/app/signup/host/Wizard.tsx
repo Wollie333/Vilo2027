@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName, splitName } from "@/lib/profile/name";
 
 import {
@@ -219,6 +220,7 @@ export function Wizard({
     description: string | null;
   }>;
 }) {
+  const brandName = useBrandName();
   // Returning users (already signed in) skip Step 1.
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
@@ -459,7 +461,9 @@ export function Wizard({
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <ViloMark size={28} />
-            <div className="font-display font-bold text-brand-ink">Vilo</div>
+            <div className="font-display font-bold text-brand-ink">
+              {brandName}
+            </div>
           </div>
           <Link
             href="/login"
@@ -530,7 +534,7 @@ export function Wizard({
                 </div>
               </div>
               <div className="mx-auto mt-3 w-full max-w-3xl text-center text-[11px] text-brand-mute lg:text-left">
-                By continuing, you agree to Vilo&apos;s Terms of Service.
+                By continuing, you agree to {brandName}&apos;s Terms of Service.
               </div>
             </div>
           ) : null}
@@ -544,6 +548,7 @@ export function Wizard({
 
 function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
   const c = SIDE_RAIL[stepKey];
+  const brandName = useBrandName();
   return (
     <aside className="relative flex flex-col overflow-hidden bg-brand-gradient-dark p-7 text-white lg:sticky lg:top-0 lg:h-screen lg:p-12 xl:p-14">
       <div
@@ -554,7 +559,9 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
         <div className="flex items-center gap-2.5">
           <ViloMark size={36} glow />
           <div>
-            <div className="font-display font-bold leading-none">Vilo</div>
+            <div className="font-display font-bold leading-none">
+              {brandName}
+            </div>
             <div className="mt-0.5 text-[10px] text-emerald-200/70">
               Host onboarding
             </div>
@@ -574,7 +581,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
           {c.title}
         </h3>
         <p className="mt-4 max-w-sm text-sm leading-relaxed text-emerald-100/75 lg:text-[15px]">
-          {c.body}
+          {c.body.replace("Vilo", brandName)}
         </p>
 
         {c.proof ? (
@@ -585,7 +592,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
               ))}
             </div>
             <p className="text-sm leading-relaxed text-emerald-50/90">
-              &ldquo;{c.proof.quote}&rdquo;
+              &ldquo;{c.proof.quote.replace("Vilo", brandName)}&rdquo;
             </p>
             <div className="mt-4 flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-brand-accent/40 text-[10px] font-semibold text-brand-secondary">
@@ -630,7 +637,7 @@ function SideRail({ stepKey, current }: { stepKey: StepKey; current: number }) {
             Chat with support
           </Link>
         </span>
-        <span>© Vilo 2026</span>
+        <span>© {brandName} 2026</span>
       </div>
     </aside>
   );
@@ -721,6 +728,7 @@ function StepAccount({
   pending: boolean;
   stepIndex: number;
 }) {
+  const brandName = useBrandName();
   function notifyOAuthSoon() {
     toast.info("Email signup is the only option during the MVP build.");
   }
@@ -868,7 +876,7 @@ function StepAccount({
               className="mt-0.5 h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
             />
             <span className="text-xs leading-relaxed text-brand-mute">
-              I agree to Vilo&apos;s{" "}
+              I agree to {brandName}&apos;s{" "}
               <Link
                 href="/terms"
                 className="text-brand-primary hover:underline"
@@ -1240,6 +1248,7 @@ function StepListing({
 // ─── Step 5: Subscription ──────────────────────────────────────────
 
 function StepPlan({ stepIndex }: { stepIndex: number }) {
+  const brandName = useBrandName();
   return (
     <div className="vilo-step-enter">
       <StepHeading
@@ -1300,7 +1309,9 @@ function StepPlan({ stepIndex }: { stepIndex: number }) {
                     className="flex items-start gap-2 text-xs text-brand-ink"
                   >
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                    <span className="leading-snug">{f}</span>
+                    <span className="leading-snug">
+                      {f.replace("Vilo", brandName)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -1388,6 +1399,7 @@ function StepWelcome({
   // Resolve the plan the user picked. PLANS is the source of truth for
   // pricing + features so the receipt always matches what was shown on
   // the Plan step.
+  const brandName = useBrandName();
   const plan = PLANS.find((p) => p.value === data.plan) ?? PLANS[0];
   const isFree = plan.value === "free";
   const cycle = data.billingCycle;
@@ -1424,8 +1436,8 @@ function StepWelcome({
           Thanks, {(data.fullName || "host").split(" ")[0]}. You&rsquo;re in.
         </h2>
         <p className="mt-2 max-w-xl text-sm text-brand-mute md:text-base">
-          Here&rsquo;s a summary of your Vilo membership. A copy has been sent
-          to{" "}
+          Here&rsquo;s a summary of your {brandName} membership. A copy has been
+          sent to{" "}
           <span className="font-medium text-brand-ink">
             {data.email || "your email"}
           </span>
@@ -1495,7 +1507,7 @@ function StepWelcome({
                   className="flex items-start gap-2 text-xs text-brand-mute"
                 >
                   <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-                  <span>{f}</span>
+                  <span>{f.replace("Vilo", brandName)}</span>
                 </li>
               ))}
             </ul>

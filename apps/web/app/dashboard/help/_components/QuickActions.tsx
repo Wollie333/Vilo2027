@@ -1,6 +1,7 @@
 import { Activity, ArrowUpRight, MessageCircle, Users } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
 import type {
   HelpContactSettings,
   HelpStatusComponentStatus,
@@ -27,7 +28,8 @@ type Props = {
   overallStatus: HelpStatusComponentStatus;
 };
 
-export function QuickActions({ contact, overallStatus }: Props) {
+export async function QuickActions({ contact, overallStatus }: Props) {
+  const brandName = await getBrandName();
   const overall = OVERALL_LABEL[overallStatus];
   return (
     <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
@@ -54,7 +56,7 @@ export function QuickActions({ contact, overallStatus }: Props) {
             </span>
           </div>
           <p className="mt-1 text-xs leading-relaxed text-brand-mute">
-            Chat with a Vilo team member. Median response under{" "}
+            Chat with a {brandName} team member. Median response under{" "}
             <span className="font-mono text-brand-ink">
               {contact.median_response_minutes} min
             </span>

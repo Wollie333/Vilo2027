@@ -1,3 +1,4 @@
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
@@ -187,6 +188,7 @@ function monthYear(iso: string): string {
  */
 export async function getHomeData(): Promise<HomeData> {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
 
   // Category tree is cached (tag: 'taxonomy'); kick it off alongside the reads.
   const treePromise = getCategoryTree();
@@ -378,7 +380,7 @@ export async function getHomeData(): Promise<HomeData> {
   const reviews: HomeReview[] = reviewRows
     .filter((r) => r.body && r.body.trim().length > 0)
     .map((r) => {
-      const stay = r.listing?.name ?? "a Vilo stay";
+      const stay = r.listing?.name ?? `a ${brandName} stay`;
       const when = monthYear(r.created_at);
       return {
         body: `“${r.body!.trim()}”`,

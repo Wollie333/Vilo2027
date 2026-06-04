@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AmenitiesList } from "../../AmenitiesList";
@@ -35,6 +36,7 @@ export default async function PublicRoomPage({
   params: { slug: string; roomId: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
 
   // Public read of the published listing (RLS allows anon read of published).
   const { data: listing } = await supabase
@@ -243,7 +245,7 @@ export default async function PublicRoomPage({
     {
       icon: ShieldCheck,
       title: "Book directly, no booking fee",
-      body: "You pay the price you see. Vilo holds payment until your stay is confirmed.",
+      body: `You pay the price you see. ${brandName} holds payment until your stay is confirmed.`,
     },
   ];
 

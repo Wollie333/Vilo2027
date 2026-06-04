@@ -3,6 +3,7 @@ import { BadgeCheck, MapPin, Star } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -26,11 +27,12 @@ export async function generateMetadata({
   if (!category) {
     return { title: "Category not found" };
   }
-  const title = category.meta_title || `${category.label} · Vilo`;
+  const brandName = await getBrandName();
+  const title = category.meta_title || `${category.label} · ${brandName}`;
   const description =
     category.meta_description ||
     category.description ||
-    `${category.label} on Vilo — book direct with the host.`;
+    `${category.label} on ${brandName} — book direct with the host.`;
   const canonical = category.canonical_url || `${BASE_URL}/c/${category.slug}`;
   return {
     title,
@@ -62,6 +64,7 @@ export default async function CategoryLandingPage({
   const category = await getCategoryBySlug(params.slug);
   if (!category) notFound();
 
+  const brandName = await getBrandName();
   const descendantIds = await getDescendantIds(category.id);
   const supabase = createServerClient();
 
@@ -131,7 +134,7 @@ export default async function CategoryLandingPage({
               </p>
             ) : null}
             <div className="mt-5 text-sm text-white/70">
-              {total} {total === 1 ? "place" : "places"} on Vilo
+              {total} {total === 1 ? "place" : "places"} on {brandName}
             </div>
           </div>
         </div>
@@ -156,7 +159,7 @@ export default async function CategoryLandingPage({
       {/* Listings grid */}
       <main className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
         <h2 className="mb-5 font-display text-xl font-bold tracking-tight text-brand-ink md:text-2xl">
-          {category.label} on Vilo
+          {category.label} on {brandName}
         </h2>
 
         {!listings || listings.length === 0 ? (
@@ -165,7 +168,8 @@ export default async function CategoryLandingPage({
               No listings yet
             </h3>
             <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-              Be the first to host a {category.label.toLowerCase()} on Vilo.{" "}
+              Be the first to host a {category.label.toLowerCase()} on{" "}
+              {brandName}.{" "}
               <Link
                 href="/signup/host"
                 className="text-brand-primary underline-offset-2 hover:underline"
@@ -287,7 +291,7 @@ export default async function CategoryLandingPage({
               href={`/explore?type=${category.slug}`}
               className="inline-flex h-10 items-center rounded-pill bg-brand-primary px-5 text-sm font-semibold text-white hover:bg-brand-secondary"
             >
-              See all {category.label} on Vilo →
+              See all {category.label} on {brandName} →
             </Link>
           </div>
         ) : null}

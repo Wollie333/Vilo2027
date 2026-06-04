@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import type { CategoryKind, ListingCategoryRow } from "@/lib/taxonomy/types";
 
 import { saveCategory } from "./actions";
@@ -55,6 +56,7 @@ export function CategoryEditor({
   parents: Array<Pick<ListingCategoryRow, "id" | "label" | "kind">>;
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [state, setState] = useState<Initial>(initial);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -255,7 +257,7 @@ export function CategoryEditor({
             <input
               value={state.metaTitle}
               onChange={(e) => update("metaTitle", e.target.value)}
-              placeholder="Villas to rent in South Africa · Vilo"
+              placeholder={`Villas to rent in South Africa · ${brandName}`}
               className="input"
             />
           </Field>

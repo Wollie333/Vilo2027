@@ -14,6 +14,7 @@ import {
   fetchHelpCategoriesWithCounts,
 } from "@/lib/help/queries";
 import type { HelpAudience } from "@/lib/help/types";
+import { getBrandName } from "@/lib/brand";
 
 import { SiteFooter } from "../../_components/home/SiteFooter";
 import { SiteHeader } from "../../_components/home/SiteHeader";
@@ -22,12 +23,14 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = { as?: string };
 
-export const metadata: Metadata = {
-  title: "All help articles",
-  description:
-    "Every published help article on Vilo, sorted by most recently updated. Bookings, payments, channels, listings, account, and trust & safety.",
-  alternates: { canonical: "/help/articles" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "All help articles",
+    description: `Every published help article on ${brandName}, sorted by most recently updated. Bookings, payments, channels, listings, account, and trust & safety.`,
+    alternates: { canonical: "/help/articles" },
+  };
+}
 
 function resolveAudience(value: string | undefined): HelpAudience {
   return value === "guest" ? "guest" : "host";

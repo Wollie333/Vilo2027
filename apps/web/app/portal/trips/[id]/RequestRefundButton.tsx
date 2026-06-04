@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
 import { requestRefundAction } from "./actions";
@@ -28,6 +29,7 @@ export function RequestRefundButton({
   currency: string;
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number>(totalAmount);
   const [reason, setReason] = useState<string>(REASONS[0]);
@@ -85,7 +87,7 @@ export function RequestRefundButton({
       </div>
       <p className="text-[12.5px] text-brand-mute">
         Your host reviews refund requests directly. If they decline and you
-        disagree, you can escalate to Vilo support afterwards.
+        disagree, you can escalate to {brandName} support afterwards.
       </p>
 
       <label className="block">

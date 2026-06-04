@@ -3,6 +3,7 @@
 import { AlertCircle, Plus, Save, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import type {
   HelpAudience,
   HelpCategoryRow,
@@ -29,6 +30,7 @@ type Props = {
 };
 
 export function FaqsEditor({ rows, categories }: Props) {
+  const brandName = useBrandName();
   const [list, setList] = useState<Row[]>(rows);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -131,7 +133,7 @@ export function FaqsEditor({ rows, categories }: Props) {
                 <input
                   value={r.question}
                   onChange={(e) => update(r.id, { question: e.target.value })}
-                  placeholder="How long does Vilo take to pay out?"
+                  placeholder={`How long does ${brandName} take to pay out?`}
                   className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink focus:border-brand-primary focus:outline-none"
                 />
                 <textarea

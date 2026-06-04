@@ -1,6 +1,9 @@
 import { Quote, Star } from "lucide-react";
 
-export function Testimonials() {
+import { getBrandName } from "@/lib/brand";
+
+export async function Testimonials() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -47,7 +50,7 @@ export function Testimonials() {
           <div className="flex flex-col rounded-card border border-brand-line bg-brand-primary p-7 text-white md:col-span-2 lg:col-span-1">
             <Quote className="mb-4 h-6 w-6 text-brand-accent" />
             <p className="font-display text-lg leading-snug">
-              I dropped Airbnb in month three. Vilo paid for itself in{" "}
+              I dropped Airbnb in month three. {brandName} paid for itself in{" "}
               <span className="font-semibold text-white underline decoration-brand-accent decoration-2 underline-offset-4">
                 eleven days.
               </span>{" "}
@@ -106,9 +109,9 @@ export function Testimonials() {
               ))}
             </div>
             <p className="mt-4 leading-relaxed text-brand-dark">
-              I run six cabins. Before Vilo I had six spreadsheets, three OTAs,
-              and one stress headache. Now it&rsquo;s one calendar and a flat R
-              1 199 a month. Best switch I made all year.
+              I run six cabins. Before {brandName} I had six spreadsheets, three
+              OTAs, and one stress headache. Now it&rsquo;s one calendar and a
+              flat R 1 199 a month. Best switch I made all year.
             </p>
             <div className="mt-auto flex items-center gap-3 pt-6">
               <div className="avatar h-10 w-10 rounded-full bg-brand-dark text-xs text-white">

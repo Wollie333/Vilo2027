@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AuthShell } from "../_components/AuthShell";
 import { ResetPasswordForm } from "./ResetPasswordForm";
 
-export const metadata: Metadata = {
-  title: "Choose a new password",
-  description: "Set a new password for your Vilo account.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Choose a new password",
+    description: `Set a new password for your ${brandName} account.`,
+  };
+}
 
 export default async function ResetPasswordPage() {
   const supabase = createServerClient();

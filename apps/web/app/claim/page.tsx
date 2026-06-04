@@ -15,6 +15,7 @@ import {
   Users,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -45,6 +46,7 @@ export default async function ClaimPage({
   searchParams?: { c?: string; next?: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -326,7 +328,7 @@ export default async function ClaimPage({
             {/* Why finish creating the free account */}
             <div className="mt-5 rounded-card border border-brand-line bg-white p-4">
               <p className="text-[13px] font-semibold text-brand-ink">
-                Set a password to unlock your free Vilo account
+                Set a password to unlock your free {brandName} account
               </p>
               <ul className="mt-3 space-y-2.5">
                 <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
@@ -348,7 +350,7 @@ export default async function ClaimPage({
                   <BadgePercent className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
                   <span>
                     Book faster next time and qualify for guest perks and member
-                    discounts on stays across Vilo.
+                    discounts on stays across {brandName}.
                   </span>
                 </li>
               </ul>

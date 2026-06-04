@@ -1,6 +1,8 @@
 import { Camera, RefreshCw, Tag } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 const CARDS = [
   {
     Icon: Camera,
@@ -28,13 +30,14 @@ const CARDS = [
   },
 ] as const;
 
-export function AcademyCards() {
+export async function AcademyCards() {
+  const brandName = await getBrandName();
   return (
     <section>
       <div className="mb-3 flex items-end justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Vilo Academy
+            {brandName} Academy
           </div>
           <h3 className="mt-1 font-display text-lg font-bold text-brand-ink">
             Hosting essentials, while you set up

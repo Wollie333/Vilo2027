@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { VLogo } from "@/app/_components/home/VLogo";
+import { getBrandName } from "@/lib/brand";
 
 async function checkSupabaseConnection() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,12 +32,16 @@ async function checkSupabaseConnection() {
   }
 }
 
-export const metadata = {
-  title: "Status",
-  description: "Live readout of the Vilo platform stack.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Status",
+    description: `Live readout of the ${brandName} platform stack.`,
+  };
+}
 
 export default async function StatusPage() {
+  const brandName = await getBrandName();
   const conn = await checkSupabaseConnection();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "(missing)";
 
@@ -47,7 +53,7 @@ export default async function StatusPage() {
           <Link href="/" className="inline-flex items-center gap-3">
             <VLogo size={40} gradientId="status-logo" />
             <span className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand-mute">
-              Vilo · Status
+              {brandName} · Status
             </span>
           </Link>
 

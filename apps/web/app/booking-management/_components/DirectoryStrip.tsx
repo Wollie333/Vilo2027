@@ -1,5 +1,7 @@
 import { ArrowRight, BadgeCheck, Star, Zap } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 type Listing = {
   href: string;
   image: string;
@@ -62,14 +64,15 @@ const LISTINGS: Listing[] = [
   },
 ];
 
-export function DirectoryStrip() {
+export async function DirectoryStrip() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line bg-brand-light">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-24">
         <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-              From the Vilo Directory
+              From the {brandName} Directory
             </div>
             <h2 className="mt-3 font-display text-3xl font-bold leading-[1.08] tracking-tight text-brand-dark md:text-4xl lg:text-5xl">
               Real hosts. Real bookings.

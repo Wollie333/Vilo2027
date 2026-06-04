@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import { switchPlanAction } from "./actions";
 import { PLANS, formatZar, type PlanKey } from "./plans";
 
@@ -15,6 +17,7 @@ type Props = {
 
 export function PlanPicker({ currentPlan, currentCycle }: Props) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [cycle, setCycle] = useState<"monthly" | "annual">(
     currentCycle ?? "monthly",
   );
@@ -159,7 +162,7 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
                 {plan.bullets.map((b) => (
                   <li key={b} className="flex items-start gap-2">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                    <span>{b}</span>
+                    <span>{b.replace("Vilo", brandName)}</span>
                   </li>
                 ))}
               </ul>

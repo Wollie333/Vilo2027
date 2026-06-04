@@ -25,6 +25,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { UtilityBar } from "@/app/_components/home/UtilityBar";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { getBrandName } from "@/lib/brand";
 import { type SeasonalRule } from "@/lib/pricing";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
@@ -404,6 +405,7 @@ export async function generateMetadata({
   const data = await loadListing(params.slug);
   if (!data) return { title: "Listing not found" };
   const { listing } = data;
+  const brandName = await getBrandName();
   const where = locationLabel(listing);
   const plain = listing.description ? stripHtml(listing.description) : "";
   return {
@@ -411,7 +413,7 @@ export async function generateMetadata({
     description:
       plain.length > 0
         ? plain.slice(0, 200)
-        : `Direct booking with ${listing.host.display_name} on Vilo.`,
+        : `Direct booking with ${listing.host.display_name} on ${brandName}.`,
   };
 }
 
@@ -742,7 +744,7 @@ function SubNav({ links }: { links: { id: string; label: string }[] }) {
   );
 }
 
-function ListingBody({
+async function ListingBody({
   listing,
   amenities,
   showRoomsGrid,
@@ -767,6 +769,7 @@ function ListingBody({
   sidebarNode: React.ReactNode;
   quoteButton?: React.ReactNode;
 }) {
+  const brandName = await getBrandName();
   const sectionLinks = [
     { id: "sec-overview", label: "Overview" },
     { id: "sec-amenities", label: "Amenities" },
@@ -885,7 +888,7 @@ function ListingBody({
               <Highlight
                 icon={<ShieldCheck className="h-5 w-5" />}
                 title="Verified host"
-                body="Identity and payment details verified by Vilo."
+                body={`Identity and payment details verified by ${brandName}.`}
               />
             ) : null}
           </section>
@@ -980,7 +983,7 @@ function ListingBody({
             {quoteButton ? <div className="mt-5">{quoteButton}</div> : null}
             <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
               <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
-              For your safety, never transfer money or chat outside Vilo.
+              For your safety, never transfer money or chat outside {brandName}.
             </p>
           </section>
 
@@ -1047,7 +1050,8 @@ function ListingBody({
                 </div>
                 <ul className="mt-3 space-y-2 text-sm text-brand-ink/85">
                   <li className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-brand-mute" /> Vilo
+                    <ShieldCheck className="h-4 w-4 text-brand-mute" />{" "}
+                    {brandName}
                     holds payments until check-in
                   </li>
                   <li className="flex items-center gap-2">

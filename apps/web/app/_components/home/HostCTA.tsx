@@ -1,7 +1,10 @@
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-export function HostCTA() {
+import { getBrandName } from "@/lib/brand";
+
+export async function HostCTA() {
+  const brandName = await getBrandName();
   return (
     <section className="relative overflow-hidden border-b border-brand-line bg-brand-dark text-white">
       <div
@@ -19,7 +22,7 @@ export function HostCTA() {
             For hosts
           </div>
           <h2 className="mt-2 max-w-2xl font-display text-2xl font-bold leading-tight tracking-tight text-white md:text-3xl lg:text-4xl">
-            Got a place to share? List it on Vilo.
+            Got a place to share? List it on {brandName}.
           </h2>
           <p className="mt-4 max-w-xl leading-relaxed text-brand-accent/80">
             Branded booking page, calendar that syncs with Airbnb &amp;
@@ -39,7 +42,7 @@ export function HostCTA() {
             href="/booking-management"
             className="inline-flex items-center justify-center gap-2 rounded border border-white/25 px-5 py-3 font-medium text-white transition-colors hover:bg-white/10"
           >
-            See how Vilo works
+            See how {brandName} works
           </Link>
         </div>
       </div>

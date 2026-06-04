@@ -12,6 +12,8 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 import { VLogo } from "./VLogo";
 
 const HERO_BOOKINGS = [
@@ -73,7 +75,8 @@ const INBOX = [
   },
 ];
 
-export function Hero() {
+export async function Hero() {
+  const brandName = await getBrandName();
   return (
     <section className="relative overflow-hidden border-b border-brand-line">
       <div aria-hidden className="dotgrid absolute inset-0 opacity-50" />
@@ -103,8 +106,8 @@ export function Hero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-brand-mute">
-            Vilo gives accommodation hosts a branded booking page, a single
-            inbox, and a calendar that syncs with the OTAs — for one flat
+            {brandName} gives accommodation hosts a branded booking page, a
+            single inbox, and a calendar that syncs with the OTAs — for one flat
             monthly fee.{" "}
             <span className="font-medium text-brand-dark">
               Zero booking commissions. Ever.
@@ -124,7 +127,7 @@ export function Hero() {
               type="text"
               name="handle"
               placeholder="your-handle"
-              aria-label="Choose your Vilo handle"
+              aria-label={`Choose your ${brandName} handle`}
               className="min-w-0 flex-1 bg-transparent font-mono text-sm text-brand-dark outline-none placeholder:text-brand-mute/60"
             />
             <button
@@ -180,7 +183,7 @@ export function Hero() {
                 <span className="ml-1 font-medium text-brand-dark">4.9</span>
               </div>
               <div className="text-xs text-brand-mute">
-                216 hosts already on Vilo
+                216 hosts already on {brandName}
               </div>
             </div>
           </div>
@@ -207,7 +210,7 @@ export function Hero() {
                 <div className="mb-3 flex items-center gap-2 px-2 py-1.5">
                   <VLogo size="sm" gradientId="bm-mock-logo" />
                   <span className="font-display text-xs font-bold text-brand-dark">
-                    Vilo
+                    {brandName}
                   </span>
                 </div>
                 <div className="space-y-0.5 text-[11px]">

@@ -5,6 +5,7 @@ import {
   NotificationsList,
   type ListNotification,
 } from "@/components/notifications/NotificationsList";
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ const PAGE_SIZE = 100;
 // rendered inside the public /account chrome (no host sidebar).
 
 export default async function GuestNotificationsListPage() {
+  const brandName = await getBrandName();
   const supabase = createServerClient();
   const {
     data: { user },
@@ -52,7 +54,8 @@ export default async function GuestNotificationsListPage() {
           Notifications
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
-          Trip confirmations, refunds, reviews and announcements from Vilo.
+          Trip confirmations, refunds, reviews and announcements from{" "}
+          {brandName}.
         </p>
       </header>
       <NotificationsList initial={initial} />

@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import { Building2, Mail, MessageSquare } from "lucide-react";
 
-import { getCompanyLegalName, getCompanyLocation } from "@/lib/brand";
+import {
+  getBrandName,
+  getCompanyLegalName,
+  getCompanyLocation,
+} from "@/lib/brand";
 
 import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description:
-    "Get in touch with the Vilo team — support, partnerships, press, or just to say hi.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "Contact",
+    description: `Get in touch with the ${brandName} team — support, partnerships, press, or just to say hi.`,
+  };
+}
 
 const CONTACTS: Array<{
   label: string;

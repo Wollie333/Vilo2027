@@ -2,6 +2,8 @@
 
 import { Flag, Hourglass } from "lucide-react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 import { ReplyComposer } from "./ReplyComposer";
 import { StarRow } from "./StarRow";
 
@@ -65,6 +67,7 @@ export type ReviewCardProps = {
 };
 
 export function ReviewCard(props: ReviewCardProps) {
+  const brandName = useBrandName();
   const hasReply = props.hostResponse != null && props.hostResponse.length > 0;
   const av = avatarStyle(props.guestName);
 
@@ -95,7 +98,7 @@ export function ReviewCard(props: ReviewCardProps) {
             <div className="shrink-0 text-right">
               <StarRow rating={props.rating} />
               <div className="mt-0.5 text-[11px] text-brand-mute">
-                {relativeAge(props.createdAt)} · via Vilo direct
+                {relativeAge(props.createdAt)} · via {brandName} direct
               </div>
             </div>
           </div>

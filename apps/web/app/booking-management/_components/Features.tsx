@@ -9,6 +9,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 type Feature = {
   icon: LucideIcon;
   title: string;
@@ -88,7 +90,8 @@ const FEATURES: Feature[] = [
   },
 ];
 
-export function Features() {
+export async function Features() {
+  const brandName = await getBrandName();
   return (
     <section id="features" className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -100,7 +103,8 @@ export function Features() {
             Six tools, one tidy dashboard.
           </h2>
           <p className="mt-5 text-lg leading-relaxed text-brand-mute">
-            Stop juggling email, WhatsApp, OTA inboxes and a paper diary. Vilo
+            Stop juggling email, WhatsApp, OTA inboxes and a paper diary.{" "}
+            {brandName}
             gives you the operating system serious hosts have been asking for.
           </p>
         </div>

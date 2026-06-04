@@ -1,6 +1,9 @@
+import { getBrandName } from "@/lib/brand";
+
 import { EarningsCalculator } from "./EarningsCalculator";
 
-export function ValueProp() {
+export async function ValueProp() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -14,7 +17,7 @@ export function ValueProp() {
               <br />
               Booking.com keeps 22%.
               <br />
-              <span className="text-brand-primary">Vilo keeps R0.</span>
+              <span className="text-brand-primary">{brandName} keeps R0.</span>
             </h2>
             <p className="mt-6 max-w-md leading-relaxed text-brand-mute">
               You built the business. You answered the late-night WhatsApp. You
@@ -23,8 +26,8 @@ export function ValueProp() {
               your guest&rsquo;s email.
             </p>
             <p className="mt-4 max-w-md leading-relaxed text-brand-mute">
-              Vilo flips it. Pay a flat fee. Own the relationship. Get paid in
-              full.
+              {brandName} flips it. Pay a flat fee. Own the relationship. Get
+              paid in full.
             </p>
           </div>
 

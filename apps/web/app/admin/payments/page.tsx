@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
@@ -30,6 +31,7 @@ export default async function AdminPaymentsPage({
   searchParams?: SearchParams;
 }) {
   await requirePermission("payments.view");
+  const brandName = await getBrandName();
 
   const q = (searchParams?.q ?? "").trim();
   const status: (typeof STATUSES)[number] = isStatus(searchParams?.status)
@@ -108,7 +110,8 @@ export default async function AdminPaymentsPage({
           Payments
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Every payment processed through Vilo — Paystack, PayPal, manual EFT.
+          Every payment processed through {brandName} — Paystack, PayPal, manual
+          EFT.
         </p>
       </header>
 

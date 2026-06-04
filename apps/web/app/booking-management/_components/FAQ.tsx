@@ -1,3 +1,5 @@
+import { getBrandName } from "@/lib/brand";
+
 type Item = {
   q: string;
   a: string;
@@ -30,7 +32,8 @@ const ITEMS: Item[] = [
   },
 ];
 
-export function FAQ() {
+export async function FAQ() {
+  const brandName = await getBrandName();
   return (
     <section id="faq" className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-20 lg:px-8 lg:py-28">
@@ -59,14 +62,14 @@ export function FAQ() {
               <details key={item.q} className="group py-5">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-6">
                   <span className="font-display text-base font-semibold text-brand-dark md:text-lg">
-                    {item.q}
+                    {item.q.replace("Vilo", brandName)}
                   </span>
                   <span className="acc-icon mt-1 text-2xl leading-none text-brand-primary">
                     +
                   </span>
                 </summary>
                 <p className="mt-3 max-w-prose leading-relaxed text-brand-mute">
-                  {item.a}
+                  {item.a.replace("Vilo", brandName)}
                 </p>
               </details>
             ))}

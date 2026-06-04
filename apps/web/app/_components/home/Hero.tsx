@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import type { HomeListingCard, HomeStats } from "./home-data";
 
 function fmtNum(n: number): string {
@@ -19,7 +21,7 @@ function fmtNum(n: number): string {
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1000&q=80&auto=format&fit=crop";
 
-export function Hero({
+export async function Hero({
   stats,
   popularCities,
   featured,
@@ -28,6 +30,7 @@ export function Hero({
   popularCities: string[];
   featured: HomeListingCard[];
 }) {
+  const brandName = await getBrandName();
   const hero = featured[0] ?? null;
   const heroImage = hero?.image ?? FALLBACK_IMAGE;
   const reviewCount = hero?.reviews ? hero.reviews.replace(/[()]/g, "") : null;
@@ -199,7 +202,7 @@ export function Hero({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={heroImage}
-                alt={hero?.name ?? "Featured Vilo stay"}
+                alt={hero?.name ?? `Featured ${brandName} stay`}
                 className="aspect-[5/4] w-full object-cover"
               />
               {showInstant ? (

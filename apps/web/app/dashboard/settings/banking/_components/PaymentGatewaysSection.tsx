@@ -11,6 +11,7 @@ import {
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,6 +61,7 @@ export function PaymentGatewaysSection({
   gateways: GatewayView[];
   defaultCurrency: Currency;
 }) {
+  const brandName = useBrandName();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogGateway, setDialogGateway] =
     useState<PaymentGateway>("paystack");
@@ -119,7 +121,7 @@ export function PaymentGatewaysSection({
             </h3>
             <p className="mt-0.5 text-xs text-brand-mute">
               Connect your own Paystack and PayPal accounts — payments settle
-              directly to you, with <strong>0% taken by Vilo</strong>.
+              directly to you, with <strong>0% taken by {brandName}</strong>.
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import type { SetupStep } from "./setupSteps";
 
 type Props = {
@@ -31,13 +33,14 @@ const STEP_ICONS: Record<SetupStep["key"], typeof Mail> = {
 // source the items from the same setup-state we already have on hand —
 // not from a notifications table — so this works while the real notif
 // system is deferred (see project_notification_system_pending.md).
-export function SetupSidePanel({
+export async function SetupSidePanel({
   firstName,
   handle,
   email,
   emailVerified,
   steps,
 }: Props) {
+  const brandName = await getBrandName();
   const incompleteSteps = steps.filter((s) => !s.done);
   const newCount = incompleteSteps.length;
 
@@ -135,7 +138,7 @@ export function SetupSidePanel({
           </span>
           <div className="min-w-0 flex-1">
             <div className="text-[13px] font-semibold text-brand-ink">
-              Welcome to Vilo, {firstName}.
+              Welcome to {brandName}, {firstName}.
             </div>
             <p className="mt-0.5 text-[12px] leading-relaxed text-brand-mute">
               A real human will reach out within a day. Until then, anything

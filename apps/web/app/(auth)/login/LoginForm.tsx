@@ -20,7 +20,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { useCompanyName } from "@/components/brand/BrandProvider";
+import { BrandName, useCompanyName } from "@/components/brand/BrandProvider";
 
 import { loginAction, magicLinkAction } from "../actions";
 
@@ -109,7 +109,7 @@ export function LoginForm({
               Welcome back
             </div>
             <h1 className="mt-2 font-display text-[32px] font-bold leading-[1.1] tracking-tight text-brand-ink sm:text-[36px]">
-              Sign in to Vilo
+              Sign in to <BrandName />
             </h1>
             <p className="mt-2 text-sm leading-relaxed text-brand-mute">
               Pick up where you left off — bookings, messages and saved stays.
@@ -311,7 +311,7 @@ export function LoginForm({
           </form>
 
           <div className="vilo-fade-up vilo-delay-3 mt-7 border-t border-brand-line pt-6 text-center text-[13px] text-brand-mute">
-            New to Vilo?
+            New to <BrandName />?
             <Link
               href="/signup"
               className="ml-1 font-semibold text-brand-ink underline decoration-brand-line underline-offset-4 hover:text-brand-primary"
@@ -406,7 +406,7 @@ function Showcase() {
           </svg>
           <div className="leading-none">
             <div className="font-display text-[19px] font-bold tracking-tight">
-              Vilo
+              <BrandName />
             </div>
             <div className="mt-0.5 text-[10px] text-emerald-300/80">
               Direct booking platform
@@ -429,8 +429,8 @@ function Showcase() {
           Direct stays. Direct hosts.
         </h2>
         <p className="mt-4 text-[15px] leading-relaxed text-emerald-100/75">
-          One login for everything you do on Vilo — your trips, messages,
-          listings, payouts.
+          One login for everything you do on <BrandName /> — your trips,
+          messages, listings, payouts.
         </p>
       </div>
 

@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useBrandName } from "@/components/brand/BrandProvider";
 
 import { createBroadcastAction } from "./actions";
 import { broadcastSchema, type BroadcastInput } from "./schemas";
@@ -44,6 +45,7 @@ const DEFAULTS: BroadcastInput = {
 
 export function BroadcastForm() {
   const router = useRouter();
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
   const form = useForm<BroadcastInput>({
     resolver: zodResolver(broadcastSchema),
@@ -159,7 +161,7 @@ export function BroadcastForm() {
               id="body"
               rows={5}
               {...form.register("body")}
-              placeholder="Vilo will be unavailable on Saturday 02:00–04:00 SAST for database upgrades."
+              placeholder={`${brandName} will be unavailable on Saturday 02:00–04:00 SAST for database upgrades.`}
             />
             {form.formState.errors.body ? (
               <p className="mt-1 text-xs text-red-600">

@@ -6,6 +6,7 @@ import { useEffect, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -76,6 +77,7 @@ export function PaymentGatewayDialog({
   gateway,
   editing,
 }: Props) {
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
   const copy = COPY[gateway];
 
@@ -128,7 +130,7 @@ export function PaymentGatewayDialog({
           ? `Edit ${PAYMENT_GATEWAY_LABELS[gateway]}`
           : `Connect ${PAYMENT_GATEWAY_LABELS[gateway]}`
       }
-      description="Your keys are validated, encrypted at rest, and used to settle payments directly into your own account. Vilo never takes a cut."
+      description={`Your keys are validated, encrypted at rest, and used to settle payments directly into your own account. ${brandName} never takes a cut.`}
       size="lg"
     >
       <Form {...form}>

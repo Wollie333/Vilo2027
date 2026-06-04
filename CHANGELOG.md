@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Brand: full dynamic brand-name sweep (marketing, app UI, metadata) — branch `main`
+
+### Changed
+- Completed the dynamic-brand tail: every remaining user-facing hardcoded "Vilo" across the app now renders the configurable brand name. Server components/route metadata use `getBrandName()` (static `metadata` → `generateMetadata`); client components use `useBrandName()`/`<BrandName />`. Covers the marketing site (`booking-management/*`, about/contact/cookies/terms/privacy, home `_components/*`), auth + signup flows, admin chrome, dashboard copy, listing/booking/quote/portal surfaces, and ~15 metadata descriptions. ~88 files.
+
+### Notes
+- Purely additive — only brand strings swapped, no logic/layout changes. Deliberately left non-brand-display occurrences: code comments, the brand infra files, `samplePayloads.ts` (test data), the calendar-sync `User-Agent` header, the `EMAIL_FROM_ADDRESS` env fallback, `globals.css`, opaque order-reference prefixes, and example domains. **The dynamic-brand work is now complete** end-to-end (emails, PDFs, notifications, tab titles, app chrome, marketing, metadata). `pnpm build` (105 pages) + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Polish: normalise last 3 money formatters + de-brand public invoice/credit-note pages — branch `main`
 
 ### Changed

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { fetchGettingStartedState } from "@/lib/help/queries";
 import { createServerClient } from "@/lib/supabase/server";
@@ -50,6 +51,7 @@ export default async function DashboardPage({
   searchParams?: { welcome?: string };
 }) {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -176,7 +178,7 @@ export default async function DashboardPage({
         <>
           <section className="-mt-1">
             <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-              Welcome to Vilo.
+              Welcome to {brandName}.
             </h2>
             <p className="mt-1 text-sm text-brand-mute">
               Finish onboarding to take your first booking.

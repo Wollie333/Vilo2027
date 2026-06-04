@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -825,9 +826,10 @@ export async function shareQuoteToInboxAction(
     guestId = profile?.id ?? null;
   }
   if (!guestId) {
+    const brandName = await getBrandName();
     return {
       ok: false,
-      error: "This guest has no Vilo account yet — use WhatsApp or email.",
+      error: `This guest has no ${brandName} account yet — use WhatsApp or email.`,
     };
   }
 

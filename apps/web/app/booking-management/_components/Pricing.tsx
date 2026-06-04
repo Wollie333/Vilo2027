@@ -3,6 +3,8 @@
 import { ArrowRight, Check, Gift, Minus } from "lucide-react";
 import { useState } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 type Tier = {
   name: string;
   tagline: string;
@@ -86,6 +88,7 @@ const TIERS: Tier[] = [
 ];
 
 export function Pricing() {
+  const brandName = useBrandName();
   const [billing, setBilling] = useState<"monthly" | "annual">("annual");
 
   return (
@@ -217,8 +220,8 @@ export function Pricing() {
               Just starting out? There&rsquo;s a free tier.
             </div>
             <div className="mt-0.5 text-sm text-brand-mute">
-              List 1 property in the Vilo Directory at no cost. Upgrade when
-              you&rsquo;re ready to take direct bookings.
+              List 1 property in the {brandName} Directory at no cost. Upgrade
+              when you&rsquo;re ready to take direct bookings.
             </div>
           </div>
           <a

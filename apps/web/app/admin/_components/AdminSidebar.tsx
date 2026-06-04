@@ -28,7 +28,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { BrandName } from "@/components/brand/BrandProvider";
+import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 import { VLogo } from "../../dashboard/_components/VLogo";
@@ -192,8 +192,10 @@ function isActive(
 
 function NavLink({ item }: { item: Item }) {
   const pathname = usePathname();
+  const brandName = useBrandName();
   const active = isActive(pathname, item.href, item.match);
   const Icon = item.icon;
+  const label = item.label.replace("Vilo", brandName);
   return (
     <Link
       href={item.href}
@@ -205,7 +207,7 @@ function NavLink({ item }: { item: Item }) {
       aria-current={active ? "page" : undefined}
     >
       <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{item.label}</span>
+      <span className="flex-1 truncate">{label}</span>
     </Link>
   );
 }

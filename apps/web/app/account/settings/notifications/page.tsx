@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { PreferencesForm } from "@/components/notifications/PreferencesForm";
+import { getBrandName } from "@/lib/brand";
 import { loadPreferencesViewModel } from "@/lib/notifications/preferences-loader";
 
 export const metadata: Metadata = {
@@ -10,6 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function GuestNotificationsPage() {
+  const brandName = await getBrandName();
   const vm = await loadPreferencesViewModel();
   if (!vm) {
     return (
@@ -28,7 +30,7 @@ export default async function GuestNotificationsPage() {
           Notifications
         </h2>
         <p className="mt-1 text-sm text-brand-mute">
-          Choose how Vilo keeps you in the loop on bookings, refunds, and
+          Choose how {brandName} keeps you in the loop on bookings, refunds, and
           reviews.
         </p>
       </header>

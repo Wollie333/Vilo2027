@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 import { SiteFooter } from "../_components/home/SiteFooter";
 import { SiteHeader } from "../_components/home/SiteHeader";
 
-export const metadata: Metadata = {
-  title: "About",
-  description:
-    "Vilo is South Africa's direct-stay platform. Hosts keep more, guests pay less, and bookings don't get lost in inbox roulette.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const brandName = await getBrandName();
+  return {
+    title: "About",
+    description: `${brandName} is South Africa's direct-stay platform. Hosts keep more, guests pay less, and bookings don't get lost in inbox roulette.`,
+  };
+}
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const brandName = await getBrandName();
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -18,16 +23,16 @@ export default function AboutPage() {
       <section className="border-b border-brand-line bg-white">
         <div className="mx-auto max-w-3xl px-5 py-16 lg:px-8 lg:py-24">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-primary">
-            About Vilo
+            About {brandName}
           </div>
           <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-brand-ink sm:text-5xl">
             Direct bookings.{" "}
             <span className="text-brand-primary">Fair fees. Local hosts.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-brand-mute">
-            Vilo is built for South African accommodation hosts who want to take
-            bookings on their own terms — without handing 18% off the top to a
-            global marketplace.
+            {brandName} is built for South African accommodation hosts who want
+            to take bookings on their own terms — without handing 18% off the
+            top to a global marketplace.
           </p>
         </div>
       </section>
@@ -46,11 +51,11 @@ export default function AboutPage() {
                   something flatter.
                 </p>
                 <p>
-                  Vilo gives every host a public profile, a direct booking
-                  engine, and the boring infrastructure (payments, calendars,
-                  invoices, reviews, refunds) that running a hospitality
-                  business actually requires. Hosts keep the guest, the margin,
-                  and the brand.
+                  {brandName} gives every host a public profile, a direct
+                  booking engine, and the boring infrastructure (payments,
+                  calendars, invoices, reviews, refunds) that running a
+                  hospitality business actually requires. Hosts keep the guest,
+                  the margin, and the brand.
                 </p>
               </>
             }
@@ -107,9 +112,9 @@ export default function AboutPage() {
             title="Where we are"
             body={
               <p>
-                Vilo is in pre-launch — built by a single founder in Cape Town,
-                getting the platform to production-ready before the first beta
-                hosts come on. Follow along on the{" "}
+                {brandName} is in pre-launch — built by a single founder in Cape
+                Town, getting the platform to production-ready before the first
+                beta hosts come on. Follow along on the{" "}
                 <Link
                   href="/change-log"
                   className="text-brand-primary underline-offset-2 hover:underline"

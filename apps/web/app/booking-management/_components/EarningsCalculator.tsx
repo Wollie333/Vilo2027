@@ -3,6 +3,8 @@
 import { ArrowRight } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
+
 const VILO_FEE = 499;
 const AIRBNB = 0.18;
 const BOOKING = 0.22;
@@ -32,6 +34,7 @@ function clamp(n: number) {
 }
 
 export function EarningsCalculator() {
+  const brandName = useBrandName();
   const [revenue, setRevenue] = useState<number>(INITIAL);
   const [inputDraft, setInputDraft] = useState<string>(fmtInputValue(INITIAL));
 
@@ -77,7 +80,7 @@ export function EarningsCalculator() {
             Earnings calculator
           </div>
           <div className="mt-0.5 font-display text-lg font-semibold text-brand-dark">
-            What you&rsquo;d keep on Vilo
+            What you&rsquo;d keep on {brandName}
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-1 text-[10px] font-semibold text-brand-primary">

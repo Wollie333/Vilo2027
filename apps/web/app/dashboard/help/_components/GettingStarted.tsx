@@ -1,6 +1,7 @@
 import { ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
 import type { GettingStartedState } from "@/lib/help/queries";
 
 type Step = {
@@ -13,7 +14,8 @@ type Props = {
   state: GettingStartedState;
 };
 
-export function GettingStarted({ state }: Props) {
+export async function GettingStarted({ state }: Props) {
+  const brandName = await getBrandName();
   const steps: { key: keyof GettingStartedState; done: boolean; data: Step }[] =
     [
       {
@@ -91,8 +93,8 @@ export function GettingStarted({ state }: Props) {
       </div>
 
       <p className="mt-2 text-xs leading-relaxed text-brand-mute">
-        Brand-new to Vilo? Follow this path — most hosts finish in under an
-        hour.
+        Brand-new to {brandName}? Follow this path — most hosts finish in under
+        an hour.
       </p>
 
       <ul className="mt-4 flex-1 space-y-2.5">

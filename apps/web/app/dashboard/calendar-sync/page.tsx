@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ExternalLink, RotateCw } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { FeedManager, type Feed } from "./FeedManager";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CalendarSyncPage() {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -77,8 +79,8 @@ export default async function CalendarSyncPage() {
           Calendar sync
         </h1>
         <p className="mt-1 text-sm text-brand-mute">
-          Two-way iCal between Vilo and Airbnb / Booking.com / Google / Apple.
-          Both directions live.
+          Two-way iCal between {brandName} and Airbnb / Booking.com / Google /
+          Apple. Both directions live.
         </p>
       </header>
 
@@ -90,7 +92,7 @@ export default async function CalendarSyncPage() {
           </div>
           <div className="flex-1">
             <div className="font-display text-base font-semibold text-brand-ink">
-              Export — push your Vilo bookings out
+              Export — push your {brandName} bookings out
             </div>
             <p className="mt-1 text-[13px] text-brand-mute">
               Every listing has a per-listing iCal URL. Paste it into the
@@ -161,7 +163,8 @@ export default async function CalendarSyncPage() {
         >
           AGENT_RULES §2.5
         </Link>{" "}
-        — Vilo only touches dates it originally imported. Manual blocks and Vilo
+        — {brandName} only touches dates it originally imported. Manual blocks
+        and {brandName}
         bookings are never overwritten by a sync.
       </p>
     </div>

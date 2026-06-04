@@ -6,6 +6,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { getBrandName } from "@/lib/brand";
+
 type Pillar = { icon: LucideIcon; title: string; body: string };
 
 const PILLARS: Pillar[] = [
@@ -31,13 +33,14 @@ const PILLARS: Pillar[] = [
   },
 ];
 
-export function TrustPillars() {
+export async function TrustPillars() {
+  const brandName = await getBrandName();
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8 lg:py-20">
         <div className="mx-auto mb-10 max-w-2xl text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            Why book on Vilo
+            Why book on {brandName}
           </div>
           <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
             Direct stays, the way they should be.

@@ -23,6 +23,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 
+import { useBrandName } from "@/components/brand/BrandProvider";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
 
@@ -146,6 +147,7 @@ export function QuoteForm({
   initial?: QuoteFormInitial;
 }) {
   const router = useRouter();
+  const brandName = useBrandName();
   const [pending, start] = useTransition();
   const [sendingPending, startSending] = useTransition();
   const [pricing, startPricing] = useTransition();
@@ -664,7 +666,7 @@ export function QuoteForm({
         <Section
           n={1}
           title="Who is this for?"
-          sub="The guest who'll receive the quote — Vilo searches your past guests as you type."
+          sub={`The guest who'll receive the quote — ${brandName} searches your past guests as you type.`}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="relative">
@@ -1553,7 +1555,7 @@ export function QuoteForm({
                 </NextStep>
                 <NextStep n={2}>They accept &amp; pay online</NextStep>
                 <NextStep n={3}>
-                  Vilo confirms the booking &amp; blocks the calendar
+                  {brandName} confirms the booking &amp; blocks the calendar
                 </NextStep>
               </ol>
             </div>

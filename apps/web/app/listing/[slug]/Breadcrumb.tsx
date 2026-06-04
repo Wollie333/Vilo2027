@@ -1,12 +1,14 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
+
 /**
  * Listing breadcrumb: Vilo › Country › Province › City › Listing.
  * Region segments are plain labels (no destination pages yet); only the
  * Vilo root links home. Matches the design's breadcrumb row.
  */
-export function Breadcrumb({
+export async function Breadcrumb({
   country,
   province,
   city,
@@ -17,6 +19,7 @@ export function Breadcrumb({
   city?: string | null;
   name: string;
 }) {
+  const brandName = await getBrandName();
   const countryLabel = country === "ZA" ? "South Africa" : (country ?? null);
   const crumbs = [countryLabel, province, city].filter(Boolean) as string[];
 
@@ -27,7 +30,7 @@ export function Breadcrumb({
         className="hscroll mx-auto flex max-w-7xl items-center gap-1.5 overflow-x-auto px-5 py-3 text-[12px] text-brand-mute lg:px-8"
       >
         <Link href="/" className="shrink-0 hover:text-brand-ink">
-          Vilo
+          {brandName}
         </Link>
         {crumbs.map((c) => (
           <span key={c} className="flex shrink-0 items-center gap-1.5">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ArrowRight, MessageSquare } from "lucide-react";
 import Link from "next/link";
 
+import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ function fmtRelative(iso: string | null): string {
 
 export default async function PortalInboxPage() {
   const supabase = createServerClient();
+  const brandName = await getBrandName();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -79,7 +81,7 @@ export default async function PortalInboxPage() {
             Messages
           </h1>
           <p className="mt-2 text-sm text-brand-mute">
-            Your conversations with hosts and Vilo support.
+            Your conversations with hosts and {brandName} support.
           </p>
         </header>
 
@@ -168,7 +170,7 @@ export default async function PortalInboxPage() {
         )}
 
         <p className="mt-6 text-xs text-brand-mute">
-          Need help from Vilo?{" "}
+          Need help from {brandName}?{" "}
           <Link
             href="/help"
             className="font-medium text-brand-primary hover:underline"
