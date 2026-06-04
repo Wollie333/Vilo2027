@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-04 — Brand: dynamic brand name in push / in-app notifications — branch `main`
+
+### Changed
+- **Push + in-app notification copy** now uses the configurable platform brand name instead of a hardcoded "Vilo". `dispatchEvent` injects a `brand_name` (resolved via `getBrandName()`, caller value wins, safe fallback) into the refs passed to the `push`/`inApp` builders — the same payload-injection approach `drain.ts` uses for email subjects. Four builders updated: `refund_admin_override_host`, `subscription_expiring`, `subscription_failed`, `subscription_restricted`.
+- Raw refs are still what gets persisted to `notification_queue` / in-app payloads; the brand string is only baked into the rendered title/body at dispatch time (same as before).
+
+### Notes
+- `brand_name?` added to `RefundRefs` + `SubscriptionRefs`. No schema change. **Remaining dynamic-brand tail:** some help/marketing strings ("How Vilo works", "Vilo Directory"), several metadata `description` strings, and `viloplatform.com` references. `pnpm build` + `pnpm lint` green.
+
+### Commit
+- _pending_
+
+---
+
 ## 2026-06-04 — Brand: dynamic brand name in financial PDFs — branch `main`
 
 ### Changed

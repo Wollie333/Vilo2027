@@ -43,6 +43,8 @@ export type RefundRefs = {
   listing_name?: string;
   guest_first_name?: string;
   refund_amount?: string;
+  /** Injected by dispatchEvent for branded push/in-app copy. */
+  brand_name?: string;
 };
 
 export type ReviewRefs = {
@@ -60,6 +62,8 @@ export type SubscriptionRefs = {
   plan_name?: string;
   renewal_date?: string;
   formatted_price?: string;
+  /** Injected by dispatchEvent for branded push/in-app copy. */
+  brand_name?: string;
 };
 
 export type MessageRefs = {
@@ -457,7 +461,8 @@ export const NOTIFICATION_REGISTRY = {
     refKeys: ["refund_id"],
     inApp: (r) => ({
       title: "Refund override applied",
-      body: r.listing_name ?? "Vilo support issued a refund.",
+      body:
+        r.listing_name ?? `${r.brand_name ?? "Vilo"} support issued a refund.`,
       link: `/dashboard/payments/refunds/${r.refund_id ?? r.booking_id}`,
     }),
     dedupeKey: (r) => `refund_override:${r.refund_id ?? r.booking_id}`,
@@ -538,7 +543,7 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Subscription renews soon",
       body: clip(
-        `Your Vilo ${r.plan_name ?? ""} plan renews on ${r.renewal_date ?? "soon"}.`,
+        `Your ${r.brand_name ?? "Vilo"} ${r.plan_name ?? ""} plan renews on ${r.renewal_date ?? "soon"}.`,
       ),
       data: link("/dashboard/settings/subscription"),
       sound: null,
@@ -560,7 +565,7 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Payment failed",
       body: clip(
-        `We couldn't charge your Vilo ${r.plan_name ?? ""} subscription.`,
+        `We couldn't charge your ${r.brand_name ?? "Vilo"} ${r.plan_name ?? ""} subscription.`,
       ),
       data: link("/dashboard/settings/subscription"),
       sound: "default",
@@ -580,9 +585,9 @@ export const NOTIFICATION_REGISTRY = {
     severity: "critical",
     emailTemplate: "subscription_restricted",
     refKeys: ["subscription_id"],
-    push: () => ({
+    push: (r) => ({
       title: "Account restricted",
-      body: "Your Vilo subscription has lapsed. Reactivate to restore access.",
+      body: `Your ${r.brand_name ?? "Vilo"} subscription has lapsed. Reactivate to restore access.`,
       data: link("/dashboard/settings/subscription"),
       sound: "default",
       priority: "high",

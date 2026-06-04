@@ -1,3 +1,4 @@
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import {
@@ -85,6 +86,18 @@ async function dispatchEventInner<K extends EventKind>(
   );
   const settings = await resolveSettings(supabase, input.recipientUserId);
 
+  // Inject the configurable platform brand name into the refs used to build
+  // push + in-app copy (mirrors drain.ts, which brands email subjects). A
+  // caller-supplied brand_name wins; getBrandName has a safe fallback and
+  // never throws. The raw input.refs are still what gets persisted to the
+  // queue/in-app payload — brand is resolved fresh at render time.
+  const refs = {
+    ...(input.refs as Record<string, unknown>),
+    brand_name:
+      (input.refs as { brand_name?: string }).brand_name ??
+      (await getBrandName()),
+  } as RefsFor<K>;
+
   const dedupeKey =
     input.dedupeKey !== undefined
       ? input.dedupeKey
@@ -98,7 +111,7 @@ async function dispatchEventInner<K extends EventKind>(
     prefs.digest_mode !== "off" &&
     !prefs.is_locked
   ) {
-    const ia = event.inApp?.(input.refs as never);
+    const ia = event.inApp?.(refs as never);
     if (ia) {
       await supabase.from("pending_digest_items").insert({
         user_id: input.recipientUserId,
@@ -148,7 +161,7 @@ async function dispatchEventInner<K extends EventKind>(
   }
 
   // ─── Push
-  const pushPayload = event.push?.(input.refs as never) ?? null;
+  const pushPayload = event.push?.(refs as never) ?? null;
   if (pushPayload && channelEnabled("push")) {
     const skip =
       settings.dedupe_enabled &&
@@ -172,7 +185,7 @@ async function dispatchEventInner<K extends EventKind>(
   }
 
   // ─── In-app
-  const inAppPayload = event.inApp?.(input.refs as never) ?? null;
+  const inAppPayload = event.inApp?.(refs as never) ?? null;
   if (inAppPayload && channelEnabled("in_app")) {
     await supabase.rpc("enqueue_in_app_notification", {
       p_user_id: input.recipientUserId,
