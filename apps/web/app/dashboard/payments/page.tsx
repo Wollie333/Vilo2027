@@ -40,17 +40,11 @@ type RawPayment = {
   method: string;
   status: string;
   provider_reference: string | null;
+  refunded_amount: number | null;
   captured_at: string | null;
   created_at: string;
   booking: RawBooking;
 };
-
-function methodShort(m: string): string {
-  if (m === "paystack") return "Card";
-  if (m === "eft") return "EFT";
-  if (m === "paypal") return "PayPal";
-  return m;
-}
 
 export default async function PaymentsPage() {
   const supabase = createServerClient();
@@ -61,7 +55,7 @@ export default async function PaymentsPage() {
   const { data } = await supabase
     .from("payments")
     .select(
-      "id, amount, currency, method, status, provider_reference, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
+      "id, amount, currency, method, status, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
     )
     .eq("booking.host_id", myHostId)
     .order("created_at", { ascending: false })
@@ -103,15 +97,23 @@ export default async function PaymentsPage() {
   // ── KPIs ──
   const completed = rows.filter((r) => r.status === "completed");
   const collected = completed.reduce((acc, r) => acc + r.amount, 0);
-  const methodSet = new Set<string>();
-  for (const r of rows) methodSet.add(methodShort(r.method));
+  // Total refunds = sum of payments.refunded_amount (trigger-maintained as
+  // refunds complete), counting how many payments had any refund.
+  const refundedTotal = raw.reduce(
+    (acc, p) => acc + Number(p.refunded_amount ?? 0),
+    0,
+  );
+  const refundedCount = raw.filter(
+    (p) => Number(p.refunded_amount ?? 0) > 0,
+  ).length;
 
   const kpis: PaymentKpis = {
     collected,
     completedCount: completed.length,
     pendingCount: rows.filter((r) => r.status === "pending").length,
     failedCount: rows.filter((r) => r.status === "failed").length,
-    methods: [...methodSet],
+    refundedTotal,
+    refundedCount,
   };
 
   return <PaymentsBoard rows={rows} kpis={kpis} currency="ZAR" />;

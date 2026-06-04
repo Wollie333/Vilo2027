@@ -35,7 +35,8 @@ export type PaymentKpis = {
   completedCount: number;
   pendingCount: number;
   failedCount: number;
-  methods: string[]; // distinct method labels present, e.g. ["Card", "EFT"]
+  refundedTotal: number; // sum of payments.refunded_amount across this host
+  refundedCount: number; // payments with any amount refunded
 };
 
 // ── Date helpers ────────────────────────────────────────────────────
@@ -372,16 +373,20 @@ export function PaymentsBoard({
           </div>
         </div>
 
-        {/* Methods */}
+        {/* Refunds */}
         <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
           <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-            Methods
+            Refunds
           </span>
-          <div className="num mt-2 font-display text-[22px] font-bold leading-none text-brand-ink">
-            {kpis.methods.length > 0 ? kpis.methods.join(" · ") : "—"}
+          <div className="num mt-2 font-display text-[30px] font-bold leading-none text-brand-ink">
+            {formatMoney(kpis.refundedTotal, currency)}
           </div>
           <div className="mt-1 text-[11.5px] text-brand-mute">
-            ways guests have paid
+            {kpis.refundedCount === 0
+              ? "no refunds issued"
+              : `across ${kpis.refundedCount} ${
+                  kpis.refundedCount === 1 ? "payment" : "payments"
+                }`}
           </div>
         </div>
       </section>
