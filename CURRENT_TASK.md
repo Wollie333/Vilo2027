@@ -50,8 +50,16 @@ sidebar collapses 248px ↔ 76px icon-rail via the header hamburger (persisted).
 - Removed the plan/upgrade card from the sidebar.
 - Removed the green "New booking" button from the dashboard header.
 - Added a thin, refined scrollbar (`.thin-scroll`) on the sidebar nav + content scroll.
-- [ ] **Phase 5 — New Booking wizard** — rebuild `dashboard/bookings/new/ManualBookingForm.tsx`
-  as Property → Dates & guests → Guest → Price & extras → Payment, wired to `new/actions.ts`.
+- [x] **Phase 5 — New Booking wizard** ✅ — `ManualBookingForm` re-laid into the 5-step wizard
+  (Property → Dates & guests → Guest → Price & extras → Payment) with a clickable progress stepper
+  and Back/Continue nav showing the live total. **All original logic preserved** — listing/room
+  selection, availability calendar, past-guest search, server-side pricing, add-ons/custom fees,
+  the three payment states, and `createManualBookingAction`. Per-step validation gates Continue;
+  the summary sidebar was replaced by the inline "What happens next" card from the design.
+
+---
+
+## ✅ ALL 5 PHASES COMPLETE — unified shell theme + New Booking wizard. Build + lint green.
 
 ---
 

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ArrowLeft,
   ArrowRight,
   BedDouble,
   Calendar as CalendarIcon,
@@ -14,13 +15,11 @@ import {
   Minus,
   Plus,
   Search,
-  ShieldCheck,
   Trash2,
-  Users,
   Wallet,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
@@ -90,6 +89,22 @@ export type PastGuest = {
 
 type PayState = "send_paystack_link" | "paid" | "unpaid";
 type CustomFee = { id: number; label: string; amount: string };
+
+// 5-step wizard (matches the New Booking design).
+const STEPS = [
+  "Property",
+  "Dates & guests",
+  "Guest",
+  "Price & extras",
+  "Payment",
+] as const;
+const STEP_HINT = [
+  "Pick a listing (and room, or reserve the whole place).",
+  "Choose check-in and check-out dates.",
+  "Add the guest's name and email.",
+  "",
+  "",
+];
 
 // ── Date helpers (local time; the calendar works in YYYY-MM-DD) ─────────
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -173,6 +188,8 @@ export function ManualBookingForm({
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
   });
+
+  const [step, setStep] = useState(0);
 
   const listing = listings.find((l) => l.id === listingId);
   const currency = listing?.currency ?? "ZAR";
@@ -437,939 +454,863 @@ export function ManualBookingForm({
       ? "Create booking & send link"
       : "Create booking";
 
+  // Per-step gating — Continue is blocked until the current step is valid.
+  const stepValid: boolean[] = [
+    Boolean(listingId) && (!hasRooms || wholeListing || Boolean(selectedRoom)),
+    Boolean(checkIn && checkOut && nights > 0 && !rangeConflict),
+    Boolean(guestName.trim() && guestEmail.trim()),
+    true,
+    true,
+  ];
+  function goTo(target: number) {
+    if (target <= step) return setStep(target);
+    for (let s = step; s < target; s++) {
+      if (!stepValid[s]) return void toast.error("Finish this step first.");
+    }
+    setStep(target);
+  }
+  function handleNext() {
+    if (step < STEPS.length - 1) {
+      if (!stepValid[step]) return void toast.error(STEP_HINT[step]);
+      return setStep((s) => s + 1);
+    }
+    submit();
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Page header */}
-      <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            New booking
-          </div>
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Add a reservation manually
-          </h1>
-          <p className="mt-1 max-w-xl text-[13px] text-brand-mute">
-            Useful for phone calls, walk-ins, returning guests, or imports from
-            another channel. {brandName} blocks the calendar and (optionally)
-            takes payment.
-          </p>
-        </div>
-      </section>
+    <div className="mx-auto max-w-[860px] pb-4">
+      <ProgressSteps current={step} onGo={goTo} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {/* LEFT — form */}
-        <div className="space-y-5">
-          {/* 1 · Listing */}
-          <SectionCard
-            n={next()}
-            done={Boolean(listingId)}
-            title="Which listing?"
-            subtitle="Pick the property the guest will stay in."
-          >
-            <div className="grid gap-3 sm:grid-cols-3">
-              {listings.map((l) => {
-                const sel = l.id === listingId;
-                return (
-                  <button
-                    key={l.id}
-                    type="button"
-                    onClick={() => setListingId(l.id)}
-                    className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
-                      sel
-                        ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-                        : "border-brand-line hover:bg-brand-accent/20"
-                    }`}
-                  >
-                    <div className="relative h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
-                      {l.photo_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={l.photo_url}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-brand-line">
-                          <MapPin className="h-6 w-6" />
-                        </div>
-                      )}
-                      <Dot active={sel} className="absolute right-2 top-2" />
-                    </div>
-                    <div className="mt-2.5 flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="truncate text-[13px] font-semibold text-brand-ink">
-                          {l.name}
-                        </div>
-                        <div className="mt-0.5 truncate text-[10.5px] text-brand-mute">
-                          {[
-                            l.location,
-                            l.max_guests ? `sleeps ${l.max_guests}` : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ") || "Accommodation"}
-                        </div>
-                      </div>
-                      {l.base_price != null && (
-                        <div className="text-right">
-                          <div className="num font-display text-[12.5px] font-bold text-brand-ink">
-                            {formatMoney(l.base_price, l.currency)}
-                          </div>
-                          <div className="text-[9.5px] text-brand-mute">
-                            / night
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </SectionCard>
-
-          {/* 2 · Room (only when the listing has rooms) */}
-          {hasRooms && (
+      <div className="mt-7">
+        {/* STEP 1 — Property */}
+        {step === 0 && (
+          <div className="space-y-6">
+            {/* 1 · Listing */}
             <SectionCard
               n={next()}
-              done={Boolean(selectedRoom) || wholeListing}
-              title="Which room?"
-              subtitle={`${listing?.name ?? "This listing"} has ${listingRooms.length} room${
-                listingRooms.length === 1 ? "" : "s"
-              }. Pick the one this guest will use.`}
+              done={Boolean(listingId)}
+              title="Which listing?"
+              subtitle="Pick the property the guest will stay in."
             >
               <div className="grid gap-3 sm:grid-cols-3">
-                {listingRooms.map((r) => {
-                  const unavailable = roomUnavailable(r);
-                  const sel = !wholeListing && roomId === r.id;
+                {listings.map((l) => {
+                  const sel = l.id === listingId;
                   return (
                     <button
-                      key={r.id}
+                      key={l.id}
                       type="button"
-                      disabled={unavailable || wholeListing}
-                      onClick={() => setRoomId(r.id)}
-                      className={`relative flex gap-3 rounded-[12px] border p-3 text-left transition ${
-                        sel
-                          ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-                          : "border-brand-line hover:bg-brand-accent/20"
-                      } ${unavailable || wholeListing ? "cursor-not-allowed opacity-60" : ""}`}
-                    >
-                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
-                        {r.photo_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={r.photo_url}
-                            alt=""
-                            className={`h-full w-full object-cover ${unavailable ? "grayscale" : ""}`}
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center text-brand-line">
-                            <BedDouble className="h-5 w-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-1">
-                          <div className="min-w-0">
-                            <div className="truncate text-[13px] font-semibold text-brand-ink">
-                              {r.name}
-                            </div>
-                            <div className="mt-0.5 truncate text-[10.5px] text-brand-mute">
-                              {[r.bed_type, `sleeps ${r.max_guests}`]
-                                .filter(Boolean)
-                                .join(" · ")}
-                            </div>
-                          </div>
-                          {sel && <Dot active />}
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-1">
-                          {unavailable ? (
-                            <span className="inline-flex items-center gap-1 rounded-pill bg-status-cancelled/10 px-1.5 py-0.5 text-[10px] font-semibold text-status-cancelled">
-                              <span className="h-1.5 w-1.5 rounded-full bg-status-cancelled" />
-                              Booked these dates
-                            </span>
-                          ) : (
-                            <>
-                              {r.view_type && (
-                                <Chip tone="accent">{r.view_type}</Chip>
-                              )}
-                              {r.has_ensuite && <Chip>En-suite</Chip>}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-4 py-3">
-                <Switch on={wholeListing} onChange={setWholeListing} />
-                <div className="min-w-0 flex-1">
-                  <div className="text-[12.5px] font-semibold text-brand-ink">
-                    Reserve the whole listing
-                  </div>
-                  <div className="text-[11px] text-brand-mute">
-                    Blocks every room — useful for families or events.
-                  </div>
-                </div>
-              </label>
-            </SectionCard>
-          )}
-
-          {/* 3 · Dates */}
-          <SectionCard
-            n={next()}
-            done={Boolean(checkIn && checkOut && nights > 0 && !rangeConflict)}
-            title="Stay dates"
-            subtitle={`${brandName} blocks the calendar across the stay. Hatched cells are already booked.`}
-          >
-            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
-              <ReadField
-                label="Check-in"
-                value={checkIn ? prettyDate(checkIn) : "—"}
-              />
-              <ReadField
-                label="Check-out"
-                value={checkOut ? prettyDate(checkOut) : "—"}
-              />
-              <div>
-                <FieldLabel>Nights</FieldLabel>
-                <div className="mt-1.5 flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 px-3">
-                  <span className="num font-display text-[18px] font-bold text-brand-ink">
-                    {nights}
-                  </span>
-                  <span className="text-[11px] text-brand-mute">
-                    {nights === 1 ? "night" : "nights"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] font-medium text-brand-mute">
-                Quick add:
-              </span>
-              <QuickChip onClick={() => quickRange(0, 1)}>Tonight</QuickChip>
-              <QuickChip onClick={thisWeekend}>This weekend</QuickChip>
-              <QuickChip onClick={() => quickRange(0, 7)}>
-                Next 7 nights
-              </QuickChip>
-            </div>
-
-            {rangeConflict && (
-              <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-status-cancelled/40 bg-status-cancelled/10 px-3 py-2 text-[12px] text-status-cancelled">
-                <Info className="h-4 w-4 shrink-0" />
-                These dates overlap nights that are already blocked. Pick a
-                clear range.
-              </div>
-            )}
-
-            <div className="mt-5 grid gap-5 rounded-[12px] border border-brand-line bg-brand-light/30 p-4 sm:grid-cols-2">
-              <MonthGrid
-                year={viewStart.year}
-                month={viewStart.month}
-                showPrev
-                onPrev={() => shiftMonth(viewStart, -1, setViewStart)}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                todayStr={todayStr}
-                isBlocked={isNightBlocked}
-                onPick={pickDate}
-              />
-              <MonthGrid
-                year={
-                  viewStart.month === 11 ? viewStart.year + 1 : viewStart.year
-                }
-                month={(viewStart.month + 1) % 12}
-                showNext
-                onNext={() => shiftMonth(viewStart, 1, setViewStart)}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                todayStr={todayStr}
-                isBlocked={isNightBlocked}
-                onPick={pickDate}
-              />
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-[10.5px] text-brand-mute">
-              <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-brand-primary" />
-                Selected
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded bg-brand-accent" />
-                Range
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span
-                  className="h-3 w-3 rounded"
-                  style={{
-                    background:
-                      "repeating-linear-gradient(45deg, #F0FDF4, #F0FDF4 2px, #DCEAE0 2px, #DCEAE0 3px)",
-                  }}
-                />
-                Unavailable
-              </span>
-            </div>
-          </SectionCard>
-
-          {/* 4 · Guest party */}
-          <SectionCard
-            n={next()}
-            done
-            title="Guest party"
-            subtitle={
-              listing?.max_guests
-                ? `${listing.name} sleeps ${listing.max_guests}.`
-                : "How many guests are staying?"
-            }
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <CounterRow
-                label="Adults"
-                hint="13+"
-                value={adults}
-                min={1}
-                onChange={setAdults}
-              />
-              <CounterRow
-                label="Children"
-                hint="2–12"
-                value={children}
-                min={0}
-                onChange={setChildren}
-              />
-            </div>
-          </SectionCard>
-
-          {/* 5 · Lead guest */}
-          <SectionCard
-            n={next()}
-            done={Boolean(guestName.trim() && guestEmail.trim())}
-            title="Lead guest"
-            subtitle="The person who'll get the confirmation. Search your past guests to reuse details."
-          >
-            {pastGuests.length > 0 && (
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
-                <input
-                  className={`${FIELD} pl-9`}
-                  placeholder="Search past guests by name or email…"
-                  value={guestSearch}
-                  onChange={(e) => {
-                    setGuestSearch(e.target.value);
-                    setSearchOpen(true);
-                  }}
-                  onFocus={() => setSearchOpen(true)}
-                />
-                {searchOpen && guestMatches.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
-                    {guestMatches.map((g) => (
-                      <li key={g.email}>
-                        <button
-                          type="button"
-                          onClick={() => pickGuest(g)}
-                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-brand-accent/30"
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-[12.5px] font-medium text-brand-ink">
-                              {g.name || g.email}
-                            </span>
-                            <span className="block truncate text-[11px] text-brand-mute">
-                              {g.email}
-                            </span>
-                          </span>
-                          <Chip tone="accent">
-                            {g.stays} stay{g.stays === 1 ? "" : "s"}
-                          </Chip>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {matchedGuest && (
-              <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-brand-primary/40 bg-brand-accent/30 p-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-gradient text-[12px] font-bold text-white">
-                  {initials(matchedGuest.name || matchedGuest.email)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-brand-ink">
-                    <span className="font-semibold">Returning guest:</span>
-                    <span>{matchedGuest.name || matchedGuest.email}</span>
-                    <Chip tone="accent">
-                      {matchedGuest.stays} stay
-                      {matchedGuest.stays === 1 ? "" : "s"}
-                    </Chip>
-                  </div>
-                  <div className="mt-0.5 truncate text-[11px] text-brand-mute">
-                    {matchedGuest.email}
-                    {matchedGuest.lastStay
-                      ? ` · last stay ${prettyMonth(matchedGuest.lastStay)}`
-                      : ""}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <FieldLabel>Full name *</FieldLabel>
-                <input
-                  className={`${FIELD} mt-1.5`}
-                  placeholder="e.g. Aisha Patel"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel>Email *</FieldLabel>
-                <input
-                  type="email"
-                  className={`${FIELD} mt-1.5`}
-                  placeholder="guest@email.com"
-                  value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel>Phone</FieldLabel>
-                <input
-                  type="tel"
-                  className={`${FIELD} mt-1.5`}
-                  placeholder="+27 …"
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                />
-              </div>
-            </div>
-          </SectionCard>
-
-          {/* 6 · Pricing */}
-          <SectionCard
-            n={next()}
-            done
-            title="Pricing"
-            subtitle="Auto-filled from your listing rates. Adjust for a friends-and-family rate."
-          >
-            <div className="grid gap-4 sm:grid-cols-3">
-              <MoneyField
-                label="Nightly rate"
-                value={nightlyRate}
-                onChange={setNightlyRate}
-                hint={
-                  listing?.base_price != null
-                    ? `Default · ${formatMoney(listing.base_price, currency)}`
-                    : undefined
-                }
-                symbol={symbolFor(currency)}
-              />
-              <MoneyField
-                label="Cleaning fee"
-                value={cleaningFee}
-                onChange={setCleaningFee}
-                hint="One-off · on top"
-                symbol={symbolFor(currency)}
-              />
-              <MoneyField
-                label="Discount"
-                value={discount}
-                onChange={setDiscount}
-                hint="Subtracted from total"
-                symbol={symbolFor(currency)}
-              />
-            </div>
-
-            <div className="mt-5 space-y-2">
-              {customFees.map((f, i) => (
-                <div
-                  key={f.id}
-                  className="grid grid-cols-[1fr_140px_36px] gap-2"
-                >
-                  <input
-                    className={FIELD}
-                    placeholder="e.g. Early check-in, pet deposit"
-                    value={f.label}
-                    onChange={(e) =>
-                      setCustomFees((p) =>
-                        p.map((x, idx) =>
-                          idx === i ? { ...x, label: e.target.value } : x,
-                        ),
-                      )
-                    }
-                  />
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-brand-mute">
-                      {symbolFor(currency)}
-                    </span>
-                    <input
-                      className={`${FIELD} num pl-7`}
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={f.amount}
-                      onChange={(e) =>
-                        setCustomFees((p) =>
-                          p.map((x, idx) =>
-                            idx === i ? { ...x, amount: e.target.value } : x,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setCustomFees((p) => p.filter((_, idx) => idx !== i))
-                    }
-                    className="flex items-center justify-center rounded-[10px] border border-brand-line text-brand-mute hover:bg-brand-accent/30"
-                    aria-label="Remove fee"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() =>
-                  setCustomFees((p) => [
-                    ...p,
-                    {
-                      id: p.reduce((m, x) => Math.max(m, x.id), 0) + 1,
-                      label: "",
-                      amount: "",
-                    },
-                  ])
-                }
-                className="flex items-center gap-2 rounded-[10px] border border-dashed border-brand-line px-4 py-2.5 text-[12.5px] font-medium text-brand-primary hover:bg-brand-accent/20"
-              >
-                <Plus className="h-4 w-4" />
-                Add a custom fee
-              </button>
-            </div>
-          </SectionCard>
-
-          {/* 7 · Add-ons */}
-          {listingAddons.length > 0 && (
-            <SectionCard
-              n={next()}
-              done
-              title="Add-ons"
-              subtitle="Extras the guest can opt into. Selected items show in the summary."
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                {listingAddons.map((a) => {
-                  const qty = addonQty[a.id] ?? 0;
-                  const sel = qty > 0;
-                  const min = a.min_quantity || 1;
-                  return (
-                    <div
-                      key={a.id}
-                      className={`relative flex items-start gap-3 rounded-[12px] border p-3.5 transition ${
+                      onClick={() => setListingId(l.id)}
+                      className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
                         sel
                           ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
                           : "border-brand-line hover:bg-brand-accent/20"
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setQty(a.id, sel ? 0 : min, a.max_quantity)
-                        }
-                        className="absolute inset-0 rounded-[12px]"
-                        aria-label={sel ? `Remove ${a.name}` : `Add ${a.name}`}
-                      />
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-brand-accent text-brand-secondary">
-                        <Plus className="h-4 w-4" />
+                      <div className="relative h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                        {l.photo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={l.photo_url}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-brand-line">
+                            <MapPin className="h-6 w-6" />
+                          </div>
+                        )}
+                        <Dot active={sel} className="absolute right-2 top-2" />
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-[13px] font-semibold text-brand-ink">
-                              {a.name}
+                      <div className="mt-2.5 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="truncate text-[13px] font-semibold text-brand-ink">
+                            {l.name}
+                          </div>
+                          <div className="mt-0.5 truncate text-[10.5px] text-brand-mute">
+                            {[
+                              l.location,
+                              l.max_guests ? `sleeps ${l.max_guests}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ") || "Accommodation"}
+                          </div>
+                        </div>
+                        {l.base_price != null && (
+                          <div className="text-right">
+                            <div className="num font-display text-[12.5px] font-bold text-brand-ink">
+                              {formatMoney(l.base_price, l.currency)}
                             </div>
-                            {a.description && (
-                              <div className="mt-0.5 text-[11px] text-brand-mute">
-                                {a.description}
-                              </div>
-                            )}
+                            <div className="text-[9.5px] text-brand-mute">
+                              / night
+                            </div>
                           </div>
-                          <Dot active={sel} />
-                        </div>
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="text-[10.5px] text-brand-mute">
-                            {PRICING_LABEL[
-                              a.pricing_model as keyof typeof PRICING_LABEL
-                            ] ?? "per stay"}
-                          </span>
-                          <div className="relative z-[1] flex items-center gap-2">
-                            <span className="num font-display text-[13px] font-bold text-brand-ink">
-                              {formatMoney(a.unit_price, a.currency)}
-                            </span>
-                            {sel && (
-                              <Stepper
-                                value={qty}
-                                min={0}
-                                max={a.max_quantity}
-                                onChange={(v) =>
-                                  setQty(a.id, v, a.max_quantity)
-                                }
-                              />
-                            )}
-                          </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
-
-              {addonLines.length > 0 && (
-                <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
-                  <div className="flex items-center gap-2 text-[12px] text-brand-secondary">
-                    <Check className="h-4 w-4" />
-                    <span>
-                      <span className="font-semibold">
-                        {addonLines.length} item
-                        {addonLines.length === 1 ? "" : "s"}
-                      </span>{" "}
-                      selected
-                    </span>
-                  </div>
-                  <div className="num font-display text-[14px] font-bold text-brand-secondary">
-                    + {formatMoney(addonsTotal, currency)}
-                  </div>
-                </div>
-              )}
             </SectionCard>
-          )}
 
-          {/* 8 · Payment */}
-          <SectionCard
-            n={next()}
-            done
-            title="Payment"
-            subtitle="How is the guest paying for this stay?"
-          >
-            <div className="grid gap-3 sm:grid-cols-3">
-              <PayCard
-                active={paymentState === "send_paystack_link"}
-                onClick={() => setPaymentState("send_paystack_link")}
-                icon={<Link2 className="h-5 w-5" />}
-                title="Send payment link"
-                sub="Guest pays via Paystack. Booking stays pending until paid."
-              />
-              <PayCard
-                active={paymentState === "paid"}
-                onClick={() => setPaymentState("paid")}
-                icon={<Wallet className="h-5 w-5" />}
-                title="Already paid"
-                sub="EFT, cash, Yoco — record off-platform. Confirms now."
-              />
-              <PayCard
-                active={paymentState === "unpaid"}
-                onClick={() => setPaymentState("unpaid")}
-                icon={<CreditCard className="h-5 w-5" />}
-                title="Pay at check-in"
-                sub="Block the dates now, collect on arrival."
-              />
-            </div>
-
-            {paymentState === "paid" && (
-              <input
-                className={`${FIELD} mt-4`}
-                placeholder="Payment note (cash receipt, EFT ref, etc.)"
-                value={paymentNote}
-                onChange={(e) => setPaymentNote(e.target.value)}
-              />
-            )}
-            {paymentState === "send_paystack_link" && (
-              <p className="mt-3 text-[11.5px] text-brand-mute">
-                The booking is created as <code>pending</code> and the calendar
-                isn&rsquo;t blocked yet. Hosted-link emailing is a follow-up —
-                for now, send the guest a payment link from the booking detail
-                page.
-              </p>
-            )}
-          </SectionCard>
-
-          {/* 9 · Notes */}
-          <SectionCard
-            n={next()}
-            done
-            title="Notes & extras"
-            subtitle="Optional. The internal note is for you and your staff only."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <FieldLabel>
-                  Guest message{" "}
-                  <span className="font-normal normal-case tracking-normal text-brand-mute">
-                    — shown to the guest
-                  </span>
-                </FieldLabel>
-                <textarea
-                  className={`${FIELD} mt-1.5 min-h-[80px]`}
-                  rows={3}
-                  placeholder="Hi Aisha, looking forward to having you again…"
-                  value={guestMessage}
-                  onChange={(e) => setGuestMessage(e.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel>
-                  Internal note{" "}
-                  <span className="font-normal normal-case tracking-normal text-brand-mute">
-                    — not shared
-                  </span>
-                </FieldLabel>
-                <textarea
-                  className={`${FIELD} mt-1.5 min-h-[80px]`}
-                  rows={3}
-                  placeholder="Returning guest, gave 5★ last time…"
-                  value={internalNote}
-                  onChange={(e) => setInternalNote(e.target.value)}
-                />
-              </div>
-            </div>
-          </SectionCard>
-        </div>
-
-        {/* RIGHT — summary */}
-        <aside className="lg:sticky lg:top-[88px] lg:self-start">
-          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-lift">
-            {/* Dark hero */}
-            <div className="relative bg-brand-gradient-dark p-5 text-white">
-              <div
-                aria-hidden
-                className="absolute inset-0 opacity-25"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(rgba(16,185,129,0.18) 1px, transparent 1px)",
-                  backgroundSize: "18px 18px",
-                }}
-              />
-              <div
-                aria-hidden
-                className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-brand-primary/30 blur-3xl"
-              />
-              <div className="relative">
-                <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-accent backdrop-blur">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                  Booking summary
-                </div>
-
-                <div className="mt-3 flex items-center gap-3">
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-white/10 ring-2 ring-white/20">
-                    {listing?.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={listing.photo_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-white/40">
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-display text-[15px] font-semibold leading-tight">
-                      {listing?.name ?? "Pick a listing"}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-brand-accent/70">
-                      <BedDouble className="h-3 w-3" />
-                      <span>
-                        {scope === "rooms" && selectedRoom
-                          ? selectedRoom.name
-                          : "Whole listing"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3 backdrop-blur">
-                  <div className="text-center">
-                    <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                      Check-in
-                    </div>
-                    <div className="num mt-1 font-display text-[16px] font-bold leading-none">
-                      {checkIn ? prettyDate(checkIn, true) : "—"}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center">
-                    <span className="num rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
-                      {nights} {nights === 1 ? "night" : "nights"}
-                    </span>
-                    <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                      Check-out
-                    </div>
-                    <div className="num mt-1 font-display text-[16px] font-bold leading-none">
-                      {checkOut ? prettyDate(checkOut, true) : "—"}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center gap-2 text-[11.5px]">
-                  <Users className="h-3.5 w-3.5 text-brand-primary" />
-                  <span className="text-white">
-                    {adults} adult{adults === 1 ? "" : "s"}
-                    {children > 0
-                      ? ` · ${children} child${children === 1 ? "" : "ren"}`
-                      : ""}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Breakdown */}
-            <div className="max-h-[440px] overflow-y-auto">
-              <ul className="space-y-2 px-5 pt-5 text-[12.5px]">
-                <li className="flex items-center justify-between">
-                  <span className="text-brand-mute">
-                    {formatMoney(nightly, currency)} × {nights || 0}{" "}
-                    {nights === 1 ? "night" : "nights"}
-                  </span>
-                  <span className="num font-medium text-brand-ink">
-                    {formatMoney(grossBase, currency)}
-                  </span>
-                </li>
-                {discountVal > 0 && (
-                  <li className="flex items-center justify-between">
-                    <span className="text-brand-mute">Discount</span>
-                    <span className="num font-medium text-brand-primary">
-                      − {formatMoney(discountVal, currency)}
-                    </span>
-                  </li>
-                )}
-                <li className="flex items-center justify-between">
-                  <span className="text-brand-mute">Cleaning fee</span>
-                  <span className="num font-medium text-brand-ink">
-                    {formatMoney(cleaning, currency)}
-                  </span>
-                </li>
-              </ul>
-
-              {addonLines.length > 0 && (
-                <div className="mx-5 mt-4 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
-                  <div className="mb-2 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-brand-mute">
-                    <span>Add-ons</span>
-                    <span className="font-medium normal-case tracking-normal">
-                      {addonLines.length} selected
-                    </span>
-                  </div>
-                  <ul className="space-y-1.5 text-[11.5px]">
-                    {addonLines.map((a) => (
-                      <li
-                        key={a.key}
-                        className="flex items-center justify-between"
+            {/* 2 · Room (only when the listing has rooms) */}
+            {hasRooms && (
+              <SectionCard
+                n={next()}
+                done={Boolean(selectedRoom) || wholeListing}
+                title="Which room?"
+                subtitle={`${listing?.name ?? "This listing"} has ${listingRooms.length} room${
+                  listingRooms.length === 1 ? "" : "s"
+                }. Pick the one this guest will use.`}
+              >
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {listingRooms.map((r) => {
+                    const unavailable = roomUnavailable(r);
+                    const sel = !wholeListing && roomId === r.id;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        disabled={unavailable || wholeListing}
+                        onClick={() => setRoomId(r.id)}
+                        className={`relative flex gap-3 rounded-[12px] border p-3 text-left transition ${
+                          sel
+                            ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
+                            : "border-brand-line hover:bg-brand-accent/20"
+                        } ${unavailable || wholeListing ? "cursor-not-allowed opacity-60" : ""}`}
                       >
-                        <span className="text-brand-ink">
-                          {a.label}
-                          {a.quantity > 1 && (
-                            <span className="text-brand-mute">
-                              {" "}
-                              × {a.quantity}
-                            </span>
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                          {r.photo_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={r.photo_url}
+                              alt=""
+                              className={`h-full w-full object-cover ${unavailable ? "grayscale" : ""}`}
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-brand-line">
+                              <BedDouble className="h-5 w-5" />
+                            </div>
                           )}
-                        </span>
-                        <span className="num font-medium text-brand-ink">
-                          {formatMoney(a.subtotal, currency)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-2 flex items-center justify-between border-t border-brand-line pt-2">
-                    <span className="text-[11px] font-semibold text-brand-ink">
-                      Add-ons subtotal
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-1">
+                            <div className="min-w-0">
+                              <div className="truncate text-[13px] font-semibold text-brand-ink">
+                                {r.name}
+                              </div>
+                              <div className="mt-0.5 truncate text-[10.5px] text-brand-mute">
+                                {[r.bed_type, `sleeps ${r.max_guests}`]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </div>
+                            </div>
+                            {sel && <Dot active />}
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-1">
+                            {unavailable ? (
+                              <span className="inline-flex items-center gap-1 rounded-pill bg-status-cancelled/10 px-1.5 py-0.5 text-[10px] font-semibold text-status-cancelled">
+                                <span className="h-1.5 w-1.5 rounded-full bg-status-cancelled" />
+                                Booked these dates
+                              </span>
+                            ) : (
+                              <>
+                                {r.view_type && (
+                                  <Chip tone="accent">{r.view_type}</Chip>
+                                )}
+                                {r.has_ensuite && <Chip>En-suite</Chip>}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-4 py-3">
+                  <Switch on={wholeListing} onChange={setWholeListing} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12.5px] font-semibold text-brand-ink">
+                      Reserve the whole listing
+                    </div>
+                    <div className="text-[11px] text-brand-mute">
+                      Blocks every room — useful for families or events.
+                    </div>
+                  </div>
+                </label>
+              </SectionCard>
+            )}
+          </div>
+        )}
+
+        {/* STEP 2 — Dates & guests */}
+        {step === 1 && (
+          <div className="space-y-6">
+            {/* 3 · Dates */}
+            <SectionCard
+              n={next()}
+              done={Boolean(
+                checkIn && checkOut && nights > 0 && !rangeConflict,
+              )}
+              title="Stay dates"
+              subtitle={`${brandName} blocks the calendar across the stay. Hatched cells are already booked.`}
+            >
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
+                <ReadField
+                  label="Check-in"
+                  value={checkIn ? prettyDate(checkIn) : "—"}
+                />
+                <ReadField
+                  label="Check-out"
+                  value={checkOut ? prettyDate(checkOut) : "—"}
+                />
+                <div>
+                  <FieldLabel>Nights</FieldLabel>
+                  <div className="mt-1.5 flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 px-3">
+                    <span className="num font-display text-[18px] font-bold text-brand-ink">
+                      {nights}
                     </span>
-                    <span className="num font-display text-[12.5px] font-bold text-brand-secondary">
-                      + {formatMoney(addonsTotal, currency)}
+                    <span className="text-[11px] text-brand-mute">
+                      {nights === 1 ? "night" : "nights"}
                     </span>
                   </div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-medium text-brand-mute">
+                  Quick add:
+                </span>
+                <QuickChip onClick={() => quickRange(0, 1)}>Tonight</QuickChip>
+                <QuickChip onClick={thisWeekend}>This weekend</QuickChip>
+                <QuickChip onClick={() => quickRange(0, 7)}>
+                  Next 7 nights
+                </QuickChip>
+              </div>
+
+              {rangeConflict && (
+                <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-status-cancelled/40 bg-status-cancelled/10 px-3 py-2 text-[12px] text-status-cancelled">
+                  <Info className="h-4 w-4 shrink-0" />
+                  These dates overlap nights that are already blocked. Pick a
+                  clear range.
                 </div>
               )}
 
-              <div className="mx-5 my-4 h-px bg-brand-line" />
+              <div className="mt-5 grid gap-5 rounded-[12px] border border-brand-line bg-brand-light/30 p-4 sm:grid-cols-2">
+                <MonthGrid
+                  year={viewStart.year}
+                  month={viewStart.month}
+                  showPrev
+                  onPrev={() => shiftMonth(viewStart, -1, setViewStart)}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  todayStr={todayStr}
+                  isBlocked={isNightBlocked}
+                  onPick={pickDate}
+                />
+                <MonthGrid
+                  year={
+                    viewStart.month === 11 ? viewStart.year + 1 : viewStart.year
+                  }
+                  month={(viewStart.month + 1) % 12}
+                  showNext
+                  onNext={() => shiftMonth(viewStart, 1, setViewStart)}
+                  checkIn={checkIn}
+                  checkOut={checkOut}
+                  todayStr={todayStr}
+                  isBlocked={isNightBlocked}
+                  onPick={pickDate}
+                />
+              </div>
 
-              <div className="px-5 pb-2">
-                <div className="flex items-baseline justify-between">
-                  <div>
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                      Guest pays
-                    </div>
-                    <div className="num mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
-                      {formatMoney(total, currency)}
-                    </div>
-                  </div>
-                  {nights > 0 && (
-                    <div className="text-right">
-                      <div className="text-[10.5px] text-brand-mute">
-                        avg / night
-                      </div>
-                      <div className="num font-display text-[14px] font-bold text-brand-ink">
-                        {formatMoney(total / nights, currency)}
-                      </div>
-                    </div>
+              <div className="mt-3 flex flex-wrap items-center gap-4 text-[10.5px] text-brand-mute">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-brand-primary" />
+                  Selected
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded bg-brand-accent" />
+                  Range
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="h-3 w-3 rounded"
+                    style={{
+                      background:
+                        "repeating-linear-gradient(45deg, #F0FDF4, #F0FDF4 2px, #DCEAE0 2px, #DCEAE0 3px)",
+                    }}
+                  />
+                  Unavailable
+                </span>
+              </div>
+            </SectionCard>
+
+            {/* 4 · Guest party */}
+            <SectionCard
+              n={next()}
+              done
+              title="Guest party"
+              subtitle={
+                listing?.max_guests
+                  ? `${listing.name} sleeps ${listing.max_guests}.`
+                  : "How many guests are staying?"
+              }
+            >
+              <div className="grid gap-3 sm:grid-cols-2">
+                <CounterRow
+                  label="Adults"
+                  hint="13+"
+                  value={adults}
+                  min={1}
+                  onChange={setAdults}
+                />
+                <CounterRow
+                  label="Children"
+                  hint="2–12"
+                  value={children}
+                  min={0}
+                  onChange={setChildren}
+                />
+              </div>
+            </SectionCard>
+          </div>
+        )}
+
+        {/* STEP 3 — Guest */}
+        {step === 2 && (
+          <div className="space-y-6">
+            {/* 5 · Lead guest */}
+            <SectionCard
+              n={next()}
+              done={Boolean(guestName.trim() && guestEmail.trim())}
+              title="Lead guest"
+              subtitle="The person who'll get the confirmation. Search your past guests to reuse details."
+            >
+              {pastGuests.length > 0 && (
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+                  <input
+                    className={`${FIELD} pl-9`}
+                    placeholder="Search past guests by name or email…"
+                    value={guestSearch}
+                    onChange={(e) => {
+                      setGuestSearch(e.target.value);
+                      setSearchOpen(true);
+                    }}
+                    onFocus={() => setSearchOpen(true)}
+                  />
+                  {searchOpen && guestMatches.length > 0 && (
+                    <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
+                      {guestMatches.map((g) => (
+                        <li key={g.email}>
+                          <button
+                            type="button"
+                            onClick={() => pickGuest(g)}
+                            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-brand-accent/30"
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-[12.5px] font-medium text-brand-ink">
+                                {g.name || g.email}
+                              </span>
+                              <span className="block truncate text-[11px] text-brand-mute">
+                                {g.email}
+                              </span>
+                            </span>
+                            <Chip tone="accent">
+                              {g.stays} stay{g.stays === 1 ? "" : "s"}
+                            </Chip>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </div>
+              )}
+
+              {matchedGuest && (
+                <div className="mb-4 flex items-center gap-3 rounded-[10px] border border-brand-primary/40 bg-brand-accent/30 p-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-gradient text-[12px] font-bold text-white">
+                    {initials(matchedGuest.name || matchedGuest.email)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5 text-[13px] text-brand-ink">
+                      <span className="font-semibold">Returning guest:</span>
+                      <span>{matchedGuest.name || matchedGuest.email}</span>
+                      <Chip tone="accent">
+                        {matchedGuest.stays} stay
+                        {matchedGuest.stays === 1 ? "" : "s"}
+                      </Chip>
+                    </div>
+                    <div className="mt-0.5 truncate text-[11px] text-brand-mute">
+                      {matchedGuest.email}
+                      {matchedGuest.lastStay
+                        ? ` · last stay ${prettyMonth(matchedGuest.lastStay)}`
+                        : ""}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <FieldLabel>Full name *</FieldLabel>
+                  <input
+                    className={`${FIELD} mt-1.5`}
+                    placeholder="e.g. Aisha Patel"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Email *</FieldLabel>
+                  <input
+                    type="email"
+                    className={`${FIELD} mt-1.5`}
+                    placeholder="guest@email.com"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <FieldLabel>Phone</FieldLabel>
+                  <input
+                    type="tel"
+                    className={`${FIELD} mt-1.5`}
+                    placeholder="+27 …"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        )}
+
+        {/* STEP 4 — Price & extras */}
+        {step === 3 && (
+          <div className="space-y-6">
+            {/* 6 · Pricing */}
+            <SectionCard
+              n={next()}
+              done
+              title="Pricing"
+              subtitle="Auto-filled from your listing rates. Adjust for a friends-and-family rate."
+            >
+              <div className="grid gap-4 sm:grid-cols-3">
+                <MoneyField
+                  label="Nightly rate"
+                  value={nightlyRate}
+                  onChange={setNightlyRate}
+                  hint={
+                    listing?.base_price != null
+                      ? `Default · ${formatMoney(listing.base_price, currency)}`
+                      : undefined
+                  }
+                  symbol={symbolFor(currency)}
+                />
+                <MoneyField
+                  label="Cleaning fee"
+                  value={cleaningFee}
+                  onChange={setCleaningFee}
+                  hint="One-off · on top"
+                  symbol={symbolFor(currency)}
+                />
+                <MoneyField
+                  label="Discount"
+                  value={discount}
+                  onChange={setDiscount}
+                  hint="Subtracted from total"
+                  symbol={symbolFor(currency)}
+                />
               </div>
 
-              <div className="mt-2 px-5 pb-5">
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-mute">
-                  What happens next
-                </div>
-                <ol className="space-y-2 text-[11.5px]">
-                  {nextSteps(paymentState).map((step, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span
-                        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${
-                          i === 0
-                            ? "bg-brand-primary text-white"
-                            : "bg-brand-line text-brand-mute"
+              <div className="mt-5 space-y-2">
+                {customFees.map((f, i) => (
+                  <div
+                    key={f.id}
+                    className="grid grid-cols-[1fr_140px_36px] gap-2"
+                  >
+                    <input
+                      className={FIELD}
+                      placeholder="e.g. Early check-in, pet deposit"
+                      value={f.label}
+                      onChange={(e) =>
+                        setCustomFees((p) =>
+                          p.map((x, idx) =>
+                            idx === i ? { ...x, label: e.target.value } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[13px] font-semibold text-brand-mute">
+                        {symbolFor(currency)}
+                      </span>
+                      <input
+                        className={`${FIELD} num pl-7`}
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={f.amount}
+                        onChange={(e) =>
+                          setCustomFees((p) =>
+                            p.map((x, idx) =>
+                              idx === i ? { ...x, amount: e.target.value } : x,
+                            ),
+                          )
+                        }
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCustomFees((p) => p.filter((_, idx) => idx !== i))
+                      }
+                      className="flex items-center justify-center rounded-[10px] border border-brand-line text-brand-mute hover:bg-brand-accent/30"
+                      aria-label="Remove fee"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCustomFees((p) => [
+                      ...p,
+                      {
+                        id: p.reduce((m, x) => Math.max(m, x.id), 0) + 1,
+                        label: "",
+                        amount: "",
+                      },
+                    ])
+                  }
+                  className="flex items-center gap-2 rounded-[10px] border border-dashed border-brand-line px-4 py-2.5 text-[12.5px] font-medium text-brand-primary hover:bg-brand-accent/20"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add a custom fee
+                </button>
+              </div>
+            </SectionCard>
+
+            {/* 7 · Add-ons */}
+            {listingAddons.length > 0 && (
+              <SectionCard
+                n={next()}
+                done
+                title="Add-ons"
+                subtitle="Extras the guest can opt into. Selected items show in the summary."
+              >
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {listingAddons.map((a) => {
+                    const qty = addonQty[a.id] ?? 0;
+                    const sel = qty > 0;
+                    const min = a.min_quantity || 1;
+                    return (
+                      <div
+                        key={a.id}
+                        className={`relative flex items-start gap-3 rounded-[12px] border p-3.5 transition ${
+                          sel
+                            ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
+                            : "border-brand-line hover:bg-brand-accent/20"
                         }`}
                       >
-                        {i + 1}
-                      </span>
-                      <span
-                        className={
-                          i === 0 ? "text-brand-ink" : "text-brand-mute"
-                        }
-                      >
-                        {step}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setQty(a.id, sel ? 0 : min, a.max_quantity)
+                          }
+                          className="absolute inset-0 rounded-[12px]"
+                          aria-label={
+                            sel ? `Remove ${a.name}` : `Add ${a.name}`
+                          }
+                        />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-brand-accent text-brand-secondary">
+                          <Plus className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="text-[13px] font-semibold text-brand-ink">
+                                {a.name}
+                              </div>
+                              {a.description && (
+                                <div className="mt-0.5 text-[11px] text-brand-mute">
+                                  {a.description}
+                                </div>
+                              )}
+                            </div>
+                            <Dot active={sel} />
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-[10.5px] text-brand-mute">
+                              {PRICING_LABEL[
+                                a.pricing_model as keyof typeof PRICING_LABEL
+                              ] ?? "per stay"}
+                            </span>
+                            <div className="relative z-[1] flex items-center gap-2">
+                              <span className="num font-display text-[13px] font-bold text-brand-ink">
+                                {formatMoney(a.unit_price, a.currency)}
+                              </span>
+                              {sel && (
+                                <Stepper
+                                  value={qty}
+                                  min={0}
+                                  max={a.max_quantity}
+                                  onChange={(v) =>
+                                    setQty(a.id, v, a.max_quantity)
+                                  }
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
 
-            {/* Sticky CTA */}
-            <div className="space-y-2 border-t border-brand-line bg-white p-4">
-              <button
-                type="button"
-                onClick={submit}
-                disabled={pending}
-                className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-4 py-3 text-[14px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
-              >
-                {pending ? "Creating…" : ctaLabel}
-                {!pending && <ArrowRight className="h-4 w-4" />}
-              </button>
-              <div className="flex items-center justify-center gap-1.5 pt-1 text-[10.5px] text-brand-mute">
-                <ShieldCheck className="h-3 w-3" />
-                {paymentState === "send_paystack_link"
-                  ? "No charge until the guest pays"
-                  : "Calendar blocks the moment you create this booking"}
+                {addonLines.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
+                    <div className="flex items-center gap-2 text-[12px] text-brand-secondary">
+                      <Check className="h-4 w-4" />
+                      <span>
+                        <span className="font-semibold">
+                          {addonLines.length} item
+                          {addonLines.length === 1 ? "" : "s"}
+                        </span>{" "}
+                        selected
+                      </span>
+                    </div>
+                    <div className="num font-display text-[14px] font-bold text-brand-secondary">
+                      + {formatMoney(addonsTotal, currency)}
+                    </div>
+                  </div>
+                )}
+              </SectionCard>
+            )}
+          </div>
+        )}
+
+        {/* STEP 5 — Payment */}
+        {step === 4 && (
+          <div className="space-y-6">
+            {/* 8 · Payment */}
+            <SectionCard
+              n={next()}
+              done
+              title="Payment"
+              subtitle="How is the guest paying for this stay?"
+            >
+              <div className="grid gap-3 sm:grid-cols-3">
+                <PayCard
+                  active={paymentState === "send_paystack_link"}
+                  onClick={() => setPaymentState("send_paystack_link")}
+                  icon={<Link2 className="h-5 w-5" />}
+                  title="Send payment link"
+                  sub="Guest pays via Paystack. Booking stays pending until paid."
+                />
+                <PayCard
+                  active={paymentState === "paid"}
+                  onClick={() => setPaymentState("paid")}
+                  icon={<Wallet className="h-5 w-5" />}
+                  title="Already paid"
+                  sub="EFT, cash, Yoco — record off-platform. Confirms now."
+                />
+                <PayCard
+                  active={paymentState === "unpaid"}
+                  onClick={() => setPaymentState("unpaid")}
+                  icon={<CreditCard className="h-5 w-5" />}
+                  title="Pay at check-in"
+                  sub="Block the dates now, collect on arrival."
+                />
               </div>
+
+              {paymentState === "paid" && (
+                <input
+                  className={`${FIELD} mt-4`}
+                  placeholder="Payment note (cash receipt, EFT ref, etc.)"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                />
+              )}
+              {paymentState === "send_paystack_link" && (
+                <p className="mt-3 text-[11.5px] text-brand-mute">
+                  The booking is created as <code>pending</code> and the
+                  calendar isn&rsquo;t blocked yet. Hosted-link emailing is a
+                  follow-up — for now, send the guest a payment link from the
+                  booking detail page.
+                </p>
+              )}
+            </SectionCard>
+
+            {/* 9 · Notes */}
+            <SectionCard
+              n={next()}
+              done
+              title="Notes & extras"
+              subtitle="Optional. The internal note is for you and your staff only."
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <FieldLabel>
+                    Guest message{" "}
+                    <span className="font-normal normal-case tracking-normal text-brand-mute">
+                      — shown to the guest
+                    </span>
+                  </FieldLabel>
+                  <textarea
+                    className={`${FIELD} mt-1.5 min-h-[80px]`}
+                    rows={3}
+                    placeholder="Hi Aisha, looking forward to having you again…"
+                    value={guestMessage}
+                    onChange={(e) => setGuestMessage(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <FieldLabel>
+                    Internal note{" "}
+                    <span className="font-normal normal-case tracking-normal text-brand-mute">
+                      — not shared
+                    </span>
+                  </FieldLabel>
+                  <textarea
+                    className={`${FIELD} mt-1.5 min-h-[80px]`}
+                    rows={3}
+                    placeholder="Returning guest, gave 5★ last time…"
+                    value={internalNote}
+                    onChange={(e) => setInternalNote(e.target.value)}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+            {/* What happens next */}
+            <div className="rounded-[13px] border border-brand-line bg-white p-4">
+              <div className="mb-3 text-[11px] font-bold uppercase tracking-wide text-brand-mute">
+                What happens next
+              </div>
+              <ol className="space-y-2.5 text-[13px]">
+                {nextSteps(paymentState).map((s, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                        i === 0
+                          ? "bg-brand-primary text-white"
+                          : "bg-brand-line text-brand-mute"
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                    <span
+                      className={i === 0 ? "text-brand-ink" : "text-brand-mute"}
+                    >
+                      {s}
+                    </span>
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
-        </aside>
+        )}
       </div>
+
+      {/* Wizard nav */}
+      <div className="mt-8 flex items-center justify-between border-t border-brand-line pt-5">
+        <button
+          type="button"
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          className={`inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-[14px] font-semibold text-brand-mute transition-colors hover:bg-brand-light ${
+            step === 0 ? "invisible" : ""
+          }`}
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="flex items-center gap-4">
+          {nights > 0 && (
+            <div className="text-right leading-none">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                Total
+              </div>
+              <div className="num mt-1 font-display text-[15px] font-bold text-brand-ink">
+                {formatMoney(total, currency)}
+              </div>
+            </div>
+          )}
+          <span className="hidden text-[13px] text-brand-mute sm:inline">
+            Step {step + 1} of {STEPS.length}
+          </span>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={pending}
+            className="inline-flex items-center gap-2 rounded-[11px] bg-brand-primary px-6 py-3 text-[14px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition-colors hover:bg-brand-secondary disabled:opacity-60"
+          >
+            {step === STEPS.length - 1
+              ? pending
+                ? "Creating…"
+                : ctaLabel
+              : "Continue"}
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Wizard progress stepper ─────────────────────────────────────────────
+function ProgressSteps({
+  current,
+  onGo,
+}: {
+  current: number;
+  onGo: (i: number) => void;
+}) {
+  return (
+    <div className="thin-scroll flex items-center overflow-x-auto border-b border-brand-line pb-4">
+      {STEPS.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <Fragment key={label}>
+            {i > 0 && (
+              <div
+                className={`mx-3 h-0.5 min-w-[16px] flex-1 rounded ${
+                  i <= current ? "bg-brand-primary" : "bg-brand-line"
+                }`}
+              />
+            )}
+            <button
+              type="button"
+              onClick={() => onGo(i)}
+              className="flex shrink-0 items-center gap-2.5"
+            >
+              <span
+                className={`flex h-[30px] w-[30px] items-center justify-center rounded-pill font-display text-[13px] font-bold transition ${
+                  active
+                    ? "bg-brand-secondary text-brand-accent"
+                    : done
+                      ? "bg-brand-primary text-white"
+                      : "bg-brand-line text-brand-mute"
+                }`}
+              >
+                {done ? <Check className="h-4 w-4" /> : i + 1}
+              </span>
+              <span
+                className={`whitespace-nowrap text-[13.5px] font-semibold ${
+                  active
+                    ? "text-brand-ink"
+                    : done
+                      ? "text-brand-secondary"
+                      : "text-brand-mute"
+                }`}
+              >
+                {label}
+              </span>
+            </button>
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -1502,37 +1443,24 @@ function shiftMonth(
 
 // ── Small presentational helpers ────────────────────────────────────────
 function SectionCard({
-  n,
-  done,
   title,
   subtitle,
   children,
 }: {
-  n: number;
+  // n/done are accepted for call-site compatibility but no longer rendered —
+  // the wizard's progress stepper now carries step state.
+  n?: number;
   done?: boolean;
   title: string;
   subtitle: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-      <div className="flex items-start gap-3">
-        <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-pill font-display text-[11px] font-bold ${
-            done
-              ? "bg-brand-primary text-white"
-              : "bg-brand-secondary text-brand-accent"
-          }`}
-        >
-          {done ? <Check className="h-3.5 w-3.5" /> : n}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-[17px] font-bold text-brand-ink">
-            {title}
-          </h2>
-          <p className="mt-0.5 text-[12.5px] text-brand-mute">{subtitle}</p>
-        </div>
-      </div>
+    <section>
+      <h2 className="font-display text-[20px] font-bold tracking-tight text-brand-ink">
+        {title}
+      </h2>
+      <p className="mt-1 text-[13.5px] text-brand-mute">{subtitle}</p>
       <div className="mt-5">{children}</div>
     </section>
   );
