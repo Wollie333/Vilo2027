@@ -313,5 +313,38 @@ packages/types/
 
 ---
 
-**Last Updated:** 2026-06-05 19:15 UTC
-**Status:** Phase 1-5 complete (100%), ready for Phase 6 (Regional & Seasonality)
+## ✅ Phase 7-9 Complete! (NEW)
+
+**Phase 7 (Guest Demographics, Popular Rooms, Refunds):**
+- ✅ RPC: `fetch_guest_demographics` (returning vs new guests, country origins)
+- ✅ RPC: `fetch_popular_rooms` (top 5 by occupancy)
+- ✅ RPC: `fetch_refunds_cancellations` (cancellation/refund metrics + reasons)
+- ✅ `GuestDemographics.tsx` component (donut chart + country bars)
+- ✅ `PopularRooms.tsx` component (ranked list with thumbnails)
+- ✅ `RefundsCancellations.tsx` component (summary cards + reason bars)
+- ✅ Updated page.tsx to fetch 11 RPCs in parallel
+
+**Phase 8 (CSV Export):**
+- ✅ Server Action: `exportPropertyPerformanceCSV` (fetches data, generates CSV)
+- ✅ Updated `ReportsFilters.tsx` with export dropdown (CSV/PDF/XLSX)
+- ✅ Export with useTransition, Blob download, error handling
+
+**Phase 9 (PDF & XLSX Export):**
+- ✅ Created `lib/reports/export/pdf.tsx` (@react-pdf/renderer with styled tables)
+- ✅ Created `lib/reports/export/xlsx.ts` (ExcelJS with formatting)
+- ✅ Server Action: `generateFullReportAction` (handles PDF/XLSX generation)
+- ✅ Base64 encoding for binary buffer transmission
+- ✅ Fixed Vercel build errors (renamed pdf.ts → pdf.tsx, removed unused imports)
+
+**Build Fix:**
+- ✅ Issue: JSX in `.ts` file couldn't compile
+- ✅ Solution: Renamed `pdf.ts` to `pdf.tsx`
+- ✅ Fixed unused imports (Legend in GuestDemographics)
+- ✅ Added eslint-disable for reserved `listingId` parameter
+- ✅ Build passes locally, pushed to GitHub
+- ✅ Vercel deployment should now succeed
+
+---
+
+**Last Updated:** 2026-06-05 21:30 UTC
+**Status:** Phase 1-9 complete (82%), Phase 10-11 remaining
