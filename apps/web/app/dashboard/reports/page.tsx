@@ -229,6 +229,19 @@ export default async function ReportsPage({
     }),
   ]);
 
+  // Log errors for debugging
+  if (primaryKpisRes.error) console.error("fetch_primary_kpis error:", primaryKpisRes.error);
+  if (secondaryMetricsRes.error) console.error("fetch_secondary_metrics error:", secondaryMetricsRes.error);
+  if (revenueTrendRes.error) console.error("fetch_revenue_trend error:", revenueTrendRes.error);
+  if (channelMixRes.error) console.error("fetch_channel_mix error:", channelMixRes.error);
+  if (conversionFunnelRes.error) console.error("fetch_conversion_funnel error:", conversionFunnelRes.error);
+  if (timeToBookRes.error) console.error("fetch_time_to_book error:", timeToBookRes.error);
+  if (regionalBreakdownRes.error) console.error("fetch_regional_breakdown error:", regionalBreakdownRes.error);
+  if (seasonalityHeatmapRes.error) console.error("fetch_seasonality_heatmap error:", seasonalityHeatmapRes.error);
+  if (guestDemographicsRes.error) console.error("fetch_guest_demographics error:", guestDemographicsRes.error);
+  if (popularRoomsRes.error) console.error("fetch_popular_rooms error:", popularRoomsRes.error);
+  if (refundsCancellationsRes.error) console.error("fetch_refunds_cancellations error:", refundsCancellationsRes.error);
+
   const kpisError =
     primaryKpisRes.error ||
     secondaryMetricsRes.error ||
@@ -518,12 +531,69 @@ export default async function ReportsPage({
             </section>
           </>
         ) : (
-          <div className="rounded border border-brand-line bg-white p-8 text-center">
-            <p className="text-sm text-brand-mute">
-              {kpisError
-                ? "Error loading analytics data. Please try again."
-                : "No data available for the selected period."}
-            </p>
+          <div className="rounded-card border border-brand-line bg-white p-8">
+            {kpisError ? (
+              <div className="text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <svg
+                    className="h-6 w-6 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-brand-ink">
+                  Failed to Load Analytics
+                </h3>
+                <p className="mb-4 text-sm text-brand-mute">
+                  The analytics database functions are not available. This usually means
+                  the analytics migrations haven&apos;t been applied yet.
+                </p>
+                <div className="rounded-lg bg-brand-light/50 p-4 text-left">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mute">
+                    To fix this issue:
+                  </p>
+                  <ol className="space-y-2 text-sm text-brand-ink">
+                    <li className="flex items-start gap-2">
+                      <span className="font-mono text-brand-mute">1.</span>
+                      <span>
+                        Apply analytics migrations:{" "}
+                        <code className="rounded bg-brand-light px-1.5 py-0.5 font-mono text-xs">
+                          supabase db push --linked
+                        </code>
+                      </span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="font-mono text-brand-mute">2.</span>
+                      <span>Refresh this page</span>
+                    </li>
+                  </ol>
+                </div>
+                <p className="mt-4 text-xs text-brand-mute">
+                  Check browser console (F12) for detailed error messages
+                </p>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-brand-mute">
+                  No data available for the selected period.
+                </p>
+                <p className="mt-2 text-xs text-brand-mute">
+                  Try selecting a different date range or run{" "}
+                  <code className="rounded bg-brand-light px-1.5 py-0.5 font-mono text-xs">
+                    npm run seed:all
+                  </code>{" "}
+                  to generate demo data
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
