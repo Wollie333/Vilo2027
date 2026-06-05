@@ -28,7 +28,7 @@ export async function acceptAndConvertQuote(
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
-      converted_booking_id
+      converted_booking_id, conversation_id
     `,
     )
     .eq("id", quoteId)
@@ -145,6 +145,15 @@ export async function acceptAndConvertQuote(
       converted_booking_id: booking.id,
     })
     .eq("id", quoteId);
+
+  // Auto-advance the inbox pipeline so the host's board tracks the deal without
+  // manual moves (purely a label — doesn't affect the booking/payment flow).
+  if (quote.conversation_id) {
+    await admin
+      .from("conversations")
+      .update({ pipeline_stage: "accepted" })
+      .eq("id", quote.conversation_id);
+  }
 
   return { ok: true, bookingId: booking.id };
 }

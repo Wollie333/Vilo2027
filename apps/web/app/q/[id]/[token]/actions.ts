@@ -59,14 +59,23 @@ export async function guestDeclineQuoteAction(
   if (!gate.ok) return gate;
 
   const supabase = createAdminClient();
-  const { error } = await supabase
+  const { data: q } = await supabase
     .from("quotes")
     .update({
       status: "declined",
       declined_at: new Date().toISOString(),
     })
-    .eq("id", quoteId);
-  if (error) return { ok: false, error: "Could not record your decline." };
+    .eq("id", quoteId)
+    .select("conversation_id")
+    .single();
+  if (!q) return { ok: false, error: "Could not record your decline." };
+
+  if (q.conversation_id) {
+    await supabase
+      .from("conversations")
+      .update({ pipeline_stage: "declined" })
+      .eq("id", q.conversation_id);
+  }
 
   revalidatePath(`/q/${quoteId}/${token}`);
   return { ok: true };

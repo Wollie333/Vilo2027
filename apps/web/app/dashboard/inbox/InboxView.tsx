@@ -503,6 +503,28 @@ export function InboxView({
               );
             })}
           </div>
+          {/* Projected pipeline value — open deals only (excludes declined/lost). */}
+          {(() => {
+            const pv = counts.pipelineValue ?? {};
+            const projected =
+              (pv.new_quote ?? 0) +
+              (pv.quote_sent ?? 0) +
+              (pv.negotiating ?? 0) +
+              (pv.accepted ?? 0);
+            return (
+              <div className="mt-2 flex items-center justify-between border-t border-brand-line px-3 pt-3">
+                <span className="text-[11px] font-medium text-brand-mute">
+                  Projected value
+                </span>
+                <span className="num text-[13px] font-bold text-brand-ink">
+                  R{" "}
+                  {Math.round(projected)
+                    .toLocaleString("en-ZA")
+                    .replace(/,/g, " ")}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         <div className="mt-auto border-t border-brand-line px-4 py-4">

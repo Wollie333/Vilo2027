@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type GuestActionResult =
@@ -65,6 +66,25 @@ export async function sendGuestMessageAction(
     .single();
   if (error || !row) {
     return { ok: false, error: "Could not send message. Try again." };
+  }
+
+  // A guest reply on a live enquiry means the deal is in motion — auto-advance
+  // the host's pipeline to "negotiating" (label only; doesn't touch the deal).
+  const { data: conv } = await supabase
+    .from("conversations")
+    .select("is_enquiry, pipeline_stage, status")
+    .eq("id", parsed.data.conversation_id)
+    .maybeSingle();
+  if (
+    conv?.is_enquiry &&
+    conv.status !== "archived" &&
+    (conv.pipeline_stage === "new_quote" ||
+      conv.pipeline_stage === "quote_sent")
+  ) {
+    await createAdminClient()
+      .from("conversations")
+      .update({ pipeline_stage: "negotiating" })
+      .eq("id", parsed.data.conversation_id);
   }
 
   revalidatePath(`/portal/inbox/${parsed.data.conversation_id}`);

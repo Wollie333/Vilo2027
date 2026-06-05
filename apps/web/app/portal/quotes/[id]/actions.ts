@@ -64,11 +64,20 @@ export async function declineMyQuoteAction(
   if (!gate.ok) return gate;
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: q } = await admin
     .from("quotes")
     .update({ status: "declined", declined_at: new Date().toISOString() })
-    .eq("id", quoteId);
-  if (error) return { ok: false, error: "Could not record your decline." };
+    .eq("id", quoteId)
+    .select("conversation_id")
+    .single();
+  if (!q) return { ok: false, error: "Could not record your decline." };
+
+  if (q.conversation_id) {
+    await admin
+      .from("conversations")
+      .update({ pipeline_stage: "declined" })
+      .eq("id", q.conversation_id);
+  }
 
   revalidatePath("/portal/quotes");
   revalidatePath(`/portal/quotes/${quoteId}`);
