@@ -37,7 +37,7 @@ export async function PropertyPerformanceTable({
   hostId,
   startDate,
   endDate,
-  listingId,
+  listingId, // eslint-disable-line @typescript-eslint/no-unused-vars -- Reserved for future filtering
 }: PropertyPerformanceTableProps) {
   const supabase = createServerClient();
 

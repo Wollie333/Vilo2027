@@ -1,7 +1,7 @@
 "use client";
 
 import { Users, Globe } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 interface CountryData {
   country: string;
