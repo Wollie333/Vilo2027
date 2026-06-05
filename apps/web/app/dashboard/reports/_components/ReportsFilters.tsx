@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Calendar,
   GitCompare,
@@ -11,6 +11,7 @@ import {
   Clock,
   Download,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { exportPropertyPerformanceCSV } from "../_actions/exportPropertyPerformanceCSV";
 
 interface ReportsFiltersProps {
   startDate?: string;
@@ -46,6 +48,9 @@ export function ReportsFilters({
     selectedChannel: channel || "all",
   });
 
+  const [isExporting, startExportTransition] = useTransition();
+  const [exportError, setExportError] = useState<string | null>(null);
+
   const handleReset = () => {
     setFilters({
       dateRange: "1 Jan – 30 Jun 2026",
@@ -56,10 +61,46 @@ export function ReportsFilters({
     });
   };
 
+  const handleExportCSV = () => {
+    startExportTransition(async () => {
+      setExportError(null);
+
+      try {
+        const result = await exportPropertyPerformanceCSV({
+          startDate: startDate || "2026-01-01",
+          endDate: endDate || "2026-06-30",
+          listingId: filters.selectedListing !== "all" ? filters.selectedListing : undefined,
+        });
+
+        if (!result.success || !result.data) {
+          setExportError(result.error || "Export failed");
+          return;
+        }
+
+        // Create Blob and trigger download
+        const blob = new Blob([result.data.csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = result.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Export error:", err);
+        setExportError("An unexpected error occurred");
+      }
+    });
+  };
+
   const handleExport = (format: "csv" | "pdf" | "xlsx") => {
-    // TODO: Phase 8/9 - implement export functionality
-    // Will trigger server action to generate report in specified format
-    void format;
+    if (format === "csv") {
+      handleExportCSV();
+    } else {
+      // TODO: Phase 9 - implement PDF and XLSX export
+      setExportError(`${format.toUpperCase()} export coming in Phase 9`);
+    }
   };
 
   const handleSchedule = () => {
@@ -205,28 +246,50 @@ export function ReportsFilters({
         </button>
 
         {/* Export Button with Format Options */}
-        <div className="inline-flex items-stretch overflow-hidden rounded border border-brand-line bg-white text-sm">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="inline-flex items-center gap-1.5 px-3 py-2 text-brand-ink transition-colors hover:bg-brand-light">
-              <Download className="h-4 w-4 text-brand-primary" />
-              Export
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport("csv")}>
-                Export as CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("pdf")}>
-                Export as PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport("xlsx")}>
-                Export as XLSX
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <span className="w-px bg-brand-line"></span>
-          <span className="inline-flex items-center px-2 font-mono text-[10px] text-brand-mute">
-            CSV · PDF · XLSX
-          </span>
+        <div className="relative">
+          <div className="inline-flex items-stretch overflow-hidden rounded border border-brand-line bg-white text-sm">
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={isExporting}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-brand-ink transition-colors hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+                ) : (
+                  <Download className="h-4 w-4 text-brand-primary" />
+                )}
+                {isExporting ? "Exporting..." : "Export"}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport("csv")} disabled={isExporting}>
+                  Export as CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("pdf")} disabled={isExporting}>
+                  Export as PDF (Phase 9)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
+                  Export as XLSX (Phase 9)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <span className="w-px bg-brand-line"></span>
+            <span className="inline-flex items-center px-2 font-mono text-[10px] text-brand-mute">
+              CSV · PDF · XLSX
+            </span>
+          </div>
+
+          {/* Error Message */}
+          {exportError && (
+            <div className="absolute top-full right-0 z-50 mt-2 w-64 rounded border border-red-200 bg-red-50 p-3 text-xs text-red-700 shadow-lg">
+              <button
+                onClick={() => setExportError(null)}
+                className="float-right ml-2 text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+              {exportError}
+            </div>
+          )}
         </div>
       </div>
     </div>
