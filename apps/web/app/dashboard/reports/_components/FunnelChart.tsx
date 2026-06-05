@@ -28,6 +28,14 @@ interface FunnelStep {
 }
 
 export function FunnelChart({ data }: FunnelChartProps) {
+  // Defensive: ensure conversion_rates exists
+  const conversionRates = data.conversion_rates ?? {
+    views_to_inquiries: 0,
+    inquiries_to_quotes: 0,
+    quotes_to_bookings: 0,
+    views_to_bookings: 0,
+  };
+
   const steps: FunnelStep[] = [
     {
       label: "Views",
@@ -72,7 +80,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
           {formatNumber(data.views)} views → {formatNumber(data.bookings)} bookings
         </h3>
         <div className="mt-0.5 text-xs text-brand-mute">
-          Overall conversion: {(data.conversion_rates.views_to_bookings ?? 0).toFixed(1)}% ·
+          Overall conversion: {(conversionRates.views_to_bookings ?? 0).toFixed(1)}% ·
           Track guest journey from discovery to booking
         </div>
       </div>
@@ -85,9 +93,9 @@ export function FunnelChart({ data }: FunnelChartProps) {
 
           // Get conversion rate to next step
           let conversionRate: number | null = null;
-          if (index === 0) conversionRate = data.conversion_rates.views_to_inquiries;
-          if (index === 1) conversionRate = data.conversion_rates.inquiries_to_quotes;
-          if (index === 2) conversionRate = data.conversion_rates.quotes_to_bookings;
+          if (index === 0) conversionRate = conversionRates.views_to_inquiries;
+          if (index === 1) conversionRate = conversionRates.inquiries_to_quotes;
+          if (index === 2) conversionRate = conversionRates.quotes_to_bookings;
 
           return (
             <div key={step.label}>
@@ -145,19 +153,19 @@ export function FunnelChart({ data }: FunnelChartProps) {
         <div className="text-center">
           <div className="text-xs text-brand-mute">View-to-Inquiry</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-            {(data.conversion_rates.views_to_inquiries ?? 0).toFixed(1)}%
+            {(conversionRates.views_to_inquiries ?? 0).toFixed(1)}%
           </div>
         </div>
         <div className="text-center">
           <div className="text-xs text-brand-mute">Quote-to-Book</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-            {(data.conversion_rates.quotes_to_bookings ?? 0).toFixed(1)}%
+            {(conversionRates.quotes_to_bookings ?? 0).toFixed(1)}%
           </div>
         </div>
         <div className="text-center">
           <div className="text-xs text-brand-mute">Overall</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-primary">
-            {(data.conversion_rates.views_to_bookings ?? 0).toFixed(1)}%
+            {(conversionRates.views_to_bookings ?? 0).toFixed(1)}%
           </div>
         </div>
       </div>
