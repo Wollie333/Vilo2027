@@ -19,10 +19,16 @@ export function AvatarMenu({
   initials,
   email,
   avatarUrl = null,
+  profileHref = "/dashboard/settings",
+  settingsHref = "/dashboard/settings",
 }: {
   initials: string;
   email: string;
   avatarUrl?: string | null;
+  /** Where "Profile" links — defaults to the host dashboard settings. */
+  profileHref?: string;
+  /** Where "Settings" links — defaults to the host dashboard settings. */
+  settingsHref?: string;
 }) {
   const [pending, start] = useTransition();
 
@@ -59,12 +65,12 @@ export function AvatarMenu({
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/dashboard/settings" className="cursor-pointer">
+          <Link href={profileHref} className="cursor-pointer">
             <User className="mr-2 h-4 w-4" /> Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/dashboard/settings" className="cursor-pointer">
+          <Link href={settingsHref} className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" /> Settings
           </Link>
         </DropdownMenuItem>

@@ -36,7 +36,10 @@ sidebar collapses 248px ↔ 76px icon-rail via the header hamburger (persisted).
   (compose "New booking", switcher + setup nudge in `top`, plan card in `bottom`); layout uses
   `ClassicShellFrame` + `AppHeader` (EntitySearch centered, NotificationBell + New booking + AvatarMenu).
   Removed orphan `Topbar.tsx`. Build + lint green.
-- [ ] **Phase 3 — Guest portal** — rebuild `portal/_components/PortalSidebar.tsx`; wire header.
+- [x] **Phase 3 — Guest portal** ✅ — `PortalSidebar` rebuilt on GmailNav (compose "Browse stays",
+  switcher + identity in `top`, Discover section, footer Settings/Help/Sign out); layout uses
+  ClassicShellFrame + AppHeader (search → browse, notifications bell, AvatarMenu). `AvatarMenu`
+  generalized with `profileHref`/`settingsHref`. Build green.
 - [ ] **Phase 4 — Super admin** — rebuild `admin/_components/AdminSidebar.tsx`; wire header.
 - [ ] **Phase 5 — New Booking wizard** — rebuild `dashboard/bookings/new/ManualBookingForm.tsx`
   as Property → Dates & guests → Guest → Price & extras → Payment, wired to `new/actions.ts`.

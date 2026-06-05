@@ -1,6 +1,10 @@
+import { Bell, Search } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { AppShellFrame } from "@/app/_components/AppShellFrame";
+import { AppHeader } from "@/app/_components/AppHeader";
+import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
+import { AvatarMenu } from "@/app/dashboard/_components/AvatarMenu";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PortalSidebar } from "./_components/PortalSidebar";
@@ -72,10 +76,47 @@ export default async function PortalLayout({
     ? `${listingCount} ${listingCount === 1 ? "listing" : "listings"}`
     : null;
 
-  // Full-bleed decision is reactive to the route inside AppShellFrame (a server
-  // layout can't recompute it on client navigation — that caused stuck layouts).
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  // Full-bleed decision is reactive to the route inside ClassicShellFrame (a
+  // server layout can't recompute it on client navigation).
   return (
-    <AppShellFrame
+    <ClassicShellFrame
+      header={
+        <AppHeader
+          brandHref="/portal"
+          search={
+            <Link
+              href="/portal/browse"
+              className="flex h-11 w-full items-center gap-2.5 rounded-pill border border-transparent bg-[#F4F8F5] px-4 text-sm text-brand-mute transition-colors hover:border-brand-line hover:bg-white"
+            >
+              <Search className="h-4 w-4" />
+              <span>Search stays…</span>
+            </Link>
+          }
+          actions={
+            <>
+              <Link
+                href="/portal/notifications"
+                aria-label="Notifications"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadNotifications && unreadNotifications > 0 ? (
+                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-status-cancelled ring-2 ring-white" />
+                ) : null}
+              </Link>
+              <AvatarMenu
+                initials={initials}
+                email={user.email ?? ""}
+                avatarUrl={profile?.avatar_url ?? null}
+                profileHref="/portal/settings"
+                settingsHref="/portal/settings"
+              />
+            </>
+          }
+        />
+      }
       sidebar={
         <PortalSidebar
           displayName={displayName}
@@ -90,6 +131,6 @@ export default async function PortalLayout({
       }
     >
       {children}
-    </AppShellFrame>
+    </ClassicShellFrame>
   );
 }
