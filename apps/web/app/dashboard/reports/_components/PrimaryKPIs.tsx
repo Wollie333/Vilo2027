@@ -58,7 +58,7 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
                 <TrendingDown className="h-3 w-3" />
               )}
               {data.revenue.delta >= 0 ? "+" : ""}
-              {data.revenue.delta.toFixed(1)}%
+              {(data.revenue.delta ?? 0).toFixed(1)}%
             </span>
           )}
         </div>
@@ -106,7 +106,7 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
                 <TrendingDown className="h-3 w-3" />
               )}
               {data.revpar.delta >= 0 ? "+" : ""}
-              {data.revpar.delta.toFixed(1)}%
+              {(data.revpar.delta ?? 0).toFixed(1)}%
             </span>
           )}
         </div>
@@ -142,7 +142,7 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
                 <TrendingDown className="h-3 w-3" />
               )}
               {data.adr.delta >= 0 ? "+" : ""}
-              {data.adr.delta.toFixed(1)}%
+              {(data.adr.delta ?? 0).toFixed(1)}%
             </span>
           )}
         </div>
@@ -177,12 +177,12 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
               <TrendingDown className="h-3 w-3" />
             )}
             {data.occupancy.delta >= 0 ? "+" : ""}
-            {data.occupancy.delta.toFixed(1)}pt
+            {(data.occupancy.delta ?? 0).toFixed(1)}pt
           </span>
         </div>
         <div className="mt-3 flex items-baseline gap-2">
           <span className="font-display text-3xl font-bold text-brand-ink">
-            {data.occupancy.current.toFixed(1)}%
+            {(data.occupancy.current ?? 0).toFixed(1)}%
           </span>
         </div>
         <div className="mt-1 text-xs text-brand-mute">
@@ -199,7 +199,8 @@ export function PrimaryKPIs({ data }: PrimaryKPIsProps) {
 }
 
 // Helper: Format number with spaces (South African style)
-function formatNumber(value: number): string {
+function formatNumber(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(2) + "M";
   }

@@ -148,7 +148,8 @@ export function ChannelMixPieChart({ data }: ChannelMixPieChartProps) {
 }
 
 // Helper: Format currency
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(2) + "M";
   }

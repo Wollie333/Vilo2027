@@ -186,7 +186,8 @@ export function RevenueTrendChart({
 }
 
 // Helper: Format currency for display
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(2) + "M";
   }

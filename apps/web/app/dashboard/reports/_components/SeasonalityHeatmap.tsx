@@ -164,7 +164,8 @@ export function SeasonalityHeatmap({ data, year }: SeasonalityHeatmapProps) {
 }
 
 // Helper: Format currency with spaces for thousands
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   return value
     .toLocaleString("en-ZA", {
       minimumFractionDigits: 0,
@@ -174,7 +175,8 @@ function formatCurrency(value: number): string {
 }
 
 // Helper: Format compact with K/M suffix
-function formatCompact(value: number): string {
+function formatCompact(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(1) + "M";
   }

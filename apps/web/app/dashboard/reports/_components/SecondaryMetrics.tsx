@@ -56,11 +56,11 @@ export function SecondaryMetrics({ data }: SecondaryMetricsProps) {
           Avg rating
         </div>
         <div className="mt-2 font-display text-xl font-bold text-brand-ink">
-          {data.avg_rating.toFixed(2)}
+          {(data.avg_rating ?? 0).toFixed(2)}
         </div>
         <div className="mt-0.5 text-[11px] text-brand-mute">
           {formatNumber(data.review_count)} reviews
-          {data.rating_delta !== null && (
+          {data.rating_delta !== null && data.rating_delta !== undefined && (
             <>
               {" "}
               ·{" "}
@@ -84,7 +84,7 @@ export function SecondaryMetrics({ data }: SecondaryMetricsProps) {
           Cancellation rate
         </div>
         <div className="mt-2 font-display text-xl font-bold text-brand-ink">
-          {data.cancellation_rate.toFixed(1)}%
+          {(data.cancellation_rate ?? 0).toFixed(1)}%
         </div>
         <div className="mt-0.5 text-[11px] text-brand-mute">
           {data.cancellation_count} of {data.total_bookings}
@@ -98,7 +98,7 @@ export function SecondaryMetrics({ data }: SecondaryMetricsProps) {
           Refund rate
         </div>
         <div className="mt-2 font-display text-xl font-bold text-brand-ink">
-          {data.refund_rate.toFixed(1)}%
+          {(data.refund_rate ?? 0).toFixed(1)}%
         </div>
         <div className="mt-0.5 text-[11px] text-brand-mute">
           R {formatNumber(data.refund_amount)} · {data.refund_count} refunds
@@ -115,7 +115,7 @@ export function SecondaryMetrics({ data }: SecondaryMetricsProps) {
           {formatNumber(data.quotes_sent)}
         </div>
         <div className="mt-0.5 text-[11px] text-brand-mute">
-          {data.acceptance_rate.toFixed(1)}% accepted
+          {(data.acceptance_rate ?? 0).toFixed(1)}% accepted
         </div>
       </div>
 
@@ -137,7 +137,8 @@ export function SecondaryMetrics({ data }: SecondaryMetricsProps) {
 }
 
 // Helper: Format number with K/M suffix
-function formatNumber(value: number): string {
+function formatNumber(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(2) + "M";
   }
@@ -148,7 +149,8 @@ function formatNumber(value: number): string {
 }
 
 // Helper: Format session duration (seconds to "2m 14s" format)
-function formatSessionDuration(seconds: number): string {
+function formatSessionDuration(seconds: number | undefined | null): string {
+  if (seconds === undefined || seconds === null || isNaN(seconds)) return "0s";
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
 

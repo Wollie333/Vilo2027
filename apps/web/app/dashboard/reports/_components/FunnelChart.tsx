@@ -72,7 +72,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
           {formatNumber(data.views)} views → {formatNumber(data.bookings)} bookings
         </h3>
         <div className="mt-0.5 text-xs text-brand-mute">
-          Overall conversion: {data.conversion_rates.views_to_bookings.toFixed(1)}% ·
+          Overall conversion: {(data.conversion_rates.views_to_bookings ?? 0).toFixed(1)}% ·
           Track guest journey from discovery to booking
         </div>
       </div>
@@ -127,7 +127,7 @@ export function FunnelChart({ data }: FunnelChartProps) {
               </div>
 
               {/* Conversion Rate to Next Step */}
-              {conversionRate !== null && (
+              {conversionRate !== null && conversionRate !== undefined && (
                 <div className="ml-11 mt-2 flex items-center gap-1.5 text-xs text-brand-mute">
                   <TrendingDown className="h-3 w-3" />
                   <span>
@@ -145,19 +145,19 @@ export function FunnelChart({ data }: FunnelChartProps) {
         <div className="text-center">
           <div className="text-xs text-brand-mute">View-to-Inquiry</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-            {data.conversion_rates.views_to_inquiries.toFixed(1)}%
+            {(data.conversion_rates.views_to_inquiries ?? 0).toFixed(1)}%
           </div>
         </div>
         <div className="text-center">
           <div className="text-xs text-brand-mute">Quote-to-Book</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-ink">
-            {data.conversion_rates.quotes_to_bookings.toFixed(1)}%
+            {(data.conversion_rates.quotes_to_bookings ?? 0).toFixed(1)}%
           </div>
         </div>
         <div className="text-center">
           <div className="text-xs text-brand-mute">Overall</div>
           <div className="mt-1 font-display text-lg font-bold text-brand-primary">
-            {data.conversion_rates.views_to_bookings.toFixed(1)}%
+            {(data.conversion_rates.views_to_bookings ?? 0).toFixed(1)}%
           </div>
         </div>
       </div>
@@ -166,7 +166,8 @@ export function FunnelChart({ data }: FunnelChartProps) {
 }
 
 // Helper: Format number with K/M suffix
-function formatNumber(value: number): string {
+function formatNumber(value: number | undefined | null): string {
+  if (value === undefined || value === null || isNaN(value)) return "0";
   if (value >= 1000000) {
     return (value / 1000000).toFixed(1) + "M";
   }
