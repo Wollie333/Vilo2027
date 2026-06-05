@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-05 — Analytics: fix variable mismatches (dashboard was all zeros) — branch `main`
+
+### Changed
+- Rewrote all 12 analytics RPCs to reference columns/values that actually exist. Root cause: the functions filtered on `status 'checked_out'`/`'cancelled'`/`'refunded'`, `listings.status='published'`, `listings.title`, `listings.cover_image_url`, `payments.payment_type`, `reviews.deleted_at`, `conversations.deleted_at`, and `quotes.status in ('accepted','booked')` — none of which exist. Every metric returned 0/empty.
+- Revenue/active set now matches `dashboard/page.tsx`: `('confirmed','checked_in','completed')`. Cancellations use `cancelled_by_host`/`cancelled_by_guest`. Refunds sourced from `refund_requests` (status `completed`). Listing names from `listings.name`; status derived from `is_published`/`is_suspended`; cover image from `listing_photos`. Date window standardised to `check_in BETWEEN start AND end`.
+- Fixed latent bug: `EXTRACT(DAY FROM (date - date))` (date subtraction is already an integer) in property/popular-rooms night counts.
+
+### Migrations
+- `20260605200526_analytics_fix_variable_mismatches.sql` — CREATE OR REPLACE all 12 analytics functions with correct variables + the JSON shapes the components consume.
+- `20260605201359_analytics_create_missing_tables.sql` — creates `listing_view_events` (+ corrected admin RLS on `scheduled_reports`/`report_runs`). These tables' original migrations (135911/135912) were stamped applied via `migration repair` but never ran, and used a non-existent `user_profiles.user_role` column.
+
+### Notes
+- All 12 RPCs now return correct, real data and shapes (verified against the demo host: revenue R27,150, avg rating 4.8, named properties with cover images, etc.).
+- `views` / `listing_views` / `time_to_book` still read 0 because `listing_view_events` is empty — run `node --env-file=.env.local scripts/seed-analytics.mjs` (now that the table exists) to populate funnel/journey demo data.
+- Migration drift: the deployed functions had diverged from the on-disk migration files (parallel-reset wipes). This re-aligns both.
+
+### Commit
+- `fix(analytics): align RPC variables with real schema; create missing tables`
+
 ## 2026-06-05 — Inbox redesign: "Classic" Gmail-style layout — branch `main`
 
 ### Built
