@@ -6035,6 +6035,64 @@ export type Database = {
         Returns: undefined
       }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      fetch_channel_mix: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_conversion_funnel: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_primary_kpis: {
+        Args: {
+          p_channel?: string
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_revenue_trend: {
+        Args: {
+          p_channel?: string
+          p_end_date: string
+          p_grouping?: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_secondary_metrics: {
+        Args: {
+          p_channel?: string
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_time_to_book: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
       gen_url_token: { Args: never; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
