@@ -3,7 +3,7 @@
 import { ArrowRight, Clock, Eye, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import { toast } from "sonner";
 
 import { formatMoney } from "@/lib/format";
@@ -54,10 +54,15 @@ export function PipelineControl({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  // Optimistic stage so the chip highlights instantly; it reconciles to the
+  // server value once the action + refresh settle. (router.refresh refetches
+  // the whole inbox RSC, which is the slow part — this masks that latency.)
+  const [optimisticStage, setOptimisticStage] = useOptimistic(stage);
 
   function move(next: PipelineStage) {
-    if (pending || next === stage) return;
+    if (next === optimisticStage) return;
     start(async () => {
+      setOptimisticStage(next);
       const r = await setPipelineStageAction(conversationId, next);
       if (r.ok) {
         toast.success(`Moved to ${STAGES.find((s) => s.key === next)?.label}`);
@@ -99,14 +104,13 @@ export function PipelineControl({
       {/* Stage chips */}
       <div className="flex flex-wrap gap-1.5">
         {STAGES.map((s) => {
-          const active = s.key === stage;
+          const active = s.key === optimisticStage;
           return (
             <button
               key={s.key}
               type="button"
               onClick={() => move(s.key)}
-              disabled={pending}
-              className={`rounded-pill px-2.5 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-60 ${
+              className={`rounded-pill px-2.5 py-1 text-[11.5px] font-semibold transition-colors ${
                 active
                   ? "bg-brand-primary text-white"
                   : "border border-brand-line bg-white text-brand-mute hover:bg-brand-light"
