@@ -7,7 +7,6 @@ import {
   CalendarCheck,
   Calendar as CalendarIcon,
   CalendarRange,
-  ChevronDown,
   CreditCard,
   Crown,
   FileMinus,
@@ -21,38 +20,22 @@ import {
   Receipt,
   RotateCcw,
   RotateCw,
-  Search,
   Settings,
   ShieldCheck,
   Star,
   Ticket,
   Users,
-  Wallet,
-  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
 
 import {
-  SidebarToggleButton,
-  useSidebarToggle,
-} from "@/app/_components/SidebarToggle";
-import { BrandName } from "@/components/brand/BrandProvider";
+  GmailNav,
+  type GmailNavItem,
+  type GmailNavSection,
+} from "@/app/_components/GmailNav";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
-import { useQuickNav } from "./QuickNavPalette";
-import { VLogo } from "./VLogo";
-
-type Item = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  badge?: { text: string; tone: "count" | "pro" | "alert" };
-  match?: "exact" | "prefix";
-};
-
-const MAIN: Item[] = [
+const MAIN: GmailNavItem[] = [
   {
     href: "/dashboard",
     label: "Overview",
@@ -83,21 +66,7 @@ const MAIN: Item[] = [
   },
 ];
 
-const CONNECT: Item[] = [
-  {
-    href: "/dashboard/channels",
-    label: "Channels",
-    icon: Cable,
-    badge: { text: "PRO", tone: "pro" },
-  },
-  { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
-  { href: "/dashboard/staff", label: "Staff", icon: Users },
-];
-
-// Collapsible "Finances" sub-menu — order is intentional.
-const FINANCES: Item[] = [
-  // Payments is the finance overview hub — every payment links out to its
-  // booking, invoice, quote and credit notes — so it leads the group.
+const FINANCES: GmailNavItem[] = [
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   {
     href: "/dashboard/quotes",
@@ -120,7 +89,18 @@ const FINANCES: Item[] = [
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
-const TOOLS: Item[] = [
+const CONNECT: GmailNavItem[] = [
+  {
+    href: "/dashboard/channels",
+    label: "Channels",
+    icon: Cable,
+    badge: { text: "PRO", tone: "pro" },
+  },
+  { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
+  { href: "/dashboard/staff", label: "Staff", icon: Users },
+];
+
+const TOOLS: GmailNavItem[] = [
   {
     href: "/dashboard/addons",
     label: "Add-ons",
@@ -137,7 +117,7 @@ const TOOLS: Item[] = [
   },
 ];
 
-const FOOTER_LINKS: Item[] = [
+const FOOTER: GmailNavItem[] = [
   {
     href: "/dashboard/settings",
     label: "Settings",
@@ -152,94 +132,6 @@ const FOOTER_LINKS: Item[] = [
   },
 ];
 
-function useIsActive(href: string, match: "exact" | "prefix" = "exact") {
-  const pathname = usePathname();
-  if (match === "exact") return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function NavLink({ item }: { item: Item }) {
-  const isActive = useIsActive(item.href, item.match);
-  const Icon = item.icon;
-  return (
-    <Link
-      href={item.href}
-      className={`flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors ${
-        isActive
-          ? "bg-brand-accent font-semibold text-brand-secondary"
-          : "text-brand-mute hover:bg-brand-accent/60 hover:text-brand-ink"
-      }`}
-      aria-current={isActive ? "page" : undefined}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{item.label}</span>
-      {item.badge ? (
-        <span
-          className={`num rounded-pill px-1.5 py-0.5 text-[10px] font-bold ${
-            item.badge.tone === "alert"
-              ? "bg-status-cancelled text-white"
-              : item.badge.tone === "pro"
-                ? "bg-brand-accent text-brand-secondary"
-                : "bg-brand-secondary text-white"
-          }`}
-        >
-          {item.badge.text}
-        </span>
-      ) : null}
-    </Link>
-  );
-}
-
-/** A collapsible parent row whose children indent underneath it. */
-function NavGroup({
-  label,
-  icon: Icon,
-  items,
-}: {
-  label: string;
-  icon: LucideIcon;
-  items: Item[];
-}) {
-  const pathname = usePathname();
-  const childActive = items.some(
-    (i) =>
-      pathname === i.href ||
-      (i.match === "prefix" && pathname.startsWith(`${i.href}/`)) ||
-      pathname.startsWith(`${i.href}/`),
-  );
-  const [open, setOpen] = useState(childActive);
-
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className={`flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors ${
-          childActive
-            ? "text-brand-ink"
-            : "text-brand-mute hover:bg-brand-accent/60 hover:text-brand-ink"
-        }`}
-      >
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="flex-1 truncate text-left">{label}</span>
-        <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-            open ? "rotate-0" : "-rotate-90"
-          }`}
-        />
-      </button>
-      {open ? (
-        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-brand-line pl-3">
-          {items.map((item) => (
-            <NavLink key={item.href} item={item} />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 export function Sidebar({
   host,
   plan,
@@ -249,10 +141,8 @@ export function Sidebar({
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
-  /** True if the user has a hosts row OR user_profiles.role='host'. */
   canHost?: boolean;
   canAdmin?: boolean;
-  /** Count of conversations with unread guest messages — badges the Inbox nav. */
   inboxUnread?: number;
 }) {
   const planLabel =
@@ -262,104 +152,61 @@ export function Sidebar({
         ? plan[0].toUpperCase() + plan.slice(1)
         : "—";
 
-  const { collapsed } = useSidebarToggle();
+  const mainItems = MAIN.map((item) =>
+    item.href === "/dashboard/inbox" && inboxUnread > 0
+      ? {
+          ...item,
+          badge: { text: String(inboxUnread), tone: "alert" as const },
+        }
+      : item,
+  );
+
+  const sections: GmailNavSection[] = [
+    { items: mainItems },
+    { label: "Finances", items: FINANCES },
+    { label: "Connect", items: CONNECT },
+    { label: "Tools", items: TOOLS },
+  ];
 
   return (
-    <aside
-      className={`sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white ${
-        collapsed ? "" : "lg:flex"
-      }`}
-    >
-      {/* Brand */}
-      <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
-        <VLogo size={36} gradientId="sb-logo" />
-        <div className="leading-none">
-          <div className="font-display text-[15px] font-bold tracking-tight text-brand-ink">
-            <BrandName />
-          </div>
-          <div className="mt-1 text-[10px] text-brand-mute">Host dashboard</div>
-        </div>
-        <SidebarToggleButton />
-      </div>
-
-      <WorkspaceSwitcher
-        current="host"
-        canHost={canHost ?? Boolean(host)}
-        canAdmin={canAdmin}
-        hostDisplayName={host?.display_name ?? null}
-        hostBlurb={
-          host
-            ? `${host.listingCount} ${
-                host.listingCount === 1 ? "listing" : "listings"
-              } · ${planLabel}`
-            : null
-        }
-      />
-
-      {/* Empty-state nudge for users who haven't completed host signup yet.
-          Real hosts get their identity from the WorkspaceSwitcher above —
-          no need for a duplicate "host profile card" here. */}
-      {!host ? (
-        <div className="mb-2 px-3">
-          <Link
-            href="/signup/host"
-            className="flex w-full items-center gap-2.5 rounded-md border border-dashed border-brand-primary/40 bg-brand-accent/40 px-3 py-2 text-left transition-colors hover:bg-brand-accent"
-          >
-            <div className="flex h-7 w-7 items-center justify-center rounded bg-white text-brand-primary">
-              <Settings className="h-3.5 w-3.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] font-semibold text-brand-ink">
-                Set up host profile
-              </div>
-              <div className="text-[10px] text-brand-mute">5 quick steps</div>
-            </div>
-          </Link>
-        </div>
-      ) : null}
-
-      {/* Quick search */}
-      <QuickSearchButton />
-
-      {/* Nav */}
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-1">
-        {MAIN.map((item) => (
-          <NavLink
-            key={item.href}
-            item={
-              item.href === "/dashboard/inbox" && inboxUnread > 0
-                ? {
-                    ...item,
-                    badge: { text: String(inboxUnread), tone: "alert" },
-                  }
-                : item
+    <GmailNav
+      ariaLabel="Host dashboard navigation"
+      compose={{ label: "New booking", href: "/dashboard/bookings/new" }}
+      top={
+        <div className="space-y-2">
+          <WorkspaceSwitcher
+            current="host"
+            canHost={canHost ?? Boolean(host)}
+            canAdmin={canAdmin}
+            hostDisplayName={host?.display_name ?? null}
+            hostBlurb={
+              host
+                ? `${host.listingCount} ${host.listingCount === 1 ? "listing" : "listings"} · ${planLabel}`
+                : null
             }
           />
-        ))}
-
-        <NavGroup label="Finances" icon={Wallet} items={FINANCES} />
-
-        <SectionLabel>Connect</SectionLabel>
-        {CONNECT.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <SectionLabel>Tools</SectionLabel>
-        {TOOLS.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </nav>
-
-      {/* Footer links */}
-      <div className="space-y-0.5 border-t border-brand-line px-3 pb-3 pt-3">
-        {FOOTER_LINKS.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </div>
-
-      {/* Plan card */}
-      {host ? (
-        <div className="px-3 pb-4">
+          {!host ? (
+            <Link
+              href="/signup/host"
+              className="flex w-full items-center gap-2.5 rounded-md border border-dashed border-brand-primary/40 bg-brand-accent/40 px-3 py-2 text-left transition-colors hover:bg-brand-accent"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded bg-white text-brand-primary">
+                <Settings className="h-3.5 w-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12px] font-semibold text-brand-ink">
+                  Set up host profile
+                </div>
+                <div className="text-[10px] text-brand-mute">5 quick steps</div>
+              </div>
+            </Link>
+          ) : null}
+        </div>
+      }
+      sections={sections}
+      footer={FOOTER}
+      bottom={
+        host ? (
           <div className="relative overflow-hidden rounded-card bg-brand-dark p-3 text-white">
             <div
               aria-hidden
@@ -390,35 +237,8 @@ export function Sidebar({
               </Link>
             </div>
           </div>
-        </div>
-      ) : null}
-    </aside>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-      {children}
-    </div>
-  );
-}
-
-function QuickSearchButton() {
-  const { setOpen } = useQuickNav();
-  return (
-    <div className="mb-3 px-3">
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-2 rounded border border-brand-line px-3 py-1.5 text-xs text-brand-mute transition-colors hover:bg-brand-light/60"
-      >
-        <Search className="h-3.5 w-3.5" />
-        <span className="flex-1 text-left">Quick search…</span>
-        <kbd className="rounded border border-brand-line bg-brand-light px-1.5 py-0.5 font-mono text-[10px] text-brand-mute">
-          ⌘K
-        </kbd>
-      </button>
-    </div>
+        ) : null
+      }
+    />
   );
 }

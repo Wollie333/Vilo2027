@@ -1,13 +1,18 @@
+import { Plus } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { AppShellFrame } from "@/app/_components/AppShellFrame";
+import { AppHeader } from "@/app/_components/AppHeader";
+import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AvatarMenu } from "./_components/AvatarMenu";
+import { EntitySearch } from "./_components/EntitySearch";
 import { MobileBottomNav } from "./_components/MobileBottomNav";
+import { NotificationBell } from "./_components/notifications/NotificationBell";
 import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { Sidebar } from "./_components/Sidebar";
-import { Topbar } from "./_components/Topbar";
 
 // Full-bleed routes (Inbox) come from the shared rule in
 // @/lib/layout/fullBleed so host and guest dashboards stay in lockstep.
@@ -95,11 +100,41 @@ export default async function DashboardLayout({
     .slice(0, 2)
     .toUpperCase();
 
-  // The full-bleed decision is reactive to the route (see AppShellFrame) — it
-  // must re-evaluate on client navigation, which a server layout does not.
+  // The full-bleed decision is reactive to the route (see ClassicShellFrame) —
+  // it must re-evaluate on client navigation, which a server layout does not.
+  const avatarUrl =
+    ((profileRow?.avatar_url as string | null) ||
+      ((host as { avatar_url?: string | null } | null)?.avatar_url as
+        | string
+        | null)) ??
+    null;
+
   return (
     <QuickNavProvider>
-      <AppShellFrame
+      <ClassicShellFrame
+        header={
+          <AppHeader
+            brandHref="/dashboard"
+            search={<EntitySearch />}
+            actions={
+              <>
+                <NotificationBell />
+                <Link
+                  href="/dashboard/bookings/new"
+                  className="hidden items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
+                >
+                  <Plus className="h-4 w-4" />
+                  New booking
+                </Link>
+                <AvatarMenu
+                  initials={initials}
+                  email={user.email ?? ""}
+                  avatarUrl={avatarUrl}
+                />
+              </>
+            }
+          />
+        }
         sidebar={
           <Sidebar
             host={host ? { ...host, listingCount } : null}
@@ -109,24 +144,11 @@ export default async function DashboardLayout({
             inboxUnread={inboxUnread}
           />
         }
-        topbar={
-          <Topbar
-            email={user.email ?? ""}
-            initials={initials}
-            avatarUrl={
-              ((profileRow?.avatar_url as string | null) ||
-                ((host as { avatar_url?: string | null } | null)?.avatar_url as
-                  | string
-                  | null)) ??
-              null
-            }
-          />
-        }
         banner={<BroadcastBanner />}
         bottomNav={<MobileBottomNav />}
       >
         {children}
-      </AppShellFrame>
+      </ClassicShellFrame>
     </QuickNavProvider>
   );
 }

@@ -110,8 +110,8 @@ export function EntitySearch() {
   return (
     <Popover open={open && q.trim().length >= 2} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
-        <div className="relative hidden items-center md:flex">
-          <Search className="pointer-events-none absolute left-3 h-4 w-4 text-brand-mute" />
+        <div className="relative hidden w-full items-center md:flex">
+          <Search className="pointer-events-none absolute left-4 h-4 w-4 text-brand-mute" />
           <input
             ref={inputRef}
             type="search"
@@ -121,8 +121,8 @@ export function EntitySearch() {
               setOpen(true);
             }}
             onFocus={() => q.trim().length >= 2 && setOpen(true)}
-            placeholder="Search bookings, guests, listings…"
-            className="h-9 w-48 rounded border border-brand-line bg-white pl-9 pr-8 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 xl:w-72"
+            placeholder="Search guests, bookings, listings…"
+            className="h-11 w-full rounded-pill border border-transparent bg-[#F4F8F5] pl-11 pr-8 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
             aria-label="Entity search"
           />
           {q ? (

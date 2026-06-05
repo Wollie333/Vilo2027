@@ -1,6 +1,6 @@
 "use client";
 
-import { PanelLeft, PanelLeftClose } from "lucide-react";
+import { Menu, PanelLeft, PanelLeftClose } from "lucide-react";
 import {
   createContext,
   useContext,
@@ -83,6 +83,26 @@ export function SidebarToggleButton() {
       className="ml-auto hidden h-8 w-8 items-center justify-center rounded-md text-brand-mute transition-colors hover:bg-brand-accent/60 hover:text-brand-ink lg:flex"
     >
       <PanelLeftClose className="h-4 w-4" />
+    </button>
+  );
+}
+
+/**
+ * Hamburger that lives at the far left of the unified app header. Toggles the
+ * sidebar between its full width and the 76px icon rail. Desktop-only — mobile
+ * uses the bottom nav, so there is no rail to collapse there.
+ */
+export function HeaderMenuToggle() {
+  const { toggle } = useSidebarToggle();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label="Toggle sidebar"
+      title="Menu"
+      className="hidden h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink lg:inline-flex"
+    >
+      <Menu className="h-5 w-5" />
     </button>
   );
 }
