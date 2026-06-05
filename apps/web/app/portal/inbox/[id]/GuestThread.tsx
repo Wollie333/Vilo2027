@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, SendHorizontal } from "lucide-react";
+import { KeyRound, Loader2, SendHorizontal } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ export type GuestMessage = {
   senderId: string | null;
   body: string | null;
   isSystem: boolean;
+  systemEvent: string | null;
   quoteId: string | null;
   createdAt: string;
 };
@@ -163,6 +164,29 @@ export function GuestThread({
                   quote={quotesById[m.quoteId]}
                   viewer="guest"
                 />
+              );
+            }
+            if (m.isSystem && m.systemEvent === "access_details") {
+              return (
+                <div
+                  key={m.id}
+                  className="rounded-card border border-brand-primary/30 bg-brand-accent/30 p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
+                      <KeyRound className="h-4 w-4" />
+                    </span>
+                    <span className="font-display text-[14px] font-bold text-brand-ink">
+                      Access details
+                    </span>
+                  </div>
+                  <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-brand-ink">
+                    {m.body}
+                  </pre>
+                  <div className="mt-1 font-mono text-[10.5px] text-brand-mute">
+                    {fmtTime(m.createdAt)}
+                  </div>
+                </div>
               );
             }
             if (m.isSystem) {

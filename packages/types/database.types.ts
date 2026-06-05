@@ -612,6 +612,7 @@ export type Database = {
       }
       bookings: {
         Row: {
+          access_card_sent_at: string | null
           actioned_by: string | null
           additional_guests: Json
           balance_due: number
@@ -667,6 +668,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_card_sent_at?: string | null
           actioned_by?: string | null
           additional_guests?: Json
           balance_due?: number
@@ -722,6 +724,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_card_sent_at?: string | null
           actioned_by?: string | null
           additional_guests?: Json
           balance_due?: number
@@ -5816,6 +5819,10 @@ export type Database = {
       }
     }
     Functions: {
+      _access_line: {
+        Args: { p_label: string; p_val: string }
+        Returns: string
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -6266,6 +6273,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      send_due_access_cards: { Args: never; Returns: number }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       snapshot_booking_policies: {
