@@ -3,6 +3,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { calculateNextRun } from "@/lib/analytics/calculateNextRun";
 
 interface CreateScheduledReportInput {
   name: string;
@@ -99,7 +100,7 @@ export async function createScheduledReportAction(input: CreateScheduledReportIn
   }
 
   // Calculate next_run_at based on cron expression
-  const nextRunAt = calculateNextRun(input.schedule_cron);
+  const nextRunAt = calculateNextRun(input.schedule_cron).toISOString();
 
   // Insert scheduled report
   const { data, error } = await supabase
@@ -177,7 +178,7 @@ export async function updateScheduledReportAction(input: UpdateScheduledReportIn
 
   if (input.schedule_cron !== undefined) {
     updateData.schedule_cron = input.schedule_cron;
-    updateData.next_run_at = calculateNextRun(input.schedule_cron);
+    updateData.next_run_at = calculateNextRun(input.schedule_cron).toISOString();
   }
 
   if (input.schedule_label !== undefined) {
@@ -314,16 +315,3 @@ export async function toggleScheduledReportActiveAction(reportId: string, isActi
   };
 }
 
-/**
- * Calculate next run time based on cron expression
- * This is a simplified implementation - in production you'd use a proper cron parser
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function calculateNextRun(_cronExpression: string): string {
-  // For now, just add 1 day to current time
-  // TODO: Implement proper cron parsing (or use a library like node-cron)
-  const now = new Date();
-  now.setDate(now.getDate() + 1);
-  now.setHours(8, 0, 0, 0); // Default to 8 AM
-  return now.toISOString();
-}

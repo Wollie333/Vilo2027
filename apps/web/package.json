@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:flows": "node --env-file=.env.local scripts/test-booking-flows.mjs",
     "seed:demo": "node --env-file=.env.local scripts/seed-demo.mjs",
+    "seed:analytics": "node --env-file=.env.local scripts/seed-analytics.mjs",
+    "seed:all": "npm run seed:demo && npm run seed:analytics",
     "prepare": "husky"
   },
   "engines": {
