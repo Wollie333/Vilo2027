@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { exportPropertyPerformanceCSV } from "../_actions/exportPropertyPerformanceCSV";
+import { generateFullReportAction } from "../_actions/generateFullReportAction";
 
 interface ReportsFiltersProps {
   startDate?: string;
@@ -94,12 +95,51 @@ export function ReportsFilters({
     });
   };
 
+  const handleExportPDFOrXLSX = (format: "pdf" | "xlsx") => {
+    startExportTransition(async () => {
+      setExportError(null);
+
+      try {
+        const result = await generateFullReportAction(format, {
+          startDate: startDate || "2026-01-01",
+          endDate: endDate || "2026-06-30",
+          listingId: filters.selectedListing !== "all" ? filters.selectedListing : undefined,
+        });
+
+        if (!result.success || !result.data) {
+          setExportError(result.error || "Export failed");
+          return;
+        }
+
+        // Convert base64 back to buffer and create Blob
+        const binaryString = atob(result.data.buffer);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: result.data.contentType });
+        const url = URL.createObjectURL(blob);
+
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = result.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error("Export error:", err);
+        setExportError("An unexpected error occurred");
+      }
+    });
+  };
+
   const handleExport = (format: "csv" | "pdf" | "xlsx") => {
     if (format === "csv") {
       handleExportCSV();
     } else {
-      // TODO: Phase 9 - implement PDF and XLSX export
-      setExportError(`${format.toUpperCase()} export coming in Phase 9`);
+      handleExportPDFOrXLSX(format);
     }
   };
 
@@ -265,10 +305,10 @@ export function ReportsFilters({
                   Export as CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport("pdf")} disabled={isExporting}>
-                  Export as PDF (Phase 9)
+                  Export as PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleExport("xlsx")} disabled={isExporting}>
-                  Export as XLSX (Phase 9)
+                  Export as XLSX
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
