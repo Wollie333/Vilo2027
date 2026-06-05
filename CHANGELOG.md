@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-05 — Reviews: invite sending + host replies on display — branch `main`
+
+### Built
+- **Review invite now sends**: mapped the checkout transition to `review_request_guest`, so the existing per-transition dispatch fires the invite (email + push + in-app, deduped per booking) the moment a stay completes. Closes the loop — guests were never being nudged. Simplest path: no queue/cron/migration.
+- **Host replies now display**: `host_response` was captured (host dashboard) but never shown. Now rendered as a "Response from the host" block under each public listing review and on the guest's own reviews in `/portal/reviews`.
+
+### Notes
+- Listing review display (`ReviewsSection`/`loadListingReviews`) and the guest portal reviews page already existed and are wired — they populate as reviews flow in.
+- **Deferred (migration jam):** a guest "how reviews work" help article needs a migration, and `supabase db push` is currently blocked by a parallel agent's migrations that live on the remote DB but aren't in git. My schema objects are all intact (verified); no new migration this pass. Will add once histories reconcile.
+
+### Commit
+- `feat(reviews): send the review invite on checkout` → `feat(reviews): show host replies…` — `55605f0`…`78f9ceb`
+
+---
+
 ## 2026-06-05 — Inbox: quote→booking→payment deal card, read receipts, pipeline — branch `main`
 
 ### Built
