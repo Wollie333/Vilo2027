@@ -1,8 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
-
 import { AvatarMenu } from "./AvatarMenu";
 import { EntitySearch } from "./EntitySearch";
 import { NotificationBell } from "./notifications/NotificationBell";
@@ -20,18 +18,10 @@ function todayLabel(): string {
 export function Topbar({
   email,
   initials,
-  isPlatformStaff,
-  canHost = false,
-  hostDisplayName = null,
-  hostBlurb = null,
   avatarUrl = null,
 }: {
   email: string;
   initials: string;
-  isPlatformStaff?: boolean;
-  canHost?: boolean;
-  hostDisplayName?: string | null;
-  hostBlurb?: string | null;
   avatarUrl?: string | null;
 }) {
   return (
@@ -61,17 +51,6 @@ export function Topbar({
         <div className="ml-auto flex items-center gap-2">
           {/* Entity search */}
           <EntitySearch />
-
-          {/* Workspace switcher — visible on all viewports. Replaces the
-              old "Switch to admin" link and works for host↔guest too. */}
-          <WorkspaceSwitcher
-            current="host"
-            canHost={canHost}
-            canAdmin={isPlatformStaff === true}
-            hostDisplayName={hostDisplayName}
-            hostBlurb={hostBlurb}
-            compact
-          />
 
           {/* Notifications */}
           <NotificationBell />

@@ -18,6 +18,10 @@ import { usePathname } from "next/navigation";
 
 import { signOutAction } from "@/app/(auth)/actions";
 
+import {
+  SidebarToggleButton,
+  useSidebarToggle,
+} from "@/app/_components/SidebarToggle";
 import { VLogo } from "@/app/dashboard/_components/VLogo";
 import { BrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
@@ -102,8 +106,13 @@ export function PortalSidebar({
   unreadNotifications?: number;
 }) {
   const initials = displayName.slice(0, 2).toUpperCase();
+  const { collapsed } = useSidebarToggle();
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
+    <aside
+      className={`sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white ${
+        collapsed ? "" : "lg:flex"
+      }`}
+    >
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
         <VLogo size={36} gradientId="portal-logo" />
         <div className="leading-none">
@@ -112,6 +121,7 @@ export function PortalSidebar({
           </div>
           <div className="mt-1 text-[10px] text-brand-mute">Guest portal</div>
         </div>
+        <SidebarToggleButton />
       </div>
 
       <WorkspaceSwitcher
