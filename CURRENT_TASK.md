@@ -346,5 +346,31 @@ packages/types/
 
 ---
 
-**Last Updated:** 2026-06-05 21:30 UTC
-**Status:** Phase 1-9 complete (82%), Phase 10-11 remaining
+## ✅ Phase 10 (Partial) - Scheduled Reports UI & CRUD
+
+**Completed:**
+- ✅ Created `ScheduledReportsTable.tsx` - displays scheduled reports with status, actions, and formatting
+- ✅ Created `ScheduledReportFormSheet.tsx` - form with React Hook Form + Zod validation
+  - Support for daily/weekly/monthly/custom schedules
+  - Email recipients management (add/remove)
+  - Report type selection (6 types: portfolio_summary, revenue_detail, etc.)
+  - Format selection (PDF, CSV, XLSX)
+- ✅ Created Server Actions for scheduled reports:
+  - `fetchScheduledReportsAction` - fetch all reports for host
+  - `createScheduledReportAction` - create new scheduled report
+  - `updateScheduledReportAction` - edit existing report
+  - `deleteScheduledReportAction` - delete report
+  - `toggleScheduledReportActiveAction` - pause/activate report
+- ✅ Created `ScheduledReportsSection.tsx` - wrapper component with state management
+- ✅ Integrated scheduled reports section into `/dashboard/reports/page.tsx`
+- ✅ Build passes with zero errors
+
+**Remaining for full Phase 10 completion:**
+- Create Edge Function: `report-scheduler` (generates reports on schedule)
+- Set up Supabase Storage bucket: `reports` (stores generated files)
+- Configure pg_cron job (hourly execution check)
+
+---
+
+**Last Updated:** 2026-06-05 23:45 UTC
+**Status:** Phase 1-9 complete (82%), Phase 10 partial (90%), Phase 11 remaining
