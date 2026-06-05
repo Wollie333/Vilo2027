@@ -392,5 +392,38 @@ packages/types/
 
 ---
 
-**Last Updated:** 2026-06-06 00:15 UTC
-**Status:** Phase 1-10 complete (91%), Phase 11 remaining (Testing & Polish)
+## ✅ Phase 11 (Partial) - Testing & Polish
+
+**Conversion Funnel Tracking:**
+- ✅ Edge Function: `track-listing-view`
+  - Tracks listing page views (session_id, duration, device, country)
+  - Inserts into `listing_view_events` table
+  - Device detection from User-Agent
+  - Country from CF-IPCountry header
+- ✅ Client utility: `lib/analytics/trackListingView.ts`
+  - Duration tracking (mount to unmount)
+  - Session ID persistence (sessionStorage)
+  - Graceful error handling
+  - Ready to integrate into listing pages
+
+**Demo Data Seeding:**
+- ✅ Script: `seed-analytics.mjs`
+  - 100 listing view events (past 90 days)
+  - 50 additional bookings (past 6 months)
+  - Realistic channel/device/country distributions
+  - Varied booking statuses (confirmed/cancelled/pending)
+  - Run after base seed-demo.mjs
+
+**Remaining for Phase 11:**
+- Manual end-to-end testing of all analytics features
+- Test exports (CSV, PDF, XLSX)
+- Test scheduled reports UI flow
+- Mobile responsiveness verification (all breakpoints)
+- Performance testing (<2s initial load)
+- Integration testing with Edge Functions
+- Verify feature gates work correctly
+
+---
+
+**Last Updated:** 2026-06-06 01:00 UTC
+**Status:** Phase 1-10 complete (91%), Phase 11 infrastructure (50%)
