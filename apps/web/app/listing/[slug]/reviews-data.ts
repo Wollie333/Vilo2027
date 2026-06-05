@@ -17,6 +17,7 @@ export type PublicReview = {
   tripType: TripType | null;
   helpfulCount: number;
   nights: number | null;
+  hostResponse: string | null;
 };
 
 export type ReviewCategory = { key: string; label: string; avg: number };
@@ -69,6 +70,7 @@ type RawReview = {
   rating_accuracy: number | null;
   rating_location: number | null;
   rating_value: number | null;
+  host_response: string | null;
   guest: { full_name: string | null } | null;
   booking: { nights: number | null } | null;
 };
@@ -94,7 +96,7 @@ export async function loadListingReviews(
     supabase
       .from("reviews")
       .select(
-        `id, rating, body, created_at, trip_type, helpful_count,
+        `id, rating, body, created_at, trip_type, helpful_count, host_response,
          rating_cleanliness, rating_communication, rating_checkin,
          rating_accuracy, rating_location, rating_value,
          guest:user_profiles!reviews_guest_id_fkey ( full_name ),
@@ -121,6 +123,7 @@ export async function loadListingReviews(
     tripType: r.trip_type,
     helpfulCount: r.helpful_count ?? 0,
     nights: r.booking?.nights ?? null,
+    hostResponse: r.host_response ?? null,
   }));
 
   const count = reviews.length;

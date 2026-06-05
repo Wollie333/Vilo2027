@@ -318,6 +318,16 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
                     {r.body}
                   </p>
                 ) : null}
+                {r.hostResponse ? (
+                  <div className="mt-3 rounded-[10px] border border-brand-line bg-brand-light/50 p-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                      Response from the host
+                    </div>
+                    <p className="mt-1 whitespace-pre-line text-[13.5px] leading-[1.6] text-brand-ink/85">
+                      {r.hostResponse}
+                    </p>
+                  </div>
+                ) : null}
                 <div className="mt-5 flex items-center justify-between border-t border-brand-line pt-4 text-[11px] text-brand-mute">
                   <span className="inline-flex items-center gap-1.5">
                     <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />{" "}
