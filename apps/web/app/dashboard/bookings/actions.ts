@@ -24,6 +24,9 @@ const NOTIFY_KIND = {
   confirm: "booking_confirmed_guest",
   decline: "booking_declined_guest",
   cancel: "booking_cancelled_guest",
+  // Checkout completes the stay → invite the guest to review (deduped per
+  // booking by dispatchEvent). Simplest path: no queue/cron needed.
+  checkOut: "review_request_guest",
 } as const;
 
 type Transition = {
