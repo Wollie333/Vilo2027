@@ -34,6 +34,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import {
+  SidebarToggleButton,
+  useSidebarToggle,
+} from "@/app/_components/SidebarToggle";
 import { BrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
@@ -258,8 +262,14 @@ export function Sidebar({
         ? plan[0].toUpperCase() + plan.slice(1)
         : "—";
 
+  const { collapsed } = useSidebarToggle();
+
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
+    <aside
+      className={`sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white ${
+        collapsed ? "" : "lg:flex"
+      }`}
+    >
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
         <VLogo size={36} gradientId="sb-logo" />
@@ -269,6 +279,7 @@ export function Sidebar({
           </div>
           <div className="mt-1 text-[10px] text-brand-mute">Host dashboard</div>
         </div>
+        <SidebarToggleButton />
       </div>
 
       <WorkspaceSwitcher

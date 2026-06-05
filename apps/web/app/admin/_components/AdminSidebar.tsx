@@ -28,6 +28,10 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import {
+  SidebarToggleButton,
+  useSidebarToggle,
+} from "@/app/_components/SidebarToggle";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
@@ -233,8 +237,14 @@ export function AdminSidebar({
   hostDisplayName?: string | null;
   hostBlurb?: string | null;
 }) {
+  const { collapsed } = useSidebarToggle();
+
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white lg:flex">
+    <aside
+      className={`sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white ${
+        collapsed ? "" : "lg:flex"
+      }`}
+    >
       <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
         <VLogo size={36} gradientId="admin-logo" />
         <div className="leading-none">
@@ -245,6 +255,7 @@ export function AdminSidebar({
             Admin
           </div>
         </div>
+        <SidebarToggleButton />
       </div>
 
       <WorkspaceSwitcher

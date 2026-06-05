@@ -8,6 +8,11 @@ import {
 } from "@/lib/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import {
+  SidebarRevealButton,
+  SidebarToggleProvider,
+} from "@/app/_components/SidebarToggle";
+
 import { AdminSidebar } from "./_components/AdminSidebar";
 import { AdminTopbar } from "./_components/AdminTopbar";
 import { ImpersonationBanner } from "./_components/ImpersonationBanner";
@@ -65,27 +70,30 @@ export default async function AdminLayout({
     : null;
 
   return (
-    <div className="flex min-h-screen bg-brand-light text-brand-ink">
-      <AdminSidebar
-        role={admin.roleId}
-        email={admin.email}
-        canHost={canHost}
-        hostDisplayName={hostRow?.display_name ?? null}
-        hostBlurb={hostBlurb}
-      />
-      <main className="min-w-0 flex-1">
-        <AdminTopbar email={admin.email} role={admin.roleId} />
-        {impersonation ? (
-          <ImpersonationBanner
-            targetUserId={impersonation.targetUserId}
-            startedAt={impersonation.startedAt}
-          />
-        ) : null}
-        <BroadcastBanner />
-        <div className="px-5 py-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[1280px]">{children}</div>
-        </div>
-      </main>
-    </div>
+    <SidebarToggleProvider>
+      <div className="flex min-h-screen bg-brand-light text-brand-ink">
+        <SidebarRevealButton />
+        <AdminSidebar
+          role={admin.roleId}
+          email={admin.email}
+          canHost={canHost}
+          hostDisplayName={hostRow?.display_name ?? null}
+          hostBlurb={hostBlurb}
+        />
+        <main className="min-w-0 flex-1">
+          <AdminTopbar email={admin.email} role={admin.roleId} />
+          {impersonation ? (
+            <ImpersonationBanner
+              targetUserId={impersonation.targetUserId}
+              startedAt={impersonation.startedAt}
+            />
+          ) : null}
+          <BroadcastBanner />
+          <div className="px-5 py-6 lg:px-8 lg:py-8">
+            <div className="mx-auto max-w-[1280px]">{children}</div>
+          </div>
+        </main>
+      </div>
+    </SidebarToggleProvider>
   );
 }
