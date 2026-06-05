@@ -24,8 +24,10 @@
 - `status` - confirmed | pending | cancelled | checked_in | checked_out
 - `channel` - direct | airbnb | booking | expedia | other
 - `nights` - Number of nights
-- `check_in_date` - Check-in date
-- `check_out_date` - Check-out date
+- `check_in` - Check-in date (date type) ← **Use this** (NOT check_in_date)
+- `check_out` - Check-out date (date type) ← **Use this** (NOT check_out_date)
+- `checked_in_at` - Actual check-in timestamp
+- `checked_out_at` - Actual check-out timestamp
 - `deleted_at` - Soft delete timestamp
 
 **Relationships:**
