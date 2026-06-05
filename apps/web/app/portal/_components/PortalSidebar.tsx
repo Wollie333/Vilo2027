@@ -105,7 +105,6 @@ export function PortalSidebar({
   return (
     <GmailNav
       ariaLabel="Guest portal navigation"
-      compose={{ label: "Browse stays", href: "/portal/browse", icon: Compass }}
       top={
         <div className="space-y-2">
           <WorkspaceSwitcher

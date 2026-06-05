@@ -1,5 +1,3 @@
-import { Plus } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";
@@ -119,13 +117,6 @@ export default async function DashboardLayout({
             actions={
               <>
                 <NotificationBell />
-                <Link
-                  href="/dashboard/bookings/new"
-                  className="hidden items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary sm:inline-flex"
-                >
-                  <Plus className="h-4 w-4" />
-                  New booking
-                </Link>
                 <AvatarMenu
                   initials={initials}
                   email={user.email ?? ""}

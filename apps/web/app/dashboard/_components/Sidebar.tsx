@@ -8,7 +8,6 @@ import {
   Calendar as CalendarIcon,
   CalendarRange,
   CreditCard,
-  Crown,
   FileMinus,
   FileText,
   Home as HomeIcon,
@@ -171,7 +170,6 @@ export function Sidebar({
   return (
     <GmailNav
       ariaLabel="Host dashboard navigation"
-      compose={{ label: "New booking", href: "/dashboard/bookings/new" }}
       top={
         <div className="space-y-2">
           <WorkspaceSwitcher
@@ -205,40 +203,6 @@ export function Sidebar({
       }
       sections={sections}
       footer={FOOTER}
-      bottom={
-        host ? (
-          <div className="relative overflow-hidden rounded-card bg-brand-dark p-3 text-white">
-            <div
-              aria-hidden
-              className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-brand-primary/30 blur-2xl"
-            />
-            <div className="relative">
-              <div className="flex items-center gap-1.5">
-                <Crown className="h-3.5 w-3.5 text-brand-primary" />
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
-                  {planLabel} plan
-                </span>
-              </div>
-              <div className="mt-2 text-sm font-semibold">
-                {plan === "free"
-                  ? "Start direct bookings"
-                  : "All your listings"}
-              </div>
-              <div className="num mt-0.5 text-[11px] text-brand-accent/70">
-                {plan === "free"
-                  ? "Upgrade for instant booking + iCal sync"
-                  : "Manage your subscription"}
-              </div>
-              <Link
-                href="/dashboard/settings/subscription"
-                className="mt-3 inline-flex items-center gap-1 text-[11px] font-medium text-white underline decoration-brand-primary decoration-2 underline-offset-4"
-              >
-                {plan === "free" ? "See plans" : "Manage subscription"} →
-              </Link>
-            </div>
-          </div>
-        ) : null
-      }
     />
   );
 }

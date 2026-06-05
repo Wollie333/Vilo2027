@@ -216,7 +216,7 @@ export function GmailNav({
 
       {!collapsed && top ? <div className="px-3 pb-2">{top}</div> : null}
 
-      <nav className="flex-1 overflow-y-auto pb-3">
+      <nav className="thin-scroll flex-1 overflow-y-auto pb-3">
         {sections.map((section, si) => (
           <div key={si}>
             {section.label && !collapsed ? (

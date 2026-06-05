@@ -1,6 +1,10 @@
+import { ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
+import { AppHeader } from "@/app/_components/AppHeader";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
+import { AvatarMenu } from "@/app/dashboard/_components/AvatarMenu";
 import {
   AdminAccessDenied,
   readImpersonationCookie,
@@ -8,14 +12,25 @@ import {
 } from "@/lib/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-import {
-  SidebarRevealButton,
-  SidebarToggleProvider,
-} from "@/app/_components/SidebarToggle";
-
 import { AdminSidebar } from "./_components/AdminSidebar";
-import { AdminTopbar } from "./_components/AdminTopbar";
 import { ImpersonationBanner } from "./_components/ImpersonationBanner";
+
+function prettyRole(role: string): string {
+  switch (role) {
+    case "super_admin":
+      return "Super Admin";
+    case "support_agent":
+      return "Support Agent";
+    case "finance":
+      return "Finance";
+    case "content_mod":
+      return "Content Moderator";
+    case "ops":
+      return "Operations";
+    default:
+      return role;
+  }
+}
 
 export const dynamic = "force-dynamic";
 
@@ -70,9 +85,28 @@ export default async function AdminLayout({
     : null;
 
   return (
-    <SidebarToggleProvider>
-      <div className="flex min-h-screen bg-brand-light text-brand-ink">
-        <SidebarRevealButton />
+    <ClassicShellFrame
+      header={
+        <AppHeader
+          brandHref="/admin"
+          actions={
+            <>
+              <span className="hidden items-center gap-1.5 rounded-pill border border-brand-line bg-brand-light px-3 py-1.5 text-[12px] font-medium text-brand-mute sm:inline-flex">
+                <ShieldCheck className="h-3.5 w-3.5 text-brand-primary" />
+                {prettyRole(admin.roleId)} session
+              </span>
+              <AvatarMenu
+                initials={admin.email.slice(0, 2).toUpperCase()}
+                email={admin.email}
+                avatarUrl={null}
+                profileHref="/dashboard/settings"
+                settingsHref="/admin/platform/settings"
+              />
+            </>
+          }
+        />
+      }
+      sidebar={
         <AdminSidebar
           role={admin.roleId}
           email={admin.email}
@@ -80,8 +114,9 @@ export default async function AdminLayout({
           hostDisplayName={hostRow?.display_name ?? null}
           hostBlurb={hostBlurb}
         />
-        <main className="min-w-0 flex-1">
-          <AdminTopbar email={admin.email} role={admin.roleId} />
+      }
+      banner={
+        <>
           {impersonation ? (
             <ImpersonationBanner
               targetUserId={impersonation.targetUserId}
@@ -89,11 +124,10 @@ export default async function AdminLayout({
             />
           ) : null}
           <BroadcastBanner />
-          <div className="px-5 py-6 lg:px-8 lg:py-8">
-            <div className="mx-auto max-w-[1280px]">{children}</div>
-          </div>
-        </main>
-      </div>
-    </SidebarToggleProvider>
+        </>
+      }
+    >
+      {children}
+    </ClassicShellFrame>
   );
 }

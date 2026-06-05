@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, PanelLeft, PanelLeftClose } from "lucide-react";
+import { Menu } from "lucide-react";
 import {
   createContext,
   useContext,
@@ -68,26 +68,6 @@ export function useSidebarToggle(): SidebarToggleContextValue {
 }
 
 /**
- * Collapse control that lives in the sidebar header, beside the brand/main
- * menu. Desktop-only — on mobile the sidebar is already hidden behind the
- * bottom nav.
- */
-export function SidebarToggleButton() {
-  const { toggle } = useSidebarToggle();
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label="Hide sidebar"
-      title="Hide sidebar"
-      className="ml-auto hidden h-8 w-8 items-center justify-center rounded-md text-brand-mute transition-colors hover:bg-brand-accent/60 hover:text-brand-ink lg:flex"
-    >
-      <PanelLeftClose className="h-4 w-4" />
-    </button>
-  );
-}
-
-/**
  * Hamburger that lives at the far left of the unified app header. Toggles the
  * sidebar between its full width and the 76px icon rail. Desktop-only — mobile
  * uses the bottom nav, so there is no rail to collapse there.
@@ -103,26 +83,6 @@ export function HeaderMenuToggle() {
       className="hidden h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink lg:inline-flex"
     >
       <Menu className="h-5 w-5" />
-    </button>
-  );
-}
-
-/**
- * Floating control rendered by the app shell. It only appears once the sidebar
- * is hidden, giving the user a way to bring it back.
- */
-export function SidebarRevealButton() {
-  const { collapsed, toggle } = useSidebarToggle();
-  if (!collapsed) return null;
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label="Show sidebar"
-      title="Show sidebar"
-      className="fixed left-3 top-3 z-40 hidden h-9 w-9 items-center justify-center rounded-md border border-brand-line bg-white text-brand-mute shadow-sm transition-colors hover:bg-brand-accent/60 hover:text-brand-ink lg:flex"
-    >
-      <PanelLeft className="h-4 w-4" />
     </button>
   );
 }

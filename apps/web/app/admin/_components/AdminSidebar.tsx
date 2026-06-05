@@ -23,28 +23,16 @@ import {
   Users,
   UsersRound,
   Video,
-  type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import {
-  SidebarToggleButton,
-  useSidebarToggle,
-} from "@/app/_components/SidebarToggle";
-import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
+  GmailNav,
+  type GmailNavItem,
+  type GmailNavSection,
+} from "@/app/_components/GmailNav";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
-import { VLogo } from "../../dashboard/_components/VLogo";
-
-type Item = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  match?: "exact" | "prefix";
-};
-
-const OPERATIONS: Item[] = [
+const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
   { href: "/admin/hosts", label: "Hosts", icon: UsersRound, match: "prefix" },
@@ -62,7 +50,7 @@ const OPERATIONS: Item[] = [
   },
 ];
 
-const FINANCE: Item[] = [
+const FINANCE: GmailNavItem[] = [
   {
     href: "/admin/payments",
     label: "Payments",
@@ -77,7 +65,7 @@ const FINANCE: Item[] = [
   },
 ];
 
-const MODERATION: Item[] = [
+const MODERATION: GmailNavItem[] = [
   { href: "/admin/reviews", label: "Reviews", icon: Star, match: "prefix" },
   {
     href: "/admin/data-requests",
@@ -87,7 +75,7 @@ const MODERATION: Item[] = [
   },
 ];
 
-const SUPPORT: Item[] = [
+const SUPPORT: GmailNavItem[] = [
   {
     href: "/admin/help",
     label: "Help overview",
@@ -100,12 +88,7 @@ const SUPPORT: Item[] = [
     icon: BookOpen,
     match: "prefix",
   },
-  {
-    href: "/admin/help/videos",
-    label: "Videos",
-    icon: Video,
-    match: "prefix",
-  },
+  { href: "/admin/help/videos", label: "Videos", icon: Video, match: "prefix" },
   {
     href: "/admin/help/faqs",
     label: "FAQs",
@@ -138,7 +121,7 @@ const SUPPORT: Item[] = [
   },
 ];
 
-const PLATFORM: Item[] = [
+const PLATFORM: GmailNavItem[] = [
   { href: "/admin/platform/settings", label: "Settings", icon: FileText },
   { href: "/admin/platform/features", label: "Feature flags", icon: Flag },
   {
@@ -173,7 +156,7 @@ const PLATFORM: Item[] = [
   },
   {
     href: "/admin/platform/staff",
-    label: "Vilo staff",
+    label: "Platform staff",
     icon: KeyRound,
     match: "prefix",
   },
@@ -184,45 +167,6 @@ const PLATFORM: Item[] = [
     match: "prefix",
   },
 ];
-
-function isActive(
-  pathname: string,
-  href: string,
-  match: "exact" | "prefix" = "exact",
-) {
-  if (match === "exact") return pathname === href;
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function NavLink({ item }: { item: Item }) {
-  const pathname = usePathname();
-  const brandName = useBrandName();
-  const active = isActive(pathname, item.href, item.match);
-  const Icon = item.icon;
-  const label = item.label.replace("Vilo", brandName);
-  return (
-    <Link
-      href={item.href}
-      className={`flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium transition-colors ${
-        active
-          ? "bg-brand-accent font-semibold text-brand-secondary"
-          : "text-brand-mute hover:bg-brand-accent/60 hover:text-brand-ink"
-      }`}
-      aria-current={active ? "page" : undefined}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
-    </Link>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-3 pb-2 pt-5 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-      {children}
-    </div>
-  );
-}
 
 export function AdminSidebar({
   role,
@@ -237,89 +181,50 @@ export function AdminSidebar({
   hostDisplayName?: string | null;
   hostBlurb?: string | null;
 }) {
-  const { collapsed } = useSidebarToggle();
+  const sections: GmailNavSection[] = [
+    { items: OPERATIONS },
+    { label: "Finance", items: FINANCE },
+    { label: "Moderation", items: MODERATION },
+    { label: "Support", items: SUPPORT },
+    { label: "Platform", items: PLATFORM },
+  ];
+
+  const footer: GmailNavItem[] = [
+    { href: "/dashboard", label: "Back to host dashboard", icon: Activity },
+  ];
 
   return (
-    <aside
-      className={`sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-brand-line bg-white ${
-        collapsed ? "" : "lg:flex"
-      }`}
-    >
-      <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
-        <VLogo size={36} gradientId="admin-logo" />
-        <div className="leading-none">
-          <div className="font-display text-[15px] font-bold tracking-tight text-brand-ink">
-            <BrandName />
-          </div>
-          <div className="mt-1 text-[10px] uppercase tracking-wider text-brand-primary">
-            Admin
-          </div>
-        </div>
-        <SidebarToggleButton />
-      </div>
-
-      <WorkspaceSwitcher
-        current="admin"
-        canHost={canHost}
-        canAdmin={true}
-        hostDisplayName={hostDisplayName}
-        hostBlurb={hostBlurb}
-        adminLabel={prettyRole(role)}
-        adminBlurb={email}
-      />
-
-      <div className="mb-3 px-3">
-        <div className="flex w-full items-center gap-2.5 rounded-md border border-brand-line bg-brand-light px-3 py-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-secondary font-display text-[10px] font-bold text-white">
-            {email.slice(0, 2).toUpperCase()}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[12px] font-semibold text-brand-ink">
-              {email}
+    <GmailNav
+      ariaLabel="Super admin navigation"
+      top={
+        <div className="space-y-2">
+          <WorkspaceSwitcher
+            current="admin"
+            canHost={canHost}
+            canAdmin={true}
+            hostDisplayName={hostDisplayName}
+            hostBlurb={hostBlurb}
+            adminLabel={prettyRole(role)}
+            adminBlurb={email}
+          />
+          <div className="flex w-full items-center gap-2.5 rounded-md border border-brand-line bg-white px-3 py-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-secondary font-display text-[10px] font-bold text-white">
+              {email.slice(0, 2).toUpperCase()}
             </div>
-            <div className="text-[10px] text-brand-mute">
-              {prettyRole(role)}
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12px] font-semibold text-brand-ink">
+                {email}
+              </div>
+              <div className="text-[10px] text-brand-mute">
+                {prettyRole(role)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-1">
-        {OPERATIONS.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <SectionLabel>Finance</SectionLabel>
-        {FINANCE.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <SectionLabel>Moderation</SectionLabel>
-        {MODERATION.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <SectionLabel>Support</SectionLabel>
-        {SUPPORT.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-
-        <SectionLabel>Platform</SectionLabel>
-        {PLATFORM.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </nav>
-
-      <div className="space-y-0.5 border-t border-brand-line px-3 pb-3 pt-3">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-[13.5px] font-medium text-brand-mute transition-colors hover:bg-brand-accent/60 hover:text-brand-ink"
-        >
-          <Activity className="h-4 w-4 shrink-0" />
-          <span className="flex-1 truncate">Back to host dashboard</span>
-        </Link>
-      </div>
-    </aside>
+      }
+      sections={sections}
+      footer={footer}
+    />
   );
 }
 

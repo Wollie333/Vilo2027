@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Thin, subtle scrollbar for the sidebar and internal scroll areas. */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #cfe3d6 transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #d3e6da;
+  border-radius: 9999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: #bcd9c6;
+}
+.thin-scroll::-webkit-scrollbar-thumb:active {
+  background: #a9cdb6;
+}
+
 @layer base {
   :root {
     --brand-surface: #f0fdf4;
