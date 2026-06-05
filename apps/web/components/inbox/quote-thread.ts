@@ -1,4 +1,4 @@
-import type { ThreadQuote } from "./ThreadQuoteCard";
+import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
 
 // Shared plumbing for rendering quotes inside conversation threads, used by both
 // the host inbox and the guest portal so the column list, the row→view-model
@@ -6,7 +6,11 @@ import type { ThreadQuote } from "./ThreadQuoteCard";
 
 // Columns a thread needs to render a quote card. Keep in sync with ThreadQuote.
 export const QUOTE_CARD_COLUMNS =
-  "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token";
+  "id, quote_number, status, currency, total_amount, check_in, check_out, headcount, scope, deposit_type, deposit_amount, balance_amount, valid_until, accept_token, converted_booking_id";
+
+// Columns to render the booking half of the card (once a quote is accepted).
+export const BOOKING_CARD_COLUMNS =
+  "id, reference, status, payment_status, payment_method, total_amount, deposit_amount, balance_due, currency";
 
 type QuoteRow = {
   id: string;
@@ -23,6 +27,19 @@ type QuoteRow = {
   balance_amount: string | number | null;
   valid_until: string | null;
   accept_token: string | null;
+  converted_booking_id: string | null;
+};
+
+type BookingRow = {
+  id: string;
+  reference: string;
+  status: string;
+  payment_status: string | null;
+  payment_method: string | null;
+  total_amount: string | number | null;
+  deposit_amount: string | number | null;
+  balance_due: string | number | null;
+  currency: string;
 };
 
 const num = (v: string | number | null): number | null =>
@@ -47,8 +64,23 @@ export function mapQuoteRow(
     balanceAmount: num(q.balance_amount),
     validUntil: q.valid_until,
     acceptToken: q.accept_token,
+    convertedBookingId: q.converted_booking_id,
     viewCount: seen?.count ?? 0,
     lastViewedAt: seen?.last ?? null,
+  };
+}
+
+export function mapBookingRow(b: BookingRow): ThreadBooking {
+  return {
+    id: b.id,
+    reference: b.reference,
+    status: b.status,
+    paymentStatus: b.payment_status,
+    paymentMethod: b.payment_method,
+    total: Number(b.total_amount ?? 0),
+    depositAmount: num(b.deposit_amount),
+    balanceDue: num(b.balance_due),
+    currency: b.currency,
   };
 }
 

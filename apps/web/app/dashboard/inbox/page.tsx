@@ -2,9 +2,14 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 
-import type { ThreadQuote } from "@/components/inbox/ThreadQuoteCard";
+import type {
+  ThreadBooking,
+  ThreadQuote,
+} from "@/components/inbox/ThreadQuoteCard";
 import {
+  BOOKING_CARD_COLUMNS,
   QUOTE_CARD_COLUMNS,
+  mapBookingRow,
   mapQuoteRow,
 } from "@/components/inbox/quote-thread";
 import { createServerClient } from "@/lib/supabase/server";
@@ -279,6 +284,7 @@ export default async function InboxPage({
   let messages: MessageRow[] = [];
   let context: ThreadContext | null = null;
   const quotesById: Record<string, ThreadQuote> = {};
+  const bookingsById: Record<string, ThreadBooking> = {};
 
   if (selectedId) {
     const [{ data: msgs }, { data: ctxRaw }] = await Promise.all([
@@ -386,6 +392,20 @@ export default async function InboxPage({
       }
       for (const q of qRows ?? []) {
         quotesById[q.id] = mapQuoteRow(q, seenBy.get(q.id));
+      }
+
+      // Bookings the quotes became (once accepted) → later card states.
+      const bookingIds = Object.values(quotesById)
+        .map((q) => q.convertedBookingId)
+        .filter((id): id is string => !!id);
+      if (bookingIds.length > 0) {
+        const { data: bRows } = await supabase
+          .from("bookings")
+          .select(BOOKING_CARD_COLUMNS)
+          .in("id", bookingIds);
+        for (const b of bRows ?? []) {
+          bookingsById[b.id] = mapBookingRow(b);
+        }
       }
     }
 
@@ -535,6 +555,7 @@ export default async function InboxPage({
       messages={messages}
       context={context}
       quotesById={quotesById}
+      bookingsById={bookingsById}
       templates={templates}
       assignees={assignees}
     />

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import {
   ThreadQuoteCard,
+  type ThreadBooking,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
 import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
@@ -53,6 +54,7 @@ export function GuestThread({
   listingName,
   messages,
   quotesById,
+  bookingsById,
 }: {
   conversationId: string;
   selfId: string;
@@ -61,6 +63,7 @@ export function GuestThread({
   listingName: string | null;
   messages: GuestMessage[];
   quotesById: Record<string, ThreadQuote>;
+  bookingsById: Record<string, ThreadBooking>;
 }) {
   // One inline card per quote, at its first message — reflects the quote's
   // live state (request → sent quote with an accept button).
@@ -158,10 +161,16 @@ export function GuestThread({
               quoteCardMsgIds.has(m.id) &&
               quotesById[m.quoteId]
             ) {
+              const q = quotesById[m.quoteId];
               return (
                 <ThreadQuoteCard
                   key={m.id}
-                  quote={quotesById[m.quoteId]}
+                  quote={q}
+                  booking={
+                    q.convertedBookingId
+                      ? (bookingsById[q.convertedBookingId] ?? null)
+                      : null
+                  }
                   viewer="guest"
                 />
               );

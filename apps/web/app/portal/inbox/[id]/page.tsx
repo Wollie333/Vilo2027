@@ -3,9 +3,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import type { ThreadQuote } from "@/components/inbox/ThreadQuoteCard";
+import type {
+  ThreadBooking,
+  ThreadQuote,
+} from "@/components/inbox/ThreadQuoteCard";
 import {
+  BOOKING_CARD_COLUMNS,
   QUOTE_CARD_COLUMNS,
+  mapBookingRow,
   mapQuoteRow,
 } from "@/components/inbox/quote-thread";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -99,6 +104,22 @@ export default async function GuestThreadPage({
     }
   }
 
+  // Bookings the quotes became (once accepted) — drives the later card states.
+  const bookingsById: Record<string, ThreadBooking> = {};
+  const bookingIds = Object.values(quotesById)
+    .map((q) => q.convertedBookingId)
+    .filter((id): id is string => !!id);
+  if (bookingIds.length > 0) {
+    const admin = createAdminClient();
+    const { data: bRows } = await admin
+      .from("bookings")
+      .select(BOOKING_CARD_COLUMNS)
+      .in("id", bookingIds);
+    for (const b of bRows ?? []) {
+      bookingsById[b.id] = mapBookingRow(b);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-[760px]">
       <Link
@@ -117,6 +138,7 @@ export default async function GuestThreadPage({
           listingName={listing?.name ?? null}
           messages={messages}
           quotesById={quotesById}
+          bookingsById={bookingsById}
         />
       </div>
     </div>

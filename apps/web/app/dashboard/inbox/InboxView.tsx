@@ -40,6 +40,7 @@ import { toast } from "sonner";
 
 import {
   ThreadQuoteCard,
+  type ThreadBooking,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
 import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
@@ -271,6 +272,7 @@ export function InboxView({
   messages,
   context,
   quotesById,
+  bookingsById,
   templates,
   assignees,
 }: {
@@ -286,6 +288,7 @@ export function InboxView({
   messages: MessageRow[];
   context: ThreadContext | null;
   quotesById: Record<string, ThreadQuote>;
+  bookingsById: Record<string, ThreadBooking>;
   templates: TemplateRow[];
   assignees: Assignee[];
 }) {
@@ -808,6 +811,14 @@ export function InboxView({
                           <ThreadQuoteCard
                             key={m.id}
                             quote={quotesById[m.quoteId]}
+                            booking={
+                              quotesById[m.quoteId].convertedBookingId
+                                ? (bookingsById[
+                                    quotesById[m.quoteId]
+                                      .convertedBookingId as string
+                                  ] ?? null)
+                                : null
+                            }
                             viewer="host"
                           />
                         ) : (

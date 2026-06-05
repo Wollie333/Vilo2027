@@ -33,8 +33,23 @@ export type ThreadQuote = {
   balanceAmount: number | null;
   validUntil: string | null;
   acceptToken: string | null;
+  convertedBookingId: string | null;
   viewCount?: number;
   lastViewedAt?: string | null;
+};
+
+// The booking a quote becomes once accepted — drives the later card states
+// (pay now → paid → booking info).
+export type ThreadBooking = {
+  id: string;
+  reference: string;
+  status: string; // pending | pending_eft | confirmed | checked_in | completed | cancelled_*
+  paymentStatus: string | null;
+  paymentMethod: string | null;
+  total: number;
+  depositAmount: number | null;
+  balanceDue: number | null;
+  currency: string;
 };
 
 function fmtDate(iso: string | null): string {
@@ -100,17 +115,169 @@ function statusMeta(status: string): StatusMeta {
   }
 }
 
+// Booking-state meta once the quote has been accepted (a booking exists).
+function bookingStateMeta(
+  b: ThreadBooking,
+  viewer: "host" | "guest",
+): { kind: "payable" | "active" | "cancelled"; meta: StatusMeta } {
+  const paid = b.paymentStatus === "completed";
+  const cancelled =
+    b.status.startsWith("cancelled") ||
+    b.status === "declined" ||
+    b.status === "expired" ||
+    b.status === "no_show";
+  if (cancelled) {
+    return {
+      kind: "cancelled",
+      meta: {
+        label: "Cancelled",
+        cls: "bg-[#FEE2E2] text-[#991B1B]",
+        icon: XCircle,
+      },
+    };
+  }
+  if (!paid && (b.status === "pending" || b.status === "pending_eft")) {
+    return {
+      kind: "payable",
+      meta: {
+        label: viewer === "guest" ? "Pay to confirm" : "Awaiting payment",
+        cls: "bg-[#FEF3C7] text-[#92400E]",
+        icon: Clock,
+      },
+    };
+  }
+  const label =
+    b.status === "checked_in"
+      ? "Checked in"
+      : b.status === "completed"
+        ? "Completed"
+        : "Confirmed";
+  return {
+    kind: "active",
+    meta: {
+      label,
+      cls: "bg-status-confirmed/15 text-status-confirmed",
+      icon: CheckCircle2,
+    },
+  };
+}
+
 export function ThreadQuoteCard({
   quote,
+  booking,
   viewer,
 }: {
   quote: ThreadQuote;
+  booking?: ThreadBooking | null;
   viewer: "host" | "guest";
 }) {
+  const n = nights(quote.checkIn, quote.checkOut);
+
+  // ── Booking-state card (quote accepted → booking exists) ──────────────
+  if (booking) {
+    const { kind, meta } = bookingStateMeta(booking, viewer);
+    const StatusIcon = meta.icon;
+    const depositDue =
+      booking.depositAmount != null &&
+      booking.depositAmount > 0 &&
+      booking.depositAmount < booking.total
+        ? booking.depositAmount
+        : null;
+    return (
+      <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="flex items-center gap-2 border-b border-brand-line bg-brand-light/50 px-4 py-2.5">
+          <FileText className="h-4 w-4 text-brand-primary" />
+          <span className="font-display text-[13px] font-bold text-brand-ink">
+            Booking {booking.reference}
+          </span>
+          <span
+            className={`ml-auto inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${meta.cls}`}
+          >
+            <StatusIcon className="h-3 w-3" />
+            {meta.label}
+          </span>
+        </div>
+        <div className="space-y-2.5 px-4 py-3.5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-brand-ink">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5 text-brand-mute" />
+              {fmtDate(quote.checkIn)} → {fmtDate(quote.checkOut)}
+              {n > 0 ? (
+                <span className="text-brand-mute">
+                  · {n} night{n === 1 ? "" : "s"}
+                </span>
+              ) : null}
+            </span>
+            {quote.headcount ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-brand-mute" />
+                {quote.headcount} guest{quote.headcount === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="rounded-[10px] bg-brand-light/60 px-3 py-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[12px] text-brand-mute">Total</span>
+              <span className="num font-display text-base font-bold text-brand-ink">
+                {formatMoney(booking.total, booking.currency)}
+              </span>
+            </div>
+            {kind === "payable" && depositDue ? (
+              <div className="mt-1 flex items-center justify-between text-[11.5px] text-brand-mute">
+                <span>Deposit due now</span>
+                <span className="num">
+                  {formatMoney(depositDue, booking.currency)}
+                </span>
+              </div>
+            ) : null}
+            {kind === "active" &&
+            booking.balanceDue != null &&
+            booking.balanceDue > 0 ? (
+              <div className="mt-1 flex items-center justify-between text-[11.5px] text-brand-mute">
+                <span>Balance due before check-in</span>
+                <span className="num">
+                  {formatMoney(booking.balanceDue, booking.currency)}
+                </span>
+              </div>
+            ) : null}
+          </div>
+
+          {/* CTA */}
+          {kind === "payable" && viewer === "guest" ? (
+            <Link
+              href={`/booking/${booking.id}/pay`}
+              className="mt-1 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] bg-brand-primary text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary"
+            >
+              Pay now <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          ) : kind === "payable" && viewer === "host" ? (
+            <p className="text-[11.5px] text-brand-mute">
+              Waiting for the guest to pay — you&rsquo;ll be notified when it
+              confirms.
+            </p>
+          ) : (
+            <Link
+              href={
+                viewer === "host"
+                  ? `/dashboard/bookings/${booking.id}`
+                  : `/portal/trips/${booking.id}`
+              }
+              className="mt-1 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-line bg-white text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+            >
+              {viewer === "host" ? "Open booking" : "View booking"}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Quote-state card (no booking yet) ─────────────────────────────────
   const isDraft = quote.status === "draft";
   const meta = statusMeta(quote.status);
   const StatusIcon = meta.icon;
-  const n = nights(quote.checkIn, quote.checkOut);
   const expiresIn = daysUntil(quote.validUntil);
   const expired =
     quote.validUntil != null && expiresIn != null && expiresIn < 0;
