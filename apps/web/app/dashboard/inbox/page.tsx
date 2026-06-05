@@ -27,7 +27,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { c?: string; f?: string; q?: string };
+type SearchParams = {
+  c?: string;
+  f?: string;
+  q?: string;
+  l?: string;
+  p?: string;
+};
+
+const PAGE_SIZE = 25;
 
 const PIPELINE_STAGES = [
   "new_quote",
@@ -45,6 +53,9 @@ const VALID_FOLDERS = [
   "enquiries",
   "open",
   "archived",
+  "starred",
+  "booked",
+  "past",
   ...PIPELINE_STAGES,
 ] as const;
 type Folder = (typeof VALID_FOLDERS)[number];
@@ -101,12 +112,18 @@ export default async function InboxPage({
 
   const folder = parseFolder(searchParams?.f);
   const search = (searchParams?.q ?? "").trim();
+  const listingFilter = (searchParams?.l ?? "").trim() || null;
+  const page = Math.max(1, Number.parseInt(searchParams?.p ?? "1", 10) || 1);
 
-  // Counts for chips/folders.
+  // Counts for chips/folders. Pulling the lightweight shape for every
+  // conversation lets us derive every folder count — and the paginated total
+  // for the current filter — in memory, without extra round-trips.
   const nowIso = new Date().toISOString();
   const { data: countsRaw } = await supabase
     .from("conversations")
-    .select("id, status, is_enquiry, unread_host, pipeline_stage, follow_up_at")
+    .select(
+      "id, status, is_enquiry, unread_host, pipeline_stage, follow_up_at, pinned, booking_id, listing_id",
+    )
     .eq("host_id", host.id);
 
   const all = countsRaw ?? [];
@@ -161,6 +178,10 @@ export default async function InboxPage({
     enquiries: all.filter((c) => c.is_enquiry && c.status === "open").length,
     open: all.filter((c) => c.status === "open").length,
     archived: all.filter((c) => c.status === "archived").length,
+    starred: all.filter((c) => c.status !== "archived" && c.pinned).length,
+    booked: all.filter((c) => c.status !== "archived" && c.booking_id != null)
+      .length,
+    past: all.filter((c) => c.status === "archived").length,
     unread_total: all.reduce((n, c) => n + (c.unread_host ?? 0), 0),
     pipeline: {
       new_quote: stageCount("new_quote"),
@@ -188,10 +209,9 @@ export default async function InboxPage({
     .eq("host_id", host.id)
     .order("pinned", { ascending: false })
     .order("last_message_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .order("created_at", { ascending: false });
 
-  if (folder === "archived") {
+  if (folder === "archived" || folder === "past") {
     query = query.eq("status", "archived");
   } else {
     query = query.neq("status", "archived");
@@ -199,9 +219,49 @@ export default async function InboxPage({
     if (folder === "enquiries") query = query.eq("is_enquiry", true);
     if (folder === "unread" || folder === "needs_reply")
       query = query.gt("unread_host", 0);
+    if (folder === "starred") query = query.eq("pinned", true);
+    if (folder === "booked") query = query.not("booking_id", "is", null);
     if (folder === "follow_up")
       query = query.not("follow_up_at", "is", null).lte("follow_up_at", nowIso);
     if (isPipelineStage(folder)) query = query.eq("pipeline_stage", folder);
+  }
+  if (listingFilter) query = query.eq("listing_id", listingFilter);
+
+  // Total matching the active filter (mirrors the query above) — drives the
+  // pager. Derived in memory from countsRaw so we avoid an extra count query.
+  const matchesFolder = (c: (typeof all)[number]): boolean => {
+    if (folder === "archived" || folder === "past") {
+      if (c.status !== "archived") return false;
+    } else {
+      if (c.status === "archived") return false;
+      if (folder === "open" && c.status !== "open") return false;
+      if (folder === "enquiries" && !c.is_enquiry) return false;
+      if (
+        (folder === "unread" || folder === "needs_reply") &&
+        !(c.unread_host > 0)
+      )
+        return false;
+      if (folder === "starred" && !c.pinned) return false;
+      if (folder === "booked" && c.booking_id == null) return false;
+      if (
+        folder === "follow_up" &&
+        !(c.follow_up_at != null && c.follow_up_at <= nowIso)
+      )
+        return false;
+      if (isPipelineStage(folder) && c.pipeline_stage !== folder) return false;
+    }
+    if (listingFilter && c.listing_id !== listingFilter) return false;
+    return true;
+  };
+  const total = all.filter(matchesFolder).length;
+
+  // Pagination — applied server-side when not searching. With an active search
+  // we fetch a wider slice and filter in memory (below), so the pager hides.
+  if (search) {
+    query = query.limit(100);
+  } else {
+    const from = (page - 1) * PAGE_SIZE;
+    query = query.range(from, from + PAGE_SIZE - 1);
   }
 
   const { data: convRows } = await query;
@@ -273,12 +333,12 @@ export default async function InboxPage({
     checkOut: c.booking?.check_out ?? null,
   }));
 
-  // Resolve selected conversation.
+  // Resolve selected conversation. The Classic layout is a view switch (list
+  // OR thread), so we only open a thread when one is explicitly requested —
+  // no auto-selecting the first row.
   const requested = searchParams?.c;
   const selectedId =
-    (requested && conversations.find((c) => c.id === requested)?.id) ??
-    conversations[0]?.id ??
-    null;
+    (requested && conversations.find((c) => c.id === requested)?.id) ?? null;
 
   // Thread + context.
   let messages: MessageRow[] = [];
@@ -301,7 +361,7 @@ export default async function InboxPage({
           `
             id, status, is_enquiry, pipeline_stage, pinned, follow_up_at, assigned_to, created_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
-            listing:listings ( id, name, slug ),
+            listing:listings ( id, name, slug, city, province, max_guests, bedrooms ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
           `,
         )
@@ -425,7 +485,15 @@ export default async function InboxPage({
         phone: string | null;
         avatar_url: string | null;
       } | null;
-      listing: { id: string; name: string; slug: string | null } | null;
+      listing: {
+        id: string;
+        name: string;
+        slug: string | null;
+        city: string | null;
+        province: string | null;
+        max_guests: number | null;
+        bedrooms: number | null;
+      } | null;
       booking: {
         id: string;
         reference: string;
@@ -459,6 +527,10 @@ export default async function InboxPage({
               id: ctx.listing.id,
               name: ctx.listing.name,
               slug: ctx.listing.slug,
+              city: ctx.listing.city,
+              province: ctx.listing.province,
+              maxGuests: ctx.listing.max_guests,
+              bedrooms: ctx.listing.bedrooms,
             }
           : null,
         booking: ctx.booking
@@ -515,6 +587,15 @@ export default async function InboxPage({
     .order("sort_order", { ascending: true });
   const templates = templateRows ?? [];
 
+  // Host listings — power the dot-marked listing filters in the folder rail.
+  const { data: listingRows } = await supabase
+    .from("listings")
+    .select("id, name")
+    .eq("host_id", host.id)
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
+  const listings = (listingRows ?? []) as { id: string; name: string }[];
+
   // Assignable team members (the host + their staff) for the assignee picker.
   const { data: staffRows } = await supabase
     .from("staff_members")
@@ -550,6 +631,11 @@ export default async function InboxPage({
       folder={folder}
       counts={counts}
       search={search}
+      listings={listings}
+      listingFilter={listingFilter}
+      page={page}
+      pageSize={PAGE_SIZE}
+      total={total}
       conversations={conversations}
       selectedId={selectedId}
       messages={messages}

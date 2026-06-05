@@ -31,6 +31,31 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-05 — Inbox redesign: "Classic" Gmail-style layout — branch `main`
+
+### Built
+- **Gmail-style folder rail**: rounded-right active pills, count badges, a Pipeline section (with projected values), and dot-marked **Listings** filters — all wired to real folders/data (no invented Starred/Snoozed/Sent/Drafts). "Starred" maps to `pinned`.
+- **Tabs strip** (All · Enquiries · Booked · Action needed · Past), each mapped to a real query. Added `booked` (has a booking) and `past` (archived) folder filters.
+- **Single-line conversation rows**: star (pin) · importance marker · colour avatar · fixed-width sender · `listing · dates — snippet` · status chip · relative time, with hover actions (archive / mark-read / snooze-to-tomorrow).
+- **Real pager**: server-side `range()` pagination (25/page) with "from–to of total" derived in-memory from the counts query (no extra round-trip). Hidden while searching (search filters in-memory).
+- **Slide-over details drawer**: booking/guest details now open from a "Booking details" button over a dimmed scrim (was an always-docked pane). Leads with quote total + Confirm/Decline (wired to pipeline accepted/declined), then listing card, stay details, guest, and keeps the existing PipelineControl + assignee + private notes.
+- **Read view** restyled to match the mock: header bar, identity bar with status tag, centered thread on a tinted canvas with day dividers, guest/host bubbles, inline quote cards, and a rounded composer.
+
+### Changed
+- The inbox is now a **view switch** (list ↔ thread) instead of a persistent list+thread split: a thread opens only when explicitly selected (`page.tsx` no longer auto-selects the first conversation).
+- `conversations` query now reads `pinned`/`booking_id`/`listing_id` for counts + filters; thread `listing` context now includes `city`/`province`/`max_guests`/`bedrooms` for the drawer.
+
+### Migrations
+- None (queries only; no schema change → no type regen).
+
+### Notes
+- Drawer is **real-data-only**: no "verified / N stays / rating" or cover image (no clean single source) — omitted rather than stubbed.
+- Dropped controls with no backend: Compose (no host-initiated threads) and bulk-select. "Past" = archived (completed/cancelled-not-archived not folded in to avoid a cross-table OR).
+- No new help article: visual-only restyle of already-documented inbox features (messaging, enquiry pipeline) — existing articles stay accurate. Will add one if the list↔thread switch needs explaining for real users.
+
+### Commit
+- `feat(inbox): Classic Gmail-style redesign (rail, tabs, single-line rows, slide-over drawer)`
+
 ## 2026-06-05 — Reviews: invite sending + host replies on display — branch `main`
 
 ### Built

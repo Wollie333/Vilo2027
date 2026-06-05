@@ -1,30 +1,33 @@
 "use client";
 
 import {
+  AlertTriangle,
   Archive,
   ArchiveRestore,
   ArrowLeft,
-  CalendarCheck,
+  ArrowUp,
+  BadgeCheck,
+  Check,
   CheckCheck,
-  ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
   ExternalLink,
+  FileText,
+  Hourglass,
   Inbox as InboxIcon,
   KeyRound,
-  Link as LinkIcon,
-  MessageCircleQuestion,
-  MoreHorizontal,
+  MailOpen,
+  MessageSquareText,
   Paperclip,
-  PenSquare,
   Phone,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightOpen,
+  ReceiptText,
+  RotateCw,
   Search,
-  SendHorizontal,
-  Smile,
   Sparkles,
   Star,
   User,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -52,6 +55,8 @@ import {
   assignConversationAction,
   markConversationReadAction,
   sendMessageAction,
+  setFollowUpAction,
+  setPipelineStageAction,
   togglePinAction,
   unarchiveConversationAction,
 } from "./actions";
@@ -103,7 +108,15 @@ export type ThreadContext = {
     phone: string | null;
     avatarUrl: string | null;
   } | null;
-  listing: { id: string; name: string; slug: string | null } | null;
+  listing: {
+    id: string;
+    name: string;
+    slug: string | null;
+    city: string | null;
+    province: string | null;
+    maxGuests: number | null;
+    bedrooms: number | null;
+  } | null;
   booking: {
     id: string;
     reference: string;
@@ -134,6 +147,7 @@ export type ThreadContext = {
 
 export type TemplateRow = { id: string; title: string; body: string };
 export type Assignee = { id: string; name: string };
+export type ListingRef = { id: string; name: string };
 
 export type Counts = {
   all: number;
@@ -143,6 +157,9 @@ export type Counts = {
   enquiries: number;
   open: number;
   archived: number;
+  starred: number;
+  booked: number;
+  past: number;
   unread_total: number;
   pipeline: {
     new_quote: number;
@@ -170,20 +187,32 @@ type Folder =
   | "enquiries"
   | "open"
   | "archived"
+  | "starred"
+  | "booked"
+  | "past"
   | PipelineStage;
 
-const FOLDERS: {
+// Folder rail — the Gmail-style left nav. Wired to real folders only.
+const RAIL_FOLDERS: {
   key: Exclude<Folder, PipelineStage>;
   label: string;
   icon: typeof InboxIcon;
 }[] = [
-  { key: "all", label: "All inbox", icon: InboxIcon },
-  { key: "unread", label: "Unread", icon: MessageCircleQuestion },
-  { key: "needs_reply", label: "Needs reply", icon: PenSquare },
-  { key: "follow_up", label: "Follow up", icon: CalendarCheck },
-  { key: "enquiries", label: "Enquiries", icon: MessageCircleQuestion },
-  { key: "open", label: "Open", icon: KeyRound },
+  { key: "all", label: "Inbox", icon: InboxIcon },
+  { key: "unread", label: "Unread", icon: MailOpen },
+  { key: "starred", label: "Starred", icon: Star },
+  { key: "follow_up", label: "Follow up", icon: Clock },
+  { key: "enquiries", label: "Enquiries", icon: AlertTriangle },
   { key: "archived", label: "Archived", icon: Archive },
+];
+
+// Tabs — mirror the mock's strip, each mapped to a real folder query.
+const TABS: { key: Folder; label: string; countKey: keyof Counts }[] = [
+  { key: "all", label: "All", countKey: "all" },
+  { key: "enquiries", label: "Enquiries", countKey: "enquiries" },
+  { key: "booked", label: "Booked", countKey: "booked" },
+  { key: "needs_reply", label: "Action needed", countKey: "needs_reply" },
+  { key: "past", label: "Past", countKey: "past" },
 ];
 
 const PIPELINE: { key: PipelineStage; label: string; dot: string }[] = [
@@ -194,6 +223,16 @@ const PIPELINE: { key: PipelineStage; label: string; dot: string }[] = [
   { key: "declined", label: "Declined", dot: "bg-status-cancelled" },
   { key: "lost", label: "Lost", dot: "bg-brand-mute" },
 ];
+
+// Stable per-listing dot colours for the rail.
+const LISTING_DOTS = [
+  "#10B981",
+  "#6366F1",
+  "#F59E0B",
+  "#EF4444",
+  "#064E3B",
+  "#0EA5E9",
+] as const;
 
 function initialsFrom(name: string | null, email: string | null): string {
   const src = (name || email || "?").trim();
@@ -259,6 +298,30 @@ function fmtDate(iso: string | null): string {
   });
 }
 
+// Derive a status chip for a conversation row / thread header.
+type ChipTone = "green" | "amber" | "red" | "indigo" | "gray";
+function chipFor(c: {
+  isEnquiry: boolean;
+  status: string;
+  bookingStatus: string | null;
+}): { tone: ChipTone; label: string } | null {
+  if (c.status === "archived") return { tone: "gray", label: "Archived" };
+  if (c.isEnquiry) return { tone: "amber", label: "Enquiry" };
+  switch (c.bookingStatus) {
+    case "confirmed":
+      return { tone: "green", label: "Confirmed" };
+    case "pending_eft":
+    case "pending_eft_review":
+      return { tone: "amber", label: "Awaiting payment" };
+    case "completed":
+      return { tone: "indigo", label: "Completed" };
+    case "cancelled":
+      return { tone: "red", label: "Cancelled" };
+    default:
+      return null;
+  }
+}
+
 export function InboxView({
   hostInitials,
   hostName,
@@ -267,6 +330,11 @@ export function InboxView({
   folder,
   counts,
   search,
+  listings,
+  listingFilter,
+  page,
+  pageSize,
+  total,
   conversations,
   selectedId,
   messages,
@@ -283,6 +351,11 @@ export function InboxView({
   folder: Folder;
   counts: Counts;
   search: string;
+  listings: ListingRef[];
+  listingFilter: string | null;
+  page: number;
+  pageSize: number;
+  total: number;
   conversations: ConversationRow[];
   selectedId: string | null;
   messages: MessageRow[];
@@ -295,21 +368,12 @@ export function InboxView({
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const [showPaneMobile, setShowPaneMobile] = useState(false);
-  const [foldersHidden, setFoldersHidden] = useState(false);
   const [searchInput, setSearchInput] = useState(search);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Persist the folder-rail visibility preference across visits.
-  useEffect(() => {
-    if (localStorage.getItem("vilo:inbox:foldersHidden") === "1") {
-      setFoldersHidden(true);
-    }
-  }, []);
-  useEffect(() => {
-    localStorage.setItem("vilo:inbox:foldersHidden", foldersHidden ? "1" : "0");
-  }, [foldersHidden]);
+  const inReadMode = Boolean(context);
 
-  // Mark selected conversation as read on mount/selection change.
+  // Mark selected conversation as read on open.
   const markedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!selectedId) return;
@@ -325,6 +389,20 @@ export function InboxView({
     });
   }, [selectedId, conversations]);
 
+  // Close the details drawer whenever the open thread changes.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [selectedId]);
+
+  // Escape closes the drawer.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setDrawerOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Auto-scroll the thread to the bottom when messages change.
   const threadRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -333,10 +411,7 @@ export function InboxView({
     }
   }, [messages.length, selectedId]);
 
-  // Realtime: refresh on any messages/conversations change the host can see.
-  // RLS filters server-side; we just need a soft refresh whenever something
-  // moves. router.refresh() re-runs the server component without a full
-  // navigation, so derived counts and the selected thread both update.
+  // Realtime: soft-refresh on any messages/conversations change the host sees.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -357,20 +432,20 @@ export function InboxView({
         () => router.refresh(),
       )
       .subscribe();
-
     return () => {
       void supabase.removeChannel(channel);
     };
   }, [router]);
 
   const navigateWith = useCallback(
-    (next: Partial<Record<"c" | "f" | "q", string | null>>) => {
+    (next: Partial<Record<"c" | "f" | "q" | "l" | "p", string | null>>) => {
       const u = new URLSearchParams(params?.toString() ?? "");
       for (const [k, v] of Object.entries(next)) {
         if (v === null || v === "") u.delete(k);
         else u.set(k, v);
       }
-      router.push(`/dashboard/inbox?${u.toString()}`);
+      const qs = u.toString();
+      router.push(qs ? `/dashboard/inbox?${qs}` : "/dashboard/inbox");
     },
     [params, router],
   );
@@ -379,17 +454,12 @@ export function InboxView({
   useEffect(() => {
     if (searchInput === search) return;
     const t = setTimeout(() => {
-      navigateWith({ q: searchInput.trim() || null });
+      navigateWith({ q: searchInput.trim() || null, c: null, p: null });
     }, 250);
     return () => clearTimeout(t);
   }, [searchInput, search, navigateWith]);
 
-  const groups = useMemo(() => groupByDay(conversations), [conversations]);
   const messageDays = useMemo(() => groupMessagesByDay(messages), [messages]);
-
-  // One quote → one inline card, rendered at its FIRST message in the thread.
-  // The card reads the quote's live state, so the same card shows the request
-  // as a draft and then the finished quote once the host sends it.
   const quoteCardMsgIds = useMemo(
     () => firstQuoteMessageIds(messages, quotesById),
     [messages, quotesById],
@@ -397,578 +467,744 @@ export function InboxView({
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden bg-white">
-      {/* ── Folders rail (only xl+, when not hidden) ────────── */}
-      <aside
-        className={`hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-brand-line bg-white ${
-          foldersHidden ? "" : "xl:flex"
-        }`}
-      >
-        <div className="px-4 pb-3 pt-5">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              Folders
-            </span>
-            <button
-              type="button"
-              onClick={() => setFoldersHidden(true)}
-              className="inline-flex h-6 w-6 items-center justify-center rounded text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-              title="Hide folders"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="space-y-0.5">
-            {FOLDERS.map((f) => {
-              const Icon = f.icon;
-              const active = folder === f.key;
-              const count = counts[f.key as keyof Counts] as number | undefined;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => navigateWith({ f: f.key, c: null })}
-                  className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] transition-colors ${
-                    active
-                      ? "bg-brand-accent font-semibold text-brand-secondary"
-                      : "text-brand-ink hover:bg-brand-light"
-                  }`}
-                >
-                  <span className="inline-flex items-center gap-2">
-                    <Icon className="h-4 w-4" /> {f.label}
-                  </span>
-                  {count !== undefined && count > 0 ? (
-                    <span
-                      className={`num rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
-                        active
-                          ? "bg-brand-secondary text-white"
-                          : "border border-brand-line bg-white text-brand-mute"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Pipeline — sorts enquiry threads by deal stage */}
-        <div className="border-t border-brand-line px-4 pb-3 pt-4">
-          <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Pipeline
-          </div>
-          <div className="space-y-0.5">
-            {PIPELINE.map((p) => {
-              const active = folder === p.key;
-              const count = counts.pipeline?.[p.key] ?? 0;
-              const value = counts.pipelineValue?.[p.key] ?? 0;
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => navigateWith({ f: p.key, c: null })}
-                  className={`flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-[13px] transition-colors ${
-                    active
-                      ? "bg-brand-accent font-semibold text-brand-secondary"
-                      : "text-brand-ink hover:bg-brand-light"
-                  }`}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${p.dot}`} />
-                      {p.label}
-                    </span>
-                    {value > 0 ? (
-                      <span className="num mt-0.5 block pl-4 text-[10px] font-normal text-brand-mute">
-                        R{" "}
-                        {Math.round(value)
-                          .toLocaleString("en-ZA")
-                          .replace(/,/g, " ")}
-                      </span>
-                    ) : null}
-                  </span>
-                  {count > 0 ? (
-                    <span
-                      className={`num shrink-0 rounded-pill px-2 py-0.5 text-[10.5px] font-semibold ${
-                        active
-                          ? "bg-brand-secondary text-white"
-                          : "border border-brand-line bg-white text-brand-mute"
-                      }`}
-                    >
-                      {count}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-          {/* Projected pipeline value — open deals only (excludes declined/lost). */}
-          {(() => {
-            const pv = counts.pipelineValue ?? {};
-            const projected =
-              (pv.new_quote ?? 0) +
-              (pv.quote_sent ?? 0) +
-              (pv.negotiating ?? 0) +
-              (pv.accepted ?? 0);
+      {/* ── Gmail-style folder rail (lg+) ───────────────────── */}
+      <aside className="hidden w-64 shrink-0 flex-col overflow-hidden bg-[#EEF4F0] lg:flex">
+        <nav className="thin-scroll flex-1 overflow-y-auto py-3">
+          {RAIL_FOLDERS.map((f) => {
+            const active = folder === f.key && !listingFilter;
+            const Icon = f.icon;
+            const count = counts[f.key as keyof Counts] as number | undefined;
             return (
-              <div className="mt-2 flex items-center justify-between border-t border-brand-line px-3 pt-3">
-                <span className="text-[11px] font-medium text-brand-mute">
-                  Projected value
-                </span>
-                <span className="num text-[13px] font-bold text-brand-ink">
-                  R{" "}
-                  {Math.round(projected)
-                    .toLocaleString("en-ZA")
-                    .replace(/,/g, " ")}
-                </span>
-              </div>
-            );
-          })()}
-        </div>
-
-        <div className="mt-auto border-t border-brand-line px-4 py-4">
-          <Link
-            href="/dashboard/inbox/contacts"
-            className="mb-3 flex items-center gap-2 rounded-md px-3 py-2 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
-          >
-            <User className="h-4 w-4" /> Contacts
-          </Link>
-          <div
-            className="block rounded-card bg-brand-light p-3 opacity-70"
-            aria-disabled="true"
-            title="Coming soon"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-secondary">
-                <Sparkles className="h-3.5 w-3.5" /> Quick replies
-              </div>
-              <span className="rounded-pill bg-white px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-mute">
-                Soon
-              </span>
-            </div>
-            <div className="mt-1 text-[11px] text-brand-mute">
-              Save common replies once, reuse them everywhere.
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Conversation list ───────────────────────────────── */}
-      <section
-        className={`flex w-full min-w-0 shrink-0 flex-col border-r border-brand-line bg-white md:w-[360px] lg:w-[400px] ${
-          selectedId ? "hidden md:flex" : "flex"
-        }`}
-      >
-        <div className="mid-head sticky top-0 z-10 border-b border-brand-line bg-white/95 px-4 py-3 backdrop-blur">
-          <div className="flex items-center gap-2">
-            {foldersHidden ? (
-              <button
-                type="button"
-                onClick={() => setFoldersHidden(false)}
-                className="hidden h-9 w-9 shrink-0 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light xl:inline-flex"
-                title="Show folders"
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </button>
-            ) : null}
-            <div className="flex h-9 flex-1 items-center gap-2 rounded border border-brand-line bg-brand-light/60 px-3 focus-within:border-brand-primary focus-within:bg-white focus-within:ring-4 focus-within:ring-brand-primary/15">
-              <Search className="h-4 w-4 text-brand-mute" />
-              <input
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search guests, listings, refs…"
-                className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-brand-mute"
+              <RailItem
+                key={f.key}
+                active={active}
+                onClick={() =>
+                  navigateWith({ f: f.key, l: null, c: null, p: null })
+                }
+                icon={<Icon className="h-[18px] w-[18px]" />}
+                label={f.label}
+                count={count}
               />
-            </div>
-          </div>
+            );
+          })}
 
-          {/* Folder chips (always visible — folder rail is xl+ only) */}
-          <div className="thin-scroll mt-3 flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            {FOLDERS.map((f) => {
-              const active = folder === f.key;
-              const count = counts[f.key as keyof Counts] as number | undefined;
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  onClick={() => navigateWith({ f: f.key, c: null })}
-                  className={`shrink-0 rounded-pill px-3 py-1 text-[12px] transition-colors ${
-                    active
-                      ? "bg-brand-secondary font-semibold text-white"
-                      : "border border-brand-line text-brand-ink hover:bg-brand-light"
-                  }`}
-                >
-                  {f.label}
-                  {count != null && count > 0 ? (
-                    <span
-                      className={`num ml-1.5 ${active ? "opacity-70" : "font-bold"}`}
-                    >
-                      {count}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+          {/* Pipeline */}
+          <RailDivider />
+          <RailHeading>Pipeline</RailHeading>
+          {PIPELINE.map((p) => {
+            const active = folder === p.key && !listingFilter;
+            const count = counts.pipeline?.[p.key] ?? 0;
+            return (
+              <RailItem
+                key={p.key}
+                active={active}
+                onClick={() =>
+                  navigateWith({ f: p.key, l: null, c: null, p: null })
+                }
+                icon={<span className={`h-2.5 w-2.5 rounded-full ${p.dot}`} />}
+                label={p.label}
+                count={count > 0 ? count : undefined}
+              />
+            );
+          })}
 
-        <div className="thin-scroll flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <EmptyList folder={folder} search={search} />
-          ) : (
-            groups.map(({ label, items }) => (
-              <div key={label}>
-                <div className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                  {label}
-                </div>
-                {items.map((c) => (
-                  <ConvRow
-                    key={c.id}
-                    conv={c}
-                    selected={selectedId === c.id}
-                    onSelect={() => navigateWith({ c: c.id })}
-                  />
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* ── Thread view ─────────────────────────────────────── */}
-      <section
-        className={`flex min-w-0 flex-1 bg-white ${selectedId ? "flex" : "hidden md:flex"}`}
-      >
-        {!context ? (
-          <EmptyThread hasAny={conversations.length > 0} />
-        ) : (
-          <>
-            <div className="flex min-w-0 flex-1 flex-col">
-              {/* Thread header */}
-              <div className="flex shrink-0 items-center gap-3 border-b border-brand-line px-5 py-3">
-                <button
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded text-brand-ink hover:bg-brand-light md:hidden"
-                  onClick={() => navigateWith({ c: null })}
-                  title="Back to inbox"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </button>
-                <Avatar
-                  initials={initialsFrom(
-                    context.guest?.fullName ?? null,
-                    context.guest?.email ?? null,
-                  )}
-                  size={40}
-                />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="font-display text-[15px] font-semibold text-brand-ink">
-                      {context.guest?.fullName ||
-                        context.guest?.email ||
-                        "Guest"}
-                    </div>
-                    {context.isEnquiry ? (
-                      <Pill tone="pending">Enquiry</Pill>
-                    ) : null}
-                    {context.status === "archived" ? (
-                      <Pill tone="cancelled">Archived</Pill>
-                    ) : null}
-                  </div>
-                  <div className="text-[12px] text-brand-mute">
-                    {context.guest?.email ?? "—"}
-                    {context.guest?.phone ? ` · ${context.guest.phone}` : ""}
-                  </div>
-                </div>
-                <div className="ml-auto flex items-center gap-1">
-                  {context.guest?.phone ? (
-                    <a
-                      href={`tel:${context.guest.phone}`}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-                      title="Call"
-                    >
-                      <Phone className="h-4 w-4" />
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-                    title="Star"
-                  >
-                    <Star className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending}
+          {/* Listings */}
+          {listings.length > 0 ? (
+            <>
+              <RailDivider />
+              <RailHeading>Listings</RailHeading>
+              {listings.map((l, i) => {
+                const active = listingFilter === l.id;
+                return (
+                  <RailItem
+                    key={l.id}
+                    active={active}
                     onClick={() =>
-                      startTransition(async () => {
-                        const r =
-                          context.status === "archived"
-                            ? await unarchiveConversationAction(
-                                context.conversationId,
-                              )
-                            : await archiveConversationAction(
-                                context.conversationId,
-                              );
-                        if (!r.ok) toast.error(r.error);
-                        else {
-                          toast.success(
-                            context.status === "archived"
-                              ? "Unarchived"
-                              : "Archived",
-                          );
-                          if (context.status !== "archived") {
-                            navigateWith({ c: null });
-                          }
-                        }
+                      navigateWith({
+                        l: active ? null : l.id,
+                        c: null,
+                        p: null,
                       })
                     }
-                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-                    title={
-                      context.status === "archived" ? "Unarchive" : "Archive"
+                    icon={
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{
+                          background: LISTING_DOTS[i % LISTING_DOTS.length],
+                        }}
+                      />
                     }
-                  >
-                    {context.status === "archived" ? (
-                      <ArchiveRestore className="h-4 w-4" />
-                    ) : (
-                      <Archive className="h-4 w-4" />
-                    )}
-                  </button>
-                  {context.booking ? (
-                    <Link
-                      href={`/dashboard/bookings/${context.booking.id}`}
-                      className="hidden h-9 items-center justify-center gap-1.5 rounded border border-brand-line bg-white px-3 text-sm text-brand-ink hover:bg-brand-light md:inline-flex"
-                    >
-                      <User className="h-4 w-4" /> Booking
-                    </Link>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-                    title="More"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowPaneMobile((s) => !s)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-light xl:hidden"
-                    title="Show booking details"
-                  >
-                    <PanelRightOpen className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+                    label={l.name}
+                  />
+                );
+              })}
+            </>
+          ) : null}
 
-              {/* Booking summary banner */}
-              {context.booking || context.listing ? (
-                <div className="flex shrink-0 flex-wrap items-center gap-4 border-b border-brand-line bg-brand-light/60 px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded bg-brand-accent text-brand-secondary">
-                      <CalendarCheck className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                        {context.isEnquiry ? "Enquiry for" : "Booking"}
-                      </div>
-                      <div className="text-sm font-semibold text-brand-ink">
-                        {context.listing?.name ?? "—"}
-                        {context.booking?.checkIn ? (
-                          <>
-                            {" · "}
-                            {fmtDate(context.booking.checkIn)}
-                            {" – "}
-                            {fmtDate(context.booking.checkOut)}
-                          </>
-                        ) : null}
-                        {context.booking?.guests ? (
-                          <>
-                            {" · "}
-                            {context.booking.guests}{" "}
-                            {context.booking.guests === 1 ? "guest" : "guests"}
-                          </>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                  {context.booking ? (
-                    <div className="ml-auto hidden items-center gap-3 md:flex">
-                      <div className="text-right">
-                        <div className="text-[11px] text-brand-mute">Total</div>
-                        <div className="num font-display text-base font-bold text-brand-ink">
-                          {formatMoney(
-                            context.booking.total,
-                            context.booking.currency,
-                          )}
-                        </div>
-                      </div>
-                      <Link
-                        href={`/dashboard/bookings/${context.booking.id}`}
-                        className="inline-flex h-9 items-center gap-1.5 rounded border border-brand-line bg-white px-4 text-sm font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        Open booking
-                      </Link>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+          <RailDivider />
+          <div className="px-3 pt-1">
+            <Link
+              href="/dashboard/inbox/contacts"
+              className="flex h-9 items-center gap-3 rounded-full px-3 text-sm font-medium text-[#3A5A4E] transition-colors hover:bg-[#E2EDE6]"
+            >
+              <User className="h-[18px] w-[18px]" /> Contacts
+            </Link>
+          </div>
+        </nav>
+      </aside>
 
-              {/* Messages */}
-              <div
-                ref={threadRef}
-                className="thin-scroll thread-scroll min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-6"
-              >
-                {messages.length === 0 ? (
-                  <div className="mx-auto max-w-md rounded-card border border-dashed border-brand-line bg-white p-8 text-center text-sm text-brand-mute">
-                    No messages yet. Send the first reply below.
-                  </div>
-                ) : (
-                  messageDays.map(({ label, items }) => (
-                    <div key={label} className="space-y-5">
-                      <div className="flex items-center gap-2.5 text-[11px] font-medium text-brand-mute">
-                        <span className="h-px flex-1 bg-brand-line" />
-                        <span>{label}</span>
-                        <span className="h-px flex-1 bg-brand-line" />
-                      </div>
-                      {items.map((m) =>
-                        m.quoteId &&
-                        quoteCardMsgIds.has(m.id) &&
-                        quotesById[m.quoteId] ? (
-                          <ThreadQuoteCard
-                            key={m.id}
-                            quote={quotesById[m.quoteId]}
-                            booking={
-                              quotesById[m.quoteId].convertedBookingId
-                                ? (bookingsById[
-                                    quotesById[m.quoteId]
-                                      .convertedBookingId as string
-                                  ] ?? null)
-                                : null
-                            }
-                            viewer="host"
-                          />
-                        ) : (
-                          <MessageBubble
-                            key={m.id}
-                            msg={m}
-                            selfUserId={selfUserId}
-                            guestInitials={initialsFrom(
-                              context.guest?.fullName ?? null,
-                              context.guest?.email ?? null,
-                            )}
-                            hostInitials={hostInitials}
-                            hostAvatarUrl={hostAvatarUrl}
-                            guestAvatarUrl={context.guest?.avatarUrl ?? null}
-                          />
-                        ),
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Composer */}
-              <Composer
-                conversationId={context.conversationId}
-                hostName={hostName}
-                templates={templates}
-              />
-            </div>
-
-            {/* Context pane */}
-            <BookingPane
-              context={context}
-              assignees={assignees}
-              visibleOnMobile={showPaneMobile}
-              onClose={() => setShowPaneMobile(false)}
-            />
-          </>
+      {/* ── Main content (switches list ↔ thread) ───────────── */}
+      <div className="relative flex min-w-0 flex-1 flex-col bg-white">
+        {inReadMode && context ? (
+          <ReadView
+            context={context}
+            messages={messages}
+            messageDays={messageDays}
+            quoteCardMsgIds={quoteCardMsgIds}
+            quotesById={quotesById}
+            bookingsById={bookingsById}
+            selfUserId={selfUserId}
+            hostInitials={hostInitials}
+            hostName={hostName}
+            hostAvatarUrl={hostAvatarUrl}
+            templates={templates}
+            threadRef={threadRef}
+            pending={pending}
+            onBack={() => navigateWith({ c: null })}
+            onArchiveToggle={() =>
+              startTransition(async () => {
+                const r =
+                  context.status === "archived"
+                    ? await unarchiveConversationAction(context.conversationId)
+                    : await archiveConversationAction(context.conversationId);
+                if (!r.ok) toast.error(r.error);
+                else {
+                  toast.success(
+                    context.status === "archived" ? "Unarchived" : "Archived",
+                  );
+                  if (context.status !== "archived") navigateWith({ c: null });
+                }
+              })
+            }
+            onOpenDetails={() => setDrawerOpen(true)}
+          />
+        ) : (
+          <ListView
+            folder={folder}
+            counts={counts}
+            search={search}
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            conversations={conversations}
+            listingFilter={listingFilter}
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            navigateWith={navigateWith}
+            onRefresh={() => router.refresh()}
+          />
         )}
-      </section>
+
+        {/* Slide-over details drawer */}
+        {context ? (
+          <DetailsDrawer
+            open={drawerOpen}
+            onClose={() => setDrawerOpen(false)}
+            context={context}
+            assignees={assignees}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
-// ── Conversation row ────────────────────────────────────────
-function ConvRow({
-  conv,
-  selected,
-  onSelect,
+// ── Rail primitives ─────────────────────────────────────────
+function RailItem({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
 }: {
-  conv: ConversationRow;
-  selected: boolean;
-  onSelect: () => void;
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
 }) {
-  const unread = conv.unreadCount > 0;
   return (
     <button
       type="button"
-      onClick={onSelect}
-      className={`relative flex w-full gap-3 border-b border-[#ECF4EF] px-4 py-3.5 text-left transition-colors ${
-        selected ? "bg-brand-accent" : "hover:bg-brand-light"
+      onClick={onClick}
+      className={`mr-2 flex h-9 w-[calc(100%-8px)] items-center rounded-r-full pl-6 pr-4 text-left text-sm transition-colors ${
+        active
+          ? "bg-brand-accent font-bold text-brand-secondary"
+          : "font-medium text-[#3A5A4E] hover:bg-[#E2EDE6]"
       }`}
     >
-      {selected ? (
-        <span className="absolute bottom-0 left-0 top-0 w-[3px] bg-brand-primary" />
+      <span className="mr-[18px] flex w-5 shrink-0 items-center justify-center">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {count !== undefined && count > 0 ? (
+        <span
+          className={`num ml-2 text-xs ${active ? "font-bold text-brand-secondary" : "text-[#5B7065]"}`}
+        >
+          {count}
+        </span>
       ) : null}
+    </button>
+  );
+}
+
+function RailDivider() {
+  return <div className="my-2 mr-3 h-px bg-[#E1ECE5]" />;
+}
+
+function RailHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="px-6 pb-1 pt-2 text-[11px] font-bold uppercase tracking-wider text-brand-mute">
+      {children}
+    </div>
+  );
+}
+
+// ── List view ───────────────────────────────────────────────
+function ListView({
+  folder,
+  counts,
+  search,
+  searchInput,
+  setSearchInput,
+  conversations,
+  listingFilter,
+  page,
+  pageSize,
+  total,
+  navigateWith,
+  onRefresh,
+}: {
+  folder: Folder;
+  counts: Counts;
+  search: string;
+  searchInput: string;
+  setSearchInput: (v: string) => void;
+  conversations: ConversationRow[];
+  listingFilter: string | null;
+  page: number;
+  pageSize: number;
+  total: number;
+  navigateWith: (
+    next: Partial<Record<"c" | "f" | "q" | "l" | "p", string | null>>,
+  ) => void;
+  onRefresh: () => void;
+}) {
+  const from = (page - 1) * pageSize;
+  const showingFrom = total === 0 ? 0 : from + 1;
+  const showingTo = Math.min(from + pageSize, total);
+  const hasPrev = page > 1;
+  const hasNext = from + pageSize < total;
+
+  return (
+    <>
+      {/* Search + toolbar + tabs */}
+      <div className="shrink-0 border-b border-brand-line bg-white">
+        <div className="flex items-center gap-2 px-3 py-2.5 lg:px-4">
+          <div className="flex h-10 max-w-xl flex-1 items-center gap-2.5 rounded-full bg-[#F4F8F5] px-4 transition focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgba(16,185,129,.1)]">
+            <Search className="h-4 w-4 text-brand-mute" />
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search guests, listings, refs…"
+              className="min-w-0 flex-1 bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-mute"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+            title="Refresh"
+          >
+            <RotateCw className="h-[18px] w-[18px]" />
+          </button>
+          {!search ? (
+            <div className="ml-auto flex shrink-0 items-center gap-1 text-[12px] text-brand-mute">
+              <span className="num mr-1 hidden sm:inline">
+                {showingFrom}–{showingTo} of {total}
+              </span>
+              <button
+                type="button"
+                disabled={!hasPrev}
+                onClick={() => navigateWith({ p: String(page - 1), c: null })}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-brand-light hover:text-brand-ink disabled:opacity-40 disabled:hover:bg-transparent"
+                title="Newer"
+              >
+                <ChevronLeft className="h-[18px] w-[18px]" />
+              </button>
+              <button
+                type="button"
+                disabled={!hasNext}
+                onClick={() => navigateWith({ p: String(page + 1), c: null })}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-brand-light hover:text-brand-ink disabled:opacity-40 disabled:hover:bg-transparent"
+                title="Older"
+              >
+                <ChevronRight className="h-[18px] w-[18px]" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Tabs */}
+        <div
+          className="flex items-stretch overflow-x-auto px-3 lg:px-4"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {TABS.map((t) => {
+            const active = folder === t.key;
+            const count = counts[t.countKey] as number;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => navigateWith({ f: t.key, c: null, p: null })}
+                className={`relative mx-3 whitespace-nowrap py-3 text-[13.5px] font-semibold transition-colors first:ml-0 ${
+                  active
+                    ? "text-brand-secondary"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {t.label}
+                {count > 0 ? (
+                  <span
+                    className={`num ml-1.5 rounded-full px-1.5 py-px text-[11px] ${
+                      active
+                        ? "bg-brand-accent text-brand-secondary"
+                        : "bg-brand-light text-brand-mute"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                ) : null}
+                {active ? (
+                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Rows */}
+      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto">
+        {conversations.length === 0 ? (
+          <EmptyList
+            folder={folder}
+            search={search}
+            listingFilter={listingFilter}
+          />
+        ) : (
+          conversations.map((c) => (
+            <GmailRow
+              key={c.id}
+              conv={c}
+              onOpen={() => navigateWith({ c: c.id })}
+            />
+          ))
+        )}
+      </div>
+    </>
+  );
+}
+
+// ── Single-line conversation row ────────────────────────────
+function GmailRow({
+  conv,
+  onOpen,
+}: {
+  conv: ConversationRow;
+  onOpen: () => void;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const unread = conv.unreadCount > 0;
+  const chip = chipFor(conv);
+  const important = chip?.tone === "amber" || chip?.tone === "red";
+  const time = relativeTime(conv.lastMessageAt ?? conv.createdAt);
+
+  function act(fn: () => Promise<{ ok: boolean; error?: string }>) {
+    start(async () => {
+      const r = await fn();
+      if (!r.ok) toast.error(r.error ?? "Something went wrong.");
+      else router.refresh();
+    });
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen();
+      }}
+      className={`group relative flex h-[52px] cursor-pointer items-center border-b border-[#F1F6F2] pl-3 pr-3 transition-shadow hover:z-[1] hover:bg-white hover:shadow-[0_1px_6px_rgba(6,78,59,.14)] ${
+        unread ? "bg-white" : "bg-[#F6F9F7]"
+      }`}
+    >
+      {/* Star = pin */}
+      <button
+        type="button"
+        disabled={pending}
+        onClick={(e) => {
+          e.stopPropagation();
+          act(() => togglePinAction(conv.id, true));
+        }}
+        className="mr-2.5 shrink-0 text-[#C4D5CB] hover:text-status-pending"
+        title="Pin to top"
+      >
+        <Star className="h-[18px] w-[18px]" />
+      </button>
+      {/* Importance marker */}
+      <ChevronRight
+        className={`mr-3 hidden h-4 w-4 shrink-0 sm:block ${
+          important ? "text-status-pending" : "text-[#C4D5CB]"
+        }`}
+      />
       <Avatar
         initials={initialsFrom(conv.guestName, conv.guestEmail)}
-        size={40}
+        size={32}
+        className="mr-3.5"
       />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <div
-            className={`truncate text-sm ${
-              unread ? "font-bold text-brand-ink" : "text-brand-ink"
-            }`}
-          >
-            {conv.guestName || conv.guestEmail || "Guest"}
-          </div>
-          <div className="shrink-0 text-[11px] text-brand-mute">
-            {relativeTime(conv.lastMessageAt ?? conv.createdAt)}
-          </div>
-        </div>
-        <div className="mb-1.5 truncate text-[11px] text-brand-mute">
-          {conv.listingName ?? "—"}
-          {conv.checkIn ? ` · ${fmtDate(conv.checkIn)}` : ""}
-        </div>
-        <div
-          className={`line-clamp-2 text-[12.5px] leading-snug ${
-            unread ? "font-medium text-brand-ink" : "text-brand-mute"
-          }`}
+      <span
+        className={`mr-3 w-[120px] shrink-0 truncate text-sm sm:w-[170px] ${
+          unread ? "font-bold text-brand-ink" : "text-[#41614F]"
+        }`}
+      >
+        {conv.guestName || conv.guestEmail || "Guest"}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-sm">
+        <span
+          className={unread ? "font-bold text-brand-ink" : "text-[#2C4A3C]"}
         >
-          {conv.lastMessagePreview || (
-            <span className="italic text-brand-mute">No messages yet</span>
+          {conv.listingName ?? "Conversation"}
+          {conv.checkIn ? ` · ${fmtDate(conv.checkIn)}` : ""}
+        </span>
+        <span className="text-[#94ADA1]">
+          {conv.lastMessagePreview
+            ? `  —  ${conv.lastMessagePreview}`
+            : "  —  No messages yet"}
+        </span>
+      </span>
+
+      {/* Chip + time (hidden on hover) */}
+      {chip ? (
+        <span className="ml-3 shrink-0 group-hover:hidden">
+          <StatusChip tone={chip.tone}>{chip.label}</StatusChip>
+        </span>
+      ) : null}
+      <span
+        className={`num ml-2 w-[58px] shrink-0 text-right text-xs group-hover:hidden ${
+          unread ? "font-semibold text-brand-secondary" : "text-brand-mute"
+        }`}
+      >
+        {time}
+      </span>
+
+      {/* Hover actions */}
+      <span className="ml-2 hidden shrink-0 items-center group-hover:flex">
+        <RowAction
+          title="Archive"
+          onClick={(e) => {
+            e.stopPropagation();
+            act(() => archiveConversationAction(conv.id));
+          }}
+        >
+          <Archive className="h-[17px] w-[17px]" />
+        </RowAction>
+        {unread ? (
+          <RowAction
+            title="Mark read"
+            onClick={(e) => {
+              e.stopPropagation();
+              act(() => markConversationReadAction(conv.id));
+            }}
+          >
+            <MailOpen className="h-[17px] w-[17px]" />
+          </RowAction>
+        ) : null}
+        <RowAction
+          title="Snooze to tomorrow"
+          onClick={(e) => {
+            e.stopPropagation();
+            const d = new Date();
+            d.setDate(d.getDate() + 1);
+            act(() => setFollowUpAction(conv.id, d.toISOString()));
+          }}
+        >
+          <Clock className="h-[17px] w-[17px]" />
+        </RowAction>
+      </span>
+    </div>
+  );
+}
+
+function RowAction({
+  title,
+  onClick,
+  children,
+}: {
+  title: string;
+  onClick: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className="inline-flex h-8 w-8 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Read view (full-width thread) ───────────────────────────
+function ReadView({
+  context,
+  messages,
+  messageDays,
+  quoteCardMsgIds,
+  quotesById,
+  bookingsById,
+  selfUserId,
+  hostInitials,
+  hostName,
+  hostAvatarUrl,
+  threadRef,
+  pending,
+  onBack,
+  onArchiveToggle,
+  onOpenDetails,
+  templates,
+}: {
+  context: ThreadContext;
+  messages: MessageRow[];
+  messageDays: { label: string; items: MessageRow[] }[];
+  quoteCardMsgIds: Set<string>;
+  quotesById: Record<string, ThreadQuote>;
+  bookingsById: Record<string, ThreadBooking>;
+  selfUserId: string;
+  hostInitials: string;
+  hostName: string;
+  hostAvatarUrl: string | null;
+  threadRef: React.RefObject<HTMLDivElement>;
+  pending: boolean;
+  onBack: () => void;
+  onArchiveToggle: () => void;
+  onOpenDetails: () => void;
+  templates: TemplateRow[];
+}) {
+  const guestInitials = initialsFrom(
+    context.guest?.fullName ?? null,
+    context.guest?.email ?? null,
+  );
+  const archived = context.status === "archived";
+  const threadChip = chipFor({
+    isEnquiry: context.isEnquiry,
+    status: context.status,
+    bookingStatus: context.booking?.status ?? null,
+  });
+
+  return (
+    <>
+      {/* Header bar */}
+      <div className="flex h-14 shrink-0 items-center gap-1 border-b border-brand-line bg-white px-2 lg:px-4">
+        <IconBtn title="Back to inbox" onClick={onBack}>
+          <ArrowLeft className="h-5 w-5" />
+        </IconBtn>
+        <IconBtn
+          title={archived ? "Unarchive" : "Archive"}
+          onClick={onArchiveToggle}
+          disabled={pending}
+        >
+          {archived ? (
+            <ArchiveRestore className="h-[18px] w-[18px]" />
+          ) : (
+            <Archive className="h-[18px] w-[18px]" />
           )}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {conv.isEnquiry ? <Pill tone="pending">Enquiry</Pill> : null}
-          {conv.bookingStatus === "confirmed" ? (
-            <Pill tone="confirmed">Confirmed</Pill>
-          ) : null}
-          {conv.bookingStatus === "pending_eft" ||
-          conv.bookingStatus === "pending_eft_review" ? (
-            <Pill tone="pending">Awaiting payment</Pill>
-          ) : null}
-          {conv.bookingStatus === "completed" ? (
-            <Pill tone="completed">Completed</Pill>
-          ) : null}
-          {conv.status === "archived" ? (
-            <Pill tone="cancelled">Archived</Pill>
-          ) : null}
-          {unread && conv.lastMessageAt ? (
-            <Pill tone="pending">
-              Waiting {relativeTime(conv.lastMessageAt)}
-            </Pill>
-          ) : null}
-          {unread ? (
-            <span className="num ml-auto rounded-pill bg-brand-primary px-1.5 py-0.5 text-[10px] font-bold leading-[1.4] text-white">
-              {conv.unreadCount}
+        </IconBtn>
+        <ThreadPinButton
+          conversationId={context.conversationId}
+          pinned={context.pinned}
+        />
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onOpenDetails}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-brand-line px-3.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+          >
+            <ReceiptText className="h-4 w-4 text-brand-primary" />
+            <span className="hidden sm:inline">
+              {context.booking ? "Booking details" : "Details"}
             </span>
+          </button>
+          {context.guest?.phone ? (
+            <a
+              href={`tel:${context.guest.phone}`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+              title="Call"
+            >
+              <Phone className="h-[18px] w-[18px]" />
+            </a>
           ) : null}
         </div>
       </div>
+
+      {/* Identity bar */}
+      <div className="flex shrink-0 items-center gap-3.5 border-b border-brand-line bg-white px-5 py-3.5 lg:px-8">
+        <Avatar initials={guestInitials} size={44} />
+        <div className="min-w-0">
+          <div className="font-display text-[16px] font-bold text-brand-ink">
+            {context.guest?.fullName || context.guest?.email || "Guest"}
+          </div>
+          <div className="mt-0.5 truncate text-[12.5px] text-brand-mute">
+            {context.listing?.name ?? "—"}
+            {context.booking?.checkIn
+              ? ` · ${fmtDate(context.booking.checkIn)} – ${fmtDate(context.booking.checkOut)}`
+              : ""}
+            {context.booking?.guests
+              ? ` · ${context.booking.guests} ${context.booking.guests === 1 ? "guest" : "guests"}`
+              : ""}
+          </div>
+        </div>
+        {threadChip ? (
+          <span className="ml-auto shrink-0">
+            <StatusChip tone={threadChip.tone}>{threadChip.label}</StatusChip>
+          </span>
+        ) : null}
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={threadRef}
+        className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#FAFCFA] px-5 lg:px-0"
+      >
+        <div className="mx-auto max-w-2xl space-y-6 py-8">
+          {messages.length === 0 ? (
+            <div className="mx-auto max-w-md rounded-card border border-dashed border-brand-line bg-white p-8 text-center text-sm text-brand-mute">
+              No messages yet. Send the first reply below.
+            </div>
+          ) : (
+            messageDays.map(({ label, items }) => (
+              <div key={label} className="space-y-6">
+                <div className="flex items-center gap-3.5 text-[11px] font-semibold uppercase tracking-wider text-[#A0B5AB]">
+                  <span className="h-px flex-1 bg-[#E9F1EC]" />
+                  <span>{label}</span>
+                  <span className="h-px flex-1 bg-[#E9F1EC]" />
+                </div>
+                {items.map((m) =>
+                  m.quoteId &&
+                  quoteCardMsgIds.has(m.id) &&
+                  quotesById[m.quoteId] ? (
+                    <ThreadQuoteCard
+                      key={m.id}
+                      quote={quotesById[m.quoteId]}
+                      booking={
+                        quotesById[m.quoteId].convertedBookingId
+                          ? (bookingsById[
+                              quotesById[m.quoteId].convertedBookingId as string
+                            ] ?? null)
+                          : null
+                      }
+                      viewer="host"
+                    />
+                  ) : (
+                    <MessageBubble
+                      key={m.id}
+                      msg={m}
+                      selfUserId={selfUserId}
+                      guestInitials={guestInitials}
+                      hostInitials={hostInitials}
+                      hostAvatarUrl={hostAvatarUrl}
+                      guestAvatarUrl={context.guest?.avatarUrl ?? null}
+                    />
+                  ),
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Composer */}
+      <div className="shrink-0 border-t border-brand-line bg-white px-5 py-4 lg:px-0">
+        <div className="mx-auto max-w-2xl">
+          <Composer
+            conversationId={context.conversationId}
+            hostName={hostName}
+            guestName={context.guest?.fullName ?? null}
+            templates={templates}
+          />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function IconBtn({
+  title,
+  onClick,
+  disabled,
+  children,
+}: {
+  title: string;
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
+    >
+      {children}
+    </button>
+  );
+}
+
+function ThreadPinButton({
+  conversationId,
+  pinned,
+}: {
+  conversationId: string;
+  pinned: boolean;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const r = await togglePinAction(conversationId, !pinned);
+          if (r.ok) router.refresh();
+          else toast.error(r.error);
+        })
+      }
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors disabled:opacity-50 ${
+        pinned
+          ? "text-status-pending"
+          : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+      }`}
+      title={pinned ? "Unpin" : "Pin to top"}
+    >
+      <Star className={`h-[18px] w-[18px] ${pinned ? "fill-current" : ""}`} />
     </button>
   );
 }
@@ -1010,15 +1246,13 @@ function MessageBubble({
   if (msg.isSystem) {
     return (
       <div className="flex items-center justify-center">
-        <span className="rounded-pill border border-brand-line bg-brand-light/80 px-3 py-1 text-[11px] font-medium text-brand-mute">
+        <span className="rounded-full border border-brand-line bg-brand-light/80 px-3 py-1 text-[11px] font-medium text-brand-mute">
           {msg.body || msg.systemEvent || "System event"}
         </span>
       </div>
     );
   }
 
-  // The host's own messages are authored by their user id. (Read flags can't be
-  // used — marking a thread read flips read_by_host on the guest's messages too.)
   const isFromHost = msg.senderId === selfUserId;
 
   return (
@@ -1028,14 +1262,15 @@ function MessageBubble({
       <Avatar
         initials={isFromHost ? hostInitials : guestInitials}
         imageUrl={isFromHost ? hostAvatarUrl : guestAvatarUrl}
-        size={32}
+        size={28}
+        className="mt-auto"
       />
       <div className="min-w-0">
         <div
-          className={`rounded-2xl px-3.5 py-2.5 text-sm leading-[1.55] shadow-[0_1px_1px_rgba(6,78,59,0.04)] ${
+          className={`px-4 py-3 text-[14.5px] leading-[1.55] ${
             isFromHost
-              ? "rounded-br-sm bg-brand-secondary text-white"
-              : "rounded-bl-sm border border-brand-line bg-white text-brand-ink"
+              ? "rounded-2xl rounded-br-[5px] bg-brand-secondary text-white"
+              : "rounded-2xl rounded-bl-[5px] border border-brand-line bg-white text-brand-ink"
           }`}
         >
           {msg.body ? (
@@ -1063,7 +1298,7 @@ function MessageBubble({
           ) : null}
         </div>
         <div
-          className={`mt-1 flex items-center gap-1.5 text-[11px] text-brand-mute ${
+          className={`mt-1.5 flex items-center gap-1.5 text-[11.5px] text-[#8AA89C] ${
             isFromHost ? "justify-end" : ""
           }`}
         >
@@ -1072,7 +1307,7 @@ function MessageBubble({
             <CheckCheck
               aria-label={msg.readByGuest ? "Read" : "Delivered"}
               className={`h-3.5 w-3.5 ${
-                msg.readByGuest ? "text-sky-500" : "text-brand-mute"
+                msg.readByGuest ? "text-brand-primary" : "text-[#8AA89C]"
               }`}
             />
           ) : null}
@@ -1086,10 +1321,12 @@ function MessageBubble({
 function Composer({
   conversationId,
   hostName,
+  guestName,
   templates,
 }: {
   conversationId: string;
   hostName: string;
+  guestName: string | null;
   templates: TemplateRow[];
 }) {
   const [value, setValue] = useState("");
@@ -1127,10 +1364,9 @@ function Composer({
   }
 
   return (
-    <div className="shrink-0 border-t border-brand-line bg-white px-5 py-3">
-      {/* Canned replies — click to insert a saved template into the draft. */}
+    <div>
       {templates.length > 0 ? (
-        <div className="thin-scroll -mt-0.5 flex items-center gap-2 overflow-x-auto pb-2">
+        <div className="thin-scroll mb-2 flex items-center gap-2 overflow-x-auto">
           <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             Quick replies
           </span>
@@ -1142,34 +1378,34 @@ function Composer({
                 setValue((v) => (v.trim() ? `${v}\n${t.body}` : t.body))
               }
               title={t.body}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1 text-[12px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
+              className="inline-flex shrink-0 items-center rounded-full border border-brand-line bg-white px-3 py-1 text-[12px] font-medium text-brand-ink transition-colors hover:bg-brand-light"
             >
               {t.title}
             </button>
           ))}
           <Link
             href="/dashboard/inbox/templates"
-            className="inline-flex shrink-0 items-center rounded-pill border border-dashed border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute hover:bg-brand-light"
+            className="inline-flex shrink-0 items-center rounded-full border border-dashed border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-mute hover:bg-brand-light"
           >
             Manage
           </Link>
         </div>
       ) : null}
 
-      <div className="rounded-card border border-brand-line bg-white transition-shadow focus-within:border-brand-primary focus-within:ring-4 focus-within:ring-brand-primary/15">
+      <div className="rounded-card border border-brand-line bg-white transition focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,.12)]">
         <textarea
           ref={textareaRef}
-          rows={3}
+          rows={2}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKey}
-          placeholder={`Reply as ${hostName}… (Shift+Enter for new line)`}
-          className="w-full resize-none bg-transparent px-4 pb-2 pt-3 text-sm text-brand-ink outline-none placeholder:text-brand-mute"
+          placeholder={`Reply to ${guestName?.split(" ")[0] ?? "guest"}…`}
+          className="w-full resize-none bg-transparent px-4 pb-1 pt-3 text-sm text-brand-ink outline-none placeholder:text-brand-mute"
         />
-        <div className="flex items-center gap-1 border-t border-brand-line px-2 pb-2 pt-1">
+        <div className="flex items-center gap-0.5 px-2 pb-2">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-brand-light"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light disabled:opacity-50"
             title="Attach (coming soon)"
             disabled
           >
@@ -1177,74 +1413,326 @@ function Composer({
           </button>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-brand-light"
-            title="Insert booking link (coming soon)"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light disabled:opacity-50"
+            title="Insert quote (coming soon)"
             disabled
           >
-            <LinkIcon className="h-4 w-4" />
+            <FileText className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-brand-light"
-            title="Emoji (coming soon)"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light disabled:opacity-50"
+            title="Quick replies"
+            disabled={templates.length === 0}
+            onClick={() => textareaRef.current?.focus()}
+          >
+            <MessageSquareText className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light disabled:opacity-50"
+            title="AI suggest (coming soon)"
             disabled
           >
-            <Smile className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" />
           </button>
-
-          <span className="mx-1 h-5 w-px bg-brand-line" />
-
-          <span className="hidden text-[11px] text-brand-mute sm:inline">
-            Enter to send · Shift+Enter for newline
+          <span className="ml-auto mr-1 hidden text-[11px] text-brand-mute sm:inline">
+            {hostName ? `as ${hostName}` : ""}
           </span>
-
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void send()}
-              disabled={!value.trim() || sending}
-              className="inline-flex h-9 items-center gap-1.5 rounded bg-brand-primary px-4 text-sm font-medium text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {sending ? "Sending…" : "Send"}
-              <SendHorizontal className="h-4 w-4" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => void send()}
+            disabled={!value.trim() || sending}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {sending ? "Sending…" : "Send"}
+            <ArrowUp className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── Pin toggle ──────────────────────────────────────────────
-function PinToggle({
-  conversationId,
-  pinned,
+// ── Slide-over details drawer ───────────────────────────────
+function DetailsDrawer({
+  open,
+  onClose,
+  context,
+  assignees,
 }: {
-  conversationId: string;
-  pinned: boolean;
+  open: boolean;
+  onClose: () => void;
+  context: ThreadContext;
+  assignees: Assignee[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={() =>
-        start(async () => {
-          const r = await togglePinAction(conversationId, !pinned);
-          if (r.ok) router.refresh();
-          else toast.error(r.error);
-        })
+
+  const refLabel = context.booking
+    ? "Vilo booking"
+    : context.isEnquiry
+      ? "Vilo enquiry"
+      : "Vilo conversation";
+  const refValue =
+    context.booking?.reference ??
+    `VILO-${context.conversationId.slice(0, 8).toUpperCase()}`;
+
+  function move(stage: PipelineStage, okMsg: string) {
+    start(async () => {
+      const r = await setPipelineStageAction(context.conversationId, stage);
+      if (r.ok) {
+        toast.success(okMsg);
+        router.refresh();
+      } else {
+        toast.error(r.error);
       }
-      className={`ml-auto inline-flex h-7 w-7 items-center justify-center rounded transition-colors disabled:opacity-50 ${
-        pinned
-          ? "text-status-pending"
-          : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-      }`}
-      title={pinned ? "Unpin" : "Pin to top"}
-    >
-      <Star className={`h-4 w-4 ${pinned ? "fill-current" : ""}`} />
-    </button>
+    });
+  }
+
+  const listingMeta = context.listing
+    ? [
+        [context.listing.city, context.listing.province]
+          .filter(Boolean)
+          .join(", "),
+        context.listing.maxGuests ? `sleeps ${context.listing.maxGuests}` : "",
+        context.listing.bedrooms
+          ? `${context.listing.bedrooms} ${context.listing.bedrooms === 1 ? "bedroom" : "bedrooms"}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+
+  return (
+    <>
+      {/* Scrim */}
+      <div
+        onClick={onClose}
+        className={`absolute inset-0 z-40 bg-[rgba(5,46,31,.32)] transition-opacity duration-200 ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      />
+      {/* Panel */}
+      <aside
+        className={`absolute inset-y-0 right-0 z-50 flex w-[380px] max-w-[92vw] flex-col bg-white shadow-[-10px_0_40px_-12px_rgba(6,78,59,.25)] transition-transform duration-300 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex h-14 shrink-0 items-center border-b border-brand-line px-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+              {refLabel}
+            </div>
+            <div className="num mt-0.5 font-mono text-[11px] text-brand-ink">
+              {refValue}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="thin-scroll flex-1 overflow-y-auto">
+          {/* Quote summary + confirm/decline (enquiries) */}
+          {context.quote || context.isEnquiry ? (
+            <div className="px-5 pb-4 pt-5">
+              <StatusChip tone="amber">
+                <Hourglass className="h-3 w-3" /> Awaiting your response
+              </StatusChip>
+              {context.quote ? (
+                <div className="mt-3 flex items-baseline justify-between gap-3">
+                  <span className="text-[12px] text-brand-mute">
+                    Quote total
+                  </span>
+                  <span className="num font-display text-2xl font-extrabold text-brand-ink">
+                    {formatMoney(context.quote.total, context.quote.currency)}
+                  </span>
+                </div>
+              ) : null}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => move("accepted", "Marked as accepted")}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full bg-brand-primary text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                >
+                  <Check className="h-4 w-4" /> Confirm
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => move("declined", "Marked as declined")}
+                  className="inline-flex h-10 items-center justify-center rounded-full border border-brand-line bg-white text-sm font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Listing card */}
+          {context.listing ? (
+            <div className="px-5 pb-5">
+              <div className="rounded-card border border-brand-line p-3.5">
+                <div className="font-display text-[14px] font-semibold text-brand-ink">
+                  {context.listing.name}
+                </div>
+                {listingMeta ? (
+                  <div className="mt-0.5 text-[11px] text-brand-mute">
+                    {listingMeta}
+                  </div>
+                ) : null}
+                {context.listing.slug ? (
+                  <Link
+                    href={`/listings/${context.listing.slug}`}
+                    className="mt-2 inline-flex items-center gap-1 text-[12px] text-brand-primary hover:underline"
+                  >
+                    View public page <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {/* Stay details */}
+          {context.booking ? (
+            <div className="px-5 pb-5">
+              <DrawerHeading>Stay details</DrawerHeading>
+              <dl>
+                <DrawerRow label="Check in">
+                  {fmtDate(context.booking.checkIn)}
+                </DrawerRow>
+                <DrawerRow label="Check out">
+                  {fmtDate(context.booking.checkOut)}
+                </DrawerRow>
+                {context.booking.nights ? (
+                  <DrawerRow label="Nights">
+                    <span className="num">{context.booking.nights}</span>
+                  </DrawerRow>
+                ) : null}
+                {context.booking.guests ? (
+                  <DrawerRow label="Guests">
+                    <span className="num">{context.booking.guests}</span>
+                  </DrawerRow>
+                ) : null}
+                <DrawerRow label="Total">
+                  <span className="num font-display font-bold text-brand-ink">
+                    {formatMoney(
+                      context.booking.total,
+                      context.booking.currency,
+                    )}
+                  </span>
+                </DrawerRow>
+                <DrawerRow label="Reference">
+                  <span className="font-mono text-[12px]">
+                    {context.booking.reference}
+                  </span>
+                </DrawerRow>
+              </dl>
+              <Link
+                href={`/dashboard/bookings/${context.booking.id}`}
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full bg-brand-primary text-sm font-semibold text-white hover:bg-brand-secondary"
+              >
+                <ExternalLink className="h-4 w-4" /> Open booking
+              </Link>
+            </div>
+          ) : null}
+
+          {/* Guest */}
+          <div className="px-5 pb-5">
+            <DrawerHeading>Guest</DrawerHeading>
+            <div className="flex items-center gap-3 py-1">
+              <Avatar
+                initials={initialsFrom(
+                  context.guest?.fullName ?? null,
+                  context.guest?.email ?? null,
+                )}
+                size={40}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-brand-ink">
+                  {context.guest?.fullName || "Guest"}
+                </div>
+                {context.guest?.email ? (
+                  <div className="truncate text-[12px] text-brand-mute">
+                    {context.guest.email}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2.5 text-[12px] text-brand-mute">
+              {context.guest?.phone ? (
+                <a
+                  href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-brand-line px-3 py-1.5 font-medium text-brand-ink hover:bg-brand-light"
+                >
+                  <Phone className="h-3.5 w-3.5 text-brand-primary" /> WhatsApp
+                </a>
+              ) : null}
+              <span className="inline-flex items-center gap-1">
+                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" /> Vilo
+                direct
+              </span>
+            </div>
+          </div>
+
+          {/* Pipeline + follow-up + linked quote (real wiring) */}
+          {context.isEnquiry || context.pipelineStage || context.quote ? (
+            <PipelineControl
+              conversationId={context.conversationId}
+              stage={context.pipelineStage}
+              quote={context.quote}
+              followUpAt={context.followUpAt}
+            />
+          ) : null}
+
+          {/* Assignee */}
+          {assignees.length > 1 ? (
+            <AssigneeSelect
+              conversationId={context.conversationId}
+              assignedTo={context.assignedTo}
+              assignees={assignees}
+            />
+          ) : null}
+
+          {/* Private notes */}
+          <ConversationNotes
+            conversationId={context.conversationId}
+            notes={context.notes}
+          />
+        </div>
+      </aside>
+    </>
+  );
+}
+
+function DrawerHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+      {children}
+    </div>
+  );
+}
+
+function DrawerRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex justify-between gap-3 border-t border-[#F1F6F2] py-2.5 text-[13.5px] first:border-t-0">
+      <dt className="text-brand-mute">{label}</dt>
+      <dd className="text-right font-semibold text-brand-ink">{children}</dd>
+    </div>
   );
 }
 
@@ -1289,208 +1777,7 @@ function AssigneeSelect({
   );
 }
 
-// ── Booking context pane ────────────────────────────────────
-function BookingPane({
-  context,
-  assignees,
-  visibleOnMobile,
-  onClose,
-}: {
-  context: ThreadContext;
-  assignees: Assignee[];
-  visibleOnMobile: boolean;
-  onClose: () => void;
-}) {
-  return (
-    <aside
-      className={`thin-scroll w-[340px] shrink-0 flex-col overflow-y-auto border-l border-brand-line bg-white ${
-        visibleOnMobile
-          ? "fixed inset-y-0 right-0 z-30 flex shadow-2xl xl:static xl:shadow-none"
-          : "hidden xl:flex"
-      }`}
-    >
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-brand-line bg-white/95 px-5 py-3 backdrop-blur">
-        <ClipboardList className="h-4 w-4 text-brand-primary" />
-        <div className="font-display text-[13.5px] font-semibold text-brand-ink">
-          Guest &amp; booking
-        </div>
-        <PinToggle
-          conversationId={context.conversationId}
-          pinned={context.pinned}
-        />
-        <button
-          type="button"
-          onClick={onClose}
-          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute hover:bg-brand-light xl:hidden"
-          title="Hide details"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-      </div>
-
-      <div className="border-b border-brand-line px-5 pb-5 pt-6 text-center">
-        <Avatar
-          initials={initialsFrom(
-            context.guest?.fullName ?? null,
-            context.guest?.email ?? null,
-          )}
-          size={64}
-          className="mx-auto"
-        />
-        <div className="mt-3 font-display text-lg font-bold text-brand-ink">
-          {context.guest?.fullName || "Guest"}
-        </div>
-        {context.guest?.email ? (
-          <div className="text-xs text-brand-mute">{context.guest.email}</div>
-        ) : null}
-        {context.guest?.phone ? (
-          <div className="text-xs text-brand-mute">{context.guest.phone}</div>
-        ) : null}
-
-        <div className="mt-4 flex items-center justify-center gap-2">
-          {context.isEnquiry ? <Pill tone="pending">Enquiry</Pill> : null}
-          {context.status === "open" ? (
-            <Pill tone="confirmed">Open</Pill>
-          ) : null}
-          {context.status === "resolved" ? (
-            <Pill tone="completed">Resolved</Pill>
-          ) : null}
-          {context.status === "archived" ? (
-            <Pill tone="cancelled">Archived</Pill>
-          ) : null}
-        </div>
-        {context.guest?.phone ? (
-          <a
-            href={`https://wa.me/${context.guest.phone.replace(/[^0-9]/g, "")}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-light"
-          >
-            <Phone className="h-3.5 w-3.5 text-brand-primary" /> WhatsApp
-          </a>
-        ) : null}
-      </div>
-
-      {context.isEnquiry || context.pipelineStage || context.quote ? (
-        <PipelineControl
-          conversationId={context.conversationId}
-          stage={context.pipelineStage}
-          quote={context.quote}
-          followUpAt={context.followUpAt}
-        />
-      ) : null}
-
-      {assignees.length > 1 ? (
-        <AssigneeSelect
-          conversationId={context.conversationId}
-          assignedTo={context.assignedTo}
-          assignees={assignees}
-        />
-      ) : null}
-
-      <ConversationNotes
-        conversationId={context.conversationId}
-        notes={context.notes}
-      />
-
-      {context.booking ? (
-        <div className="border-b border-brand-line px-5 py-5">
-          <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Booking
-          </div>
-          <dl className="space-y-2 text-[12.5px]">
-            <Row label="Reference">
-              <span className="font-mono text-brand-ink">
-                {context.booking.reference}
-              </span>
-            </Row>
-            <Row label="Listing">{context.listing?.name ?? "—"}</Row>
-            <Row label="Check in">{fmtDate(context.booking.checkIn)}</Row>
-            <Row label="Check out">{fmtDate(context.booking.checkOut)}</Row>
-            {context.booking.nights ? (
-              <Row label="Nights">
-                <span className="num">{context.booking.nights}</span>
-              </Row>
-            ) : null}
-            {context.booking.guests ? (
-              <Row label="Guests">
-                <span className="num">{context.booking.guests}</span>
-              </Row>
-            ) : null}
-            <div className="my-2 border-t border-brand-line" />
-            <Row label="Total">
-              <span className="num font-display font-bold text-brand-ink">
-                {formatMoney(context.booking.total, context.booking.currency)}
-              </span>
-            </Row>
-            <Row label="Status">
-              <span className="text-[11px] uppercase tracking-wider text-brand-mute">
-                {context.booking.status}
-              </span>
-            </Row>
-          </dl>
-
-          <div className="mt-4 space-y-2">
-            <Link
-              href={`/dashboard/bookings/${context.booking.id}`}
-              className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded bg-brand-primary text-sm font-medium text-white hover:bg-brand-secondary"
-            >
-              <ExternalLink className="h-4 w-4" /> Open booking
-            </Link>
-          </div>
-        </div>
-      ) : context.listing ? (
-        <div className="border-b border-brand-line px-5 py-5">
-          <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Listing
-          </div>
-          <div className="text-sm font-semibold text-brand-ink">
-            {context.listing.name}
-          </div>
-          {context.listing.slug ? (
-            <Link
-              href={`/listings/${context.listing.slug}`}
-              className="mt-1 inline-flex items-center gap-1 text-[12px] text-brand-primary hover:underline"
-            >
-              View public page <ExternalLink className="h-3 w-3" />
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className="px-5 py-5">
-        <div className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-          Thread
-        </div>
-        <div className="text-[12.5px] text-brand-mute">
-          Opened{" "}
-          {new Date(context.createdAt).toLocaleDateString("en-ZA", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          })}
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex justify-between gap-3">
-      <dt className="text-brand-mute">{label}</dt>
-      <dd className="text-right text-brand-ink">{children}</dd>
-    </div>
-  );
-}
-
-// ── Avatar & Pill ───────────────────────────────────────────
+// ── Avatar & chips ──────────────────────────────────────────
 const AVATAR_TINTS = [
   "bg-brand-secondary text-white",
   "bg-brand-primary text-brand-dark",
@@ -1534,10 +1821,10 @@ function Avatar({
     );
   }
   const fontSize =
-    size >= 56 ? "text-[18px]" : size >= 40 ? "text-[12px]" : "text-[10px]";
+    size >= 44 ? "text-[13px]" : size >= 32 ? "text-[11px]" : "text-[10px]";
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-full font-display font-bold ${tintFor(initials)} ${fontSize} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-display font-bold ${tintFor(initials)} ${fontSize} ${className}`}
       style={{ width: size, height: size }}
     >
       {initials}
@@ -1545,106 +1832,84 @@ function Avatar({
   );
 }
 
-type PillTone = "confirmed" | "pending" | "cancelled" | "completed";
-function Pill({
+function StatusChip({
   tone,
   children,
 }: {
-  tone: PillTone;
+  tone: ChipTone;
   children: React.ReactNode;
 }) {
-  const styles: Record<PillTone, string> = {
-    confirmed: "bg-brand-accent text-[#065F46]",
-    pending: "bg-[#FEF3C7] text-[#92400E]",
-    cancelled: "bg-[#FEE2E2] text-[#991B1B]",
-    completed: "bg-[#E0E7FF] text-[#3730A3]",
+  const styles: Record<ChipTone, { box: string; dot: string }> = {
+    green: {
+      box: "bg-[#ECFDF5] text-[#047857] border-[#C7F0DC]",
+      dot: "bg-[#10B981]",
+    },
+    amber: {
+      box: "bg-[#FFFBEB] text-[#B45309] border-[#FCE9B6]",
+      dot: "bg-[#F59E0B]",
+    },
+    red: {
+      box: "bg-[#FEF2F2] text-[#DC2626] border-[#FBD5D5]",
+      dot: "bg-[#EF4444]",
+    },
+    indigo: {
+      box: "bg-[#EEF0FF] text-[#4F46E5] border-[#D7DBFB]",
+      dot: "bg-[#6366F1]",
+    },
+    gray: {
+      box: "bg-[#F4F7F5] text-[#5B7065] border-[#E4EFE8]",
+      dot: "bg-[#94A3B8]",
+    },
   };
+  const s = styles[tone];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-pill px-2 py-[1px] text-[10.5px] font-semibold leading-[1.4] ${styles[tone]}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11.5px] font-semibold ${s.box}`}
     >
+      <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} />
       {children}
     </span>
   );
 }
 
 // ── Empty states ────────────────────────────────────────────
-function EmptyList({ folder, search }: { folder: Folder; search: string }) {
+function EmptyList({
+  folder,
+  search,
+  listingFilter,
+}: {
+  folder: Folder;
+  search: string;
+  listingFilter: string | null;
+}) {
   return (
-    <div className="px-6 py-12 text-center">
+    <div className="px-6 py-16 text-center">
       <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
         <InboxIcon className="h-6 w-6" />
       </div>
       <div className="font-display text-base font-semibold text-brand-ink">
         {search
           ? "Nothing matches that search"
-          : folder === "archived"
-            ? "Nothing archived"
-            : folder === "unread"
-              ? "You're all caught up"
-              : folder === "enquiries"
-                ? "No new enquiries"
-                : "No conversations yet"}
+          : listingFilter
+            ? "Nothing for this listing"
+            : folder === "archived" || folder === "past"
+              ? "Nothing here yet"
+              : folder === "unread"
+                ? "You're all caught up"
+                : folder === "enquiries"
+                  ? "No new enquiries"
+                  : "No conversations yet"}
       </div>
       <p className="mx-auto mt-1 max-w-xs text-[12.5px] text-brand-mute">
         {search
           ? "Try a different name, reference, or listing."
-          : "When guests message you about a booking or enquiry, it will show up here."}
+          : "When guests message you about a booking or enquiry, it shows up here."}
       </p>
     </div>
   );
 }
 
-function EmptyThread({ hasAny }: { hasAny: boolean }) {
-  return (
-    <div className="flex flex-1 items-center justify-center px-6">
-      <div className="max-w-sm text-center">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-          <PenSquare className="h-6 w-6" />
-        </div>
-        <div className="font-display text-lg font-bold text-brand-ink">
-          {hasAny ? "Pick a conversation" : "No messages yet"}
-        </div>
-        <p className="mt-1 text-sm text-brand-mute">
-          {hasAny
-            ? "Choose a thread from the list to read and reply."
-            : "When a guest sends you an enquiry or message, it lands here."}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 // ── Helpers ─────────────────────────────────────────────────
-function groupByDay(items: ConversationRow[]): {
-  label: string;
-  items: ConversationRow[];
-}[] {
-  const today = startOfDay(new Date());
-  const yesterday = startOfDay(new Date(today.getTime() - 86_400_000));
-  const week = startOfDay(new Date(today.getTime() - 6 * 86_400_000));
-
-  const buckets: Record<string, ConversationRow[]> = {
-    Today: [],
-    Yesterday: [],
-    "This week": [],
-    Earlier: [],
-  };
-
-  for (const it of items) {
-    const ref = it.lastMessageAt ?? it.createdAt;
-    const t = startOfDay(new Date(ref));
-    if (t.getTime() === today.getTime()) buckets["Today"].push(it);
-    else if (t.getTime() === yesterday.getTime()) buckets["Yesterday"].push(it);
-    else if (t.getTime() >= week.getTime()) buckets["This week"].push(it);
-    else buckets["Earlier"].push(it);
-  }
-
-  return Object.entries(buckets)
-    .filter(([, arr]) => arr.length > 0)
-    .map(([label, arr]) => ({ label, items: arr }));
-}
-
 function groupMessagesByDay(items: MessageRow[]): {
   label: string;
   items: MessageRow[];
