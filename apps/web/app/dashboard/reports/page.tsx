@@ -15,6 +15,7 @@ import { SeasonalityHeatmap } from "./_components/SeasonalityHeatmap";
 import { GuestDemographics } from "./_components/GuestDemographics";
 import { PopularRooms } from "./_components/PopularRooms";
 import { RefundsCancellations } from "./_components/RefundsCancellations";
+import { ScheduledReportsSection } from "./_components/ScheduledReportsSection";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -370,6 +371,28 @@ export default async function ReportsPage({
     avg_refund_turnaround_days: number;
   } | null;
 
+  // Fetch scheduled reports (separate from analytics data)
+  const { data: scheduledReportsData } = await supabase
+    .from("scheduled_reports")
+    .select("*")
+    .eq("host_id", host.id)
+    .order("created_at", { ascending: false });
+
+  const scheduledReports = (scheduledReportsData || []) as Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    report_type: string;
+    schedule_cron: string | null;
+    schedule_label: string | null;
+    format: string;
+    is_active: boolean;
+    last_run_at: string | null;
+    next_run_at: string | null;
+    recipients: Array<{ email: string; name: string }>;
+    scope_filter: Record<string, unknown>;
+  }>;
+
   return (
     <>
       {/* Header */}
@@ -488,6 +511,11 @@ export default async function ReportsPage({
                 )}
               </section>
             )}
+
+            {/* Scheduled Reports Section */}
+            <section className="border-t border-brand-line pt-6 lg:pt-7">
+              <ScheduledReportsSection initialReports={scheduledReports} />
+            </section>
           </>
         ) : (
           <div className="rounded border border-brand-line bg-white p-8 text-center">
