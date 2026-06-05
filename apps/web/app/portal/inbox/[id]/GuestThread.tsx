@@ -1,6 +1,7 @@
 "use client";
 
-import { KeyRound, Loader2, SendHorizontal } from "lucide-react";
+import { CheckCheck, KeyRound, Loader2, SendHorizontal } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -24,6 +25,8 @@ export type GuestMessage = {
   isSystem: boolean;
   systemEvent: string | null;
   quoteId: string | null;
+  readByHost: boolean;
+  readByGuest: boolean;
   createdAt: string;
 };
 
@@ -68,12 +71,14 @@ export function GuestThread({
   // One inline card per quote, at its first message — reflects the quote's
   // live state (request → sent quote with an accept button).
   const quoteCardMsgIds = firstQuoteMessageIds(messages, quotesById);
+  const router = useRouter();
   const [value, setValue] = useState("");
   const [pending, start] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const markedRef = useRef(false);
 
-  // Refresh the thread in realtime when a new message lands.
+  // Refresh the thread in realtime when a new message lands, and when read
+  // flags flip (so sent-tick receipts turn blue live once the host reads).
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -88,11 +93,21 @@ export function GuestThread({
         },
         () => window.location.reload(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => router.refresh(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, router]);
 
   // Mark read on mount.
   useEffect(() => {
@@ -238,11 +253,19 @@ export function GuestThread({
                     {m.body}
                   </div>
                   <div
-                    className={`mt-1 font-mono text-[10.5px] text-brand-mute ${
-                      mine ? "text-right" : ""
+                    className={`mt-1 flex items-center gap-1 font-mono text-[10.5px] text-brand-mute ${
+                      mine ? "justify-end" : ""
                     }`}
                   >
                     {fmtTime(m.createdAt)}
+                    {mine ? (
+                      <CheckCheck
+                        aria-label={m.readByHost ? "Read" : "Delivered"}
+                        className={`h-3.5 w-3.5 ${
+                          m.readByHost ? "text-sky-500" : "text-brand-mute"
+                        }`}
+                      />
+                    ) : null}
                   </div>
                 </div>
               </div>

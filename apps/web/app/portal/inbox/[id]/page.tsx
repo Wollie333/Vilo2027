@@ -69,7 +69,7 @@ export default async function GuestThreadPage({
   const { data: msgs } = await supabase
     .from("messages")
     .select(
-      "id, sender_id, body, is_system_message, system_event, quote_id, created_at",
+      "id, sender_id, body, is_system_message, system_event, quote_id, read_by_host, read_by_guest, created_at",
     )
     .eq("conversation_id", params.id)
     .order("created_at", { ascending: true });
@@ -81,6 +81,8 @@ export default async function GuestThreadPage({
     isSystem: m.is_system_message,
     systemEvent: (m as { system_event: string | null }).system_event ?? null,
     quoteId: (m as { quote_id: string | null }).quote_id ?? null,
+    readByHost: (m as { read_by_host: boolean }).read_by_host,
+    readByGuest: (m as { read_by_guest: boolean }).read_by_guest,
     createdAt: m.created_at,
   }));
 

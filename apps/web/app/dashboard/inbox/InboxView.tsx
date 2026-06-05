@@ -348,6 +348,11 @@ export function InboxView({
       )
       .on(
         "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
         { event: "UPDATE", schema: "public", table: "conversations" },
         () => router.refresh(),
       )
@@ -1040,16 +1045,15 @@ function MessageBubble({
             isFromHost ? "justify-end" : ""
           }`}
         >
-          {isFromHost ? (
-            msg.readByGuest ? (
-              <span className="inline-flex items-center gap-0.5 text-brand-primary">
-                <CheckCheck className="h-3 w-3" /> Seen
-              </span>
-            ) : (
-              <CheckCheck className="h-3 w-3 text-brand-mute" />
-            )
-          ) : null}
           {timeOfDay(msg.createdAt)}
+          {isFromHost ? (
+            <CheckCheck
+              aria-label={msg.readByGuest ? "Read" : "Delivered"}
+              className={`h-3.5 w-3.5 ${
+                msg.readByGuest ? "text-sky-500" : "text-brand-mute"
+              }`}
+            />
+          ) : null}
         </div>
       </div>
     </div>
