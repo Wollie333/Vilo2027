@@ -951,6 +951,24 @@ function MessageBubble({
   hostAvatarUrl: string | null;
   guestAvatarUrl: string | null;
 }) {
+  if (msg.isSystem && msg.systemEvent === "access_details") {
+    return (
+      <div className="mx-auto w-full max-w-[88%] rounded-card border border-brand-primary/30 bg-brand-accent/30 p-4">
+        <div className="flex items-center gap-2">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
+            <KeyRound className="h-4 w-4" />
+          </span>
+          <span className="font-display text-[14px] font-bold text-brand-ink">
+            Access details sent to guest
+          </span>
+        </div>
+        <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-brand-ink">
+          {msg.body}
+        </pre>
+      </div>
+    );
+  }
+
   if (msg.isSystem) {
     return (
       <div className="flex items-center justify-center">
