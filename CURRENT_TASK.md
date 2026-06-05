@@ -516,7 +516,32 @@ See `ANALYTICS_DEPLOYMENT.md` for complete guide. Summary:
 
 ---
 
-**Last Updated:** 2026-06-06 02:00 UTC
+**Last Updated:** 2026-06-06 03:15 UTC
 **Status:** ✅ 100% COMPLETE - PRODUCTION READY
 
 **Next Steps:** Deploy following ANALYTICS_DEPLOYMENT.md guide
+
+---
+
+## 🔧 Error Handling Enhancement (2026-06-06)
+
+**Issue:** User encountered generic "Error loading analytics data. Please try again..." message when viewing the dashboard before migrations were applied.
+
+**Fix Applied:**
+- ✅ Added detailed `console.error` logging for all 11 RPC calls (helps pinpoint which function is failing)
+- ✅ Replaced simple error message with comprehensive help UI:
+  - Red warning icon
+  - Clear explanation: "analytics migrations haven't been applied yet"
+  - Step-by-step fix instructions with code snippets
+  - Browser console debugging tip
+  - Separate handling for "no data" vs "error" states
+  - Seeding instructions for demo data generation
+- ✅ Fixed ESLint `react/no-unescaped-entities` error (apostrophe encoding)
+- ✅ Build passes with zero errors
+- ✅ Committed and pushed to GitHub
+
+**User Experience Improvement:**
+Before: "Error loading analytics data. Please try again..."
+After: Detailed card showing exactly what's wrong, how to fix it, and where to find more info
+
+This change significantly improves the developer experience when deploying the analytics system for the first time.
