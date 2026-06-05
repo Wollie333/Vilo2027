@@ -12,6 +12,9 @@ import { CustomerJourney } from "./_components/CustomerJourney";
 import { PropertyPerformanceTable } from "./_components/PropertyPerformanceTable";
 import { RegionalBars } from "./_components/RegionalBars";
 import { SeasonalityHeatmap } from "./_components/SeasonalityHeatmap";
+import { GuestDemographics } from "./_components/GuestDemographics";
+import { PopularRooms } from "./_components/PopularRooms";
+import { RefundsCancellations } from "./_components/RefundsCancellations";
 
 export const metadata: Metadata = {
   title: "Analytics & Reports",
@@ -151,6 +154,9 @@ export default async function ReportsPage({
     timeToBookRes,
     regionalBreakdownRes,
     seasonalityHeatmapRes,
+    guestDemographicsRes,
+    popularRoomsRes,
+    refundsCancellationsRes,
   ] = await Promise.all([
     supabase.rpc("fetch_primary_kpis", {
       p_host_id: host.id,
@@ -202,6 +208,24 @@ export default async function ReportsPage({
       p_host_id: host.id,
       p_year: today.getFullYear(),
     }),
+    supabase.rpc("fetch_guest_demographics", {
+      p_host_id: host.id,
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_listing_id: filters.listingId || null,
+    }),
+    supabase.rpc("fetch_popular_rooms", {
+      p_host_id: host.id,
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_limit: 5,
+    }),
+    supabase.rpc("fetch_refunds_cancellations", {
+      p_host_id: host.id,
+      p_start_date: startDate,
+      p_end_date: endDate,
+      p_listing_id: filters.listingId || null,
+    }),
   ]);
 
   const kpisError =
@@ -212,7 +236,10 @@ export default async function ReportsPage({
     conversionFunnelRes.error ||
     timeToBookRes.error ||
     regionalBreakdownRes.error ||
-    seasonalityHeatmapRes.error;
+    seasonalityHeatmapRes.error ||
+    guestDemographicsRes.error ||
+    popularRoomsRes.error ||
+    refundsCancellationsRes.error;
 
   // Type assertions for the RPC responses
   const primaryKpis = primaryKpisRes.data as {
@@ -306,6 +333,41 @@ export default async function ReportsPage({
       month_num: number;
       [province: string]: string | number;
     }>;
+  } | null;
+
+  const guestDemographics = guestDemographicsRes.data as {
+    returning_guests: number;
+    new_guests: number;
+    country_breakdown: Array<{
+      country: string;
+      bookings: number;
+      percentage: number;
+    }>;
+  } | null;
+
+  const popularRooms = (popularRoomsRes.data || []) as Array<{
+    listing_id: string;
+    listing_name: string;
+    listing_slug: string;
+    cover_image_url: string | null;
+    occupancy_rate: number;
+    nights_booked: number;
+    revenue: number;
+    bookings_count: number;
+  }>;
+
+  const refundsCancellations = refundsCancellationsRes.data as {
+    refund_count: number;
+    refund_amount: number;
+    refund_rate: number;
+    cancellation_count: number;
+    cancellation_revenue_impact: number;
+    cancellation_rate: number;
+    cancellation_reasons: Array<{
+      reason: string;
+      count: number;
+    }>;
+    avg_refund_turnaround_days: number;
   } | null;
 
   return (
@@ -412,6 +474,17 @@ export default async function ReportsPage({
                     data={seasonalityHeatmap}
                     year={today.getFullYear()}
                   />
+                )}
+              </section>
+            )}
+
+            {/* Guest Demographics + Popular Rooms + Refunds */}
+            {(guestDemographics || popularRooms.length > 0 || refundsCancellations) && (
+              <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
+                {guestDemographics && <GuestDemographics data={guestDemographics} />}
+                {popularRooms.length > 0 && <PopularRooms data={popularRooms} />}
+                {refundsCancellations && (
+                  <RefundsCancellations data={refundsCancellations} />
                 )}
               </section>
             )}
