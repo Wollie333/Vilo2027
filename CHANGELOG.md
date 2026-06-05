@@ -31,6 +31,27 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-05 — Inbox: quote→booking→payment deal card, read receipts, pipeline — branch `main`
+
+### Built
+- **Deal lifecycle card** in the thread (host + guest, same format): a quote card now carries the whole deal — New quote → (guest/host) **Accept** auto-creates a booking → **Pay to confirm** (guest CTA Pay now) → **Confirmed/Paid** (with balance-due) → Booking info; plus **Quote rejected**.
+- **Accept auto-converts**: accepting a quote (portal or token) creates a `pending` booking via `acceptAndConvertQuote`, keeping the quote soft-hold until payment; a trigger flips the quote to `converted` when the booking confirms.
+- **Pay an existing booking**: `/booking/[id]/pay` + `initializePaymentForBookingAction` — choose **deposit or full**, pay by **Card (Paystack)** or **EFT**, reusing the existing payment pipeline + confirmation.
+- **Read receipts** (whatsapp-style): grey double-check = delivered, blue = read, live via message UPDATE subscriptions.
+- **Pipeline**: stage auto-advances (guest reply → negotiating, accept → accepted, decline → declined) without affecting the deal; a **Projected value** total under the pipeline rail.
+
+### Migrations
+- `20260605000004_quote_converted_on_payment.sql` — quote→converted trigger on booking confirm.
+- `20260605000005_help_accept_and_pay.sql` — guest help article.
+
+### Notes
+- PayPal still out (lib only); real Paystack refunds still pending; unpaid quote-bookings keep the soft-hold (cleanup cron is a follow-up). `pnpm build` + `pnpm lint` green per chunk.
+
+### Commit
+- `migration: flip quote to converted…` → `migration: help accept-and-pay` — `4bc69eb`…`(this)`
+
+---
+
 ## 2026-06-04 — Guest access: per-room + gate code, 1h unlock — branch `main`
 
 ### Built
