@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { acceptAndConvertQuote } from "@/lib/quotes/accept-convert";
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+export type ActionResult =
+  | { ok: true; bookingId?: string }
+  | { ok: false; error: string };
 
 // Auth-gated sibling of app/q/[id]/[token]/actions.ts. The public route trusts
 // an accept_token; here we trust the signed-in guest's session and verify they
@@ -45,16 +48,13 @@ export async function acceptMyQuoteAction(
   const gate = await gateByOwner(quoteId);
   if (!gate.ok) return gate;
 
-  const admin = createAdminClient();
-  const { error } = await admin
-    .from("quotes")
-    .update({ status: "accepted", accepted_at: new Date().toISOString() })
-    .eq("id", quoteId);
-  if (error) return { ok: false, error: "Could not record your acceptance." };
+  // Accepting auto-creates the booking (pending payment). The guest pays next.
+  const res = await acceptAndConvertQuote(quoteId);
+  if (!res.ok) return { ok: false, error: res.error };
 
   revalidatePath("/portal/quotes");
   revalidatePath(`/portal/quotes/${quoteId}`);
-  return { ok: true };
+  return { ok: true, bookingId: res.bookingId };
 }
 
 export async function declineMyQuoteAction(
