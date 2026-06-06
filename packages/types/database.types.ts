@@ -6065,6 +6065,49 @@ export type Database = {
         Args: { p_label: string; p_val: string }
         Returns: string
       }
+      _can_read_host: { Args: { p_host_id: string }; Returns: boolean }
+      _host_guest_rows: {
+        Args: { p_host_id: string }
+        Returns: {
+          avatar_url: string
+          avg_rating: number
+          channel: string
+          channels: string[]
+          country: string
+          currency: string
+          direct_value: number
+          email: string
+          est_fees_saved: number
+          first_stay: string
+          gkey: string
+          guest_id: string
+          guest_since: string
+          has_email: boolean
+          has_phone: boolean
+          is_all_direct: boolean
+          is_blocked: boolean
+          is_inhouse: boolean
+          is_lapsed: boolean
+          is_new: boolean
+          is_ota: boolean
+          is_returning: boolean
+          is_verified: boolean
+          is_vip: boolean
+          last_status: string
+          last_stay: string
+          lifetime_value: number
+          listing_ids: string[]
+          name: string
+          next_listing: string
+          next_stay: string
+          phone: string
+          review_count: number
+          tags: string[]
+          total_bookings: number
+          total_nights: number
+          total_stays: number
+        }[]
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -6304,6 +6347,25 @@ export type Database = {
         }
         Returns: Json
       }
+      fetch_guest_record: {
+        Args: { p_gkey: string; p_host_id: string }
+        Returns: Json
+      }
+      fetch_host_guests: {
+        Args: {
+          p_channel?: string
+          p_host_id: string
+          p_limit?: number
+          p_listing_id?: string
+          p_min_rating?: number
+          p_offset?: number
+          p_search?: string
+          p_segment?: string
+          p_sort?: string
+        }
+        Returns: Json
+      }
+      fetch_host_guests_summary: { Args: { p_host_id: string }; Returns: Json }
       fetch_popular_rooms: {
         Args: {
           p_end_date: string
@@ -6509,6 +6571,7 @@ export type Database = {
       get_my_host_id_as_staff: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
       gettransactionid: { Args: never; Returns: unknown }
+      guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
       host_doc_code: { Args: { p_host_id: string }; Returns: string }
       increment_help_article_view: {
