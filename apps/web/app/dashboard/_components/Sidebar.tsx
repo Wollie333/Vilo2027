@@ -42,6 +42,7 @@ const MAIN: GmailNavItem[] = [
     match: "exact",
   },
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/dashboard/guests", label: "Guests", icon: Users, match: "prefix" },
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
   {
@@ -137,12 +138,14 @@ export function Sidebar({
   canHost,
   canAdmin = false,
   inboxUnread = 0,
+  guestCount = 0,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
   canHost?: boolean;
   canAdmin?: boolean;
   inboxUnread?: number;
+  guestCount?: number;
 }) {
   const planLabel =
     plan === "free"
@@ -151,14 +154,18 @@ export function Sidebar({
         ? plan[0].toUpperCase() + plan.slice(1)
         : "—";
 
-  const mainItems = MAIN.map((item) =>
-    item.href === "/dashboard/inbox" && inboxUnread > 0
-      ? {
-          ...item,
-          badge: { text: String(inboxUnread), tone: "alert" as const },
-        }
-      : item,
-  );
+  const mainItems = MAIN.map((item) => {
+    if (item.href === "/dashboard/inbox" && inboxUnread > 0) {
+      return {
+        ...item,
+        badge: { text: String(inboxUnread), tone: "alert" as const },
+      };
+    }
+    if (item.href === "/dashboard/guests" && guestCount > 0) {
+      return { ...item, count: guestCount };
+    }
+    return item;
+  });
 
   const sections: GmailNavSection[] = [
     { items: mainItems },

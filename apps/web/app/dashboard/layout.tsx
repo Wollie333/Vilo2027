@@ -65,28 +65,36 @@ export default async function DashboardLayout({
   let listingCount = 0;
   let plan: string | null = null;
   let inboxUnread = 0;
+  let guestCount = 0;
 
   if (host) {
-    const [{ count }, { data: subscription }, { count: unread }] =
-      await Promise.all([
-        supabase
-          .from("listings")
-          .select("id", { count: "exact", head: true })
-          .eq("host_id", host.id),
-        supabase
-          .from("subscriptions")
-          .select("plan")
-          .eq("host_id", host.id)
-          .maybeSingle(),
-        supabase
-          .from("conversations")
-          .select("id", { count: "exact", head: true })
-          .eq("host_id", host.id)
-          .gt("unread_host", 0),
-      ]);
+    const [
+      { count },
+      { data: subscription },
+      { count: unread },
+      { data: guestSummary },
+    ] = await Promise.all([
+      supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id),
+      supabase
+        .from("subscriptions")
+        .select("plan")
+        .eq("host_id", host.id)
+        .maybeSingle(),
+      supabase
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id)
+        .gt("unread_host", 0),
+      supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
+    ]);
     listingCount = count ?? 0;
     plan = subscription?.plan ?? null;
     inboxUnread = unread ?? 0;
+    guestCount =
+      (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
   }
 
   // canHost for the workspace switcher: true if they have a hosts row OR
@@ -133,6 +141,7 @@ export default async function DashboardLayout({
             canHost={canHost}
             canAdmin={isPlatformStaff}
             inboxUnread={inboxUnread}
+            guestCount={guestCount}
           />
         }
         banner={<BroadcastBanner />}
