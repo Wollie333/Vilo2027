@@ -42,6 +42,7 @@ type RawListing = {
 type RawGuest = {
   full_name: string | null;
   email: string | null;
+  phone: string | null;
   avatar_url: string | null;
 } | null;
 type RawBooking = {
@@ -51,13 +52,16 @@ type RawBooking = {
   payment_status: string;
   scope: string;
   origin: string;
+  channel: string | null;
   guest_id: string | null;
   guest_name: string | null;
   guest_email: string | null;
+  guest_phone: string | null;
   check_in: string | null;
   check_out: string | null;
   nights: number | null;
   guests_count: number;
+  guests_breakdown: Record<string, unknown> | null;
   total_amount: number;
   currency: string;
   created_at: string;
@@ -94,7 +98,7 @@ export default async function BookingsListPage() {
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, scope, origin, guest_id, guest_name, guest_email, check_in, check_out, nights, guests_count, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url )",
+      "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
     )
     .order("created_at", { ascending: false })
     .limit(400);
@@ -123,15 +127,19 @@ export default async function BookingsListPage() {
       b.guest?.email ||
       b.guest_email ||
       "Guest";
+    const gb = b.guests_breakdown ?? null;
+    const numOf = (v: unknown) => (typeof v === "number" ? v : 0);
     return {
       id: b.id,
       reference: b.reference,
       status: b.status,
       paymentStatus: b.payment_status,
       origin: b.origin,
+      channel: b.channel,
       scope: b.scope,
       guestName,
       guestEmail: b.guest?.email ?? b.guest_email ?? null,
+      guestPhone: b.guest?.phone ?? b.guest_phone ?? null,
       guestAvatar: b.guest?.avatar_url ?? null,
       stayIndex: stayIndex.get(b.id) ?? 1,
       listingName: b.listing.name,
@@ -140,6 +148,9 @@ export default async function BookingsListPage() {
       checkOut: b.check_out,
       nights: b.nights,
       guestsCount: b.guests_count,
+      adults: numOf(gb?.adults),
+      children: numOf(gb?.children),
+      infants: numOf(gb?.infants),
       totalAmount: Number(b.total_amount),
       currency: b.currency,
       createdAt: b.created_at,
