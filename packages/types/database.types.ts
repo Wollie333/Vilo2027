@@ -621,6 +621,7 @@ export type Database = {
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          channel: string | null
           check_in: string | null
           check_out: string | null
           checked_in_at: string | null
@@ -677,6 +678,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          channel?: string | null
           check_in?: string | null
           check_out?: string | null
           checked_in_at?: string | null
@@ -733,6 +735,7 @@ export type Database = {
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          channel?: string | null
           check_in?: string | null
           check_out?: string | null
           checked_in_at?: string | null
@@ -1553,6 +1556,51 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          gkey: string
+          host_id: string
+          id: string
+          is_pinned: boolean
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          gkey: string
+          host_id: string
+          id?: string
+          is_pinned?: boolean
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          gkey?: string
+          host_id?: string
+          id?: string
+          is_pinned?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_notes_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_article_feedback: {
         Row: {
           article_id: string
@@ -2002,8 +2050,12 @@ export type Database = {
       host_contacts: {
         Row: {
           blocked: boolean
+          blocked_at: string | null
+          blocked_reason: string | null
+          country: string | null
           created_at: string
           email: string
+          email_consent: boolean
           guest_id: string | null
           host_id: string
           id: string
@@ -2017,8 +2069,12 @@ export type Database = {
         }
         Insert: {
           blocked?: boolean
+          blocked_at?: string | null
+          blocked_reason?: string | null
+          country?: string | null
           created_at?: string
           email: string
+          email_consent?: boolean
           guest_id?: string | null
           host_id: string
           id?: string
@@ -2032,8 +2088,12 @@ export type Database = {
         }
         Update: {
           blocked?: boolean
+          blocked_at?: string | null
+          blocked_reason?: string | null
+          country?: string | null
           created_at?: string
           email?: string
+          email_consent?: boolean
           guest_id?: string | null
           host_id?: string
           id?: string
@@ -3298,6 +3358,60 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_view_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device: string | null
+          duration_seconds: number | null
+          id: string
+          listing_id: string
+          referrer: string | null
+          session_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_seconds?: number | null
+          id?: string
+          listing_id: string
+          referrer?: string | null
+          session_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_seconds?: number | null
+          id?: string
+          listing_id?: string
+          referrer?: string | null
+          session_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_view_events_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_view_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5098,6 +5212,66 @@ export type Database = {
           },
         ]
       }
+      report_runs: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          file_storage_path: string | null
+          file_url: string | null
+          format: string
+          host_id: string
+          id: string
+          report_type: string
+          scheduled_report_id: string | null
+          scope_filter: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          file_storage_path?: string | null
+          file_url?: string | null
+          format: string
+          host_id: string
+          id?: string
+          report_type: string
+          scheduled_report_id?: string | null
+          scope_filter: Json
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          file_storage_path?: string | null
+          file_url?: string | null
+          format?: string
+          host_id?: string
+          id?: string
+          report_type?: string
+          scheduled_report_id?: string | null
+          scope_filter?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_runs_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_runs_scheduled_report_id_fkey"
+            columns: ["scheduled_report_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_flags: {
         Row: {
           created_at: string
@@ -5368,6 +5542,68 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_reports: {
+        Row: {
+          created_at: string
+          description: string | null
+          format: string
+          host_id: string
+          id: string
+          is_active: boolean
+          last_run_at: string | null
+          name: string
+          next_run_at: string | null
+          recipients: Json
+          report_type: string
+          schedule_cron: string | null
+          schedule_label: string | null
+          scope_filter: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          format?: string
+          host_id: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name: string
+          next_run_at?: string | null
+          recipients?: Json
+          report_type: string
+          schedule_cron?: string | null
+          schedule_label?: string | null
+          scope_filter?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          format?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean
+          last_run_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          recipients?: Json
+          report_type?: string
+          schedule_cron?: string | null
+          schedule_label?: string | null
+          scope_filter?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_reports_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
         ]
@@ -5726,11 +5962,13 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          id_verified_at: string | null
           is_active: boolean
           is_lead: boolean
           languages: string[]
           marketing_opt_in: boolean
           phone: string | null
+          phone_verified_at: string | null
           preferred_cities: string[]
           role: string
           updated_at: string
@@ -5744,11 +5982,13 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          id_verified_at?: string | null
           is_active?: boolean
           is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
           phone?: string | null
+          phone_verified_at?: string | null
           preferred_cities?: string[]
           role?: string
           updated_at?: string
@@ -5762,11 +6002,13 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          id_verified_at?: string | null
           is_active?: boolean
           is_lead?: boolean
           languages?: string[]
           marketing_opt_in?: boolean
           phone?: string | null
+          phone_verified_at?: string | null
           preferred_cities?: string[]
           role?: string
           updated_at?: string
@@ -6053,9 +6295,57 @@ export type Database = {
         }
         Returns: Json
       }
+      fetch_guest_demographics: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_popular_rooms: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_limit?: number
+          p_start_date: string
+        }
+        Returns: Json
+      }
       fetch_primary_kpis: {
         Args: {
           p_channel?: string
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_property_performance: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_limit?: number
+          p_offset?: number
+          p_sort_by?: string
+          p_sort_direction?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_refunds_cancellations: {
+        Args: {
+          p_end_date: string
+          p_host_id: string
+          p_listing_id?: string
+          p_start_date: string
+        }
+        Returns: Json
+      }
+      fetch_regional_breakdown: {
+        Args: {
           p_end_date: string
           p_host_id: string
           p_listing_id?: string
@@ -6072,6 +6362,10 @@ export type Database = {
           p_listing_id?: string
           p_start_date: string
         }
+        Returns: Json
+      }
+      fetch_seasonality_heatmap: {
+        Args: { p_host_id: string; p_year: number }
         Returns: Json
       }
       fetch_secondary_metrics: {
