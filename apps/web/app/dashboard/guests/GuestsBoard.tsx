@@ -39,6 +39,7 @@ import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 
 import { AddGuestModal } from "./AddGuestModal";
+import { BroadcastModal } from "./BroadcastModal";
 import { bulkTagAction, exportGuestsAction } from "./actions";
 
 // ── Types (shape of the fetch_host_guests / _summary RPC json) ──────────
@@ -266,6 +267,7 @@ export function GuestsBoard({
   const [sortOpen, setSortOpen] = useState(false);
   const [search, setSearch] = useState(q);
   const [addOpen, setAddOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -364,6 +366,12 @@ export function GuestsBoard({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMailOpen(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+          >
+            <Mail className="h-4 w-4 text-brand-mute" /> Email guests
+          </button>
           <button
             onClick={() => void runExport()}
             disabled={busy || totalCount === 0}
@@ -676,6 +684,11 @@ export function GuestsBoard({
       </section>
 
       <AddGuestModal open={addOpen} onOpenChange={setAddOpen} />
+      <BroadcastModal
+        open={mailOpen}
+        onOpenChange={setMailOpen}
+        defaultAudience={seg === "all" ? "all" : seg}
+      />
       <TagModal
         open={tagOpen}
         onOpenChange={setTagOpen}

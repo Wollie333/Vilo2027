@@ -505,6 +505,140 @@ export async function exportGuestsAction(
   return { ok: true, data: { csv, filename: "vilo-guests.csv" } };
 }
 
+// ── Bulk mailer — broadcast (POPIA-safe, monthly-capped, build-only) ────
+const broadcastSchema = z.object({
+  audience: z.string().trim().min(1).max(60),
+  subject: z.string().trim().min(2, "Add a subject.").max(150),
+  body: z.string().trim().min(2, "Write a message.").max(8000),
+});
+export type BroadcastInput = z.infer<typeof broadcastSchema>;
+
+export async function sendBroadcastAction(
+  input: BroadcastInput,
+): Promise<
+  | { ok: true; sent: number; skipped: number }
+  | { ok: false; error: string; nextAllowedOn?: string }
+> {
+  const host = await getHost();
+  if (!host.ok) return { ok: false, error: host.error };
+
+  const parsed = broadcastSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Some fields look wrong.",
+    };
+  }
+  const v = parsed.data;
+
+  const supabase = createServerClient();
+
+  // Re-check the monthly cap server-side (never trust the client).
+  const { data: gate } = await supabase.rpc("can_send_broadcast", {
+    p_host_id: host.hostId,
+  });
+  const g = gate as {
+    allowed?: boolean;
+    next_allowed_on?: string;
+  } | null;
+  if (!g?.allowed) {
+    return {
+      ok: false,
+      error: "You've already sent this month's broadcast.",
+      nextAllowedOn: g?.next_allowed_on,
+    };
+  }
+
+  // Sender identity: platform verified domain, display name = host brand,
+  // reply-to = host's own email (decision D).
+  const [{ data: hostRow }, { data: me }] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("display_name")
+      .eq("id", host.hostId)
+      .maybeSingle(),
+    supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("id", host.userId)
+      .maybeSingle(),
+  ]);
+
+  const { sendGuestBroadcast } = await import("@/lib/guests/broadcast");
+  const res = await sendGuestBroadcast({
+    hostId: host.hostId,
+    userId: host.userId,
+    hostBrandName: hostRow?.display_name ?? null,
+    replyTo: me?.email ?? null,
+    audience: v.audience,
+    subject: v.subject,
+    body: v.body,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+
+  revalidatePath("/dashboard/guests");
+  return { ok: true, sent: res.sent, skipped: res.skipped };
+}
+
+export type BroadcastPreview = {
+  eligible: number;
+  no_email: number;
+  unsubscribed: number;
+  no_consent: number;
+};
+
+export async function broadcastPreviewAction(
+  audience: string,
+): Promise<ActionResult<BroadcastPreview>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { data, error } = await supabase.rpc("count_broadcast_recipients", {
+    p_host_id: host.hostId,
+    p_audience: audience,
+  });
+  if (error) return { ok: false, error: "Could not count recipients." };
+  return { ok: true, data: data as BroadcastPreview };
+}
+
+export type BroadcastStatus = {
+  canSend: boolean;
+  nextAllowedOn: string | null;
+  recent: {
+    id: string;
+    subject: string;
+    audience: string;
+    recipient_count: number;
+    sent_at: string;
+  }[];
+};
+
+export async function broadcastStatusAction(): Promise<
+  ActionResult<BroadcastStatus>
+> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const [{ data: gate }, { data: recent }] = await Promise.all([
+    supabase.rpc("can_send_broadcast", { p_host_id: host.hostId }),
+    supabase
+      .from("guest_broadcasts")
+      .select("id, subject, audience, recipient_count, sent_at")
+      .eq("host_id", host.hostId)
+      .order("sent_at", { ascending: false })
+      .limit(5),
+  ]);
+  const g = gate as { allowed?: boolean; next_allowed_on?: string } | null;
+  return {
+    ok: true,
+    data: {
+      canSend: g?.allowed ?? false,
+      nextAllowedOn: g?.next_allowed_on ?? null,
+      recent: (recent ?? []) as BroadcastStatus["recent"],
+    },
+  };
+}
+
 // ── Per-guest vCard ("your list, yours to keep" — Pillar 3) ─────────────
 export async function exportGuestVcardAction(
   gkey: string,
