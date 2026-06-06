@@ -20,11 +20,13 @@ import {
   ShieldCheck,
   Sparkles,
   Tag,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { formatMoney } from "@/lib/format";
+import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -429,6 +431,10 @@ export default async function BookingDetailPage({
     !booking.has_open_refund;
 
   const guestName = guest.full_name || "Guest";
+  const guestGkey = gkeyFor(
+    booking.guest_id,
+    guest.email ?? booking.guest_email,
+  );
 
   return (
     <div className="space-y-6">
@@ -716,6 +722,17 @@ export default async function BookingDetailPage({
                   </span>
                 )}
               </div>
+
+              {guestGkey ? (
+                <Link
+                  href={`/dashboard/guests/${guestGkey}`}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-pill border border-brand-line px-3 py-2.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+                >
+                  <Users className="h-4 w-4 text-brand-mute" /> View guest
+                  record
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : null}
             </div>
           </Card>
 

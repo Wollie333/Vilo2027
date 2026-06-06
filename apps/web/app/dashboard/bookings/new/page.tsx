@@ -19,7 +19,15 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function NewBookingPage() {
+export default async function NewBookingPage({
+  searchParams,
+}: {
+  searchParams: {
+    guestName?: string;
+    guestEmail?: string;
+    guestPhone?: string;
+  };
+}) {
   const supabase = createServerClient();
   const {
     data: { user },
@@ -227,6 +235,15 @@ export default async function NewBookingPage() {
     );
   }
 
+  const initialGuest =
+    searchParams.guestEmail || searchParams.guestName
+      ? {
+          name: searchParams.guestName ?? "",
+          email: searchParams.guestEmail ?? "",
+          phone: searchParams.guestPhone ?? "",
+        }
+      : null;
+
   return (
     <ManualBookingForm
       listings={listings}
@@ -234,6 +251,7 @@ export default async function NewBookingPage() {
       addons={addons}
       blocked={blocked}
       pastGuests={pastGuests}
+      initialGuest={initialGuest}
     />
   );
 }

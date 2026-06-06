@@ -146,12 +146,14 @@ export function ManualBookingForm({
   addons,
   blocked,
   pastGuests,
+  initialGuest,
 }: {
   listings: BookingListing[];
   rooms: BookingRoom[];
   addons: BookingAddon[];
   blocked: BookingBlocked[];
   pastGuests: PastGuest[];
+  initialGuest?: { name?: string; email?: string; phone?: string } | null;
 }) {
   const router = useRouter();
   const brandName = useBrandName();
@@ -169,9 +171,9 @@ export function ManualBookingForm({
   const [guestSearch, setGuestSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [matchedGuest, setMatchedGuest] = useState<PastGuest | null>(null);
-  const [guestName, setGuestName] = useState("");
-  const [guestEmail, setGuestEmail] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
+  const [guestName, setGuestName] = useState(initialGuest?.name ?? "");
+  const [guestEmail, setGuestEmail] = useState(initialGuest?.email ?? "");
+  const [guestPhone, setGuestPhone] = useState(initialGuest?.phone ?? "");
 
   const [nightlyRate, setNightlyRate] = useState("");
   const [cleaningFee, setCleaningFee] = useState("0");

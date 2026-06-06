@@ -6,17 +6,23 @@ import {
   ArrowUp,
   BadgeCheck,
   Calendar,
+  Ban,
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Download,
   MailCheck,
   MapPin,
   MessageSquare,
+  MoreHorizontal,
   Phone,
   Pin,
   PinOff,
+  Plus,
+  ShieldCheck,
   Sparkles,
   Star,
+  Tag as TagIcon,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,13 +30,22 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { sendMessageAction } from "@/app/dashboard/inbox/actions";
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 
 import {
   addGuestNoteAction,
+  addGuestTagAction,
+  blockGuestAction,
   deleteGuestNoteAction,
+  exportGuestVcardAction,
   pinGuestNoteAction,
+  unblockGuestAction,
 } from "../actions";
 
 export type GuestRecordData = {
@@ -394,6 +409,7 @@ export function GuestRecord({
                   <Phone className="h-4 w-4 text-brand-mute" /> Call
                 </a>
               ) : null}
+              <RecordActions r={r} />
             </div>
           </div>
 
@@ -899,6 +915,163 @@ function MiniStat({
       <div className="mt-1.5 font-display text-[20px] font-bold text-brand-ink">
         {value}
       </div>
+    </div>
+  );
+}
+
+// ── Record actions (More menu) ──────────────────────────────────────────
+function RecordActions({ r }: { r: GuestRecordData }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [tag, setTag] = useState("");
+
+  const newBookingHref = `/dashboard/bookings/new?${new URLSearchParams({
+    ...(r.name ? { guestName: r.name } : {}),
+    ...(r.email ? { guestEmail: r.email } : {}),
+    ...(r.phone ? { guestPhone: r.phone } : {}),
+  }).toString()}`;
+
+  async function exportVcard() {
+    setOpen(false);
+    const res = await exportGuestVcardAction(r.gkey);
+    if (!res.ok) {
+      void modal.error({ title: "Export failed", description: res.error });
+      return;
+    }
+    const blob = new Blob([res.data!.vcard], { type: "text/vcard" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = res.data!.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function addTag() {
+    if (!tag.trim()) return;
+    setTagOpen(false);
+    const res = await addGuestTagAction(r.gkey, tag.trim());
+    setTag("");
+    if (!res.ok) {
+      void modal.error({ title: "Couldn't tag", description: res.error });
+      return;
+    }
+    router.refresh();
+  }
+
+  async function toggleBlock() {
+    setOpen(false);
+    if (r.is_blocked) {
+      const res = await unblockGuestAction(r.gkey);
+      if (!res.ok)
+        void modal.error({ title: "Couldn't unblock", description: res.error });
+      else router.refresh();
+      return;
+    }
+    const ok = await modal.destructive({
+      title: `Block ${r.name ?? "this guest"}?`,
+      description:
+        "They'll be flagged as blocked across your dashboard. This is a display-only flag for now — it won't auto-reject their bookings.",
+      confirmLabel: "Block guest",
+    });
+    if (!ok) return;
+    const res = await blockGuestAction(r.gkey);
+    if (!res.ok)
+      void modal.error({ title: "Couldn't block", description: res.error });
+    else router.refresh();
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="flex h-[42px] w-[42px] items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+        title="More"
+      >
+        <MoreHorizontal className="h-5 w-5" />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[224px] rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+          <Link
+            href={newBookingHref}
+            className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <Plus className="h-4 w-4 text-brand-mute" /> New booking for guest
+          </Link>
+          <button
+            onMouseDown={() => {
+              setOpen(false);
+              setTagOpen(true);
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <TagIcon className="h-4 w-4 text-brand-mute" /> Add tag
+          </button>
+          <button
+            onMouseDown={() => void exportVcard()}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <Download className="h-4 w-4 text-brand-mute" /> Export (vCard)
+          </button>
+          <div className="my-1 h-px bg-brand-line" />
+          <button
+            onMouseDown={() => void toggleBlock()}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium hover:bg-red-50 ${
+              r.is_blocked ? "text-brand-ink" : "text-status-cancelled"
+            }`}
+          >
+            {r.is_blocked ? (
+              <>
+                <ShieldCheck className="h-4 w-4" /> Unblock guest
+              </>
+            ) : (
+              <>
+                <Ban className="h-4 w-4" /> Block guest
+              </>
+            )}
+          </button>
+        </div>
+      ) : null}
+
+      <FormModal
+        open={tagOpen}
+        onOpenChange={setTagOpen}
+        size="sm"
+        title="Add a tag"
+        description={`Tag ${r.name ?? "this guest"} (e.g. VIP, Corporate).`}
+      >
+        <form
+          id="record-tag-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void addTag();
+          }}
+        >
+          <input
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            placeholder="e.g. VIP"
+            autoFocus
+            maxLength={40}
+            className="h-10 w-full rounded-lg border border-brand-line bg-white px-3 text-sm text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          />
+        </form>
+        <FormModalFooter>
+          <FormModalCancel>Cancel</FormModalCancel>
+          <button
+            type="submit"
+            form="record-tag-form"
+            disabled={!tag.trim()}
+            className="rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary disabled:opacity-50"
+          >
+            Add tag
+          </button>
+        </FormModalFooter>
+      </FormModal>
     </div>
   );
 }
