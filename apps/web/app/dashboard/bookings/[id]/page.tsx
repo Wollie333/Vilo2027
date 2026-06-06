@@ -132,7 +132,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, listing_id, reference, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order )",
+      "id, host_id, listing_id, reference, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -277,8 +277,17 @@ export default async function BookingDetailPage({
       currency: string;
       is_required: boolean;
       sort_order: number;
+      source: string | null;
     }>
   ).sort((a, b) => a.sort_order - b.sort_order);
+
+  // The host's add-on catalogue for the quick-pick when adding extras.
+  const { data: catalogRows } = await supabase
+    .from("addons")
+    .select("id, name, unit_price")
+    .eq("host_id", booking.host_id)
+    .eq("is_active", true)
+    .order("sort_order");
 
   const notes = (
     (notesRaw ?? []) as unknown as Array<{
@@ -543,8 +552,15 @@ export default async function BookingDetailPage({
       subtotal: Number(a.subtotal),
       currency: a.currency,
       isRequired: a.is_required,
+      source: a.source ?? "quote",
     })),
     addonsSubtotal: addons.reduce((s, a) => s + Number(a.subtotal), 0),
+    addonCatalog: (catalogRows ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      unitPrice: Number(c.unit_price),
+    })),
+    canEditAddons: !TERMINAL_CANCELLED.has(status),
 
     paymentMethod: latestPayment?.method ?? booking.payment_method,
     paymentRecordId: latestPayment?.id ?? null,

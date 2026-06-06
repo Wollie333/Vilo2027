@@ -220,6 +220,34 @@ export async function recordBookingPayment(
   };
 }
 
+/**
+ * Once a booking is fully paid (balance floored at zero), mark all of its still-
+ * 'issued' invoices (the booking invoice + any addon invoices) as paid. This is
+ * also what flips the main invoice to paid when a deposit-first booking finally
+ * settles (the confirm trigger only marks it paid if it was paid in full up
+ * front).
+ */
+export async function markBookingInvoicesPaidIfSettled(
+  admin: Admin,
+  bookingId: string,
+): Promise<void> {
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("total_amount")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking) return;
+  const total = round2(Number(booking.total_amount));
+  const paid = await sumCompletedPaid(admin, bookingId);
+  if (total <= 0 || paid + 0.001 < total) return;
+
+  await admin
+    .from("invoices")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("booking_id", bookingId)
+    .eq("status", "issued");
+}
+
 /** Available store credit for a guest with a host (sum of the ledger). */
 export async function guestCreditBalance(
   admin: Admin,

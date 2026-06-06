@@ -36,6 +36,7 @@ import { useState } from "react";
 
 import { formatMoney } from "@/lib/format";
 
+import { AddonManager } from "./AddonManager";
 import { BookingActions } from "./BookingActions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
@@ -119,8 +120,11 @@ export type BookingDetailData = {
     subtotal: number;
     currency: string;
     isRequired: boolean;
+    source: string;
   }[];
   addonsSubtotal: number;
+  addonCatalog: { id: string; name: string; unitPrice: number }[];
+  canEditAddons: boolean;
 
   paymentMethod: string | null;
   paymentRecordId: string | null;
@@ -842,49 +846,73 @@ function GlanceRow({
 
 // ── Add-ons ────────────────────────────────────────────────────────────────
 function AddonsPanel({ d }: { d: BookingDetailData }) {
-  if (d.addons.length === 0) {
-    return (
-      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
-        No add-ons or extras on this booking.
-      </div>
-    );
-  }
   return (
-    <Card>
-      <CardHead title="Booked add-ons & extras" />
-      <ul className="divide-y divide-brand-line">
-        {d.addons.map((a) => (
-          <li key={a.id} className="flex items-center gap-3.5 px-5 py-3.5">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
-              <Sparkles className="h-4 w-4" />
+    <div className="space-y-5">
+      <Card>
+        <CardHead title="Booked add-ons & extras" />
+        {d.addons.length === 0 ? (
+          <p className="px-5 py-10 text-center text-[13px] text-brand-mute">
+            No add-ons or extras on this booking yet.
+          </p>
+        ) : (
+          <>
+            <ul className="divide-y divide-brand-line">
+              {d.addons.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3.5 px-5 py-3.5"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13.5px] font-semibold text-brand-ink">
+                      {a.label}
+                      {a.quantity > 1 ? (
+                        <span className="ml-1 text-brand-mute">
+                          × {a.quantity}
+                        </span>
+                      ) : null}
+                      {a.source === "host_added" ||
+                      a.source === "guest_added" ? (
+                        <span className="ml-2 rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
+                          {a.source === "guest_added"
+                            ? "Guest added"
+                            : "Added later"}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <span className="text-[13px] font-semibold text-brand-ink">
+                    {Number(a.subtotal) === 0
+                      ? a.isRequired
+                        ? "Included"
+                        : formatMoney(0, a.currency)
+                      : formatMoney(Number(a.subtotal), a.currency)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex items-center justify-between border-t border-brand-line px-5 py-3.5">
+              <span className="text-[12.5px] font-semibold text-brand-ink">
+                Add-ons subtotal
+              </span>
+              <span className="font-display text-[15px] font-bold text-brand-ink">
+                {formatMoney(d.addonsSubtotal, d.currency)}
+              </span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13.5px] font-semibold text-brand-ink">
-                {a.label}
-                {a.quantity > 1 ? (
-                  <span className="ml-1 text-brand-mute">× {a.quantity}</span>
-                ) : null}
-              </div>
-            </div>
-            <span className="text-[13px] font-semibold text-brand-ink">
-              {Number(a.subtotal) === 0
-                ? a.isRequired
-                  ? "Included"
-                  : formatMoney(0, a.currency)
-                : formatMoney(Number(a.subtotal), a.currency)}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center justify-between border-t border-brand-line px-5 py-3.5">
-        <span className="text-[12.5px] font-semibold text-brand-ink">
-          Add-ons subtotal
-        </span>
-        <span className="font-display text-[15px] font-bold text-brand-ink">
-          {formatMoney(d.addonsSubtotal, d.currency)}
-        </span>
-      </div>
-    </Card>
+          </>
+        )}
+      </Card>
+
+      {d.canEditAddons ? (
+        <AddonManager
+          bookingId={d.id}
+          currency={d.currency}
+          catalog={d.addonCatalog}
+        />
+      ) : null}
+    </div>
   );
 }
 

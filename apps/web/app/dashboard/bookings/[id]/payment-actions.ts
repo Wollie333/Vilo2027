@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { createAddonInvoice } from "@/lib/payments/invoicing";
 import {
   guestCreditBalance,
+  markBookingInvoicesPaidIfSettled,
   recomputeBookingPaymentState,
   recordBookingPayment,
   sumCompletedPaid,
@@ -116,6 +118,7 @@ export async function recordBookingPaymentAction(input: {
   if (!res.ok) return res;
 
   await confirmBookingIfPending(admin, booking as OwnedBooking);
+  await markBookingInvoicesPaidIfSettled(admin, input.bookingId);
   revalidateBooking(input.bookingId);
   return { ok: true };
 }
@@ -197,6 +200,7 @@ export async function markPaymentReceivedAction(
   }
 
   await confirmBookingIfPending(admin, booking as OwnedBooking);
+  await markBookingInvoicesPaidIfSettled(admin, booking.id);
   revalidateBooking(booking.id);
   return { ok: true };
 }
@@ -282,6 +286,132 @@ export async function applyGuestCreditAction(input: {
 
   await recomputeBookingPaymentState(admin, booking.id);
   await confirmBookingIfPending(admin, booking as OwnedBooking);
+  await markBookingInvoicesPaidIfSettled(admin, booking.id);
+  revalidateBooking(booking.id);
+  return { ok: true };
+}
+
+const TERMINAL_STATUSES = [
+  "cancelled_by_host",
+  "cancelled_by_guest",
+  "declined",
+  "expired",
+  "no_show",
+];
+
+/**
+ * Add one or more add-ons to an EXISTING booking (host side). Each call is a
+ * transaction: the add-on rows join the booking, the booking total grows, a
+ * supplementary 'addon' invoice is issued, and — when marked paid — a matching
+ * 'addon' payment is recorded and the invoice attached to it. Unpaid add-ons
+ * raise the outstanding balance for the host to collect later.
+ */
+export async function addBookingAddonAction(input: {
+  bookingId: string;
+  items: { label: string; quantity: number; unitPrice: number }[];
+  markPaid: boolean;
+}): Promise<PaymentResult> {
+  const hostId = await getHostId();
+  const userId = await getUserId();
+  if (!hostId) return { ok: false, error: "Not signed in." };
+
+  const items = (input.items ?? [])
+    .map((i) => ({
+      label: (i.label ?? "").trim(),
+      quantity: Math.max(1, Math.round(Number(i.quantity) || 0)),
+      unitPrice: Math.round((Number(i.unitPrice) || 0) * 100) / 100,
+    }))
+    .filter((i) => i.label && i.unitPrice >= 0);
+  if (items.length === 0) {
+    return { ok: false, error: "Add at least one add-on." };
+  }
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id, status, guest_id, reference, total_amount")
+    .eq("id", input.bookingId)
+    .maybeSingle();
+  if (!booking || booking.host_id !== hostId) {
+    return { ok: false, error: "Not your booking." };
+  }
+  if (TERMINAL_STATUSES.includes(booking.status as string)) {
+    return { ok: false, error: "Can't add to a cancelled booking." };
+  }
+
+  const { data: existing } = await admin
+    .from("booking_addons")
+    .select("sort_order")
+    .eq("booking_id", booking.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  let sort = (existing?.[0]?.sort_order ?? -1) + 1;
+
+  const txStamp = new Date().toISOString();
+  const { error: addErr } = await admin.from("booking_addons").insert(
+    items.map((i) => ({
+      booking_id: booking.id,
+      label: i.label,
+      quantity: i.quantity,
+      unit_price: i.unitPrice,
+      sort_order: sort++,
+      source: "host_added",
+      added_by: userId,
+      created_at_tx: txStamp,
+    })),
+  );
+  if (addErr) return { ok: false, error: "Could not add the add-on." };
+
+  const addonTotal =
+    Math.round(items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 100) /
+    100;
+
+  // The booking grows by the add-on charge.
+  await admin
+    .from("bookings")
+    .update({
+      total_amount:
+        Math.round((Number(booking.total_amount) + addonTotal) * 100) / 100,
+    })
+    .eq("id", booking.id);
+
+  // Optional immediate payment (cash/EFT taken at the time).
+  let paymentId: string | null = null;
+  if (input.markPaid && addonTotal > 0) {
+    const pay = await recordBookingPayment(admin, {
+      bookingId: booking.id,
+      amount: addonTotal,
+      kind: "addon",
+      method: "eft",
+      note: "Add-on payment",
+      recordedBy: userId,
+    });
+    if (pay.ok) paymentId = pay.data.paymentId;
+  }
+
+  // Supplementary invoice for this transaction, linked to the new add-on rows.
+  const invoiceId = await createAddonInvoice(admin, {
+    bookingId: booking.id,
+    lines: items.map((i) => ({
+      label: i.label,
+      quantity: i.quantity,
+      unit_price: i.unitPrice,
+      subtotal: Math.round(i.quantity * i.unitPrice * 100) / 100,
+    })),
+    paymentId,
+    paid: Boolean(input.markPaid),
+  });
+  if (invoiceId) {
+    await admin
+      .from("booking_addons")
+      .update({ invoice_id: invoiceId })
+      .eq("booking_id", booking.id)
+      .eq("source", "host_added")
+      .is("invoice_id", null);
+  }
+
+  await recomputeBookingPaymentState(admin, booking.id);
+  await markBookingInvoicesPaidIfSettled(admin, booking.id);
   revalidateBooking(booking.id);
   return { ok: true };
 }

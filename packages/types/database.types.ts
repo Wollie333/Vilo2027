@@ -471,48 +471,67 @@ export type Database = {
       }
       booking_addons: {
         Row: {
+          added_by: string | null
           addon_id: string | null
           booking_id: string
           created_at: string
+          created_at_tx: string | null
           currency: string
           id: string
+          invoice_id: string | null
           is_required: boolean
           label: string
           pricing_model: string | null
           quantity: number
           sort_order: number
+          source: string
           subtotal: number
           unit_price: number
         }
         Insert: {
+          added_by?: string | null
           addon_id?: string | null
           booking_id: string
           created_at?: string
+          created_at_tx?: string | null
           currency?: string
           id?: string
+          invoice_id?: string | null
           is_required?: boolean
           label: string
           pricing_model?: string | null
           quantity?: number
           sort_order?: number
+          source?: string
           subtotal?: number
           unit_price: number
         }
         Update: {
+          added_by?: string | null
           addon_id?: string | null
           booking_id?: string
           created_at?: string
+          created_at_tx?: string | null
           currency?: string
           id?: string
+          invoice_id?: string | null
           is_required?: boolean
           label?: string
           pricing_model?: string | null
           quantity?: number
           sort_order?: number
+          source?: string
           subtotal?: number
           unit_price?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "booking_addons_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "booking_addons_addon_id_fkey"
             columns: ["addon_id"]
@@ -525,6 +544,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_addons_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
@@ -2682,8 +2708,10 @@ export type Database = {
           id: string
           invoice_number: string
           issued_at: string
+          kind: string
           line_items: Json
           paid_at: string | null
+          payment_id: string | null
           pdf_storage_path: string | null
           status: string
           subtotal: number
@@ -2704,8 +2732,10 @@ export type Database = {
           id?: string
           invoice_number: string
           issued_at?: string
+          kind?: string
           line_items: Json
           paid_at?: string | null
+          payment_id?: string | null
           pdf_storage_path?: string | null
           status?: string
           subtotal: number
@@ -2726,8 +2756,10 @@ export type Database = {
           id?: string
           invoice_number?: string
           issued_at?: string
+          kind?: string
           line_items?: Json
           paid_at?: string | null
+          payment_id?: string | null
           pdf_storage_path?: string | null
           status?: string
           subtotal?: number
@@ -2739,7 +2771,7 @@ export type Database = {
           {
             foreignKeyName: "invoices_booking_id_fkey"
             columns: ["booking_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -2755,6 +2787,13 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
             referencedColumns: ["id"]
           },
         ]
