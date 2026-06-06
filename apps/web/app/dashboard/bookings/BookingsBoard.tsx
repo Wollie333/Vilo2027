@@ -27,6 +27,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { formatMoney } from "@/lib/format";
@@ -361,7 +362,20 @@ export function BookingsBoard({
   listingCount: number;
 }) {
   const today = dts(todayStr);
-  const [tab, setTab] = useState<TabKey>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const segParam = params.get("seg");
+  const tab: TabKey = TABS.some((t) => t.key === segParam)
+    ? (segParam as TabKey)
+    : "all";
+  const setTab = (t: TabKey) => {
+    const next = new URLSearchParams(params.toString());
+    if (t === "all") next.delete("seg");
+    else next.set("seg", t);
+    const qs = next.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
+  };
   const [sort, setSort] = useState<SortKey>("group");
   const [sortOpen, setSortOpen] = useState(false);
   const [density, setDensity] = useState<"comfortable" | "compact">(
