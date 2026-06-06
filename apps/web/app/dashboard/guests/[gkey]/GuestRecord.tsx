@@ -11,6 +11,8 @@ import {
   ChevronRight,
   CreditCard,
   Download,
+  FileMinus,
+  FileText,
   MailCheck,
   MapPin,
   MessageSquare,
@@ -19,6 +21,8 @@ import {
   Pin,
   PinOff,
   Plus,
+  Receipt,
+  RotateCcw,
   ShieldCheck,
   Sparkles,
   Star,
@@ -137,11 +141,64 @@ export type MessageItem = {
 
 export type TemplateItem = { id: string; title: string; body: string };
 
+export type ReviewItem = {
+  id: string;
+  rating: number;
+  body: string | null;
+  createdAt: string;
+  isPublished: boolean;
+  listingName: string;
+};
+
+export type InvoiceItem = {
+  id: string;
+  number: string;
+  status: string;
+  total: number;
+  currency: string;
+  date: string;
+};
+export type QuoteItem = {
+  id: string;
+  status: string;
+  total: number;
+  currency: string;
+  checkIn: string | null;
+  checkOut: string | null;
+  listingName: string;
+  date: string;
+};
+export type RefundItem = {
+  id: string;
+  status: string;
+  requested: number;
+  approved: number | null;
+  currency: string;
+  reason: string | null;
+  date: string;
+};
+export type CreditNoteItem = {
+  id: string;
+  number: string;
+  status: string;
+  total: number;
+  currency: string;
+  date: string;
+};
+export type FinanceData = {
+  invoices: InvoiceItem[];
+  quotes: QuoteItem[];
+  refunds: RefundItem[];
+  creditNotes: CreditNoteItem[];
+};
+
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "bookings", label: "Bookings" },
   { key: "messages", label: "Messages" },
   { key: "payments", label: "Payments" },
+  { key: "finances", label: "Finances" },
+  { key: "reviews", label: "Reviews" },
   { key: "notes", label: "Notes" },
 ] as const;
 
@@ -206,6 +263,8 @@ export function GuestRecord({
   record,
   bookings,
   payments,
+  reviews,
+  finances,
   notes,
   pinnedNote,
   messages,
@@ -217,6 +276,8 @@ export function GuestRecord({
   record: GuestRecordData;
   bookings: BookingItem[];
   payments: PaymentItem[];
+  reviews: ReviewItem[];
+  finances: FinanceData;
   notes: NoteItem[];
   pinnedNote: NoteItem | null;
   messages: MessageItem[];
@@ -478,6 +539,11 @@ export function GuestRecord({
         <nav className="flex items-stretch gap-7 overflow-x-auto">
           {TABS.map((t) => {
             const active = tab === t.key;
+            const financeCount =
+              finances.invoices.length +
+              finances.quotes.length +
+              finances.refunds.length +
+              finances.creditNotes.length;
             const count =
               t.key === "bookings"
                 ? bookings.length
@@ -485,9 +551,13 @@ export function GuestRecord({
                   ? payments.length
                   : t.key === "messages"
                     ? messages.length
-                    : t.key === "notes"
-                      ? notes.length
-                      : undefined;
+                    : t.key === "reviews"
+                      ? reviews.length
+                      : t.key === "finances"
+                        ? financeCount
+                        : t.key === "notes"
+                          ? notes.length
+                          : undefined;
             return (
               <button
                 key={t.key}
@@ -533,6 +603,10 @@ export function GuestRecord({
           />
         ) : tab === "notes" ? (
           <NotesPanel gkey={r.gkey} notes={notes} />
+        ) : tab === "reviews" ? (
+          <ReviewsPanel reviews={reviews} />
+        ) : tab === "finances" ? (
+          <FinancesPanel finances={finances} />
         ) : (
           <PaymentsPanel
             r={r}
@@ -915,6 +989,217 @@ function MiniStat({
       <div className="mt-1.5 font-display text-[20px] font-bold text-brand-ink">
         {value}
       </div>
+    </div>
+  );
+}
+
+// ── Reviews panel ───────────────────────────────────────────────────────
+function ReviewsPanel({ reviews }: { reviews: ReviewItem[] }) {
+  if (reviews.length === 0) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
+        This guest hasn&rsquo;t left any reviews yet.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {reviews.map((rev) => (
+        <section
+          key={rev.id}
+          className="rounded-card border border-brand-line bg-white p-5 shadow-card"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${i < rev.rating ? "fill-amber-400 text-amber-400" : "text-brand-line"}`}
+                />
+              ))}
+              <span className="ml-1 text-[13px] font-semibold text-brand-ink">
+                {rev.rating.toFixed(1)}
+              </span>
+            </div>
+            <span
+              className={`rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold ${
+                rev.isPublished
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  : "border-brand-line bg-brand-light text-brand-mute"
+              }`}
+            >
+              {rev.isPublished ? "Published" : "Hidden"}
+            </span>
+          </div>
+          {rev.body ? (
+            <p className="mt-2.5 text-[13.5px] leading-relaxed text-brand-ink">
+              &ldquo;{rev.body}&rdquo;
+            </p>
+          ) : null}
+          <div className="mt-2.5 text-[11.5px] text-brand-mute">
+            {rev.listingName} · {fmtDate(rev.createdAt.slice(0, 10))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+// ── Finances panel (invoices · quotes · refunds · credit notes) ──────────
+function financeStatusCls(status: string): string {
+  const s = status.toLowerCase();
+  if (["paid", "issued", "accepted", "completed", "approved"].includes(s))
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (["pending", "sent", "draft", "negotiating", "escalated"].includes(s))
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  if (["declined", "cancelled", "void", "expired", "lost"].includes(s))
+    return "border-red-200 bg-red-50 text-red-600";
+  return "border-brand-line bg-brand-light text-brand-mute";
+}
+
+function FinanceSection({
+  icon: Icon,
+  title,
+  count,
+  children,
+}: {
+  icon: typeof FileText;
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+        <Icon className="h-4 w-4 text-brand-mute" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          {title}
+        </span>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {count}
+        </span>
+      </div>
+      {count === 0 ? (
+        <div className="px-5 py-6 text-center text-[12.5px] text-brand-mute">
+          None for this guest.
+        </div>
+      ) : (
+        <div>{children}</div>
+      )}
+    </section>
+  );
+}
+
+function FinanceRow({
+  href,
+  primary,
+  secondary,
+  amount,
+  status,
+}: {
+  href: string;
+  primary: string;
+  secondary: string;
+  amount: string;
+  status: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0 hover:bg-brand-light/50"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[13px] font-semibold text-brand-ink">
+          {primary}
+        </div>
+        <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+          {secondary}
+        </div>
+      </div>
+      <div className="font-display text-[13px] font-bold tabular-nums text-brand-ink">
+        {amount}
+      </div>
+      <span
+        className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11px] font-semibold capitalize ${financeStatusCls(status)}`}
+      >
+        {status.replace(/_/g, " ")}
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+    </Link>
+  );
+}
+
+function FinancesPanel({ finances }: { finances: FinanceData }) {
+  const { invoices, quotes, refunds, creditNotes } = finances;
+  const empty =
+    invoices.length + quotes.length + refunds.length + creditNotes.length === 0;
+
+  if (empty) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
+        No financial documents for this guest yet. Invoices, quotes, refunds and
+        credit notes will appear here.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <FinanceSection icon={Receipt} title="Invoices" count={invoices.length}>
+        {invoices.map((i) => (
+          <FinanceRow
+            key={i.id}
+            href={`/dashboard/invoices/${i.id}`}
+            primary={i.number}
+            secondary={fmtDate(i.date.slice(0, 10))}
+            amount={formatMoney(i.total, i.currency)}
+            status={i.status}
+          />
+        ))}
+      </FinanceSection>
+
+      <FinanceSection icon={FileText} title="Quotes" count={quotes.length}>
+        {quotes.map((q) => (
+          <FinanceRow
+            key={q.id}
+            href={`/dashboard/quotes/${q.id}`}
+            primary={q.listingName}
+            secondary={`${fmtShort(q.checkIn)} → ${fmtShort(q.checkOut)} · ${fmtDate(q.date.slice(0, 10))}`}
+            amount={formatMoney(q.total, q.currency)}
+            status={q.status}
+          />
+        ))}
+      </FinanceSection>
+
+      <FinanceSection icon={RotateCcw} title="Refunds" count={refunds.length}>
+        {refunds.map((rf) => (
+          <FinanceRow
+            key={rf.id}
+            href="/dashboard/refunds"
+            primary={rf.reason || "Refund request"}
+            secondary={fmtDate(rf.date.slice(0, 10))}
+            amount={formatMoney(rf.approved ?? rf.requested, rf.currency)}
+            status={rf.status}
+          />
+        ))}
+      </FinanceSection>
+
+      <FinanceSection
+        icon={FileMinus}
+        title="Credit notes"
+        count={creditNotes.length}
+      >
+        {creditNotes.map((c) => (
+          <FinanceRow
+            key={c.id}
+            href={`/dashboard/credit-notes/${c.id}`}
+            primary={c.number}
+            secondary={fmtDate(c.date.slice(0, 10))}
+            amount={formatMoney(c.total, c.currency)}
+            status={c.status}
+          />
+        ))}
+      </FinanceSection>
     </div>
   );
 }

@@ -1556,6 +1556,98 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_broadcasts: {
+        Row: {
+          audience: string
+          body: string
+          created_by: string | null
+          host_id: string
+          id: string
+          recipient_count: number
+          sent_at: string
+          status: string
+          subject: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          created_by?: string | null
+          host_id: string
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          status?: string
+          subject: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_by?: string | null
+          host_id?: string
+          id?: string
+          recipient_count?: number
+          sent_at?: string
+          status?: string
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_broadcasts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_broadcasts_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_marketing: {
+        Row: {
+          email: string
+          gkey: string
+          host_id: string
+          is_subscribed: boolean
+          source: string | null
+          subscribed_at: string
+          unsub_token: string
+          unsubscribed_at: string | null
+        }
+        Insert: {
+          email: string
+          gkey: string
+          host_id: string
+          is_subscribed?: boolean
+          source?: string | null
+          subscribed_at?: string
+          unsub_token?: string
+          unsubscribed_at?: string | null
+        }
+        Update: {
+          email?: string
+          gkey?: string
+          host_id?: string
+          is_subscribed?: boolean
+          source?: string | null
+          subscribed_at?: string
+          unsub_token?: string
+          unsubscribed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_marketing_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_notes: {
         Row: {
           author_id: string | null
@@ -6239,6 +6331,15 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      broadcast_audience: {
+        Args: { p_audience: string; p_host_id: string }
+        Returns: {
+          email: string
+          first_name: string
+          gkey: string
+          status: string
+        }[]
+      }
       calculate_booking_price: {
         Args: {
           p_check_in: string
@@ -6252,6 +6353,7 @@ export type Database = {
         Args: { p_booking_id: string; p_cancelled_at?: string }
         Returns: Json
       }
+      can_send_broadcast: { Args: { p_host_id: string }; Returns: Json }
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
@@ -6265,6 +6367,10 @@ export type Database = {
           p_unit_price: number
         }
         Returns: number
+      }
+      count_broadcast_recipients: {
+        Args: { p_audience: string; p_host_id: string }
+        Returns: Json
       }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:

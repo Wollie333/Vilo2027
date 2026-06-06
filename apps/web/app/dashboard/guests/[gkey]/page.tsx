@@ -6,10 +6,15 @@ import { createServerClient } from "@/lib/supabase/server";
 import {
   GuestRecord,
   type BookingItem,
+  type CreditNoteItem,
   type GuestRecordData,
+  type InvoiceItem,
   type MessageItem,
   type NoteItem,
   type PaymentItem,
+  type QuoteItem,
+  type RefundItem,
+  type ReviewItem,
   type TemplateItem,
 } from "./GuestRecord";
 
@@ -147,6 +152,116 @@ export default async function GuestRecordPage({
     }));
   }
 
+  // Listing id → name map (for reviews + quotes that reference a listing directly).
+  const { data: listingRows } = await supabase
+    .from("listings")
+    .select("id, name")
+    .eq("host_id", host.id);
+  const listingNames = new Map<string, string>(
+    (listingRows ?? []).map((l) => [l.id, l.name]),
+  );
+
+  // Reviews this (registered) guest has left.
+  let reviews: ReviewItem[] = [];
+  if (guestId) {
+    const { data: rv } = await supabase
+      .from("reviews")
+      .select("id, rating, body, created_at, is_published, listing_id")
+      .eq("host_id", host.id)
+      .eq("guest_id", guestId)
+      .order("created_at", { ascending: false });
+    reviews = (rv ?? []).map((r) => ({
+      id: r.id,
+      rating: r.rating,
+      body: r.body,
+      createdAt: r.created_at,
+      isPublished: r.is_published,
+      listingName: listingNames.get(r.listing_id) ?? "Listing",
+    }));
+  }
+
+  // Finances — invoices, refunds, credit notes (by booking) + quotes (by guest).
+  let invoices: InvoiceItem[] = [];
+  let refunds: RefundItem[] = [];
+  let creditNotes: CreditNoteItem[] = [];
+  if (bookingIds.length > 0) {
+    const [inv, rf, cn] = await Promise.all([
+      supabase
+        .from("invoices")
+        .select("id, invoice_number, status, total_amount, currency, issued_at")
+        .in("booking_id", bookingIds)
+        .order("issued_at", { ascending: false }),
+      supabase
+        .from("refund_requests")
+        .select(
+          "id, status, requested_amount, approved_amount, currency, reason, created_at",
+        )
+        .in("booking_id", bookingIds)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("credit_notes")
+        .select(
+          "id, credit_note_number, status, total_amount, currency, issued_at",
+        )
+        .in("booking_id", bookingIds)
+        .order("issued_at", { ascending: false }),
+    ]);
+    invoices = (inv.data ?? []).map((i) => ({
+      id: i.id,
+      number: i.invoice_number,
+      status: i.status,
+      total: Number(i.total_amount),
+      currency: i.currency,
+      date: i.issued_at,
+    }));
+    refunds = (rf.data ?? []).map((r) => ({
+      id: r.id,
+      status: r.status,
+      requested: Number(r.requested_amount),
+      approved: r.approved_amount == null ? null : Number(r.approved_amount),
+      currency: r.currency,
+      reason: r.reason,
+      date: r.created_at,
+    }));
+    creditNotes = (cn.data ?? []).map((c) => ({
+      id: c.id,
+      number: c.credit_note_number,
+      status: c.status,
+      total: Number(c.total_amount),
+      currency: c.currency,
+      date: c.issued_at,
+    }));
+  }
+
+  let quotes: QuoteItem[] = [];
+  {
+    let qq = supabase
+      .from("quotes")
+      .select(
+        "id, status, total_amount, currency, check_in, check_out, listing_id, created_at",
+      )
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+    if (guestId && email)
+      qq = qq.or(`guest_id.eq.${guestId},guest_email.ilike.${email}`);
+    else if (guestId) qq = qq.eq("guest_id", guestId);
+    else if (email) qq = qq.ilike("guest_email", email);
+    else qq = qq.eq("id", "00000000-0000-0000-0000-000000000000");
+    const { data: qrows } = await qq;
+    quotes = (qrows ?? []).map((q) => ({
+      id: q.id,
+      status: q.status,
+      total: Number(q.total_amount),
+      currency: q.currency,
+      checkIn: q.check_in,
+      checkOut: q.check_out,
+      listingName: listingNames.get(q.listing_id) ?? "Listing",
+      date: q.created_at,
+    }));
+  }
+
   // Notes timeline (newest first, pinned on top) with author names.
   const { data: notesData } = await supabase
     .from("guest_notes")
@@ -234,6 +349,8 @@ export default async function GuestRecordPage({
       record={record}
       bookings={bookings}
       payments={payments}
+      reviews={reviews}
+      finances={{ invoices, quotes, refunds, creditNotes }}
       notes={notes}
       pinnedNote={pinnedNote}
       messages={messages}
