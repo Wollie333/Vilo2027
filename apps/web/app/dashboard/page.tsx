@@ -1,29 +1,17 @@
 import type { Metadata } from "next";
-import {
-  ArrowRight,
-  Banknote,
-  BarChart3,
-  Bell,
-  CalendarCheck,
-  CalendarClock,
-  FileText,
-  Sparkles,
-  Star,
-} from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { getBrandName } from "@/lib/brand";
-import { formatMoney } from "@/lib/format";
 import { fetchGettingStartedState } from "@/lib/help/queries";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { AcademyCards } from "./_components/AcademyCards";
-import { DashboardPreview } from "./_components/DashboardPreview";
+import {
+  MainDashboard,
+  type MainDashboardData,
+} from "./_components/MainDashboard";
+import { OnboardingDashboard } from "./_components/OnboardingDashboard";
 import { FirstListingTeaser } from "./_components/FirstListingTeaser";
-import { FirstLoginHero } from "./_components/FirstLoginHero";
-import { CompletedSetupHeader } from "./_components/CompletedSetupHeader";
-import { SetupChecklist } from "./_components/SetupChecklist";
-import { SetupSidePanel } from "./_components/SetupSidePanel";
 import { buildSetupSteps } from "./_components/setupSteps";
 import { WelcomeToast } from "./WelcomeToast";
 
@@ -33,43 +21,41 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const CONFIRMED = new Set(["confirmed", "checked_in", "completed"]);
+const DAY = 86_400_000;
+
 function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
-
-function startOfMonth(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
-}
-
-function endOfMonth(d: Date): Date {
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
-}
-
-const CONFIRMED_STATUSES = ["confirmed", "checked_in", "completed"] as const;
-
-const BOOKING_STATUS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Pending", cls: "bg-amber-100 text-amber-800" },
-  pending_eft: { label: "Pending EFT", cls: "bg-amber-100 text-amber-800" },
-  confirmed: { label: "Confirmed", cls: "bg-green-100 text-green-800" },
-  checked_in: { label: "Checked in", cls: "bg-emerald-100 text-emerald-800" },
-  completed: { label: "Completed", cls: "bg-indigo-100 text-indigo-800" },
-  cancelled_by_guest: { label: "Cancelled", cls: "bg-red-100 text-red-700" },
-  cancelled_by_host: { label: "Cancelled", cls: "bg-red-100 text-red-700" },
-  declined: { label: "Declined", cls: "bg-red-100 text-red-700" },
-  expired: { label: "Expired", cls: "bg-brand-line text-brand-mute" },
-  no_show: { label: "No-show", cls: "bg-red-100 text-red-700" },
-};
-
 function timeAgo(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const min = Math.floor(diffMs / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return "now";
+  if (min < 60) return `${min}m`;
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return `${hr}h`;
   const day = Math.floor(hr / 24);
-  if (day < 7) return `${day}d ago`;
+  if (day < 7) return `${day}d`;
   return new Date(iso).toLocaleDateString("en-ZA");
+}
+function initialsOf(name: string | null): string {
+  if (!name) return "G";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "G"
+  );
+}
+function fmtRange(ci: string | null, co: string | null): string {
+  if (!ci) return "—";
+  const f = (s: string) =>
+    new Date(`${s}T12:00:00Z`).toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "short",
+    });
+  return co ? `${f(ci)} – ${f(co)}` : f(ci);
 }
 
 export default async function DashboardPage({
@@ -83,611 +69,377 @@ export default async function DashboardPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pull everything we need in parallel.
-  const monthStart = startOfMonth(new Date());
-  const monthEnd = endOfMonth(new Date());
-  const monthStartIso = isoDate(monthStart);
-  const monthEndIso = isoDate(monthEnd);
-  const today = isoDate(new Date());
-  const sevenDays = isoDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000));
-
-  // Resolve the host first — the listings preview below must be scoped to
-  // host_id (listings has a public_read_published RLS policy, so an unscoped
-  // query leaks other hosts' published listings). The booking queries rely on
-  // host_manage_own_bookings RLS and need no explicit filter.
   const { data: host } = await supabase
     .from("hosts")
     .select("id, handle, display_name, avg_rating, total_reviews")
     .eq("user_id", user!.id)
     .maybeSingle();
 
-  const fallbackHostId = "00000000-0000-0000-0000-000000000000";
-  const [
-    { data: monthBookings },
-    { data: upcomingCheckIns },
-    { data: recentBookings },
-    { data: listings },
-    { count: pendingCount },
-    { data: enquiries },
-    { data: recentNotifications },
-  ] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select("id, total_amount, currency, status, nights, check_in")
-      .gte("check_in", monthStartIso)
-      .lte("check_in", monthEndIso),
-    supabase
-      .from("bookings")
-      .select(
-        "id, reference, check_in, guests_count, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey!inner ( full_name, email )",
-      )
-      .in("status", ["confirmed", "checked_in"])
-      .gte("check_in", today)
-      .lte("check_in", sevenDays)
-      .order("check_in", { ascending: true })
-      .limit(8),
-    supabase
-      .from("bookings")
-      .select(
-        "id, reference, status, payment_status, check_in, check_out, total_amount, currency, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey!inner ( full_name, email )",
-      )
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("listings")
-      .select(
-        "id, name, slug, is_published, booking_mode, listing_rooms ( id )",
-      )
-      .eq("host_id", host?.id ?? fallbackHostId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "pending"),
-    // Open quote-request enquiries (host inbox) — the freshest first.
-    supabase
-      .from("conversations")
-      .select(
-        "id, unread_host, last_message_at, last_message_preview, pipeline_stage, guest:user_profiles!conversations_guest_id_fkey ( full_name, email ), listing:listings ( name )",
-      )
-      .eq("host_id", host?.id ?? fallbackHostId)
-      .eq("is_enquiry", true)
-      .eq("status", "open")
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .limit(6),
-    // The host's own recent in-app notifications.
-    supabase
-      .from("in_app_notifications")
-      .select("id, title, body, link, read_at, created_at, severity")
-      .order("created_at", { ascending: false })
-      .limit(6),
-  ]);
-
-  // ── KPIs ──
-  const confirmedSet = new Set(CONFIRMED_STATUSES as readonly string[]);
-  const confirmedThisMonth = (monthBookings ?? []).filter((b) =>
-    confirmedSet.has(b.status as string),
-  );
-
-  const revenue = confirmedThisMonth.reduce(
-    (acc, b) => acc + Number(b.total_amount),
-    0,
-  );
-  const bookingsCount = (monthBookings ?? []).length;
-  const confirmedCount = confirmedThisMonth.length;
-  const pendingThisMonth = (monthBookings ?? []).filter(
-    (b) => b.status === "pending",
-  ).length;
-
-  const totalListings =
-    (listings ?? []).filter((l) => l.is_published).length || 0;
-  const daysInMonth = monthEnd.getUTCDate() - monthStart.getUTCDate() + 1;
-  const totalAvailableNights = totalListings * daysInMonth;
-  const bookedNights = confirmedThisMonth.reduce(
-    (acc, b) => acc + (Number(b.nights) || 0),
-    0,
-  );
-  const occupancyPct =
-    totalAvailableNights > 0
-      ? Math.round((bookedNights / totalAvailableNights) * 100)
-      : null;
-
-  const avgRating = host?.avg_rating ? Number(host.avg_rating) : null;
-  const totalReviews = host?.total_reviews ?? 0;
-
-  const justOnboarded = searchParams?.welcome === "1";
-  const needsOnboarding = !host;
-
   const firstName = host
     ? host.display_name.split(" ")[0]
     : (user?.email ?? "").split("@")[0];
 
-  // Setup state powers the first-login experience (hero + checklist + side
-  // panel). Only fetched once the host row exists — without it there's
-  // nothing to gate on. Falls back to redirecting back to onboarding.
-  const setupState = host ? await fetchGettingStartedState(user!.id) : null;
+  const setupState = await fetchGettingStartedState(user!.id).catch(() => null);
   const setupSteps = setupState ? buildSetupSteps(setupState) : [];
-  // A published listing means setup was 100% (the publish gate enforces
-  // profile/banking/photos/rooms/policy), so never nag a host who is already
-  // live — even if a sub-check or cache hiccups. Otherwise require every step.
   const setupComplete =
-    (setupState?.listing_published.done ?? false) ||
-    (setupSteps.length > 0 && setupSteps.every((s) => s.done));
-  const hasFirstListing = (listings ?? []).length > 0;
+    !!host &&
+    ((setupState?.listing_published.done ?? false) ||
+      (setupSteps.length > 0 && setupSteps.every((s) => s.done)));
 
-  return (
-    <div className="space-y-6 lg:space-y-7">
-      {justOnboarded ? <WelcomeToast /> : null}
+  const justOnboarded = searchParams?.welcome === "1";
 
-      {needsOnboarding ? (
-        <>
-          <section className="-mt-1">
-            <h2 className="font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-              Welcome to {brandName}.
-            </h2>
-            <p className="mt-1 text-sm text-brand-mute">
-              Finish onboarding to take your first booking.
-            </p>
-          </section>
-          <Link
-            href="/signup/host"
-            className="flex items-start gap-4 rounded-card border border-brand-primary/40 bg-brand-accent/60 p-5 shadow-card transition-colors hover:bg-brand-accent"
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-white text-brand-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <div className="font-display font-semibold text-brand-dark">
-                Finish setting up your host profile
-              </div>
-              <p className="mt-0.5 text-sm text-brand-mute">
-                Five quick steps — handle, listing type, first listing, plan.
-                Until then your guests can&rsquo;t book you.
-              </p>
-            </div>
-            <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-brand-primary" />
-          </Link>
-        </>
-      ) : null}
-
-      {host && !setupComplete ? (
-        <>
-          <FirstLoginHero
-            firstName={firstName}
-            handle={host.handle}
-            steps={setupSteps}
-          />
-
-          <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-            <SetupChecklist steps={setupSteps} />
-            <SetupSidePanel
-              firstName={firstName}
-              handle={host.handle}
-              email={user?.email ?? ""}
-              emailVerified={setupState?.email_verified.done ?? false}
-              steps={setupSteps}
-            />
+  // ── No host row yet → keep a simple finish-signup prompt. ──
+  if (!host) {
+    return (
+      <div className="mx-auto max-w-[680px] space-y-5">
+        {justOnboarded ? <WelcomeToast /> : null}
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink">
+            Welcome to {brandName}.
+          </h1>
+          <p className="mt-1 text-sm text-brand-mute">
+            Finish onboarding to take your first booking.
+          </p>
+        </div>
+        <Link
+          href="/signup/host"
+          className="flex items-start gap-4 rounded-card border border-brand-primary/40 bg-brand-accent/60 p-5 shadow-card transition-colors hover:bg-brand-accent"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-white text-brand-primary">
+            <Sparkles className="h-5 w-5" />
           </div>
+          <div className="flex-1">
+            <div className="font-display font-semibold text-brand-dark">
+              Finish setting up your host profile
+            </div>
+            <p className="mt-0.5 text-sm text-brand-mute">
+              A few quick steps — handle, listing, payouts. Until then your
+              guests can&rsquo;t book you.
+            </p>
+          </div>
+          <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-brand-primary" />
+        </Link>
+      </div>
+    );
+  }
 
-          {!hasFirstListing ? <FirstListingTeaser /> : null}
-        </>
-      ) : null}
-
-      {host && setupComplete ? (
-        <CompletedSetupHeader
+  // ── Setup not 100% → onboarding view only (dashboard unlocks at 100%). ──
+  if (!setupComplete) {
+    const { data: anyListing } = await supabase
+      .from("listings")
+      .select("id")
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .limit(1);
+    const hasFirstListing = (anyListing ?? []).length > 0;
+    return (
+      <div className="space-y-6">
+        {justOnboarded ? <WelcomeToast /> : null}
+        <OnboardingDashboard
+          brandName={brandName}
           firstName={firstName}
           handle={host.handle}
-          pendingCount={pendingCount ?? null}
-          checklist={<SetupChecklist steps={setupSteps} />}
-          attention={
-            <SetupSidePanel
-              firstName={firstName}
-              handle={host.handle}
-              email={user?.email ?? ""}
-              emailVerified={setupState?.email_verified.done ?? false}
-              steps={setupSteps}
-            />
-          }
+          steps={setupSteps}
         />
-      ) : null}
-
-      {host ? (
-        <>
-          {/* KPI tiles */}
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-4">
-            <KpiTile
-              icon={Banknote}
-              label="Revenue · this month"
-              value={formatMoney(revenue, "ZAR")}
-              sub={`${confirmedCount} confirmed booking${confirmedCount === 1 ? "" : "s"}`}
-            />
-            <KpiTile
-              icon={CalendarCheck}
-              label="Bookings · this month"
-              value={String(bookingsCount)}
-              sub={`${confirmedCount} confirmed · ${pendingThisMonth} pending`}
-            />
-            <KpiTile
-              icon={BarChart3}
-              label="Occupancy"
-              value={occupancyPct == null ? "—" : `${occupancyPct}%`}
-              sub={
-                totalListings === 0
-                  ? "Publish a listing first"
-                  : `${bookedNights} of ${totalAvailableNights} nights`
-              }
-            />
-            <KpiTile
-              icon={Star}
-              label="Avg rating"
-              value={avgRating == null ? "—" : avgRating.toFixed(1)}
-              sub={
-                totalReviews === 0
-                  ? "Reviews land after first stay"
-                  : `${totalReviews} review${totalReviews === 1 ? "" : "s"}`
-              }
-            />
-          </section>
-
-          {/* Operational grid — what needs the host's attention now. */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Bookings */}
-            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Bookings
-                  </div>
-                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    {pendingCount && pendingCount > 0
-                      ? `${pendingCount} pending · latest`
-                      : "Latest"}
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/bookings"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-                >
-                  See all
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              {!recentBookings || recentBookings.length === 0 ? (
-                <EmptyState
-                  icon={CalendarCheck}
-                  title="No bookings yet"
-                  body="Once a guest reserves, it will land here."
-                />
-              ) : (
-                <ul className="divide-y divide-brand-line">
-                  {recentBookings.map((b) => {
-                    const listing = b.listing as unknown as { name: string };
-                    const guest = b.guest as unknown as {
-                      full_name: string | null;
-                      email: string | null;
-                    };
-                    const meta =
-                      BOOKING_STATUS[b.status as string] ??
-                      BOOKING_STATUS.pending;
-                    return (
-                      <li key={b.id} className="flex items-center gap-3 py-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-brand-dark">
-                            {guest.full_name || guest.email || "Guest"} ·{" "}
-                            {listing.name}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-2">
-                            <span
-                              className={`rounded-pill px-2 py-0.5 text-[10px] font-semibold ${meta.cls}`}
-                            >
-                              {meta.label}
-                            </span>
-                            <span className="font-mono text-[11px] text-brand-mute">
-                              {b.check_in} → {b.check_out}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="shrink-0 text-right text-xs">
-                          <div className="font-display font-bold text-brand-ink">
-                            {formatMoney(Number(b.total_amount), b.currency)}
-                          </div>
-                          <Link
-                            href={`/dashboard/bookings/${b.id}`}
-                            className="text-[11px] font-semibold text-brand-primary hover:underline"
-                          >
-                            View →
-                          </Link>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            {/* Arrivals (check-ins) */}
-            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Arrivals
-                  </div>
-                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    Next 7 days
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/calendar"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-                >
-                  Calendar
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              {!upcomingCheckIns || upcomingCheckIns.length === 0 ? (
-                <EmptyState
-                  icon={CalendarClock}
-                  title="No arrivals yet"
-                  body="When a confirmed booking lands within the next week, you&rsquo;ll see it here."
-                />
-              ) : (
-                <ul className="divide-y divide-brand-line">
-                  {upcomingCheckIns.map((b) => {
-                    const listing = b.listing as unknown as { name: string };
-                    const guest = b.guest as unknown as {
-                      full_name: string | null;
-                      email: string | null;
-                    };
-                    const isToday = b.check_in === today;
-                    return (
-                      <li key={b.id} className="flex items-center gap-3 py-3">
-                        <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-card border border-brand-line bg-brand-light text-brand-ink">
-                          <span className="text-[10px] uppercase">
-                            {new Intl.DateTimeFormat("en-ZA", {
-                              month: "short",
-                            }).format(new Date(b.check_in!))}
-                          </span>
-                          <span className="font-display text-sm font-bold">
-                            {new Date(b.check_in!).getUTCDate()}
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate text-sm font-medium text-brand-dark">
-                              {guest.full_name || guest.email || "Guest"}
-                            </span>
-                            {isToday ? (
-                              <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-semibold text-white">
-                                Today
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="truncate text-[11px] text-brand-mute">
-                            {listing.name} · {b.guests_count}{" "}
-                            {b.guests_count === 1 ? "guest" : "guests"}
-                          </div>
-                        </div>
-                        <Link
-                          href={`/dashboard/bookings/${b.id}`}
-                          className="shrink-0 text-xs font-semibold text-brand-primary hover:underline"
-                        >
-                          View →
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            {/* Quote requests (open enquiries) */}
-            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Quote requests
-                  </div>
-                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    Open enquiries
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/inbox?f=enquiries"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-                >
-                  Inbox
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              {!enquiries || enquiries.length === 0 ? (
-                <EmptyState
-                  icon={FileText}
-                  title="No open quote requests"
-                  body="New enquiries from guests on your listings show up here."
-                />
-              ) : (
-                <ul className="divide-y divide-brand-line">
-                  {enquiries.map((c) => {
-                    const guest = c.guest as unknown as {
-                      full_name: string | null;
-                      email: string | null;
-                    } | null;
-                    const listing = c.listing as unknown as {
-                      name: string;
-                    } | null;
-                    const unread = (c.unread_host ?? 0) > 0;
-                    return (
-                      <li key={c.id} className="flex items-start gap-3 py-3">
-                        <span
-                          aria-hidden
-                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                            unread ? "bg-brand-primary" : "bg-transparent"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-brand-dark">
-                            {guest?.full_name || guest?.email || "Guest"}
-                            {listing?.name ? (
-                              <span className="text-brand-mute">
-                                {" "}
-                                · {listing.name}
-                              </span>
-                            ) : null}
-                          </div>
-                          {c.last_message_preview ? (
-                            <div className="truncate text-[11px] text-brand-mute">
-                              {c.last_message_preview}
-                            </div>
-                          ) : null}
-                        </div>
-                        <div className="shrink-0 text-right">
-                          {c.last_message_at ? (
-                            <div className="text-[11px] text-brand-mute">
-                              {timeAgo(c.last_message_at)}
-                            </div>
-                          ) : null}
-                          <Link
-                            href={`/dashboard/inbox?f=enquiries&c=${c.id}`}
-                            className="text-[11px] font-semibold text-brand-primary hover:underline"
-                          >
-                            Open →
-                          </Link>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
-            {/* Notifications */}
-            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                    Notifications
-                  </div>
-                  <div className="mt-1 font-display text-base font-semibold text-brand-ink">
-                    Recent activity
-                  </div>
-                </div>
-                <Link
-                  href="/dashboard/notifications"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
-                >
-                  See all
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </div>
-              {!recentNotifications || recentNotifications.length === 0 ? (
-                <EmptyState
-                  icon={Bell}
-                  title="Nothing yet"
-                  body="Bookings, payments and announcements will show up here."
-                />
-              ) : (
-                <ul className="divide-y divide-brand-line">
-                  {recentNotifications.map((n) => {
-                    const unread = !n.read_at;
-                    return (
-                      <li key={n.id} className="flex items-start gap-3 py-3">
-                        <span
-                          aria-hidden
-                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                            unread
-                              ? n.severity === "critical"
-                                ? "bg-red-600"
-                                : n.severity === "high"
-                                  ? "bg-amber-500"
-                                  : "bg-brand-primary"
-                              : "bg-transparent"
-                          }`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          {n.link ? (
-                            <Link
-                              href={n.link}
-                              className="block truncate text-sm font-medium text-brand-dark hover:text-brand-primary hover:underline"
-                            >
-                              {n.title}
-                            </Link>
-                          ) : (
-                            <div className="truncate text-sm font-medium text-brand-dark">
-                              {n.title}
-                            </div>
-                          )}
-                          <div className="text-[11px] text-brand-mute">
-                            {timeAgo(n.created_at)}
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+        {!hasFirstListing ? (
+          <div className="mx-auto max-w-[1080px]">
+            <FirstListingTeaser />
           </div>
+        ) : null}
+      </div>
+    );
+  }
 
-          {/* While setup is in progress, surface educational content and a
-              preview of what the dashboard will look like once they have a
-              live listing. Both auto-hide once setup is complete. */}
-          {!setupComplete ? (
-            <>
-              <AcademyCards />
-              <DashboardPreview />
-            </>
-          ) : null}
-        </>
-      ) : null}
-    </div>
+  // ── Live host → the full dashboard. ──
+  const now = new Date();
+  const monthStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
   );
-}
-
-function KpiTile({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: typeof Banknote;
-  label: string;
-  value: string;
-  sub: string;
-}) {
-  return (
-    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded bg-brand-accent text-brand-secondary">
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-        <span className="text-xs font-medium text-brand-mute">{label}</span>
-      </div>
-      <div className="num mt-3 font-display text-3xl font-bold text-brand-ink">
-        {value}
-      </div>
-      <div className="mt-1 text-xs text-brand-mute">{sub}</div>
-    </div>
+  const monthEnd = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0),
   );
-}
+  const prevStart = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+  );
+  const prevEnd = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0),
+  );
+  const today = isoDate(now);
+  const ninetyAgo = isoDate(new Date(Date.now() - 90 * DAY));
 
-function EmptyState({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: typeof CalendarCheck;
-  title: string;
-  body: string;
-}) {
+  const [
+    { data: monthBookings },
+    { data: prevBookings },
+    { data: last90 },
+    { data: upcoming },
+    { data: convos },
+    { data: listings },
+    { count: pendingCount },
+    { count: unreadCount },
+  ] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id, total_amount, status, nights, listing_id")
+      .gte("check_in", isoDate(monthStart))
+      .lte("check_in", isoDate(monthEnd)),
+    supabase
+      .from("bookings")
+      .select("total_amount, status")
+      .gte("check_in", isoDate(prevStart))
+      .lte("check_in", isoDate(prevEnd)),
+    supabase
+      .from("bookings")
+      .select("total_amount, nights, status, check_in, created_at")
+      .gte("check_in", ninetyAgo),
+    supabase
+      .from("bookings")
+      .select(
+        "id, check_in, check_out, nights, guests_count, total_amount, currency, status, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+      )
+      .in("status", ["confirmed", "checked_in"])
+      .gte("check_in", today)
+      .order("check_in", { ascending: true })
+      .limit(4),
+    supabase
+      .from("conversations")
+      .select(
+        "id, unread_host, last_message_at, last_message_preview, is_enquiry, guest:user_profiles!conversations_guest_id_fkey ( full_name, email )",
+      )
+      .eq("host_id", host.id)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(4),
+    supabase
+      .from("listings")
+      .select("id, name, city, max_guests, is_published")
+      .eq("host_id", host.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(4),
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "pending"),
+    supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", host.id)
+      .gt("unread_host", 0),
+  ]);
+
+  const currency =
+    (monthBookings ?? [])[0]?.total_amount != null ? "ZAR" : "ZAR";
+
+  // KPIs.
+  const confirmedMonth = (monthBookings ?? []).filter((b) =>
+    CONFIRMED.has(b.status as string),
+  );
+  const revenue = confirmedMonth.reduce(
+    (a, b) => a + Number(b.total_amount),
+    0,
+  );
+  const prevRevenue = (prevBookings ?? [])
+    .filter((b) => CONFIRMED.has(b.status as string))
+    .reduce((a, b) => a + Number(b.total_amount), 0);
+  const revenueDeltaPct =
+    prevRevenue > 0
+      ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
+      : null;
+  const bookingsCount = (monthBookings ?? []).length;
+  const confirmedCount = confirmedMonth.length;
+  const pendingThisMonth = (monthBookings ?? []).filter(
+    (b) => b.status === "pending",
+  ).length;
+
+  const publishedListings = (listings ?? []).filter((l) => l.is_published);
+  const totalListings = publishedListings.length;
+  const daysInMonth = monthEnd.getUTCDate();
+  const totalNights = totalListings * daysInMonth;
+  const bookedNights = confirmedMonth.reduce(
+    (a, b) => a + (Number(b.nights) || 0),
+    0,
+  );
+  const occupancyPct =
+    totalNights > 0 ? Math.round((bookedNights / totalNights) * 100) : null;
+
+  // Per-listing occupancy (this month).
+  const nightsByListing = new Map<string, number>();
+  for (const b of confirmedMonth)
+    nightsByListing.set(
+      b.listing_id,
+      (nightsByListing.get(b.listing_id) ?? 0) + (Number(b.nights) || 0),
+    );
+
+  // 90-day revenue series (weekly buckets) + stats.
+  const conf90 = (last90 ?? []).filter((b) =>
+    CONFIRMED.has(b.status as string),
+  );
+  const WEEKS = 13;
+  const points = new Array(WEEKS).fill(0) as number[];
+  const start90 = Date.now() - 90 * DAY;
+  for (const b of conf90) {
+    const anchor = new Date(
+      `${(b.check_in ?? b.created_at).slice(0, 10)}T12:00:00Z`,
+    ).getTime();
+    const wk = Math.min(
+      WEEKS - 1,
+      Math.max(0, Math.floor((anchor - start90) / (7 * DAY))),
+    );
+    points[wk] += Number(b.total_amount);
+  }
+  const rev90Total = conf90.reduce((a, b) => a + Number(b.total_amount), 0);
+  const nights90 = conf90.reduce((a, b) => a + (Number(b.nights) || 0), 0);
+  const avgNightly = nights90 > 0 ? Math.round(rev90Total / nights90) : 0;
+
+  // Next check-in.
+  const upcomingRows = (upcoming ?? []) as unknown as {
+    id: string;
+    check_in: string | null;
+    check_out: string | null;
+    nights: number | null;
+    guests_count: number;
+    total_amount: number;
+    status: string;
+    listing: { name: string } | null;
+    guest: { full_name: string | null } | null;
+  }[];
+  const next = upcomingRows[0];
+  const nextInDays = next?.check_in
+    ? Math.round(
+        (new Date(`${next.check_in}T12:00:00Z`).getTime() -
+          new Date(`${today}T12:00:00Z`).getTime()) /
+          DAY,
+      )
+    : null;
+
+  const tagForStatus = (
+    s: string,
+  ): { label: string; tone: "green" | "sky" | "amber" } =>
+    s === "checked_in"
+      ? { label: "In-house", tone: "sky" }
+      : s === "confirmed"
+        ? { label: "Confirmed", tone: "green" }
+        : { label: "Pending", tone: "amber" };
+
+  // Needs attention.
+  const needs: MainDashboardData["needs"] = [];
+  if ((pendingCount ?? 0) > 0)
+    needs.push({
+      id: "pending",
+      tone: "amber",
+      icon: "clock",
+      title: `Confirm ${pendingCount} pending booking${pendingCount === 1 ? "" : "s"}`,
+      sub: "Guests are waiting — confirm to lock the dates",
+      tag: { label: "Pending", tone: "amber" },
+      href: "/dashboard/bookings?seg=pending",
+    });
+  if ((unreadCount ?? 0) > 0)
+    needs.push({
+      id: "unread",
+      tone: "red",
+      icon: "message",
+      title: `${unreadCount} unread guest message${unreadCount === 1 ? "" : "s"}`,
+      sub: "Fast replies win bookings",
+      tag: { label: "Reply", tone: "red" },
+      href: "/dashboard/inbox",
+    });
+
+  const data: MainDashboardData = {
+    firstName,
+    dateLabel: now.toLocaleDateString("en-ZA", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+    currency,
+    stat: {
+      revenue,
+      revenueDeltaPct,
+      monthLabel: now.toLocaleDateString("en-ZA", { month: "short" }),
+      bookingsCount,
+      confirmedCount,
+      pendingThisMonth,
+      occupancyPct,
+      totalListings,
+      avgRating: host.avg_rating ? Number(host.avg_rating) : null,
+      totalReviews: host.total_reviews ?? 0,
+      nextCheckIn: next
+        ? {
+            inLabel:
+              nextInDays === 0
+                ? "Today"
+                : nextInDays === 1
+                  ? "Tomorrow"
+                  : `In ${nextInDays} days`,
+            guest: next.guest?.full_name ?? "Guest",
+            listing: next.listing?.name ?? "Listing",
+          }
+        : null,
+    },
+    needs,
+    upcoming: upcomingRows.map((b) => ({
+      id: b.id,
+      guest: b.guest?.full_name ?? "Guest",
+      initials: initialsOf(b.guest?.full_name ?? null),
+      listing: b.listing?.name ?? "Listing",
+      dates: fmtRange(b.check_in, b.check_out),
+      meta: `${b.nights ?? 0} night${b.nights === 1 ? "" : "s"} · ${b.guests_count} guest${b.guests_count === 1 ? "" : "s"}`,
+      amount: Number(b.total_amount),
+      tag: tagForStatus(b.status),
+    })),
+    revenue90: {
+      total: rev90Total,
+      points,
+      bookings: conf90.length,
+      avgNightly,
+      commissionSaved: Math.round(rev90Total * 0.18),
+    },
+    messages: (
+      (convos ?? []) as unknown as {
+        id: string;
+        unread_host: number | null;
+        last_message_at: string | null;
+        last_message_preview: string | null;
+        is_enquiry: boolean;
+        guest: { full_name: string | null; email: string | null } | null;
+      }[]
+    ).map((c) => ({
+      id: c.id,
+      name: c.guest?.full_name ?? c.guest?.email ?? "Guest",
+      initials: initialsOf(c.guest?.full_name ?? c.guest?.email ?? null),
+      time: c.last_message_at ? timeAgo(c.last_message_at) : "",
+      snippet: c.last_message_preview ?? "",
+      unread: (c.unread_host ?? 0) > 0,
+      tag: c.is_enquiry ? { label: "Enquiry", tone: "amber" as const } : null,
+    })),
+    listings: (listings ?? []).map((l) => {
+      const occ =
+        l.is_published && daysInMonth > 0
+          ? Math.min(
+              100,
+              Math.round(
+                ((nightsByListing.get(l.id) ?? 0) / daysInMonth) * 100,
+              ),
+            )
+          : null;
+      return {
+        id: l.id,
+        name: l.name,
+        meta: [l.city, l.max_guests ? `sleeps ${l.max_guests}` : null]
+          .filter(Boolean)
+          .join(" · "),
+        occ,
+        tag: l.is_published
+          ? { label: "Live", tone: "green" as const }
+          : { label: "Draft", tone: "amber" as const },
+      };
+    }),
+  };
+
   return (
-    <div className="flex flex-col items-center gap-2 rounded border border-dashed border-brand-line bg-brand-light/40 px-4 py-8 text-center">
-      <Icon className="h-6 w-6 text-brand-mute" />
-      <div className="font-display text-sm font-semibold text-brand-ink">
-        {title}
-      </div>
-      <p className="text-xs text-brand-mute">{body}</p>
-    </div>
+    <>
+      {justOnboarded ? <WelcomeToast /> : null}
+      <MainDashboard data={data} />
+    </>
   );
 }

@@ -42,7 +42,7 @@ export function ClassicShellFrame({
         {header}
         <div className="flex min-h-0 flex-1">
           {sidebar}
-          <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+          <main className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white">
             {banner}
             {fullBleed ? (
               <div className="flex min-h-0 flex-1 flex-col pb-16 lg:pb-0">
