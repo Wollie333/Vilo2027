@@ -2,14 +2,19 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
+  BedDouble,
   Check,
-  CheckCircle2,
-  ChevronDown,
+  CreditCard,
   ExternalLink,
+  Home as HomeIcon,
   LayoutDashboard,
   Link as LinkIcon,
+  type LucideIcon,
   PartyPopper,
   Rocket,
+  ShieldCheck,
+  UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -43,56 +48,69 @@ import type {
 
 type SectionMeta = {
   key: SetupStepKey;
-  n: string;
+  n: number;
   label: string;
   rail: string;
   required: boolean;
+  icon: LucideIcon;
+  help: string;
 };
 
-// Section order for the single-scroll layout + left rail. "review" is the
-// final action step (the live preview + publish), never a "required" item.
+// One focused goal per step, in order. "review" is the final action step.
 const SECTIONS: SectionMeta[] = [
   {
     key: "profile",
-    n: "1",
+    n: 1,
     label: "Host profile",
     rail: "Profile",
     required: true,
+    icon: UserRound,
+    help: "Tell guests who they're booking with — a photo and a few honest words go a long way.",
   },
   {
     key: "banking",
-    n: "2",
-    label: "Business info",
+    n: 2,
+    label: "Business & payouts",
     rail: "Business",
     required: true,
+    icon: CreditCard,
+    help: "Your business details and where your payouts land.",
   },
   {
     key: "listing",
-    n: "3",
+    n: 3,
     label: "Listing details",
     rail: "Listing",
     required: true,
+    icon: HomeIcon,
+    help: "Photos, the essentials, and the amenities that make your place special.",
   },
   {
     key: "rooms",
-    n: "4",
+    n: 4,
     label: "Rooms & pricing",
     rail: "Rooms",
     required: true,
+    icon: BedDouble,
+    help: "Set up the rooms guests can book and their nightly pricing.",
   },
   {
     key: "policies",
-    n: "5",
+    n: 5,
     label: "Policies & house rules",
     rail: "Policies",
     required: true,
+    icon: ShieldCheck,
+    help: "Check-in times, a minimum stay, and your cancellation policy.",
   },
   {
     key: "review",
-    n: "6",
+    n: 6,
     label: "Preview & publish",
-    rail: "Preview",
+    rail: "Publish",
     required: false,
+    icon: Rocket,
+    help: "This is exactly what guests will see. Happy with it? Publish to go live.",
   },
 ];
 
@@ -116,20 +134,12 @@ type Props = {
 export function SetupWizard(props: Props) {
   const router = useRouter();
 
-  // Live draft state — steps mutate these on save so the rail + ring + preview
-  // all update without a server refetch.
   const [host, setHost] = useState(props.host);
   const [profile, setProfile] = useState(props.profile);
   const [listing, setListing] = useState(props.listing);
   const [photos, setPhotos] = useState(props.photos);
-  // Amenities are lifted here (like photos) so the listing card's selection
-  // survives the accordion collapse/remount.
   const [amenities, setAmenities] = useState(props.amenities);
 
-  // Banking, business AND rooms are managed by shared canonical components via
-  // server actions; they call onChanged → router.refresh, which re-runs the
-  // server page and feeds fresh props here. Read straight from props so the
-  // rail / completion / cards update after a refresh.
   const bankAccounts = props.bankAccounts;
   const businessDefaults = props.businessDefaults;
   const rooms = props.rooms;
@@ -140,7 +150,6 @@ export function SetupWizard(props: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [publishing, startPublish] = useTransition();
 
-  // Completion is the single shared predicate, computed from live state.
   const done = useMemo(
     () =>
       computeSetupCompletion({
@@ -160,35 +169,55 @@ export function SetupWizard(props: Props) {
   const missing = requiredSections.filter((s) => !done[s.key]);
   const ready = missing.length === 0;
 
-  // One card open at a time (accordion). Default to the first incomplete
-  // required step so a returning host lands where they left off.
-  const [active, setActive] = useState<SetupStepKey>(
-    () => requiredSections.find((s) => !done[s.key])?.key ?? "review",
+  // First incomplete required step (or the final review step).
+  const firstIncomplete = Math.max(
+    0,
+    SECTIONS.findIndex((s) => s.required && !done[s.key]),
   );
+  const startIndex = ready ? SECTIONS.length - 1 : firstIncomplete;
 
-  // Open a step (collapsing the others) and scroll its card into view.
-  function jump(key: SetupStepKey) {
-    setActive(key);
-    setTimeout(() => {
-      document
-        .getElementById(`sec-${key}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 60);
+  const [current, setCurrent] = useState(startIndex);
+  const [maxReached, setMaxReached] = useState(startIndex);
+  const cur = SECTIONS[current];
+  const isReview = cur.key === "review";
+  const canContinue = !cur.required || done[cur.key];
+
+  function goTo(i: number) {
+    if (i < 0 || i >= SECTIONS.length || i > maxReached) return;
+    setCurrent(i);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function next() {
+    const ni = Math.min(current + 1, SECTIONS.length - 1);
+    setCurrent(ni);
+    setMaxReached((m) => Math.max(m, ni));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  function back() {
+    setCurrent((c) => Math.max(0, c - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Honour ?step= deep links by scrolling there on mount.
+  // Honour ?step= deep links once on mount.
   const didJump = useRef(false);
   useEffect(() => {
     if (didJump.current || !props.requestedStep) return;
     didJump.current = true;
-    const t = setTimeout(() => jump(props.requestedStep as SetupStepKey), 250);
-    return () => clearTimeout(t);
+    const idx = SECTIONS.findIndex((s) => s.key === props.requestedStep);
+    if (idx >= 0) {
+      setCurrent(idx);
+      setMaxReached((m) => Math.max(m, idx));
+    }
   }, [props.requestedStep]);
 
   function publish() {
     if (!ready) {
       toast.error("Finish the required steps first.");
-      jump(missing[0].key);
+      const i = SECTIONS.findIndex((s) => s.key === missing[0].key);
+      if (i >= 0) {
+        setCurrent(i);
+        setMaxReached((m) => Math.max(m, i));
+      }
       return;
     }
     startPublish(async () => {
@@ -204,142 +233,203 @@ export function SetupWizard(props: Props) {
     });
   }
 
-  const firstName = (profile.full_name || host.display_name || "there").split(
-    " ",
-  )[0];
+  const containerMax = isReview ? "max-w-5xl" : "max-w-3xl";
 
   return (
-    <div className="py-2">
-      {/* Dark hero */}
-      <Hero
-        firstName={firstName}
-        active={active}
-        done={done}
-        pct={pct}
-        doneCount={doneCount}
-        total={requiredSections.length}
-        ready={ready}
-        publishing={publishing}
-        onJump={jump}
-        onPublish={publish}
-      />
-
-      {/* Rail + stacked section cards */}
-      <div className="mt-6 grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-3">
-          <ProgressRail
-            active={active}
-            done={done}
-            pct={pct}
-            ready={ready}
-            publishing={publishing}
-            onJump={jump}
-            onPublish={publish}
+    <div className={`mx-auto ${containerMax}`}>
+      {/* stepper bar */}
+      <div className="mb-6 overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Link
+            href="/dashboard"
+            className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 text-brand-mute" /> Exit
+          </Link>
+          <div className="mx-auto hidden items-center gap-1 md:flex">
+            {SECTIONS.map((s, i) => {
+              const reachable = i <= maxReached;
+              const isCurrent = i === current;
+              const isDone = done[s.key] && !isCurrent && s.key !== "review";
+              return (
+                <div key={s.key} className="flex items-center gap-1">
+                  {i > 0 ? (
+                    <span
+                      className={`h-px w-5 ${i <= maxReached ? "bg-brand-primary/40" : "bg-brand-line"}`}
+                    />
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => goTo(i)}
+                    disabled={!reachable}
+                    title={s.label}
+                    className={`flex h-7 min-w-7 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums transition-colors ${
+                      isCurrent
+                        ? "border-brand-primary bg-brand-primary text-white"
+                        : isDone
+                          ? "border-brand-primary/40 bg-brand-accent text-brand-secondary hover:bg-brand-accent/70"
+                          : "border-brand-line bg-white text-brand-mute"
+                    } ${!reachable ? "cursor-not-allowed" : "cursor-pointer"}`}
+                  >
+                    {isDone ? (
+                      <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                    ) : (
+                      s.n
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          <span className="ml-auto text-[12.5px] font-medium tabular-nums text-brand-mute">
+            Step {current + 1} of {SECTIONS.length}
+          </span>
+        </div>
+        <div className="h-1 w-full bg-brand-line">
+          <div
+            className="h-full bg-brand-primary transition-all duration-500"
+            style={{ width: `${pct}%` }}
           />
         </div>
+      </div>
 
-        <div className="col-span-12 space-y-5 lg:col-span-9">
-          <SectionCard
-            meta={SECTIONS[0]}
-            complete={done.profile}
-            expanded={active === "profile"}
-            onOpen={() => jump("profile")}
-          >
-            <StepProfile
-              host={host}
-              profile={profile}
-              emailVerified={props.emailVerified}
-              onSaved={(next) => {
-                setHost((h) => ({ ...h, ...next.host }));
-                setProfile((p) => ({ ...p, ...next.profile }));
-                jump("banking");
-              }}
-            />
-          </SectionCard>
+      {/* step heading */}
+      <div className="mb-5">
+        <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2.5 py-1 text-[11px] font-semibold text-brand-secondary">
+          <cur.icon className="h-3.5 w-3.5" />{" "}
+          {cur.required ? "Required" : "Final"} step
+        </span>
+        <h1 className="mt-3 font-display text-[26px] font-extrabold leading-tight tracking-tight text-brand-ink md:text-[28px]">
+          {cur.label}
+        </h1>
+        <p className="mt-1.5 max-w-xl text-[14px] leading-relaxed text-brand-mute">
+          {cur.help}
+        </p>
+      </div>
 
-          <SectionCard
-            meta={SECTIONS[1]}
-            complete={done.banking}
-            expanded={active === "banking"}
-            onOpen={() => jump("banking")}
-          >
-            <StepBanking
-              accounts={bankAccounts}
-              businessDefaults={businessDefaults}
-              onChanged={() => router.refresh()}
-              onContinue={() => jump("listing")}
-            />
-          </SectionCard>
+      {/* step body */}
+      {isReview ? (
+        <SetupPreview
+          host={host}
+          profile={profile}
+          listing={listing}
+          photos={photos}
+          rooms={rooms}
+          ready={ready}
+          publishing={publishing}
+          missing={missing.map((m) => ({ key: m.key, label: m.label }))}
+          onPublish={publish}
+          onJump={(key) => {
+            const i = SECTIONS.findIndex((s) => s.key === key);
+            if (i >= 0) {
+              setCurrent(i);
+              setMaxReached((m) => Math.max(m, i));
+            }
+          }}
+        />
+      ) : (
+        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+          <div className="p-6 md:p-7">
+            {cur.key === "profile" ? (
+              <StepProfile
+                host={host}
+                profile={profile}
+                emailVerified={props.emailVerified}
+                onSaved={(nextVal) => {
+                  setHost((h) => ({ ...h, ...nextVal.host }));
+                  setProfile((p) => ({ ...p, ...nextVal.profile }));
+                  next();
+                }}
+              />
+            ) : null}
+            {cur.key === "banking" ? (
+              <StepBanking
+                accounts={bankAccounts}
+                businessDefaults={businessDefaults}
+                onChanged={() => router.refresh()}
+                onContinue={next}
+              />
+            ) : null}
+            {cur.key === "listing" ? (
+              <StepListing
+                listing={listing}
+                photos={photos}
+                categoryLeaves={props.categoryLeaves}
+                amenityGroups={props.amenityGroups}
+                amenities={amenities}
+                onListingChanged={(patch) =>
+                  setListing((l) => ({ ...l, ...patch }))
+                }
+                onPhotosChanged={(nextVal) => setPhotos(nextVal)}
+                onAmenitiesChanged={(nextVal) => setAmenities(nextVal)}
+                onContinue={next}
+              />
+            ) : null}
+            {cur.key === "rooms" ? (
+              <StepRooms
+                listingId={listing.id}
+                rooms={rooms}
+                onChanged={() => router.refresh()}
+                onContinue={next}
+              />
+            ) : null}
+            {cur.key === "policies" ? (
+              <StepPolicies
+                listing={listing}
+                policies={policies}
+                assignments={policyAssignments}
+                onChanged={() => router.refresh()}
+                onContinue={next}
+              />
+            ) : null}
+          </div>
+        </section>
+      )}
 
-          <SectionCard
-            meta={SECTIONS[2]}
-            complete={done.listing}
-            expanded={active === "listing"}
-            onOpen={() => jump("listing")}
-          >
-            <StepListing
-              listing={listing}
-              photos={photos}
-              categoryLeaves={props.categoryLeaves}
-              amenityGroups={props.amenityGroups}
-              amenities={amenities}
-              onListingChanged={(patch) =>
-                setListing((l) => ({ ...l, ...patch }))
-              }
-              onPhotosChanged={(next) => setPhotos(next)}
-              onAmenitiesChanged={(next) => setAmenities(next)}
-              onContinue={() => jump("rooms")}
-            />
-          </SectionCard>
-
-          <SectionCard
-            meta={SECTIONS[3]}
-            complete={done.rooms}
-            expanded={active === "rooms"}
-            onOpen={() => jump("rooms")}
-          >
-            <StepRooms
-              listingId={listing.id}
-              rooms={rooms}
-              onChanged={() => router.refresh()}
-              onContinue={() => jump("policies")}
-            />
-          </SectionCard>
-
-          <SectionCard
-            meta={SECTIONS[4]}
-            complete={done.policies}
-            expanded={active === "policies"}
-            onOpen={() => jump("policies")}
-          >
-            <StepPolicies
-              listing={listing}
-              policies={policies}
-              assignments={policyAssignments}
-              onChanged={() => router.refresh()}
-              onContinue={() => jump("review")}
-            />
-          </SectionCard>
-
-          <SectionCard
-            meta={SECTIONS[5]}
-            complete={published}
-            expanded={active === "review"}
-            onOpen={() => jump("review")}
-          >
-            <SetupPreview
-              host={host}
-              profile={profile}
-              listing={listing}
-              photos={photos}
-              rooms={rooms}
-              ready={ready}
-              publishing={publishing}
-              missing={missing.map((m) => ({ key: m.key, label: m.label }))}
-              onPublish={publish}
-              onJump={jump}
-            />
-          </SectionCard>
+      {/* footer nav */}
+      <div className="mt-6 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={back}
+          disabled={current === 0}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back
+        </button>
+        <div className="ml-auto flex items-center gap-3">
+          {!canContinue && !isReview ? (
+            <span className="hidden text-[12px] font-medium text-status-pending sm:inline">
+              Complete this step to continue
+            </span>
+          ) : null}
+          {isReview ? (
+            <button
+              type="button"
+              onClick={publish}
+              disabled={publishing}
+              className={`inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
+                ready
+                  ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                  : "cursor-not-allowed bg-brand-mute/60"
+              }`}
+            >
+              <Rocket className="h-4 w-4" />
+              {publishing
+                ? "Publishing…"
+                : ready
+                  ? "Publish listing"
+                  : "Finish required steps"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={next}
+              disabled={!canContinue}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] transition hover:bg-brand-secondary disabled:cursor-not-allowed disabled:bg-brand-mute/50 disabled:shadow-none"
+            >
+              Save &amp; continue <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -355,364 +445,6 @@ export function SetupWizard(props: Props) {
         />
       ) : null}
     </div>
-  );
-}
-
-function Hero({
-  firstName,
-  active,
-  done,
-  pct,
-  doneCount,
-  total,
-  ready,
-  publishing,
-  onJump,
-  onPublish,
-}: {
-  firstName: string;
-  active: SetupStepKey;
-  done: Record<SetupStepKey, boolean>;
-  pct: number;
-  doneCount: number;
-  total: number;
-  ready: boolean;
-  publishing: boolean;
-  onJump: (key: SetupStepKey) => void;
-  onPublish: () => void;
-}) {
-  const dash = (pct / 100) * 97.4;
-  return (
-    <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
-      <div className="relative bg-brand-gradient-dark p-6 text-white md:p-8">
-        <div
-          aria-hidden
-          className="setup-dotgrid pointer-events-none absolute inset-0 opacity-30"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
-        />
-
-        <div className="relative">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent/80 transition hover:text-white"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to dashboard
-          </Link>
-
-          <div className="mt-3 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-            <div className="max-w-xl">
-              <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">
-                Finish setting up
-              </h1>
-              <p className="mt-2 text-sm leading-relaxed text-brand-accent/80">
-                A few more details, {firstName}, and you&rsquo;re ready to take
-                real bookings. Each step saves as you go — required steps unlock
-                Publish.
-              </p>
-            </div>
-
-            {/* Right cluster: count ring + publish */}
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="relative h-16 w-16">
-                <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90">
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.2)"
-                    strokeWidth="3.5"
-                  />
-                  <circle
-                    cx="18"
-                    cy="18"
-                    r="15.5"
-                    fill="none"
-                    stroke="#10B981"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeDasharray={`${dash} 97.4`}
-                    className="transition-all duration-500"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-                  <span className="num font-display text-base font-bold text-white">
-                    {doneCount}
-                    <span className="text-xs text-white/60">/{total}</span>
-                  </span>
-                  <span className="mt-0.5 text-[8.5px] uppercase tracking-wider text-brand-accent/70">
-                    done
-                  </span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={onPublish}
-                disabled={!ready || publishing}
-                className={`inline-flex items-center gap-2 rounded-card px-4 py-3 text-sm font-semibold shadow-card transition-all ${
-                  ready
-                    ? "bg-brand-primary text-white hover:bg-white hover:text-brand-secondary"
-                    : "cursor-not-allowed bg-white/10 text-white/50"
-                }`}
-              >
-                <Rocket className="h-4 w-4" />
-                {publishing
-                  ? "Publishing…"
-                  : ready
-                    ? "Publish listing"
-                    : "Finish to publish"}
-              </button>
-            </div>
-          </div>
-
-          {/* Horizontal step pills — two-line: icon chip + label + status */}
-          <ol className="mt-6 flex flex-wrap gap-2">
-            {SECTIONS.map((s, i) => {
-              const isDone = done[s.key];
-              const isActive = active === s.key;
-              const isLast = i === SECTIONS.length - 1;
-              const status = isDone
-                ? "Done"
-                : isLast
-                  ? "Final step"
-                  : isActive
-                    ? "In progress"
-                    : "To do";
-              return (
-                <li key={s.key}>
-                  <button
-                    type="button"
-                    onClick={() => onJump(s.key)}
-                    aria-current={isActive ? "step" : undefined}
-                    className={`flex items-center gap-2.5 rounded-pill border px-2.5 py-1.5 text-left transition ${
-                      isActive
-                        ? "border-brand-primary/60 bg-white/[0.09]"
-                        : "border-white/10 bg-white/[0.05] hover:bg-white/[0.09]"
-                    }`}
-                  >
-                    <span
-                      className={`grid h-7 w-7 shrink-0 place-items-center rounded-full ${
-                        isDone
-                          ? "bg-brand-primary text-white"
-                          : isLast
-                            ? "bg-white/10 text-brand-accent"
-                            : isActive
-                              ? "bg-brand-primary/20 text-brand-primary"
-                              : "bg-white/10 text-white/60"
-                      }`}
-                    >
-                      {isDone ? (
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                      ) : isLast ? (
-                        <Rocket className="h-3.5 w-3.5" />
-                      ) : (
-                        <span className="num text-[11px] font-bold">{s.n}</span>
-                      )}
-                    </span>
-                    <span className="pr-1 leading-tight">
-                      <span className="block text-[12.5px] font-semibold text-white">
-                        {s.rail}
-                      </span>
-                      <span
-                        className={`block text-[10px] font-medium ${
-                          isDone
-                            ? "text-brand-primary"
-                            : isLast
-                              ? "text-brand-accent/70"
-                              : isActive
-                                ? "text-white/80"
-                                : "text-white/45"
-                        }`}
-                      >
-                        {status}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ProgressRail({
-  active,
-  done,
-  pct,
-  ready,
-  publishing,
-  onJump,
-  onPublish,
-}: {
-  active: SetupStepKey;
-  done: Record<SetupStepKey, boolean>;
-  pct: number;
-  ready: boolean;
-  publishing: boolean;
-  onJump: (key: SetupStepKey) => void;
-  onPublish: () => void;
-}) {
-  return (
-    <div className="sticky top-24 space-y-4">
-      <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Setup progress
-          </span>
-          <span className="num font-display text-sm font-bold text-brand-primary">
-            {pct}%
-          </span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
-          <div
-            className="h-full rounded-pill bg-brand-gradient transition-all duration-500"
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        <nav className="mt-4 space-y-0.5">
-          {SECTIONS.map((s) => {
-            const isDone = done[s.key];
-            const isActive = active === s.key;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => onJump(s.key)}
-                className={`group flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors ${
-                  isActive ? "bg-brand-accent" : "hover:bg-brand-light"
-                }`}
-              >
-                <span
-                  className={`num flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold transition-colors ${
-                    isDone
-                      ? "border-brand-primary bg-brand-primary text-white"
-                      : isActive
-                        ? "border-brand-primary bg-white text-brand-primary"
-                        : "border-brand-line bg-white text-brand-mute"
-                  }`}
-                >
-                  {isDone ? <Check className="h-3 w-3" strokeWidth={3} /> : s.n}
-                </span>
-                <span
-                  className={`flex-1 truncate text-[13px] font-medium ${
-                    isActive
-                      ? "text-brand-ink"
-                      : "text-brand-mute group-hover:text-brand-ink"
-                  }`}
-                >
-                  {s.rail}
-                </span>
-                {s.required && !isDone ? (
-                  <span
-                    className="h-1.5 w-1.5 shrink-0 rounded-full bg-status-pending"
-                    title="Required"
-                  />
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      <button
-        type="button"
-        onClick={onPublish}
-        disabled={!ready || publishing}
-        className={`flex w-full items-center justify-center gap-2 rounded-card px-4 py-3 text-sm font-semibold shadow-card transition-all ${
-          ready
-            ? "bg-brand-primary text-white hover:bg-brand-secondary hover:shadow-glow"
-            : "cursor-not-allowed bg-brand-line text-brand-mute"
-        }`}
-      >
-        <Rocket className="h-4 w-4" />
-        {publishing
-          ? "Publishing…"
-          : ready
-            ? "Publish listing"
-            : "Finish required steps"}
-      </button>
-      {!ready ? (
-        <p className="px-1 text-center text-[11px] leading-relaxed text-brand-mute">
-          Complete the required steps to go live. You can keep editing after
-          publishing.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function SectionCard({
-  meta,
-  complete,
-  expanded,
-  onOpen,
-  children,
-}: {
-  meta: SectionMeta;
-  complete: boolean;
-  expanded: boolean;
-  onOpen: () => void;
-  children: React.ReactNode;
-}) {
-  // Accordion: one card open at a time. The header is always a clickable
-  // toggle; the body (and the step's heavy form) only mounts when expanded.
-  return (
-    <section
-      id={`sec-${meta.key}`}
-      data-section={meta.key}
-      className={`scroll-mt-24 overflow-hidden rounded-card border bg-white shadow-card transition-colors ${
-        expanded
-          ? "setup-step-active border-brand-primary/40"
-          : "border-brand-line"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-expanded={expanded}
-        className={`flex w-full items-start gap-4 px-6 py-5 text-left md:px-7 ${
-          expanded ? "border-b border-brand-line" : ""
-        }`}
-      >
-        <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-card font-display text-sm font-bold transition-colors ${
-            complete
-              ? "bg-brand-primary text-white"
-              : "bg-brand-accent text-brand-secondary"
-          }`}
-        >
-          {complete ? <Check className="h-5 w-5" strokeWidth={3} /> : meta.n}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-display text-lg font-bold text-brand-ink">
-              {meta.label}
-            </h2>
-            <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-mute">
-              {meta.required ? "Required" : "Final step"}
-            </span>
-            {complete ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Done
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <ChevronDown
-          className={`mt-1 h-5 w-5 shrink-0 text-brand-mute transition-transform ${
-            expanded ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-      {expanded ? <div className="px-6 py-6 md:px-7">{children}</div> : null}
-    </section>
   );
 }
 
@@ -764,8 +496,6 @@ function PublishedModal({
   listing: Listing;
   onClose: () => void;
 }) {
-  // The real, resolvable public URL is /listing/<slug> (slug is set on the
-  // listing row — never re-derive it from the name, which can diverge).
   const slug = listing.slug;
   const path = slug ? `/listing/${slug}` : null;
   const [origin, setOrigin] = useState("");
