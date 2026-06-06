@@ -266,24 +266,29 @@ export async function addGuestContactAction(
     .ilike("email", email)
     .maybeSingle();
 
-  const payload = {
+  const base = {
     name: v.name,
     phone: v.phone || null,
     country: v.country || null,
     notes: v.notes || null,
-    email_consent: v.email_consent ?? false,
   };
 
   if (existing) {
+    // email_consent is write-once to TRUE — ticking it can grant consent, but a
+    // later edit must never silently revoke it (POPIA provenance).
+    const update = v.email_consent ? { ...base, email_consent: true } : base;
     const { error } = await supabase
       .from("host_contacts")
-      .update(payload)
+      .update(update)
       .eq("id", existing.id);
     if (error) return { ok: false, error: "Could not save the guest." };
   } else {
-    const { error } = await supabase
-      .from("host_contacts")
-      .insert({ host_id: host.hostId, email, ...payload });
+    const { error } = await supabase.from("host_contacts").insert({
+      host_id: host.hostId,
+      email,
+      ...base,
+      email_consent: v.email_consent ?? false,
+    });
     if (error) return { ok: false, error: "Could not add the guest." };
   }
 
