@@ -39,8 +39,18 @@ Overview/Bookings/Messages/Payments/Notes; two-way linked with Booking Details. 
 - ✅ **Phase 6** Messages + Notes tabs (+ template picker) + Templates manager. (6aebc9b)
 - ✅ **Phase 7** Booking↔record link + record More-menu (tag/block/export/new-booking). (cc8c089)
 - ✅ **Phase 8** Help article (`guests-crm`) + CHANGELOG.
-- ⏳ **Phase 9** Bulk mailer — guest_marketing + guest_broadcasts, send-guest-broadcast
-  Edge Function, /unsubscribe route, BroadcastModal + per-guest subscription toggle.
+- ✅ **Phase 9** Bulk mailer — guest_marketing + guest_broadcasts + RPCs;
+  lib/guests/broadcast.ts (Resend, server-side); sendBroadcastAction (monthly cap);
+  BroadcastModal ("Email guests"); public /unsubscribe/[token]; per-guest opt-out.
+  **Build-only — not deployed/sent.** Uses existing RESEND_API_KEY +
+  EMAIL_FROM_ADDRESS + NEXT_PUBLIC_SITE_URL (no new env, no edge fn — sends from a
+  Server Action like the rest of the app). Founder to do the first live-send test.
+- ✅ **Extra (founder request):** record **Reviews** + **Finances** (invoices/
+  quotes/refunds/credit-notes) tabs; POPIA marketing-consent control (locked,
+  opt-out only); per-host isolation confirmed (already enforced by RLS).
+
+**Feature complete.** Remaining before real email use: set a verified Resend
+sender domain and run a live-send smoke test; consider AAL2/MFA restore (separate).
 
 Probes: `scripts/verify-guest-crm-p1.mjs`, `verify-guest-crm-p2.mjs` (run from apps/web).
 

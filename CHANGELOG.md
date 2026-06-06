@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-06 — Guests (CRM) — Phase 9 mailer + record Reviews/Finances/consent — branch `main`
+
+### Built
+- **Record Reviews + Finances tabs.** Reviews the guest left; a consolidated Finances tab (invoices, quotes, refunds, credit notes) deep-linking to each. Payments stays its own tab. (Tabs: Overview · Bookings · Messages · Payments · Finances · Reviews · Notes.)
+- **POPIA marketing consent** on the record: locked status (Subscribed/Unsubscribed/No consent/No email), host can only ever **Record opt-out** — opt-in is the write-once Add-guest consent tick or the guest's own link. `email_consent` is write-once-to-true.
+- **Bulk mailer (Phase 9, build-only — not deployed/sent):** `guest_marketing` + `guest_broadcasts` tables; `broadcast_audience` / `count_broadcast_recipients` / `can_send_broadcast` RPCs; `lib/guests/broadcast.ts` (server-side Resend, recipients re-resolved + deduped, unsub tokens, branded template, reply-to = host, List-Unsubscribe header); `sendBroadcastAction` with server-side monthly cap; `BroadcastModal` ("Email guests") with live recipient preview + recent history; public `/unsubscribe/[token]` (GET page + RFC 8058 one-click POST).
+
+### Notes
+- **Per-host isolation** is fully enforced (RLS keyed off `auth.uid()`, ownership-checked RPCs, `guest_marketing` per `(host_id, gkey)`) — one guest can sit in many hosts' lists with separate private data.
+- Mailer reuses existing env (`RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `NEXT_PUBLIC_SITE_URL`) and sends from a Server Action (consistent with `lib/email`), so no edge-function deploy. **Before real use:** verified Resend sender domain + a live-send smoke test.
+
+### Migrations
+- `20260606000005_guest_broadcast_schema.sql`, `20260606000006_guest_broadcast_rpcs.sql`, `20260606000007_help_guest_broadcasts.sql`.
+
+### Commits
+- `feat(guests): reviews+finances / consent / phase 9` — e8e3282, 99c0f08, 8347639 (+ help)
+
+---
+
 ## 2026-06-06 — Guests (CRM) — full feature, Phases 1–8 — branch `main`
 
 ### Built
