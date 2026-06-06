@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guest · Aisha Patel · Vilo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        brand: { primary:"#10B981", secondary:"#064E3B", accent:"#D1FAE5", dark:"#0A1510", light:"#F0FDF4", ink:"#052E1F", mute:"#4A7C6A", line:"#E4EFE8" },
+        status: { confirmed:"#10B981", pending:"#F59E0B", cancelled:"#EF4444", completed:"#6366F1", inhouse:"#0EA5E9", draft:"#94A3B8" },
+      },
+      borderRadius: { DEFAULT:"10px", card:"16px", pill:"9999px", sm:"6px" },
+      fontFamily: { sans:["Inter","system-ui","sans-serif"], display:['"Plus Jakarta Sans"',"sans-serif"], mono:['"JetBrains Mono"',"monospace"] },
+      boxShadow: { card:"0 1px 2px rgba(6,78,59,.05)", lift:"0 10px 34px -14px rgba(6,78,59,.18)" },
+    }}
+  };
+</script>
+<style>
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#052E1F}
+  .font-display{font-family:'Plus Jakarta Sans',sans-serif}
+  .num{font-feature-settings:"tnum" 1}
+  .thin-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .thin-scroll::-webkit-scrollbar-thumb{background:#DCEAE0;border-radius:8px;border:2px solid #fff}
+  .thin-scroll::-webkit-scrollbar-track{background:transparent}
+
+  .icon-btn{height:38px;width:38px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#4A7C6A;transition:background .12s}
+  .icon-btn:hover{background:#F0FDF4;color:#052E1F}
+  .av{display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif}
+  .av-1{background:#064E3B;color:#fff}
+
+  /* sidebar */
+  .gnav{width:248px;flex-shrink:0;background:#EEF4F0;display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;border-right:1px solid #E4EFE8}
+  .gnav.collapsed{width:76px}
+  .compose{display:flex;align-items:center;height:48px;padding:0 18px;border-radius:16px;background:#fff;border:1px solid #E4EFE8;box-shadow:0 1px 3px rgba(6,78,59,.1),0 6px 14px -6px rgba(6,78,59,.18);color:#064E3B;font-weight:600;font-size:14px;cursor:pointer;transition:box-shadow .15s,background .15s;white-space:nowrap}
+  .compose:hover{box-shadow:0 2px 6px rgba(6,78,59,.16),0 10px 22px -8px rgba(6,78,59,.24);background:#FAFEFB}
+  .compose .ico{display:flex;align-items:center;justify-content:center;width:20px;flex-shrink:0;color:#10B981}
+  .gnav.collapsed .compose{width:48px;padding:0;justify-content:center}
+  .gitem{display:flex;align-items:center;height:38px;padding:0 16px 0 24px;margin-right:8px;border-radius:0 9999px 9999px 0;color:#3A5A4E;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+  .gitem:hover{background:#E2EDE6}
+  .gitem.active{background:#D1FAE5;color:#064E3B;font-weight:700}
+  .gitem .ico{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-right:18px}
+  .gitem .ico .dot2{width:10px;height:10px;border-radius:9999px;display:block}
+  .gitem .glbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .gitem .gcnt{font-size:12px;font-variant-numeric:tabular-nums;color:#5B7065;margin-left:8px}
+  .gitem.active .gcnt{color:#064E3B;font-weight:700}
+  .gsec{height:1px;background:#E1ECE5;margin:8px 12px 8px 0}
+  .glabel-h{padding:10px 10px 4px 24px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4A7C6A}
+  .gnav.collapsed .glbl,.gnav.collapsed .gcnt,.gnav.collapsed .gsec,.gnav.collapsed .glabel-h{display:none}
+  .gnav.collapsed .gitem{width:48px;height:48px;margin:2px auto;padding:0;border-radius:9999px;justify-content:center}
+  .gnav.collapsed .gitem .ico{margin-right:0}
+
+  .smallcaps{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4A7C6A}
+  .chip{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .6rem;border-radius:9999px;font-size:10.5px;font-weight:600;line-height:1.2}
+  .card{border:1px solid #E4EFE8;background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(6,78,59,.05)}
+  .ch-mark{width:16px;height:16px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:800;font-family:'Plus Jakarta Sans',sans-serif}
+
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 10px 3px 9px;border-radius:9999px;white-space:nowrap;border:1px solid transparent}
+  .tag .d{width:6px;height:6px;border-radius:9999px}
+  .tag.green{background:#ECFDF5;color:#047857;border-color:#C7F0DC}.tag.green .d{background:#10B981}
+  .tag.amber{background:#FFFBEB;color:#B45309;border-color:#FCE9B6}.tag.amber .d{background:#F59E0B}
+  .tag.indigo{background:#EEF0FF;color:#4F46E5;border-color:#D7DBFB}.tag.indigo .d{background:#6366F1}
+  .tag.gray{background:#F4F7F5;color:#5B7065;border-color:#E4EFE8}.tag.gray .d{background:#94A3B8}
+
+  /* tabs */
+  .tab{position:relative;padding:13px 2px;margin-right:28px;font-size:14px;font-weight:600;color:#6B8B7F;cursor:pointer;white-space:nowrap;background:none}
+  .tab:hover{color:#052E1F}
+  .tab.active{color:#064E3B}
+  .tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2.5px;background:#10B981;border-radius:3px}
+  .tab .cnt{font-variant-numeric:tabular-nums;font-size:11px;background:#F0FDF4;color:#4A7C6A;padding:1px 7px;border-radius:9999px;border:1px solid #E4EFE8;margin-left:5px}
+  .tab.active .cnt{background:#D1FAE5;color:#064E3B;border-color:#BBF3D4}
+  .tabpanel[hidden]{display:none}
+
+  /* booking row */
+  .brow{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #E4EFE8;border-radius:13px;cursor:pointer;transition:border-color .12s,box-shadow .12s,transform .12s;background:#fff}
+  .brow:hover{border-color:#CDE6D8;box-shadow:0 10px 24px -16px rgba(6,78,59,.25);transform:translateY(-1px)}
+
+  /* message bubbles */
+  .bubble{padding:10px 14px;border-radius:16px;font-size:13.5px;line-height:1.5;max-width:78%}
+  .bubble.them{background:#fff;border:1px solid #E4EFE8;color:#052E1F;border-bottom-left-radius:5px}
+  .bubble.me{background:#064E3B;color:#fff;border-bottom-right-radius:5px;margin-left:auto}
+  .daydiv{display:flex;align-items:center;gap:12px;color:#A0B5AB;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em}
+  .daydiv::before,.daydiv::after{content:'';flex:1;height:1px;background:#EDF3EF}
+
+  .menu-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:30;background:#fff;border:1px solid #E4EFE8;border-radius:12px;box-shadow:0 14px 34px -14px rgba(6,78,59,.3);padding:6px;min-width:210px}
+  .menu-pop a{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;font-size:13px;color:#3A5A4E}
+  .menu-pop a:hover{background:#F0FDF4;color:#052E1F}
+
+  @keyframes fadeUp{from{transform:translateY(7px)}to{transform:translateY(0)}}
+  @media (prefers-reduced-motion: no-preference){ .fade{animation:fadeUp .26s ease} }
+  [hidden]{display:none!important}
+</style>
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+
+  <!-- ===== TOP BAR ===== -->
+  <header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+    <button onclick="toggleSidebar()" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+    <a href="Bookings Page v3.html" class="flex items-center gap-2.5 shrink-0">
+      <svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="#fff"/><path d="M50 66L26 32H38L50 50L62 32H74L50 66Z" fill="#fff" opacity=".55"/></svg>
+      <span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Vilo</span>
+    </a>
+    <div class="flex-1 max-w-2xl mx-auto">
+      <div class="flex items-center gap-2.5 h-11 px-4 rounded-pill bg-[#F4F8F5] border border-transparent focus-within:bg-white focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,.1)] transition">
+        <i data-lucide="search" class="h-4 w-4 text-brand-mute"></i>
+        <input placeholder="Search guests, bookings, listings…" class="flex-1 bg-transparent outline-none text-sm text-brand-ink placeholder:text-brand-mute" />
+        <kbd class="font-mono text-[10px] bg-white text-brand-mute px-1.5 py-0.5 rounded border border-brand-line hidden md:inline-block">/</kbd>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i><span class="num absolute right-1 top-1 h-4 min-w-[16px] px-1 rounded-full bg-status-cancelled text-[10px] font-bold text-white flex items-center justify-center">2</span></button>
+      <div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">TM</div>
+    </div>
+  </header>
+
+  <!-- ===== BODY ROW ===== -->
+  <div class="flex-1 flex min-h-0">
+
+    <!-- sidebar -->
+    <aside id="sidebar" class="gnav">
+      <div class="px-[14px] pt-2.5 pb-3">
+        <a href="New Booking Page v3.html" class="compose" title="New booking"><span class="ico"><i data-lucide="plus" class="h-5 w-5"></i></span><span class="glbl ml-[14px]">New booking</span></a>
+      </div>
+      <nav class="flex-1 overflow-y-auto thin-scroll pb-3">
+        <a href="Inbox v3 — Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+        <a href="Bookings Page v3.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+        <a href="#" class="gitem active"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="star" class="h-[18px] w-[18px]"></i></span><span class="glbl">Reviews</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+        <div class="glabel-h">Listings</div>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#10B981"></span></span><span class="glbl">Sea Point Suite</span></a>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#6366F1"></span></span><span class="glbl">Garden Cottage</span></a>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#F59E0B"></span></span><span class="glbl">Mountain Loft</span></a>
+        <div class="gsec"></div>
+        <a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Dashboard</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+      </nav>
+    </aside>
+
+    <!-- content -->
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
+
+      <!-- sub-header -->
+      <div class="shrink-0 h-14 flex items-center gap-3 px-5 lg:px-8 border-b border-brand-line bg-white">
+        <a href="#" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-pill border border-brand-line text-[13px] font-semibold text-brand-ink hover:bg-brand-light transition"><i data-lucide="arrow-left" class="h-4 w-4 text-brand-mute"></i> All guests</a>
+        <div class="hidden md:flex items-center gap-2 text-[12.5px]">
+          <span class="text-brand-mute">Guests</span>
+          <i data-lucide="chevron-right" class="h-3 w-3 text-brand-line"></i>
+          <span class="font-semibold text-brand-ink">Aisha Patel</span>
+        </div>
+        <div class="ml-auto flex items-center overflow-hidden rounded-pill border border-brand-line bg-white">
+          <button class="flex h-9 w-9 items-center justify-center text-brand-mute hover:bg-brand-light" title="Previous guest"><i data-lucide="chevron-left" class="h-4 w-4"></i></button>
+          <div class="h-5 w-px bg-brand-line"></div>
+          <button class="flex h-9 w-9 items-center justify-center text-brand-mute hover:bg-brand-light" title="Next guest"><i data-lucide="chevron-right" class="h-4 w-4"></i></button>
+        </div>
+      </div>
+
+      <!-- scroll -->
+      <div class="flex-1 overflow-y-auto thin-scroll">
+        <div class="mx-auto max-w-[1040px] px-5 lg:px-8 py-6">
+
+          <!-- ===== IDENTITY HEADER ===== -->
+          <section class="card overflow-hidden fade">
+            <div class="p-6 lg:p-7">
+              <div class="flex flex-wrap items-start justify-between gap-5">
+                <div class="flex items-start gap-4 min-w-0">
+                  <div class="relative shrink-0">
+                    <div class="h-16 w-16 overflow-hidden rounded-pill ring-2 ring-brand-accent"><img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&h=240&fit=crop&crop=faces" alt="Aisha Patel" class="h-full w-full object-cover"/></div>
+                    <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white"><i data-lucide="badge-check" class="h-3.5 w-3.5"></i></span>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h1 class="font-display text-[24px] font-extrabold leading-tight text-brand-ink whitespace-nowrap">Aisha Patel</h1>
+                      <span class="tag green"><span class="d"></span>VIP · Returning</span>
+                    </div>
+                    <div class="mt-1.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px]">
+                      <a href="#" class="inline-flex items-center gap-2 text-brand-ink hover:text-brand-primary"><i data-lucide="mail" class="h-4 w-4 text-brand-mute"></i> <span class="__cf_email__" data-cfemail="c2a3abb1aaa3ecb282a5afa3abaeeca1adaf">[email&#160;protected]</span></a>
+                      <a href="#" class="num inline-flex items-center gap-2 text-brand-ink hover:text-brand-primary"><i data-lucide="phone" class="h-4 w-4 text-brand-mute"></i> +27 71 234 5678</a>
+                      <span class="inline-flex items-center gap-2 text-brand-mute"><i data-lucide="map-pin" class="h-4 w-4"></i> Johannesburg, ZA</span>
+                      <span class="inline-flex items-center gap-2 text-brand-mute"><i data-lucide="languages" class="h-4 w-4"></i> English, Hindi</span>
+                      <span class="inline-flex items-center gap-2 text-brand-mute"><i data-lucide="calendar" class="h-4 w-4"></i> Guest since 2024</span>
+                    </div>
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                      <span class="chip bg-status-confirmed/10 text-status-confirmed"><i data-lucide="shield-check" class="h-3 w-3"></i> ID verified</span>
+                      <span class="chip bg-status-confirmed/10 text-status-confirmed"><i data-lucide="mail-check" class="h-3 w-3"></i> Email confirmed</span>
+                      <span class="chip bg-status-confirmed/10 text-status-confirmed"><i data-lucide="phone-call" class="h-3 w-3"></i> Phone verified</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <a href="Inbox v3 — Classic.html" class="inline-flex items-center gap-1.5 h-[42px] px-4 rounded-pill bg-brand-primary text-white text-[13px] font-semibold shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary transition"><i data-lucide="message-square" class="h-4 w-4"></i> Message</a>
+                  <button class="inline-flex items-center gap-1.5 h-[42px] px-3.5 rounded-pill border border-brand-line bg-white text-[13px] font-medium text-brand-ink hover:bg-brand-light transition"><i data-lucide="phone" class="h-4 w-4 text-brand-mute"></i> Call</button>
+                  <div class="relative" id="moreWrap">
+                    <button id="moreBtn" class="icon-btn border border-brand-line"><i data-lucide="more-horizontal" class="h-5 w-5"></i></button>
+                    <div id="moreMenu" class="menu-pop" hidden>
+                      <a href="New Booking Page v3.html"><i data-lucide="plus" class="h-4 w-4 text-brand-mute"></i> New booking for guest</a>
+                      <a href="#"><i data-lucide="tag" class="h-4 w-4 text-brand-mute"></i> Add tag</a>
+                      <a href="#"><i data-lucide="download" class="h-4 w-4 text-brand-mute"></i> Export guest data</a>
+                      <div class="my-1 h-px bg-brand-line"></div>
+                      <a href="#" class="!text-status-cancelled hover:!bg-red-50"><i data-lucide="ban" class="h-4 w-4"></i> Block guest</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- lifetime stat band -->
+              <div class="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-5">
+                <div class="bg-[#FAFCFB] p-4"><div class="smallcaps">Total stays</div><div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">4</div><div class="mt-1 text-[11px] text-brand-mute">13 nights</div></div>
+                <div class="bg-[#FAFCFB] p-4"><div class="smallcaps">Lifetime value</div><div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">R 14.8k</div><div class="mt-1 text-[11px] text-status-confirmed font-medium">avg R 3.7k / stay</div></div>
+                <div class="bg-[#FAFCFB] p-4"><div class="smallcaps">Avg rating left</div><div class="num mt-1.5 inline-flex items-center gap-1 font-display text-[22px] font-bold leading-none text-brand-ink">4.9 <i data-lucide="star" class="h-4 w-4" style="fill:#F59E0B;color:#F59E0B"></i></div><div class="mt-1 text-[11px] text-brand-mute">from 3 reviews</div></div>
+                <div class="bg-[#FAFCFB] p-4"><div class="smallcaps">Cancellations</div><div class="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">0</div><div class="mt-1 text-[11px] text-brand-mute">100% reliable</div></div>
+                <div class="col-span-2 bg-brand-secondary p-4 sm:col-span-1"><div class="text-[10px] font-semibold uppercase tracking-wider text-white/70">Next stay</div><div class="num mt-1.5 font-display text-[18px] font-bold leading-none text-white">In 5 days</div><div class="mt-1 text-[11px] text-brand-accent">25–28 May · Sea Point</div></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- tabs -->
+          <div class="mt-6 border-b border-brand-line">
+            <nav class="flex items-stretch overflow-x-auto" style="scrollbar-width:none">
+              <button class="tab active" data-tab="overview" onclick="showTab('overview',this)">Overview</button>
+              <button class="tab" data-tab="bookings" onclick="showTab('bookings',this)">Bookings <span class="cnt num">4</span></button>
+              <button class="tab" data-tab="messages" onclick="showTab('messages',this)">Messages <span class="cnt num">18</span></button>
+              <button class="tab" data-tab="payments" onclick="showTab('payments',this)">Payments</button>
+              <button class="tab" data-tab="notes" onclick="showTab('notes',this)">Notes <span class="cnt num">2</span></button>
+            </nav>
+          </div>
+
+          <!-- panels -->
+          <div class="mt-6">
+
+            <!-- OVERVIEW -->
+            <div data-panel="overview" class="tabpanel grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] fade">
+              <div class="space-y-6 min-w-0">
+                <!-- next stay -->
+                <section class="card overflow-hidden">
+                  <div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Next stay</div><span class="tag green"><span class="d"></span>Confirmed</span></div>
+                  <div class="p-5">
+                    <div class="flex items-center gap-4">
+                      <div class="h-16 w-20 shrink-0 overflow-hidden rounded-[12px]"><img src="https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=320&h=240&fit=crop" class="h-full w-full object-cover" /></div>
+                      <div class="min-w-0 flex-1">
+                        <div class="font-display text-[15px] font-bold text-brand-ink">Sea Point Suite</div>
+                        <div class="num mt-0.5 text-[12.5px] text-brand-mute">Mon 25 May → Thu 28 May · 3 nights · 3 guests</div>
+                        <div class="num mt-0.5 font-mono text-[11px] text-brand-mute">VILO-2026-CT4901</div>
+                      </div>
+                      <div class="text-right shrink-0"><div class="num font-display text-[16px] font-bold text-brand-ink">R 3 950</div><div class="text-[10.5px] text-status-confirmed font-medium">paid in full</div></div>
+                    </div>
+                    <a href="Booking Details v3.html" class="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-pill border border-brand-line px-3 py-2.5 text-[13px] font-semibold text-brand-ink hover:bg-brand-light transition">Open booking <i data-lucide="arrow-right" class="h-4 w-4"></i></a>
+                  </div>
+                </section>
+                <!-- recent activity -->
+                <section class="card overflow-hidden">
+                  <div class="border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Recent activity</div></div>
+                  <div class="p-5">
+                    <ol class="relative space-y-4 border-l-2 border-brand-line pl-5">
+                      <li><span class="absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white bg-brand-primary"></span><div class="flex items-center justify-between gap-2"><div class="text-[13px] font-semibold text-brand-ink">Booked Sea Point Suite</div><div class="num text-[11px] text-brand-mute">12 Apr</div></div><div class="text-[12px] text-brand-mute">Direct booking · R 3 950 paid in full</div></li>
+                      <li><span class="absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white bg-brand-primary"></span><div class="flex items-center justify-between gap-2"><div class="text-[13px] font-semibold text-brand-ink">Left a 5★ review</div><div class="num text-[11px] text-brand-mute">18 Sep 2025</div></div><div class="text-[12px] text-brand-mute">&ldquo;Spotless and the sea view is unreal.&rdquo;</div></li>
+                      <li><span class="absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white bg-brand-mute"></span><div class="flex items-center justify-between gap-2"><div class="text-[13px] font-semibold text-brand-ink">Completed 2nd stay</div><div class="num text-[11px] text-brand-mute">15 Sep 2025</div></div><div class="text-[12px] text-brand-mute">Garden Cottage · 3 nights</div></li>
+                    </ol>
+                  </div>
+                </section>
+              </div>
+              <div class="space-y-6">
+                <section class="card overflow-hidden">
+                  <div class="border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Preferences</div></div>
+                  <ul class="divide-y divide-brand-line text-[12.5px]">
+                    <li class="flex items-center justify-between px-5 py-3"><span class="text-brand-mute">Travels with</span><span class="font-semibold text-brand-ink">Family · 1 child</span></li>
+                    <li class="flex items-center justify-between px-5 py-3"><span class="text-brand-mute">Usual listing</span><span class="font-semibold text-brand-ink">Sea Point Suite</span></li>
+                    <li class="flex items-center justify-between px-5 py-3"><span class="text-brand-mute">Check-in</span><span class="font-semibold text-brand-ink">Late · self check-in</span></li>
+                    <li class="flex items-center justify-between px-5 py-3"><span class="text-brand-mute">Needs</span><span class="font-semibold text-brand-ink">Baby cot</span></li>
+                  </ul>
+                </section>
+                <section class="card overflow-hidden">
+                  <div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Pinned note</div><span class="chip bg-brand-light text-brand-mute">Host-only</span></div>
+                  <div class="p-4"><div class="flex gap-2.5"><div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full av av-1 text-[10px]">TM</div><div class="rounded-[12px] rounded-tl-sm bg-brand-light px-3 py-2 text-[12.5px] leading-relaxed text-brand-ink">VIP — always books the sea view. Stock extra coffee &amp; leave a welcome note for the little one. 🌊</div></div></div>
+                </section>
+              </div>
+            </div>
+
+            <!-- BOOKINGS -->
+            <div data-panel="bookings" class="tabpanel space-y-3" hidden>
+              <div id="bookingList" class="space-y-3"></div>
+            </div>
+
+            <!-- MESSAGES -->
+            <div data-panel="messages" class="tabpanel" hidden>
+              <section class="card overflow-hidden">
+                <div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+                  <div class="smallcaps">Message history</div>
+                  <a href="Inbox v3 — Classic.html" class="text-[12px] font-medium text-brand-primary hover:underline">Open in inbox →</a>
+                </div>
+                <div id="messageList" class="p-5 space-y-3 bg-[#FAFCFB] max-h-[460px] overflow-y-auto thin-scroll"></div>
+                <div class="flex items-center gap-2 border-t border-brand-line p-3">
+                  <input type="text" placeholder="Reply to Aisha…" class="flex-1 rounded-pill border border-brand-line px-4 py-2.5 text-[13px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"/>
+                  <button class="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-brand-primary text-white hover:bg-brand-secondary"><i data-lucide="arrow-up" class="h-4 w-4"></i></button>
+                </div>
+              </section>
+            </div>
+
+            <!-- PAYMENTS -->
+            <div data-panel="payments" class="tabpanel space-y-6" hidden>
+              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div class="card p-4"><div class="smallcaps">Lifetime paid</div><div class="num mt-1.5 font-display text-[20px] font-bold text-brand-ink">R 14 850</div></div>
+                <div class="card p-4"><div class="smallcaps">Avg / stay</div><div class="num mt-1.5 font-display text-[20px] font-bold text-brand-ink">R 3 713</div></div>
+                <div class="card p-4 col-span-2 sm:col-span-1"><div class="smallcaps">Outstanding</div><div class="num mt-1.5 font-display text-[20px] font-bold text-status-confirmed">R 0</div></div>
+              </div>
+              <section class="card overflow-hidden">
+                <div class="border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Payment history</div></div>
+                <div id="paymentList"></div>
+              </section>
+            </div>
+
+            <!-- NOTES -->
+            <div data-panel="notes" class="tabpanel" hidden>
+              <section class="card overflow-hidden">
+                <div class="flex items-center justify-between border-b border-brand-line px-5 py-3.5"><div class="smallcaps">Internal notes</div><span class="chip bg-brand-light text-brand-mute">Host-only · not shown to guest</span></div>
+                <div id="noteList" class="p-5 space-y-4"></div>
+                <div class="flex items-center gap-2 border-t border-brand-line p-3">
+                  <input type="text" placeholder="Add a note about Aisha…" class="flex-1 rounded-[10px] border border-brand-line px-3 py-2.5 text-[13px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"/>
+                  <button class="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-primary text-white hover:bg-brand-secondary"><i data-lucide="arrow-up" class="h-4 w-4"></i></button>
+                </div>
+              </section>
+            </div>
+
+          </div>
+          <div class="h-6"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  lucide.createIcons();
+  function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); }
+  const moreBtn=document.getElementById('moreBtn'), moreMenu=document.getElementById('moreMenu');
+  moreBtn.addEventListener('click', e=>{ e.stopPropagation(); moreMenu.toggleAttribute('hidden'); });
+  document.addEventListener('click', e=>{ if(!document.getElementById('moreWrap').contains(e.target)) moreMenu.setAttribute('hidden',''); });
+
+  function showTab(name,btn){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tabpanel').forEach(p=>{ if(p.dataset.panel===name){p.removeAttribute('hidden');p.classList.remove('fade');void p.offsetWidth;p.classList.add('fade');} else p.setAttribute('hidden',''); });
+    document.querySelector('.flex-1.overflow-y-auto.thin-scroll')?.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  // ----- data -----
+  const LIMG={'Sea Point Suite':'1580060839134-75a5edca2e99','Garden Cottage':'1505693416388-ac5ce068fe85'};
+  const bookings=[
+    {id:'VILO-2026-CT4901',listing:'Sea Point Suite',dot:'#10B981',dates:'25–28 May 2026',nights:3,amount:'R 3 950',status:{c:'green',t:'Confirmed'},note:'Upcoming · in 5 days'},
+    {id:'VILO-2025-CT3320',listing:'Sea Point Suite',dot:'#10B981',dates:'12–15 Sep 2025',nights:3,amount:'R 3 600',status:{c:'indigo',t:'Completed'},note:'★★★★★ reviewed'},
+    {id:'VILO-2025-CT2104',listing:'Garden Cottage',dot:'#6366F1',dates:'03–06 Apr 2025',nights:3,amount:'R 3 200',status:{c:'indigo',t:'Completed'},note:'★★★★★ reviewed'},
+    {id:'VILO-2024-CT1188',listing:'Sea Point Suite',dot:'#10B981',dates:'20–24 Dec 2024',nights:4,amount:'R 4 100',status:{c:'indigo',t:'Completed'},note:'★★★★☆ reviewed'},
+  ];
+  document.getElementById('bookingList').innerHTML = bookings.map(b=>`
+    <a href="Booking Details v3.html" class="brow">
+      <div class="h-12 w-16 shrink-0 overflow-hidden rounded-[10px]"><img src="https://images.unsplash.com/photo-${LIMG[b.listing]}?w=200&h=150&fit=crop" class="h-full w-full object-cover"/></div>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full shrink-0" style="background:${b.dot}"></span><span class="text-[14px] font-semibold text-brand-ink truncate">${b.listing}</span></div>
+        <div class="num mt-0.5 text-[12px] text-brand-mute">${b.dates} · ${b.nights} nights · <span class="font-mono text-[10.5px]">${b.id}</span></div>
+      </div>
+      <div class="hidden sm:block text-[11.5px] text-brand-mute">${b.note}</div>
+      <div class="text-right shrink-0"><div class="num font-display text-[14px] font-bold text-brand-ink">${b.amount}</div></div>
+      <span class="tag ${b.status.c} shrink-0"><span class="d"></span>${b.status.t}</span>
+      <i data-lucide="chevron-right" class="h-4 w-4 text-brand-mute shrink-0"></i>
+    </a>`).join('');
+
+  const messages=[
+    {day:'Mon 16 Nov 2025'},
+    {who:'them',text:'Hi! We loved Sea Point last winter — is it free 25–28 May? Bringing my mom and our 6-year-old 🙂',time:'10:42'},
+    {who:'me',text:'Hi Aisha! So lovely to have you back 🌿 Yes those nights are open. Returning-guest rate is R 1 200/night.',time:'10:51'},
+    {who:'them',text:'Perfect, let’s book it! Late arrival ~9pm ok? And could we get the baby cot again?',time:'11:03'},
+    {who:'me',text:'Late check-in is no problem, cot is sorted 👶 Sending the payment link now.',time:'11:06'},
+    {who:'them',text:'Paid! Thank you, can’t wait 🙌',time:'11:14'},
+  ];
+  document.getElementById('messageList').innerHTML = messages.map(m=>{
+    if(m.day) return `<div class="daydiv">${m.day}</div>`;
+    const meta=`<div class="mt-1 text-[10.5px] text-brand-mute ${m.who==='me'?'text-right':''}">${m.time}</div>`;
+    return `<div class="${m.who==='me'?'ml-auto':''}" style="max-width:78%"><div class="bubble ${m.who}">${m.text}</div>${meta}</div>`;
+  }).join('');
+
+  const payments=[
+    {date:'12 Apr 2026',id:'VILO-2026-CT4901',method:'Paystack ·· 4821',amount:'R 3 950',status:{c:'green',t:'Paid'},payout:'Payout 30 May'},
+    {date:'05 Sep 2025',id:'VILO-2025-CT3320',method:'Paystack ·· 4821',amount:'R 3 600',status:{c:'green',t:'Paid'},payout:'Paid out 19 Sep'},
+    {date:'28 Mar 2025',id:'VILO-2025-CT2104',method:'EFT',amount:'R 3 200',status:{c:'green',t:'Paid'},payout:'Paid out 10 Apr'},
+    {date:'14 Dec 2024',id:'VILO-2024-CT1188',method:'Paystack ·· 1190',amount:'R 4 100',status:{c:'green',t:'Paid'},payout:'Paid out 28 Dec'},
+  ];
+  document.getElementById('paymentList').innerHTML = payments.map((p,i)=>`
+    <div class="flex items-center gap-4 px-5 py-3.5 ${i>0?'border-t border-brand-line':''}">
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-secondary"><i data-lucide="credit-card" class="h-4 w-4"></i></div>
+      <div class="min-w-0 flex-1"><div class="num text-[13px] font-semibold text-brand-ink">${p.amount} <span class="font-normal text-brand-mute">· ${p.method}</span></div><div class="num mt-0.5 text-[11.5px] text-brand-mute"><span class="font-mono text-[10.5px]">${p.id}</span> · ${p.payout}</div></div>
+      <div class="num text-[12px] text-brand-mute hidden sm:block">${p.date}</div>
+      <span class="tag ${p.status.c} shrink-0"><span class="d"></span>${p.status.t}</span>
+    </div>`).join('');
+
+  const notes=[
+    {date:'13 Apr 2026',text:'VIP — always books the sea view. Stock extra coffee & leave a welcome note for the little one. 🌊'},
+    {date:'16 Sep 2025',text:'Super tidy, left the place spotless. Happy to offer the returning-guest rate every time.'},
+  ];
+  document.getElementById('noteList').innerHTML = notes.map(n=>`
+    <div class="flex gap-2.5">
+      <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full av av-1 text-[10px]">TM</div>
+      <div class="min-w-0"><div class="rounded-[12px] rounded-tl-sm bg-brand-light px-3 py-2 text-[12.5px] leading-relaxed text-brand-ink">${n.text}</div><div class="num mt-1 text-[10.5px] text-brand-mute">Thandi · ${n.date}</div></div>
+    </div>`).join('');
+
+  lucide.createIcons();
+</script>
+</body>
+</html>

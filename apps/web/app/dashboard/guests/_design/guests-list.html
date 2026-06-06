@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Guests · Vilo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        brand: { primary:"#10B981", secondary:"#064E3B", accent:"#D1FAE5", dark:"#0A1510", light:"#F0FDF4", ink:"#052E1F", mute:"#4A7C6A", line:"#E4EFE8" },
+        status: { confirmed:"#10B981", pending:"#F59E0B", cancelled:"#EF4444", completed:"#6366F1", inhouse:"#0EA5E9", draft:"#94A3B8" },
+      },
+      borderRadius: { DEFAULT:"10px", card:"16px", pill:"9999px", sm:"6px" },
+      fontFamily: { sans:["Inter","system-ui","sans-serif"], display:['"Plus Jakarta Sans"',"sans-serif"], mono:['"JetBrains Mono"',"monospace"] },
+      boxShadow: { card:"0 1px 2px rgba(6,78,59,.05)", lift:"0 10px 34px -14px rgba(6,78,59,.18)" },
+    }}
+  };
+</script>
+<style>
+  html,body{height:100%}
+  body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#052E1F}
+  .font-display{font-family:'Plus Jakarta Sans',sans-serif}
+  .num{font-feature-settings:"tnum" 1}
+  .thin-scroll::-webkit-scrollbar{width:9px;height:9px}
+  .thin-scroll::-webkit-scrollbar-thumb{background:#DCEAE0;border-radius:8px;border:2px solid #fff}
+  .thin-scroll::-webkit-scrollbar-track{background:transparent}
+
+  .icon-btn{height:38px;width:38px;border-radius:9999px;display:inline-flex;align-items:center;justify-content:center;color:#4A7C6A;transition:background .12s}
+  .icon-btn:hover{background:#F0FDF4;color:#052E1F}
+  .av{display:flex;align-items:center;justify-content:center;font-weight:700;font-family:'Plus Jakarta Sans',sans-serif}
+  .av-1{background:#064E3B;color:#fff}.av-2{background:#D1FAE5;color:#064E3B}.av-3{background:#0A1510;color:#fff}
+  .av-4{background:#4A7C6A;color:#fff}.av-5{background:#F0FDF4;color:#064E3B;border:1px solid #DCEAE0}
+  .av-6{background:#FEF3C7;color:#92400E}.av-7{background:#E0E7FF;color:#3730A3}
+
+  /* sidebar */
+  .gnav{width:248px;flex-shrink:0;background:#EEF4F0;display:flex;flex-direction:column;transition:width .22s cubic-bezier(.4,0,.2,1);overflow:hidden;border-right:1px solid #E4EFE8}
+  .gnav.collapsed{width:76px}
+  .compose{display:flex;align-items:center;height:48px;padding:0 18px;border-radius:16px;background:#fff;border:1px solid #E4EFE8;box-shadow:0 1px 3px rgba(6,78,59,.1),0 6px 14px -6px rgba(6,78,59,.18);color:#064E3B;font-weight:600;font-size:14px;cursor:pointer;transition:box-shadow .15s,background .15s;white-space:nowrap}
+  .compose:hover{box-shadow:0 2px 6px rgba(6,78,59,.16),0 10px 22px -8px rgba(6,78,59,.24);background:#FAFEFB}
+  .compose .ico{display:flex;align-items:center;justify-content:center;width:20px;flex-shrink:0;color:#10B981}
+  .gnav.collapsed .compose{width:48px;padding:0;justify-content:center}
+  .gitem{display:flex;align-items:center;height:38px;padding:0 16px 0 24px;margin-right:8px;border-radius:0 9999px 9999px 0;color:#3A5A4E;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;text-decoration:none}
+  .gitem:hover{background:#E2EDE6}
+  .gitem.active{background:#D1FAE5;color:#064E3B;font-weight:700}
+  .gitem .ico{width:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-right:18px}
+  .gitem .ico .dot2{width:10px;height:10px;border-radius:9999px;display:block}
+  .gitem .glbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .gitem .gcnt{font-size:12px;font-variant-numeric:tabular-nums;color:#5B7065;margin-left:8px}
+  .gitem.active .gcnt{color:#064E3B;font-weight:700}
+  .gsec{height:1px;background:#E1ECE5;margin:8px 12px 8px 0}
+  .glabel-h{padding:10px 10px 4px 24px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4A7C6A}
+  .gnav.collapsed .glbl,.gnav.collapsed .gcnt,.gnav.collapsed .gsec,.gnav.collapsed .glabel-h{display:none}
+  .gnav.collapsed .gitem{width:48px;height:48px;margin:2px auto;padding:0;border-radius:9999px;justify-content:center}
+  .gnav.collapsed .gitem .ico{margin-right:0}
+
+  /* tabs */
+  .tab{position:relative;padding:13px 2px;margin:0 16px;font-size:13.5px;font-weight:600;color:#6B8B7F;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;background:none}
+  .tab:first-child{margin-left:0}
+  .tab:hover{color:#052E1F}
+  .tab.active{color:#064E3B}
+  .tab.active::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2.5px;background:#10B981;border-radius:3px}
+  .tab .cnt{font-variant-numeric:tabular-nums;font-size:11px;background:#F0FDF4;color:#4A7C6A;padding:1px 7px;border-radius:9999px;border:1px solid #E4EFE8}
+  .tab.active .cnt{background:#D1FAE5;color:#064E3B;border-color:#BBF3D4}
+
+  /* status / segment tag */
+  .tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:3px 9px 3px 8px;border-radius:9999px;white-space:nowrap;border:1px solid transparent}
+  .tag .d{width:6px;height:6px;border-radius:9999px}
+  .tag.green{background:#ECFDF5;color:#047857;border-color:#C7F0DC}.tag.green .d{background:#10B981}
+  .tag.amber{background:#FFFBEB;color:#B45309;border-color:#FCE9B6}.tag.amber .d{background:#F59E0B}
+  .tag.red{background:#FEF2F2;color:#DC2626;border-color:#FBD5D5}.tag.red .d{background:#EF4444}
+  .tag.indigo{background:#EEF0FF;color:#4F46E5;border-color:#D7DBFB}.tag.indigo .d{background:#6366F1}
+  .tag.sky{background:#EFF8FE;color:#0284C7;border-color:#C9E9F8}.tag.sky .d{background:#0EA5E9}
+  .tag.gray{background:#F4F7F5;color:#5B7065;border-color:#E4EFE8}.tag.gray .d{background:#94A3B8}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:9999px;font-size:10.5px;font-weight:600;line-height:1.3}
+
+  /* filter pill */
+  .fpill{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:9px;border:1px solid #E4EFE8;background:#fff;font-size:12.5px;font-weight:500;color:#3A5A4E;cursor:pointer;transition:background .12s,border-color .12s}
+  .fpill:hover{background:#F7FBF8}
+  .fpill.on{border-color:#10B981;background:#F0FDF6;color:#064E3B}
+
+  /* table */
+  .vcheck{appearance:none;width:16px;height:16px;border:1.5px solid #CFE2D6;border-radius:5px;background:#fff;cursor:pointer;transition:.12s;flex-shrink:0}
+  .vcheck:hover{border-color:#10B981}
+  .vcheck:checked{background:#10B981;border-color:#10B981;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 12l5 5 9-11'/></svg>");background-size:11px;background-repeat:no-repeat;background-position:center}
+
+  .gcols{display:grid;grid-template-columns:34px minmax(0,2.3fr) minmax(0,1.1fr) 64px minmax(0,1fr) 92px minmax(0,1.3fr) 64px;align-items:center;gap:14px}
+  .row{cursor:pointer;border-bottom:1px solid #F1F6F2;transition:background .1s;position:relative;padding:13px 18px}
+  .row:hover{background:#F8FCF9}
+  .row.is-active{background:#F4FBF6}
+  .row::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;opacity:0;transition:.12s}
+  .row[data-seg="vip"]::after{background:#10B981}
+  .row[data-seg="returning"]::after{background:#6366F1}
+  .row[data-seg="new"]::after{background:#0EA5E9}
+  .row[data-seg="ota"]::after{background:#94A3B8}
+  .row:hover::after,.row.is-active::after{opacity:1}
+  .colhdr{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8AA89C}
+  .grouphdr{padding:7px 18px;background:#F7FAF8;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#7A988C;border-bottom:1px solid #F1F6F2}
+
+  /* hover quick actions */
+  .qacts{display:flex;align-items:center;gap:1px;justify-content:flex-end;opacity:0;transition:opacity .1s}
+  .row:hover .qacts{opacity:1}
+
+  /* sticky + sortable header */
+  .thead{position:sticky;top:0;z-index:5;background:#fff;transition:box-shadow .15s}
+  .thead.stuck{box-shadow:0 6px 14px -10px rgba(6,78,59,.4)}
+  .sortbtn{display:inline-flex;align-items:center;gap:4px;cursor:pointer;color:#8AA89C;transition:color .12s}
+  .sortbtn:hover{color:#3A5A4E}
+  .sortbtn .car{opacity:0;transition:opacity .12s}
+  .sortbtn:hover .car{opacity:.5}
+  .sortbtn.on{color:#064E3B}
+  .sortbtn.on .car{opacity:1}
+
+  /* density */
+  #rows.compact .row{padding-top:8px;padding-bottom:8px}
+  #rows.compact .subline{display:none}
+  #rows.compact .av{height:32px!important;width:32px!important;font-size:11px!important}
+  #rows.compact .gav-img{height:32px!important;width:32px!important}
+
+  /* bulk bar */
+  .bulkbar{position:absolute;inset:0;display:flex;align-items:center;gap:10px;padding:0 18px;background:#ECFDF5;border-bottom:1px solid #C7F0DC;z-index:6}
+
+  /* sort menu */
+  .menu-pop{position:absolute;top:calc(100% + 6px);right:0;z-index:30;background:#fff;border:1px solid #E4EFE8;border-radius:12px;box-shadow:0 14px 34px -14px rgba(6,78,59,.3);padding:6px;min-width:212px}
+  .menu-pop button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:8px 10px;border-radius:8px;font-size:13px;color:#3A5A4E;font-weight:500}
+  .menu-pop button:hover{background:#F0FDF4;color:#052E1F}
+  .menu-pop button.on{color:#064E3B;font-weight:700}
+  .menu-pop button .ck{margin-left:auto;color:#10B981;opacity:0}
+  .menu-pop button.on .ck{opacity:1}
+
+  .stars{display:inline-flex;align-items:center;gap:2px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body class="antialiased">
+<div class="h-screen flex flex-col overflow-hidden">
+
+  <!-- ===== TOP BAR ===== -->
+  <header class="shrink-0 h-16 flex items-center gap-3 px-4 lg:px-5 border-b border-brand-line bg-white">
+    <button onclick="toggleSidebar()" class="icon-btn" title="Menu"><i data-lucide="menu" class="h-5 w-5"></i></button>
+    <a href="Bookings Page v3.html" class="flex items-center gap-2.5 shrink-0">
+      <svg class="h-9 w-9 rounded-lg" viewBox="0 0 100 100" fill="none"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#064E3B"/></linearGradient></defs><rect width="100" height="100" rx="24" fill="url(#lg)"/><path d="M50 56L32 32H40L50 46L60 32H68L50 56Z" fill="#fff"/><path d="M50 66L26 32H38L50 50L62 32H74L50 66Z" fill="#fff" opacity=".55"/></svg>
+      <span class="font-display font-bold text-brand-ink text-[17px] tracking-tight hidden sm:block">Vilo</span>
+    </a>
+    <div class="flex-1 max-w-2xl mx-auto">
+      <div class="flex items-center gap-2.5 h-11 px-4 rounded-pill bg-[#F4F8F5] border border-transparent focus-within:bg-white focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,.1)] transition">
+        <i data-lucide="search" class="h-4 w-4 text-brand-mute"></i>
+        <input id="search" placeholder="Search guests by name, email or phone…" class="flex-1 bg-transparent outline-none text-sm text-brand-ink placeholder:text-brand-mute" />
+        <kbd class="font-mono text-[10px] bg-white text-brand-mute px-1.5 py-0.5 rounded border border-brand-line hidden md:inline-block">/</kbd>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 shrink-0">
+      <button class="icon-btn relative" title="Notifications"><i data-lucide="bell" class="h-5 w-5"></i><span class="num absolute right-1 top-1 h-4 min-w-[16px] px-1 rounded-full bg-status-cancelled text-[10px] font-bold text-white flex items-center justify-center">2</span></button>
+      <div class="h-9 w-9 rounded-full av av-1 text-[12px] ml-1">TM</div>
+    </div>
+  </header>
+
+  <!-- ===== BODY ROW ===== -->
+  <div class="flex-1 flex min-h-0">
+
+    <!-- sidebar -->
+    <aside id="sidebar" class="gnav">
+      <div class="px-[14px] pt-2.5 pb-3">
+        <a href="New Booking Page v3.html" class="compose" title="New booking"><span class="ico"><i data-lucide="plus" class="h-5 w-5"></i></span><span class="glbl ml-[14px]">New booking</span></a>
+      </div>
+      <nav class="flex-1 overflow-y-auto thin-scroll pb-3">
+        <a href="Inbox v3 — Classic.html" class="gitem"><span class="ico"><i data-lucide="inbox" class="h-[18px] w-[18px]"></i></span><span class="glbl">Inbox</span><span class="gcnt num">9</span></a>
+        <a href="Bookings Page v3.html" class="gitem"><span class="ico"><i data-lucide="calendar-check" class="h-[18px] w-[18px]"></i></span><span class="glbl">Bookings</span><span class="gcnt num">24</span></a>
+        <a href="#" class="gitem active"><span class="ico"><i data-lucide="users" class="h-[18px] w-[18px]"></i></span><span class="glbl">Guests</span><span class="gcnt num">312</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="calendar" class="h-[18px] w-[18px]"></i></span><span class="glbl">Calendar</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="home" class="h-[18px] w-[18px]"></i></span><span class="glbl">Listings</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="star" class="h-[18px] w-[18px]"></i></span><span class="glbl">Reviews</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="credit-card" class="h-[18px] w-[18px]"></i></span><span class="glbl">Payments</span></a>
+        <div class="glabel-h">Listings</div>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#10B981"></span></span><span class="glbl">Sea Point Suite</span></a>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#6366F1"></span></span><span class="glbl">Garden Cottage</span></a>
+        <a href="#" class="gitem"><span class="ico"><span class="dot2" style="background:#F59E0B"></span></span><span class="glbl">Mountain Loft</span></a>
+        <div class="gsec"></div>
+        <a href="Dashboard.html" class="gitem"><span class="ico"><i data-lucide="layout-dashboard" class="h-[18px] w-[18px]"></i></span><span class="glbl">Dashboard</span></a>
+        <a href="#" class="gitem"><span class="ico"><i data-lucide="settings" class="h-[18px] w-[18px]"></i></span><span class="glbl">Settings</span></a>
+      </nav>
+    </aside>
+
+    <!-- content -->
+    <div class="flex-1 min-w-0 flex flex-col overflow-hidden bg-white">
+
+      <!-- page header -->
+      <div class="shrink-0 px-5 lg:px-8 pt-6 pb-4 flex items-end justify-between gap-4 border-b border-brand-line">
+        <div>
+          <h1 class="font-display text-[24px] font-bold tracking-tight text-brand-ink">Guests</h1>
+          <p class="mt-1 text-[13.5px] text-brand-mute"><span class="num font-semibold text-brand-ink">312</span> all-time · <span class="num font-semibold text-status-confirmed">28</span> VIP · <span class="num font-semibold text-brand-ink">5</span> staying this month</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="hidden sm:inline-flex items-center gap-1.5 h-10 px-3.5 rounded-pill border border-brand-line bg-white text-[13px] font-semibold text-brand-ink hover:bg-brand-light transition"><i data-lucide="download" class="h-4 w-4 text-brand-mute"></i> Export</button>
+          <button class="inline-flex items-center gap-1.5 h-10 px-5 rounded-pill bg-brand-primary text-white text-[13.5px] font-semibold shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] hover:bg-brand-secondary transition"><i data-lucide="user-plus" class="h-4 w-4"></i> Add guest</button>
+        </div>
+      </div>
+
+      <!-- scroll area -->
+      <div class="flex-1 overflow-y-auto thin-scroll" id="scrollHost">
+        <div class="px-5 lg:px-8 py-6">
+
+          <!-- KPI strip -->
+          <section class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+            <div class="rounded-card border border-brand-line bg-white p-4 shadow-card">
+              <div class="flex items-center justify-between"><span class="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">Total guests</span><span class="num chip bg-brand-light text-status-confirmed"><i data-lucide="trending-up" class="h-3 w-3"></i> +12</span></div>
+              <div class="num mt-2 font-display text-[26px] font-bold text-brand-ink leading-none">312</div>
+              <div class="mt-1.5 text-[11px] text-brand-mute">across all listings</div>
+            </div>
+            <div class="rounded-card border border-brand-line bg-white p-4 shadow-card">
+              <div class="flex items-center justify-between"><span class="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">Repeat-guest rate</span><span class="num chip bg-brand-light text-status-confirmed">+4%</span></div>
+              <div class="num mt-2 font-display text-[26px] font-bold text-brand-ink leading-none">38%</div>
+              <div class="mt-1.5 text-[11px] text-brand-mute">118 returning guests</div>
+            </div>
+            <div class="rounded-card border border-brand-line bg-white p-4 shadow-card">
+              <div class="flex items-center justify-between"><span class="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">Avg lifetime value</span><span class="num chip bg-brand-light text-brand-mute">per guest</span></div>
+              <div class="num mt-2 font-display text-[26px] font-bold text-brand-ink leading-none">R 6 240</div>
+              <div class="mt-1.5 text-[11px] text-brand-mute">R 1.9M all-time</div>
+            </div>
+            <div class="rounded-card border border-brand-line bg-white p-4 shadow-card">
+              <div class="flex items-center justify-between"><span class="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">Avg rating left</span><span class="num chip bg-amber-50 text-status-pending"><i data-lucide="star" class="h-3 w-3" style="fill:currentColor"></i> 4.8</span></div>
+              <div class="num mt-2 font-display text-[26px] font-bold text-brand-ink leading-none">4.8 / 5</div>
+              <div class="mt-1.5 text-[11px] text-brand-mute">from 240 reviews</div>
+            </div>
+          </section>
+
+          <!-- table card -->
+          <section class="rounded-card border border-brand-line bg-white shadow-card overflow-hidden">
+
+            <!-- segment tabs -->
+            <div class="flex items-stretch px-5 border-b border-brand-line overflow-x-auto" style="scrollbar-width:none">
+              <button class="tab active" data-seg-tab="all" onclick="setSeg('all',this)">All guests <span class="cnt num">312</span></button>
+              <button class="tab" data-seg-tab="vip" onclick="setSeg('vip',this)">VIP <span class="cnt num">28</span></button>
+              <button class="tab" data-seg-tab="returning" onclick="setSeg('returning',this)">Returning <span class="cnt num">118</span></button>
+              <button class="tab" data-seg-tab="new" onclick="setSeg('new',this)">New <span class="cnt num">166</span></button>
+              <button class="tab" data-seg-tab="ota" onclick="setSeg('ota',this)">Via OTA <span class="cnt num">74</span></button>
+            </div>
+
+            <!-- filter row -->
+            <div class="flex flex-wrap items-center gap-2 px-5 py-3 border-b border-brand-line bg-[#FBFDFC]">
+              <button class="fpill"><i data-lucide="home" class="h-3.5 w-3.5 text-brand-mute"></i> All listings <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-brand-mute"></i></button>
+              <button class="fpill"><i data-lucide="git-branch" class="h-3.5 w-3.5 text-brand-mute"></i> All channels <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-brand-mute"></i></button>
+              <button class="fpill"><i data-lucide="star" class="h-3.5 w-3.5 text-brand-mute"></i> Any rating <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-brand-mute"></i></button>
+              <button class="fpill"><i data-lucide="sliders-horizontal" class="h-3.5 w-3.5 text-brand-mute"></i> More filters</button>
+
+              <div class="ml-auto flex items-center gap-2">
+                <div class="inline-flex items-center rounded-[9px] border border-brand-line bg-white p-0.5">
+                  <button id="denCom" class="h-7 px-2.5 rounded-[7px] text-[12px] font-semibold text-white bg-brand-secondary" title="Comfortable" onclick="setDensity('comfortable')"><i data-lucide="rows-3" class="h-3.5 w-3.5"></i></button>
+                  <button id="denCmp" class="h-7 px-2.5 rounded-[7px] text-[12px] font-semibold text-brand-mute hover:text-brand-ink" title="Compact" onclick="setDensity('compact')"><i data-lucide="menu" class="h-3.5 w-3.5"></i></button>
+                </div>
+                <div class="relative">
+                  <button class="fpill" onclick="toggleSort(event)"><i data-lucide="arrow-up-down" class="h-3.5 w-3.5 text-brand-mute"></i> <span id="sortLabel">Recently active</span> <i data-lucide="chevron-down" class="h-3.5 w-3.5 text-brand-mute"></i></button>
+                  <div id="sortMenu" class="menu-pop" hidden>
+                    <button class="on" data-sort="recent" onclick="applySort('recent','Recently active')"><i data-lucide="clock" class="h-4 w-4"></i> Recently active <i data-lucide="check" class="ck h-4 w-4"></i></button>
+                    <button data-sort="value" onclick="applySort('value','Lifetime value: high → low')"><i data-lucide="banknote" class="h-4 w-4"></i> Lifetime value <i data-lucide="check" class="ck h-4 w-4"></i></button>
+                    <button data-sort="stays" onclick="applySort('stays','Most stays')"><i data-lucide="bed-double" class="h-4 w-4"></i> Most stays <i data-lucide="check" class="ck h-4 w-4"></i></button>
+                    <button data-sort="name" onclick="applySort('name','Name: A → Z')"><i data-lucide="arrow-down-a-z" class="h-4 w-4"></i> Name: A → Z <i data-lucide="check" class="ck h-4 w-4"></i></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- column header -->
+            <div class="thead" id="thead">
+              <div class="bulkbar" id="bulkbar" hidden>
+                <input type="checkbox" class="vcheck" id="bulkMaster" />
+                <span class="text-[13px] font-semibold text-brand-secondary"><span id="selCount" class="num">0</span> selected</span>
+                <div class="h-4 w-px bg-status-confirmed/30 mx-1"></div>
+                <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill bg-white border border-brand-line text-[12.5px] font-semibold text-brand-ink hover:bg-brand-light"><i data-lucide="mail" class="h-3.5 w-3.5 text-brand-primary"></i> Message</button>
+                <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill bg-white border border-brand-line text-[12.5px] font-semibold text-brand-ink hover:bg-brand-light"><i data-lucide="tag" class="h-3.5 w-3.5 text-brand-primary"></i> Tag</button>
+                <button class="inline-flex items-center gap-1.5 h-8 px-3 rounded-pill bg-white border border-brand-line text-[12.5px] font-semibold text-brand-ink hover:bg-brand-light"><i data-lucide="download" class="h-3.5 w-3.5 text-brand-primary"></i> Export</button>
+                <button class="ml-auto text-[12.5px] font-medium text-brand-mute hover:text-brand-ink" onclick="clearSelection()">Clear</button>
+              </div>
+              <div class="gcols px-[18px] py-2.5 border-b border-brand-line bg-white">
+                <div><input type="checkbox" class="vcheck" id="checkAll" /></div>
+                <div><span class="sortbtn colhdr" data-sort="name" onclick="applySort('name','Name: A → Z')">Guest <i data-lucide="chevron-down" class="car h-3 w-3"></i></span></div>
+                <div class="colhdr">Segment</div>
+                <div class="text-center"><span class="sortbtn colhdr" data-sort="stays" onclick="applySort('stays','Most stays')" style="justify-content:center">Stays <i data-lucide="chevron-down" class="car h-3 w-3"></i></span></div>
+                <div><span class="sortbtn colhdr" data-sort="value" onclick="applySort('value','Lifetime value: high → low')">Lifetime <i data-lucide="chevron-down" class="car h-3 w-3"></i></span></div>
+                <div class="colhdr text-center">Rating</div>
+                <div class="colhdr">Last / next stay</div>
+                <div></div>
+              </div>
+            </div>
+
+            <!-- rows -->
+            <div id="rows"></div>
+
+            <!-- empty state -->
+            <div id="empty" class="hidden flex-col items-center justify-center py-20 text-center">
+              <div class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-light text-brand-mute"><i data-lucide="users" class="h-6 w-6"></i></div>
+              <div class="mt-3 text-[15px] font-semibold text-brand-ink">No guests match</div>
+              <div class="mt-1 text-[13px] text-brand-mute">Try a different segment or clear your search.</div>
+            </div>
+
+            <!-- footer -->
+            <div class="flex items-center justify-between px-5 py-3 border-t border-brand-line bg-[#FBFDFC]">
+              <div class="num text-[12px] text-brand-mute">Showing <span id="shownCount">8</span> of 312 guests</div>
+              <div class="flex items-center gap-1">
+                <button class="icon-btn h-8 w-8" disabled><i data-lucide="chevron-left" class="h-4 w-4"></i></button>
+                <button class="h-8 w-8 rounded-lg bg-brand-secondary text-white text-[12px] font-semibold">1</button>
+                <button class="h-8 w-8 rounded-lg text-brand-mute hover:bg-brand-light text-[12px] font-semibold">2</button>
+                <button class="h-8 w-8 rounded-lg text-brand-mute hover:bg-brand-light text-[12px] font-semibold">3</button>
+                <button class="icon-btn h-8 w-8"><i data-lucide="chevron-right" class="h-4 w-4"></i></button>
+              </div>
+            </div>
+          </section>
+
+          <div class="h-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('collapsed'); }
+
+  const SEGS = {
+    vip:{t:'VIP',c:'green'},
+    returning:{t:'Returning',c:'indigo'},
+    new:{t:'New',c:'sky'},
+    ota:{t:'Via OTA',c:'gray'},
+  };
+
+  // guest data
+  const guests = [
+    {id:'aisha',name:'Aisha Patel',email:'aisha.p@gmail.com',av:'photo-1494790108377-be9c29b29330',seg:'vip',verified:true,stays:4,nights:13,value:14850,rating:4.9,last:'25–28 May',lastNote:'Next stay · in 5 days',future:true,recent:1,home:'Sea Point Suite'},
+    {id:'james',name:'James Donovan',email:'james.donovan@outlook.com',init:'JD',cls:'av-3',seg:'returning',verified:true,stays:3,nights:9,value:9600,rating:5.0,last:'12 Jan 2026',lastNote:'Last stay',future:false,recent:2,home:'Stone Barn Loft'},
+    {id:'priya',name:'Priya Sharma',email:'priya.sharma@gmail.com',av:'photo-1438761681033-6461ffad8d80',seg:'returning',verified:true,stays:2,nights:7,value:7250,rating:4.5,last:'08 Dec 2025',lastNote:'Last stay',future:false,recent:3,home:'Sea Point Suite'},
+    {id:'naledi',name:'Naledi Khumalo',email:'naledi.k@gmail.com',init:'NK',cls:'av-4',seg:'new',verified:true,stays:1,nights:2,value:2400,rating:0,last:'09–11 Jan',lastNote:'Upcoming',future:true,recent:4,home:'Sea Point Suite'},
+    {id:'ryan',name:'Ryan & Chloe Bekker',email:'r.bekker@gmail.com',init:'RB',cls:'av-5',seg:'new',verified:false,stays:1,nights:3,value:3150,rating:0,last:'Tomorrow',lastNote:'Checking in',future:true,recent:0,home:'Stone Barn Loft'},
+    {id:'marcus',name:'Marcus Mthembu',email:'m.mthembu@yahoo.com',init:'MM',cls:'av-7',seg:'ota',verified:true,stays:2,nights:6,value:5400,rating:4.0,last:'In-house now',lastNote:'Olive Grove · checks out Fri',future:false,inhouse:true,recent:0,home:'Olive Grove',channel:'Airbnb'},
+    {id:'sophie',name:'Sophie Engelbrecht',email:'sophie.e@gmail.com',av:'photo-1544005313-94ddf0286df2',seg:'returning',verified:true,stays:3,nights:10,value:11200,rating:5.0,last:'18 Sep 2025',lastNote:'Last stay',future:false,recent:5,home:'Sea Point Suite'},
+    {id:'daniel',name:'Daniel van Wyk',email:'guest via Booking.com',init:'DV',cls:'av-2',seg:'ota',verified:false,stays:1,nights:2,value:1900,rating:0,last:'02 Nov 2025',lastNote:'Cancelled',future:false,cancelled:true,recent:6,home:'Stone Barn Loft',channel:'Booking.com'},
+  ];
+
+  let curSeg='all', curSort='recent', curSearch='';
+
+  function starHTML(r){
+    if(!r) return '<span class="text-[11.5px] text-brand-mute">—</span>';
+    return `<span class="stars num text-[12.5px] font-semibold text-brand-ink">${r.toFixed(1)} <i data-lucide="star" class="h-3 w-3" style="fill:#F59E0B;color:#F59E0B"></i></span>`;
+  }
+  function avatarHTML(g,size){
+    const s = size||40;
+    if(g.av) return `<img src="https://images.unsplash.com/${g.av}?w=120&h=120&fit=crop&crop=faces" alt="" class="gav-img h-10 w-10 rounded-pill object-cover ring-2 ring-white" />`;
+    return `<div class="av ${g.cls} h-10 w-10 rounded-pill text-[13px]">${g.init}</div>`;
+  }
+  function fmtValue(v){ return 'R ' + v.toLocaleString('en-ZA').replace(/,/g,' '); }
+
+  function rowHTML(g){
+    const seg = SEGS[g.seg];
+    const nextBadge = g.inhouse ? '<span class="tag sky"><span class="d"></span>In-house</span>'
+      : g.cancelled ? '<span class="tag red"><span class="d"></span>Cancelled</span>'
+      : g.future ? `<span class="tag amber"><span class="d"></span>${g.last}</span>` : '';
+    const lastCol = (g.future||g.inhouse)
+      ? `<div><div class="text-[12.5px] font-semibold text-brand-ink">${g.lastNote}</div><div class="subline mt-0.5 text-[11px] text-brand-mute">${g.inhouse?g.home:(g.cancelled?'':'upcoming · '+g.home)}</div></div>`
+      : `<div><div class="num text-[12.5px] font-semibold text-brand-ink">${g.last}</div><div class="subline mt-0.5 text-[11px] text-brand-mute">${g.lastNote} · ${g.home}</div></div>`;
+    return `<div class="row gcols" data-seg="${g.seg}" data-id="${g.id}" onclick="rowClick(event,'${g.id}')">
+      <div><input type="checkbox" class="vcheck row-check" onclick="event.stopPropagation()" /></div>
+      <div class="flex min-w-0 items-center gap-3">
+        <div class="relative shrink-0">${avatarHTML(g)}${g.inhouse?'<span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-status-inhouse"></span>':''}</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-1.5">
+            <span class="truncate text-[14px] font-semibold text-brand-ink">${g.name}</span>
+            ${g.verified?'<i data-lucide="badge-check" class="h-3.5 w-3.5 text-status-confirmed shrink-0"></i>':''}
+          </div>
+          <div class="subline mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-mute truncate">
+            ${g.channel?`<span class="inline-flex items-center gap-1"><i data-lucide="git-branch" class="h-3 w-3"></i>${g.channel}</span><span class="text-brand-line">·</span>`:''}
+            <span class="truncate">${g.email}</span>
+          </div>
+        </div>
+      </div>
+      <div><span class="tag ${seg.c}"><span class="d"></span>${seg.t}</span></div>
+      <div class="text-center"><div class="num text-[14px] font-bold text-brand-ink">${g.stays}</div><div class="subline text-[10.5px] text-brand-mute">${g.nights} nts</div></div>
+      <div><div class="num font-display text-[14px] font-bold text-brand-ink">${fmtValue(g.value)}</div><div class="subline mt-0.5 text-[10.5px] text-brand-mute">lifetime</div></div>
+      <div class="text-center">${starHTML(g.rating)}</div>
+      <div class="flex items-center gap-2 min-w-0">${nextBadge || lastCol}</div>
+      <div class="qacts">
+        <button class="icon-btn h-8 w-8" title="Message" onclick="event.stopPropagation();window.location.href='Inbox v3 — Classic.html'"><i data-lucide="mail" class="h-[16px] w-[16px]"></i></button>
+        <button class="icon-btn h-8 w-8" title="Open profile" onclick="event.stopPropagation();window.location.href='Guest Record.html'"><i data-lucide="arrow-right" class="h-[16px] w-[16px]"></i></button>
+      </div>
+    </div>`;
+  }
+
+  function recentKey(g){ return g.inhouse||g.last==='Tomorrow' ? -1 : (g.recent ?? 99); }
+
+  function render(){
+    let arr = guests.slice();
+    if(curSeg!=='all') arr = arr.filter(g=>g.seg===curSeg);
+    if(curSearch){ const q=curSearch.toLowerCase(); arr = arr.filter(g=>g.name.toLowerCase().includes(q)||g.email.toLowerCase().includes(q)); }
+    if(curSort==='recent') arr.sort((a,b)=>recentKey(a)-recentKey(b));
+    else if(curSort==='value') arr.sort((a,b)=>b.value-a.value);
+    else if(curSort==='stays') arr.sort((a,b)=>b.stays-a.stays);
+    else if(curSort==='name') arr.sort((a,b)=>a.name.localeCompare(b.name));
+
+    const host=document.getElementById('rows');
+    host.innerHTML = arr.map(rowHTML).join('');
+    document.getElementById('empty').classList.toggle('hidden', arr.length>0);
+    document.getElementById('empty').classList.toggle('flex', arr.length===0);
+    document.getElementById('shownCount').textContent = arr.length;
+    lucide.createIcons();
+    refreshSel();
+  }
+
+  // segment tabs
+  function setSeg(seg,btn){ curSeg=seg; document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); render(); }
+
+  // search
+  document.getElementById('search').addEventListener('input', e=>{ curSearch=e.target.value; render(); });
+
+  // sort
+  function toggleSort(e){ e.stopPropagation(); document.getElementById('sortMenu').toggleAttribute('hidden'); }
+  function applySort(key,label){
+    curSort=key;
+    document.getElementById('sortLabel').textContent=label;
+    document.getElementById('sortMenu').setAttribute('hidden','');
+    document.querySelectorAll('#sortMenu button').forEach(b=>b.classList.toggle('on', b.dataset.sort===key));
+    document.querySelectorAll('.sortbtn').forEach(b=>b.classList.toggle('on', b.dataset.sort===key));
+    render();
+  }
+  document.addEventListener('click', e=>{ if(!e.target.closest('#sortMenu') && !e.target.closest('[onclick^="toggleSort"]')) document.getElementById('sortMenu').setAttribute('hidden',''); });
+
+  // density
+  function setDensity(d){
+    document.getElementById('rows').classList.toggle('compact', d==='compact');
+    document.getElementById('denCom').className='h-7 px-2.5 rounded-[7px] text-[12px] font-semibold '+(d==='comfortable'?'text-white bg-brand-secondary':'text-brand-mute hover:text-brand-ink');
+    document.getElementById('denCmp').className='h-7 px-2.5 rounded-[7px] text-[12px] font-semibold '+(d==='compact'?'text-white bg-brand-secondary':'text-brand-mute hover:text-brand-ink');
+  }
+
+  // selection
+  function refreshSel(){
+    const checks=[...document.querySelectorAll('.row-check')];
+    const n=checks.filter(c=>c.checked).length;
+    const bar=document.getElementById('bulkbar');
+    document.getElementById('selCount').textContent=n;
+    if(n>0) bar.removeAttribute('hidden'); else bar.setAttribute('hidden','');
+    const all=document.getElementById('checkAll'); if(all){ all.checked=n>0&&n===checks.length; all.indeterminate=n>0&&n<checks.length; }
+  }
+  function clearSelection(){ document.querySelectorAll('.row-check').forEach(c=>c.checked=false); refreshSel(); }
+  document.getElementById('rows').addEventListener('change', e=>{ if(e.target.classList.contains('row-check')) refreshSel(); });
+  document.getElementById('checkAll').addEventListener('change', e=>{ document.querySelectorAll('.row-check').forEach(c=>c.checked=e.target.checked); refreshSel(); });
+  document.getElementById('bulkMaster').addEventListener('change', e=>{ document.querySelectorAll('.row-check').forEach(c=>c.checked=e.target.checked); refreshSel(); });
+
+  // sticky shadow
+  const scrollHost=document.getElementById('scrollHost');
+  const thead=document.getElementById('thead');
+  scrollHost.addEventListener('scroll',()=>{ thead.classList.toggle('stuck', thead.getBoundingClientRect().top<=scrollHost.getBoundingClientRect().top+1); });
+
+  // row click → guest record
+  function rowClick(e,id){ if(e.target.closest('input,button,a')) return; window.location.href='Guest Record.html'; }
+
+  render();
+</script>
+</body>
+</html>

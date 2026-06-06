@@ -3,9 +3,10 @@
 **Status:** Planned — ready to build in a fresh session. Scope = List + Record + 20 enhancements +
 5 pillar enhancements (A–E) + bulk mailer (Phase 9). Core decisions §9 locked; mailer decisions A–E to
 confirm at the start of Phase 9.
-**Designs (match exactly):**
-- Guests **list** → `C:\Users\Wollie\Downloads\Guests List.html`
-- Guest **record** → `C:\Users\Wollie\Downloads\Guest Record.html`
+**Designs (match exactly — now in-repo, version-controlled):**
+- Guests **list** → `apps/web/app/dashboard/guests/_design/guests-list.html`
+- Guest **record** → `apps/web/app/dashboard/guests/_design/guest-record.html`
+- (`_design` has a leading underscore → ignored by the Next.js App Router; safe to keep alongside the route.)
 **Owner area:** Host dashboard. **MVP feature** — schema must be properly aligned, not hacky.
 **Created:** 2026-06-06.
 
@@ -490,29 +491,28 @@ A single, calm `FormModal` opened from a **"Email guests"** button on the list h
 6. **Sidebar count badge** — ✅ **Include now.** Live guest count on the **Guests** nav item, fed by the
    summary RPC threaded through the dashboard layout. (Promotes §5's "optional" badge to in-scope.)
 
-### Bulk mailer — decisions to confirm before Phase 9
-A. **Consent default** — *opt-out* (existing booking guests subscribed by default, POPIA existing-customer
-   basis, every email carries unsubscribe) vs *strict opt-in* (nobody emailed until they opt in).
-   *Recommend:* **opt-out for booking guests**; for **manual contacts**, show a "I have consent to email
-   this person" checkbox on Add guest. Keeps it usable while staying defensible.
-B. **Monthly window** — calendar month vs rolling 30 days. *Recommend:* **calendar month** (predictable;
-   "next available on the 1st").
-C. **Composer richness** — plain + light formatting vs full rich-text/builder. *Recommend:* **simple**
-   (subject + body + `{first_name}`) inside the branded wrapper. Power can come later.
-D. **Sender identity** — platform verified domain with reply-to=host vs per-host custom domain.
-   *Recommend:* **platform domain + reply-to host** for MVP; custom domains later.
+### Bulk mailer — decisions LOCKED (confirmed 2026-06-06)
+A. **Consent default** — ✅ **Opt-out for booking guests** (subscribed by default, POPIA existing-customer
+   basis, every email carries a working unsubscribe). **Manual contacts** must tick an "I have consent to
+   email this person" checkbox on **Add guest** before they're emailable.
+B. **Monthly window** — ✅ **Calendar month** (one broadcast per host per calendar month; "next available
+   on the 1st").
+C. **Composer richness** — ✅ **Simple** (subject + body + `{first_name}` merge token) inside the branded
+   email wrapper. No drag-drop builder for MVP.
+D. **Sender identity** — ✅ **Platform verified domain + reply-to = host email**, display name = host brand.
+   Per-host custom sending domains are a later add.
 
-### Pillar-enhancement decision
-E. **OTA fee rate for "commission saved" (enhancement A)** — what % to multiply direct revenue by.
-   *Recommend:* a single platform constant **15%** for MVP (typical OTA host commission), shown with a "~"
-   and an info tooltip ("estimated vs typical OTA fees"). Make it a host-setting later, not now.
+### Pillar-enhancement decision — LOCKED
+E. **OTA fee rate for "commission saved" (enhancement A)** — ✅ **Single platform constant 15%** for MVP
+   (typical OTA host commission), always shown with a "~" and an info tooltip ("estimated vs typical OTA
+   fees"). Promote to a host-setting later, not now.
 
 ---
 
 ### Key file references (for the build session)
 | Asset | Path |
 |---|---|
-| Designs | `…\Downloads\Guests List.html`, `…\Downloads\Guest Record.html` |
+| Designs (in-repo) | `apps/web/app/dashboard/guests/_design/guests-list.html`, `…/guest-record.html` |
 | Sidebar nav | `apps/web/app/dashboard/_components/Sidebar.tsx` |
 | Bookings list (mirror server/client split) | `apps/web/app/dashboard/bookings/page.tsx` + `BookingsBoard.tsx` |
 | Booking detail (link) | `apps/web/app/dashboard/bookings/[id]/page.tsx` |
