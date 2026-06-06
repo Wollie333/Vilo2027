@@ -7,7 +7,10 @@ import {
   GuestRecord,
   type BookingItem,
   type GuestRecordData,
+  type MessageItem,
+  type NoteItem,
   type PaymentItem,
+  type TemplateItem,
 } from "./GuestRecord";
 
 export const dynamic = "force-dynamic";
@@ -144,16 +147,71 @@ export default async function GuestRecordPage({
     }));
   }
 
-  // Pinned note for the Overview card (full Notes tab lands in Phase 6).
-  const { data: pinnedNote } = await supabase
+  // Notes timeline (newest first, pinned on top) with author names.
+  const { data: notesData } = await supabase
     .from("guest_notes")
-    .select("body, created_at")
+    .select(
+      "id, body, is_pinned, created_at, author:user_profiles!guest_notes_author_id_fkey ( full_name )",
+    )
     .eq("host_id", host.id)
     .eq("gkey", gkey)
-    .eq("is_pinned", true)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("is_pinned", { ascending: false })
+    .order("created_at", { ascending: false });
+  const notes: NoteItem[] = (
+    (notesData ?? []) as unknown as {
+      id: string;
+      body: string;
+      is_pinned: boolean;
+      created_at: string;
+      author: { full_name: string | null } | null;
+    }[]
+  ).map((n) => ({
+    id: n.id,
+    body: n.body,
+    isPinned: n.is_pinned,
+    createdAt: n.created_at,
+    authorName: n.author?.full_name ?? "Host",
+  }));
+  const pinnedNote = notes.find((n) => n.isPinned) ?? null;
+
+  // Messages — registered guests only (conversations are keyed by guest_id).
+  let conversationId: string | null = null;
+  let messages: MessageItem[] = [];
+  if (guestId) {
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("host_id", host.id)
+      .eq("guest_id", guestId)
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (conv) {
+      conversationId = conv.id;
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("id, body, sender_id, created_at, is_system_message")
+        .eq("conversation_id", conv.id)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      messages = (msgs ?? [])
+        .filter((m) => !m.is_system_message && m.body)
+        .map((m) => ({
+          id: m.id,
+          body: m.body ?? "",
+          mine: m.sender_id === user.id,
+          createdAt: m.created_at,
+        }));
+    }
+  }
+
+  // Reusable message templates for the reply picker (enhancement C).
+  const { data: templatesData } = await supabase
+    .from("message_templates")
+    .select("id, title, body")
+    .eq("host_id", host.id)
+    .order("sort_order");
+  const templates: TemplateItem[] = (templatesData ?? []) as TemplateItem[];
 
   // Prev / next within the directory (recent order) for the sub-header nav.
   const { data: dir } = await supabase.rpc("fetch_host_guests", {
@@ -176,7 +234,11 @@ export default async function GuestRecordPage({
       record={record}
       bookings={bookings}
       payments={payments}
-      pinnedNote={pinnedNote ?? null}
+      notes={notes}
+      pinnedNote={pinnedNote}
+      messages={messages}
+      conversationId={conversationId}
+      templates={templates}
       prevGkey={prevGkey}
       nextGkey={nextGkey}
     />

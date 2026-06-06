@@ -107,6 +107,81 @@ async function ensureContact(
   return (inserted as ContactRow) ?? null;
 }
 
+// ── Notes (guest_notes — keyed by gkey, host-only timeline) ─────────────
+export async function addGuestNoteAction(
+  gkey: string,
+  body: string,
+): Promise<ActionResult<{ id: string }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  const text = body.trim();
+  if (!text) return { ok: false, error: "Note can't be empty." };
+  if (text.length > 2000) return { ok: false, error: "Note is too long." };
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("guest_notes")
+    .insert({
+      host_id: host.hostId,
+      gkey,
+      author_id: host.userId,
+      body: text,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { ok: false, error: "Could not save the note." };
+
+  revalidatePath(`/dashboard/guests/${gkey}`);
+  return { ok: true, data: { id: data.id } };
+}
+
+export async function deleteGuestNoteAction(
+  gkey: string,
+  noteId: string,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("guest_notes")
+    .delete()
+    .eq("id", noteId)
+    .eq("host_id", host.hostId);
+  if (error) return { ok: false, error: "Could not delete the note." };
+
+  revalidatePath(`/dashboard/guests/${gkey}`);
+  return { ok: true };
+}
+
+export async function pinGuestNoteAction(
+  gkey: string,
+  noteId: string,
+  pinned: boolean,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  // Only one pinned note per guest — clear the others when pinning.
+  if (pinned) {
+    await supabase
+      .from("guest_notes")
+      .update({ is_pinned: false })
+      .eq("host_id", host.hostId)
+      .eq("gkey", gkey);
+  }
+  const { error } = await supabase
+    .from("guest_notes")
+    .update({ is_pinned: pinned })
+    .eq("id", noteId)
+    .eq("host_id", host.hostId);
+  if (error) return { ok: false, error: "Could not update the note." };
+
+  revalidatePath(`/dashboard/guests/${gkey}`);
+  return { ok: true };
+}
+
 // ── Add guest (manual contact) ──────────────────────────────────────────
 const addGuestSchema = z.object({
   name: z.string().trim().min(1, "Name is required.").max(120),

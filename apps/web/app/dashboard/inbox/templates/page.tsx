@@ -1,14 +1,42 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { redirect } from "next/navigation";
+
+import { createServerClient } from "@/lib/supabase/server";
+
+import { TemplatesManager, type Template } from "./TemplatesManager";
 
 export const metadata: Metadata = {
-  title: "Quick reply templates · Inbox",
+  title: "Message templates · Inbox",
 };
 
-export default function TemplatesComingSoonPage() {
+export const dynamic = "force-dynamic";
+
+export default async function TemplatesPage() {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login?next=/dashboard/inbox/templates");
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  const { data: templates } = host
+    ? await supabase
+        .from("message_templates")
+        .select("id, title, body, sort_order")
+        .eq("host_id", host.id)
+        .order("sort_order")
+    : { data: [] };
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
       <Link
         href="/dashboard/inbox"
         className="inline-flex items-center gap-1 text-[12px] text-brand-mute hover:text-brand-ink"
@@ -16,25 +44,33 @@ export default function TemplatesComingSoonPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to inbox
       </Link>
 
-      <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
-          <Sparkles className="h-6 w-6" />
-        </div>
+      <div>
         <h1 className="font-display text-xl font-bold text-brand-ink">
-          Quick reply templates &mdash; coming soon
+          Message templates
         </h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-brand-mute">
-          Save common replies once &mdash; confirm dates, share check-in
-          details, send banking info, politely decline &mdash; and reuse them
-          with one tap from the inbox composer. Landing in a future release.
+        <p className="mt-1 text-sm text-brand-mute">
+          Save replies once and reuse them from the inbox composer, the guest
+          record, and broadcasts. Use{" "}
+          <code className="rounded bg-brand-light px-1 text-[12px] text-brand-secondary">
+            {"{{guest_name}}"}
+          </code>
+          ,{" "}
+          <code className="rounded bg-brand-light px-1 text-[12px] text-brand-secondary">
+            {"{{listing_name}}"}
+          </code>
+          ,{" "}
+          <code className="rounded bg-brand-light px-1 text-[12px] text-brand-secondary">
+            {"{{check_in}}"}
+          </code>{" "}
+          and{" "}
+          <code className="rounded bg-brand-light px-1 text-[12px] text-brand-secondary">
+            {"{{check_out}}"}
+          </code>{" "}
+          as merge tokens.
         </p>
-        <Link
-          href="/dashboard/inbox"
-          className="mt-5 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary"
-        >
-          Go back to inbox
-        </Link>
       </div>
+
+      <TemplatesManager templates={(templates ?? []) as Template[]} />
     </div>
   );
 }
