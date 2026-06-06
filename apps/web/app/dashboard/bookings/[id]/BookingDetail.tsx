@@ -3,7 +3,6 @@
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   BadgeCheck,
   Bath,
   BedDouble,
@@ -40,7 +39,7 @@ import { formatMoney } from "@/lib/format";
 import { BookingActions } from "./BookingActions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
-import { PaymentManage } from "../../payments/[id]/PaymentManage";
+import { PaymentsManager } from "./PaymentsManager";
 import { WelcomeNoteCard } from "./WelcomeNoteCard";
 
 export type BookingTimelineItem = {
@@ -127,6 +126,23 @@ export type BookingDetailData = {
   paymentRecordId: string | null;
   paymentRowStatus: string | null;
   showEftManage: boolean;
+
+  // Payment ledger.
+  amountPaid: number;
+  balanceDue: number;
+  depositAmount: number;
+  guestCredit: number;
+  payments: {
+    id: string;
+    kind: string;
+    label: string;
+    amount: number;
+    status: string;
+    method: string;
+    note: string | null;
+    date: string | null;
+  }[];
+
   invoice: { id: string; number: string } | null;
   creditNotes: { id: string; number: string }[];
 
@@ -937,33 +953,17 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
             </li>
           </ul>
 
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="rounded-[12px] border border-brand-line p-3.5">
-              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                Payment method
-              </div>
-              <div className="mt-1 font-display text-[16px] font-bold capitalize text-brand-ink">
-                {d.paymentMethod?.replace(/_/g, " ") ?? "—"}
-              </div>
-              <div className="mt-1 text-[11.5px] text-brand-mute">
-                {d.paymentRowStatus
-                  ? `Status: ${d.paymentRowStatus.replace(/_/g, " ")}`
-                  : "No payment record"}
-              </div>
-            </div>
-            {d.paymentRecordId ? (
-              <Link
-                href={`/dashboard/payments/${d.paymentRecordId}`}
-                className="flex flex-col justify-center rounded-[12px] border border-brand-line bg-brand-accent/30 p-3.5 transition hover:bg-brand-accent/50"
-              >
-                <div className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
-                  <CreditCard className="h-3.5 w-3.5" /> Payment record
-                </div>
-                <div className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-secondary">
-                  View full record <ArrowRight className="h-3.5 w-3.5" />
-                </div>
-              </Link>
-            ) : null}
+          <div className="mt-5">
+            <PaymentsManager
+              bookingId={d.id}
+              currency={d.currency}
+              totalAmount={d.totalAmount}
+              amountPaid={d.amountPaid}
+              balanceDue={d.balanceDue}
+              guestCredit={d.guestCredit}
+              payments={d.payments}
+              canRecord={d.hasWorkflow || d.status === "completed"}
+            />
           </div>
 
           {d.invoice || d.creditNotes.length > 0 ? (
@@ -985,18 +985,6 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
                   <FileMinus className="h-3.5 w-3.5" /> {c.number}
                 </Link>
               ))}
-            </div>
-          ) : null}
-
-          {d.showEftManage && d.paymentRecordId ? (
-            <div className="mt-4 rounded-[12px] border border-amber-300 bg-amber-50/60 p-4">
-              <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">
-                Awaiting EFT transfer
-              </div>
-              <p className="mb-3 mt-1 text-[12.5px] text-amber-900/80">
-                Confirm once the funds reflect in your account.
-              </p>
-              <PaymentManage paymentId={d.paymentRecordId} />
             </div>
           ) : null}
 

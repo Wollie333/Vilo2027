@@ -108,6 +108,15 @@ function channelOf(origin: string): {
 
 const DAY_MS = 86_400_000;
 
+const PAYMENT_KIND_LABEL: Record<string, string> = {
+  deposit: "Deposit",
+  balance: "Balance",
+  addon: "Add-on",
+  payment: "Payment",
+  credit: "Store credit",
+  refund: "Refund",
+};
+
 export default async function BookingDetailPage({
   params,
 }: {
@@ -123,7 +132,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, listing_id, reference, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order )",
+      "id, host_id, listing_id, reference, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -131,14 +140,43 @@ export default async function BookingDetailPage({
 
   if (!booking) notFound();
 
-  // Payment record (single source of truth for money).
-  const { data: paymentRow } = await supabase
+  // Payment ledger (deposit + balance + extras). The booking's money state is
+  // derived from completed inbound entries.
+  const { data: paymentRows } = await supabase
     .from("payments")
-    .select("id, status, method")
+    .select("id, status, method, kind, amount, note, created_at, captured_at")
     .eq("booking_id", booking.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
+
+  const ledger = paymentRows ?? [];
+  const INBOUND_KINDS = ["deposit", "balance", "addon", "payment", "credit"];
+  const amountPaid = ledger.reduce(
+    (s, p) =>
+      p.status === "completed" && INBOUND_KINDS.includes(p.kind as string)
+        ? s + Number(p.amount)
+        : s,
+    0,
+  );
+  // Latest pending manual EFT entry still drives the legacy "settle" affordance.
+  const pendingEft = [...ledger]
+    .reverse()
+    .find((p) => p.method === "eft" && p.status === "pending");
+  const latestPayment = ledger[ledger.length - 1] ?? null;
+
+  // Per-host store credit available to this guest.
+  const guestGkeyForCredit = gkeyFor(
+    booking.guest_id,
+    booking.guest_email ?? null,
+  );
+  let guestCredit = 0;
+  if (guestGkeyForCredit) {
+    const { data: creditRows } = await supabase
+      .from("guest_credit_ledger")
+      .select("amount")
+      .eq("host_id", booking.host_id)
+      .eq("gkey", guestGkeyForCredit);
+    guestCredit = (creditRows ?? []).reduce((s, r) => s + Number(r.amount), 0);
+  }
 
   // Financial documents + access + host-only notes.
   const [
@@ -370,9 +408,8 @@ export default async function BookingDetailPage({
   }
 
   const paidInFull =
-    booking.payment_status === "captured" ||
-    booking.payment_status === "completed" ||
-    booking.payment_status === "paid";
+    Number(booking.total_amount) > 0 &&
+    amountPaid + 0.001 >= Number(booking.total_amount);
 
   const propertyMeta = [
     listing.city,
@@ -509,14 +546,28 @@ export default async function BookingDetailPage({
     })),
     addonsSubtotal: addons.reduce((s, a) => s + Number(a.subtotal), 0),
 
-    paymentMethod: booking.payment_method,
-    paymentRecordId: paymentRow?.id ?? null,
-    paymentRowStatus: paymentRow?.status ?? null,
-    showEftManage: Boolean(
-      paymentRow &&
-      paymentRow.method === "eft" &&
-      (paymentRow.status === "pending" || paymentRow.status === "authorised"),
-    ),
+    paymentMethod: latestPayment?.method ?? booking.payment_method,
+    paymentRecordId: latestPayment?.id ?? null,
+    paymentRowStatus: latestPayment?.status ?? null,
+    showEftManage: Boolean(pendingEft),
+
+    amountPaid: Math.round(amountPaid * 100) / 100,
+    balanceDue:
+      Math.round(Math.max(0, Number(booking.total_amount) - amountPaid) * 100) /
+      100,
+    depositAmount: Number(booking.deposit_amount ?? 0),
+    guestCredit: Math.round(guestCredit * 100) / 100,
+    payments: ledger.map((p) => ({
+      id: p.id,
+      kind: p.kind as string,
+      label: PAYMENT_KIND_LABEL[p.kind as string] ?? "Payment",
+      amount: Number(p.amount),
+      status: p.status as string,
+      method: p.method as string,
+      note: p.note ?? null,
+      date: (p.captured_at ?? p.created_at) as string | null,
+    })),
+
     invoice: invoiceRow
       ? { id: invoiceRow.id, number: invoiceRow.invoice_number }
       : null,
@@ -543,9 +594,9 @@ export default async function BookingDetailPage({
     guestFirstName: (booking.guest_name ?? "").trim().split(" ")[0] || null,
     canRefund,
     refundDefaultMethod: (["paystack", "paypal", "eft", "manual"].includes(
-      paymentRow?.method ?? "",
+      latestPayment?.method ?? "",
     )
-      ? paymentRow!.method
+      ? (latestPayment!.method as string)
       : "eft") as "paystack" | "paypal" | "eft" | "manual",
     hasWorkflow,
   };

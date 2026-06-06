@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { type AgeExtraLine } from "@/lib/pricing";
@@ -609,12 +610,76 @@ export async function convertQuoteAction(
       id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
-      discount_amount, deposit_amount, balance_amount, balance_due_days
+      discount_amount, deposit_amount, balance_amount, balance_due_days,
+      converted_booking_id
     `,
     )
     .eq("id", quoteId)
     .maybeSingle();
   if (!quote) return { ok: false, error: "Quote not found." };
+
+  // ── Idempotency guard ──────────────────────────────────────────────
+  // A guest accept (lib/quotes/accept-convert.ts → acceptAndConvertQuote) may
+  // have ALREADY created the booking for this quote and stamped
+  // converted_booking_id while leaving the quote 'accepted'. Without this guard
+  // the host's "convert" would mint a SECOND booking for the same quote — the
+  // double-booking bug. Adopt the existing booking instead: confirm it if the
+  // host is recording payment, finalise the quote, and return that booking id.
+  if (quote.converted_booking_id) {
+    const existingId = quote.converted_booking_id as string;
+    const { data: existing } = await supabase
+      .from("bookings")
+      .select("id, status, payment_status")
+      .eq("id", existingId)
+      .maybeSingle();
+
+    if (existing) {
+      if (existing.status === "pending" || existing.status === "pending_eft") {
+        // Confirm the already-created booking (fires the calendar-block +
+        // invoice triggers exactly once), mirroring the fresh-convert path.
+        await supabase
+          .from("bookings")
+          .update({
+            status: "confirmed",
+            confirmed_at: new Date().toISOString(),
+            payment_status:
+              payment.state === "paid" ? "completed" : existing.payment_status,
+            host_payment_note: payment.note || null,
+          })
+          .eq("id", existingId);
+      } else if (
+        payment.state === "paid" &&
+        existing.payment_status !== "completed"
+      ) {
+        await supabase
+          .from("bookings")
+          .update({
+            payment_status: "completed",
+            host_payment_note: payment.note || null,
+          })
+          .eq("id", existingId);
+      }
+
+      await supabase
+        .from("quotes")
+        .update({
+          status: "converted",
+          converted_at: new Date().toISOString(),
+          converted_booking_id: existingId,
+        })
+        .eq("id", quoteId)
+        .neq("status", "converted");
+
+      revalidatePath(`/dashboard/quotes/${quoteId}`);
+      revalidatePath("/dashboard/quotes");
+      revalidatePath("/dashboard/bookings");
+      revalidatePath("/dashboard/invoices");
+      revalidatePath("/dashboard/calendar");
+      return { ok: true, data: { bookingId: existingId } };
+    }
+    // converted_booking_id points at a deleted booking — fall through and recreate.
+  }
+
   if (!["sent", "accepted"].includes(quote.status)) {
     return { ok: false, error: "Quote is not ready to convert." };
   }
@@ -706,6 +771,29 @@ export async function convertQuoteAction(
       })),
     );
   }
+
+  // Seed the first ledger entry — the deposit. Payments have no host-write RLS,
+  // so this goes through the service role. Marked received already when the host
+  // says the deal is paid; otherwise pending for them to apply later.
+  const admin = createAdminClient();
+  const depositAmount = Number(quote.deposit_amount ?? 0);
+  if (depositAmount > 0) {
+    await admin.from("payments").insert({
+      booking_id: booking.id,
+      amount: depositAmount,
+      currency: quote.currency,
+      method: "eft",
+      status: payment.state === "paid" ? "completed" : "pending",
+      kind: "deposit",
+      note:
+        payment.note ||
+        (payment.state === "paid"
+          ? "Deposit received"
+          : "Deposit to secure the booking"),
+      captured_at: payment.state === "paid" ? new Date().toISOString() : null,
+    });
+  }
+  await recomputeBookingPaymentState(admin, booking.id);
 
   // Carry the quote's frozen cancellation policy onto the booking so refund
   // maths (calculate_policy_refund_amount) has a snapshot to read. Best-effort.

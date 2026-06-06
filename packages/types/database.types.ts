@@ -1607,6 +1607,87 @@ export type Database = {
           },
         ]
       }
+      guest_credit_ledger: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          gkey: string
+          guest_email: string | null
+          guest_id: string | null
+          host_id: string
+          id: string
+          payment_id: string | null
+          reason: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          gkey: string
+          guest_email?: string | null
+          guest_id?: string | null
+          host_id: string
+          id?: string
+          payment_id?: string | null
+          reason: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          gkey?: string
+          guest_email?: string | null
+          guest_id?: string | null
+          host_id?: string
+          id?: string
+          payment_id?: string | null
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_credit_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_credit_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_credit_ledger_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_credit_ledger_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_credit_ledger_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_marketing: {
         Row: {
           email: string
@@ -4052,9 +4133,12 @@ export type Database = {
           eft_proof_url: string | null
           failed_at: string | null
           id: string
+          kind: string
           method: string
+          note: string | null
           provider_reference: string | null
           provider_response: Json | null
+          recorded_by: string | null
           refunded_amount: number | null
           status: string
           updated_at: string
@@ -4069,9 +4153,12 @@ export type Database = {
           eft_proof_url?: string | null
           failed_at?: string | null
           id?: string
+          kind?: string
           method: string
+          note?: string | null
           provider_reference?: string | null
           provider_response?: Json | null
+          recorded_by?: string | null
           refunded_amount?: number | null
           status?: string
           updated_at?: string
@@ -4086,9 +4173,12 @@ export type Database = {
           eft_proof_url?: string | null
           failed_at?: string | null
           id?: string
+          kind?: string
           method?: string
+          note?: string | null
           provider_reference?: string | null
           provider_response?: Json | null
+          recorded_by?: string | null
           refunded_amount?: number | null
           status?: string
           updated_at?: string
@@ -4099,6 +4189,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]

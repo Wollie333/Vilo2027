@@ -1,3 +1,4 @@
+import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Accept a quote AND auto-create the booking it becomes — left in 'pending'
@@ -128,6 +129,24 @@ export async function acceptAndConvertQuote(
       })),
     );
   }
+
+  // Seed the first ledger entry — the deposit the host will collect to secure the
+  // booking. Pending until the host records it as received (manual EFT) or a card
+  // payment lands. 'reserve' quotes (deposit 0) seed nothing.
+  const depositAmount = Number(quote.deposit_amount ?? 0);
+  if (depositAmount > 0) {
+    await admin.from("payments").insert({
+      booking_id: booking.id,
+      amount: depositAmount,
+      currency: quote.currency,
+      method: "eft",
+      status: "pending",
+      kind: "deposit",
+      note: "Deposit to secure the booking",
+    });
+  }
+  // Derive balance_due / payment_status from the (still-unpaid) ledger.
+  await recomputeBookingPaymentState(admin, booking.id);
 
   // Freeze the cancellation policy onto the booking (refund maths reads this).
   await admin.rpc("snapshot_booking_policies", {
