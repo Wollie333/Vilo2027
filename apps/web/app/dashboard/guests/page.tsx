@@ -21,6 +21,9 @@ type SearchParams = {
   sort?: string;
   q?: string;
   page?: string;
+  listing?: string;
+  channel?: string;
+  rating?: string;
 };
 
 export default async function GuestsPage({
@@ -48,9 +51,13 @@ export default async function GuestsPage({
         summary={null}
         guests={[]}
         totalCount={0}
+        listings={[]}
         seg="all"
         sort="recent"
         q=""
+        listingId=""
+        channel=""
+        rating=""
         page={1}
         pageSize={PAGE_SIZE}
       />
@@ -62,19 +69,33 @@ export default async function GuestsPage({
     ? searchParams.sort!
     : "recent";
   const q = (searchParams.q ?? "").trim();
+  const listingId = (searchParams.listing ?? "").trim();
+  const channel = (searchParams.channel ?? "").trim();
+  const rating = (searchParams.rating ?? "").trim();
+  const minRating = rating ? Number.parseFloat(rating) : null;
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
 
-  const [{ data: summary }, { data: list }] = await Promise.all([
-    supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
-    supabase.rpc("fetch_host_guests", {
-      p_host_id: host.id,
-      p_segment: seg,
-      p_search: q || null,
-      p_sort: sort,
-      p_limit: PAGE_SIZE,
-      p_offset: (page - 1) * PAGE_SIZE,
-    }),
-  ]);
+  const [{ data: summary }, { data: list }, { data: listingRows }] =
+    await Promise.all([
+      supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
+      supabase.rpc("fetch_host_guests", {
+        p_host_id: host.id,
+        p_segment: seg,
+        p_search: q || null,
+        p_listing_id: listingId || null,
+        p_channel: channel || null,
+        p_min_rating: minRating,
+        p_sort: sort,
+        p_limit: PAGE_SIZE,
+        p_offset: (page - 1) * PAGE_SIZE,
+      }),
+      supabase
+        .from("listings")
+        .select("id, name")
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .order("name"),
+    ]);
 
   const listObj = (list ?? {}) as { guests?: GuestRow[]; total_count?: number };
 
@@ -83,9 +104,13 @@ export default async function GuestsPage({
       summary={(summary as GuestSummary | null) ?? null}
       guests={listObj.guests ?? []}
       totalCount={listObj.total_count ?? 0}
+      listings={(listingRows ?? []) as { id: string; name: string }[]}
       seg={seg}
       sort={sort}
       q={q}
+      listingId={listingId}
+      channel={channel}
+      rating={rating}
       page={page}
       pageSize={PAGE_SIZE}
     />

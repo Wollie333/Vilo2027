@@ -8,23 +8,38 @@ import {
   BedDouble,
   BadgeCheck,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
   Copy,
+  Download,
+  GitBranch,
+  Home as HomeIcon,
   Mail,
   Menu,
   Rows3,
   Search,
   Star,
+  Tag as TagIcon,
   TrendingUp,
+  UserPlus,
   Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
+import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
+
+import { AddGuestModal } from "./AddGuestModal";
+import { bulkTagAction, exportGuestsAction } from "./actions";
 
 // ── Types (shape of the fetch_host_guests / _summary RPC json) ──────────
 export type GuestRow = {
@@ -106,6 +121,25 @@ const SORTS = [
   { key: "name", label: "Name: A → Z", icon: ArrowDownAZ },
 ] as const;
 
+const CHANNELS = [
+  { key: "", label: "All channels" },
+  { key: "direct", label: "Direct" },
+  { key: "airbnb", label: "Airbnb" },
+  { key: "booking", label: "Booking.com" },
+  { key: "expedia", label: "Expedia" },
+  { key: "other", label: "Other" },
+];
+
+const RATINGS = [
+  { key: "", label: "Any rating" },
+  { key: "4.5", label: "4.5+ ★" },
+  { key: "4", label: "4+ ★" },
+  { key: "3", label: "3+ ★" },
+];
+
+const GRID =
+  "grid-cols-[34px_minmax(0,2.3fr)_1.1fr_64px_1fr_84px_minmax(0,1.3fr)_56px]";
+
 // Deterministic pastel avatar colour hashed from the gkey (enhancement #4).
 const AV_PALETTE = [
   "bg-brand-secondary text-white",
@@ -169,22 +203,42 @@ function segMeta(g: GuestRow): { label: string; cls: string; bar: string } {
   };
 }
 
+function download(filename: string, text: string, mime: string) {
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function GuestsBoard({
   summary,
   guests,
   totalCount,
+  listings,
   seg,
   sort,
   q,
+  listingId,
+  channel,
+  rating,
   page,
   pageSize,
 }: {
   summary: GuestSummary | null;
   guests: GuestRow[];
   totalCount: number;
+  listings: { id: string; name: string }[];
   seg: string;
   sort: string;
   q: string;
+  listingId: string;
+  channel: string;
+  rating: string;
   page: number;
   pageSize: number;
 }) {
@@ -192,7 +246,7 @@ export function GuestsBoard({
   const pathname = usePathname();
   const params = useSearchParams();
 
-  // URL is the source of truth for seg/sort/q/page (server re-queries).
+  // URL is the source of truth for seg/sort/q/filters/page (server re-queries).
   const navigate = useCallback(
     (patch: Record<string, string | null>) => {
       const next = new URLSearchParams(params.toString());
@@ -205,17 +259,21 @@ export function GuestsBoard({
     [params, pathname, router],
   );
 
-  // Density + search box are client-only (search debounces into the URL).
+  // Client-only state: density, search box (debounced into URL), selection.
   const [density, setDensity] = useState<"comfortable" | "compact">(
     "comfortable",
   );
   const [sortOpen, setSortOpen] = useState(false);
   const [search, setSearch] = useState(q);
+  const [addOpen, setAddOpen] = useState(false);
+  const [tagOpen, setTagOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const firstRender = useRef(true);
 
-  useEffect(() => {
-    setSearch(q);
-  }, [q]);
+  useEffect(() => setSearch(q), [q]);
+  // Selection is per result set — reset when the visible rows change.
+  useEffect(() => setSelected(new Set()), [guests]);
 
   useEffect(() => {
     if (firstRender.current) {
@@ -234,6 +292,53 @@ export function GuestsBoard({
   const showingFrom = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(page * pageSize, totalCount);
   const currency = guests[0]?.currency ?? "ZAR";
+
+  const toggle = (gkey: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(gkey)) next.delete(gkey);
+      else next.add(gkey);
+      return next;
+    });
+  const allOnPage =
+    guests.length > 0 && guests.every((g) => selected.has(g.gkey));
+  const toggleAll = () =>
+    setSelected(allOnPage ? new Set() : new Set(guests.map((g) => g.gkey)));
+
+  async function runExport(gkeys?: string[]) {
+    setBusy(true);
+    const res = await exportGuestsAction({
+      seg,
+      q,
+      listingId,
+      channel,
+      minRating: rating ? Number.parseFloat(rating) : undefined,
+      gkeys,
+    });
+    setBusy(false);
+    if (!res.ok) {
+      void modal.error({ title: "Export failed", description: res.error });
+      return;
+    }
+    download(res.data!.filename, res.data!.csv, "text/csv;charset=utf-8");
+  }
+
+  async function runBulkTag(label: string) {
+    setTagOpen(false);
+    setBusy(true);
+    const res = await bulkTagAction([...selected], label);
+    setBusy(false);
+    if (!res.ok) {
+      void modal.error({ title: "Couldn't tag", description: res.error });
+      return;
+    }
+    setSelected(new Set());
+    void modal.success({
+      title: "Tagged",
+      description: `Added “${label}” to ${res.data!.tagged} guest${res.data!.tagged === 1 ? "" : "s"}.`,
+    });
+    router.refresh();
+  }
 
   return (
     <div className="mx-auto max-w-[1180px] px-4 py-6 lg:px-6">
@@ -257,6 +362,21 @@ export function GuestsBoard({
             </span>{" "}
             staying this month
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void runExport()}
+            disabled={busy || totalCount === 0}
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+          >
+            <Download className="h-4 w-4 text-brand-mute" /> Export
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-brand-primary px-5 text-[13.5px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
+          >
+            <UserPlus className="h-4 w-4" /> Add guest
+          </button>
         </div>
       </div>
 
@@ -348,17 +468,44 @@ export function GuestsBoard({
           })}
         </div>
 
-        {/* toolbar: search · density · sort */}
+        {/* filter + toolbar row */}
         <div className="flex flex-wrap items-center gap-2 border-b border-brand-line bg-[#FBFDFC] px-4 py-2.5">
-          <div className="flex h-9 min-w-[220px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30 sm:max-w-xs">
+          <div className="flex h-9 min-w-[200px] items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
             <Search className="h-4 w-4 text-brand-mute" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search name, email or phone…"
-              className="flex-1 bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+              className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
             />
           </div>
+
+          <FilterMenu
+            icon={HomeIcon}
+            value={
+              listings.find((l) => l.id === listingId)?.name ?? "All listings"
+            }
+            active={!!listingId}
+            options={[
+              { key: "", label: "All listings" },
+              ...listings.map((l) => ({ key: l.id, label: l.name })),
+            ]}
+            onSelect={(k) => navigate({ listing: k || null, page: null })}
+          />
+          <FilterMenu
+            icon={GitBranch}
+            value={CHANNELS.find((c) => c.key === channel)?.label ?? "Channel"}
+            active={!!channel}
+            options={CHANNELS}
+            onSelect={(k) => navigate({ channel: k || null, page: null })}
+          />
+          <FilterMenu
+            icon={Star}
+            value={RATINGS.find((r) => r.key === rating)?.label ?? "Any rating"}
+            active={!!rating}
+            options={RATINGS}
+            onSelect={(k) => navigate({ rating: k || null, page: null })}
+          />
 
           <div className="ml-auto flex items-center gap-2">
             <div className="inline-flex items-center rounded-[9px] border border-brand-line bg-white p-0.5">
@@ -424,15 +571,62 @@ export function GuestsBoard({
           </div>
         </div>
 
-        {/* column header */}
-        <div className="grid grid-cols-[minmax(0,2.3fr)_1.1fr_64px_1fr_84px_minmax(0,1.3fr)_56px] items-center gap-3 border-b border-brand-line px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
-          <div>Guest</div>
-          <div>Segment</div>
-          <div className="text-center">Stays</div>
-          <div>Lifetime</div>
-          <div className="text-center">Rating</div>
-          <div>Last / next stay</div>
-          <div />
+        {/* column header / bulk bar */}
+        <div className="relative border-b border-brand-line">
+          {selected.size > 0 ? (
+            <div className="flex items-center gap-2.5 bg-emerald-50 px-4 py-2.5">
+              <input
+                type="checkbox"
+                checked={allOnPage}
+                onChange={toggleAll}
+                className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+              />
+              <span className="text-[13px] font-semibold text-brand-secondary">
+                {selected.size} selected
+              </span>
+              <span className="mx-1 h-4 w-px bg-brand-primary/30" />
+              <button
+                onClick={() => setTagOpen(true)}
+                disabled={busy}
+                className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12.5px] font-semibold text-brand-ink hover:bg-brand-light disabled:opacity-50"
+              >
+                <TagIcon className="h-3.5 w-3.5 text-brand-primary" /> Tag
+              </button>
+              <button
+                onClick={() => void runExport([...selected])}
+                disabled={busy}
+                className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 text-[12.5px] font-semibold text-brand-ink hover:bg-brand-light disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5 text-brand-primary" /> Export
+              </button>
+              <button
+                onClick={() => setSelected(new Set())}
+                className="ml-auto text-[12.5px] font-medium text-brand-mute hover:text-brand-ink"
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            <div
+              className={`grid ${GRID} items-center gap-3 px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]`}
+            >
+              <div>
+                <input
+                  type="checkbox"
+                  checked={allOnPage}
+                  onChange={toggleAll}
+                  className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+                />
+              </div>
+              <div>Guest</div>
+              <div>Segment</div>
+              <div className="text-center">Stays</div>
+              <div>Lifetime</div>
+              <div className="text-center">Rating</div>
+              <div>Last / next stay</div>
+              <div />
+            </div>
+          )}
         </div>
 
         {/* rows */}
@@ -441,7 +635,13 @@ export function GuestsBoard({
         ) : (
           <div>
             {guests.map((g) => (
-              <GuestRowItem key={g.gkey} g={g} density={density} />
+              <GuestRowItem
+                key={g.gkey}
+                g={g}
+                density={density}
+                selected={selected.has(g.gkey)}
+                onToggle={() => toggle(g.gkey)}
+              />
             ))}
           </div>
         )}
@@ -474,7 +674,121 @@ export function GuestsBoard({
           </div>
         ) : null}
       </section>
+
+      <AddGuestModal open={addOpen} onOpenChange={setAddOpen} />
+      <TagModal
+        open={tagOpen}
+        onOpenChange={setTagOpen}
+        count={selected.size}
+        onSubmit={runBulkTag}
+      />
     </div>
+  );
+}
+
+// ── Filter pill with dropdown ───────────────────────────────────────────
+function FilterMenu({
+  icon: Icon,
+  value,
+  active,
+  options,
+  onSelect,
+}: {
+  icon: typeof HomeIcon;
+  value: string;
+  active: boolean;
+  options: { key: string; label: string }[];
+  onSelect: (key: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className={`inline-flex h-9 items-center gap-1.5 rounded-[9px] border px-3 text-[12.5px] font-medium transition ${
+          active
+            ? "border-brand-primary bg-brand-light text-brand-secondary"
+            : "border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+        }`}
+      >
+        <Icon className="h-3.5 w-3.5 text-brand-mute" />
+        <span className="max-w-[140px] truncate">{value}</span>
+        <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
+      </button>
+      {open ? (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 max-h-72 min-w-[200px] overflow-y-auto rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+          {options.map((o) => (
+            <button
+              key={o.key || "all"}
+              onMouseDown={() => {
+                onSelect(o.key);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+            >
+              <span className="truncate">{o.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Tag modal (bulk) ────────────────────────────────────────────────────
+function TagModal({
+  open,
+  onOpenChange,
+  count,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  count: number;
+  onSubmit: (label: string) => void;
+}) {
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    if (open) setLabel("");
+  }, [open]);
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      size="sm"
+      title="Tag guests"
+      description={`Add a tag to ${count} selected guest${count === 1 ? "" : "s"}.`}
+    >
+      <form
+        id="tag-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (label.trim()) onSubmit(label.trim());
+        }}
+      >
+        <input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          placeholder="e.g. VIP"
+          autoFocus
+          maxLength={40}
+          className="h-10 w-full rounded-lg border border-brand-line bg-white px-3 text-sm text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+        />
+      </form>
+      <FormModalFooter>
+        <FormModalCancel>Cancel</FormModalCancel>
+        <button
+          type="submit"
+          form="tag-form"
+          disabled={!label.trim()}
+          className="rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary disabled:opacity-50"
+        >
+          Add tag
+        </button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
@@ -525,9 +839,13 @@ function KpiCard({
 function GuestRowItem({
   g,
   density,
+  selected,
+  onToggle,
 }: {
   g: GuestRow;
   density: "comfortable" | "compact";
+  selected: boolean;
+  onToggle: () => void;
 }) {
   const router = useRouter();
   const seg = segMeta(g);
@@ -542,15 +860,28 @@ function GuestRowItem({
   return (
     <div
       onClick={() => router.push(`/dashboard/guests/${g.gkey}`)}
-      className={`group relative grid cursor-pointer grid-cols-[minmax(0,2.3fr)_1.1fr_64px_1fr_84px_minmax(0,1.3fr)_56px] items-center gap-3 border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
+      className={`group relative grid ${GRID} cursor-pointer items-center gap-3 border-b border-[#F1F6F2] px-4 transition-colors hover:bg-[#F8FCF9] ${
         compact ? "py-2" : "py-3"
-      } ${g.is_blocked ? "bg-red-50/30" : ""}`}
+      } ${g.is_blocked ? "bg-red-50/30" : ""} ${selected ? "bg-brand-light/50" : ""}`}
     >
       <span
-        className={`absolute inset-y-0 left-0 w-[3px] opacity-0 transition-opacity group-hover:opacity-100 ${
-          g.is_blocked ? "bg-status-cancelled opacity-100" : seg.bar
+        className={`absolute inset-y-0 left-0 w-[3px] transition-opacity ${
+          g.is_blocked
+            ? "bg-status-cancelled opacity-100"
+            : `${seg.bar} opacity-0 group-hover:opacity-100`
         }`}
       />
+
+      {/* select */}
+      <div>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggle}
+          onClick={(e) => e.stopPropagation()}
+          className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+        />
+      </div>
 
       {/* guest identity */}
       <div className="flex min-w-0 items-center gap-3">
