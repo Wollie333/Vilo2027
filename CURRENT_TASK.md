@@ -35,11 +35,12 @@ Overview/Bookings/Messages/Payments/Notes; two-way linked with Booking Details. 
   search, density, sort, pagination, rows). (06f0f76)
 - ✅ **Phase 4** Add guest modal + filters + selection/bulk Tag·Export + CSV/vCard
   actions on host_contacts (lazy upsert). (d2d9092)
-- 🔄 **Phase 5** Guest Record shell — page + identity header + stat band +
-  Overview/Bookings/Payments tabs + prev/next. (building)
-- ⏳ **Phase 6** Messages + Notes tabs (+ template picker) + Settings→Templates.
-- ⏳ **Phase 7** Booking↔record two-way link + record actions (tag/block/export/new-booking).
-- ⏳ **Phase 8** Help article + polish. **Phase 9** Bulk mailer.
+- ✅ **Phase 5** Guest Record shell — identity + stat band + Overview/Bookings/Payments + prev/next. (5a332e0)
+- ✅ **Phase 6** Messages + Notes tabs (+ template picker) + Templates manager. (6aebc9b)
+- ✅ **Phase 7** Booking↔record link + record More-menu (tag/block/export/new-booking). (cc8c089)
+- ✅ **Phase 8** Help article (`guests-crm`) + CHANGELOG.
+- ⏳ **Phase 9** Bulk mailer — guest_marketing + guest_broadcasts, send-guest-broadcast
+  Edge Function, /unsubscribe route, BroadcastModal + per-guest subscription toggle.
 
 Probes: `scripts/verify-guest-crm-p1.mjs`, `verify-guest-crm-p2.mjs` (run from apps/web).
 

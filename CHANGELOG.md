@@ -31,6 +31,36 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-06 — Guests (CRM) — full feature, Phases 1–8 — branch `main`
+
+### Built
+- **Guests directory** (`/dashboard/guests`) — KPI strip (incl. direct revenue / ~OTA fees saved), segment tabs (All/VIP/Returning/New/Via OTA/Lapsed) with counts, debounced search, listing/channel/rating filters, density toggle, sort, server-side pagination, row quick actions, selection + bulk Tag/Export, distinct empty states. Sidebar **Guests** entry with live count badge.
+- **Guest record** (`/dashboard/guests/[gkey]`) — sub-header with prev/next, identity header (segment + tags, contact row, Email-confirmed/All-direct chips, Message/Call + More menu), 5-tile lifetime stat band, tabs Overview / Bookings / Messages (bubbles + reply + template picker) / Payments / Notes (composer + pin/delete).
+- **Add guest** modal, CSV export (filtered or selected) + per-guest vCard, bulk tag, block/unblock (display-only), guest notes timeline.
+- **Message templates manager** at `/dashboard/inbox/templates` (replaced the "coming soon" stub) reusing the existing CRUD + `{{guest_name}}` tokens.
+- Two-way link: Booking Details ↔ guest record; "New booking for guest" prefills the wizard.
+- Help Centre article `guests-crm`.
+
+### Changed
+- **Architecture:** built on the existing `host_contacts` (tags/notes/blocked) + `message_templates` instead of the plan's parallel tables — founder chose reuse over duplication. `gkey` is a URL/resolution scheme (`u_<id>` | `e_<base64url(email)>`), not a stored column; only `guest_notes` is new.
+- Removed the redundant **inbox Contacts tab + page** (Guests supersedes it); kept the `host_contacts` table as the CRM backing store.
+- `ManualBookingForm` seeds guest fields from `initialGuest` (prefill via query params).
+
+### Migrations
+- `20260606000001_guest_crm_schema.sql` — extend host_contacts (+country, email_consent, blocked_reason/at), new `guest_notes`, user_profiles verify cols, seed starter templates.
+- `20260606000002_guest_crm_list_rpcs.sql` — `guest_gkey_for_email`, `_host_guest_rows`, `fetch_host_guests`(+`_summary`).
+- `20260606000003_guest_crm_record_rpc.sql` — `fetch_guest_record`.
+- `20260606000004_help_guests_crm.sql` — help article.
+
+### Notes
+- Phase 9 (bulk mailer: guest_marketing + guest_broadcasts, send-guest-broadcast Edge Function, /unsubscribe, BroadcastModal) is the remaining phase.
+- Live-DB probes: `scripts/verify-guest-crm-p1.mjs`, `verify-guest-crm-p2.mjs` (run from apps/web).
+
+### Commits
+- `feat(guests): phase 1…7` — 59856e8, 632aa71, e627e55, 06f0f76, d2d9092, 5a332e0, 6aebc9b, cc8c089
+
+---
+
 ## 2026-06-05 — Analytics: fix variable mismatches (dashboard was all zeros) — branch `main`
 
 ### Changed
