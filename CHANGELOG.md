@@ -31,6 +31,31 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-06 — Payments — single-booking ledger, manual EFT, store credit, add-on transactions + inbox fix — branch `main`
+
+### Built
+- **Payment ledger.** One booking now carries many payment entries (deposit / balance / addon / payment / credit / refund). The booking's money state (`balance_due`, `payment_status` incl. new `partial`) is derived from completed inbound entries. New `Payments` tab UI shows Paid / Balance due / Store credit, a progress bar, the full ledger, and controls to **Record a payment**, **Mark received** (on seeded/pending entries) and **Apply store credit**. (`lib/payments/ledger.ts`, `bookings/[id]/payment-actions.ts`, `PaymentsManager.tsx`.)
+- **Deposit-first flow.** Quote accept/convert creates ONE full-amount booking and seeds a pending **Deposit** ledger entry (= quote deposit). Host records manual EFT to confirm + collect the balance.
+- **Per-host store credit.** Overpayment auto-posts to a new `guest_credit_ledger` keyed by the CRM gkey; host can apply it to an outstanding balance.
+- **Add-on transactions.** Host (Add-ons tab) and guest (trip page) can add extras to an existing booking. Each is its own transaction → joins the booking, raises the total, issues a **supplementary `addon` invoice**, and (host, if marked paid) records a linked `addon` payment; otherwise it lands on the balance. Guest add-on price is always resolved server-side from the host catalogue. (`lib/payments/invoicing.ts`, `AddonManager.tsx`, `portal/trips/[id]/addon-actions.ts` + `AddExtraCard.tsx`.)
+- **Help articles** for payments/deposits/credit (host) and adding extras (guest).
+
+### Changed
+- **Double-booking fixed.** `convertQuoteAction` is now idempotent on `quote.converted_booking_id` — it adopts the existing booking (created by the guest-accept path) instead of minting a second one.
+- **Two-way inbox unread fixed.** `on_message_inserted` compared `messages.sender_id` (user id) to `conversations.host_id` (hosts row id) — never matched — so host replies never flagged the guest and inflated the host's own count. Now resolves the host user (staff + system cards count as host-side).
+- **Guest record Messages tab** resolves the thread by `guest_id` AND any lead profile sharing the guest's email, so enquiry/quote-request messages show in context.
+- `markBookingInvoicesPaidIfSettled` also flips a deposit-first booking's invoice to paid once fully settled.
+
+### Migrations
+- `20260606000010_payments_ledger_and_credit.sql`, `20260606000011_fix_message_unread_trigger.sql`, `20260606000012_addon_transactions.sql`, `20260606000013_help_payments_and_addons.sql`
+
+### Notes
+- Manual EFT path completed first (per request); Paystack/PayFast webhooks → ledger reuse `recordBookingPayment` with a `providerReference` (still to wire).
+- `invoices.booking_id` UNIQUE dropped (many invoices per booking) + `kind`/`payment_id` added; confirm trigger scopes the main invoice's add-ons to `source='quote'`.
+
+### Commit
+- `feat(payments): single-booking ledger…` — 0f936e1 · `fix(inbox)…` — 062fea6 · `feat(bookings): host adds…` — 4c6ab29 · `feat(portal): guests add extras…` — 31c131b
+
 ## 2026-06-06 — Guests (CRM) — Phase 9 mailer + record Reviews/Finances/consent — branch `main`
 
 ### Built
