@@ -37,6 +37,7 @@ import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AddExtraCard } from "./AddExtraCard";
 import { CancelTripButton } from "./CancelTripButton";
 import { RequestRefundButton } from "./RequestRefundButton";
 
@@ -215,7 +216,7 @@ export default async function PortalTripDetailPage({
       `
       id, host_id, reference, status, payment_status, payment_method, scope,
       check_in, check_out, nights, guests_count,
-      base_amount, cleaning_fee, discount_amount, total_amount, currency,
+      base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
       special_requests, host_message, created_at, confirmed_at,
       has_open_refund,
       listing:listings (
@@ -253,6 +254,7 @@ export default async function PortalTripDetailPage({
     cleaning_fee: number | null;
     discount_amount: number | null;
     total_amount: number;
+    balance_due: number | null;
     currency: string;
     special_requests: string | null;
     host_message: string | null;
@@ -370,6 +372,87 @@ export default async function PortalTripDetailPage({
     )
     .eq("booking_id", booking.id)
     .order("created_at", { ascending: false });
+
+  // Add-ons already on the booking + the host's catalogue still on offer for it.
+  const { data: bookingAddons } = await supabase
+    .from("booking_addons")
+    .select("id, label, quantity, subtotal, currency, source, is_required")
+    .eq("booking_id", booking.id)
+    .order("sort_order");
+
+  let addExtraOptions: {
+    id: string;
+    name: string;
+    unitPrice: number;
+    description: string | null;
+  }[] = [];
+  if (listing?.id) {
+    const admin = createAdminClient();
+    const { data: linkRows } = await admin
+      .from("listing_addons")
+      .select(
+        "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active )",
+      )
+      .eq("listing_id", listing.id)
+      .is("room_id", null);
+    addExtraOptions = (linkRows ?? [])
+      .map((r) => {
+        const a = one(
+          r.addon as
+            | {
+                id: string;
+                name: string;
+                unit_price: number;
+                description: string | null;
+                is_active: boolean;
+              }
+            | {
+                id: string;
+                name: string;
+                unit_price: number;
+                description: string | null;
+                is_active: boolean;
+              }[],
+        );
+        if (!a || !a.is_active) return null;
+        return {
+          id: a.id,
+          name: a.name,
+          unitPrice:
+            r.unit_price_override != null
+              ? Number(r.unit_price_override)
+              : Number(a.unit_price),
+          description: a.description ?? null,
+        };
+      })
+      .filter(
+        (
+          o,
+        ): o is {
+          id: string;
+          name: string;
+          unitPrice: number;
+          description: string | null;
+        } => Boolean(o),
+      );
+  }
+
+  const addons = (bookingAddons ?? []) as Array<{
+    id: string;
+    label: string;
+    quantity: number;
+    subtotal: number;
+    currency: string;
+    source: string | null;
+    is_required: boolean | null;
+  }>;
+  const balanceDue = Number(booking.balance_due ?? 0);
+  const canAddExtras = [
+    "confirmed",
+    "checked_in",
+    "pending",
+    "pending_eft",
+  ].includes(booking.status);
 
   // ── derived ──
   const statusMeta = STATUS_META[booking.status] ?? {
@@ -1040,6 +1123,27 @@ export default async function PortalTripDetailPage({
                     </span>
                   </li>
                 ) : null}
+                {addons.map((a) =>
+                  Number(a.subtotal) > 0 ? (
+                    <li
+                      key={a.id}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="text-brand-mute">
+                        {a.label}
+                        {a.quantity > 1 ? ` × ${a.quantity}` : ""}
+                        {a.source === "guest_added" ? (
+                          <span className="ml-1.5 rounded-pill bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-secondary">
+                            You added
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="num font-medium text-brand-ink">
+                        {formatMoney(Number(a.subtotal), a.currency)}
+                      </span>
+                    </li>
+                  ) : null,
+                )}
                 {discount > 0 ? (
                   <li className="flex items-center justify-between text-brand-primary">
                     <span>Discount</span>
@@ -1058,6 +1162,14 @@ export default async function PortalTripDetailPage({
                     {formatMoney(Number(booking.total_amount), currency)}
                   </span>
                 </li>
+                {balanceDue > 0 ? (
+                  <li className="flex items-center justify-between text-amber-700">
+                    <span className="font-semibold">Balance due</span>
+                    <span className="num font-display text-[15px] font-bold">
+                      {formatMoney(balanceDue, currency)}
+                    </span>
+                  </li>
+                ) : null}
               </ul>
               {booking.payment_method ? (
                 <div className="mt-4 rounded-[12px] bg-brand-light px-4 py-3 text-[12.5px] text-brand-mute">
@@ -1069,6 +1181,15 @@ export default async function PortalTripDetailPage({
               ) : null}
             </div>
           </section>
+
+          {/* ADD AN EXTRA */}
+          {canAddExtras ? (
+            <AddExtraCard
+              bookingId={booking.id}
+              currency={currency}
+              options={addExtraOptions}
+            />
+          ) : null}
 
           {/* REFUND HISTORY */}
           {refunds && refunds.length > 0 ? (
