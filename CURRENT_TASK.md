@@ -18,6 +18,31 @@ Overview/Bookings/Messages/Payments/Notes; two-way linked with Booking Details. 
 `guest_notes`, `guest_tags`, + `user_profiles` verification columns. Guests are keyed by a unified
 `gkey` (user_profiles.id, or `e_<base64url(email)>` for email-only manual-booking contacts).
 
+> **ARCHITECTURE CHANGE (2026-06-06):** founder chose to **reuse & extend** the
+> existing `host_contacts` (tags/notes/blocked, deduped by email) + `message_templates`
+> (full CRUD in `inbox/actions.ts`, `{{guest_name}}` tokens) instead of the plan's
+> parallel `guest_contacts`/`guest_tags`/`guest_flags`/new-templates tables. Only
+> `guest_notes` is genuinely new. `gkey` is a URL/resolution scheme, not a stored
+> column. Inbox **Contacts tab + page removed** (Guests supersedes it). Keep it lean.
+
+## Progress (Guest CRM build)
+- ✅ **Phase 1** schema — extended host_contacts (+country/email_consent/blocked_*),
+  new `guest_notes`, user_profiles verify cols, seeded message_templates. (commit 59856e8)
+- ✅ Inbox Contacts tab + page removed. (632aa71)
+- ✅ **Phase 2** RPCs — `_host_guest_rows`, `fetch_host_guests`(+`_summary`),
+  `fetch_guest_record`; demo-host probe green. (e627e55)
+- ✅ **Phase 3** sidebar entry + badge + `/dashboard/guests` list (KPI strip, segments,
+  search, density, sort, pagination, rows). (06f0f76)
+- ✅ **Phase 4** Add guest modal + filters + selection/bulk Tag·Export + CSV/vCard
+  actions on host_contacts (lazy upsert). (d2d9092)
+- 🔄 **Phase 5** Guest Record shell — page + identity header + stat band +
+  Overview/Bookings/Payments tabs + prev/next. (building)
+- ⏳ **Phase 6** Messages + Notes tabs (+ template picker) + Settings→Templates.
+- ⏳ **Phase 7** Booking↔record two-way link + record actions (tag/block/export/new-booking).
+- ⏳ **Phase 8** Help article + polish. **Phase 9** Bulk mailer.
+
+Probes: `scripts/verify-guest-crm-p1.mjs`, `verify-guest-crm-p2.mjs` (run from apps/web).
+
 ---
 
 ## ✅ Previously completed (this session group)
