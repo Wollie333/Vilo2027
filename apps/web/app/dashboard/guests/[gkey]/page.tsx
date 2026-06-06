@@ -319,15 +319,30 @@ export default async function GuestRecordPage({
   }));
   const pinnedNote = notes.find((n) => n.isPinned) ?? null;
 
-  // Messages — registered guests only (conversations are keyed by guest_id).
+  // Messages — resolve the host<->guest thread by the registered guest_id AND by
+  // any lead profile sharing this guest's email. Enquiry / quote-request leads
+  // have no account, but createEnquiry still made a conversation (keyed to the
+  // lead's profile) and posted the guest's message into it — so an email-based
+  // guest record must surface that thread too, not just registered guests.
   let conversationId: string | null = null;
   let messages: MessageItem[] = [];
-  if (guestId) {
+
+  const guestUserIds = new Set<string>();
+  if (guestId) guestUserIds.add(guestId);
+  if (email) {
+    const { data: sameEmail } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", email);
+    for (const p of sameEmail ?? []) guestUserIds.add(p.id);
+  }
+
+  if (guestUserIds.size > 0) {
     const { data: conv } = await supabase
       .from("conversations")
       .select("id")
       .eq("host_id", host.id)
-      .eq("guest_id", guestId)
+      .in("guest_id", [...guestUserIds])
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
