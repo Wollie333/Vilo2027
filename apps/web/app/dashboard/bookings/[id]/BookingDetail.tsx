@@ -1,0 +1,1332 @@
+"use client";
+
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  Bath,
+  BedDouble,
+  Check,
+  ChevronRight,
+  CreditCard,
+  DoorOpen,
+  ExternalLink,
+  FileMinus,
+  KeyRound,
+  Languages,
+  MailCheck,
+  MapPin,
+  MessageSquare,
+  MoreHorizontal,
+  PhoneCall,
+  Phone,
+  PlaneLanding,
+  PlusCircle,
+  Receipt,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  UserRound,
+  Users,
+  Wifi,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+
+import { formatMoney } from "@/lib/format";
+
+import { BookingActions } from "./BookingActions";
+import { InternalNotes } from "./InternalNotes";
+import { IssueRefundButton } from "./IssueRefundButton";
+import { PaymentManage } from "../../payments/[id]/PaymentManage";
+import { WelcomeNoteCard } from "./WelcomeNoteCard";
+
+export type BookingTimelineItem = {
+  title: string;
+  desc: string | null;
+  stamp: string;
+  tone: "primary" | "inhouse" | "completed" | "cancelled" | "mute" | "pending";
+};
+
+export type BookingDetailData = {
+  id: string;
+  reference: string;
+  status: string;
+  statusLabel: string;
+  statusTone: "confirmed" | "pending" | "cancelled" | "completed" | "inhouse";
+  paymentStatus: string;
+  paidInFull: boolean;
+
+  channelLabel: string;
+  channelMark: string;
+  channelBg: string;
+
+  guestName: string;
+  guestEmail: string | null;
+  guestPhone: string | null;
+  guestAvatar: string | null;
+  guestCountry: string | null;
+  guestLanguages: string[];
+  guestRegistered: boolean;
+  guestGkey: string | null;
+  memberSinceYear: string | null;
+  guestStays: number;
+  guestLifetime: number;
+  guestRating: number | null;
+  returning: boolean;
+
+  listingName: string;
+  listingSlug: string | null;
+  listingCity: string | null;
+  propertyMeta: string;
+  cover: string | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  cancellationLabel: string;
+
+  nights: number;
+  perNight: number | null;
+  guestsCount: number;
+  occupancyLabel: string;
+  totalAmount: number;
+  baseAmount: number;
+  cleaningFee: number;
+  currency: string;
+  refundTotal: number;
+
+  checkInBig: string;
+  checkInSub: string;
+  checkOutBig: string;
+  checkOutSub: string;
+  checkInFull: string;
+  checkOutFull: string;
+  bookedLong: string;
+
+  arrivalProximity: string | null;
+  arrivalBig: string;
+  arrivalSub: string;
+  progressPct: number | null;
+  progressNote: string;
+
+  specialRequests: string | null;
+  scope: string;
+  bookingRooms: { id: string; name: string; amount: number }[];
+  addons: {
+    id: string;
+    label: string;
+    quantity: number;
+    subtotal: number;
+    currency: string;
+    isRequired: boolean;
+  }[];
+  addonsSubtotal: number;
+
+  paymentMethod: string | null;
+  paymentRecordId: string | null;
+  paymentRowStatus: string | null;
+  showEftManage: boolean;
+  invoice: { id: string; number: string } | null;
+  creditNotes: { id: string; number: string }[];
+
+  access: {
+    checkInMethod: string | null;
+    instructions: string | null;
+    doorCode: string | null;
+    gateCode: string | null;
+    wifiNetwork: string | null;
+    wifiPassword: string | null;
+  } | null;
+
+  notes: {
+    id: string;
+    body: string;
+    created_at: string;
+    authorName: string;
+    authorInitials: string;
+  }[];
+  timeline: BookingTimelineItem[];
+
+  hostMessage: string | null;
+  guestFirstName: string | null;
+  canRefund: boolean;
+  refundDefaultMethod: "paystack" | "paypal" | "eft" | "manual";
+  hasWorkflow: boolean;
+};
+
+const STATUS_TAG: Record<
+  BookingDetailData["statusTone"],
+  { cls: string; dot: string }
+> = {
+  confirmed: {
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    dot: "bg-status-confirmed",
+  },
+  inhouse: {
+    cls: "bg-sky-50 text-sky-600 border-sky-200",
+    dot: "bg-status-inhouse",
+  },
+  completed: {
+    cls: "bg-indigo-50 text-indigo-600 border-indigo-200",
+    dot: "bg-status-completed",
+  },
+  pending: {
+    cls: "bg-amber-50 text-amber-700 border-amber-200",
+    dot: "bg-status-pending",
+  },
+  cancelled: {
+    cls: "bg-red-50 text-red-600 border-red-200",
+    dot: "bg-status-cancelled",
+  },
+};
+
+const TIMELINE_DOT: Record<BookingTimelineItem["tone"], string> = {
+  primary: "bg-brand-primary",
+  inhouse: "bg-status-inhouse",
+  completed: "bg-status-completed",
+  cancelled: "bg-status-cancelled",
+  pending: "bg-status-pending",
+  mute: "bg-brand-mute",
+};
+
+function initials(name: string): string {
+  const p = name.trim().split(/\s+/);
+  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "G";
+}
+
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "addons", label: "Add-ons" },
+  { key: "payments", label: "Payments" },
+  { key: "arrivals", label: "Arrivals" },
+  { key: "guest", label: "Guest" },
+  { key: "activity", label: "Activity" },
+  { key: "notes", label: "Notes" },
+] as const;
+
+export function BookingDetail({ data: d }: { data: BookingDetailData }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const tab = params.get("tab") ?? "overview";
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const setTab = (t: string) => {
+    const next = new URLSearchParams(params.toString());
+    if (t === "overview") next.delete("tab");
+    else next.set("tab", t);
+    router.push(`${pathname}?${next.toString()}`);
+  };
+
+  const tag = STATUS_TAG[d.statusTone];
+
+  const tabCount = (k: string): number | undefined => {
+    if (k === "addons") return d.addons.length || undefined;
+    if (k === "activity") return d.timeline.length || undefined;
+    if (k === "notes") return d.notes.length || undefined;
+    return undefined;
+  };
+
+  return (
+    <div className="mx-auto max-w-[1040px] px-4 py-5 lg:px-6">
+      {/* sub-header */}
+      <div className="mb-5 flex items-center gap-3">
+        <Link
+          href="/dashboard/bookings"
+          className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-brand-line px-3 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <ArrowLeft className="h-4 w-4 text-brand-mute" /> All bookings
+        </Link>
+        <div className="hidden items-center gap-2 text-[12.5px] md:flex">
+          <Link
+            href="/dashboard/bookings"
+            className="text-brand-mute hover:text-brand-ink"
+          >
+            Bookings
+          </Link>
+          <ChevronRight className="h-3 w-3 text-brand-line" />
+          <span className="font-mono font-semibold text-brand-ink">
+            {d.reference}
+          </span>
+        </div>
+      </div>
+
+      {/* identity header */}
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="p-6 lg:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-5">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="relative shrink-0">
+                {d.guestAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={d.guestAvatar}
+                    alt={d.guestName}
+                    className="h-16 w-16 rounded-pill object-cover ring-2 ring-brand-accent"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-secondary font-display text-xl font-bold text-white ring-2 ring-brand-accent">
+                    {initials(d.guestName)}
+                  </div>
+                )}
+                {d.returning ? (
+                  <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
+                    <BadgeCheck className="h-3.5 w-3.5" />
+                  </span>
+                ) : null}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-display text-[24px] font-extrabold leading-tight text-brand-ink">
+                    {d.guestName}
+                  </h1>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-[11.5px] font-semibold ${tag.cls}`}
+                  >
+                    <span className={`h-1.5 w-1.5 rounded-full ${tag.dot}`} />
+                    {d.statusLabel}
+                  </span>
+                  {d.returning ? (
+                    <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                      Returning guest
+                    </span>
+                  ) : null}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-brand-mute">
+                  <span className="font-mono text-[11px] text-brand-ink">
+                    {d.reference}
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-brand-line" />
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" /> {d.listingName}
+                    {d.listingCity ? ` · ${d.listingCity}` : ""}
+                  </span>
+                  <span className="h-1 w-1 rounded-full bg-brand-line" />
+                  <span>Booked {d.bookedLong}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+                    <span
+                      className="flex h-4 w-4 items-center justify-center rounded-[4px] font-display text-[9px] font-extrabold text-white"
+                      style={{ background: d.channelBg }}
+                    >
+                      {d.channelMark}
+                    </span>
+                    {d.channelLabel}
+                  </span>
+                  {d.arrivalProximity ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+                      <PlaneLanding className="h-3 w-3" /> {d.arrivalProximity}
+                    </span>
+                  ) : null}
+                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold capitalize text-brand-mute">
+                    <ShieldCheck className="h-3 w-3" /> {d.cancellationLabel}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {d.guestEmail ? (
+                <a
+                  href={`mailto:${d.guestEmail}`}
+                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
+                >
+                  <MessageSquare className="h-4 w-4" /> Message
+                </a>
+              ) : null}
+              {d.guestPhone ? (
+                <a
+                  href={`tel:${d.guestPhone}`}
+                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                >
+                  <Phone className="h-4 w-4 text-brand-mute" /> Call
+                </a>
+              ) : null}
+              <div className="relative">
+                <button
+                  onClick={() => setMoreOpen((v) => !v)}
+                  onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
+                  className="flex h-[42px] w-[42px] items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                  title="More"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+                {moreOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[220px] rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+                    {d.listingSlug ? (
+                      <a
+                        href={`/listing/${d.listingSlug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                      >
+                        <ExternalLink className="h-4 w-4 text-brand-mute" />{" "}
+                        View public listing
+                      </a>
+                    ) : null}
+                    {d.paymentRecordId ? (
+                      <Link
+                        href={`/dashboard/payments/${d.paymentRecordId}`}
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                      >
+                        <CreditCard className="h-4 w-4 text-brand-mute" />{" "}
+                        Payment record
+                      </Link>
+                    ) : null}
+                    {d.invoice ? (
+                      <Link
+                        href={`/dashboard/invoices/${d.invoice.id}`}
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                      >
+                        <Receipt className="h-4 w-4 text-brand-mute" /> Invoice{" "}
+                        {d.invoice.number}
+                      </Link>
+                    ) : null}
+                    {d.guestGkey ? (
+                      <Link
+                        href={`/dashboard/guests/${d.guestGkey}`}
+                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                      >
+                        <Users className="h-4 w-4 text-brand-mute" /> Guest
+                        record
+                      </Link>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          {/* stat band */}
+          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-5">
+            <StatTile
+              label="Nights"
+              value={String(d.nights)}
+              sub={`${d.checkInBig} → ${d.checkOutBig}`}
+            />
+            <StatTile
+              label="Guests"
+              value={String(d.guestsCount)}
+              sub={d.occupancyLabel}
+            />
+            <StatTile
+              label="Nightly rate"
+              value={d.perNight ? formatMoney(d.perNight, d.currency) : "—"}
+              sub="per night"
+            />
+            <StatTile
+              label={d.paidInFull ? "Total paid" : "Total due"}
+              value={formatMoney(d.totalAmount, d.currency)}
+              sub={
+                d.paidInFull
+                  ? "Paid in full"
+                  : d.paymentStatus.replace(/_/g, " ")
+              }
+              subTone={d.paidInFull ? "good" : undefined}
+            />
+            <div className="col-span-2 bg-brand-secondary p-4 sm:col-span-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+                Arrival
+              </div>
+              <div className="mt-1.5 font-display text-[18px] font-bold leading-none text-white">
+                {d.arrivalBig}
+              </div>
+              <div className="mt-1 text-[11px] text-brand-accent">
+                {d.arrivalSub}
+              </div>
+            </div>
+          </div>
+
+          {/* progress */}
+          {d.progressPct !== null ? (
+            <div className="mt-5">
+              <div className="flex items-center justify-between text-[10.5px] font-medium text-brand-mute">
+                <span>Booked · {d.bookedLong}</span>
+                {d.progressNote ? (
+                  <span className="font-semibold text-brand-primary">
+                    {d.progressNote}
+                  </span>
+                ) : null}
+                <span>Checkout · {d.checkOutBig}</span>
+              </div>
+              <div className="relative mt-2 h-1.5 rounded-pill bg-brand-line">
+                <div
+                  className="absolute left-0 top-0 h-full rounded-pill bg-brand-primary"
+                  style={{ width: `${d.progressPct}%` }}
+                />
+                <div
+                  className="absolute -top-[3px] h-3 w-3 rounded-full border-2 border-white bg-brand-primary shadow"
+                  style={{ left: `calc(${d.progressPct}% - 6px)` }}
+                />
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* tabs */}
+      <div className="mt-6 border-b border-brand-line">
+        <nav className="flex items-stretch gap-6 overflow-x-auto">
+          {TABS.map((t) => {
+            const active = tab === t.key;
+            const c = tabCount(t.key);
+            return (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`relative whitespace-nowrap py-3 text-[14px] font-semibold transition-colors ${
+                  active
+                    ? "text-brand-secondary"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {t.label}
+                {c !== undefined ? (
+                  <span className="ml-1.5 rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+                    {c}
+                  </span>
+                ) : null}
+                {active ? (
+                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
+                ) : null}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="mt-6">
+        {tab === "overview" ? (
+          <OverviewPanel d={d} setTab={setTab} />
+        ) : tab === "addons" ? (
+          <AddonsPanel d={d} />
+        ) : tab === "payments" ? (
+          <PaymentsPanel d={d} />
+        ) : tab === "arrivals" ? (
+          <ArrivalsPanel d={d} />
+        ) : tab === "guest" ? (
+          <GuestPanel d={d} />
+        ) : tab === "activity" ? (
+          <ActivityPanel d={d} />
+        ) : (
+          <NotesPanel d={d} />
+        )}
+      </div>
+      <div className="h-6" />
+    </div>
+  );
+}
+
+// ── shared bits ──────────────────────────────────────────────────────────
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      {children}
+    </section>
+  );
+}
+function CardHead({
+  title,
+  right,
+}: {
+  title: string;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        {title}
+      </div>
+      {right}
+    </div>
+  );
+}
+function StatTile({
+  label,
+  value,
+  sub,
+  subTone,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  subTone?: "good";
+}) {
+  return (
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        {label}
+      </div>
+      <div className="mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">
+        {value}
+      </div>
+      <div
+        className={`mt-1 truncate text-[11px] ${subTone === "good" ? "font-medium text-status-confirmed" : "text-brand-mute"}`}
+      >
+        {sub}
+      </div>
+    </div>
+  );
+}
+function FeatureChip({
+  icon: Icon,
+  label,
+}: {
+  icon: typeof BedDouble;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+      <Icon className="h-3 w-3" /> {label}
+    </span>
+  );
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────
+function OverviewPanel({
+  d,
+  setTab,
+}: {
+  d: BookingDetailData;
+  setTab: (t: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="min-w-0 space-y-6">
+        <Card>
+          <CardHead
+            title="Reservation summary"
+            right={
+              <span className="font-mono text-[11px] text-brand-mute">
+                {d.reference}
+              </span>
+            }
+          />
+          <div className="p-5">
+            <div className="flex flex-wrap items-center gap-4">
+              {d.cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={d.cover}
+                  alt={d.listingName}
+                  className="h-20 w-28 shrink-0 rounded-[12px] object-cover"
+                />
+              ) : (
+                <div className="h-20 w-28 shrink-0 rounded-[12px] bg-brand-light" />
+              )}
+              <div className="min-w-0 flex-1">
+                {d.listingSlug ? (
+                  <Link
+                    href={`/listing/${d.listingSlug}`}
+                    target="_blank"
+                    className="font-display text-[16px] font-bold text-brand-ink hover:text-brand-primary"
+                  >
+                    {d.listingName}
+                  </Link>
+                ) : (
+                  <span className="font-display text-[16px] font-bold text-brand-ink">
+                    {d.listingName}
+                  </span>
+                )}
+                {d.propertyMeta ? (
+                  <div className="mt-0.5 text-[12.5px] text-brand-mute">
+                    {d.propertyMeta}
+                  </div>
+                ) : null}
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {d.bedrooms ? (
+                    <FeatureChip
+                      icon={BedDouble}
+                      label={`${d.bedrooms} bedroom${d.bedrooms === 1 ? "" : "s"}`}
+                    />
+                  ) : null}
+                  {d.bathrooms ? (
+                    <FeatureChip
+                      icon={Bath}
+                      label={`${d.bathrooms} bath${d.bathrooms === 1 ? "" : "s"}`}
+                    />
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3.5 sm:grid-cols-2">
+              <SummaryRow label="Check-in" value={d.checkInFull} />
+              <SummaryRow label="Check-out" value={d.checkOutFull} />
+              <SummaryRow label="Occupancy" value={d.occupancyLabel} />
+              <SummaryRow
+                label="Cancellation"
+                value={
+                  <span className="capitalize">{d.cancellationLabel}</span>
+                }
+              />
+            </div>
+            {d.specialRequests ? (
+              <div className="mt-4 rounded-[12px] border border-brand-line bg-brand-light/60 p-4">
+                <div className="flex items-center gap-2 text-[12px] font-semibold text-brand-ink">
+                  <MessageSquare className="h-4 w-4 text-brand-primary" /> Guest
+                  note
+                </div>
+                <p className="mt-1.5 whitespace-pre-line text-[13px] leading-relaxed text-brand-mute">
+                  {d.specialRequests}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        {d.hasWorkflow ? (
+          <Card>
+            <div className="flex items-center gap-2 bg-status-pending/10 px-5 py-3">
+              <AlertCircle className="h-4 w-4 text-status-pending" />
+              <span className="text-[12px] font-semibold text-brand-ink">
+                {d.status === "pending"
+                  ? "Awaiting your confirmation"
+                  : "Manage booking"}
+              </span>
+            </div>
+            <div className="px-5 py-4">
+              {d.status === "pending" ? (
+                <p className="mb-3 text-[12.5px] leading-relaxed text-brand-mute">
+                  Review the request and confirm to lock the dates, or decline
+                  to release them.
+                </p>
+              ) : null}
+              <BookingActions
+                bookingId={d.id}
+                status={d.status}
+                currency={d.currency}
+              />
+            </div>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHead title="At a glance" />
+          <div className="divide-y divide-brand-line">
+            <GlanceRow
+              icon={CreditCard}
+              label="Payment"
+              onClick={() => setTab("payments")}
+              right={
+                <span className="inline-flex items-center gap-2">
+                  <span className="text-[13px] font-semibold text-brand-ink">
+                    {formatMoney(d.totalAmount, d.currency)}
+                  </span>
+                  {d.paidInFull ? (
+                    <span className="inline-flex items-center gap-1 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+                      Paid
+                    </span>
+                  ) : null}
+                </span>
+              }
+            />
+            <GlanceRow
+              icon={PlusCircle}
+              label="Add-ons"
+              onClick={() => setTab("addons")}
+              right={
+                <span className="text-[13px] font-semibold text-brand-ink">
+                  {d.addons.length} ·{" "}
+                  {formatMoney(d.addonsSubtotal, d.currency)}
+                </span>
+              }
+            />
+            <GlanceRow
+              icon={KeyRound}
+              label="Check-in"
+              onClick={() => setTab("arrivals")}
+              right={
+                <span className="text-[13px] font-semibold text-brand-ink">
+                  {d.checkInBig}
+                </span>
+              }
+            />
+            <GlanceRow
+              icon={UserRound}
+              label="Guest"
+              onClick={() => setTab("guest")}
+              right={
+                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-ink">
+                  {d.guestStays} stay{d.guestStays === 1 ? "" : "s"}
+                  {d.guestRating ? (
+                    <>
+                      {" · "}
+                      {d.guestRating}
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                    </>
+                  ) : null}
+                </span>
+              }
+            />
+          </div>
+        </Card>
+
+        <Card>
+          <CardHead
+            title="Welcome note"
+            right={
+              <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                Guest sees this
+              </span>
+            }
+          />
+          <WelcomeNoteCard
+            bookingId={d.id}
+            initial={d.hostMessage}
+            guestFirstName={d.guestFirstName}
+          />
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between border-b border-dashed border-brand-line pb-3.5">
+      <span className="text-[12.5px] text-brand-mute">{label}</span>
+      <span className="text-[13px] font-semibold text-brand-ink">{value}</span>
+    </div>
+  );
+}
+
+function GlanceRow({
+  icon: Icon,
+  label,
+  right,
+  onClick,
+}: {
+  icon: typeof CreditCard;
+  label: string;
+  right: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-2.5 px-5 py-3 text-left transition hover:bg-[#FAFCFB]"
+    >
+      <span className="inline-flex items-center gap-2.5 text-[12.5px] text-brand-mute">
+        <Icon className="h-4 w-4" /> {label}
+      </span>
+      {right}
+    </button>
+  );
+}
+
+// ── Add-ons ────────────────────────────────────────────────────────────────
+function AddonsPanel({ d }: { d: BookingDetailData }) {
+  if (d.addons.length === 0) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
+        No add-ons or extras on this booking.
+      </div>
+    );
+  }
+  return (
+    <Card>
+      <CardHead title="Booked add-ons & extras" />
+      <ul className="divide-y divide-brand-line">
+        {d.addons.map((a) => (
+          <li key={a.id} className="flex items-center gap-3.5 px-5 py-3.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13.5px] font-semibold text-brand-ink">
+                {a.label}
+                {a.quantity > 1 ? (
+                  <span className="ml-1 text-brand-mute">× {a.quantity}</span>
+                ) : null}
+              </div>
+            </div>
+            <span className="text-[13px] font-semibold text-brand-ink">
+              {Number(a.subtotal) === 0
+                ? a.isRequired
+                  ? "Included"
+                  : formatMoney(0, a.currency)
+                : formatMoney(Number(a.subtotal), a.currency)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="flex items-center justify-between border-t border-brand-line px-5 py-3.5">
+        <span className="text-[12.5px] font-semibold text-brand-ink">
+          Add-ons subtotal
+        </span>
+        <span className="font-display text-[15px] font-bold text-brand-ink">
+          {formatMoney(d.addonsSubtotal, d.currency)}
+        </span>
+      </div>
+    </Card>
+  );
+}
+
+// ── Payments ────────────────────────────────────────────────────────────────
+function PaymentsPanel({ d }: { d: BookingDetailData }) {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHead
+          title="Payment & payout"
+          right={
+            d.paidInFull ? (
+              <span className="inline-flex items-center gap-1 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700">
+                <Check className="h-3 w-3" /> Paid in full
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-pill border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10.5px] font-semibold capitalize text-amber-700">
+                {d.paymentStatus.replace(/_/g, " ")}
+              </span>
+            )
+          }
+        />
+        <div className="p-5">
+          <ul className="space-y-2.5 text-[13px]">
+            <li className="flex items-center justify-between">
+              <span className="text-brand-mute">
+                {d.scope === "rooms"
+                  ? "Rooms"
+                  : d.perNight
+                    ? `${formatMoney(d.perNight, d.currency)} × ${d.nights} night${d.nights === 1 ? "" : "s"}`
+                    : "Base"}
+              </span>
+              <span className="text-brand-ink">
+                {formatMoney(d.baseAmount, d.currency)}
+              </span>
+            </li>
+            {d.addons.map((a) =>
+              Number(a.subtotal) > 0 ? (
+                <li key={a.id} className="flex items-center justify-between">
+                  <span className="text-brand-mute">{a.label}</span>
+                  <span className="text-brand-ink">
+                    {formatMoney(Number(a.subtotal), a.currency)}
+                  </span>
+                </li>
+              ) : null,
+            )}
+            {d.cleaningFee > 0 ? (
+              <li className="flex items-center justify-between">
+                <span className="text-brand-mute">Cleaning fee</span>
+                <span className="text-brand-ink">
+                  {formatMoney(d.cleaningFee, d.currency)}
+                </span>
+              </li>
+            ) : null}
+            {d.refundTotal > 0 ? (
+              <li className="flex items-center justify-between text-status-cancelled">
+                <span>Refunded</span>
+                <span>– {formatMoney(d.refundTotal, d.currency)}</span>
+              </li>
+            ) : null}
+            <li className="flex items-center justify-between border-t border-brand-line pt-3">
+              <span className="font-semibold text-brand-ink">Total</span>
+              <span className="font-display text-[18px] font-bold text-brand-ink">
+                {formatMoney(d.totalAmount, d.currency)}
+              </span>
+            </li>
+          </ul>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-[12px] border border-brand-line p-3.5">
+              <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                Payment method
+              </div>
+              <div className="mt-1 font-display text-[16px] font-bold capitalize text-brand-ink">
+                {d.paymentMethod?.replace(/_/g, " ") ?? "—"}
+              </div>
+              <div className="mt-1 text-[11.5px] text-brand-mute">
+                {d.paymentRowStatus
+                  ? `Status: ${d.paymentRowStatus.replace(/_/g, " ")}`
+                  : "No payment record"}
+              </div>
+            </div>
+            {d.paymentRecordId ? (
+              <Link
+                href={`/dashboard/payments/${d.paymentRecordId}`}
+                className="flex flex-col justify-center rounded-[12px] border border-brand-line bg-brand-accent/30 p-3.5 transition hover:bg-brand-accent/50"
+              >
+                <div className="inline-flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
+                  <CreditCard className="h-3.5 w-3.5" /> Payment record
+                </div>
+                <div className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-secondary">
+                  View full record <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </Link>
+            ) : null}
+          </div>
+
+          {d.invoice || d.creditNotes.length > 0 ? (
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-brand-line pt-4">
+              {d.invoice ? (
+                <Link
+                  href={`/dashboard/invoices/${d.invoice.id}`}
+                  className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-accent"
+                >
+                  <Receipt className="h-3.5 w-3.5" /> Invoice {d.invoice.number}
+                </Link>
+              ) : null}
+              {d.creditNotes.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/dashboard/credit-notes/${c.id}`}
+                  className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-rose-700 transition hover:bg-rose-50"
+                >
+                  <FileMinus className="h-3.5 w-3.5" /> {c.number}
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
+          {d.showEftManage && d.paymentRecordId ? (
+            <div className="mt-4 rounded-[12px] border border-amber-300 bg-amber-50/60 p-4">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-amber-900">
+                Awaiting EFT transfer
+              </div>
+              <p className="mb-3 mt-1 text-[12.5px] text-amber-900/80">
+                Confirm once the funds reflect in your account.
+              </p>
+              <PaymentManage paymentId={d.paymentRecordId} />
+            </div>
+          ) : null}
+
+          {d.canRefund ? (
+            <div className="mt-4 border-t border-brand-line pt-4">
+              <IssueRefundButton
+                bookingId={d.id}
+                totalAmount={d.totalAmount}
+                currency={d.currency}
+                defaultMethod={d.refundDefaultMethod}
+              />
+            </div>
+          ) : null}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── Arrivals ────────────────────────────────────────────────────────────────
+function ArrivalsPanel({ d }: { d: BookingDetailData }) {
+  const a = d.access;
+  const hasAccess =
+    a &&
+    (a.doorCode ||
+      a.gateCode ||
+      a.wifiNetwork ||
+      a.checkInMethod ||
+      a.instructions);
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="min-w-0 space-y-6">
+        <Card>
+          <CardHead title="Arrival & departure" />
+          <div className="p-5">
+            <div className="flex items-stretch gap-4">
+              <div className="flex-1 rounded-[12px] border border-brand-line p-4">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                  Check-in
+                </div>
+                <div className="mt-1.5 font-display text-[18px] font-bold leading-none text-brand-ink">
+                  {d.checkInBig}
+                </div>
+                <div className="mt-1.5 text-[12px] text-brand-mute">
+                  {d.checkInSub}
+                </div>
+              </div>
+              <div className="flex flex-col items-center justify-center px-1">
+                <span className="whitespace-nowrap rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-bold text-brand-secondary">
+                  {d.nights} night{d.nights === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="flex-1 rounded-[12px] border border-brand-line p-4 text-right">
+                <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                  Check-out
+                </div>
+                <div className="mt-1.5 font-display text-[18px] font-bold leading-none text-brand-ink">
+                  {d.checkOutBig}
+                </div>
+                <div className="mt-1.5 text-[12px] text-brand-mute">
+                  {d.checkOutSub}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHead title="Access & keys" />
+          {hasAccess ? (
+            <div className="divide-y divide-brand-line">
+              {a?.checkInMethod ? (
+                <AccessRow
+                  icon={DoorOpen}
+                  label="Check-in"
+                  value={a.checkInMethod}
+                />
+              ) : null}
+              {a?.doorCode ? (
+                <AccessRow
+                  icon={KeyRound}
+                  label="Door code"
+                  value={a.doorCode}
+                  mono
+                />
+              ) : null}
+              {a?.gateCode ? (
+                <AccessRow
+                  icon={KeyRound}
+                  label="Gate code"
+                  value={a.gateCode}
+                  mono
+                />
+              ) : null}
+              {a?.wifiNetwork ? (
+                <AccessRow
+                  icon={Wifi}
+                  label="Wi-Fi"
+                  value={
+                    a.wifiPassword
+                      ? `${a.wifiNetwork} · ${a.wifiPassword}`
+                      : a.wifiNetwork
+                  }
+                  mono
+                />
+              ) : null}
+              {a?.instructions ? (
+                <div className="px-5 py-3 text-[12.5px] leading-relaxed text-brand-mute">
+                  {a.instructions}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="px-5 py-6 text-[12.5px] text-brand-mute">
+              No access details saved for this listing yet. Add them under{" "}
+              <span className="font-semibold text-brand-ink">
+                Listings → Guest access
+              </span>
+              .
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="space-y-6">
+        <Card>
+          <CardHead title="Stay policy" />
+          <div className="divide-y divide-brand-line">
+            <AccessRow icon={KeyRound} label="Check-in" value={d.checkInSub} />
+            <AccessRow
+              icon={KeyRound}
+              label="Check-out"
+              value={d.checkOutSub}
+            />
+            <AccessRow
+              icon={ShieldCheck}
+              label="Cancellation"
+              value={d.cancellationLabel}
+            />
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function AccessRow({
+  icon: Icon,
+  label,
+  value,
+  mono,
+}: {
+  icon: typeof KeyRound;
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3">
+      <span className="inline-flex items-center gap-2 text-[12.5px] text-brand-mute">
+        <Icon className="h-4 w-4" /> {label}
+      </span>
+      <span
+        className={`text-[12.5px] font-semibold capitalize text-brand-ink ${mono ? "font-mono tracking-wide" : ""}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ── Guest ────────────────────────────────────────────────────────────────────
+function GuestPanel({ d }: { d: BookingDetailData }) {
+  return (
+    <Card>
+      <CardHead
+        title="Guest"
+        right={
+          d.guestGkey ? (
+            <Link
+              href={`/dashboard/guests/${d.guestGkey}`}
+              className="text-[12px] font-medium text-brand-primary hover:underline"
+            >
+              View full profile →
+            </Link>
+          ) : undefined
+        }
+      />
+      <div className="p-5">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 text-[13px] sm:grid-cols-2">
+          {d.guestEmail ? (
+            <a
+              href={`mailto:${d.guestEmail}`}
+              className="inline-flex items-center gap-2 truncate text-brand-ink hover:text-brand-primary"
+            >
+              <MailCheck className="h-4 w-4 shrink-0 text-brand-mute" />
+              <span className="truncate">{d.guestEmail}</span>
+            </a>
+          ) : null}
+          {d.guestPhone ? (
+            <a
+              href={`tel:${d.guestPhone}`}
+              className="inline-flex items-center gap-2 text-brand-ink hover:text-brand-primary"
+            >
+              <Phone className="h-4 w-4 shrink-0 text-brand-mute" />
+              {d.guestPhone}
+            </a>
+          ) : null}
+          {d.guestCountry ? (
+            <span className="inline-flex items-center gap-2 text-brand-mute">
+              <MapPin className="h-4 w-4 text-brand-mute" /> {d.guestCountry}
+            </span>
+          ) : null}
+          {d.guestLanguages.length > 0 ? (
+            <span className="inline-flex items-center gap-2 text-brand-mute">
+              <Languages className="h-4 w-4 text-brand-mute" />
+              {d.guestLanguages.join(", ")}
+            </span>
+          ) : null}
+        </div>
+
+        {d.guestRegistered ? (
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <MiniStat value={String(d.guestStays)} label="stays with you" />
+            <MiniStat
+              value={
+                d.guestRating ? (
+                  <span className="inline-flex items-center gap-1">
+                    {d.guestRating}
+                    <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                  </span>
+                ) : (
+                  "—"
+                )
+              }
+              label="guest rating"
+            />
+            <MiniStat
+              value={formatMoney(d.guestLifetime, d.currency)}
+              label="lifetime value"
+            />
+            <MiniStat value={d.memberSinceYear ?? "—"} label="member since" />
+          </div>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {d.guestEmail ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+              <MailCheck className="h-3 w-3" /> Email on file
+            </span>
+          ) : null}
+          {d.guestPhone ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+              <PhoneCall className="h-3 w-3" /> Phone on file
+            </span>
+          ) : null}
+          {d.guestRegistered ? (
+            <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+              <ShieldCheck className="h-3 w-3" /> Registered guest
+            </span>
+          ) : (
+            <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+              Walk-in / manual
+            </span>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function MiniStat({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <div className="rounded-[10px] bg-brand-light px-3 py-2.5">
+      <div className="font-display text-[17px] font-bold text-brand-ink">
+        {value}
+      </div>
+      <div className="text-[10.5px] text-brand-mute">{label}</div>
+    </div>
+  );
+}
+
+// ── Activity ─────────────────────────────────────────────────────────────────
+function ActivityPanel({ d }: { d: BookingDetailData }) {
+  return (
+    <Card>
+      <CardHead title="Activity timeline" />
+      <div className="p-5">
+        {d.timeline.length === 0 ? (
+          <div className="text-[13px] text-brand-mute">No activity yet.</div>
+        ) : (
+          <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
+            {d.timeline.map((t, i) => (
+              <li key={i}>
+                <span
+                  className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${TIMELINE_DOT[t.tone]}`}
+                />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[13px] font-semibold text-brand-ink">
+                    {t.title}
+                  </div>
+                  <div className="shrink-0 text-[11px] text-brand-mute">
+                    {t.stamp}
+                  </div>
+                </div>
+                {t.desc ? (
+                  <div className="text-[12px] text-brand-mute">{t.desc}</div>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+// ── Notes ────────────────────────────────────────────────────────────────────
+function NotesPanel({ d }: { d: BookingDetailData }) {
+  return (
+    <Card>
+      <CardHead
+        title="Internal notes"
+        right={
+          <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+            Host-only · not shown to guest
+          </span>
+        }
+      />
+      <InternalNotes bookingId={d.id} notes={d.notes} />
+    </Card>
+  );
+}
