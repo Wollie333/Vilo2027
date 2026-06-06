@@ -298,39 +298,6 @@ export async function addConversationNoteAction(
   return { ok: true, data: { id: data.id } };
 }
 
-// ── Contacts export ─────────────────────────────────────────
-export async function exportContactsAction(): Promise<
-  ActionResult<{ csv: string; filename: string }>
-> {
-  const host = await getHost();
-  if (!host.ok) return host;
-
-  const supabase = createServerClient();
-  const { data } = await supabase
-    .from("host_contacts")
-    .select("name, email, phone, last_stage, last_seen_at, created_at")
-    .eq("host_id", host.hostId)
-    .order("last_seen_at", { ascending: false });
-
-  const esc = (v: unknown): string => {
-    const s = v == null ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const header = ["Name", "Email", "Phone", "Stage", "Last seen", "Added"];
-  const lines = (data ?? []).map((r) =>
-    [
-      esc(r.name),
-      esc(r.email),
-      esc(r.phone),
-      esc(r.last_stage),
-      esc(r.last_seen_at ? String(r.last_seen_at).slice(0, 10) : ""),
-      esc(r.created_at ? String(r.created_at).slice(0, 10) : ""),
-    ].join(","),
-  );
-  const csv = [header.join(","), ...lines].join("\n");
-  return { ok: true, data: { csv, filename: "vilo-contacts.csv" } };
-}
-
 // ── Templates ───────────────────────────────────────────────
 async function assertTemplateOwnership(
   templateId: string,

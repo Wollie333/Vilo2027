@@ -26,7 +26,6 @@ import {
   Search,
   Sparkles,
   Star,
-  User,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -540,16 +539,6 @@ export function InboxView({
               })}
             </>
           ) : null}
-
-          <RailDivider />
-          <div className="px-3 pt-1">
-            <Link
-              href="/dashboard/inbox/contacts"
-              className="flex h-9 items-center gap-3 rounded-full px-3 text-sm font-medium text-[#3A5A4E] transition-colors hover:bg-[#E2EDE6]"
-            >
-              <User className="h-[18px] w-[18px]" /> Contacts
-            </Link>
-          </div>
         </nav>
       </aside>
 
