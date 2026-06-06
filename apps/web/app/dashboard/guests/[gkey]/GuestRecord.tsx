@@ -49,6 +49,7 @@ import {
   deleteGuestNoteAction,
   exportGuestVcardAction,
   pinGuestNoteAction,
+  recordOptOutAction,
   unblockGuestAction,
 } from "../actions";
 
@@ -265,6 +266,7 @@ export function GuestRecord({
   payments,
   reviews,
   finances,
+  marketingState,
   notes,
   pinnedNote,
   messages,
@@ -278,6 +280,7 @@ export function GuestRecord({
   payments: PaymentItem[];
   reviews: ReviewItem[];
   finances: FinanceData;
+  marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
   notes: NoteItem[];
   pinnedNote: NoteItem | null;
   messages: MessageItem[];
@@ -453,6 +456,7 @@ export function GuestRecord({
                     ) : null}
                   </div>
                 ) : null}
+                <MarketingConsent gkey={r.gkey} state={marketingState} />
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -989,6 +993,91 @@ function MiniStat({
       <div className="mt-1.5 font-display text-[20px] font-bold text-brand-ink">
         {value}
       </div>
+    </div>
+  );
+}
+
+// ── Marketing consent (locked status + opt-out only, POPIA) ─────────────
+function MarketingConsent({
+  gkey,
+  state,
+}: {
+  gkey: string;
+  state: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  const meta = {
+    subscribed: {
+      checked: true,
+      label: "Subscribed to marketing",
+      tone: "text-status-confirmed",
+    },
+    unsubscribed: {
+      checked: false,
+      label: "Unsubscribed",
+      tone: "text-brand-mute",
+    },
+    needs_consent: {
+      checked: false,
+      label: "Not subscribed — no consent",
+      tone: "text-brand-mute",
+    },
+    no_email: {
+      checked: false,
+      label: "No email on file",
+      tone: "text-brand-mute",
+    },
+  }[state];
+
+  async function optOut() {
+    const ok = await modal.confirm({
+      title: "Record an opt-out?",
+      description:
+        "Mark this guest as unsubscribed from your marketing. You can't re-subscribe them yourself afterwards — only the guest can opt back in.",
+      confirmLabel: "Record opt-out",
+    });
+    if (!ok) return;
+    setBusy(true);
+    const res = await recordOptOutAction(gkey);
+    setBusy(false);
+    if (!res.ok) {
+      void modal.error({ title: "Couldn't update", description: res.error });
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div className="mt-3 inline-flex items-center gap-2.5 rounded-lg border border-brand-line bg-brand-light/40 px-3 py-2">
+      <input
+        type="checkbox"
+        checked={meta.checked}
+        disabled
+        aria-label="Marketing subscription (read-only)"
+        className="h-4 w-4 rounded border-brand-line text-brand-primary disabled:opacity-100"
+      />
+      <span className={`text-[12px] font-semibold ${meta.tone}`}>
+        {meta.label}
+      </span>
+      <span
+        className="text-brand-line"
+        title="Guests control this themselves via the unsubscribe link — hosts can only honour an opt-out."
+      >
+        ·
+      </span>
+      {state === "subscribed" ? (
+        <button
+          onClick={() => void optOut()}
+          disabled={busy}
+          className="text-[12px] font-medium text-brand-mute underline-offset-2 hover:text-status-cancelled hover:underline disabled:opacity-50"
+        >
+          Record opt-out
+        </button>
+      ) : (
+        <span className="text-[11px] text-brand-mute">guest-controlled</span>
+      )}
     </div>
   );
 }

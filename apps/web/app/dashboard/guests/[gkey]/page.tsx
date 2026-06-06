@@ -262,6 +262,36 @@ export default async function GuestRecordPage({
     }));
   }
 
+  // Per-host marketing state (POPIA). Strictly host-scoped — never reveals any
+  // other host's relationship with the same person.
+  const [{ data: gmRow }, { data: hcRow }] = await Promise.all([
+    supabase
+      .from("guest_marketing")
+      .select("is_subscribed")
+      .eq("host_id", host.id)
+      .eq("gkey", gkey)
+      .maybeSingle(),
+    email
+      ? supabase
+          .from("host_contacts")
+          .select("email_consent")
+          .eq("host_id", host.id)
+          .ilike("email", email)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const marketingState:
+    | "subscribed"
+    | "unsubscribed"
+    | "needs_consent"
+    | "no_email" = !record.has_email
+    ? "no_email"
+    : gmRow?.is_subscribed === false
+      ? "unsubscribed"
+      : record.total_bookings > 0 || hcRow?.email_consent === true
+        ? "subscribed"
+        : "needs_consent";
+
   // Notes timeline (newest first, pinned on top) with author names.
   const { data: notesData } = await supabase
     .from("guest_notes")
@@ -351,6 +381,7 @@ export default async function GuestRecordPage({
       payments={payments}
       reviews={reviews}
       finances={{ invoices, quotes, refunds, creditNotes }}
+      marketingState={marketingState}
       notes={notes}
       pinnedNote={pinnedNote}
       messages={messages}

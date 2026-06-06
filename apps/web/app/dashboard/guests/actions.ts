@@ -107,6 +107,53 @@ async function ensureContact(
   return (inserted as ContactRow) ?? null;
 }
 
+// ── Marketing opt-out (POPIA: host may only ever turn it OFF) ───────────
+// Opting a guest IN only happens via the consent tick at Add-guest (write-once)
+// or the guest's own (un)subscribe link — never a free host toggle. This action
+// is the single host-side write: honouring an opt-out request.
+async function emailForGkey(
+  hostId: string,
+  gkey: string,
+): Promise<string | null> {
+  const guestId = guestIdFromGkey(gkey);
+  if (guestId) {
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("id", guestId)
+      .maybeSingle();
+    return data?.email ?? null;
+  }
+  return emailFromGkey(gkey);
+}
+
+export async function recordOptOutAction(gkey: string): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const email = await emailForGkey(host.hostId, gkey);
+  if (!email) return { ok: false, error: "This guest has no email on file." };
+
+  const supabase = createServerClient();
+  const { error } = await supabase.from("guest_marketing").upsert(
+    {
+      host_id: host.hostId,
+      gkey,
+      email: email.toLowerCase(),
+      is_subscribed: false,
+      unsubscribed_at: new Date().toISOString(),
+      source: "manual",
+    },
+    { onConflict: "host_id,gkey" },
+  );
+  if (error) return { ok: false, error: "Could not record the opt-out." };
+
+  revalidatePath(`/dashboard/guests/${gkey}`);
+  revalidatePath("/dashboard/guests");
+  return { ok: true };
+}
+
 // ── Notes (guest_notes — keyed by gkey, host-only timeline) ─────────────
 export async function addGuestNoteAction(
   gkey: string,
