@@ -15,6 +15,8 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { createCreditNoteAction } from "../../credit-notes/actions";
+
 export type PaymentResult = { ok: true } | { ok: false; error: string };
 
 async function getHostId(): Promise<string | null> {
@@ -298,6 +300,61 @@ const TERMINAL_STATUSES = [
   "expired",
   "no_show",
 ];
+
+/**
+ * Issue a manual credit note against a booking (whole or part). Resolves the
+ * booking's invoice and reuses createCreditNoteAction — which also posts the
+ * amount to the guest's store credit so it shows on their balance.
+ */
+export async function issueBookingCreditNoteAction(input: {
+  bookingId: string;
+  amount: number;
+  reason: string;
+}): Promise<PaymentResult> {
+  const hostId = await getHostId();
+  if (!hostId) return { ok: false, error: "Not signed in." };
+
+  const amount = Math.round(Number(input.amount) * 100) / 100;
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Enter an amount greater than zero." };
+  }
+  const reason = (input.reason ?? "").trim();
+  if (!reason) return { ok: false, error: "Add a reason for the credit note." };
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id")
+    .eq("id", input.bookingId)
+    .maybeSingle();
+  if (!booking || booking.host_id !== hostId) {
+    return { ok: false, error: "Not your booking." };
+  }
+
+  // The booking invoice is what a credit note credits against.
+  const { data: invoice } = await admin
+    .from("invoices")
+    .select("id")
+    .eq("booking_id", input.bookingId)
+    .eq("kind", "booking")
+    .maybeSingle();
+  if (!invoice) {
+    return {
+      ok: false,
+      error: "Confirm the booking (so it has an invoice) before crediting.",
+    };
+  }
+
+  const res = await createCreditNoteAction({
+    invoiceId: invoice.id,
+    amount,
+    reason,
+  });
+  if (!res.ok) return res;
+
+  revalidateBooking(input.bookingId);
+  return { ok: true };
+}
 
 /**
  * Add one or more add-ons to an EXISTING booking (host side). Each call is a

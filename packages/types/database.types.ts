@@ -5189,6 +5189,7 @@ export type Database = {
           reason_detail: string | null
           reference: string | null
           refund_method: string | null
+          refund_number: string | null
           requested_amount: number
           status: string
           supporting_doc_url: string | null
@@ -5230,6 +5231,7 @@ export type Database = {
           reason_detail?: string | null
           reference?: string | null
           refund_method?: string | null
+          refund_number?: string | null
           requested_amount: number
           status?: string
           supporting_doc_url?: string | null
@@ -5271,6 +5273,7 @@ export type Database = {
           reason_detail?: string | null
           reference?: string | null
           refund_method?: string | null
+          refund_number?: string | null
           requested_amount?: number
           status?: string
           supporting_doc_url?: string | null

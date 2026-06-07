@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { gkeyFor } from "@/lib/guests/gkey";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { createCreditNoteSchema } from "../quotes/schemas";
@@ -92,8 +94,33 @@ export async function createCreditNoteAction(input: {
     };
   }
 
+  // A manual credit note grants the guest store credit they can spend on a
+  // future balance — post it to the per-host credit ledger so it feeds the
+  // guest's net balance. (Refund-origin credit notes are created by a DB trigger,
+  // not here, so cash refunds never double-post as credit.)
+  const guestSnap = (invoice.guest_snapshot ?? {}) as { email?: string | null };
+  const gkey = gkeyFor(invoice.guest_id, guestSnap.email ?? null);
+  if (gkey) {
+    await createAdminClient()
+      .from("guest_credit_ledger")
+      .insert({
+        host_id: invoice.host_id,
+        gkey,
+        guest_id: invoice.guest_id,
+        guest_email: guestSnap.email ?? null,
+        amount,
+        currency: invoice.currency,
+        reason: `Credit note ${number}`,
+        booking_id: invoice.booking_id,
+        created_by: user.id,
+      });
+  }
+
   revalidatePath("/dashboard/credit-notes");
   revalidatePath(`/dashboard/invoices/${invoice.id}`);
+  if (invoice.booking_id) {
+    revalidatePath(`/dashboard/bookings/${invoice.booking_id}`);
+  }
   return { ok: true, data: { id: inserted.id } };
 }
 

@@ -4,8 +4,11 @@ import {
   Check,
   Clock,
   CreditCard,
+  FileMinus,
+  MoreHorizontal,
   Plus,
   Receipt,
+  RotateCcw,
   Wallet,
   X,
 } from "lucide-react";
@@ -16,11 +19,15 @@ import { toast } from "sonner";
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 
+import { hostInitiatedRefundAction } from "../../refunds/actions";
 import {
   applyGuestCreditAction,
+  issueBookingCreditNoteAction,
   markPaymentReceivedAction,
   recordBookingPaymentAction,
 } from "./payment-actions";
+
+const INBOUND_KINDS = ["deposit", "balance", "addon", "payment"];
 
 export type LedgerEntry = {
   id: string;
@@ -154,6 +161,88 @@ export function PaymentsManager({
     });
   }
 
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [creditOpen, setCreditOpen] = useState(false);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditReason, setCreditReason] = useState("");
+
+  function issueCredit() {
+    const value = Number(creditAmount);
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Enter an amount greater than zero.");
+      return;
+    }
+    if (!creditReason.trim()) {
+      toast.error("Add a reason.");
+      return;
+    }
+    start(async () => {
+      const r = await issueBookingCreditNoteAction({
+        bookingId,
+        amount: value,
+        reason: creditReason.trim(),
+      });
+      if (r.ok) {
+        toast.success(
+          "Credit note issued — added to the guest's store credit.",
+        );
+        setCreditOpen(false);
+        setCreditAmount("");
+        setCreditReason("");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function refundOne(amount: number, label: string) {
+    setMenuId(null);
+    start(async () => {
+      const ok = await modal.destructive({
+        title: "Refund this payment?",
+        description: `Record a ${formatMoney(amount, currency)} refund for the ${label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
+        confirmLabel: "Refund payment",
+      });
+      if (!ok) return;
+      const r = await hostInitiatedRefundAction({
+        bookingId,
+        amount,
+        method: "eft",
+        reason: `Refund of ${label.toLowerCase()}`,
+      });
+      if (r.ok) {
+        toast.success("Refund recorded.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function creditOne(amount: number, label: string) {
+    setMenuId(null);
+    start(async () => {
+      const ok = await modal.confirm({
+        title: "Credit this payment?",
+        description: `Issue a ${formatMoney(amount, currency)} credit note for the ${label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
+        confirmLabel: "Issue credit note",
+      });
+      if (!ok) return;
+      const r = await issueBookingCreditNoteAction({
+        bookingId,
+        amount,
+        reason: `Credit of ${label.toLowerCase()}`,
+      });
+      if (r.ok) {
+        toast.success("Credit note issued.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
   return (
     <div className="space-y-5">
       {/* money summary */}
@@ -253,6 +342,42 @@ export function PaymentsManager({
                       <Check className="h-3 w-3" /> Received
                     </button>
                   ) : null}
+                  {canRecord &&
+                  p.status === "completed" &&
+                  INBOUND_KINDS.includes(p.kind) ? (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setMenuId(menuId === p.id ? null : p.id)}
+                        className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                        title="More"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      {menuId === p.id ? (
+                        <div className="absolute right-0 top-8 z-10 w-44 overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-card">
+                          <button
+                            type="button"
+                            onClick={() => refundOne(p.amount, p.label)}
+                            disabled={pending}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
+                            Refund this
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => creditOne(p.amount, p.label)}
+                            disabled={pending}
+                            className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                          >
+                            <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
+                            Credit this
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </li>
             ))}
@@ -282,7 +407,69 @@ export function PaymentsManager({
                 credit
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setCreditOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink transition hover:bg-brand-accent"
+            >
+              <FileMinus className="h-4 w-4 text-brand-mute" /> Issue credit
+              note
+            </button>
           </div>
+
+          {creditOpen ? (
+            <div className="rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_1fr]">
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Amount ({currency})
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={creditAmount}
+                    onChange={(e) => setCreditAmount(e.target.value)}
+                    className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                    Reason
+                  </span>
+                  <input
+                    type="text"
+                    value={creditReason}
+                    onChange={(e) => setCreditReason(e.target.value)}
+                    placeholder="e.g. Goodwill for late check-in"
+                    className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
+                  />
+                </label>
+              </div>
+              <p className="mt-2.5 text-[11.5px] text-brand-mute">
+                Issues a credit-note document and adds the amount to this
+                guest&apos;s store credit (no cash leaves your account).
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={issueCredit}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                >
+                  <FileMinus className="h-3.5 w-3.5" /> Issue credit note
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreditOpen(false)}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2 text-[13px] font-medium text-brand-mute transition hover:bg-white disabled:opacity-50"
+                >
+                  <X className="h-3.5 w-3.5" /> Cancel
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {showForm ? (
             <div className="rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
