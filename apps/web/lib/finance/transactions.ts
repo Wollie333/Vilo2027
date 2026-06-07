@@ -20,6 +20,10 @@ export type TxnType =
   | "credit"
   | "refund";
 
+// What the money was *for* (independent of the money movement above) — drives
+// the "For" pill so a row reads e.g. "Charge · Booking" or "Payment · Add-on".
+export type TxnCategory = "booking" | "addon" | "credit" | "refund";
+
 export type TxnDoc = {
   kind: "invoice" | "receipt" | "credit_note" | "refund";
   number: string;
@@ -57,6 +61,8 @@ export type Txn = {
   kind?: string | null;
   /** Raw payments.status (completed/pending). */
   status?: string | null;
+  /** What the transaction was for — booking/add-on/credit/refund. */
+  category: TxnCategory;
 };
 
 export type TxnStats = {
@@ -164,6 +170,7 @@ export async function fetchHostTransactions(
       balance: 0,
       owedEffect: 1,
       cashEffect: 0,
+      category: inv.kind === "addon" ? "addon" : "booking",
     });
   }
 
@@ -222,6 +229,7 @@ export async function fetchHostTransactions(
       paymentId: p.id as string,
       kind: (p.kind as string) ?? null,
       status: (p.status as string) ?? null,
+      category: p.kind === "addon" ? "addon" : isCredit ? "credit" : "booking",
     });
   }
 
@@ -255,6 +263,7 @@ export async function fetchHostTransactions(
       balance: 0,
       owedEffect: -1,
       cashEffect: 0,
+      category: "credit",
     });
   }
 
@@ -288,6 +297,7 @@ export async function fetchHostTransactions(
       balance: 0,
       owedEffect: 1,
       cashEffect: -1,
+      category: "refund",
     });
   }
 

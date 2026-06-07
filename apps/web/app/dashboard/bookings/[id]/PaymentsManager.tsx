@@ -299,7 +299,7 @@ export function PaymentsManager({
       <LedgerList
         entries={txns}
         showGuest={false}
-        minWidth={640}
+        minWidth={720}
         emptyLabel="No transactions yet."
         rowActions={rowActions}
       />

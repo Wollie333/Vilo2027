@@ -1078,7 +1078,7 @@ function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
         entries={txns}
         showGuest={false}
         emptyLabel="No transactions for this guest yet."
-        minWidth={640}
+        minWidth={720}
       />
       {txns.length > 0 ? (
         <p className="text-[11.5px] text-brand-mute">

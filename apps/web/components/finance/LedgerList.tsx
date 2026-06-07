@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
 import { formatMoney } from "@/lib/format";
-import type { Txn, TxnType } from "@/lib/finance/transactions";
+import type { Txn, TxnCategory, TxnType } from "@/lib/finance/transactions";
 
 // The canonical transaction row. The account-wide Ledger, the per-guest
 // Finances tab and the per-booking Payments tab all render with this exact
@@ -38,6 +38,23 @@ const TYPE_TAG: Record<TxnType, { label: string; cls: string }> = {
   },
   credit: {
     label: "Credit note",
+    cls: "border-indigo-200 bg-indigo-50 text-indigo-600",
+  },
+  refund: { label: "Refund", cls: "border-red-200 bg-red-50 text-red-600" },
+};
+
+// What the money was for — booking/stay vs add-on vs credit vs refund.
+const CATEGORY_TAG: Record<TxnCategory, { label: string; cls: string }> = {
+  booking: {
+    label: "Booking",
+    cls: "border-brand-line bg-brand-light text-brand-ink",
+  },
+  addon: {
+    label: "Add-on",
+    cls: "border-violet-200 bg-violet-50 text-violet-700",
+  },
+  credit: {
+    label: "Store credit",
     cls: "border-indigo-200 bg-indigo-50 text-indigo-600",
   },
   refund: { label: "Refund", cls: "border-red-200 bg-red-50 text-red-600" },
@@ -115,7 +132,7 @@ export function LedgerList({
     });
   }
 
-  const cols = 5 + (showGuest ? 1 : 0) + (showBalance ? 1 : 0);
+  const cols = 6 + (showGuest ? 1 : 0) + (showBalance ? 1 : 0);
 
   return (
     <div className="overflow-x-auto rounded-card border border-brand-line bg-white shadow-card">
@@ -131,6 +148,7 @@ export function LedgerList({
               <th className="px-2 py-2.5 text-left">Guest</th>
             ) : null}
             <th className="px-2 py-2.5 text-left">Type</th>
+            <th className="px-2 py-2.5 text-left">For</th>
             <th className="px-2 py-2.5 text-right">Amount</th>
             {showBalance ? (
               <th className="px-2 py-2.5 text-right">Balance</th>
@@ -200,6 +218,13 @@ export function LedgerList({
                         Pending
                       </span>
                     ) : null}
+                  </td>
+                  <td className="px-2 py-3">
+                    <span
+                      className={`inline-flex rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold ${CATEGORY_TAG[e.category].cls}`}
+                    >
+                      {CATEGORY_TAG[e.category].label}
+                    </span>
                   </td>
                   <td
                     className={`num whitespace-nowrap px-2 py-3 text-right font-semibold ${amt.cls}`}
