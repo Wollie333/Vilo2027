@@ -693,6 +693,8 @@ export type Database = {
           status: string
           total_amount: number
           updated_at: string
+          vat_amount: number
+          vat_rate: number
         }
         Insert: {
           access_card_sent_at?: string | null
@@ -750,6 +752,8 @@ export type Database = {
           status?: string
           total_amount: number
           updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
         }
         Update: {
           access_card_sent_at?: string | null
@@ -807,6 +811,8 @@ export type Database = {
           status?: string
           total_amount?: number
           updated_at?: string
+          vat_amount?: number
+          vat_rate?: number
         }
         Relationships: [
           {
@@ -3697,6 +3703,8 @@ export type Database = {
           total_bookings: number
           total_reviews: number
           updated_at: string
+          vat_number: string | null
+          vat_rate: number
           weekend_price: number | null
           weekly_discount_pct: number | null
           what_to_bring: string | null
@@ -3767,6 +3775,8 @@ export type Database = {
           total_bookings?: number
           total_reviews?: number
           updated_at?: string
+          vat_number?: string | null
+          vat_rate?: number
           weekend_price?: number | null
           weekly_discount_pct?: number | null
           what_to_bring?: string | null
@@ -3837,6 +3847,8 @@ export type Database = {
           total_bookings?: number
           total_reviews?: number
           updated_at?: string
+          vat_number?: string | null
+          vat_rate?: number
           weekend_price?: number | null
           weekly_discount_pct?: number | null
           what_to_bring?: string | null
@@ -6551,6 +6563,7 @@ export type Database = {
           }
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
+      effective_vat_rate: { Args: { p_listing_id: string }; Returns: number }
       enablelongtransactions: { Args: never; Returns: string }
       enqueue_in_app_notification: {
         Args: {
