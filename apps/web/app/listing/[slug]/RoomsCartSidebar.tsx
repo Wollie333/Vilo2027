@@ -1,6 +1,15 @@
 "use client";
 
-import { Home, Minus, Plus, Star, Trash2, Users, Zap } from "lucide-react";
+import {
+  Home,
+  Minus,
+  Plus,
+  ShieldCheck,
+  Star,
+  Trash2,
+  Users,
+  Zap,
+} from "lucide-react";
 import { useMemo } from "react";
 
 import { formatMoney } from "@/lib/format";
@@ -224,7 +233,23 @@ export function RoomsCartSidebar({
   ]);
 
   return (
-    <div className="sticky top-20 rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <div
+      className="book-dark sticky top-20 isolate overflow-hidden rounded-card p-5 text-white"
+      style={{
+        background:
+          "linear-gradient(155deg,#11201A 0%,#0A1410 55%,#060F0B 100%)",
+        boxShadow:
+          "0 34px 74px -30px rgba(6,40,30,0.72),0 10px 28px -16px rgba(0,0,0,0.34)",
+      }}
+    >
+      <div
+        aria-hidden
+        className="dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.13]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-24 -z-10 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
+      />
       {/* Header price */}
       <div className="flex items-baseline justify-between gap-2">
         <div>
@@ -256,18 +281,17 @@ export function RoomsCartSidebar({
           )}
         </div>
         {rating != null && reviewCount != null && reviewCount > 0 ? (
-          <div className="flex items-center gap-1 text-xs">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="font-semibold text-brand-ink">
-              {rating.toFixed(1)}
-            </span>
-            <span className="text-brand-mute">({reviewCount})</span>
+          <div className="flex items-center gap-1 text-sm text-brand-ink">
+            <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+            <span className="num font-semibold">{rating.toFixed(2)}</span>
+            <span className="text-brand-mute">·</span>
+            <span className="num text-brand-mute">{reviewCount}</span>
           </div>
         ) : null}
       </div>
 
       {instantBooking ? (
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-secondary px-2 py-0.5 text-[10px] font-bold text-white">
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-bold">
           <Zap className="h-3 w-3" /> Instant book
         </div>
       ) : null}
@@ -281,7 +305,7 @@ export function RoomsCartSidebar({
             className={`rounded-pill px-3 py-1.5 text-xs font-semibold transition-colors ${
               flexibleTab === "whole"
                 ? "bg-brand-primary text-white"
-                : "text-brand-dark hover:bg-white/60"
+                : "text-brand-ink hover:bg-white/10"
             }`}
           >
             Whole place
@@ -292,7 +316,7 @@ export function RoomsCartSidebar({
             className={`rounded-pill px-3 py-1.5 text-xs font-semibold transition-colors ${
               flexibleTab === "rooms"
                 ? "bg-brand-primary text-white"
-                : "text-brand-dark hover:bg-white/60"
+                : "text-brand-ink hover:bg-white/10"
             }`}
           >
             Specific rooms
@@ -310,7 +334,7 @@ export function RoomsCartSidebar({
             type="date"
             value={checkIn}
             onChange={(e) => setCheckIn(e.target.value)}
-            className="bg-transparent text-sm font-medium text-brand-dark outline-none"
+            className="bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
           />
         </label>
         <label className="flex cursor-pointer flex-col gap-1 px-3 py-2.5 hover:bg-brand-light/60">
@@ -322,7 +346,7 @@ export function RoomsCartSidebar({
             value={checkOut}
             min={checkIn || undefined}
             onChange={(e) => setCheckOut(e.target.value)}
-            className="bg-transparent text-sm font-medium text-brand-dark outline-none"
+            className="bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
           />
         </label>
         {!isRoomsTab ? (
@@ -334,7 +358,7 @@ export function RoomsCartSidebar({
             <select
               value={guests}
               onChange={(e) => setGuests(parseInt(e.target.value, 10))}
-              className="ml-auto bg-transparent text-sm font-medium text-brand-dark outline-none"
+              className="ml-auto bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
             >
               {Array.from(
                 { length: Math.max(1, maxGuestsCap) },
@@ -393,7 +417,7 @@ export function RoomsCartSidebar({
                       <button
                         type="button"
                         onClick={() => toggle(r.id)}
-                        className="rounded p-1 text-brand-mute hover:bg-white hover:text-status-cancelled"
+                        className="rounded p-1 text-brand-mute hover:bg-white/10 hover:text-status-cancelled"
                         aria-label={`Remove ${r.name}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -412,7 +436,7 @@ export function RoomsCartSidebar({
                             setRoomGuests(r.id, Math.max(1, g - 1))
                           }
                           disabled={g <= 1}
-                          className="flex h-7 w-7 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded border border-white/20 text-white hover:border-brand-primary hover:text-brand-primary disabled:opacity-30"
                           aria-label="Fewer guests"
                         >
                           <Minus className="h-3 w-3" />
@@ -426,7 +450,7 @@ export function RoomsCartSidebar({
                             setRoomGuests(r.id, Math.min(r.max_guests, g + 1))
                           }
                           disabled={g >= r.max_guests}
-                          className="flex h-7 w-7 items-center justify-center rounded border border-brand-line bg-white text-brand-ink hover:bg-brand-accent disabled:opacity-40"
+                          className="flex h-7 w-7 items-center justify-center rounded border border-white/20 text-white hover:border-brand-primary hover:text-brand-primary disabled:opacity-30"
                           aria-label="More guests"
                         >
                           <Plus className="h-3 w-3" />
@@ -448,10 +472,10 @@ export function RoomsCartSidebar({
         onClick={(e) => {
           if (!canReserve) e.preventDefault();
         }}
-        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-medium transition-colors ${
+        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded px-5 py-3.5 text-sm font-semibold transition-colors ${
           canReserve
-            ? "bg-brand-primary text-white hover:bg-brand-secondary"
-            : "cursor-not-allowed bg-brand-line text-brand-mute"
+            ? "bg-brand-primary text-white shadow-glow hover:bg-brand-secondary"
+            : "cursor-not-allowed border border-white/15 bg-white/[0.06] text-white/50"
         }`}
       >
         {isRoomsTab
@@ -477,7 +501,7 @@ export function RoomsCartSidebar({
           <dl className="mt-4 space-y-2 border-t border-brand-line pt-4 text-sm">
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">Rooms × {nights} nights</dt>
-              <dd className="font-medium text-brand-dark">
+              <dd className="num font-medium text-brand-ink">
                 {formatMoney(roomsCalc.base, currency)}
               </dd>
             </div>
@@ -505,7 +529,7 @@ export function RoomsCartSidebar({
             {roomsCalc.cleaning > 0 ? (
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fees</dt>
-                <dd className="font-medium text-brand-dark">
+                <dd className="num font-medium text-brand-ink">
                   {formatMoney(roomsCalc.cleaning, currency)}
                 </dd>
               </div>
@@ -526,7 +550,7 @@ export function RoomsCartSidebar({
                 {formatMoney(basePrice, currency)} × {nights}{" "}
                 {nights === 1 ? "night" : "nights"}
               </dt>
-              <dd className="font-medium text-brand-dark">
+              <dd className="num font-medium text-brand-ink">
                 {formatMoney(wholeCalc.base, currency)}
               </dd>
             </div>
@@ -543,7 +567,7 @@ export function RoomsCartSidebar({
             {wholeCalc.cleaning > 0 ? (
               <div className="flex items-center justify-between">
                 <dt className="text-brand-mute">Cleaning fee</dt>
-                <dd className="font-medium text-brand-dark">
+                <dd className="num font-medium text-brand-ink">
                   {formatMoney(wholeCalc.cleaning, currency)}
                 </dd>
               </div>
@@ -559,6 +583,14 @@ export function RoomsCartSidebar({
           </dl>
         ) : null
       ) : null}
+
+      <div className="mt-5 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light p-3">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+        <div className="text-[11px] leading-relaxed text-brand-mute">
+          Held securely until your trip is confirmed. Cancellation terms apply —
+          see the host&rsquo;s policy.
+        </div>
+      </div>
     </div>
   );
 }

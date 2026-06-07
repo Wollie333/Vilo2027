@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, Users, Zap } from "lucide-react";
+import { ArrowRight, ShieldCheck, Star, Users, Zap } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { formatMoney } from "@/lib/format";
@@ -120,12 +120,32 @@ export function BookingWidget({
   )}/book?from=${checkIn}&to=${checkOut}&guests=${guests}`;
 
   return (
-    <div className="sticky top-20 rounded-card border border-brand-line bg-white p-5 shadow-card">
+    <div
+      className="book-dark sticky top-20 isolate overflow-hidden rounded-card p-5 text-white"
+      style={{
+        background:
+          "linear-gradient(155deg,#11201A 0%,#0A1410 55%,#060F0B 100%)",
+        boxShadow:
+          "0 34px 74px -30px rgba(6,40,30,0.72),0 10px 28px -16px rgba(0,0,0,0.34)",
+      }}
+    >
+      <div
+        aria-hidden
+        className="dotgrid pointer-events-none absolute inset-0 -z-10 opacity-[0.13]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-16 -top-24 -z-10 h-56 w-56 rounded-full bg-brand-primary/25 blur-3xl"
+      />
+
       <div className="flex items-baseline justify-between gap-2">
         <div>
           {basePrice != null ? (
             <>
-              <span className="font-display text-2xl font-bold text-brand-ink">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                From{" "}
+              </span>
+              <span className="num font-display text-3xl font-bold tracking-tight text-brand-ink">
                 {formatMoney(basePrice, currency)}
               </span>
               <span className="ml-1 text-sm text-brand-mute">/ night</span>
@@ -135,24 +155,23 @@ export function BookingWidget({
           )}
         </div>
         {rating != null && reviewCount != null && reviewCount > 0 ? (
-          <div className="flex items-center gap-1 text-xs">
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="font-semibold text-brand-ink">
-              {rating.toFixed(1)}
-            </span>
-            <span className="text-brand-mute">({reviewCount})</span>
+          <div className="flex items-center gap-1 text-sm text-brand-ink">
+            <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+            <span className="num font-semibold">{rating.toFixed(2)}</span>
+            <span className="text-brand-mute">·</span>
+            <span className="num text-brand-mute">{reviewCount}</span>
           </div>
         ) : null}
       </div>
 
       {instantBooking ? (
-        <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-secondary px-2 py-0.5 text-[10px] font-bold text-white">
+        <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-bold">
           <Zap className="h-3 w-3" /> Instant book
         </div>
       ) : null}
 
       <div className="mt-5 grid grid-cols-2 overflow-hidden rounded-card border border-brand-line">
-        <label className="flex cursor-pointer flex-col gap-1 border-r border-brand-line px-3 py-2.5 hover:bg-brand-light/60">
+        <label className="flex cursor-pointer flex-col gap-1 border-r border-brand-line px-3 py-2.5 hover:bg-brand-light">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             Check in
           </span>
@@ -160,10 +179,10 @@ export function BookingWidget({
             type="date"
             value={checkIn}
             onChange={(e) => setCheckIn(e.target.value)}
-            className="bg-transparent text-sm font-medium text-brand-dark outline-none"
+            className="bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
           />
         </label>
-        <label className="flex cursor-pointer flex-col gap-1 px-3 py-2.5 hover:bg-brand-light/60">
+        <label className="flex cursor-pointer flex-col gap-1 px-3 py-2.5 hover:bg-brand-light">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             Check out
           </span>
@@ -172,10 +191,10 @@ export function BookingWidget({
             value={checkOut}
             min={checkIn || undefined}
             onChange={(e) => setCheckOut(e.target.value)}
-            className="bg-transparent text-sm font-medium text-brand-dark outline-none"
+            className="bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
           />
         </label>
-        <label className="col-span-2 flex cursor-pointer items-center gap-2 border-t border-brand-line px-3 py-2.5 hover:bg-brand-light/60">
+        <label className="col-span-2 flex cursor-pointer items-center gap-2 border-t border-brand-line px-3 py-2.5 hover:bg-brand-light">
           <Users className="h-4 w-4 text-brand-primary" />
           <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             Guests
@@ -183,10 +202,10 @@ export function BookingWidget({
           <select
             value={guests}
             onChange={(e) => setGuests(parseInt(e.target.value, 10))}
-            className="ml-auto bg-transparent text-sm font-medium text-brand-dark outline-none"
+            className="ml-auto bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
           >
             {Array.from({ length: cap }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
+              <option key={n} value={n} className="text-brand-ink">
                 {n} {n === 1 ? "guest" : "guests"}
               </option>
             ))}
@@ -200,18 +219,19 @@ export function BookingWidget({
         onClick={(e) => {
           if (!canReserve) e.preventDefault();
         }}
-        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded px-4 py-3 text-sm font-medium transition-colors ${
+        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded px-5 py-3.5 text-sm font-semibold transition-colors ${
           canReserve
-            ? "bg-brand-primary text-white hover:bg-brand-secondary"
-            : "cursor-not-allowed bg-brand-line text-brand-mute"
+            ? "bg-brand-primary text-white shadow-glow hover:bg-brand-secondary"
+            : "cursor-not-allowed border border-white/15 bg-white/[0.06] text-white/50"
         }`}
       >
         {nights > 0
           ? `Reserve · ${formatMoney(calc.total, currency)}`
           : "Pick your dates"}
+        {canReserve ? <ArrowRight className="h-4 w-4" /> : null}
       </a>
 
-      <div className="mt-2 text-center text-[10px] text-brand-mute">
+      <div className="mt-2 text-center text-[11px] text-brand-mute">
         You won&rsquo;t be charged yet.
       </div>
 
@@ -221,7 +241,7 @@ export function BookingWidget({
             <dt className="text-brand-mute">
               {nights} {nights === 1 ? "night" : "nights"}
             </dt>
-            <dd className="font-medium text-brand-dark">
+            <dd className="num font-medium text-brand-ink">
               {formatMoney(calc.subtotal, currency)}
             </dd>
           </div>
@@ -231,7 +251,7 @@ export function BookingWidget({
                 {calc.discount.losKind === "monthly" ? "Monthly" : "Weekly"}{" "}
                 discount · {calc.discount.losPct}%
               </dt>
-              <dd className="font-medium">
+              <dd className="num font-medium">
                 − {formatMoney(calc.discount.losSaving, currency)}
               </dd>
             </div>
@@ -239,19 +259,27 @@ export function BookingWidget({
           {calc.cleaning > 0 ? (
             <div className="flex items-center justify-between">
               <dt className="text-brand-mute">Cleaning fee</dt>
-              <dd className="font-medium text-brand-dark">
+              <dd className="num font-medium text-brand-ink">
                 {formatMoney(calc.cleaning, currency)}
               </dd>
             </div>
           ) : null}
           <div className="flex items-center justify-between border-t border-brand-line pt-2">
             <dt className="font-display font-semibold text-brand-ink">Total</dt>
-            <dd className="font-display font-bold text-brand-ink">
+            <dd className="num font-display font-bold text-brand-ink">
               {formatMoney(calc.total, currency)}
             </dd>
           </div>
         </dl>
       ) : null}
+
+      <div className="mt-5 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light p-3">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+        <div className="text-[11px] leading-relaxed text-brand-mute">
+          Held securely until your trip is confirmed. Cancellation terms apply —
+          see the host&rsquo;s policy.
+        </div>
+      </div>
     </div>
   );
 }
