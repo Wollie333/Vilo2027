@@ -250,6 +250,69 @@
     background-repeat: no-repeat;
     background-position: center;
   }
+
+  /* ── Listing 3.0 + Booking Flow: pills ── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pill-soft {
+    background: #f0fdf4;
+    color: #064e3b;
+    border: 1px solid #dceae0;
+  }
+  .pill-success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .pill-warn {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  /* ── Dark night-gradient cards (booking widget + booking summary).
+     Re-maps the light brand tokens to light-on-dark so the same markup
+     can render on the dark gradient. Per Listing 3.0 / Booking Flow. ── */
+  .book-dark [class*="text-brand-ink"] {
+    color: #fff !important;
+  }
+  .book-dark [class*="text-brand-mute"] {
+    color: rgba(255, 255, 255, 0.56) !important;
+  }
+  .book-dark [class*="text-brand-primary"],
+  .book-dark [class*="text-brand-secondary"] {
+    color: #6ee7b7 !important;
+  }
+  .book-dark [class*="border-brand-line"] {
+    border-color: rgba(255, 255, 255, 0.13) !important;
+  }
+  .book-dark [class*="bg-brand-light"] {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+  .book-dark [class*="bg-brand-accent"] {
+    background-color: rgba(110, 231, 183, 0.16) !important;
+    color: #6ee7b7 !important;
+  }
+  .book-dark [class*="fill-brand-ink"] {
+    fill: #fff !important;
+  }
+  .book-dark [class*="stroke-brand-ink"] {
+    stroke: #fff !important;
+  }
+  .book-dark .divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.13);
+  }
+}
+
+/* Listing detail in-page anchors clear the sticky header + subnav. */
+section[id^="sec-"] {
+  scroll-margin-top: 120px;
 }
 
 @layer components {

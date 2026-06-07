@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
 import {
-  Award,
   BadgeCheck,
   Ban,
   Clock,
   Flag,
-  Heart,
   Info,
   Key,
   LogOut,
-  MapPin,
   RotateCcw,
-  Share2,
   Shield,
   ShieldCheck,
-  Sparkles,
-  Star,
   Users,
   Zap,
 } from "lucide-react";
@@ -34,7 +28,7 @@ import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { BookingWidget } from "./BookingWidget";
-import { Breadcrumb } from "./Breadcrumb";
+import { ListingHero } from "./ListingHero";
 import { LocationSection, type Poi } from "./LocationSection";
 import { MobileBookingBar } from "./MobileBookingBar";
 import { RoomsCalendarSection } from "./RoomsCalendarSection";
@@ -51,6 +45,7 @@ import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
 import { RoomsCartSidebar } from "./RoomsCartSidebar";
 import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
+import { StickySubnav } from "./StickySubnav";
 import { WholeListingToggle } from "./WholeListingToggle";
 
 // Always read live listing/room/add-on data — never serve it from Next's Data
@@ -501,21 +496,49 @@ export default async function ListingDetailPage({
       />
     ) : null;
 
+  const hasReviews =
+    listing.avg_rating != null &&
+    listing.total_reviews != null &&
+    listing.total_reviews > 0;
+  const isFavourite =
+    hasReviews &&
+    (listing.avg_rating ?? 0) >= 4.8 &&
+    (listing.total_reviews ?? 0) >= 10;
+
   return (
     <div className="bg-white text-brand-ink">
       <UtilityBar />
       <SiteHeader />
-      <Breadcrumb
+
+      <ListingHero
         country={listing.country}
         province={listing.province}
         city={listing.city}
         name={listing.name}
+        locationLabel={locationLabel(listing)}
+        rating={listing.avg_rating}
+        reviewCount={listing.total_reviews}
+        isSuperhost={listing.host.is_superhost}
+        isVerified={listing.host.is_verified}
+        isFavourite={isFavourite}
+        instantBooking={listing.instant_booking}
+        roomCount={rooms.length}
+        maxGuests={listing.max_guests}
+        trustCard={
+          <TrustCard
+            hostName={listing.host.display_name}
+            avatarUrl={listing.host.avatar_url}
+            isVerified={listing.host.is_verified}
+            avgResponseHours={listing.host.avg_response_hours}
+            hostingSince={listing.host.created_at}
+            rating={listing.avg_rating}
+            reviewCount={listing.total_reviews}
+          />
+        }
       />
 
       <main className="mx-auto max-w-7xl px-5 pb-24 lg:px-8 lg:pb-12">
-        <TitleStrip listing={listing} />
-
-        <div className="mt-6">
+        <div className="relative z-10 -mt-[126px] overflow-hidden rounded-card shadow-peek ring-1 ring-black/5 sm:-mt-[150px]">
           <PhotoGallery photos={photos} />
         </div>
 
@@ -664,127 +687,6 @@ export default async function ListingDetailPage({
   );
 }
 
-function TitleStrip({ listing }: { listing: RawListing }) {
-  const hasReviews =
-    listing.avg_rating != null &&
-    listing.total_reviews != null &&
-    listing.total_reviews > 0;
-  const isFavourite =
-    hasReviews &&
-    (listing.avg_rating ?? 0) >= 4.8 &&
-    (listing.total_reviews ?? 0) >= 10;
-
-  return (
-    <div className="flex flex-col gap-4 pt-6 md:flex-row md:items-start lg:pt-8">
-      <div className="min-w-0 flex-1">
-        <div className="mb-2 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
-            {typeLabel(listing)}
-          </span>
-          {listing.host.is_superhost ? (
-            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-[#065F46]">
-              <Award className="h-3 w-3" /> Superhost
-            </span>
-          ) : null}
-          {listing.host.is_verified ? (
-            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
-              <BadgeCheck className="h-3 w-3" /> Verified host
-            </span>
-          ) : null}
-          {isFavourite ? (
-            <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
-              <Sparkles className="h-3 w-3" /> Guest favourite
-            </span>
-          ) : null}
-          {listing.instant_booking ? (
-            <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
-              <Zap className="h-3 w-3" /> Instant book
-            </span>
-          ) : null}
-        </div>
-
-        <h1 className="text-balance font-display text-[28px] font-bold leading-[1.05] tracking-tight text-brand-ink sm:text-[34px] lg:text-[40px]">
-          {listing.name}
-        </h1>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-brand-mute">
-          {hasReviews ? (
-            <span className="inline-flex items-center gap-1.5 text-brand-ink">
-              <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
-              <span className="font-semibold">
-                {(listing.avg_rating ?? 0).toFixed(2)}
-              </span>
-              <span className="text-brand-mute">·</span>
-              <a
-                href="#sec-reviews"
-                className="underline underline-offset-2 hover:text-brand-primary"
-              >
-                {listing.total_reviews} review
-                {listing.total_reviews === 1 ? "" : "s"}
-              </a>
-            </span>
-          ) : null}
-          {locationLabel(listing) ? (
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="h-4 w-4" />
-              <a
-                href="#sec-policies"
-                className="underline underline-offset-2 hover:text-brand-ink"
-              >
-                {locationLabel(listing)}
-              </a>
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex w-full shrink-0 flex-col items-stretch gap-3 md:ml-auto md:w-auto md:items-end">
-        <TrustCard
-          hostName={listing.host.display_name}
-          avatarUrl={listing.host.avatar_url}
-          isVerified={listing.host.is_verified}
-          avgResponseHours={listing.host.avg_response_hours}
-          hostingSince={listing.host.created_at}
-          rating={listing.avg_rating}
-          reviewCount={listing.total_reviews}
-        />
-        <div className="flex items-center gap-2 md:self-end">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
-          >
-            <Share2 className="h-4 w-4" /> Share
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-3 py-2 text-sm text-brand-ink hover:bg-brand-light"
-          >
-            <Heart className="h-4 w-4" /> Save
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SubNav({ links }: { links: { id: string; label: string }[] }) {
-  return (
-    <div className="sticky top-16 z-30 -mx-5 mt-8 border-b border-brand-line bg-white/95 px-5 backdrop-blur lg:-mx-8 lg:px-8">
-      <div className="hscroll flex items-center gap-6 overflow-x-auto">
-        {links.map((l) => (
-          <a
-            key={l.id}
-            href={`#${l.id}`}
-            className="whitespace-nowrap border-b-2 border-transparent py-3.5 text-[13px] font-medium text-brand-mute transition-colors hover:border-brand-ink hover:text-brand-ink"
-          >
-            {l.label}
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 async function ListingBody({
   listing,
   amenities,
@@ -825,7 +727,7 @@ async function ListingBody({
 
   return (
     <>
-      <SubNav links={sectionLinks} />
+      <StickySubnav links={sectionLinks} />
 
       <div className="mt-8 grid gap-10 lg:grid-cols-12 lg:gap-12">
         <div className="min-w-0 lg:col-span-7 xl:col-span-8">
