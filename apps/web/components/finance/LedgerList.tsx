@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  ChevronDown,
+  ChevronUp,
   Download,
   FileText,
   MoreHorizontal,
@@ -9,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
@@ -71,15 +73,18 @@ function fmtDate(iso: string): string {
 
 function amountDisplay(e: Txn): { text: string; cls: string } {
   const money = formatMoney(e.amount, e.currency);
-  if (e.type === "charge") return { text: money, cls: "text-brand-ink" };
-  if (e.type === "refund") return { text: `− ${money}`, cls: "text-red-600" };
-  if (e.type === "credit")
-    return { text: `− ${money}`, cls: "text-indigo-600" };
-  if (e.type === "credit_applied")
-    return { text: `+ ${money}`, cls: "text-indigo-600" };
-  // Pending inbound payment — show the sign but mute it until it settles.
-  if (e.pending) return { text: `+ ${money}`, cls: "text-brand-mute" };
-  return { text: `+ ${money}`, cls: "text-emerald-700" };
+  // Standard accounting convention: debits (charges & refunds — they increase
+  // what the guest owes you) print plain; credits (payments, deposits, applied
+  // or granted store credit — they reduce it) print in (parentheses).
+  const isDebit = e.type === "charge" || e.type === "refund";
+  const text = isDebit ? money : `(${money})`;
+  let cls: string;
+  if (e.type === "charge") cls = "text-brand-ink";
+  else if (e.type === "refund") cls = "text-red-600";
+  else if (e.type === "credit" || e.type === "credit_applied")
+    cls = "text-indigo-600";
+  else cls = e.pending ? "text-brand-mute" : "text-emerald-700";
+  return { text, cls };
 }
 
 export function LedgerList({
@@ -137,6 +142,20 @@ export function LedgerList({
     setMenu({ entry, x: rect.right, y: rect.bottom });
   }
 
+  // Date sort — newest-first by default (matches the source order); the Date
+  // header toggles. Reordering is purely visual: each row keeps the running
+  // balance it had after that entry, so the numbers stay correct either way.
+  const [dateSort, setDateSort] = useState<"desc" | "asc">("desc");
+  const sorted = useMemo(
+    () =>
+      [...entries].sort((a, b) =>
+        dateSort === "desc"
+          ? b.date.localeCompare(a.date)
+          : a.date.localeCompare(b.date),
+      ),
+    [entries, dateSort],
+  );
+
   function sendLink(e: Txn) {
     setMenu(null);
     if (!e.bookingId || !e.doc?.viewPath) {
@@ -170,7 +189,23 @@ export function LedgerList({
         <thead>
           <tr className="border-b border-brand-line text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
             <th className="px-4 py-2.5 text-left">Transaction</th>
-            <th className="px-2 py-2.5 text-left">Date</th>
+            <th className="px-2 py-2.5 text-left">
+              <button
+                type="button"
+                onClick={() =>
+                  setDateSort((d) => (d === "desc" ? "asc" : "desc"))
+                }
+                className="inline-flex items-center gap-1 uppercase tracking-wider text-brand-mute transition hover:text-brand-ink"
+                title={`Sort by date (${dateSort === "desc" ? "newest first" : "oldest first"})`}
+              >
+                Date
+                {dateSort === "desc" ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronUp className="h-3 w-3" />
+                )}
+              </button>
+            </th>
             {showGuest ? (
               <th className="px-2 py-2.5 text-left">Guest</th>
             ) : null}
@@ -185,7 +220,7 @@ export function LedgerList({
           </tr>
         </thead>
         <tbody className="divide-y divide-brand-line">
-          {entries.length === 0 ? (
+          {sorted.length === 0 ? (
             <tr>
               <td
                 colSpan={cols}
@@ -195,7 +230,7 @@ export function LedgerList({
               </td>
             </tr>
           ) : (
-            entries.map((e) => {
+            sorted.map((e) => {
               const tag = TYPE_TAG[e.type];
               const amt = amountDisplay(e);
               return (

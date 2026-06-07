@@ -23,6 +23,32 @@ const FILTERS: {
   { key: "credit", label: "Credits", match: (t) => t === "credit" },
 ];
 
+// Everything a host might type to find a transaction: document/ID number,
+// document type (invoice / receipt / credit note / refund), booking reference,
+// guest name, the note, the transaction type & category, and the date — both
+// human ("7 Jun 2026") and ISO ("2026-06-07") so any of them match.
+function searchBlob(e: Txn): string {
+  const human = new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(e.date));
+  return [
+    e.doc?.number,
+    e.doc?.kind?.replace(/_/g, " "), // invoice / receipt / credit note / refund
+    e.bookingRef,
+    e.guestName,
+    e.note,
+    e.type.replace(/_/g, " "), // charge / payment / deposit / credit / refund
+    e.category === "addon" ? "add-on addon" : e.category,
+    human,
+    e.date.slice(0, 10),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
 export function LedgerBoard({
   entries,
   stats,
@@ -52,11 +78,7 @@ export function LedgerBoard({
       (e) =>
         f.match(e.type) &&
         (guest === "all" || e.guestKey === guest) &&
-        (!q ||
-          (e.guestName ?? "").toLowerCase().includes(q) ||
-          (e.bookingRef ?? "").toLowerCase().includes(q) ||
-          (e.doc?.number ?? "").toLowerCase().includes(q) ||
-          (e.note ?? "").toLowerCase().includes(q)),
+        (!q || searchBlob(e).includes(q)),
     );
   }, [entries, filter, guest, search]);
 
@@ -144,8 +166,8 @@ export function LedgerBoard({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search…"
-            className="w-44 rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
+            placeholder="Search ID, guest, date, type…"
+            className="w-60 rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
           />
         </div>
       </div>
