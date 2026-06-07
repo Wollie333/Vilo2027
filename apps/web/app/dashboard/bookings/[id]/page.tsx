@@ -329,12 +329,14 @@ export default async function BookingDetailPage({
     }>
   ).sort((a, b) => a.sort_order - b.sort_order);
 
-  // The host's add-on catalogue for the quick-pick when adding extras.
+  // The host's add-on catalogue for the quick-pick when adding extras. Show ALL
+  // their add-ons (active first) — this is the host's own internal picker, so
+  // even paused/inactive ones can be pulled onto a booking by hand.
   const { data: catalogRows } = await supabase
     .from("addons")
-    .select("id, name, unit_price")
+    .select("id, name, unit_price, is_active")
     .eq("host_id", booking.host_id)
-    .eq("is_active", true)
+    .order("is_active", { ascending: false })
     .order("sort_order");
 
   const notes = (
@@ -607,6 +609,7 @@ export default async function BookingDetailPage({
       id: c.id,
       name: c.name,
       unitPrice: Number(c.unit_price),
+      active: c.is_active,
     })),
     canEditAddons: !TERMINAL_CANCELLED.has(status),
 

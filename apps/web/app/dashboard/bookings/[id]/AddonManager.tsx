@@ -9,7 +9,12 @@ import { formatMoney } from "@/lib/format";
 
 import { addBookingAddonAction } from "./payment-actions";
 
-type CatalogItem = { id: string; name: string; unitPrice: number };
+type CatalogItem = {
+  id: string;
+  name: string;
+  unitPrice: number;
+  active: boolean;
+};
 
 export function AddonManager({
   bookingId,
@@ -90,24 +95,38 @@ export function AddonManager({
       </div>
 
       {catalog.length > 0 ? (
-        <label className="mb-3 block">
-          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            Quick pick
-          </span>
-          <select
-            defaultValue=""
-            onChange={(e) => pickCatalog(e.target.value)}
-            className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
-          >
-            <option value="">Choose from your add-ons…</option>
-            {catalog.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} — {formatMoney(c.unitPrice, currency)}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
+        <>
+          <label className="mb-3 block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              Pick from your add-ons
+            </span>
+            <select
+              defaultValue=""
+              onChange={(e) => pickCatalog(e.target.value)}
+              className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
+            >
+              <option value="">Choose an existing add-on…</option>
+              {catalog.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {formatMoney(c.unitPrice, currency)}
+                  {c.active ? "" : " (inactive)"}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="mb-3 flex items-center gap-3">
+            <div className="h-px flex-1 bg-brand-line" />
+            <span className="text-[11px] font-medium text-brand-mute">
+              or create a manual add-on
+            </span>
+            <div className="h-px flex-1 bg-brand-line" />
+          </div>
+        </>
+      ) : (
+        <p className="mb-3 text-[11.5px] text-brand-mute">
+          You have no saved add-ons yet — enter a manual one below.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_88px_120px]">
         <label className="block">

@@ -123,7 +123,12 @@ export type BookingDetailData = {
     source: string;
   }[];
   addonsSubtotal: number;
-  addonCatalog: { id: string; name: string; unitPrice: number }[];
+  addonCatalog: {
+    id: string;
+    name: string;
+    unitPrice: number;
+    active: boolean;
+  }[];
   canEditAddons: boolean;
 
   paymentMethod: string | null;
