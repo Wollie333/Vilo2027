@@ -91,6 +91,8 @@ export type BookingDetailData = {
   totalAmount: number;
   baseAmount: number;
   cleaningFee: number;
+  vatAmount: number;
+  vatRate: number;
   currency: string;
   refundTotal: number;
 
@@ -887,6 +889,16 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
                 </span>
               </li>
             ) : null}
+            {d.vatAmount > 0 ? (
+              <li className="flex items-center justify-between">
+                <span className="text-brand-mute">
+                  VAT{d.vatRate > 0 ? ` (${d.vatRate}%)` : ""}
+                </span>
+                <span className="text-brand-ink">
+                  {formatMoney(d.vatAmount, d.currency)}
+                </span>
+              </li>
+            ) : null}
             {d.refundTotal > 0 ? (
               <li className="flex items-center justify-between text-status-cancelled">
                 <span>Refunded</span>
@@ -894,7 +906,9 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               </li>
             ) : null}
             <li className="flex items-center justify-between border-t border-brand-line pt-3">
-              <span className="font-semibold text-brand-ink">Total</span>
+              <span className="font-semibold text-brand-ink">
+                Total{d.vatAmount > 0 ? " (incl. VAT)" : ""}
+              </span>
               <span className="font-display text-[18px] font-bold text-brand-ink">
                 {formatMoney(d.totalAmount, d.currency)}
               </span>

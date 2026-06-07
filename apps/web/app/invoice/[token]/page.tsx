@@ -81,15 +81,17 @@ export default async function PublicInvoicePage({
   const c = invoice.currency;
   const brandName = await getBrandName();
 
-  // Booking reference (for the banking payment reference).
+  // Booking reference (for the banking payment reference) + VAT rate.
   let bookingRef: string | null = null;
+  let bookingVatRate = 0;
   if (invoice.booking_id) {
     const { data: b } = await admin
       .from("bookings")
-      .select("reference")
+      .select("reference, vat_rate")
       .eq("id", invoice.booking_id)
       .maybeSingle();
     bookingRef = b?.reference ?? null;
+    bookingVatRate = Number(b?.vat_rate ?? 0);
   }
   const party = await getHostParty(admin, invoice.host_id, bookingRef);
 
@@ -132,11 +134,19 @@ export default async function PublicInvoicePage({
   }
 
   const discount = Number(lines.discount_amount ?? 0);
+  // VAT is whatever sits between the ex-VAT net (subtotal − discount) and the
+  // VAT-inclusive total the booking stored. > 0 ⇒ this is a tax invoice.
+  const vat =
+    Math.round(
+      (Number(invoice.total_amount) - (Number(invoice.subtotal) - discount)) *
+        100,
+    ) / 100;
+  const isTaxInvoice = vat > 0.005;
   const isPaid = status === "paid";
 
   return (
     <FinancialDocument
-      kind="Invoice"
+      kind={isTaxInvoice ? "Tax Invoice" : "Invoice"}
       number={invoice.invoice_number}
       status={{ label: LABEL[status] ?? status, tone: TONE[status] ?? "grey" }}
       brandName={brandName}
@@ -172,6 +182,14 @@ export default async function PublicInvoicePage({
                 label: "Discount",
                 value: `− ${formatMoney(discount, c)}`,
                 tone: "mute" as const,
+              },
+            ]
+          : []),
+        ...(isTaxInvoice
+          ? [
+              {
+                label: bookingVatRate > 0 ? `VAT (${bookingVatRate}%)` : "VAT",
+                value: formatMoney(vat, c),
               },
             ]
           : []),

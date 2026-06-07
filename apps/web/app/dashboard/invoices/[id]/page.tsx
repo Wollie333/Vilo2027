@@ -98,6 +98,17 @@ export default async function InvoiceDetailPage({
     .maybeSingle();
 
   const lines = invoice.line_items as InvoiceLines;
+  // VAT = the gap between the ex-VAT net (subtotal − discount) and the stored
+  // VAT-inclusive total (the booking trigger grossed it up).
+  const docDiscount = Number(
+    (lines as { discount_amount?: number }).discount_amount ?? 0,
+  );
+  const docVat =
+    Math.round(
+      (Number(invoice.total_amount) -
+        (Number(invoice.subtotal) - docDiscount)) *
+        100,
+    ) / 100;
   const host = invoice.host_snapshot as Snap;
   const guest = invoice.guest_snapshot as GuestSnap;
   const status = invoice.status as InvoiceStatus;
@@ -310,13 +321,13 @@ export default async function InvoiceDetailPage({
                 {formatMoney(invoice.subtotal, invoice.currency)}
               </td>
             </tr>
-            {invoice.vat_amount > 0 ? (
+            {docVat > 0.005 ? (
               <tr>
                 <td colSpan={3} className="pt-1 text-right text-brand-mute">
                   VAT
                 </td>
                 <td className="pt-1 text-right text-brand-ink">
-                  {formatMoney(invoice.vat_amount, invoice.currency)}
+                  {formatMoney(docVat, invoice.currency)}
                 </td>
               </tr>
             ) : null}
