@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Download } from "lucide-react";
-
+import {
+  FinancialDocument,
+  type DocLine,
+  type DocTone,
+} from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
+import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-import {
-  INVOICE_STATUS_LABEL,
-  type InvoiceStatus,
-} from "../../dashboard/quotes/schemas";
-
 export const metadata: Metadata = {
   title: "Invoice",
+  robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
@@ -36,19 +35,40 @@ type Lines = {
     subtotal: number;
   }[];
 };
-type HostSnap = { display_name?: string; handle?: string; email?: string };
-type GuestSnap = { name?: string; email?: string };
+type GuestSnap = { name?: string; email?: string; phone?: string };
+
+const TONE: Record<string, DocTone> = {
+  paid: "green",
+  issued: "amber",
+  draft: "grey",
+  cancelled: "red",
+};
+const LABEL: Record<string, string> = {
+  paid: "Paid",
+  issued: "Issued",
+  draft: "Draft",
+  cancelled: "Cancelled",
+};
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso));
+}
 
 export default async function PublicInvoicePage({
   params,
 }: {
   params: { token: string };
 }) {
-  const supabase = createAdminClient();
-  const { data: invoice } = await supabase
+  const admin = createAdminClient();
+  const { data: invoice } = await admin
     .from("invoices")
     .select(
-      "id, invoice_number, status, issued_at, paid_at, total_amount, subtotal, vat_amount, currency, host_snapshot, guest_snapshot, line_items, hosted_token",
+      "id, invoice_number, status, issued_at, paid_at, total_amount, subtotal, currency, host_id, booking_id, guest_snapshot, line_items, hosted_token",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
@@ -56,153 +76,115 @@ export default async function PublicInvoicePage({
   if (!invoice) notFound();
 
   const lines = invoice.line_items as Lines;
-  const host = invoice.host_snapshot as HostSnap;
   const guest = invoice.guest_snapshot as GuestSnap;
-  const status = invoice.status as InvoiceStatus;
+  const status = invoice.status as string;
+  const c = invoice.currency;
   const brandName = await getBrandName();
 
+  // Booking reference (for the banking payment reference).
+  let bookingRef: string | null = null;
+  if (invoice.booking_id) {
+    const { data: b } = await admin
+      .from("bookings")
+      .select("reference")
+      .eq("id", invoice.booking_id)
+      .maybeSingle();
+    bookingRef = b?.reference ?? null;
+  }
+  const party = await getHostParty(admin, invoice.host_id, bookingRef);
+
+  // Line items.
+  const lineRows: DocLine[] = [];
+  if (lines.scope === "rooms" && (lines.rooms ?? []).length > 0) {
+    for (const r of lines.rooms) {
+      lineRows.push({
+        title: `${lines.listing_name ?? "Stay"} — ${r.room_name}`,
+        amount: formatMoney(r.base_amount, c),
+      });
+      if (r.cleaning_fee > 0) {
+        lineRows.push({
+          title: `Cleaning — ${r.room_name}`,
+          amount: formatMoney(r.cleaning_fee, c),
+        });
+      }
+    }
+  } else {
+    lineRows.push({
+      title: `${lines.listing_name ?? "Stay"} — base`,
+      sub: lines.nights
+        ? `${lines.nights} night${lines.nights === 1 ? "" : "s"}`
+        : null,
+      amount: formatMoney(lines.base_amount, c),
+    });
+    if (lines.cleaning_fee > 0) {
+      lineRows.push({
+        title: "Cleaning",
+        amount: formatMoney(lines.cleaning_fee, c),
+      });
+    }
+  }
+  for (const a of lines.addons ?? []) {
+    lineRows.push({
+      title: a.label,
+      mid: a.quantity > 1 ? `× ${a.quantity}` : null,
+      amount: formatMoney(a.subtotal, c),
+    });
+  }
+
+  const discount = Number(lines.discount_amount ?? 0);
+  const isPaid = status === "paid";
+
   return (
-    <div className="min-h-screen bg-brand-light px-4 py-10">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded bg-brand-primary text-2xl font-bold text-white">
-              {brandName[0]?.toUpperCase() ?? "V"}
-            </div>
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-                Invoice
-              </div>
-              <div className="font-display text-xl font-bold text-brand-ink">
-                {invoice.invoice_number}
-              </div>
-            </div>
-          </div>
-          <Link
-            href={`/invoice/${invoice.hosted_token}/pdf`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-secondary"
-          >
-            <Download className="h-4 w-4" /> Download PDF
-          </Link>
-        </header>
-
-        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <div className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                From
-              </div>
-              <div className="mt-1 font-medium text-brand-ink">
-                {host.display_name ?? "—"}
-              </div>
-              {host.handle ? (
-                <div className="text-xs text-brand-mute">@{host.handle}</div>
-              ) : null}
-              {host.email ? (
-                <div className="text-xs text-brand-mute">{host.email}</div>
-              ) : null}
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                Billed to
-              </div>
-              <div className="mt-1 font-medium text-brand-ink">
-                {guest.name ?? "—"}
-              </div>
-              {guest.email ? (
-                <div className="text-xs text-brand-mute">{guest.email}</div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-base font-bold text-brand-ink">
-              Stay summary
-            </h2>
-            <span className="rounded-full bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
-              {INVOICE_STATUS_LABEL[status]}
-            </span>
-          </div>
-          <div className="grid gap-3 text-sm sm:grid-cols-4">
-            <Box label="Listing" value={lines.listing_name ?? "—"} />
-            <Box label="Check-in" value={lines.check_in ?? "—"} />
-            <Box label="Check-out" value={lines.check_out ?? "—"} />
-            <Box label="Nights" value={String(lines.nights ?? "—")} />
-          </div>
-        </div>
-
-        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <h2 className="font-display text-base font-bold text-brand-ink">
-            Line items
-          </h2>
-          <table className="mt-3 w-full text-sm">
-            <tbody className="divide-y divide-brand-line">
-              <tr>
-                <td className="py-2 text-brand-ink">Stay — base</td>
-                <td className="py-2 text-right font-medium text-brand-ink">
-                  {formatMoney(lines.base_amount, invoice.currency)}
-                </td>
-              </tr>
-              {lines.cleaning_fee > 0 ? (
-                <tr>
-                  <td className="py-2 text-brand-ink">Cleaning</td>
-                  <td className="py-2 text-right font-medium text-brand-ink">
-                    {formatMoney(lines.cleaning_fee, invoice.currency)}
-                  </td>
-                </tr>
-              ) : null}
-              {(lines.addons ?? []).map((a, i) => (
-                <tr key={i}>
-                  <td className="py-2 text-brand-ink">
-                    {a.label}
-                    <span className="ml-1 text-brand-mute">× {a.quantity}</span>
-                  </td>
-                  <td className="py-2 text-right font-medium text-brand-ink">
-                    {formatMoney(a.subtotal, invoice.currency)}
-                  </td>
-                </tr>
-              ))}
-              {lines.discount_amount && lines.discount_amount > 0 ? (
-                <tr>
-                  <td className="py-2 text-emerald-700">Discount</td>
-                  <td className="py-2 text-right font-medium text-emerald-700">
-                    − {formatMoney(lines.discount_amount, invoice.currency)}
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="pt-3 font-display text-base font-bold text-brand-ink">
-                  Total
-                </td>
-                <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                  {formatMoney(invoice.total_amount, invoice.currency)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <p className="text-center text-[11px] text-brand-mute">
-          Issued via{" "}
-          <span className="font-semibold text-brand-primary">{brandName}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Box({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-        {label}
-      </div>
-      <div className="mt-0.5 font-medium text-brand-ink">{value}</div>
-    </div>
+    <FinancialDocument
+      kind="Invoice"
+      number={invoice.invoice_number}
+      status={{ label: LABEL[status] ?? status, tone: TONE[status] ?? "grey" }}
+      brandName={brandName}
+      brandTagline="Direct booking"
+      from={{ name: party.name, lines: party.lines }}
+      to={{
+        label: "Billed to",
+        party: {
+          name: guest.name ?? "Guest",
+          lines: [guest.email, guest.phone].filter(Boolean) as string[],
+        },
+      }}
+      metaRows={[
+        { label: "Issue date", value: fmtDate(invoice.issued_at) },
+        ...(invoice.paid_at
+          ? [{ label: "Paid on", value: fmtDate(invoice.paid_at) }]
+          : []),
+        ...(bookingRef ? [{ label: "Booking", value: bookingRef }] : []),
+      ]}
+      stay={{
+        listingName: lines.listing_name,
+        checkIn: fmtDate(lines.check_in),
+        checkOut: fmtDate(lines.check_out),
+        nights: String(lines.nights ?? "—"),
+      }}
+      lineHeaders={{ desc: "Description", amount: "Amount" }}
+      lines={lineRows}
+      totals={[
+        { label: "Subtotal", value: formatMoney(invoice.subtotal, c) },
+        ...(discount > 0
+          ? [
+              {
+                label: "Discount",
+                value: `− ${formatMoney(discount, c)}`,
+                tone: "mute" as const,
+              },
+            ]
+          : []),
+      ]}
+      grandTotal={{
+        label: isPaid ? "Total paid" : "Total due",
+        value: formatMoney(invoice.total_amount, c),
+      }}
+      banking={isPaid ? null : party.banking}
+      stamp={isPaid ? "Paid" : null}
+      pdfHref={`/invoice/${invoice.hosted_token}/pdf`}
+      footerTitle="Thank you for booking direct."
+      footerNote="Keep this invoice for your records."
+    />
   );
 }
