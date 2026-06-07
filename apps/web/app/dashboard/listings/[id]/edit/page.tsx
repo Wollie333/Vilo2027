@@ -70,6 +70,8 @@ export default async function EditListingPage({
         "weekly_discount_pct",
         "monthly_discount_pct",
         "currency",
+        "vat_number",
+        "vat_rate",
         "cancellation_policy",
         "house_rules",
         "instant_booking",

@@ -104,6 +104,8 @@ export const pricingSchema = z.object({
   weekly_discount_pct: numericString("Must be a number."),
   monthly_discount_pct: numericString("Must be a number."),
   currency: z.string().trim().min(3, "Use a 3-letter code.").max(3),
+  vat_number: z.string().trim().max(50).optional(),
+  vat_rate: numericString("Must be a number."),
 });
 export type PricingInput = z.infer<typeof pricingSchema>;
 
@@ -292,6 +294,8 @@ export const patchSchema = z.object({
   weekly_discount_pct: z.number().min(0).max(90).nullable().optional(),
   monthly_discount_pct: z.number().min(0).max(90).nullable().optional(),
   currency: z.string().optional(),
+  vat_number: z.string().trim().max(50).nullable().optional(),
+  vat_rate: z.number().min(0).max(100).nullable().optional(),
 
   check_in_time: z.string().nullable().optional(),
   check_out_time: z.string().nullable().optional(),

@@ -76,6 +76,8 @@ export type EditorListing = {
   weekly_discount_pct: number | null;
   monthly_discount_pct: number | null;
   currency: string;
+  vat_number: string | null;
+  vat_rate: number | null;
   cancellation_policy: "flexible" | "moderate" | "strict";
   house_rules: string | null;
   instant_booking: boolean;

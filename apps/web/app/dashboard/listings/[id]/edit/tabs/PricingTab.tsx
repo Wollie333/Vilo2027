@@ -50,6 +50,8 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
       weekly_discount_pct: numToStr(listing.weekly_discount_pct),
       monthly_discount_pct: numToStr(listing.monthly_discount_pct),
       currency: listing.currency || "ZAR",
+      vat_number: listing.vat_number ?? "",
+      vat_rate: listing.vat_rate == null ? "15" : String(listing.vat_rate),
     },
   });
 
@@ -63,6 +65,8 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
         weekly_discount_pct: toMoney(values.weekly_discount_pct),
         monthly_discount_pct: toMoney(values.monthly_discount_pct),
         currency: values.currency || "ZAR",
+        vat_number: values.vat_number?.trim() ? values.vat_number.trim() : null,
+        vat_rate: toMoney(values.vat_rate) ?? 15,
       });
       if (result.ok) toast.success("Pricing saved");
       else toast.error(result.error);
@@ -225,6 +229,55 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
                           max={90}
                           step="1"
                           placeholder="10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+              <div className="font-display text-sm font-semibold text-brand-dark">
+                VAT{" "}
+                <span className="font-normal text-brand-mute">(optional)</span>
+              </div>
+              <p className="mt-0.5 text-xs text-brand-mute">
+                Enter a VAT number only if this listing is VAT-registered. When
+                set, VAT is added on top of every booking total and its
+                documents become tax invoices. Leave blank for no VAT. The rate
+                defaults to 15% (South Africa) — change it for other countries.
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-[1fr_160px]">
+                <FormField
+                  control={form.control}
+                  name="vat_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>VAT number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. 4123456789" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="vat_rate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>VAT rate %</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          placeholder="15"
                           {...field}
                         />
                       </FormControl>
