@@ -2,13 +2,9 @@
 
 import {
   Check,
-  Clock,
   CreditCard,
   FileMinus,
-  FileText,
-  MoreHorizontal,
   Plus,
-  Receipt,
   RotateCcw,
   Wallet,
   X,
@@ -17,8 +13,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { LedgerList } from "@/components/finance/LedgerList";
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
+import type { Txn } from "@/lib/finance/transactions";
 
 import { hostInitiatedRefundAction } from "../../refunds/actions";
 import {
@@ -28,47 +26,8 @@ import {
   recordBookingPaymentAction,
 } from "./payment-actions";
 
+// Inbound payment kinds that can be refunded / credited after the fact.
 const INBOUND_KINDS = ["deposit", "balance", "addon", "payment"];
-
-export type LedgerEntry = {
-  id: string;
-  kind: string;
-  label: string;
-  amount: number;
-  status: string;
-  method: string;
-  note: string | null;
-  date: string | null;
-  receiptNumber: string | null;
-  receiptToken: string | null;
-};
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Intl.DateTimeFormat("en-ZA", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(iso));
-}
-
-const STATUS_BADGE: Record<string, string> = {
-  completed: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  pending: "border-amber-200 bg-amber-50 text-amber-700",
-  failed: "border-red-200 bg-red-50 text-red-600",
-  refunded: "border-rose-200 bg-rose-50 text-rose-600",
-  voided: "border-brand-line bg-brand-light text-brand-mute",
-};
-
-export type ChargeEntry = {
-  id: string;
-  date: string;
-  label: string;
-  sublabel: string | null;
-  amount: number;
-  status: string | null;
-  href: string | null;
-};
 
 export function PaymentsManager({
   bookingId,
@@ -77,8 +36,7 @@ export function PaymentsManager({
   amountPaid,
   balanceDue,
   guestCredit,
-  payments,
-  charges,
+  txns,
   canRecord,
 }: {
   bookingId: string;
@@ -87,8 +45,10 @@ export function PaymentsManager({
   amountPaid: number;
   balanceDue: number;
   guestCredit: number;
-  payments: LedgerEntry[];
-  charges: ChargeEntry[];
+  // The same canonical transactions as the account-wide Ledger and the guest
+  // record, filtered to this booking (incl. pending) — rendered with the one
+  // shared <LedgerList> so the rows and balances are identical everywhere.
+  txns: Txn[];
   canRecord: boolean;
 }) {
   const router = useRouter();
@@ -174,7 +134,6 @@ export function PaymentsManager({
     });
   }
 
-  const [menuId, setMenuId] = useState<string | null>(null);
   const [creditOpen, setCreditOpen] = useState(false);
   const [creditAmount, setCreditAmount] = useState("");
   const [creditReason, setCreditReason] = useState("");
@@ -209,18 +168,17 @@ export function PaymentsManager({
     });
   }
 
-  function refundOne(amount: number, label: string) {
-    setMenuId(null);
+  function refundOne(amt: number, label: string) {
     start(async () => {
       const ok = await modal.destructive({
         title: "Refund this payment?",
-        description: `Record a ${formatMoney(amount, currency)} refund for the ${label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
+        description: `Record a ${formatMoney(amt, currency)} refund for the ${label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
         confirmLabel: "Refund payment",
       });
       if (!ok) return;
       const r = await hostInitiatedRefundAction({
         bookingId,
-        amount,
+        amount: amt,
         method: "eft",
         reason: `Refund of ${label.toLowerCase()}`,
       });
@@ -233,18 +191,17 @@ export function PaymentsManager({
     });
   }
 
-  function creditOne(amount: number, label: string) {
-    setMenuId(null);
+  function creditOne(amt: number, label: string) {
     start(async () => {
       const ok = await modal.confirm({
         title: "Credit this payment?",
-        description: `Issue a ${formatMoney(amount, currency)} credit note for the ${label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
+        description: `Issue a ${formatMoney(amt, currency)} credit note for the ${label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
         confirmLabel: "Issue credit note",
       });
       if (!ok) return;
       const r = await issueBookingCreditNoteAction({
         bookingId,
-        amount,
+        amount: amt,
         reason: `Credit of ${label.toLowerCase()}`,
       });
       if (r.ok) {
@@ -256,11 +213,53 @@ export function PaymentsManager({
     });
   }
 
-  // Unified ledger: charges (stay + add-ons) and payments, oldest first.
-  const rows = [
-    ...charges.map((c) => ({ dir: "charge" as const, ...c })),
-    ...payments.map((p) => ({ dir: "payment" as const, ...p })),
-  ].sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""));
+  // Per-row controls injected into the shared ledger: settle a pending EFT, or
+  // refund / credit a settled inbound payment.
+  function rowActions(e: Txn) {
+    if (!canRecord) return null;
+    if (e.pending && e.method === "eft" && e.paymentId) {
+      return (
+        <button
+          type="button"
+          onClick={() => markReceived(e.paymentId!, e.label, e.amount)}
+          disabled={pending}
+          className="inline-flex items-center gap-1 rounded border border-brand-primary bg-brand-primary px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+        >
+          <Check className="h-3 w-3" /> Received
+        </button>
+      );
+    }
+    if (
+      !e.pending &&
+      e.status === "completed" &&
+      e.kind &&
+      INBOUND_KINDS.includes(e.kind)
+    ) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => refundOne(e.amount, e.label)}
+            disabled={pending}
+            title="Refund this payment"
+            className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => creditOne(e.amount, e.label)}
+            disabled={pending}
+            title="Credit this payment to store credit"
+            className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
+          >
+            <FileMinus className="h-3.5 w-3.5" />
+          </button>
+        </span>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="space-y-5">
@@ -296,186 +295,14 @@ export function PaymentsManager({
         </div>
       </div>
 
-      {/* ledger — every transaction: charges (stay + add-ons) and payments */}
-      <div className="overflow-hidden rounded-[12px] border border-brand-line">
-        <div className="border-b border-brand-line bg-brand-light px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-          Transaction ledger
-        </div>
-        {rows.length === 0 ? (
-          <p className="px-4 py-5 text-[13px] text-brand-mute">
-            No transactions yet.
-          </p>
-        ) : (
-          <table className="w-full text-[12.5px]">
-            <thead>
-              <tr className="border-b border-brand-line text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                <th className="px-4 py-2 text-left">Transaction</th>
-                <th className="hidden px-2 py-2 text-left sm:table-cell">
-                  Date
-                </th>
-                <th className="px-2 py-2 text-right">Charge</th>
-                <th className="px-2 py-2 text-right">Payment</th>
-                <th className="px-4 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-brand-line">
-              {rows.map((row) =>
-                row.dir === "charge" ? (
-                  <tr key={`c-${row.id}`} className="align-middle">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-brand-ink">
-                        {row.label}
-                      </div>
-                      {row.sublabel ? (
-                        <div className="font-mono text-[10.5px] text-brand-mute">
-                          {row.sublabel}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="hidden px-2 py-3 text-brand-mute sm:table-cell">
-                      {fmtDate(row.date)}
-                    </td>
-                    <td className="num px-2 py-3 text-right font-semibold text-brand-ink">
-                      {formatMoney(row.amount, currency)}
-                    </td>
-                    <td className="px-2 py-3 text-right text-brand-line">—</td>
-                    <td className="px-4 py-3 text-right">
-                      {row.href ? (
-                        <a
-                          href={row.href}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11.5px] font-medium text-brand-secondary hover:underline"
-                        >
-                          <FileText className="h-3 w-3" /> Invoice
-                        </a>
-                      ) : null}
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={`p-${row.id}`} className="align-middle">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-brand-ink">
-                          {row.label}
-                        </span>
-                        <span
-                          className={`inline-flex items-center gap-1 rounded-pill border px-1.5 py-px text-[10px] font-semibold capitalize ${
-                            STATUS_BADGE[row.status] ??
-                            "border-brand-line bg-brand-light text-brand-mute"
-                          }`}
-                        >
-                          {row.status === "completed" ? (
-                            <Check className="h-2.5 w-2.5" />
-                          ) : row.status === "pending" ? (
-                            <Clock className="h-2.5 w-2.5" />
-                          ) : null}
-                          {row.status}
-                        </span>
-                      </div>
-                      <div className="truncate text-[10.5px] text-brand-mute">
-                        {row.method.replace(/_/g, " ")}
-                        {row.note ? ` · ${row.note}` : ""}
-                      </div>
-                    </td>
-                    <td className="hidden px-2 py-3 text-brand-mute sm:table-cell">
-                      {fmtDate(row.date)}
-                    </td>
-                    <td className="px-2 py-3 text-right text-brand-line">—</td>
-                    <td
-                      className={`num px-2 py-3 text-right font-semibold ${row.status === "completed" ? "text-emerald-700" : "text-brand-mute"}`}
-                    >
-                      {formatMoney(row.amount, currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {row.status === "completed" && row.receiptToken ? (
-                          <a
-                            href={`/receipt/${row.receiptToken}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            title={row.receiptNumber ?? "Receipt"}
-                            className="inline-flex items-center gap-1 rounded border border-brand-line px-2 py-1 text-[11px] font-medium text-brand-secondary transition hover:bg-brand-accent"
-                          >
-                            <Receipt className="h-3 w-3" /> Receipt
-                          </a>
-                        ) : null}
-                        {canRecord &&
-                        row.status === "pending" &&
-                        row.method === "eft" ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              markReceived(row.id, row.label, row.amount)
-                            }
-                            disabled={pending}
-                            className="inline-flex items-center gap-1 rounded border border-brand-primary bg-brand-primary px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
-                          >
-                            <Check className="h-3 w-3" /> Received
-                          </button>
-                        ) : null}
-                        {canRecord &&
-                        row.status === "completed" &&
-                        INBOUND_KINDS.includes(row.kind) ? (
-                          <div className="relative">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setMenuId(menuId === row.id ? null : row.id)
-                              }
-                              className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-                              title="More"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </button>
-                            {menuId === row.id ? (
-                              <div className="absolute right-0 top-8 z-10 w-44 overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-card">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    refundOne(row.amount, row.label)
-                                  }
-                                  disabled={pending}
-                                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                                >
-                                  <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
-                                  Refund this
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    creditOne(row.amount, row.label)
-                                  }
-                                  disabled={pending}
-                                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                                >
-                                  <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
-                                  Credit this
-                                </button>
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ),
-              )}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-brand-line bg-brand-light/40 font-semibold text-brand-ink">
-                <td className="px-4 py-2.5" colSpan={2}>
-                  Balance due
-                </td>
-                <td className="num px-2 py-2.5 text-right" colSpan={2}>
-                  {formatMoney(balanceDue, currency)}
-                </td>
-                <td className="px-4 py-2.5" />
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
+      {/* ledger — every transaction for this booking, the shared canonical rows */}
+      <LedgerList
+        entries={txns}
+        showGuest={false}
+        minWidth={640}
+        emptyLabel="No transactions yet."
+        rowActions={rowActions}
+      />
 
       {/* actions */}
       {canRecord ? (

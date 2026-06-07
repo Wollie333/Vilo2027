@@ -49,6 +49,14 @@ export type Txn = {
   owedEffect: number;
   /** Effect on cash collected: +1 in, −1 out, 0 none. */
   cashEffect: number;
+  /** True for a not-yet-settled payment (only surfaced when includePending). */
+  pending?: boolean;
+  /** Raw payments.id — lets the booking tab drive per-row settle/refund/credit. */
+  paymentId?: string | null;
+  /** Raw payments.kind (deposit/balance/addon/payment/credit). */
+  kind?: string | null;
+  /** Raw payments.status (completed/pending). */
+  status?: string | null;
 };
 
 export type TxnStats = {
@@ -62,7 +70,15 @@ export type TxnStats = {
 
 const CASH_KINDS = ["deposit", "balance", "addon", "payment"];
 
-type Filter = { hostId: string; gkey?: string; bookingId?: string };
+type Filter = {
+  hostId: string;
+  gkey?: string;
+  bookingId?: string;
+  /** Include pending (not-yet-settled) payments — the booking Payments tab needs
+   * them to offer "mark received". They carry zero balance/cash effect until
+   * completed, so they never distort the running balance or collected total. */
+  includePending?: boolean;
+};
 
 /** Fetch + normalise every transaction for a host (optionally one guest/booking). */
 export async function fetchHostTransactions(
@@ -89,7 +105,10 @@ export async function fetchHostTransactions(
         "id, amount, currency, kind, status, method, note, captured_at, created_at, receipt_token, receipt_number, booking_id, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
       )
       .eq("booking.host_id", hostId)
-      .eq("status", "completed"),
+      .in(
+        "status",
+        filter.includePending ? ["completed", "pending"] : ["completed"],
+      ),
     admin
       .from("credit_notes")
       .select(
@@ -157,6 +176,7 @@ export async function fetchHostTransactions(
     } | null;
     const isCredit = p.kind === "credit";
     const isCash = CASH_KINDS.includes(p.kind as string);
+    const isPending = p.status !== "completed";
     entries.push({
       id: `pay_${p.id}`,
       date: (p.captured_at ?? p.created_at) as string,
@@ -184,17 +204,24 @@ export async function fetchHostTransactions(
       bookingRef: b?.reference ?? null,
       method: (p.method as string) ?? null,
       note: (p.note as string) ?? null,
-      doc: p.receipt_token
-        ? {
-            kind: "receipt",
-            number: (p.receipt_number as string) ?? "Receipt",
-            viewPath: `/receipt/${p.receipt_token}`,
-            pdfPath: `/receipt/${p.receipt_token}/pdf`,
-          }
-        : null,
+      doc:
+        !isPending && p.receipt_token
+          ? {
+              kind: "receipt",
+              number: (p.receipt_number as string) ?? "Receipt",
+              viewPath: `/receipt/${p.receipt_token}`,
+              pdfPath: `/receipt/${p.receipt_token}/pdf`,
+            }
+          : null,
       balance: 0,
-      owedEffect: isCredit ? 0 : -1,
-      cashEffect: isCash ? 1 : 0,
+      // Pending payments are informational only — no effect on the running
+      // balance or collected cash until they settle.
+      owedEffect: isPending ? 0 : isCredit ? 0 : -1,
+      cashEffect: isPending ? 0 : isCash ? 1 : 0,
+      pending: isPending,
+      paymentId: p.id as string,
+      kind: (p.kind as string) ?? null,
+      status: (p.status as string) ?? null,
     });
   }
 

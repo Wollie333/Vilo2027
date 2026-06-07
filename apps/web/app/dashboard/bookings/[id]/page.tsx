@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -108,15 +110,6 @@ function channelOf(origin: string): {
 
 const DAY_MS = 86_400_000;
 
-const PAYMENT_KIND_LABEL: Record<string, string> = {
-  deposit: "Deposit",
-  balance: "Balance",
-  addon: "Add-on",
-  payment: "Payment",
-  credit: "Store credit",
-  refund: "Refund",
-};
-
 export default async function BookingDetailPage({
   params,
 }: {
@@ -180,50 +173,16 @@ export default async function BookingDetailPage({
     guestCredit = (creditRows ?? []).reduce((s, r) => s + Number(r.amount), 0);
   }
 
-  // All invoices for this booking → the "charge" side of the ledger (the stay +
-  // each post-booking add-on). Lets every add-on show as a transaction even when
-  // it's added to the balance (unpaid) rather than paid on the spot.
-  const { data: invoiceAll } = await supabase
-    .from("invoices")
-    .select(
-      "id, invoice_number, kind, total_amount, status, issued_at, hosted_token",
-    )
-    .eq("booking_id", booking.id)
-    .order("issued_at", { ascending: true });
-  const allInvoices = invoiceAll ?? [];
-  const addonInvoices = allInvoices.filter((i) => i.kind === "addon");
-  const addonInvTotal = addonInvoices.reduce(
-    (s, i) => s + Number(i.total_amount),
-    0,
-  );
-  const bookingInvoice = allInvoices.find((i) => i.kind === "booking");
-  // The "stay" charge is the booking total minus the post-booking add-on
-  // invoices — i.e. the original stay + any add-ons that came with the booking.
-  const stayCharge =
-    Math.round((Number(booking.total_amount) - addonInvTotal) * 100) / 100;
-
-  const chargeEntries = [
-    {
-      id: "stay",
-      date: booking.created_at as string,
-      label: bookingInvoice ? "Stay & booking add-ons" : "Stay",
-      sublabel: bookingInvoice?.invoice_number ?? null,
-      amount: stayCharge,
-      status: bookingInvoice?.status ?? null,
-      href: bookingInvoice?.hosted_token
-        ? `/invoice/${bookingInvoice.hosted_token}`
-        : null,
-    },
-    ...addonInvoices.map((i) => ({
-      id: i.id,
-      date: i.issued_at as string,
-      label: "Add-on",
-      sublabel: i.invoice_number as string,
-      amount: Number(i.total_amount),
-      status: i.status as string,
-      href: i.hosted_token ? `/invoice/${i.hosted_token}` : null,
-    })),
-  ];
+  // Booking transactions — the SAME canonical source as the account-wide Ledger
+  // and the guest record, filtered to this booking and including pending
+  // payments (so the tab can offer "mark received"). Rendered with the one
+  // shared <LedgerList>, so rows and balances match everywhere.
+  const admin = createAdminClient();
+  const bookingTxns = await fetchHostTransactions(admin, {
+    hostId: booking.host_id,
+    bookingId: booking.id,
+    includePending: true,
+  });
 
   // Financial documents + access + host-only notes.
   const [
@@ -624,19 +583,7 @@ export default async function BookingDetailPage({
       100,
     depositAmount: Number(booking.deposit_amount ?? 0),
     guestCredit: Math.round(guestCredit * 100) / 100,
-    payments: ledger.map((p) => ({
-      id: p.id,
-      kind: p.kind as string,
-      label: PAYMENT_KIND_LABEL[p.kind as string] ?? "Payment",
-      amount: Number(p.amount),
-      status: p.status as string,
-      method: p.method as string,
-      note: p.note ?? null,
-      date: (p.captured_at ?? p.created_at) as string | null,
-      receiptNumber: (p.receipt_number ?? null) as string | null,
-      receiptToken: (p.receipt_token ?? null) as string | null,
-    })),
-    charges: chargeEntries,
+    txns: bookingTxns,
 
     invoice: invoiceRow
       ? { id: invoiceRow.id, number: invoiceRow.invoice_number }

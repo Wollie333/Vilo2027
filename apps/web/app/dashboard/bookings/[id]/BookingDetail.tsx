@@ -34,6 +34,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
 import { AddonManager } from "./AddonManager";
@@ -141,27 +142,9 @@ export type BookingDetailData = {
   balanceDue: number;
   depositAmount: number;
   guestCredit: number;
-  payments: {
-    id: string;
-    kind: string;
-    label: string;
-    amount: number;
-    status: string;
-    method: string;
-    note: string | null;
-    date: string | null;
-    receiptNumber: string | null;
-    receiptToken: string | null;
-  }[];
-  charges: {
-    id: string;
-    date: string;
-    label: string;
-    sublabel: string | null;
-    amount: number;
-    status: string | null;
-    href: string | null;
-  }[];
+  // Canonical transactions for this booking (charges + payments incl. pending),
+  // rendered with the shared <LedgerList> — the same source as the Ledger.
+  txns: Txn[];
 
   invoice: { id: string; number: string } | null;
   creditNotes: { id: string; number: string }[];
@@ -1005,8 +988,7 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               amountPaid={d.amountPaid}
               balanceDue={d.balanceDue}
               guestCredit={d.guestCredit}
-              payments={d.payments}
-              charges={d.charges}
+              txns={d.txns}
               canRecord={d.hasWorkflow || d.status === "completed"}
             />
           </div>
