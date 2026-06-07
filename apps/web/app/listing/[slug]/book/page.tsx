@@ -45,12 +45,6 @@ function isIso(d: string | undefined): d is string {
   return !!d && /^\d{4}-\d{2}-\d{2}$/.test(d);
 }
 
-function nightsBetween(from: string, to: string): number {
-  const f = new Date(`${from}T00:00:00Z`).getTime();
-  const t = new Date(`${to}T00:00:00Z`).getTime();
-  return Math.round((t - f) / (1000 * 60 * 60 * 24));
-}
-
 function parseRoomIds(raw: string | undefined): string[] {
   if (!raw) return [];
   const uuidRe =
@@ -105,14 +99,13 @@ export default async function BookingPage({
 
   if (!listing) notFound();
 
+  // Dates are now chosen INSIDE the booking flow (step 1). Honour any prefill
+  // from ?from/?to but never gate the page on them — Reserve arrives bare.
   const checkIn = isIso(searchParams?.from) ? searchParams!.from! : "";
   const checkOut = isIso(searchParams?.to) ? searchParams!.to! : "";
   const guestsParsed = parseInt(searchParams?.guests ?? "", 10);
   const guests =
     Number.isFinite(guestsParsed) && guestsParsed > 0 ? guestsParsed : 2;
-
-  const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
-  const datesOk = nights > 0 && nights >= (listing.min_nights ?? 1);
 
   const requestedRoomIds = parseRoomIds(searchParams?.room_ids);
   const requestedGuestsByRoom = parseRoomGuests(searchParams?.room_guests);
@@ -276,8 +269,11 @@ export default async function BookingPage({
   // Eligible add-ons (listing-wide + any room-scoped on this listing). Lead-time
   // eligibility is applied client-side against the live check-in date, so the
   // list stays correct as the guest changes their dates.
+  // Add-ons are listing-wide (not date-dependent); load them always so the
+  // Details step has them once the guest picks dates. Lead-time eligibility is
+  // applied client-side against the live check-in.
   let availableAddons: AvailableAddon[] = [];
-  if (datesOk) {
+  {
     const { data: addonJoinRows } = await supabase
       .from("listing_addons")
       .select(
@@ -351,87 +347,66 @@ export default async function BookingPage({
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
-        {!datesOk ? (
-          <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
-            <div className="font-display text-lg font-semibold text-brand-ink">
-              Pick your dates first
-            </div>
-            <p className="mt-2 text-sm text-brand-mute">
-              We need check-in and check-out dates before we can take payment.
-            </p>
-            <a
-              href={`/listing/${params.slug}`}
-              className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-            >
-              Back to listing
-            </a>
-          </div>
-        ) : (
-          <BookingForm
-            listingId={listing.id}
-            listingSlug={params.slug}
-            listingName={listing.name}
-            listingTypeLabel={listingTypeLabel}
-            listingCity={listing.city}
-            listingProvince={listing.province}
-            coverImageUrl={coverImageUrl}
-            ratingValue={
-              listing.avg_rating == null ? null : Number(listing.avg_rating)
-            }
-            reviewCount={listing.total_reviews ?? null}
-            basePrice={Number(listing.base_price ?? 0)}
-            weekendPrice={
-              listing.weekend_price == null
-                ? null
-                : Number(listing.weekend_price)
-            }
-            cleaningFee={Number(listing.cleaning_fee ?? 0)}
-            listingChildPrice={Number(listing.child_price ?? 0)}
-            listingInfantPrice={Number(listing.infant_price ?? 0)}
-            listingPetFee={Number(listing.pet_fee ?? 0)}
-            listingAllowChildren={listing.allow_children ?? true}
-            listingAllowInfants={listing.allow_infants ?? true}
-            listingAllowPets={listing.allow_pets ?? true}
-            currency={listing.currency}
-            cancellationPolicy={listing.cancellation_policy}
-            instantBooking={listing.instant_booking}
-            bookingMode={listing.booking_mode}
-            checkIn={checkIn}
-            checkOut={checkOut}
-            minNights={listing.min_nights ?? 1}
-            wholeGuests={guests}
-            maxGuestsWhole={listing.max_guests ?? 50}
-            guestEmail={user?.email ?? ""}
-            isAuthenticated={!!user}
-            guestName={guestName}
-            guestPhone={guestPhone}
-            allRooms={allRooms}
-            initialSelectedRoomIds={initialSelectedRoomIds}
-            initialRoomGuests={initialRoomGuests}
-            availableAddons={availableAddons}
-            hasEftBanking={hasEftBanking}
-            seasonalRules={seasonalRules}
-            wholeListingDiscountPct={
-              listing.whole_listing_discount_pct == null
-                ? null
-                : Number(listing.whole_listing_discount_pct)
-            }
-            weeklyDiscountPct={
-              listing.weekly_discount_pct == null
-                ? null
-                : Number(listing.weekly_discount_pct)
-            }
-            monthlyDiscountPct={
-              listing.monthly_discount_pct == null
-                ? null
-                : Number(listing.monthly_discount_pct)
-            }
-          />
-        )}
+        <BookingForm
+          listingId={listing.id}
+          listingSlug={params.slug}
+          listingName={listing.name}
+          listingTypeLabel={listingTypeLabel}
+          listingCity={listing.city}
+          listingProvince={listing.province}
+          coverImageUrl={coverImageUrl}
+          ratingValue={
+            listing.avg_rating == null ? null : Number(listing.avg_rating)
+          }
+          reviewCount={listing.total_reviews ?? null}
+          basePrice={Number(listing.base_price ?? 0)}
+          weekendPrice={
+            listing.weekend_price == null ? null : Number(listing.weekend_price)
+          }
+          cleaningFee={Number(listing.cleaning_fee ?? 0)}
+          listingChildPrice={Number(listing.child_price ?? 0)}
+          listingInfantPrice={Number(listing.infant_price ?? 0)}
+          listingPetFee={Number(listing.pet_fee ?? 0)}
+          listingAllowChildren={listing.allow_children ?? true}
+          listingAllowInfants={listing.allow_infants ?? true}
+          listingAllowPets={listing.allow_pets ?? true}
+          currency={listing.currency}
+          cancellationPolicy={listing.cancellation_policy}
+          instantBooking={listing.instant_booking}
+          bookingMode={listing.booking_mode}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          minNights={listing.min_nights ?? 1}
+          wholeGuests={guests}
+          maxGuestsWhole={listing.max_guests ?? 50}
+          guestEmail={user?.email ?? ""}
+          isAuthenticated={!!user}
+          guestName={guestName}
+          guestPhone={guestPhone}
+          allRooms={allRooms}
+          initialSelectedRoomIds={initialSelectedRoomIds}
+          initialRoomGuests={initialRoomGuests}
+          availableAddons={availableAddons}
+          hasEftBanking={hasEftBanking}
+          seasonalRules={seasonalRules}
+          wholeListingDiscountPct={
+            listing.whole_listing_discount_pct == null
+              ? null
+              : Number(listing.whole_listing_discount_pct)
+          }
+          weeklyDiscountPct={
+            listing.weekly_discount_pct == null
+              ? null
+              : Number(listing.weekly_discount_pct)
+          }
+          monthlyDiscountPct={
+            listing.monthly_discount_pct == null
+              ? null
+              : Number(listing.monthly_discount_pct)
+          }
+        />
 
-        {datesOk ? (
-          <ListingPolicyBlock listingId={listing.id} className="mt-6" />
-        ) : null}
+        <ListingPolicyBlock listingId={listing.id} className="mt-6" />
       </main>
 
       <SiteFooter />

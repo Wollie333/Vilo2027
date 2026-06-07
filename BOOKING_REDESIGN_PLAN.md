@@ -173,10 +173,12 @@
 
 - [x] **Phase 0** — Plan saved + CURRENT_TASK pointed here
 - [x] **Phase 1** — Listing: display-only + 2 CTAs
-- [ ] **Phase 2** — Booking flow 3-step shell
-- [ ] **Phase 3** — Step 1 Rooms (in-flow selection)
-- [ ] **Phase 4** — Step 2 Details (+ add-ons + coupon)
-- [ ] **Phase 5** — Step 3 Payment + submit
+- [x] **Phase 2** — Booking flow 3-step shell (steps populated & functional)
+- [x] **Phase 3** — Step 1 Rooms (in-flow selection) — _functional; live
+      per-room availability (F2) still TODO_
+- [x] **Phase 4** — Step 2 Details (+ add-ons + coupon) — _functional; add-on
+      unit mapping (F1) verified against existing PricingModel_
+- [x] **Phase 5** — Step 3 Payment + submit — _functional (Paystack + EFT)_
 - [ ] **Phase 6** — Polish + help article + changelog
 
 ## 6. Session notes (append as we go)
@@ -198,3 +200,17 @@
     `/book` + `rooms/[roomId]` still import.
   - **Interim:** Reserve links to `/book` with no params; the old 2-step form
     still renders there until Phase 2 rebuilds it self-contained.
+- 2026-06-07 — **Phases 2–5 done in one structural pass.** `book/page.tsx` no
+  longer gates on dates (Reserve arrives bare); add-ons load unconditionally.
+  `BookingForm.tsx` converted from 2-step (Review→Payment) to **3-step
+  Rooms→Details→Payment**: `reviewBody` split into `roomsBody` (rooms + dates +
+  guests/children/pets) and `detailsBody` (add-ons + contact + party + message +
+  cancellation); `validateReview` split into `validateRooms` + `validateDetails`;
+  `goToPayment`→`goNext` (multi-step) + multi-step `goBack`; stepper, summary CTA
+  (Continue to details → Continue to payment → Pay) and mobile bar rewired for
+  3 steps. All existing server logic (createBookingAction, priceStay, coupons,
+  add-ons, Paystack/EFT) reused unchanged. Build + lint + typecheck green.
+  - **Remaining (Phase 6):** live per-room availability in step 1 (F2); finer
+    visual alignment to `Booking Flow.html` (guests popover, room "Add" pills,
+    stepper styling); delete the now-unused listing components; help article +
+    changelog.

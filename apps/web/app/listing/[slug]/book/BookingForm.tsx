@@ -174,7 +174,7 @@ const CANCELLATION_BULLETS: Record<
   ],
 };
 
-const STEPS = ["Review trip", "Payment", "Confirmation"];
+const STEPS = ["Rooms", "Details", "Payment"];
 
 export function BookingForm({
   listingId,
@@ -265,9 +265,10 @@ export function BookingForm({
   const [loggingOut, startLogout] = useTransition();
 
   // ── Wizard step ───────────────────────────────────────────────
-  // 0 = Review trip, 1 = Payment. Step 2 ("Confirmation") is the post-redirect
-  // success page (/booking/[id]/success), so it isn't rendered in-form.
-  const [step, setStep] = useState<0 | 1>(0);
+  // 0 = Rooms (dates/guests/room selection), 1 = Details (contact/add-ons),
+  // 2 = Payment. Confirmation is the post-redirect success page
+  // (/booking/[id]/success), so it isn't rendered in-form.
+  const [step, setStep] = useState<0 | 1 | 2>(0);
 
   // ── Dates ─────────────────────────────────────────────────────
   const [dates, setDates] = useState({ from: checkIn, to: checkOut });
@@ -693,8 +694,8 @@ export function BookingForm({
     });
   }
 
-  /** Validate everything the Review step gathers. Toasts the first problem. */
-  function validateReview(): boolean {
+  /** Step 1 (Rooms): valid dates + at least one room (when room-based). */
+  function validateRooms(): boolean {
     if (!datesValid) {
       toast.error(
         `Choose dates of at least ${effectiveMinNights} ${
@@ -707,6 +708,11 @@ export function BookingForm({
       toast.error("Select at least one room to continue.");
       return false;
     }
+    return true;
+  }
+
+  /** Step 2 (Details): contact + (for guests) a password. */
+  function validateDetails(): boolean {
     if (!isAuthenticated) {
       if (
         contact.fullName.trim().length < 2 ||
@@ -723,20 +729,29 @@ export function BookingForm({
     return true;
   }
 
-  function goToPayment() {
-    if (!validateReview()) return;
-    setStep(1);
+  function goNext() {
+    if (step === 0) {
+      if (!validateRooms()) return;
+      setStep(1);
+    } else if (step === 1) {
+      if (!validateDetails()) return;
+      setStep(2);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function goBack() {
-    setStep(0);
+    setStep((s) => (s > 0 ? ((s - 1) as 0 | 1 | 2) : 0));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validateReview()) {
+    if (!validateRooms()) {
       setStep(0);
+      return;
+    }
+    if (!validateDetails()) {
+      setStep(1);
       return;
     }
 
@@ -835,18 +850,19 @@ export function BookingForm({
       : []),
   ];
 
-  /* ── Review step ───────────────────────────────────────────── */
-  const reviewBody = (
+  /* ── Step 1 · Rooms (dates, guests, room selection) ────────── */
+  const roomsBody = (
     <div className="ck-step space-y-7">
       <header>
         <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
           Step 1 of 3
         </div>
         <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
-          Review your trip
+          Choose your rooms &amp; dates
         </h2>
         <p className="mt-1.5 text-sm text-brand-mute">
-          Confirm your rooms, dates and contact details before payment.
+          Pick when you&rsquo;re coming and the rooms you&rsquo;d like — book
+          one, a few, or the whole place.
         </p>
       </header>
 
@@ -1213,6 +1229,24 @@ export function BookingForm({
           ) : null}
         </div>
       </section>
+    </div>
+  );
+
+  /* ── Step 2 · Details (contact, add-ons, message) ──────────── */
+  const detailsBody = (
+    <div className="ck-step space-y-7">
+      <header>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+          Step 2 of 3
+        </div>
+        <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
+          Your details &amp; extras
+        </h2>
+        <p className="mt-1.5 text-sm text-brand-mute">
+          Tell your host who&rsquo;s coming and add anything to make the stay
+          special.
+        </p>
+      </header>
 
       {/* Add-ons */}
       {eligibleAddons.length > 0 ? (
@@ -1670,12 +1704,12 @@ export function BookingForm({
     </div>
   );
 
-  /* ── Payment step ──────────────────────────────────────────── */
+  /* ── Step 3 · Payment ──────────────────────────────────────── */
   const paymentBody = (
     <div className="ck-step space-y-7">
       <header>
         <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-          Step 2 of 3
+          Step 3 of 3
         </div>
         <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
           Choose how you&rsquo;ll pay
@@ -1983,7 +2017,7 @@ export function BookingForm({
       >
         {/* ── Left column: the current step ───────────────────────── */}
         <section className="min-w-0 pb-24 lg:pb-0">
-          {step === 0 ? reviewBody : paymentBody}
+          {step === 0 ? roomsBody : step === 1 ? detailsBody : paymentBody}
 
           {/* Footer actions */}
           <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
@@ -1996,15 +2030,15 @@ export function BookingForm({
               <ArrowLeft className="h-4 w-4" /> Back
             </button>
             <div className="hidden items-center gap-1.5 text-[11px] text-brand-mute lg:flex">
-              {step === 0
-                ? "Continue from your summary"
-                : "Complete payment from your summary"}
+              {step === 2
+                ? "Complete payment from your summary"
+                : "Continue from your summary"}
               <ArrowRight className="h-3.5 w-3.5" />
             </div>
           </div>
 
           {/* Legal disclaimer (payment step) */}
-          {step === 1 ? (
+          {step === 2 ? (
             <div className="mt-4 max-w-xl text-[11px] leading-relaxed text-brand-mute">
               By tapping{" "}
               <span className="font-medium text-brand-ink">{payLabel}</span>,
@@ -2290,16 +2324,7 @@ export function BookingForm({
               </div>
 
               {/* CTA — travels with the card (desktop) */}
-              {step === 0 ? (
-                <button
-                  type="button"
-                  onClick={goToPayment}
-                  disabled={needsRoom || !datesValid}
-                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
-                >
-                  Continue to payment <ArrowRight className="h-4 w-4" />
-                </button>
-              ) : (
+              {step === 2 ? (
                 <button
                   type="submit"
                   disabled={isPending}
@@ -2312,6 +2337,16 @@ export function BookingForm({
                   )}
                   {payLabel}
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={step === 0 && (needsRoom || !datesValid)}
+                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
+                >
+                  {step === 0 ? "Continue to details" : "Continue to payment"}{" "}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               )}
 
               {/* refund / safety strip */}
@@ -2320,7 +2355,7 @@ export function BookingForm({
                 {CANCELLATION_BULLETS[cancellationPolicy][0].text}
               </div>
 
-              {step === 1 ? (
+              {step === 2 ? (
                 <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
                   <Mail className="h-3 w-3" />
                   {method === "eft"
@@ -2346,16 +2381,7 @@ export function BookingForm({
                 {effectiveGuests === 1 ? "guest" : "guests"}
               </div>
             </div>
-            {step === 0 ? (
-              <button
-                type="button"
-                onClick={goToPayment}
-                disabled={needsRoom || !datesValid}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Continue <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : (
+            {step === 2 ? (
               <button
                 type="submit"
                 disabled={isPending}
@@ -2367,6 +2393,15 @@ export function BookingForm({
                   <Lock className="h-4 w-4" />
                 )}
                 {isPending ? "Working…" : method === "eft" ? "Reserve" : "Pay"}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={goNext}
+                disabled={step === 0 && (needsRoom || !datesValid)}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue <ArrowRight className="h-4 w-4" />
               </button>
             )}
           </div>
