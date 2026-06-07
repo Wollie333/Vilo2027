@@ -31,6 +31,22 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — Listings — redesigned host listings index (KPI strip, tabs, grid/list, listing health) — branch `main`
+
+### Changed
+- **Listings page redesign** (`app/dashboard/listings/page.tsx`). Replaced the dark portfolio hero with a lighter page header (live `places · published · draft · paused` counts) plus a 4-card KPI strip, a filter card (status tabs + search + sort + grid/list toggle), redesigned listing cards, a list view, and a **Listing health** recommendations panel.
+- All figures are **real stored values** — never placeholders. KPIs: total bookings (Σ `listings.total_bookings`), avg nightly rate (mean `base_price`), live/total, host avg rating + review count. Per-card stats: `total_bookings`, `total_reviews`, `avg_rating`. Status derives from `is_published` / `is_suspended` (suspended → "Paused · hidden from search"); spotlight/"Top performer" from `is_featured`.
+- The mock's occupancy %, booked-nights and next-booking (data we don't track) were swapped for these real metrics rather than fabricated. Draft cards show a real "finish to publish" checklist computed from stored columns (photos, pricing, description, location, rooms); Listing health is generated from the same real conditions (e.g. published with <8 photos, live without a price).
+- Tabs/sort/view are server-rendered via search params (`status`, `q`, `sort`, `view`) — no client island; `force-dynamic` retained for fresh DB reads.
+
+### Notes
+- No schema change. Built alongside a parallel finance agent; touched only the listings page (the concurrent guests/finance edits are that agent's and were left untouched).
+
+### Commit
+- `feat(listings): redesign host listings index` — see git log
+
+---
+
 ## 2026-06-06 — Payments — single-booking ledger, manual EFT, store credit, add-on transactions + inbox fix — branch `main`
 
 ### Built
