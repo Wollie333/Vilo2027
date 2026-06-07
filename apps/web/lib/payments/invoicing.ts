@@ -29,6 +29,8 @@ export async function createAddonInvoice(
     lines: AddonLine[];
     paymentId?: string | null;
     paid: boolean;
+    /** VAT charged on this add-on (0 when the listing isn't VAT-registered). */
+    vatAmount?: number;
   },
 ): Promise<string | null> {
   if (args.lines.length === 0) return null;
@@ -77,6 +79,8 @@ export async function createAddonInvoice(
   const subtotal =
     Math.round(args.lines.reduce((s, l) => s + Number(l.subtotal), 0) * 100) /
     100;
+  const vatAmount = Math.round(Number(args.vatAmount ?? 0) * 100) / 100;
+  const total = Math.round((subtotal + vatAmount) * 100) / 100;
 
   const listingName = Array.isArray(booking.listing)
     ? (booking.listing[0] as { name?: string } | undefined)?.name
@@ -118,8 +122,8 @@ export async function createAddonInvoice(
         addons: args.lines,
       },
       subtotal,
-      vat_amount: 0,
-      total_amount: subtotal,
+      vat_amount: vatAmount,
+      total_amount: total,
       currency: booking.currency,
       status: args.paid ? "paid" : "issued",
       issued_at: now,

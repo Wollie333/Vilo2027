@@ -91,7 +91,9 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
             }
           />
           <View style={styles.docMeta}>
-            <Text style={styles.docKind}>Invoice</Text>
+            <Text style={styles.docKind}>
+              {invoice.vatAmount > 0 ? "Tax Invoice" : "Invoice"}
+            </Text>
             <Text style={styles.docNumber}>{invoice.invoiceNumber}</Text>
             <Text style={styles.docDate}>
               Issued {formatDate(invoice.issuedAt)}

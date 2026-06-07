@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { grossUpVat } from "@/lib/finance/vat";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -32,7 +33,9 @@ export async function addGuestBookingAddonAction(input: {
   const admin = createAdminClient();
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, host_id, listing_id, guest_id, status, total_amount")
+    .select(
+      "id, host_id, listing_id, guest_id, status, total_amount, vat_amount, vat_rate",
+    )
     .eq("id", input.bookingId)
     .maybeSingle();
   if (!booking || booking.guest_id !== user.id) {
@@ -104,11 +107,19 @@ export async function addGuestBookingAddonAction(input: {
     .single();
   if (addErr || !row) return { ok: false, error: "Could not add the extra." };
 
+  // VAT on the extra, at the booking's frozen rate.
+  const { vat: addonVat, total: addonInclusive } = grossUpVat(
+    subtotal,
+    Number(booking.vat_rate ?? 0),
+  );
+
   await admin
     .from("bookings")
     .update({
       total_amount:
-        Math.round((Number(booking.total_amount) + subtotal) * 100) / 100,
+        Math.round((Number(booking.total_amount) + addonInclusive) * 100) / 100,
+      vat_amount:
+        Math.round((Number(booking.vat_amount ?? 0) + addonVat) * 100) / 100,
     })
     .eq("id", booking.id);
 
@@ -119,6 +130,7 @@ export async function addGuestBookingAddonAction(input: {
     ],
     paymentId: null,
     paid: false,
+    vatAmount: addonVat,
   });
   if (invoiceId) {
     await admin

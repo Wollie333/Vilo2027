@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { grossUpVat } from "@/lib/finance/vat";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
@@ -386,7 +387,9 @@ export async function addBookingAddonAction(input: {
   const admin = createAdminClient();
   const { data: booking } = await admin
     .from("bookings")
-    .select("id, host_id, status, guest_id, reference, total_amount")
+    .select(
+      "id, host_id, status, guest_id, reference, total_amount, vat_amount, vat_rate",
+    )
     .eq("id", input.bookingId)
     .maybeSingle();
   if (!booking || booking.host_id !== hostId) {
@@ -424,21 +427,30 @@ export async function addBookingAddonAction(input: {
     Math.round(items.reduce((s, i) => s + i.quantity * i.unitPrice, 0) * 100) /
     100;
 
-  // The booking grows by the add-on charge.
+  // VAT on the add-on, at the booking's frozen rate (so a VAT-registered
+  // listing's add-ons are taxed the same as the stay).
+  const { vat: addonVat, total: addonInclusive } = grossUpVat(
+    addonTotal,
+    Number(booking.vat_rate ?? 0),
+  );
+
+  // The booking grows by the VAT-inclusive add-on charge (and its VAT portion).
   await admin
     .from("bookings")
     .update({
       total_amount:
-        Math.round((Number(booking.total_amount) + addonTotal) * 100) / 100,
+        Math.round((Number(booking.total_amount) + addonInclusive) * 100) / 100,
+      vat_amount:
+        Math.round((Number(booking.vat_amount ?? 0) + addonVat) * 100) / 100,
     })
     .eq("id", booking.id);
 
   // Optional immediate payment (cash/EFT taken at the time).
   let paymentId: string | null = null;
-  if (input.markPaid && addonTotal > 0) {
+  if (input.markPaid && addonInclusive > 0) {
     const pay = await recordBookingPayment(admin, {
       bookingId: booking.id,
-      amount: addonTotal,
+      amount: addonInclusive,
       kind: "addon",
       method: "eft",
       note: "Add-on payment",
@@ -458,6 +470,7 @@ export async function addBookingAddonAction(input: {
     })),
     paymentId,
     paid: Boolean(input.markPaid),
+    vatAmount: addonVat,
   });
   if (invoiceId) {
     await admin
