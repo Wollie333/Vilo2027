@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — Finance control center — receipts, refund/credit controls, guest balance, shareable docs — branch `main`
+
+### Built
+- **Receipts.** Every completed payment is auto-numbered (`{HANDLE}-RCT2026-NNNN`), tokenised, and downloadable (PDF + tokenised record page). Booking Payments tab shows a Receipt link per paid entry. (migration `20260607000001`; `lib/pdf/ReceiptDocument`, `lib/payments/receipt-data`, `/receipt/[token]` + `/pdf`.)
+- **Shared `FinancialDocument` template** (`components/finance/FinancialDocument.tsx`) — the canonical brand "paper" for every finance doc (currently backing receipts; ready for invoice/quote/CN).
+- **Pastel format / auto-pull host details** (`lib/finance/doc-party.ts`): documents pull the host's full business into *From*, full guest into *To*, and the default EFT account into a footer *Payment details* block — live from settings (business/banking had been dropped from the invoice snapshot in migration 000601).
+- **Payment control center** — per-payment ⋯ menu (Refund this / Credit this) and whole-booking Issue credit note alongside refund. Manual credit notes now post to `guest_credit_ledger` (feed the guest's balance); refund-origin ones don't (no double-count).
+- **Refund documents** — `refund_requests` gets a per-host `REF` number (migration `20260607000002`), so invoice/quote/credit-note/receipt/refund are all numbered + booking-associated.
+- **Guest record** — net balance banner (green = you owe credit, red = guest owes, with breakdown) + expandable bookings showing a per-booking finance mini-table (payments/receipts/credit-notes/refunds) and a View booking button.
+- **Send to guest** — `SendDocumentButton` + `sendDocumentLinkAction` post a doc's public link into the guest inbox thread; wired on receipt, invoice (Share), credit-note. Quotes already had share-to-inbox.
+
+### Migrations
+- `20260607000001_payment_receipts.sql`, `20260607000002_refund_numbers.sql`
+
+### Notes
+- Remaining polish: migrate the public invoice / quote / credit-note record pages onto `FinancialDocument` for full visual unification (functional Send + download + numbering already done on all).
+
 ## 2026-06-07 — Rooms — redesigned rooms manager with real 14-day occupancy — branch `main`
 
 ### Changed
