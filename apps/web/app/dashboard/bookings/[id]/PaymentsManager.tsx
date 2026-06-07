@@ -1,6 +1,14 @@
 "use client";
 
-import { Check, Clock, CreditCard, Plus, Wallet, X } from "lucide-react";
+import {
+  Check,
+  Clock,
+  CreditCard,
+  Plus,
+  Receipt,
+  Wallet,
+  X,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -23,6 +31,8 @@ export type LedgerEntry = {
   method: string;
   note: string | null;
   date: string | null;
+  receiptNumber: string | null;
+  receiptToken: string | null;
 };
 
 function fmtDate(iso: string | null): string {
@@ -222,6 +232,17 @@ export function PaymentsManager({
                   <span className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
                     {formatMoney(p.amount, currency)}
                   </span>
+                  {p.status === "completed" && p.receiptToken ? (
+                    <a
+                      href={`/receipt/${p.receiptToken}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={p.receiptNumber ?? "Receipt"}
+                      className="inline-flex items-center gap-1 rounded border border-brand-line px-2 py-1 text-[11.5px] font-medium text-brand-secondary transition hover:bg-brand-accent"
+                    >
+                      <Receipt className="h-3 w-3" /> Receipt
+                    </a>
+                  ) : null}
                   {canRecord && p.status === "pending" && p.method === "eft" ? (
                     <button
                       type="button"

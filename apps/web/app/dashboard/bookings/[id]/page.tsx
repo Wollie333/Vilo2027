@@ -144,7 +144,9 @@ export default async function BookingDetailPage({
   // derived from completed inbound entries.
   const { data: paymentRows } = await supabase
     .from("payments")
-    .select("id, status, method, kind, amount, note, created_at, captured_at")
+    .select(
+      "id, status, method, kind, amount, note, created_at, captured_at, receipt_number, receipt_token",
+    )
     .eq("booking_id", booking.id)
     .order("created_at", { ascending: true });
 
@@ -582,6 +584,8 @@ export default async function BookingDetailPage({
       method: p.method as string,
       note: p.note ?? null,
       date: (p.captured_at ?? p.created_at) as string | null,
+      receiptNumber: (p.receipt_number ?? null) as string | null,
+      receiptToken: (p.receipt_token ?? null) as string | null,
     })),
 
     invoice: invoiceRow

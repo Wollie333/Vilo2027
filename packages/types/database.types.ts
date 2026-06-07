@@ -2327,6 +2327,7 @@ export type Database = {
           last_credit_note_number: number
           last_invoice_number: number
           last_quote_number: number
+          last_receipt_number: number
           last_refund_number: number
           updated_at: string
         }
@@ -2335,6 +2336,7 @@ export type Database = {
           last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
+          last_receipt_number?: number
           last_refund_number?: number
           updated_at?: string
         }
@@ -2343,6 +2345,7 @@ export type Database = {
           last_credit_note_number?: number
           last_invoice_number?: number
           last_quote_number?: number
+          last_receipt_number?: number
           last_refund_number?: number
           updated_at?: string
         }
@@ -4177,6 +4180,8 @@ export type Database = {
           note: string | null
           provider_reference: string | null
           provider_response: Json | null
+          receipt_number: string | null
+          receipt_token: string | null
           recorded_by: string | null
           refunded_amount: number | null
           status: string
@@ -4197,6 +4202,8 @@ export type Database = {
           note?: string | null
           provider_reference?: string | null
           provider_response?: Json | null
+          receipt_number?: string | null
+          receipt_token?: string | null
           recorded_by?: string | null
           refunded_amount?: number | null
           status?: string
@@ -4217,6 +4224,8 @@ export type Database = {
           note?: string | null
           provider_reference?: string | null
           provider_response?: Json | null
+          receipt_number?: string | null
+          receipt_token?: string | null
           recorded_by?: string | null
           refunded_amount?: number | null
           status?: string
@@ -6844,6 +6853,7 @@ export type Database = {
       next_credit_note_number: { Args: { p_host_id: string }; Returns: string }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
       next_quote_number: { Args: { p_host_id: string }; Returns: string }
+      next_receipt_number: { Args: { p_host_id: string }; Returns: string }
       next_refund_number: { Args: { p_host_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }

@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
 import {
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
+  ArrowUpDown,
+  Award,
   BedDouble,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
   Image as ImageIcon,
+  LayoutGrid,
+  List as ListIcon,
   MapPin,
+  MoreVertical,
   Plus,
+  RefreshCw,
+  Search,
+  SearchX,
   Sparkles,
   Star,
+  TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,7 +46,19 @@ const TYPE_LABEL: Record<string, string> = {
   transfer: "Transfer",
 };
 
-type StatusFilter = "all" | "published" | "draft";
+const PHOTO_TARGET = 8; // Vilo guideline: 8+ photos before publish.
+
+type StatusFilter = "all" | "published" | "draft" | "paused";
+type SortKey = "newest" | "booked" | "rating" | "price" | "name";
+type ViewMode = "grid" | "list";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "booked", label: "Most booked" },
+  { key: "rating", label: "Top rated" },
+  { key: "price", label: "Price (high–low)" },
+  { key: "name", label: "Name (A–Z)" },
+];
 
 type ListingRow = {
   id: string;
@@ -43,25 +68,81 @@ type ListingRow = {
   accommodation_type: string | null;
   city: string | null;
   province: string | null;
+  description: string | null;
   base_price: number | string | null;
   currency: string;
   is_published: boolean;
+  is_suspended: boolean;
+  is_featured: boolean;
+  avg_rating: number | string | null;
+  total_reviews: number | null;
+  total_bookings: number | null;
+  created_at: string;
   photos: Array<{ url: string; sort_order: number }> | null;
   rooms: Array<{ id: string }> | null;
 };
 
+type Derived = ListingRow & {
+  status: "published" | "draft" | "paused";
+  hero: { url: string; sort_order: number } | undefined;
+  photoCount: number;
+  roomCount: number;
+  rating: number | null;
+  reviews: number;
+  bookings: number;
+  price: number | null;
+  typeLabel: string;
+  location: string;
+  setup: { done: number; total: number; missing: string[] };
+};
+
+function statusOf(l: ListingRow): "published" | "draft" | "paused" {
+  if (l.is_suspended) return "paused";
+  return l.is_published ? "published" : "draft";
+}
+
+// Real "finish to publish" checklist — computed only from columns we store.
+function setupOf(l: ListingRow, photoCount: number, roomCount: number) {
+  const checks: { ok: boolean; label: string }[] = [
+    { ok: photoCount >= 1, label: "photos" },
+    { ok: l.base_price != null, label: "pricing" },
+    {
+      ok: !!(l.description && l.description.trim().length >= 30),
+      label: "description",
+    },
+    { ok: !!l.city, label: "location" },
+    { ok: roomCount >= 1, label: "rooms" },
+  ];
+  return {
+    done: checks.filter((c) => c.ok).length,
+    total: checks.length,
+    missing: checks.filter((c) => !c.ok).map((c) => c.label),
+  };
+}
+
 export default async function ListingsPage({
   searchParams,
 }: {
-  searchParams?: { status?: string; q?: string };
+  searchParams?: {
+    status?: string;
+    q?: string;
+    sort?: string;
+    view?: string;
+  };
 }) {
   const supabase = createServerClient();
 
   const status = ((): StatusFilter => {
     const raw = searchParams?.status;
-    return raw === "published" || raw === "draft" ? raw : "all";
+    return raw === "published" || raw === "draft" || raw === "paused"
+      ? raw
+      : "all";
   })();
   const q = (searchParams?.q ?? "").trim();
+  const sort: SortKey = SORT_OPTIONS.some((o) => o.key === searchParams?.sort)
+    ? (searchParams!.sort as SortKey)
+    : "newest";
+  const view: ViewMode = searchParams?.view === "list" ? "list" : "grid";
 
   // Scope to the logged-in host. `listings` has a `public_read_published`
   // RLS policy (so guests can browse the directory), which means relying on
@@ -85,7 +166,7 @@ export default async function ListingsPage({
     ? await supabase
         .from("listings")
         .select(
-          "id, name, slug, listing_type, accommodation_type, city, province, base_price, currency, is_published, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
+          "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
         )
         .eq("host_id", host.id)
         .eq("listing_type", "accommodation")
@@ -93,27 +174,56 @@ export default async function ListingsPage({
         .order("created_at", { ascending: false })
     : { data: [] as ListingRow[] };
 
-  const all = (listingsRaw as ListingRow[] | null) ?? [];
-  const totalAll = all.length;
-  const totalPublished = all.filter((l) => l.is_published).length;
-  const totalDraft = totalAll - totalPublished;
+  const raw = (listingsRaw as ListingRow[] | null) ?? [];
 
-  // Pick the listing with the most photos as the "spotlight" — closest
-  // proxy we have to "top performer" without bookings aggregates here.
-  const spotlight = all
-    .filter((l) => l.is_published)
-    .map((l) => ({ l, count: (l.photos ?? []).length }))
-    .sort((a, b) => b.count - a.count)[0]?.l;
-  const spotlightHero = (spotlight?.photos ?? []).sort(
-    (a, b) => a.sort_order - b.sort_order,
-  )[0];
+  const all: Derived[] = raw.map((l) => {
+    const photos = (l.photos ?? []).sort((a, b) => a.sort_order - b.sort_order);
+    const photoCount = photos.length;
+    const roomCount = (l.rooms ?? []).length;
+    return {
+      ...l,
+      status: statusOf(l),
+      hero: photos[0],
+      photoCount,
+      roomCount,
+      rating: l.avg_rating != null ? Number(l.avg_rating) : null,
+      reviews: l.total_reviews ?? 0,
+      bookings: l.total_bookings ?? 0,
+      price: l.base_price != null ? Number(l.base_price) : null,
+      typeLabel: TYPE_LABEL[l.accommodation_type ?? "other"] ?? "Stay",
+      location: [l.city, l.province].filter(Boolean).join(", "),
+      setup: setupOf(l, photoCount, roomCount),
+    };
+  });
+
+  const totalAll = all.length;
+  const counts = {
+    all: totalAll,
+    published: all.filter((l) => l.status === "published").length,
+    draft: all.filter((l) => l.status === "draft").length,
+    paused: all.filter((l) => l.status === "paused").length,
+  };
+
+  // Spotlight = explicit feature flag, else best-rated published listing.
+  const spotlight =
+    all.find((l) => l.is_featured && l.status === "published") ??
+    all
+      .filter((l) => l.status === "published")
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+
+  // Portfolio KPIs — every figure is a real stored value, never a placeholder.
+  const priced = all.filter((l) => l.price != null);
+  const avgRate =
+    priced.length > 0
+      ? priced.reduce((s, l) => s + (l.price ?? 0), 0) / priced.length
+      : null;
+  const totalBookings = all.reduce((s, l) => s + l.bookings, 0);
+  const hostRating = host?.avg_rating ? Number(host.avg_rating) : null;
+  const hostReviews = host?.total_reviews ?? 0;
+  const currency = all[0]?.currency ?? "ZAR";
 
   const filtered = all
-    .filter((l) => {
-      if (status === "published" && !l.is_published) return false;
-      if (status === "draft" && l.is_published) return false;
-      return true;
-    })
+    .filter((l) => (status === "all" ? true : l.status === status))
     .filter((l) => {
       if (!q) return true;
       const hay =
@@ -121,524 +231,420 @@ export default async function ListingsPage({
       return hay.includes(q.toLowerCase());
     });
 
-  const hostRating = host?.avg_rating ? Number(host.avg_rating) : null;
-  const hostReviews = host?.total_reviews ?? 0;
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sort) {
+      case "booked":
+        return b.bookings - a.bookings;
+      case "rating":
+        return (b.rating ?? 0) - (a.rating ?? 0);
+      case "price":
+        return (b.price ?? 0) - (a.price ?? 0);
+      case "name":
+        return a.name.localeCompare(b.name);
+      default:
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+    }
+  });
+
+  const recs = buildRecommendations(all);
 
   return (
-    <div className="space-y-6 lg:space-y-7">
-      <PortfolioHero
-        total={totalAll}
-        published={totalPublished}
-        draft={totalDraft}
-        avgRating={hostRating}
-        reviewCount={hostReviews}
-        spotlight={
-          spotlight && spotlightHero
-            ? {
-                name: spotlight.name,
-                imageUrl: spotlightHero.url,
-                slug: spotlight.slug,
-                id: spotlight.id,
-              }
-            : null
-        }
-      />
-
-      {totalAll > 0 ? (
-        <FilterBar
-          status={status}
-          q={q}
-          counts={{
-            all: totalAll,
-            published: totalPublished,
-            draft: totalDraft,
-          }}
-        />
-      ) : null}
+    <div className="space-y-6">
+      {/* ===== Page header ===== */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-brand-line pb-5">
+        <div>
+          <h1 className="font-display text-[24px] font-bold tracking-tight text-brand-ink">
+            Listings
+          </h1>
+          <p className="mt-1 text-[13.5px] text-brand-mute">
+            <CountPart value={totalAll} className="text-brand-ink" />{" "}
+            {totalAll === 1 ? "place" : "places"}
+            {" · "}
+            <CountPart
+              value={counts.published}
+              className="text-status-confirmed"
+            />{" "}
+            published
+            {" · "}
+            <CountPart value={counts.draft} className="text-brand-mute" /> draft
+            {counts.paused > 0 ? (
+              <>
+                {" · "}
+                <CountPart
+                  value={counts.paused}
+                  className="text-status-pending"
+                />{" "}
+                paused
+              </>
+            ) : null}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/calendar-sync"
+            className="hidden h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light sm:inline-flex"
+          >
+            <RefreshCw className="h-4 w-4 text-brand-mute" />
+            Import iCal
+          </Link>
+          <Link
+            href="/dashboard/listings/new"
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-brand-primary px-5 text-[13.5px] font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+          >
+            <Plus className="h-4 w-4" />
+            New listing
+          </Link>
+        </div>
+      </div>
 
       {totalAll === 0 ? (
         <EmptyState />
       ) : (
-        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((l) => (
-            <ListingCard
-              key={l.id}
-              listing={l}
-              isSpotlight={l.id === spotlight?.id}
-            />
-          ))}
-          <AddListingTile />
-        </section>
+        <>
+          {/* ===== KPI strip ===== */}
+          <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <KpiCard
+              label="Total bookings"
+              chip={`${totalAll} listing${totalAll === 1 ? "" : "s"}`}
+            >
+              <span className="num">{totalBookings.toLocaleString()}</span>
+            </KpiCard>
+            <KpiCard label="Avg nightly rate" chip={`${priced.length} priced`}>
+              <span className="num">
+                {avgRate == null
+                  ? "—"
+                  : formatMoney(Math.round(avgRate), currency)}
+              </span>
+            </KpiCard>
+            <KpiCard
+              label="Live listings"
+              chip={`${counts.draft} draft`}
+              chipTone="mute"
+            >
+              <span className="num">
+                {counts.published}
+                <span className="text-[14px] font-semibold text-brand-mute">
+                  /{totalAll}
+                </span>
+              </span>
+            </KpiCard>
+            <KpiCard
+              label="Avg rating"
+              chip={`${hostReviews} review${hostReviews === 1 ? "" : "s"}`}
+              chipTone="mute"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span className="num">
+                  {hostRating == null ? "—" : hostRating.toFixed(2)}
+                </span>
+                <Star
+                  className="h-4 w-4"
+                  style={{ fill: "#F59E0B", color: "#F59E0B" }}
+                />
+              </span>
+            </KpiCard>
+          </section>
+
+          {/* ===== Filter card ===== */}
+          <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+            {/* tabs */}
+            <div
+              className="flex items-stretch overflow-x-auto border-b border-brand-line px-5"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <Tab
+                label="All"
+                count={counts.all}
+                active={status === "all"}
+                href={buildUrl(searchParams, { status: undefined })}
+              />
+              <Tab
+                label="Published"
+                count={counts.published}
+                active={status === "published"}
+                href={buildUrl(searchParams, { status: "published" })}
+              />
+              <Tab
+                label="Drafts"
+                count={counts.draft}
+                active={status === "draft"}
+                href={buildUrl(searchParams, { status: "draft" })}
+              />
+              {counts.paused > 0 ? (
+                <Tab
+                  label="Paused"
+                  count={counts.paused}
+                  active={status === "paused"}
+                  href={buildUrl(searchParams, { status: "paused" })}
+                />
+              ) : null}
+            </div>
+
+            {/* filter row */}
+            <div className="flex flex-wrap items-center gap-2 bg-[#FBFDFC] px-5 py-3">
+              <form
+                action="/dashboard/listings"
+                method="GET"
+                className="flex min-w-[220px] flex-1 items-center gap-2 rounded-[9px] border border-brand-line bg-white px-3 py-2 transition focus-within:border-brand-primary focus-within:shadow-ring"
+              >
+                <Search className="h-4 w-4 text-brand-mute" />
+                <input
+                  type="text"
+                  name="q"
+                  defaultValue={q}
+                  placeholder="Search by name, city, or slug…"
+                  className="flex-1 bg-transparent text-[13px] text-brand-ink placeholder:text-brand-mute focus:outline-none"
+                />
+                {status !== "all" ? (
+                  <input type="hidden" name="status" value={status} />
+                ) : null}
+                {sort !== "newest" ? (
+                  <input type="hidden" name="sort" value={sort} />
+                ) : null}
+                {view !== "grid" ? (
+                  <input type="hidden" name="view" value={view} />
+                ) : null}
+              </form>
+
+              {/* sort */}
+              <details className="group relative">
+                <summary className="fpill flex h-9 cursor-pointer list-none items-center gap-1.5 rounded-[9px] border border-brand-line bg-white px-3 text-[12.5px] font-medium text-brand-ink [&::-webkit-details-marker]:hidden">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-brand-mute" />
+                  <span className="text-brand-mute">Sort:</span>
+                  {SORT_OPTIONS.find((o) => o.key === sort)?.label}
+                  <ChevronDown className="h-3.5 w-3.5 text-brand-mute" />
+                </summary>
+                <div className="absolute right-0 z-20 mt-1.5 w-48 overflow-hidden rounded-[10px] border border-brand-line bg-white py-1 shadow-lift">
+                  {SORT_OPTIONS.map((o) => (
+                    <Link
+                      key={o.key}
+                      href={buildUrl(searchParams, {
+                        sort: o.key === "newest" ? undefined : o.key,
+                      })}
+                      className={`block px-3.5 py-1.5 text-[12.5px] ${
+                        o.key === sort
+                          ? "bg-brand-light font-semibold text-brand-secondary"
+                          : "text-brand-ink hover:bg-brand-light"
+                      }`}
+                    >
+                      {o.label}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+
+              {/* view toggle */}
+              <div className="ml-auto inline-flex items-center rounded-[9px] border border-brand-line bg-white p-0.5">
+                <Link
+                  href={buildUrl(searchParams, { view: undefined })}
+                  title="Grid"
+                  className={`flex h-7 w-8 items-center justify-center rounded-[7px] ${
+                    view === "grid"
+                      ? "bg-brand-secondary text-white"
+                      : "text-brand-mute hover:text-brand-ink"
+                  }`}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Link>
+                <Link
+                  href={buildUrl(searchParams, { view: "list" })}
+                  title="List"
+                  className={`flex h-7 w-8 items-center justify-center rounded-[7px] ${
+                    view === "list"
+                      ? "bg-brand-secondary text-white"
+                      : "text-brand-mute hover:text-brand-ink"
+                  }`}
+                >
+                  <ListIcon className="h-4 w-4" />
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* ===== Listings ===== */}
+          {sorted.length === 0 ? (
+            <div className="py-16 text-center text-brand-mute">
+              <SearchX className="mx-auto mb-2 h-7 w-7 text-brand-mute/60" />
+              <div className="text-[14px]">
+                No listings match those filters.
+              </div>
+            </div>
+          ) : view === "grid" ? (
+            <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              {sorted.map((l) => (
+                <ListingCard
+                  key={l.id}
+                  l={l}
+                  isSpotlight={l.id === spotlight?.id}
+                />
+              ))}
+              {status === "all" || status === "draft" ? (
+                <AddListingTile />
+              ) : null}
+            </section>
+          ) : (
+            <section className="flex flex-col gap-3">
+              {sorted.map((l) => (
+                <ListingRowItem
+                  key={l.id}
+                  l={l}
+                  isSpotlight={l.id === spotlight?.id}
+                />
+              ))}
+            </section>
+          )}
+
+          {/* ===== Listing health ===== */}
+          {recs.length > 0 ? (
+            <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+                    Listing health
+                  </div>
+                  <span className="num inline-flex items-center rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
+                    {recs.length}
+                  </span>
+                </div>
+              </div>
+              <div className="divide-y divide-brand-line">
+                {recs.map((r, i) => (
+                  <RecRow key={i} rec={r} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
       )}
     </div>
   );
 }
 
-function PortfolioHero({
-  total,
-  published,
-  draft,
-  avgRating,
-  reviewCount,
-  spotlight,
+function CountPart({
+  value,
+  className,
 }: {
-  total: number;
-  published: number;
-  draft: number;
-  avgRating: number | null;
-  reviewCount: number;
-  spotlight: {
-    name: string;
-    imageUrl: string;
-    slug: string | null;
-    id: string;
-  } | null;
+  value: number;
+  className?: string;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
-      <div className="grid gap-0 md:grid-cols-[1.45fr_1fr]">
-        {/* Left: title block */}
-        <div className="relative bg-brand-gradient-dark p-7 text-white md:p-8">
-          <div
-            aria-hidden
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage:
-                "radial-gradient(rgba(16,185,129,0.18) 1px, transparent 1px)",
-              backgroundSize: "18px 18px",
-            }}
-          />
-          <div
-            aria-hidden
-            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/30 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-brand-secondary/40 blur-3xl"
-          />
+    <span className={`num font-semibold ${className ?? "text-brand-ink"}`}>
+      {value}
+    </span>
+  );
+}
 
-          <div className="relative">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
-                <svg
-                  className="h-3 w-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M3 11l9-7 9 7" />
-                  <path d="M5 10v10h14V10" />
-                </svg>
-                Portfolio
-              </div>
-              <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                {published} live · {draft} draft
-              </div>
-            </div>
-
-            <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-              Your listings
-            </h2>
-            <p className="mt-2 max-w-md text-[14px] leading-relaxed text-brand-accent/80">
-              {total === 0
-                ? "Add your first listing to start taking direct bookings."
-                : `${total} ${total === 1 ? "place" : "places"} in your portfolio. Edit, pause, or publish — guests see your changes within a minute.`}
-            </p>
-
-            {total > 0 ? (
-              <div className="mt-6 grid max-w-md grid-cols-3 gap-3">
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Published
-                  </div>
-                  <div className="num mt-1 font-display text-2xl font-bold text-white">
-                    {published}
-                    <span className="text-[12px] font-medium text-brand-accent/60">
-                      /{total}
-                    </span>
-                  </div>
-                  <div className="text-[10.5px] text-brand-accent/60">
-                    {published === 0 ? "ready to publish" : "live now"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Drafts
-                  </div>
-                  <div className="num mt-1 font-display text-2xl font-bold text-white">
-                    {draft}
-                  </div>
-                  <div className="text-[10.5px] text-brand-accent/60">
-                    {draft === 0 ? "all live" : "finish to publish"}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Avg rating
-                  </div>
-                  <div className="num mt-1 font-display text-2xl font-bold text-white">
-                    {avgRating == null ? "—" : avgRating.toFixed(2)}
-                    {avgRating != null ? (
-                      <span className="text-[12px] font-medium text-brand-accent/60">
-                        /5
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="text-[10.5px] text-brand-accent/60">
-                    {reviewCount === 0
-                      ? "after first stay"
-                      : `${reviewCount} review${reviewCount === 1 ? "" : "s"}`}
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            <div className="mt-6 flex flex-wrap gap-2.5">
-              <Link
-                href="/dashboard/listings/new"
-                className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_12px_32px_-10px_rgba(16,185,129,0.35)] transition-colors hover:bg-white hover:text-brand-secondary"
-              >
-                <Plus className="h-4 w-4" />
-                New listing
-              </Link>
-              <Link
-                href="/dashboard/calendar-sync"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path d="M21 12a9 9 0 1 1-3.5-7.1" />
-                  <path d="M21 4v5h-5" />
-                </svg>
-                Import from iCal
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: spotlight */}
-        <div className="relative bg-brand-dark text-white">
-          <div className="relative h-full min-h-[280px]">
-            {spotlight ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={spotlight.imageUrl}
-                  alt={spotlight.name}
-                  className="absolute inset-0 h-full w-full object-cover opacity-90"
-                />
-                <div className="absolute inset-0 bg-gradient-to-tr from-brand-dark via-brand-dark/40 to-transparent" />
-                <div className="relative flex h-full flex-col justify-between p-7 md:p-8">
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                      <Star className="h-3 w-3" fill="currentColor" />
-                      Featured listing
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/70">
-                      Spotlight
-                    </div>
-                    <div className="mt-1 font-display text-xl font-bold leading-tight">
-                      {spotlight.name}
-                    </div>
-                    <Link
-                      href={`/dashboard/listings/${spotlight.id}/edit`}
-                      className="mt-3 inline-flex items-center gap-1 text-[12px] font-semibold text-white"
-                    >
-                      Open listing
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div
-                aria-hidden
-                className="absolute inset-0 opacity-25"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(rgba(16,185,129,0.35) 1px, transparent 1px)",
-                  backgroundSize: "18px 18px",
-                }}
-              />
-            )}
-            {!spotlight ? (
-              <div className="relative flex h-full flex-col justify-end p-7 md:p-8">
-                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/70">
-                  No featured listing yet
-                </div>
-                <div className="mt-1 font-display text-xl font-bold leading-tight text-white">
-                  Publish your first listing
-                </div>
-                <p className="mt-2 max-w-xs text-[12px] text-brand-accent/70">
-                  Once it&rsquo;s live, the highest-rated listing lands here as
-                  your portfolio&rsquo;s spotlight.
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </div>
+function KpiCard({
+  label,
+  chip,
+  chipTone = "good",
+  children,
+}: {
+  label: string;
+  chip: string;
+  chipTone?: "good" | "mute";
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          {label}
+        </span>
+        <span
+          className={`num inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold ${
+            chipTone === "good" ? "text-status-confirmed" : "text-brand-mute"
+          }`}
+        >
+          {chip}
+        </span>
       </div>
-    </section>
+      <div className="mt-2 font-display text-[26px] font-bold leading-none text-brand-ink">
+        {children}
+      </div>
+    </div>
   );
 }
 
-function FilterBar({
-  status,
-  q,
-  counts,
-}: {
-  status: StatusFilter;
-  q: string;
-  counts: { all: number; published: number; draft: number };
-}) {
-  return (
-    <section className="rounded-card border border-brand-line bg-white p-3 shadow-card">
-      <form
-        action="/dashboard/listings"
-        method="GET"
-        className="flex flex-wrap items-center gap-2"
-      >
-        <div className="flex min-w-[240px] flex-1 items-center gap-2 rounded-[10px] border border-brand-line bg-white px-3 py-2 focus-within:border-brand-primary focus-within:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]">
-          <svg
-            className="h-4 w-4 text-brand-mute"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <path d="M21 21l-4.3-4.3" />
-          </svg>
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Search listings by name, city, or slug…"
-            className="flex-1 bg-transparent text-[13px] text-brand-ink placeholder:text-brand-mute focus:outline-none"
-          />
-          {status !== "all" ? (
-            <input type="hidden" name="status" value={status} />
-          ) : null}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <StatusChip
-            href="/dashboard/listings"
-            label="All"
-            count={counts.all}
-            active={status === "all"}
-          />
-          <StatusChip
-            href="/dashboard/listings?status=published"
-            label="Published"
-            count={counts.published}
-            active={status === "published"}
-            dotClass="bg-status-confirmed"
-          />
-          <StatusChip
-            href="/dashboard/listings?status=draft"
-            label="Drafts"
-            count={counts.draft}
-            active={status === "draft"}
-            dotClass="bg-status-draft"
-          />
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function StatusChip({
-  href,
+function Tab({
   label,
   count,
   active,
-  dotClass,
+  href,
 }: {
-  href: string;
   label: string;
   count: number;
   active: boolean;
-  dotClass?: string;
+  href: string;
 }) {
   return (
     <Link
       href={href}
-      className={
-        active
-          ? "rounded-pill bg-brand-secondary px-3 py-1.5 text-[12px] font-semibold text-white"
-          : "rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-accent"
-      }
+      className={`relative mx-4 inline-flex items-center gap-2 whitespace-nowrap py-[13px] text-[13.5px] font-semibold first:ml-0 ${
+        active ? "text-brand-secondary" : "text-brand-mute hover:text-brand-ink"
+      }`}
     >
-      {dotClass ? (
-        <span
-          className={`mr-1 inline-block h-1.5 w-1.5 rounded-full ${dotClass}`}
-        />
-      ) : null}
       {label}
       <span
-        className={`num ml-1 ${active ? "text-white/70" : "text-brand-mute"}`}
+        className={`num rounded-pill border px-[7px] py-px text-[11px] ${
+          active
+            ? "border-brand-accent bg-brand-accent text-brand-secondary"
+            : "border-brand-line bg-brand-light text-brand-mute"
+        }`}
       >
         {count}
       </span>
+      {active ? (
+        <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded-[3px] bg-brand-primary" />
+      ) : null}
     </Link>
   );
 }
 
-function ListingCard({
-  listing,
-  isSpotlight,
-}: {
-  listing: ListingRow;
-  isSpotlight: boolean;
-}) {
-  const photos = (listing.photos ?? []).sort(
-    (a, b) => a.sort_order - b.sort_order,
-  );
-  const hero = photos[0];
-  const typeLabel = TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
-  const location = [listing.city, listing.province].filter(Boolean).join(", ");
-  const roomCount = (listing.rooms ?? []).length;
-  const photoCount = photos.length;
+const STATUS_TAG: Record<Derived["status"], { cls: string; label: string }> = {
+  published: {
+    cls: "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]",
+    label: "Published",
+  },
+  draft: {
+    cls: "border-brand-line bg-[#F4F7F5] text-[#5B7065]",
+    label: "Draft",
+  },
+  paused: {
+    cls: "border-[#FCE9B6] bg-[#FFFBEB] text-[#B45309]",
+    label: "Paused",
+  },
+};
+const STATUS_DOT: Record<Derived["status"], string> = {
+  published: "#10B981",
+  draft: "#94A3B8",
+  paused: "#F59E0B",
+};
 
+function StatusTag({ status }: { status: Derived["status"] }) {
+  const t = STATUS_TAG[status];
   return (
-    <article
-      className={`group flex flex-col overflow-hidden rounded-card bg-white shadow-card transition-shadow hover:shadow-lift ${
-        isSpotlight
-          ? "border-2 border-brand-primary"
-          : "border border-brand-line"
-      }`}
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border px-2.5 py-[3px] text-[11.5px] font-semibold ${t.cls}`}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-brand-accent">
-        {hero ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={hero.url}
-            alt={listing.name}
-            className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-              listing.is_published ? "" : "opacity-90"
-            }`}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-brand-mute">
-            <ImageIcon className="h-10 w-10" />
-          </div>
-        )}
-
-        {/* Status pill */}
-        {listing.is_published ? (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-pill bg-white/95 px-2 py-0.5 text-[10px] font-bold text-brand-secondary backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
-            Published
-          </span>
-        ) : (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-pill bg-brand-line px-2 py-0.5 text-[10px] font-bold text-brand-mute backdrop-blur">
-            <span className="h-1.5 w-1.5 rounded-full bg-status-draft" />
-            Draft
-          </span>
-        )}
-
-        {isSpotlight ? (
-          <span className="absolute left-3 top-10 inline-flex items-center gap-1 rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white">
-            <Star className="h-2.5 w-2.5" fill="currentColor" />
-            Featured
-          </span>
-        ) : null}
-
-        {photoCount > 0 ? (
-          <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-pill bg-brand-dark/80 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
-            <ImageIcon className="h-3 w-3" />
-            {photoCount} photo{photoCount === 1 ? "" : "s"}
-            {roomCount > 0
-              ? ` · ${roomCount} room${roomCount === 1 ? "" : "s"}`
-              : ""}
-          </div>
-        ) : null}
-      </div>
-
-      <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="truncate font-display text-[16px] font-semibold text-brand-ink">
-              {listing.name}
-            </div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-brand-mute">
-              <MapPin className="h-3 w-3" />
-              {typeLabel}
-              {location ? ` · ${location}` : ""}
-            </div>
-          </div>
-          {listing.base_price != null ? (
-            <div className="shrink-0 text-right">
-              <div className="num font-display text-[14px] font-bold text-brand-ink">
-                {formatMoney(Number(listing.base_price), listing.currency)}
-              </div>
-              <div className="text-[10px] text-brand-mute">/ night</div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Mini stats — without bookings/rating per-listing aggregates we
-            surface the structural info we have: rooms, photos, status. */}
-        <div className="mt-4 grid grid-cols-3 gap-3 rounded-[10px] bg-brand-light/60 px-3 py-2.5">
-          <Stat label="Rooms" value={roomCount > 0 ? String(roomCount) : "—"} />
-          <Stat
-            label="Photos"
-            value={photoCount > 0 ? String(photoCount) : "—"}
-          />
-          <Stat
-            label="Status"
-            value={listing.is_published ? "Live" : "Draft"}
-            valueClass={
-              listing.is_published ? "text-status-confirmed" : "text-brand-mute"
-            }
-          />
-        </div>
-
-        <div className="mt-4 flex items-center gap-3 border-t border-brand-line pt-3 text-[12.5px]">
-          <Link
-            href={`/dashboard/listings/${listing.id}/edit`}
-            className="font-semibold text-brand-primary hover:underline"
-          >
-            Edit
-          </Link>
-          {listing.is_published && listing.slug ? (
-            <Link
-              href={`/listing/${listing.slug}`}
-              target="_blank"
-              className="inline-flex items-center gap-1 text-brand-mute hover:text-brand-ink"
-            >
-              View
-              <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          ) : null}
-          {listing.slug ? (
-            <span className="ml-auto truncate font-mono text-[10.5px] text-brand-mute">
-              /{listing.slug}
-            </span>
-          ) : null}
-        </div>
-      </div>
-    </article>
+      <span
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ background: STATUS_DOT[status] }}
+      />
+      {t.label}
+    </span>
   );
 }
 
-function Stat({
+function MiniStat({
   label,
   value,
   valueClass,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   valueClass?: string;
 }) {
   return (
@@ -655,11 +661,315 @@ function Stat({
   );
 }
 
+function RatingStat({ rating }: { rating: number | null }) {
+  return (
+    <div>
+      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+        Rating
+      </div>
+      <div className="mt-0.5 flex items-center gap-1 text-[13px] font-bold text-brand-ink">
+        <Star
+          className="h-3 w-3"
+          style={{ fill: "#F59E0B", color: "#F59E0B" }}
+        />
+        <span className="num">{rating == null ? "—" : rating.toFixed(2)}</span>
+      </div>
+    </div>
+  );
+}
+
+function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
+  const top = isSpotlight && l.status === "published";
+  return (
+    <article
+      className={`group flex flex-col overflow-hidden rounded-card bg-white shadow-card transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-lift ${
+        top ? "border-2 border-brand-primary" : "border border-brand-line"
+      }`}
+    >
+      <div className="relative aspect-[4/3] overflow-hidden bg-brand-accent">
+        {l.hero ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={l.hero.url}
+            alt={l.name}
+            loading="lazy"
+            className={`h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105 ${
+              l.status === "draft"
+                ? "opacity-90 grayscale-[15%]"
+                : l.status === "paused"
+                  ? "opacity-80"
+                  : ""
+            }`}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-brand-mute">
+            <ImageIcon className="h-10 w-10" />
+          </div>
+        )}
+
+        <span className="absolute left-3 top-3 backdrop-blur-[4px]">
+          <StatusTag status={l.status} />
+        </span>
+
+        {top ? (
+          <span className="absolute left-3 top-12 inline-flex items-center gap-1 rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+            <Award className="h-2.5 w-2.5" />
+            Top performer
+          </span>
+        ) : null}
+
+        <button
+          type="button"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-brand-ink shadow-sm backdrop-blur hover:bg-white"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+
+        {l.status === "draft" ? (
+          <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-pill bg-status-pending px-2 py-0.5 text-[10px] font-bold text-white">
+            <AlertCircle className="h-3 w-3" />
+            {l.setup.total - l.setup.done} step
+            {l.setup.total - l.setup.done === 1 ? "" : "s"} left
+          </div>
+        ) : l.status === "published" ? (
+          <div className="absolute bottom-3 left-3 inline-flex items-center gap-1 rounded-pill bg-brand-dark/75 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+            <ImageIcon className="h-3 w-3" />
+            {l.photoCount} photo{l.photoCount === 1 ? "" : "s"}
+          </div>
+        ) : null}
+
+        {l.status === "paused" ? (
+          <>
+            <div className="absolute inset-0 bg-brand-dark/35" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="rounded-pill bg-white/95 px-3 py-1.5 text-[11px] font-semibold text-brand-ink shadow-lift">
+                Hidden from search
+              </div>
+            </div>
+          </>
+        ) : null}
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="truncate font-display text-[16px] font-semibold text-brand-ink">
+              {l.name}
+            </div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-brand-mute">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {l.typeLabel}
+                {l.location ? ` · ${l.location}` : ""}
+              </span>
+            </div>
+          </div>
+          {l.price != null ? (
+            <div className="shrink-0 text-right">
+              <div
+                className={`num whitespace-nowrap font-display text-[14px] font-bold ${
+                  l.status === "draft" ? "text-brand-mute" : "text-brand-ink"
+                }`}
+              >
+                {formatMoney(l.price, l.currency)}
+              </div>
+              <div className="whitespace-nowrap text-[10px] text-brand-mute">
+                / night
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {l.status === "draft" ? (
+          <>
+            <div className="mt-4 rounded-[12px] border border-status-pending/30 bg-status-pending/5 px-3 py-2.5">
+              <div className="flex items-center justify-between">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-status-pending">
+                  Finish to publish
+                </div>
+                <div className="num text-[11px] font-bold text-brand-ink">
+                  {l.setup.done}
+                  <span className="text-brand-mute">/{l.setup.total}</span>
+                </div>
+              </div>
+              <div
+                className="mt-2 h-1.5 overflow-hidden rounded-pill"
+                style={{ background: "#FDF0D6" }}
+              >
+                <span
+                  className="block h-full rounded-pill"
+                  style={{
+                    width: `${Math.round((l.setup.done / l.setup.total) * 100)}%`,
+                    background: "#F59E0B",
+                  }}
+                />
+              </div>
+              {l.setup.missing.length > 0 ? (
+                <div className="mt-2 text-[11.5px] text-brand-mute">
+                  Missing: {l.setup.missing.join(", ")}
+                </div>
+              ) : null}
+            </div>
+            <CardFooter l={l}>
+              <Link
+                href={`/dashboard/listings/${l.id}/edit`}
+                className="font-semibold text-brand-primary hover:underline"
+              >
+                Continue setup
+              </Link>
+            </CardFooter>
+          </>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-3 gap-3 rounded-[12px] bg-brand-light px-3 py-2.5">
+              <MiniStat
+                label="Bookings"
+                value={<span className="num">{l.bookings}</span>}
+              />
+              <MiniStat
+                label="Reviews"
+                value={<span className="num">{l.reviews}</span>}
+              />
+              <RatingStat rating={l.rating} />
+            </div>
+            <CardFooter l={l}>
+              <Link
+                href={`/dashboard/listings/${l.id}/edit`}
+                className="font-semibold text-brand-primary hover:underline"
+              >
+                {l.status === "paused" ? "Resume" : "Edit"}
+              </Link>
+              {l.status === "published" && l.slug ? (
+                <Link
+                  href={`/listing/${l.slug}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-brand-mute hover:text-brand-ink"
+                >
+                  View
+                  <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              ) : null}
+            </CardFooter>
+          </>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function CardFooter({
+  l,
+  children,
+}: {
+  l: Derived;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-4 flex items-center gap-3 border-t border-brand-line pt-3 text-[12.5px]">
+      {children}
+      {l.slug ? (
+        <span className="ml-auto truncate font-mono text-[10.5px] text-brand-mute">
+          /{l.slug}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function ListingRowItem({
+  l,
+  isSpotlight,
+}: {
+  l: Derived;
+  isSpotlight: boolean;
+}) {
+  const top = isSpotlight && l.status === "published";
+  return (
+    <Link
+      href={`/dashboard/listings/${l.id}/edit`}
+      className={`flex items-center gap-4 rounded-card border bg-white p-3 shadow-card transition-[border-color,box-shadow] hover:border-[#CDE6D8] hover:shadow-lift ${
+        top ? "border-brand-primary" : "border-brand-line"
+      }`}
+    >
+      <div className="h-16 w-20 shrink-0 overflow-hidden rounded-[11px] bg-brand-accent">
+        {l.hero ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={l.hero.url} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-brand-mute">
+            <ImageIcon className="h-5 w-5" />
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span className="truncate font-display text-[15px] font-semibold text-brand-ink">
+            {l.name}
+          </span>
+          <StatusTag status={l.status} />
+          {top ? (
+            <span className="hidden rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-semibold text-brand-secondary sm:inline-block">
+              Top
+            </span>
+          ) : null}
+        </div>
+        <div className="mt-0.5 flex items-center gap-1.5 truncate text-[12px] text-brand-mute">
+          <MapPin className="h-3 w-3 shrink-0" />
+          <span className="truncate">
+            {l.typeLabel}
+            {l.location ? ` · ${l.location}` : ""}
+          </span>
+          {l.slug ? (
+            <span className="ml-1 hidden font-mono text-[10.5px] md:inline">
+              /{l.slug}
+            </span>
+          ) : null}
+        </div>
+      </div>
+      {l.price != null ? (
+        <div className="hidden shrink-0 text-right sm:block">
+          <div className="num whitespace-nowrap font-display text-[14px] font-bold text-brand-ink">
+            {formatMoney(l.price, l.currency)}
+          </div>
+          <div className="whitespace-nowrap text-[10px] text-brand-mute">
+            / night
+          </div>
+        </div>
+      ) : null}
+      <div className="hidden w-[180px] shrink-0 justify-end md:flex">
+        {l.status === "draft" ? (
+          <span className="num text-[12.5px] font-semibold text-status-pending">
+            {l.setup.done}/{l.setup.total} steps
+          </span>
+        ) : l.status === "paused" ? (
+          <span className="text-[12.5px] text-brand-mute">
+            Hidden from search
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-3 text-[12.5px]">
+            <span className="num font-semibold text-brand-ink">
+              {l.bookings} booking{l.bookings === 1 ? "" : "s"}
+            </span>
+            <span className="num inline-flex items-center gap-1 font-semibold text-brand-ink">
+              <Star
+                className="h-3 w-3"
+                style={{ fill: "#F59E0B", color: "#F59E0B" }}
+              />
+              {l.rating == null ? "—" : l.rating.toFixed(2)}
+            </span>
+          </span>
+        )}
+      </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-brand-mute" />
+    </Link>
+  );
+}
+
 function AddListingTile() {
   return (
     <Link
       href="/dashboard/listings/new"
-      className="group flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-brand-line bg-white p-6 text-center transition-colors hover:border-brand-primary hover:bg-brand-accent/20"
+      className="group flex min-h-[360px] flex-col items-center justify-center gap-3 rounded-card border-2 border-dashed border-brand-line bg-white p-6 text-center transition-colors hover:border-brand-primary hover:bg-brand-light"
     >
       <div className="flex h-14 w-14 items-center justify-center rounded-card bg-brand-accent text-brand-primary transition-transform group-hover:scale-110">
         <Plus className="h-6 w-6" />
@@ -668,19 +978,142 @@ function AddListingTile() {
         <div className="font-display text-[15px] font-bold text-brand-ink">
           Add another listing
         </div>
-        <p className="mx-auto mt-1 max-w-[18ch] text-[12px] leading-relaxed text-brand-mute">
+        <p className="mx-auto mt-1 max-w-[20ch] text-[12px] leading-relaxed text-brand-mute">
           Apartment, lodge, guesthouse, or cottage.
         </p>
       </div>
-      <div className="flex flex-wrap items-center justify-center gap-1 text-[10.5px] text-brand-mute">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 text-[10.5px] text-brand-mute">
         <span className="rounded-pill border border-brand-line bg-white px-2 py-0.5">
-          5-10 min
+          5–10 min
         </span>
         <span className="rounded-pill border border-brand-line bg-white px-2 py-0.5">
           Save as draft
         </span>
       </div>
     </Link>
+  );
+}
+
+type Rec = {
+  priority: "High" | "Medium";
+  icon: "image" | "calendar" | "trending";
+  title: React.ReactNode;
+  body: string;
+  cta: { label: string; href: string };
+};
+
+function buildRecommendations(all: Derived[]): Rec[] {
+  const recs: Rec[] = [];
+  for (const l of all) {
+    if (l.status === "draft") {
+      recs.push({
+        priority: "High",
+        icon: "calendar",
+        title: (
+          <>
+            Finish setup for{" "}
+            <span className="text-brand-primary">{l.name}</span>
+          </>
+        ),
+        body: `${l.setup.total - l.setup.done} step${
+          l.setup.total - l.setup.done === 1 ? "" : "s"
+        } left${l.setup.missing.length ? ` · missing ${l.setup.missing.join(", ")}` : ""}.`,
+        cta: {
+          label: "Continue setup",
+          href: `/dashboard/listings/${l.id}/edit`,
+        },
+      });
+      continue;
+    }
+    if (l.status === "published" && l.photoCount < PHOTO_TARGET) {
+      recs.push({
+        priority: "High",
+        icon: "image",
+        title: (
+          <>
+            Add {PHOTO_TARGET - l.photoCount} more photo
+            {PHOTO_TARGET - l.photoCount === 1 ? "" : "s"} to{" "}
+            <span className="text-brand-primary">{l.name}</span>
+          </>
+        ),
+        body: `Vilo guideline: ${PHOTO_TARGET}+ photos before publish. Listings with ${PHOTO_TARGET}+ photos book far more often.`,
+        cta: {
+          label: "Upload photos",
+          href: `/dashboard/listings/${l.id}/edit`,
+        },
+      });
+    }
+    if (l.status === "published" && l.price == null) {
+      recs.push({
+        priority: "High",
+        icon: "trending",
+        title: (
+          <>
+            Set a nightly price for{" "}
+            <span className="text-brand-primary">{l.name}</span>
+          </>
+        ),
+        body: "This listing is live without a base price — guests can't see what a night costs.",
+        cta: { label: "Set pricing", href: `/dashboard/listings/${l.id}/edit` },
+      });
+    }
+  }
+  // Highest-value first, cap to keep the panel calm.
+  return recs
+    .sort((a, b) =>
+      a.priority === b.priority ? 0 : a.priority === "High" ? -1 : 1,
+    )
+    .slice(0, 4);
+}
+
+function RecRow({ rec }: { rec: Rec }) {
+  const Icon =
+    rec.icon === "image"
+      ? ImageIcon
+      : rec.icon === "trending"
+        ? TrendingUp
+        : Calendar;
+  const iconTone =
+    rec.priority === "High"
+      ? "bg-status-pending/12 text-status-pending"
+      : "bg-brand-accent text-brand-secondary";
+  const tag =
+    rec.priority === "High"
+      ? "border-[#FCE9B6] bg-[#FFFBEB] text-[#B45309]"
+      : "border-brand-line bg-[#F4F7F5] text-[#5B7065]";
+  return (
+    <div className="flex items-start gap-4 px-5 py-4">
+      <span
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${iconTone}`}
+      >
+        <Icon className="h-[18px] w-[18px]" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="text-[13.5px] font-semibold text-brand-ink">
+            {rec.title}
+          </div>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2.5 py-[3px] text-[11.5px] font-semibold ${tag}`}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{
+                background: rec.priority === "High" ? "#F59E0B" : "#94A3B8",
+              }}
+            />
+            {rec.priority}
+          </span>
+        </div>
+        <p className="mt-0.5 text-[12.5px] text-brand-mute">{rec.body}</p>
+        <Link
+          href={rec.cta.href}
+          className="mt-1.5 inline-block text-[12px] font-semibold text-brand-primary hover:underline"
+        >
+          {rec.cta.label} →
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -705,4 +1138,22 @@ function EmptyState() {
       </Link>
     </div>
   );
+}
+
+// Build a /dashboard/listings URL, preserving current params and applying
+// patch (undefined removes a param). Keeps tab/sort/view server-rendered.
+function buildUrl(
+  current:
+    | { status?: string; q?: string; sort?: string; view?: string }
+    | undefined,
+  patch: Partial<{ status: string; q: string; sort: string; view: string }>,
+): string {
+  const merged = { ...(current ?? {}), ...patch };
+  const sp = new URLSearchParams();
+  for (const key of ["status", "q", "sort", "view"] as const) {
+    const v = merged[key];
+    if (v) sp.set(key, v);
+  }
+  const qs = sp.toString();
+  return qs ? `/dashboard/listings?${qs}` : "/dashboard/listings";
 }

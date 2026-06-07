@@ -145,6 +145,8 @@ export type BookingDetailData = {
     method: string;
     note: string | null;
     date: string | null;
+    receiptNumber: string | null;
+    receiptToken: string | null;
   }[];
 
   invoice: { id: string; number: string } | null;
