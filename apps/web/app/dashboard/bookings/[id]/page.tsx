@@ -180,6 +180,51 @@ export default async function BookingDetailPage({
     guestCredit = (creditRows ?? []).reduce((s, r) => s + Number(r.amount), 0);
   }
 
+  // All invoices for this booking → the "charge" side of the ledger (the stay +
+  // each post-booking add-on). Lets every add-on show as a transaction even when
+  // it's added to the balance (unpaid) rather than paid on the spot.
+  const { data: invoiceAll } = await supabase
+    .from("invoices")
+    .select(
+      "id, invoice_number, kind, total_amount, status, issued_at, hosted_token",
+    )
+    .eq("booking_id", booking.id)
+    .order("issued_at", { ascending: true });
+  const allInvoices = invoiceAll ?? [];
+  const addonInvoices = allInvoices.filter((i) => i.kind === "addon");
+  const addonInvTotal = addonInvoices.reduce(
+    (s, i) => s + Number(i.total_amount),
+    0,
+  );
+  const bookingInvoice = allInvoices.find((i) => i.kind === "booking");
+  // The "stay" charge is the booking total minus the post-booking add-on
+  // invoices — i.e. the original stay + any add-ons that came with the booking.
+  const stayCharge =
+    Math.round((Number(booking.total_amount) - addonInvTotal) * 100) / 100;
+
+  const chargeEntries = [
+    {
+      id: "stay",
+      date: booking.created_at as string,
+      label: bookingInvoice ? "Stay & booking add-ons" : "Stay",
+      sublabel: bookingInvoice?.invoice_number ?? null,
+      amount: stayCharge,
+      status: bookingInvoice?.status ?? null,
+      href: bookingInvoice?.hosted_token
+        ? `/invoice/${bookingInvoice.hosted_token}`
+        : null,
+    },
+    ...addonInvoices.map((i) => ({
+      id: i.id,
+      date: i.issued_at as string,
+      label: "Add-on",
+      sublabel: i.invoice_number as string,
+      amount: Number(i.total_amount),
+      status: i.status as string,
+      href: i.hosted_token ? `/invoice/${i.hosted_token}` : null,
+    })),
+  ];
+
   // Financial documents + access + host-only notes.
   const [
     { data: invoiceRow },
@@ -191,6 +236,7 @@ export default async function BookingDetailPage({
       .from("invoices")
       .select("id, invoice_number, status")
       .eq("booking_id", booking.id)
+      .eq("kind", "booking")
       .maybeSingle(),
     supabase
       .from("credit_notes")
@@ -587,6 +633,7 @@ export default async function BookingDetailPage({
       receiptNumber: (p.receipt_number ?? null) as string | null,
       receiptToken: (p.receipt_token ?? null) as string | null,
     })),
+    charges: chargeEntries,
 
     invoice: invoiceRow
       ? { id: invoiceRow.id, number: invoiceRow.invoice_number }

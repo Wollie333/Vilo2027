@@ -148,6 +148,15 @@ export type BookingDetailData = {
     receiptNumber: string | null;
     receiptToken: string | null;
   }[];
+  charges: {
+    id: string;
+    date: string;
+    label: string;
+    sublabel: string | null;
+    amount: number;
+    status: string | null;
+    href: string | null;
+  }[];
 
   invoice: { id: string; number: string } | null;
   creditNotes: { id: string; number: string }[];
@@ -992,6 +1001,7 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               balanceDue={d.balanceDue}
               guestCredit={d.guestCredit}
               payments={d.payments}
+              charges={d.charges}
               canRecord={d.hasWorkflow || d.status === "completed"}
             />
           </div>
