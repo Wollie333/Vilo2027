@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — Booking redesign — simplified guest journey (display-only listing + 3-step checkout) — branch `main`
+
+### Built
+- **`ReservePanel`** (`app/listing/[slug]/ReservePanel.tsx`) — display-only sidebar (dark sticky card + mobile bottom bar) with two actions: **Reserve** (→ booking flow) and **Request a quote** (existing modal). No inline date/room/guest selection on the listing anymore.
+- **Self-contained 3-step checkout** — `BookingForm` now runs **Rooms → Details → Payment** in-page (guests pick dates, guests and rooms inside the flow), replacing the old 2-step Review → Payment that depended on a listing-page cart.
+
+### Changed
+- **Listing page** collapsed to a single display-only body for every booking mode; rooms shown via `RoomsInfoGrid` (now with a from/night price). `RequestQuoteButton` gained `triggerClassName` / `triggerLabel` for panel + mobile styling.
+- **`book/page.tsx`** no longer gates on dates (Reserve arrives with no params) and loads add-ons unconditionally.
+- All existing server logic reused unchanged: `createBookingAction`, `priceStay()`, coupons, add-ons, Paystack + manual EFT, `/booking/[id]/success`.
+
+### Removed
+- Now-unused interactive listing components: `BookingWidget`, `RoomsCartSidebar`, `MobileBookingBar`, `WholeListingToggle`, `RoomsGrid`, `RoomsCalendarSection`, `RoomsCartProvider` (its `BookingMode` type moved to `roomDisplay.ts`).
+
+### Migrations
+- `20260607000003_help_guest_booking_flow.sql` — guest Help Centre article "How to book a stay" (Reserve vs Request a quote; the 3 steps). _Not yet pushed — apply with `supabase db push --linked`._
+
+### Notes
+- Plan + progress tracked in `BOOKING_REDESIGN_PLAN.md`.
+- **Still open:** live per-room availability inside step 1 (server already enforces it at submit); finer visual alignment to `Booking Flow.html`.
+
+### Commit
+- `feat(listing): display-only listing with Reserve + Request-a-quote CTAs` — 55b0ae2
+- `feat(checkout): self-contained 3-step Rooms -> Details -> Payment flow` — 80a0d72
+
+---
+
 ## 2026-06-07 — One ledger everywhere — guest Finances & booking Payments read the single transaction source — branch `main`
 
 ### Built

@@ -14,6 +14,10 @@ import {
   type RoomPricingMode,
 } from "@/lib/pricing/occupancy";
 
+// How a listing may be booked. Lives here (non-client) so server components can
+// import the type without pulling in a client module.
+export type BookingMode = "whole_listing" | "rooms_only" | "flexible";
+
 export {
   roomFromNightly,
   roomNightlyBase,

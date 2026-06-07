@@ -29,7 +29,6 @@ import { AmenitiesList } from "./AmenitiesList";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
 import { ListingHero } from "./ListingHero";
 import { LocationSection, type Poi } from "./LocationSection";
-import { type BookingMode } from "./RoomsCartProvider";
 import { SimilarListings } from "./SimilarListings";
 import { SuitabilityChips } from "./SuitabilityChips";
 import { TrustCard } from "./TrustCard";
@@ -40,7 +39,7 @@ import { RequestQuoteButton } from "./RequestQuoteButton";
 import { ReservePanel } from "./ReservePanel";
 import { loadListingReviews } from "./reviews-data";
 import { ReviewsSection } from "./ReviewsSection";
-import { type PublicRoom } from "./roomDisplay";
+import { type BookingMode, type PublicRoom } from "./roomDisplay";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
 import { StickySubnav } from "./StickySubnav";
 

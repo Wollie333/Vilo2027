@@ -36,10 +36,7 @@ onto `bookings.price_breakdown` so invoices/refunds/support read the exact bill.
 | Surface | File | Role |
 |---|---|---|
 | **Authoritative charge** | `app/listing/[slug]/book/actions.ts` | recalculates server-side; never trusts the client; persists the breakdown + records coupon redemption |
-| Checkout estimate | `app/listing/[slug]/book/BookingForm.tsx` | live sidebar — equals the charge to the cent |
-| Listing sidebar teaser | `app/listing/[slug]/BookingWidget.tsx` | whole-listing quick estimate |
-| Rooms cart | `app/listing/[slug]/RoomsCartSidebar.tsx` | per-room running total |
-| Mobile sticky bar | `app/listing/[slug]/MobileBookingBar.tsx` | mobile total |
+| Checkout estimate | `app/listing/[slug]/book/BookingForm.tsx` | live 3-step summary — equals the charge to the cent (room/date/guest selection happens here, not on the listing) |
 | Single-room page | `app/listing/[slug]/rooms/[roomId]/RoomBookingWidget.tsx` | one-room estimate |
 | Host seasonal preview | `app/dashboard/seasonal-pricing/*` | year-at-a-glance |
 

@@ -179,7 +179,8 @@
 - [x] **Phase 4** — Step 2 Details (+ add-ons + coupon) — _functional; add-on
       unit mapping (F1) verified against existing PricingModel_
 - [x] **Phase 5** — Step 3 Payment + submit — _functional (Paystack + EFT)_
-- [ ] **Phase 6** — Polish + help article + changelog
+- [x] **Phase 6** — Cleanup (deleted unused cluster) + help article + changelog
+      — _live per-room availability (F2) intentionally deferred; see notes_
 
 ## 6. Session notes (append as we go)
 
@@ -214,3 +215,14 @@
     visual alignment to `Booking Flow.html` (guests popover, room "Add" pills,
     stepper styling); delete the now-unused listing components; help article +
     changelog.
+- 2026-06-07 — **Phase 6 done.** Deleted the unused interactive cluster
+  (`BookingWidget`, `RoomsCartSidebar`, `MobileBookingBar`, `WholeListingToggle`,
+  `RoomsGrid`, `RoomsCalendarSection`, `RoomsCartProvider`); moved `BookingMode`
+  type to `roomDisplay.ts`; fixed `lib/pricing/README.md`. Added guest help
+  article migration `20260607000003_help_guest_booking_flow.sql`
+  ("How to book a stay") + CHANGELOG entry. Build + lint + typecheck green.
+  - **Deferred by choice (fast path):** live per-room availability in step 1
+    (F2) — the server already rejects unavailable rooms/dates at submit via
+    `room_is_available` / `listing_is_available_whole`, so no double-booking can
+    occur; the only gap is showing it in the picker UI. Revisit if wanted.
+  - **To apply the help article:** `supabase db push --linked` (not run here).
