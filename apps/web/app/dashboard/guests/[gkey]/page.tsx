@@ -11,7 +11,6 @@ import {
   type InvoiceItem,
   type MessageItem,
   type NoteItem,
-  type PaymentItem,
   type QuoteItem,
   type RefundItem,
   type ReviewItem,
@@ -131,9 +130,8 @@ export default async function GuestRecordPage({
     };
   });
 
-  // Payments for those bookings.
+  // Payments for those bookings → each booking's expandable finance table.
   const bookingIds = bookings.map((b) => b.id);
-  let payments: PaymentItem[] = [];
   if (bookingIds.length > 0) {
     const { data: rawPayments } = await supabase
       .from("payments")
@@ -142,7 +140,6 @@ export default async function GuestRecordPage({
       )
       .in("booking_id", bookingIds)
       .order("created_at", { ascending: false });
-    const refByBooking = new Map(bookings.map((b) => [b.id, b.reference]));
     const bookingById = new Map(bookings.map((b) => [b.id, b]));
     const KIND_LABEL: Record<string, string> = {
       deposit: "Deposit",
@@ -152,17 +149,6 @@ export default async function GuestRecordPage({
       credit: "Store credit",
       refund: "Refund",
     };
-    payments = (rawPayments ?? []).map((p) => ({
-      id: p.id,
-      amount: Number(p.amount),
-      currency: p.currency,
-      method: p.method,
-      status: p.status,
-      capturedAt: p.captured_at,
-      createdAt: p.created_at,
-      reference: refByBooking.get(p.booking_id) ?? "",
-    }));
-    // Attach each payment to its booking's expandable finance table.
     for (const p of rawPayments ?? []) {
       const b = bookingById.get(p.booking_id);
       if (!b) continue;
@@ -459,7 +445,6 @@ export default async function GuestRecordPage({
     <GuestRecord
       record={record}
       bookings={bookings}
-      payments={payments}
       reviews={reviews}
       finances={{ invoices, quotes, refunds, creditNotes }}
       marketingState={marketingState}

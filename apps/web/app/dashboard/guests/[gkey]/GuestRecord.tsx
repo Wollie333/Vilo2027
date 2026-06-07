@@ -10,9 +10,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronRight,
-  CreditCard,
   Download,
-  FileMinus,
   FileText,
   MailCheck,
   MapPin,
@@ -22,8 +20,6 @@ import {
   Pin,
   PinOff,
   Plus,
-  Receipt,
-  RotateCcw,
   ShieldCheck,
   Sparkles,
   Star,
@@ -211,15 +207,11 @@ export type FinanceData = {
 
 const TABS = [
   { key: "overview", label: "Overview" },
-  { key: "bookings", label: "Bookings" },
-  { key: "messages", label: "Messages" },
-  { key: "payments", label: "Payments" },
   { key: "finances", label: "Finances" },
+  { key: "messages", label: "Messages" },
   { key: "reviews", label: "Reviews" },
   { key: "notes", label: "Notes" },
 ] as const;
-
-const PAID = new Set(["completed", "authorised"]);
 
 function initials(name: string | null): string {
   if (!name) return "·";
@@ -279,7 +271,6 @@ function statusTag(status: string): { label: string; cls: string } {
 export function GuestRecord({
   record,
   bookings,
-  payments,
   reviews,
   finances,
   marketingState,
@@ -294,7 +285,6 @@ export function GuestRecord({
 }: {
   record: GuestRecordData;
   bookings: BookingItem[];
-  payments: PaymentItem[];
   reviews: ReviewItem[];
   finances: FinanceData;
   marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
@@ -337,10 +327,6 @@ export function GuestRecord({
           (b.status === "confirmed" || b.status === "checked_in"),
       )
     : undefined;
-
-  const lifetimePaid = payments
-    .filter((p) => PAID.has(p.status))
-    .reduce((s, p) => s + p.amount, 0);
 
   return (
     <div className="mx-auto max-w-[1040px] px-4 py-5 lg:px-6">
@@ -564,25 +550,16 @@ export function GuestRecord({
         <nav className="flex items-stretch gap-7 overflow-x-auto">
           {TABS.map((t) => {
             const active = tab === t.key;
-            const financeCount =
-              finances.invoices.length +
-              finances.quotes.length +
-              finances.refunds.length +
-              finances.creditNotes.length;
             const count =
-              t.key === "bookings"
+              t.key === "finances"
                 ? bookings.length
-                : t.key === "payments"
-                  ? payments.length
-                  : t.key === "messages"
-                    ? messages.length
-                    : t.key === "reviews"
-                      ? reviews.length
-                      : t.key === "finances"
-                        ? financeCount
-                        : t.key === "notes"
-                          ? notes.length
-                          : undefined;
+                : t.key === "messages"
+                  ? messages.length
+                  : t.key === "reviews"
+                    ? reviews.length
+                    : t.key === "notes"
+                      ? notes.length
+                      : undefined;
             return (
               <button
                 key={t.key}
@@ -616,8 +593,6 @@ export function GuestRecord({
             nextBooking={nextBooking}
             pinnedNote={pinnedNote}
           />
-        ) : tab === "bookings" ? (
-          <BookingsPanel bookings={bookings} />
         ) : tab === "messages" ? (
           <MessagesPanel
             firstName={(r.name ?? "guest").split(/\s+/)[0]}
@@ -630,14 +605,8 @@ export function GuestRecord({
           <NotesPanel gkey={r.gkey} notes={notes} />
         ) : tab === "reviews" ? (
           <ReviewsPanel reviews={reviews} />
-        ) : tab === "finances" ? (
-          <FinancesPanel finances={finances} />
         ) : (
-          <PaymentsPanel
-            r={r}
-            payments={payments}
-            lifetimePaid={lifetimePaid}
-          />
+          <FinancesPanel bookings={bookings} quotes={finances.quotes} />
         )}
       </div>
       <div className="h-6" />
@@ -971,11 +940,24 @@ function BookingsPanel({ bookings }: { bookings: BookingItem[] }) {
                 <div className="font-display text-[14px] font-bold text-brand-ink">
                   {formatMoney(b.totalAmount, b.currency)}
                 </div>
-                {b.balanceDue > 0 ? (
-                  <div className="text-[11px] font-semibold text-amber-700">
-                    {formatMoney(b.balanceDue, b.currency)} due
-                  </div>
-                ) : null}
+                <div className="mt-0.5 text-[11px] text-brand-mute">
+                  paid{" "}
+                  {formatMoney(
+                    Math.max(0, b.totalAmount - b.balanceDue),
+                    b.currency,
+                  )}
+                  {b.balanceDue > 0 ? (
+                    <span className="font-semibold text-amber-700">
+                      {" "}
+                      · {formatMoney(b.balanceDue, b.currency)} due
+                    </span>
+                  ) : (
+                    <span className="font-semibold text-emerald-700">
+                      {" "}
+                      · paid
+                    </span>
+                  )}
+                </div>
               </div>
               <span
                 className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tag.cls}`}
@@ -1069,109 +1051,6 @@ function BookingsPanel({ bookings }: { bookings: BookingItem[] }) {
           </div>
         );
       })}
-    </div>
-  );
-}
-
-// ── Payments panel ──────────────────────────────────────────────────────
-function PaymentsPanel({
-  r,
-  payments,
-  lifetimePaid,
-}: {
-  r: GuestRecordData;
-  payments: PaymentItem[];
-  lifetimePaid: number;
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <MiniStat
-          label="Lifetime paid"
-          value={formatMoney(lifetimePaid, r.currency)}
-        />
-        <MiniStat
-          label="Avg / stay"
-          value={formatMoney(r.avg_ltv_per_stay, r.currency)}
-        />
-        <MiniStat
-          label="Payments"
-          value={String(payments.length)}
-          className="col-span-2 sm:col-span-1"
-        />
-      </div>
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="border-b border-brand-line px-5 py-3.5">
-          <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-            Payment history
-          </div>
-        </div>
-        {payments.length === 0 ? (
-          <div className="px-5 py-12 text-center text-[13px] text-brand-mute">
-            No payments recorded.
-          </div>
-        ) : (
-          <div>
-            {payments.map((p, i) => {
-              const paid = PAID.has(p.status);
-              return (
-                <div
-                  key={p.id}
-                  className={`flex items-center gap-4 px-5 py-3.5 ${i > 0 ? "border-t border-brand-line" : ""}`}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[9px] bg-brand-light text-brand-secondary">
-                    <CreditCard className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-semibold text-brand-ink">
-                      {formatMoney(p.amount, p.currency)}{" "}
-                      <span className="font-normal capitalize text-brand-mute">
-                        · {p.method}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 text-[11.5px] text-brand-mute">
-                      <span className="font-mono text-[10.5px]">
-                        {p.reference}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="hidden text-[12px] text-brand-mute sm:block">
-                    {fmtDate((p.capturedAt ?? p.createdAt).slice(0, 10))}
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${paid ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}
-                  >
-                    {paid ? "Paid" : p.status.replace(/_/g, " ")}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  className,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-}) {
-  return (
-    <div
-      className={`rounded-card border border-brand-line bg-white p-4 shadow-card ${className ?? ""}`}
-    >
-      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-        {label}
-      </div>
-      <div className="mt-1.5 font-display text-[20px] font-bold text-brand-ink">
-        {value}
-      </div>
     </div>
   );
 }
@@ -1397,77 +1276,33 @@ function FinanceRow({
   );
 }
 
-function FinancesPanel({ finances }: { finances: FinanceData }) {
-  const { invoices, quotes, refunds, creditNotes } = finances;
-  const empty =
-    invoices.length + quotes.length + refunds.length + creditNotes.length === 0;
-
-  if (empty) {
-    return (
-      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
-        No financial documents for this guest yet. Invoices, quotes, refunds and
-        credit notes will appear here.
-      </div>
-    );
-  }
-
+// The single money home for a guest: every booking with its money status,
+// expandable to that booking's transactions, plus pending quotes below. The full
+// per-booking ledger + controls live on the booking record (Open booking).
+function FinancesPanel({
+  bookings,
+  quotes,
+}: {
+  bookings: BookingItem[];
+  quotes: QuoteItem[];
+}) {
   return (
-    <div className="space-y-5">
-      <FinanceSection icon={Receipt} title="Invoices" count={invoices.length}>
-        {invoices.map((i) => (
-          <FinanceRow
-            key={i.id}
-            href={`/dashboard/invoices/${i.id}`}
-            primary={i.number}
-            secondary={fmtDate(i.date.slice(0, 10))}
-            amount={formatMoney(i.total, i.currency)}
-            status={i.status}
-          />
-        ))}
-      </FinanceSection>
-
-      <FinanceSection icon={FileText} title="Quotes" count={quotes.length}>
-        {quotes.map((q) => (
-          <FinanceRow
-            key={q.id}
-            href={`/dashboard/quotes/${q.id}`}
-            primary={q.listingName}
-            secondary={`${fmtShort(q.checkIn)} → ${fmtShort(q.checkOut)} · ${fmtDate(q.date.slice(0, 10))}`}
-            amount={formatMoney(q.total, q.currency)}
-            status={q.status}
-          />
-        ))}
-      </FinanceSection>
-
-      <FinanceSection icon={RotateCcw} title="Refunds" count={refunds.length}>
-        {refunds.map((rf) => (
-          <FinanceRow
-            key={rf.id}
-            href="/dashboard/refunds"
-            primary={rf.reason || "Refund request"}
-            secondary={fmtDate(rf.date.slice(0, 10))}
-            amount={formatMoney(rf.approved ?? rf.requested, rf.currency)}
-            status={rf.status}
-          />
-        ))}
-      </FinanceSection>
-
-      <FinanceSection
-        icon={FileMinus}
-        title="Credit notes"
-        count={creditNotes.length}
-      >
-        {creditNotes.map((c) => (
-          <FinanceRow
-            key={c.id}
-            href={`/dashboard/credit-notes/${c.id}`}
-            primary={c.number}
-            secondary={fmtDate(c.date.slice(0, 10))}
-            amount={formatMoney(c.total, c.currency)}
-            status={c.status}
-          />
-        ))}
-      </FinanceSection>
+    <div className="space-y-6">
+      <BookingsPanel bookings={bookings} />
+      {quotes.length > 0 ? (
+        <FinanceSection icon={FileText} title="Quotes" count={quotes.length}>
+          {quotes.map((q) => (
+            <FinanceRow
+              key={q.id}
+              href={`/dashboard/quotes/${q.id}`}
+              primary={q.listingName}
+              secondary={`${fmtShort(q.checkIn)} → ${fmtShort(q.checkOut)} · ${fmtDate(q.date.slice(0, 10))}`}
+              amount={formatMoney(q.total, q.currency)}
+              status={q.status}
+            />
+          ))}
+        </FinanceSection>
+      ) : null}
     </div>
   );
 }
