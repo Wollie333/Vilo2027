@@ -1,153 +1,102 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Download } from "lucide-react";
-
+import {
+  FinancialDocument,
+  type DocLine,
+  type DocTone,
+} from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
+import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const metadata: Metadata = {
   title: "Credit note",
+  robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-type HostSnap = {
-  display_name?: string;
-  handle?: string;
-  email?: string;
-  business?: {
-    trading_name?: string | null;
-    legal_name?: string | null;
-  } | null;
-};
-type GuestSnap = { name?: string; email?: string };
+type GuestSnap = { name?: string; email?: string; phone?: string };
 type CnLine = { label: string; amount: number | string };
+
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
+}
 
 export default async function PublicCreditNotePage({
   params,
 }: {
   params: { token: string };
 }) {
-  const supabase = createAdminClient();
-  const { data: cn } = await supabase
+  const admin = createAdminClient();
+  const { data: cn } = await admin
     .from("credit_notes")
     .select(
-      "credit_note_number, status, issued_at, currency, total_amount, reason, host_snapshot, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number )",
+      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number )",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
 
   if (!cn) notFound();
 
-  const host = cn.host_snapshot as HostSnap;
   const guest = cn.guest_snapshot as GuestSnap;
   const lines = (cn.line_items as CnLine[]) ?? [];
-  const businessName =
-    host.business?.trading_name ??
-    host.business?.legal_name ??
-    host.display_name ??
-    "—";
+  const c = cn.currency;
+  const status = cn.status as string;
   const invoiceNumber =
     (cn.invoice as unknown as { invoice_number?: string } | null)
       ?.invoice_number ?? null;
-  const brandName = await getBrandName();
+  const [party, brandName] = await Promise.all([
+    getHostParty(admin, cn.host_id),
+    getBrandName(),
+  ]);
+
+  const lineRows: DocLine[] = lines.map((l) => ({
+    title: l.label,
+    amount: `− ${formatMoney(Number(l.amount), c)}`,
+  }));
+
+  const cancelled = status === "cancelled";
+  const tone: DocTone = cancelled ? "grey" : "indigo";
 
   return (
-    <div className="min-h-screen bg-brand-light px-4 py-10">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded bg-rose-600 text-2xl font-bold text-white">
-              {(businessName[0] ?? "V").toUpperCase()}
-            </div>
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-600">
-                Credit note
-              </div>
-              <div className="font-display text-xl font-bold text-brand-ink">
-                {cn.credit_note_number}
-              </div>
-            </div>
-          </div>
-          <Link
-            href={`/credit-note/${cn.hosted_token}/pdf`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-secondary"
-          >
-            <Download className="h-4 w-4" /> Download PDF
-          </Link>
-        </header>
-
-        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <div className="grid gap-4 text-sm sm:grid-cols-2">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                From
-              </div>
-              <div className="mt-1 font-medium text-brand-ink">
-                {businessName}
-              </div>
-              {host.email ? (
-                <div className="text-xs text-brand-mute">{host.email}</div>
-              ) : null}
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                Credited to
-              </div>
-              <div className="mt-1 font-medium text-brand-ink">
-                {guest.name ?? "—"}
-              </div>
-              {guest.email ? (
-                <div className="text-xs text-brand-mute">{guest.email}</div>
-              ) : null}
-            </div>
-          </div>
-
-          {invoiceNumber ? (
-            <p className="mt-4 text-xs text-brand-mute">
-              Against invoice{" "}
-              <span className="font-mono text-brand-dark">{invoiceNumber}</span>
-            </p>
-          ) : null}
-
-          <table className="mt-4 w-full text-sm">
-            <tbody className="divide-y divide-brand-line">
-              {lines.map((l, i) => (
-                <tr key={i}>
-                  <td className="py-2 text-brand-ink">{l.label}</td>
-                  <td className="py-2 text-right font-medium text-rose-700">
-                    − {formatMoney(Number(l.amount), cn.currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="pt-3 font-display text-base font-bold text-brand-ink">
-                  Total credited
-                </td>
-                <td className="pt-3 text-right font-display text-lg font-bold text-rose-700">
-                  − {formatMoney(Number(cn.total_amount), cn.currency)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-
-          {cn.reason ? (
-            <div className="mt-4 rounded border border-brand-line bg-brand-light/40 px-3 py-2 text-[12.5px] text-brand-dark">
-              <span className="font-semibold">Reason:</span> {cn.reason}
-            </div>
-          ) : null}
-        </div>
-
-        <p className="text-center text-[11px] text-brand-mute">
-          Generated by {brandName}
-        </p>
-      </div>
-    </div>
+    <FinancialDocument
+      kind="Credit note"
+      number={cn.credit_note_number}
+      status={{ label: cancelled ? "Cancelled" : "Issued", tone }}
+      brandName={brandName}
+      brandTagline="Credit note"
+      from={{ name: party.name, lines: party.lines }}
+      to={{
+        label: "Credited to",
+        party: {
+          name: guest.name ?? "Guest",
+          lines: [guest.email, guest.phone].filter(Boolean) as string[],
+        },
+      }}
+      metaRows={[
+        { label: "Issue date", value: fmtDate(cn.issued_at) },
+        ...(invoiceNumber
+          ? [{ label: "Against invoice", value: invoiceNumber }]
+          : []),
+      ]}
+      lineHeaders={{ desc: "Description", amount: "Amount" }}
+      lines={lineRows}
+      totals={[]}
+      grandTotal={{
+        label: "Total credited",
+        value: `− ${formatMoney(Number(cn.total_amount), c)}`,
+      }}
+      pdfHref={`/credit-note/${cn.hosted_token}/pdf`}
+      footerTitle={cn.reason ? `Reason: ${cn.reason}` : undefined}
+      footerNote="This credit note reduces the amount owed on the related invoice."
+    />
   );
 }
