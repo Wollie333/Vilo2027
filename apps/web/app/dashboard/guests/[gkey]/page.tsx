@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
   GuestRecord,
   type BookingItem,
-  type CreditNoteItem,
   type GuestRecordData,
-  type InvoiceItem,
   type MessageItem,
   type NoteItem,
   type QuoteItem,
-  type RefundItem,
   type ReviewItem,
   type TemplateItem,
 } from "./GuestRecord";
@@ -126,45 +125,8 @@ export default async function GuestRecordPage({
       specialRequests: b.special_requests,
       listingName: b.listing?.name ?? "Listing",
       listingThumb: thumb,
-      finance: { payments: [], creditNotes: [], refunds: [] },
     };
   });
-
-  // Payments for those bookings → each booking's expandable finance table.
-  const bookingIds = bookings.map((b) => b.id);
-  if (bookingIds.length > 0) {
-    const { data: rawPayments } = await supabase
-      .from("payments")
-      .select(
-        "id, amount, currency, method, status, kind, captured_at, created_at, booking_id, receipt_token, receipt_number",
-      )
-      .in("booking_id", bookingIds)
-      .order("created_at", { ascending: false });
-    const bookingById = new Map(bookings.map((b) => [b.id, b]));
-    const KIND_LABEL: Record<string, string> = {
-      deposit: "Deposit",
-      balance: "Balance",
-      addon: "Add-on",
-      payment: "Payment",
-      credit: "Store credit",
-      refund: "Refund",
-    };
-    for (const p of rawPayments ?? []) {
-      const b = bookingById.get(p.booking_id);
-      if (!b) continue;
-      b.finance.payments.push({
-        id: p.id,
-        label: KIND_LABEL[p.kind as string] ?? "Payment",
-        amount: Number(p.amount),
-        status: p.status,
-        date: (p.captured_at ?? p.created_at) as string,
-        receiptToken:
-          p.status === "completed"
-            ? ((p.receipt_token ?? null) as string | null)
-            : null,
-      });
-    }
-  }
 
   // Listing id → name map (for reviews + quotes that reference a listing directly).
   const { data: listingRows } = await supabase
@@ -194,80 +156,16 @@ export default async function GuestRecordPage({
     }));
   }
 
-  // Finances — invoices, refunds, credit notes (by booking) + quotes (by guest).
-  let invoices: InvoiceItem[] = [];
-  let refunds: RefundItem[] = [];
-  let creditNotes: CreditNoteItem[] = [];
-  if (bookingIds.length > 0) {
-    const [inv, rf, cn] = await Promise.all([
-      supabase
-        .from("invoices")
-        .select("id, invoice_number, status, total_amount, currency, issued_at")
-        .in("booking_id", bookingIds)
-        .order("issued_at", { ascending: false }),
-      supabase
-        .from("refund_requests")
-        .select(
-          "id, status, requested_amount, approved_amount, currency, reason, created_at, booking_id",
-        )
-        .in("booking_id", bookingIds)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("credit_notes")
-        .select(
-          "id, credit_note_number, status, total_amount, currency, issued_at, booking_id",
-        )
-        .in("booking_id", bookingIds)
-        .order("issued_at", { ascending: false }),
-    ]);
-    const byBooking = new Map(bookings.map((b) => [b.id, b]));
-    for (const c of cn.data ?? []) {
-      const b = c.booking_id ? byBooking.get(c.booking_id) : null;
-      if (b)
-        b.finance.creditNotes.push({
-          id: c.id,
-          number: c.credit_note_number,
-          total: Number(c.total_amount),
-          status: c.status,
-        });
-    }
-    for (const r of rf.data ?? []) {
-      const b = r.booking_id ? byBooking.get(r.booking_id) : null;
-      if (b)
-        b.finance.refunds.push({
-          id: r.id,
-          amount: Number(r.approved_amount ?? r.requested_amount),
-          status: r.status,
-        });
-    }
-    invoices = (inv.data ?? []).map((i) => ({
-      id: i.id,
-      number: i.invoice_number,
-      status: i.status,
-      total: Number(i.total_amount),
-      currency: i.currency,
-      date: i.issued_at,
-    }));
-    refunds = (rf.data ?? []).map((r) => ({
-      id: r.id,
-      status: r.status,
-      requested: Number(r.requested_amount),
-      approved: r.approved_amount == null ? null : Number(r.approved_amount),
-      currency: r.currency,
-      reason: r.reason,
-      date: r.created_at,
-    }));
-    creditNotes = (cn.data ?? []).map((c) => ({
-      id: c.id,
-      number: c.credit_note_number,
-      status: c.status,
-      total: Number(c.total_amount),
-      currency: c.currency,
-      date: c.issued_at,
-    }));
-  }
+  // Finances — every money event for this guest, normalised from the ONE
+  // transaction source so the Finances tab, the account-wide Ledger and the
+  // booking Payments tab always agree. Host-scoped admin read filtered by gkey.
+  const admin = createAdminClient();
+  const txns: Txn[] = await fetchHostTransactions(admin, {
+    hostId: host.id,
+    gkey,
+  });
 
+  // Quotes (pre-booking, not yet a transaction) stay a separate section.
   let quotes: QuoteItem[] = [];
   {
     let qq = supabase
@@ -446,7 +344,8 @@ export default async function GuestRecordPage({
       record={record}
       bookings={bookings}
       reviews={reviews}
-      finances={{ invoices, quotes, refunds, creditNotes }}
+      txns={txns}
+      quotes={quotes}
       marketingState={marketingState}
       notes={notes}
       pinnedNote={pinnedNote}

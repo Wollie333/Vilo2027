@@ -8,7 +8,6 @@ import {
   Calendar,
   Ban,
   ChevronLeft,
-  ChevronDown,
   ChevronRight,
   Download,
   FileText,
@@ -31,6 +30,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { sendMessageAction } from "@/app/dashboard/inbox/actions";
+import { LedgerList } from "@/components/finance/LedgerList";
 import {
   FormModal,
   FormModalCancel,
@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/form-modal";
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
+import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addGuestNoteAction,
@@ -94,19 +95,6 @@ export type GuestRecordData = {
   preferred_listing: string | null;
 };
 
-export type BookingFinance = {
-  payments: {
-    id: string;
-    label: string;
-    amount: number;
-    status: string;
-    date: string;
-    receiptToken: string | null;
-  }[];
-  creditNotes: { id: string; number: string; total: number; status: string }[];
-  refunds: { id: string; amount: number; status: string }[];
-};
-
 export type BookingItem = {
   id: string;
   reference: string;
@@ -123,7 +111,6 @@ export type BookingItem = {
   specialRequests: string | null;
   listingName: string;
   listingThumb: string | null;
-  finance: BookingFinance;
 };
 
 export type PaymentItem = {
@@ -163,14 +150,6 @@ export type ReviewItem = {
   listingName: string;
 };
 
-export type InvoiceItem = {
-  id: string;
-  number: string;
-  status: string;
-  total: number;
-  currency: string;
-  date: string;
-};
 export type QuoteItem = {
   id: string;
   status: string;
@@ -180,29 +159,6 @@ export type QuoteItem = {
   checkOut: string | null;
   listingName: string;
   date: string;
-};
-export type RefundItem = {
-  id: string;
-  status: string;
-  requested: number;
-  approved: number | null;
-  currency: string;
-  reason: string | null;
-  date: string;
-};
-export type CreditNoteItem = {
-  id: string;
-  number: string;
-  status: string;
-  total: number;
-  currency: string;
-  date: string;
-};
-export type FinanceData = {
-  invoices: InvoiceItem[];
-  quotes: QuoteItem[];
-  refunds: RefundItem[];
-  creditNotes: CreditNoteItem[];
 };
 
 const TABS = [
@@ -272,7 +228,8 @@ export function GuestRecord({
   record,
   bookings,
   reviews,
-  finances,
+  txns,
+  quotes,
   marketingState,
   notes,
   pinnedNote,
@@ -286,7 +243,8 @@ export function GuestRecord({
   record: GuestRecordData;
   bookings: BookingItem[];
   reviews: ReviewItem[];
-  finances: FinanceData;
+  txns: Txn[];
+  quotes: QuoteItem[];
   marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
   notes: NoteItem[];
   pinnedNote: NoteItem | null;
@@ -552,7 +510,7 @@ export function GuestRecord({
             const active = tab === t.key;
             const count =
               t.key === "finances"
-                ? bookings.length
+                ? txns.length
                 : t.key === "messages"
                   ? messages.length
                   : t.key === "reviews"
@@ -606,7 +564,7 @@ export function GuestRecord({
         ) : tab === "reviews" ? (
           <ReviewsPanel reviews={reviews} />
         ) : (
-          <FinancesPanel bookings={bookings} quotes={finances.quotes} />
+          <FinancesPanel txns={txns} quotes={quotes} />
         )}
       </div>
       <div className="h-6" />
@@ -887,174 +845,6 @@ function BalanceBanner({
   );
 }
 
-// ── Bookings panel (expandable finance per booking) ──────────────────────
-function BookingsPanel({ bookings }: { bookings: BookingItem[] }) {
-  const [open, setOpen] = useState<string | null>(null);
-  if (bookings.length === 0) {
-    return (
-      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
-        No bookings yet.
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-3">
-      {bookings.map((b) => {
-        const tag = statusTag(b.status);
-        const isOpen = open === b.id;
-        const docCount =
-          b.finance.payments.length +
-          b.finance.creditNotes.length +
-          b.finance.refunds.length;
-        return (
-          <div
-            key={b.id}
-            className="overflow-hidden rounded-[13px] border border-brand-line bg-white"
-          >
-            <button
-              type="button"
-              onClick={() => setOpen(isOpen ? null : b.id)}
-              className="flex w-full items-center gap-4 p-3.5 text-left transition hover:bg-brand-light/40"
-            >
-              {b.listingThumb ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={b.listingThumb}
-                  alt=""
-                  className="h-12 w-16 shrink-0 rounded-[10px] object-cover"
-                />
-              ) : (
-                <div className="h-12 w-16 shrink-0 rounded-[10px] bg-brand-light" />
-              )}
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[14px] font-semibold text-brand-ink">
-                  {b.listingName}
-                </div>
-                <div className="mt-0.5 text-[12px] text-brand-mute">
-                  {fmtShort(b.checkIn)} → {fmtShort(b.checkOut)} · {b.nights}{" "}
-                  nights ·{" "}
-                  <span className="font-mono text-[10.5px]">{b.reference}</span>
-                </div>
-              </div>
-              <div className="hidden shrink-0 text-right sm:block">
-                <div className="font-display text-[14px] font-bold text-brand-ink">
-                  {formatMoney(b.totalAmount, b.currency)}
-                </div>
-                <div className="mt-0.5 text-[11px] text-brand-mute">
-                  paid{" "}
-                  {formatMoney(
-                    Math.max(0, b.totalAmount - b.balanceDue),
-                    b.currency,
-                  )}
-                  {b.balanceDue > 0 ? (
-                    <span className="font-semibold text-amber-700">
-                      {" "}
-                      · {formatMoney(b.balanceDue, b.currency)} due
-                    </span>
-                  ) : (
-                    <span className="font-semibold text-emerald-700">
-                      {" "}
-                      · paid
-                    </span>
-                  )}
-                </div>
-              </div>
-              <span
-                className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tag.cls}`}
-              >
-                {tag.label}
-              </span>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 text-brand-mute transition-transform ${isOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {isOpen ? (
-              <div className="border-t border-brand-line bg-[#F8FBF9] px-4 py-3.5">
-                {docCount === 0 ? (
-                  <p className="text-[12.5px] text-brand-mute">
-                    No payments or documents on this booking yet.
-                  </p>
-                ) : (
-                  <table className="w-full text-[12.5px]">
-                    <tbody className="divide-y divide-brand-line">
-                      {b.finance.payments.map((p) => (
-                        <tr key={p.id}>
-                          <td className="py-1.5 text-brand-ink">{p.label}</td>
-                          <td className="py-1.5 text-brand-mute">
-                            <span className="capitalize">{p.status}</span> ·{" "}
-                            {fmtDate(p.date)}
-                          </td>
-                          <td className="num py-1.5 text-right font-semibold text-brand-ink">
-                            {formatMoney(p.amount, b.currency)}
-                          </td>
-                          <td className="py-1.5 pl-2 text-right">
-                            {p.receiptToken ? (
-                              <a
-                                href={`/receipt/${p.receiptToken}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-brand-secondary hover:underline"
-                              >
-                                Receipt
-                              </a>
-                            ) : null}
-                          </td>
-                        </tr>
-                      ))}
-                      {b.finance.creditNotes.map((c) => (
-                        <tr key={c.id}>
-                          <td className="py-1.5 text-rose-700">
-                            Credit note {c.number}
-                          </td>
-                          <td className="py-1.5 capitalize text-brand-mute">
-                            {c.status}
-                          </td>
-                          <td className="num py-1.5 text-right font-semibold text-rose-700">
-                            – {formatMoney(c.total, b.currency)}
-                          </td>
-                          <td className="py-1.5 pl-2 text-right">
-                            <Link
-                              href={`/dashboard/credit-notes/${c.id}`}
-                              className="text-brand-secondary hover:underline"
-                            >
-                              Open
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                      {b.finance.refunds.map((rf) => (
-                        <tr key={rf.id}>
-                          <td className="py-1.5 text-amber-700">Refund</td>
-                          <td className="py-1.5 capitalize text-brand-mute">
-                            {rf.status}
-                          </td>
-                          <td className="num py-1.5 text-right font-semibold text-amber-700">
-                            – {formatMoney(rf.amount, b.currency)}
-                          </td>
-                          <td className="py-1.5" />
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <div className="mt-3 flex justify-end">
-                  <Link
-                    href={`/dashboard/bookings/${b.id}?tab=payments`}
-                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary"
-                  >
-                    View booking <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ── Marketing consent (locked status + opt-out only, POPIA) ─────────────
 function MarketingConsent({
   gkey,
@@ -1276,19 +1066,26 @@ function FinanceRow({
   );
 }
 
-// The single money home for a guest: every booking with its money status,
-// expandable to that booking's transactions, plus pending quotes below. The full
-// per-booking ledger + controls live on the booking record (Open booking).
-function FinancesPanel({
-  bookings,
-  quotes,
-}: {
-  bookings: BookingItem[];
-  quotes: QuoteItem[];
-}) {
+// The single money home for a guest: every transaction (charges, payments,
+// credit, refunds) for this guest, rendered with the SAME ledger component as
+// the account-wide Ledger and the booking Payments tab — so the rows, signs and
+// running balances are identical everywhere. Pending quotes (pre-booking, not
+// yet a transaction) sit below. Per-booking controls live on the booking record.
+function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
   return (
     <div className="space-y-6">
-      <BookingsPanel bookings={bookings} />
+      <LedgerList
+        entries={txns}
+        showGuest={false}
+        emptyLabel="No transactions for this guest yet."
+        minWidth={640}
+      />
+      {txns.length > 0 ? (
+        <p className="text-[11.5px] text-brand-mute">
+          {txns.length} transaction{txns.length === 1 ? "" : "s"} · Balance
+          shows what this guest owes you (or their credit) after each entry.
+        </p>
+      ) : null}
       {quotes.length > 0 ? (
         <FinanceSection icon={FileText} title="Quotes" count={quotes.length}>
           {quotes.map((q) => (
