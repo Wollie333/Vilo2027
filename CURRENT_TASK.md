@@ -2,14 +2,27 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Next task:** Build the **Guest Record (CRM)** feature.
-**Plan:** see **`GUEST_RECORD_PLAN.md`** (repo root) — full, buildable, phased.
-**Design:** `C:\Users\Wollie\Downloads\Guest Record.html` (match exactly).
+**Next task:** **Booking Redesign** — simplified guest booking.
+**Plan:** see **`BOOKING_REDESIGN_PLAN.md`** (repo root) — full, buildable, phased.
+**Designs:** `C:\Users\Wollie\Downloads\Listing 3.0.html` (listing) +
+`C:\Users\Wollie\Downloads\Booking Flow.html` (checkout) — match exactly.
 
 ## Start here
-1. Read `GUEST_RECORD_PLAN.md` end-to-end.
-2. Confirm the 5 **Open decisions** in §9 with the founder before Phase 1.
-3. Build phase-by-phase (§6), committing + pushing after each; `pnpm build` + `pnpm lint` green every time.
+1. Read `BOOKING_REDESIGN_PLAN.md` end-to-end.
+2. Build phase-by-phase (§4), committing + pushing after each; `pnpm build` +
+   `pnpm lint` green every time; tick the §5 Progress box.
+3. Resolve the §3 flags (add-on units, in-flow availability, listing cleanup)
+   in-phase — flag the founder before any schema change.
+
+> Goal: listing page is **display-only** with **two CTAs** — **Reserve**
+> (→ self-contained 3-step Rooms→Details→Payment flow) and **Request a quote**
+> (→ existing modal). Guests cannot select rooms or book on the listing itself.
+
+<details><summary>Previous task — Guest Record (CRM) — COMPLETE</summary>
+
+**Plan:** `GUEST_RECORD_PLAN.md` · **Design:** `Guest Record.html`. Feature
+complete (see Progress below).
+</details>
 
 ## One-line summary
 Add a **Guests** sidebar item (after Bookings); a Guests list (`/dashboard/guests`); a CRM **Guest
