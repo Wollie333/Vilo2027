@@ -31,6 +31,27 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — One ledger everywhere — guest Finances & booking Payments read the single transaction source — branch `main`
+
+### Built
+- **Shared `LedgerList`** (`components/finance/LedgerList.tsx`) — the canonical transaction table (Transaction · Date · Guest · Type · Amount · running Balance · Document · actions) extracted from the account-wide Ledger so the *exact* same component renders everywhere.
+
+### Changed
+- **Account Ledger** (`/dashboard/ledger`) now renders via `LedgerList` (no behaviour change).
+- **Guest record → Finances tab** now reads a `gkey`-filtered slice of `fetchHostTransactions` through `LedgerList`, dropping its own invoices/payments/refunds/credit-notes queries. Quotes (pre-booking) stay as a section below. Rows, money signs and running balances now match the Ledger exactly.
+- **Booking → Payments tab** now reads a `bookingId`-filtered slice of `fetchHostTransactions` (with `includePending`) through `LedgerList`, dropping its bespoke charge/payment table. Per-row settle / refund / credit and the record-payment / apply-credit / issue-credit-note action bar are preserved (injected via a `rowActions` slot).
+
+### Database
+- None. `fetchHostTransactions` gained an `includePending` option (query-filter only) and the `Txn` type gained optional `pending`/`paymentId`/`kind`/`status` fields reading existing columns — no migration, no type regen.
+
+### Notes
+- Pending payments carry zero balance/cash effect until they settle, so they never distort the running balance or collected total on any view.
+- The three money views are now genuinely filtered reads of one source — they can no longer drift.
+
+### Commit
+- `refactor(finance): guest Finances tab reads the one ledger source` — `118848c`
+- `refactor(finance): booking Payments tab reads the one ledger source` — `51269c1`
+
 ## 2026-06-07 — Finance control center — receipts, refund/credit controls, guest balance, shareable docs — branch `main`
 
 ### Built
