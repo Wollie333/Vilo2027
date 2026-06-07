@@ -11,7 +11,6 @@ import {
   CreditCard,
   DoorOpen,
   ExternalLink,
-  FileMinus,
   KeyRound,
   Languages,
   MailCheck,
@@ -24,7 +23,6 @@ import {
   PlusCircle,
   Receipt,
   ShieldCheck,
-  Sparkles,
   Star,
   UserRound,
   Users,
@@ -37,7 +35,6 @@ import { useState } from "react";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
-import { AddonManager } from "./AddonManager";
 import { BookingActions } from "./BookingActions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
@@ -216,7 +213,6 @@ function initials(name: string): string {
 
 const TABS = [
   { key: "overview", label: "Overview" },
-  { key: "addons", label: "Add-ons" },
   { key: "payments", label: "Payments" },
   { key: "arrivals", label: "Arrivals" },
   { key: "guest", label: "Guest" },
@@ -241,7 +237,6 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const tag = STATUS_TAG[d.statusTone];
 
   const tabCount = (k: string): number | undefined => {
-    if (k === "addons") return d.addons.length || undefined;
     if (k === "activity") return d.timeline.length || undefined;
     if (k === "notes") return d.notes.length || undefined;
     return undefined;
@@ -518,8 +513,6 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
       <div className="mt-6">
         {tab === "overview" ? (
           <OverviewPanel d={d} setTab={setTab} />
-        ) : tab === "addons" ? (
-          <AddonsPanel d={d} />
         ) : tab === "payments" ? (
           <PaymentsPanel d={d} />
         ) : tab === "arrivals" ? (
@@ -746,7 +739,7 @@ function OverviewPanel({
             <GlanceRow
               icon={PlusCircle}
               label="Add-ons"
-              onClick={() => setTab("addons")}
+              onClick={() => setTab("payments")}
               right={
                 <span className="text-[13px] font-semibold text-brand-ink">
                   {d.addons.length} ·{" "}
@@ -843,78 +836,6 @@ function GlanceRow({
   );
 }
 
-// ── Add-ons ────────────────────────────────────────────────────────────────
-function AddonsPanel({ d }: { d: BookingDetailData }) {
-  return (
-    <div className="space-y-5">
-      <Card>
-        <CardHead title="Booked add-ons & extras" />
-        {d.addons.length === 0 ? (
-          <p className="px-5 py-10 text-center text-[13px] text-brand-mute">
-            No add-ons or extras on this booking yet.
-          </p>
-        ) : (
-          <>
-            <ul className="divide-y divide-brand-line">
-              {d.addons.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center gap-3.5 px-5 py-3.5"
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-semibold text-brand-ink">
-                      {a.label}
-                      {a.quantity > 1 ? (
-                        <span className="ml-1 text-brand-mute">
-                          × {a.quantity}
-                        </span>
-                      ) : null}
-                      {a.source === "host_added" ||
-                      a.source === "guest_added" ? (
-                        <span className="ml-2 rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10px] font-semibold text-brand-mute">
-                          {a.source === "guest_added"
-                            ? "Guest added"
-                            : "Added later"}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <span className="text-[13px] font-semibold text-brand-ink">
-                    {Number(a.subtotal) === 0
-                      ? a.isRequired
-                        ? "Included"
-                        : formatMoney(0, a.currency)
-                      : formatMoney(Number(a.subtotal), a.currency)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="flex items-center justify-between border-t border-brand-line px-5 py-3.5">
-              <span className="text-[12.5px] font-semibold text-brand-ink">
-                Add-ons subtotal
-              </span>
-              <span className="font-display text-[15px] font-bold text-brand-ink">
-                {formatMoney(d.addonsSubtotal, d.currency)}
-              </span>
-            </div>
-          </>
-        )}
-      </Card>
-
-      {d.canEditAddons ? (
-        <AddonManager
-          bookingId={d.id}
-          currency={d.currency}
-          catalog={d.addonCatalog}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 // ── Payments ────────────────────────────────────────────────────────────────
 function PaymentsPanel({ d }: { d: BookingDetailData }) {
   return (
@@ -990,30 +911,10 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               guestCredit={d.guestCredit}
               txns={d.txns}
               canRecord={d.hasWorkflow || d.status === "completed"}
+              addonCatalog={d.addonCatalog}
+              canAddAddons={d.canEditAddons}
             />
           </div>
-
-          {d.invoice || d.creditNotes.length > 0 ? (
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-brand-line pt-4">
-              {d.invoice ? (
-                <Link
-                  href={`/dashboard/invoices/${d.invoice.id}`}
-                  className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-accent"
-                >
-                  <Receipt className="h-3.5 w-3.5" /> Invoice {d.invoice.number}
-                </Link>
-              ) : null}
-              {d.creditNotes.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/dashboard/credit-notes/${c.id}`}
-                  className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-rose-700 transition hover:bg-rose-50"
-                >
-                  <FileMinus className="h-3.5 w-3.5" /> {c.number}
-                </Link>
-              ))}
-            </div>
-          ) : null}
 
           {d.canRefund ? (
             <div className="mt-4 border-t border-brand-line pt-4">

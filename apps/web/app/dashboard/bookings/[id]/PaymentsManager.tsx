@@ -18,6 +18,7 @@ import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 import type { Txn } from "@/lib/finance/transactions";
 
+import { AddonManager } from "./AddonManager";
 import { hostInitiatedRefundAction } from "../../refunds/actions";
 import {
   applyGuestCreditAction,
@@ -38,6 +39,8 @@ export function PaymentsManager({
   guestCredit,
   txns,
   canRecord,
+  addonCatalog,
+  canAddAddons,
 }: {
   bookingId: string;
   currency: string;
@@ -50,6 +53,15 @@ export function PaymentsManager({
   // shared <LedgerList> so the rows and balances are identical everywhere.
   txns: Txn[];
   canRecord: boolean;
+  // Add-ons live here now (the dedicated tab was removed) — "Add add-on" opens
+  // the AddonManager modal right beside Record a payment.
+  addonCatalog: {
+    id: string;
+    name: string;
+    unitPrice: number;
+    active: boolean;
+  }[];
+  canAddAddons: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -315,6 +327,13 @@ export function PaymentsManager({
             >
               <Plus className="h-4 w-4" /> Record a payment
             </button>
+            {canAddAddons ? (
+              <AddonManager
+                bookingId={bookingId}
+                currency={currency}
+                catalog={addonCatalog}
+              />
+            ) : null}
             {guestCredit > 0 && balanceDue > 0 ? (
               <button
                 type="button"
