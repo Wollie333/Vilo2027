@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — Rooms — redesigned rooms manager with real 14-day occupancy — branch `main`
+
+### Changed
+- **Rooms page redesign** (`dashboard/rooms/page.tsx`) to the Rooms design: breadcrumb header (Listings › Rooms), a 4-up stat band, listing filter chips + status + search, listing-grouped room tables, and a right rail (Needs attention · Top performers · Calendar legend).
+- **Real 14-day occupancy heatmap per room** computed from `blocked_dates` — each day is classified booked (`booking_id`/`source` booking|ical), held (`quote_id`/hold) or blocked (manual), else open; listing-wide blocks (`room_id null`) apply to every room. Drives the per-room strip, per-listing occupancy %, "booked nights", portfolio **Avg occupancy**, **Open tonight**, and **Top performers** ranking.
+- Stat band + rail are 100% real: live/total rooms, avg rate + min–max range, unpriced count, rooms-missing-photos and no-rate items in Needs attention. Replaced the dark portfolio hero/photo montage.
+
+### Notes
+- No schema change. The mock's per-listing **revenue** and **"channels synced"** were intentionally omitted (not tracked) rather than faked — booked-nights/occupancy stand in. Reused the existing room data mapping + `roomRate`/`effectiveNightly` helpers. Rooms page is outside the parallel finance agent's files.
+
+### Commit
+- `feat(rooms): redesign rooms manager with real 14-day occupancy` — see git log
+
+---
+
 ## 2026-06-07 — New booking — v3 design refresh of the 5-step wizard — branch `main`
 
 ### Changed

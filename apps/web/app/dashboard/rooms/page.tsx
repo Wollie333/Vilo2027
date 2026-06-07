@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
 import {
-  BarChart3,
+  AlertTriangle,
+  ArrowRight,
+  Award,
   BedDouble,
-  Calendar,
-  ExternalLink,
+  ChevronRight,
   Image as ImageIcon,
+  ImageOff,
   MoreHorizontal,
   Pencil,
   Plus,
-  Ruler,
+  RefreshCw,
   Search,
-  SlidersHorizontal,
-  Sparkles,
+  Tag,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,6 +27,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const OCC_DAYS = 14; // 14-day occupancy window shown per room.
+
 type BookingMode = "whole_listing" | "rooms_only" | "flexible";
 
 const BOOKING_MODE_LABEL: Record<BookingMode, string> = {
@@ -35,8 +38,8 @@ const BOOKING_MODE_LABEL: Record<BookingMode, string> = {
 };
 
 const BOOKING_MODE_PILL: Record<BookingMode, string> = {
-  whole_listing: "bg-brand-light text-brand-mute",
-  rooms_only: "bg-brand-light text-brand-mute",
+  whole_listing: "border border-brand-line bg-brand-light text-brand-mute",
+  rooms_only: "border border-brand-line bg-brand-light text-brand-mute",
   flexible: "bg-brand-accent text-brand-secondary",
 };
 
@@ -53,6 +56,10 @@ type Group = {
   };
   rooms: EditorRoom[];
 };
+
+// One day in a room's 14-day occupancy strip.
+type Cell = "b" | "h" | "x" | "o"; // booked · held · blocked · open
+type Occ = { cells: Cell[]; booked: number; pct: number };
 
 function describeBeds(beds: EditorRoom["beds"]): string {
   if (!beds || beds.length === 0) return "Beds not set";
@@ -75,22 +82,20 @@ function describeRoomFeatures(r: EditorRoom): string {
   return parts.slice(0, 2).join(" · ");
 }
 
-// All currency on this page is assumed ZAR (see avgRate note below).
+// All currency on this page is assumed ZAR (single-currency host).
 function fmtRand(n: number): string {
   return `R ${Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ")}`;
 }
 
 // The single nightly figure used for averages — for per-person rooms the
-// rate lives in price_per_person (base_price is saved as 0), so base_price
-// alone would read as "free" and drag the average down.
+// rate lives in price_per_person (base_price is saved as 0).
 function effectiveNightly(r: EditorRoom): number {
   if (r.pricing_mode === "per_person") return r.price_per_person ?? 0;
   return r.base_price;
 }
 
-// Headline rate + caption for the table, resolved per pricing mode so the
-// saved rate always shows without opening the room. Returns null only when
-// no rate has actually been set for the room's mode.
+// Headline rate + caption for the table, resolved per pricing mode. Returns
+// null only when no rate has actually been set for the room's mode.
 function roomRate(r: EditorRoom): { amount: string; sub: string } | null {
   if (r.pricing_mode === "per_person") {
     const pp = r.price_per_person ?? 0;
@@ -109,7 +114,6 @@ function roomRate(r: EditorRoom): { amount: string; sub: string } | null {
           : "from / night",
     };
   }
-  // per_room (default flat nightly rate).
   if (r.base_price <= 0) return null;
   const weekendBump =
     r.weekend_price && r.base_price > 0
@@ -126,6 +130,10 @@ function roomRate(r: EditorRoom): { amount: string; sub: string } | null {
   };
 }
 
+const pad = (n: number) => String(n).padStart(2, "0");
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
 export default async function RoomsPage({
   searchParams,
 }: {
@@ -133,11 +141,9 @@ export default async function RoomsPage({
 }) {
   const supabase = createServerClient();
 
-  // Scope to the logged-in host. `listings` has a `public_read_published`
-  // RLS policy (so guests can browse the directory), which means relying on
-  // RLS alone here would also return every OTHER host's published listing.
-  // The explicit `host_id` filter is what keeps the portfolio private — never
-  // remove it. Resolve the host by `user_id`, not RLS.
+  // Scope to the logged-in host. `listings` has a `public_read_published` RLS
+  // policy, so the explicit host_id filter is what keeps the portfolio private
+  // — never remove it. Resolve the host by user_id, not RLS.
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -151,9 +157,6 @@ export default async function RoomsPage({
         .maybeSingle()
     : { data: null };
 
-  // featured-photo join uses listing_rooms_featured_photo_id_fkey
-  // (migration 20260524000004). Listings cover comes from the first
-  // listing-level photo (sort_order = 0).
   const { data: listings } = host
     ? await supabase
         .from("listings")
@@ -165,117 +168,87 @@ export default async function RoomsPage({
         .order("created_at", { ascending: false })
     : { data: null };
 
-  // Flatten + filter rooms locally — Supabase doesn't filter nested rows.
   const groups: Group[] = (listings ?? []).map((l) => {
-    const rawRooms =
-      (l.rooms as Array<{
-        id: string;
-        name: string;
-        description: string | null;
-        bedrooms: number | null;
-        bathrooms: number | null;
-        max_guests: number;
-        min_guests: number | null;
-        min_nights: number | null;
-        base_price: number | string;
-        weekend_price: number | string | null;
-        cleaning_fee: number | string | null;
-        sort_order: number;
-        is_active: boolean;
-        deleted_at: string | null;
-        room_size_sqm: number | string | null;
-        bed_type: string | null;
-        view_type: string | null;
-        experiences: string[] | null;
-        has_ensuite_bathroom: boolean | null;
-        smoking_allowed: boolean | null;
-        pets_allowed: boolean | null;
-        wheelchair_accessible: boolean | null;
-        private_entrance: boolean | null;
-        floor_number: number | null;
-        inventory_count: number | null;
-        pricing_mode: string | null;
-        price_per_person: number | string | null;
-        base_occupancy: number | null;
-        extra_guest_price: number | string | null;
-        featured_photo_id: string | null;
-        featured_photo: { url: string } | Array<{ url: string }> | null;
-        beds: Array<{
-          bed_kind: string;
-          quantity: number;
-          sleeps: number;
-          sort_order: number;
-        }> | null;
-        photos: Array<{
-          id: string;
-          url: string;
-          sort_order: number;
-        }> | null;
-        amenities: Array<{ amenity_key: string }> | null;
-      }> | null) ?? [];
+    const rawRooms = (l.rooms as Array<Record<string, unknown>> | null) ?? [];
 
     const rooms: EditorRoom[] = rawRooms
       .filter((r) => r.deleted_at === null)
-      .sort((a, b) => a.sort_order - b.sort_order)
+      .sort((a, b) => (a.sort_order as number) - (b.sort_order as number))
       .map((r) => {
-        const fp = Array.isArray(r.featured_photo)
-          ? r.featured_photo[0]
-          : r.featured_photo;
-        const beds = (r.beds ?? [])
+        const fpRaw = r.featured_photo as
+          | { url: string }
+          | Array<{ url: string }>
+          | null;
+        const fp = Array.isArray(fpRaw) ? fpRaw[0] : fpRaw;
+        const beds = (
+          (r.beds as Array<{
+            bed_kind: string;
+            quantity: number;
+            sleeps: number;
+            sort_order: number;
+          }> | null) ?? []
+        )
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((b) => ({
             bed_kind: b.bed_kind,
             quantity: b.quantity,
             sleeps: b.sleeps,
           }));
-        const photos = (r.photos ?? [])
+        const photos = (
+          (r.photos as Array<{
+            id: string;
+            url: string;
+            sort_order: number;
+          }> | null) ?? []
+        )
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((p) => ({ id: p.id, url: p.url }));
-        const amenityKeys = (r.amenities ?? []).map((a) => a.amenity_key);
+        const amenityKeys = (
+          (r.amenities as Array<{ amenity_key: string }> | null) ?? []
+        ).map((a) => a.amenity_key);
         return {
-          id: r.id,
-          name: r.name,
-          description: r.description,
-          bedrooms: r.bedrooms,
-          bathrooms: r.bathrooms,
-          max_guests: r.max_guests,
-          min_guests: r.min_guests ?? 1,
-          min_nights: r.min_nights ?? 1,
+          id: r.id as string,
+          name: r.name as string,
+          description: (r.description as string | null) ?? null,
+          bedrooms: (r.bedrooms as number | null) ?? null,
+          bathrooms: (r.bathrooms as number | null) ?? null,
+          max_guests: r.max_guests as number,
+          min_guests: (r.min_guests as number | null) ?? 1,
+          min_nights: (r.min_nights as number | null) ?? 1,
           base_price: Number(r.base_price),
           weekend_price:
             r.weekend_price == null ? null : Number(r.weekend_price),
           cleaning_fee: Number(r.cleaning_fee ?? 0),
-          sort_order: r.sort_order,
-          is_active: r.is_active,
+          sort_order: r.sort_order as number,
+          is_active: r.is_active as boolean,
           room_size_sqm:
             r.room_size_sqm == null ? null : Number(r.room_size_sqm),
-          bed_type: r.bed_type ?? null,
-          view_type: r.view_type ?? null,
-          experiences: r.experiences ?? [],
-          has_ensuite_bathroom: r.has_ensuite_bathroom ?? false,
-          smoking_allowed: r.smoking_allowed ?? false,
-          pets_allowed: r.pets_allowed ?? false,
-          wheelchair_accessible: r.wheelchair_accessible ?? false,
-          private_entrance: r.private_entrance ?? false,
-          floor_number: r.floor_number ?? null,
-          inventory_count: r.inventory_count ?? 1,
-          pricing_mode: (r.pricing_mode ??
+          bed_type: (r.bed_type as string | null) ?? null,
+          view_type: (r.view_type as string | null) ?? null,
+          experiences: (r.experiences as string[] | null) ?? [],
+          has_ensuite_bathroom: (r.has_ensuite_bathroom as boolean) ?? false,
+          smoking_allowed: (r.smoking_allowed as boolean) ?? false,
+          pets_allowed: (r.pets_allowed as boolean) ?? false,
+          wheelchair_accessible: (r.wheelchair_accessible as boolean) ?? false,
+          private_entrance: (r.private_entrance as boolean) ?? false,
+          floor_number: (r.floor_number as number | null) ?? null,
+          inventory_count: (r.inventory_count as number | null) ?? 1,
+          pricing_mode: ((r.pricing_mode as string | null) ??
             "per_room") as EditorRoom["pricing_mode"],
           price_per_person:
             r.price_per_person == null ? null : Number(r.price_per_person),
-          base_occupancy: r.base_occupancy ?? null,
+          base_occupancy: (r.base_occupancy as number | null) ?? null,
           extra_guest_price:
             r.extra_guest_price == null ? null : Number(r.extra_guest_price),
-          featured_photo_id: r.featured_photo_id ?? null,
+          featured_photo_id: (r.featured_photo_id as string | null) ?? null,
           beds,
           featuredPhotoUrl: fp?.url ?? null,
-          featuredPhotoId: r.featured_photo_id ?? null,
+          featuredPhotoId: (r.featured_photo_id as string | null) ?? null,
           photos,
           amenityKeys,
         };
       });
 
-    // Pick a cover for the listing card: first listing-level (room_id = null) photo.
     const listingPhotos =
       (l.listing_photos as Array<{
         url: string;
@@ -301,59 +274,137 @@ export default async function RoomsPage({
     };
   });
 
-  // ── Hero aggregates ──
-  const totalRooms = groups.reduce((acc, g) => acc + g.rooms.length, 0);
-  const activeRooms = groups.reduce(
-    (acc, g) => acc + g.rooms.filter((r) => r.is_active).length,
-    0,
-  );
-  const draftRooms = totalRooms - activeRooms;
-  const listingsCount = groups.length;
-  const totalPhotos = groups.reduce(
-    (acc, g) => acc + g.rooms.reduce((a, r) => a + (r.photos?.length ?? 0), 0),
-    0,
-  );
-  const roomsMissingPhotos = groups.reduce(
-    (acc, g) =>
-      acc + g.rooms.filter((r) => (r.photos?.length ?? 0) === 0).length,
-    0,
-  );
+  // ── 14-day occupancy, computed from real blocked_dates ──────────────────
+  // Each confirmed booking / hold / manual block writes rows here; we classify
+  // a day as booked (booking/ical), held (quote hold) or blocked (manual).
+  const today = new Date();
+  const days = Array.from({ length: OCC_DAYS }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    return { ymd: ymd(d), dom: d.getDate(), isToday: i === 0 };
+  });
+  const rangeStart = days[0].ymd;
+  const rangeEnd = days[OCC_DAYS - 1].ymd;
+  const listingIds = groups.map((g) => g.listing.id);
 
-  // Average base price across active rooms (only currency = ZAR rooms here;
-  // assume ZAR until a multi-currency host exists).
-  const activeRoomList = groups.flatMap((g) =>
+  const { data: blockRows } = listingIds.length
+    ? await supabase
+        .from("blocked_dates")
+        .select("listing_id, room_id, date, source, booking_id, quote_id")
+        .in("listing_id", listingIds)
+        .gte("date", rangeStart)
+        .lte("date", rangeEnd)
+    : { data: [] as BlockRow[] };
+
+  type BlockRow = {
+    listing_id: string;
+    room_id: string | null;
+    date: string;
+    source: string;
+    booking_id: string | null;
+    quote_id: string | null;
+  };
+  const classify = (b: BlockRow): Exclude<Cell, "o"> => {
+    if (b.booking_id || b.source === "booking" || b.source === "ical")
+      return "b";
+    if (b.quote_id || b.source === "hold" || b.source === "quote") return "h";
+    return "x";
+  };
+
+  // listing-wide blocks (room_id null) apply to every room in that listing.
+  const listingWide = new Map<string, Map<string, Cell>>();
+  const perRoom = new Map<string, Map<string, Cell>>();
+  for (const raw of (blockRows as BlockRow[] | null) ?? []) {
+    const cell = classify(raw);
+    if (raw.room_id) {
+      const m = perRoom.get(raw.room_id) ?? new Map();
+      // Booked wins over held wins over blocked if two rows clash.
+      if (rank(m.get(raw.date)) < rank(cell)) m.set(raw.date, cell);
+      perRoom.set(raw.room_id, m);
+    } else {
+      const m = listingWide.get(raw.listing_id) ?? new Map();
+      if (rank(m.get(raw.date)) < rank(cell)) m.set(raw.date, cell);
+      listingWide.set(raw.listing_id, m);
+    }
+  }
+  const occFor = (listingId: string, roomId: string): Occ => {
+    const rm = perRoom.get(roomId);
+    const lm = listingWide.get(listingId);
+    const cells = days.map<Cell>(
+      (d) => rm?.get(d.ymd) ?? lm?.get(d.ymd) ?? "o",
+    );
+    const booked = cells.filter((c) => c !== "o").length;
+    return { cells, booked, pct: Math.round((booked / OCC_DAYS) * 100) };
+  };
+  const occByRoom = new Map<string, Occ>();
+  for (const g of groups)
+    for (const r of g.rooms) occByRoom.set(r.id, occFor(g.listing.id, r.id));
+
+  // ── Portfolio aggregates (all real) ──
+  const totalRooms = groups.reduce((a, g) => a + g.rooms.length, 0);
+  const activeRoomsList = groups.flatMap((g) =>
     g.rooms.filter((r) => r.is_active),
   );
-  const avgRate =
-    activeRoomList.length === 0
-      ? 0
-      : Math.round(
-          activeRoomList.reduce((a, r) => a + effectiveNightly(r), 0) /
-            activeRoomList.length,
-        );
+  const activeRooms = activeRoomsList.length;
+  const draftRooms = totalRooms - activeRooms;
+  const listingsCount = groups.length;
 
-  // Build hero montage from featured room photos (up to 9, dedup by URL).
-  const heroPhotos: Array<{
-    url: string;
-    roomName: string;
-    listingName: string;
-  }> = [];
-  const seen = new Set<string>();
+  const pricedActive = activeRoomsList.filter((r) => roomRate(r) != null);
+  const rates = pricedActive.map((r) => effectiveNightly(r));
+  const avgRate =
+    rates.length === 0
+      ? 0
+      : Math.round(rates.reduce((a, n) => a + n, 0) / rates.length);
+  const minRate = rates.length ? Math.min(...rates) : 0;
+  const maxRate = rates.length ? Math.max(...rates) : 0;
+
+  const occBookedTotal = activeRoomsList.reduce(
+    (a, r) => a + (occByRoom.get(r.id)?.booked ?? 0),
+    0,
+  );
+  const avgOccupancy =
+    activeRooms === 0
+      ? 0
+      : Math.round((occBookedTotal / (activeRooms * OCC_DAYS)) * 100);
+  const openTonight = activeRoomsList.filter(
+    (r) => occByRoom.get(r.id)?.cells[0] === "o",
+  ).length;
+  const unpriced = activeRoomsList.filter((r) => roomRate(r) == null).length;
+
+  // Needs attention — real, actionable signals only.
+  const attention: AttnItem[] = [];
   for (const g of groups) {
     for (const r of g.rooms) {
-      const url = r.featuredPhotoUrl ?? r.photos?.[0]?.url ?? null;
-      if (url && !seen.has(url)) {
-        seen.add(url);
-        heroPhotos.push({
-          url,
-          roomName: r.name,
-          listingName: g.listing.name,
+      if (attention.length >= 6) break;
+      if ((r.photos?.length ?? 0) === 0) {
+        attention.push({
+          icon: "photo",
+          title: `${r.name} · no photos`,
+          sub: "Rooms with photos get far more bookings.",
+          cta: "Upload",
+          href: `/dashboard/listings/${g.listing.id}/edit/rooms/${r.id}`,
         });
-        if (heroPhotos.length >= 9) break;
+      } else if (r.is_active && roomRate(r) == null) {
+        attention.push({
+          icon: "rate",
+          title: `${r.name} · no rate`,
+          sub: "Set a nightly rate so guests can book it.",
+          cta: "Set rate",
+          href: `/dashboard/listings/${g.listing.id}/edit/rooms/${r.id}`,
+        });
       }
     }
-    if (heroPhotos.length >= 9) break;
   }
+
+  // Top performers — active rooms by real 14-day occupancy.
+  const topPerformers = activeRoomsList
+    .map((r) => {
+      const g = groups.find((gr) => gr.rooms.some((x) => x.id === r.id))!;
+      return { room: r, listing: g.listing, occ: occByRoom.get(r.id)! };
+    })
+    .filter((t) => t.occ.booked > 0)
+    .sort((a, b) => b.occ.pct - a.occ.pct)
+    .slice(0, 4);
 
   // ── Filtering from searchParams ──
   const listingFilter = searchParams?.listing ?? "all";
@@ -379,293 +430,268 @@ export default async function RoomsPage({
       }),
     }));
 
+  const addRoomHref =
+    listingsCount === 1
+      ? `/dashboard/listings/${groups[0].listing.id}/edit?tab=rooms&add=1`
+      : "/dashboard/listings";
+
+  if (groups.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageHeader addRoomHref="/dashboard/listings/new" />
+        <EmptyStateNoListings />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 lg:space-y-7">
-      <PortfolioHero
-        totalRooms={totalRooms}
-        activeRooms={activeRooms}
-        draftRooms={draftRooms}
-        listingsCount={listingsCount}
-        avgRate={avgRate}
-        totalPhotos={totalPhotos}
-        photos={heroPhotos}
-        addRoomHref={
-          listingsCount === 1
-            ? `/dashboard/listings/${groups[0].listing.id}/edit?tab=rooms&add=1`
-            : "/dashboard/listings"
-        }
+    <div className="space-y-5">
+      <PageHeader addRoomHref={addRoomHref} />
+
+      {/* ── Stat band ── */}
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line sm:grid-cols-4">
+        <StatCell
+          label="Live rooms"
+          value={
+            <>
+              {activeRooms}
+              <span className="text-[13px] font-semibold text-brand-mute">
+                {" "}
+                / {totalRooms}
+              </span>
+            </>
+          }
+          foot={`across ${listingsCount} listing${listingsCount === 1 ? "" : "s"}`}
+        />
+        <StatCell
+          label="Avg occupancy"
+          value={`${avgOccupancy}%`}
+          foot={`next ${OCC_DAYS} days`}
+        />
+        <StatCell
+          label="Avg rate · night"
+          value={avgRate > 0 ? fmtRand(avgRate) : "—"}
+          foot={
+            minRate > 0
+              ? `${fmtRand(minRate)} – ${fmtRand(maxRate)} range`
+              : "no rates set"
+          }
+        />
+        <StatCell
+          label="Open tonight"
+          value={String(openTonight)}
+          foot={
+            unpriced > 0 ? (
+              <span className="inline-flex items-center gap-1 font-medium text-status-pending">
+                <AlertTriangle className="h-3 w-3" /> {unpriced} unpriced
+              </span>
+            ) : (
+              "all priced"
+            )
+          }
+        />
+      </section>
+
+      {/* ── Filter bar ── */}
+      <FilterBar
+        groups={groups}
+        listingFilter={listingFilter}
+        statusFilter={statusFilter}
+        q={q}
+        counts={{ all: totalRooms, active: activeRooms, draft: draftRooms }}
       />
 
-      {groups.length === 0 ? (
-        <EmptyStateNoListings />
-      ) : (
-        <>
-          <FilterBar
-            groups={groups}
-            listingFilter={listingFilter}
-            statusFilter={statusFilter}
-            q={q}
-            counts={{
-              all: totalRooms,
-              active: activeRooms,
-              draft: draftRooms,
-              missingPhotos: roomsMissingPhotos,
-            }}
-          />
+      {/* ── Main grid ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+        {/* Left: listing groups */}
+        <div className="min-w-0 space-y-5">
+          {visibleGroups.map((g) => (
+            <ListingGroupCard key={g.listing.id} group={g} occ={occByRoom} />
+          ))}
+          {visibleGroups.every((g) => g.rooms.length === 0) ? (
+            <NoMatchingRooms />
+          ) : null}
+        </div>
 
-          <div className="space-y-6">
-            {visibleGroups.map((g) => (
-              <ListingGroupCard key={g.listing.id} group={g} />
-            ))}
-            {visibleGroups.every((g) => g.rooms.length === 0) ? (
-              <NoMatchingRooms />
-            ) : null}
-          </div>
-        </>
-      )}
+        {/* Right rail */}
+        <div className="space-y-5">
+          {attention.length > 0 ? (
+            <RailCard title="Needs attention" badge={attention.length}>
+              <div className="divide-y divide-brand-line">
+                {attention.map((a, i) => (
+                  <div key={i} className="flex items-start gap-3 px-5 py-3">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[9px] bg-status-pending/[0.12] text-status-pending">
+                      {a.icon === "photo" ? (
+                        <ImageOff className="h-4 w-4" />
+                      ) : (
+                        <Tag className="h-4 w-4" />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-semibold text-brand-ink">
+                        {a.title}
+                      </div>
+                      <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
+                        {a.sub}
+                      </div>
+                    </div>
+                    <Link
+                      href={a.href}
+                      className="shrink-0 text-[11px] font-semibold text-brand-primary hover:underline"
+                    >
+                      {a.cta}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </RailCard>
+          ) : null}
+
+          {topPerformers.length > 0 ? (
+            <RailCard
+              title="Top performers"
+              subtitle={`By occupancy · next ${OCC_DAYS} days`}
+            >
+              <div className="divide-y divide-brand-line">
+                {topPerformers.map((t, i) => {
+                  const rate = roomRate(t.room);
+                  return (
+                    <Link
+                      key={t.room.id}
+                      href={`/dashboard/listings/${t.listing.id}/edit/rooms/${t.room.id}`}
+                      className="flex items-center gap-3 px-5 py-3 hover:bg-brand-light/50"
+                    >
+                      <span className="num w-4 text-center font-display text-[16px] font-bold text-brand-mute">
+                        {i + 1}
+                      </span>
+                      <div className="h-9 w-12 shrink-0 overflow-hidden rounded-[8px] border border-brand-line bg-brand-light">
+                        {t.room.featuredPhotoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={t.room.featuredPhotoUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-brand-mute">
+                            <ImageIcon className="h-3.5 w-3.5" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12.5px] font-semibold text-brand-ink">
+                          {t.room.name}
+                        </div>
+                        <div className="truncate text-[10.5px] text-brand-mute">
+                          {t.listing.name}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="num text-[13px] font-bold text-brand-primary">
+                          {t.occ.pct}%
+                        </div>
+                        {rate ? (
+                          <div className="num text-[10px] text-brand-mute">
+                            {rate.amount}
+                          </div>
+                        ) : null}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </RailCard>
+          ) : null}
+
+          <RailCard title="Calendar legend">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-3 px-5 py-4 text-[12px] text-brand-ink">
+              <LegendSwatch cell="b" label="Booked" />
+              <LegendSwatch cell="h" label="Held" />
+              <LegendSwatch cell="o" label="Open" />
+              <LegendSwatch cell="x" label="Blocked" />
+            </div>
+          </RailCard>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type AttnItem = {
+  icon: "photo" | "rate";
+  title: string;
+  sub: string;
+  cta: string;
+  href: string;
+};
+
+// "Booked beats held beats blocked beats open" when two rows land on one day.
+function rank(c: Cell | undefined): number {
+  return c === "b" ? 3 : c === "h" ? 2 : c === "x" ? 1 : 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PAGE HEADER (breadcrumb + title + actions)
+// ─────────────────────────────────────────────────────────────
+function PageHeader({ addRoomHref }: { addRoomHref: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 border-b border-brand-line pb-4">
+      <div className="shrink-0">
+        <nav className="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+          <Link href="/dashboard/listings" className="hover:text-brand-ink">
+            Listings
+          </Link>
+          <ChevronRight className="h-3 w-3" />
+          <span className="font-medium text-brand-ink">Rooms</span>
+        </nav>
+        <h1 className="mt-1 font-display text-[22px] font-extrabold leading-none tracking-tight text-brand-ink">
+          Rooms
+        </h1>
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        <Link
+          href="/dashboard/calendar-sync"
+          className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+        >
+          <RefreshCw className="h-4 w-4 text-brand-mute" />
+          Calendar sync
+        </Link>
+        <Link
+          href={addRoomHref}
+          className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+        >
+          <Plus className="h-4 w-4" />
+          Add room
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+  foot,
+}: {
+  label: string;
+  value: React.ReactNode;
+  foot: React.ReactNode;
+}) {
+  return (
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        {label}
+      </div>
+      <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">
+        {value}
+      </div>
+      <div className="mt-1 text-[11px] text-brand-mute">{foot}</div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// PORTFOLIO HERO
-// ─────────────────────────────────────────────────────────────
-function PortfolioHero({
-  totalRooms,
-  activeRooms,
-  draftRooms,
-  listingsCount,
-  avgRate,
-  totalPhotos,
-  photos,
-  addRoomHref,
-}: {
-  totalRooms: number;
-  activeRooms: number;
-  draftRooms: number;
-  listingsCount: number;
-  avgRate: number;
-  totalPhotos: number;
-  photos: Array<{ url: string; roomName: string; listingName: string }>;
-  /** Where the hero "Add room" button goes — the rooms editor, not the portfolio. */
-  addRoomHref: string;
-}) {
-  const hasRooms = totalRooms > 0;
-
-  return (
-    <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
-      <div className="grid gap-0 md:grid-cols-[1.45fr_1fr]">
-        {/* Left */}
-        <div className="relative bg-brand-gradient-dark p-7 text-white md:p-8">
-          <div
-            aria-hidden
-            className="absolute inset-0 opacity-30"
-            style={{
-              backgroundImage:
-                "radial-gradient(rgba(16,185,129,0.18) 1px, transparent 1px)",
-              backgroundSize: "18px 18px",
-            }}
-          />
-          <div
-            aria-hidden
-            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/30 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-brand-secondary/40 blur-3xl"
-          />
-
-          <div className="relative">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
-                <BedDouble className="h-3 w-3" />
-                Room manager
-              </div>
-              <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                {totalRooms} room{totalRooms === 1 ? "" : "s"} · {listingsCount}{" "}
-                listing{listingsCount === 1 ? "" : "s"}
-              </div>
-            </div>
-
-            <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-              {hasRooms ? "All rooms, one place." : "Add your first room."}
-            </h2>
-
-            <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-brand-accent/80">
-              {hasRooms
-                ? "Set rates, capacity and amenities across every room you let by the night. Edit per-room photos and details from the row editor."
-                : "Rooms let guests book a single bedroom inside a multi-room property. Add your first one to start filling beds."}
-            </p>
-
-            {/* Stats ribbon */}
-            <div className="mt-6 grid max-w-md grid-cols-4 gap-3">
-              <div>
-                <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                  Live rooms
-                </div>
-                <div className="num mt-1 font-display text-xl font-bold text-white">
-                  {activeRooms}
-                </div>
-                <div className="text-[10px] text-brand-accent/60">
-                  / {totalRooms} total
-                </div>
-              </div>
-              <div>
-                <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                  Drafts
-                </div>
-                <div className="num mt-1 font-display text-xl font-bold text-white">
-                  {draftRooms}
-                </div>
-                <div className="text-[10px] text-brand-accent/60">
-                  {draftRooms === 0 ? "all live" : "to finish"}
-                </div>
-              </div>
-              <div>
-                <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                  Avg rate
-                </div>
-                <div className="num mt-1 font-display text-xl font-bold text-white">
-                  {avgRate > 0
-                    ? `R ${avgRate.toLocaleString("en-ZA").replace(/,/g, " ")}`
-                    : "—"}
-                </div>
-                <div className="text-[10px] text-brand-accent/60">/ night</div>
-              </div>
-              <div>
-                <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                  Photos
-                </div>
-                <div className="num mt-1 font-display text-xl font-bold text-white">
-                  {totalPhotos}
-                </div>
-                <div className="text-[10px] text-brand-accent/60">
-                  across all rooms
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="mt-6 flex flex-wrap items-center gap-2.5">
-              <Link
-                href={addRoomHref}
-                className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-[0_12px_32px_-10px_rgba(16,185,129,0.35)] hover:bg-brand-accent"
-              >
-                <Plus className="h-4 w-4" />
-                Add room
-              </Link>
-              <Link
-                href="/dashboard/listings"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-              >
-                <SlidersHorizontal className="h-4 w-4" />
-                Manage listings
-              </Link>
-              <Link
-                href="/dashboard/calendar-sync"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-              >
-                <Calendar className="h-4 w-4" />
-                Calendar sync
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: room thumbnails montage */}
-        <div className="relative bg-brand-dark">
-          {photos.length > 0 ? (
-            <div className="grid h-full min-h-[320px] grid-cols-3 grid-rows-4 gap-1 p-2">
-              {/* Featured hero tile */}
-              <div className="relative col-span-2 row-span-2 overflow-hidden rounded-[10px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={photos[0].url}
-                  alt={photos[0].roomName}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-brand-dark/80 via-transparent to-transparent" />
-                <div className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-pill bg-white/95 px-2 py-0.5 text-[9.5px] font-semibold text-brand-secondary backdrop-blur">
-                  <Sparkles className="h-2.5 w-2.5" />
-                  Featured
-                </div>
-                <div className="absolute bottom-3 left-3 right-3">
-                  <div className="truncate text-[11px] font-bold text-white drop-shadow">
-                    {photos[0].roomName}
-                  </div>
-                  <div className="truncate text-[10px] text-white/85 drop-shadow">
-                    {photos[0].listingName}
-                  </div>
-                </div>
-              </div>
-              {photos.slice(1, 8).map((p, i) => (
-                <div
-                  key={`${p.url}-${i}`}
-                  className="overflow-hidden rounded-[10px]"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={p.url}
-                    alt={p.roomName}
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-              {photos[8] ? (
-                <div className="relative overflow-hidden rounded-[10px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photos[8].url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    loading="lazy"
-                  />
-                  {totalPhotos > 9 ? (
-                    <Link
-                      href="/dashboard/listings"
-                      className="absolute inset-0 flex items-center justify-center bg-brand-dark/70 text-[11px] font-semibold text-white hover:bg-brand-dark/85"
-                    >
-                      +{totalPhotos - 9} more
-                    </Link>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-8 text-center">
-              <div
-                aria-hidden
-                className="absolute inset-0 opacity-25"
-                style={{
-                  backgroundImage:
-                    "radial-gradient(rgba(16,185,129,0.35) 1px, transparent 1px)",
-                  backgroundSize: "18px 18px",
-                }}
-              />
-              <div className="relative flex h-12 w-12 items-center justify-center rounded-card bg-brand-primary/15 text-brand-primary">
-                <ImageIcon className="h-6 w-6" />
-              </div>
-              <div className="relative">
-                <div className="font-display text-sm font-bold text-white">
-                  No room photos yet
-                </div>
-                <p className="mt-1 max-w-[220px] text-[11.5px] text-brand-accent/70">
-                  Upload a featured photo to each room from the room editor.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// FILTER BAR
+// FILTER BAR (listing chips + status + search)
 // ─────────────────────────────────────────────────────────────
 function FilterBar({
   groups,
@@ -678,7 +704,7 @@ function FilterBar({
   listingFilter: string;
   statusFilter: "all" | "active" | "draft";
   q: string;
-  counts: { all: number; active: number; draft: number; missingPhotos: number };
+  counts: { all: number; active: number; draft: number };
 }) {
   const baseQuery = (next: {
     listing?: string;
@@ -692,109 +718,64 @@ function FilterBar({
     if (listing && listing !== "all") merged.listing = listing;
     if (status && status !== "all") merged.status = status;
     if (query) merged.q = query;
-    const params = new URLSearchParams(merged);
-    const s = params.toString();
+    const s = new URLSearchParams(merged).toString();
     return s ? `/dashboard/rooms?${s}` : "/dashboard/rooms";
   };
 
   return (
-    <section className="rounded-card border border-brand-line bg-white shadow-card">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
-        {/* Listing chips */}
-        <div className="hscroll flex items-center gap-0.5 overflow-x-auto">
-          <Link
-            href={baseQuery({ listing: "all" })}
-            className={
-              listingFilter === "all"
-                ? "flex items-center gap-1.5 whitespace-nowrap rounded-md bg-brand-accent px-3 py-1.5 text-[12.5px] font-semibold text-brand-secondary"
-                : "flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            }
-          >
-            All listings
-            <span
-              className={
-                listingFilter === "all"
-                  ? "num rounded-pill bg-white/70 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-secondary"
-                  : "num rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute"
-              }
-            >
-              {counts.all}
-            </span>
-          </Link>
-          {groups.map((g) => {
-            const active = listingFilter === g.listing.id;
-            return (
-              <Link
-                key={g.listing.id}
-                href={baseQuery({ listing: g.listing.id })}
-                className={
-                  active
-                    ? "flex items-center gap-1.5 whitespace-nowrap rounded-md bg-brand-accent px-3 py-1.5 text-[12.5px] font-semibold text-brand-secondary"
-                    : "flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-                }
-              >
-                <span className="max-w-[140px] truncate">{g.listing.name}</span>
-                <span
-                  className={
-                    active
-                      ? "num rounded-pill bg-white/70 px-1.5 py-0.5 text-[9.5px] font-bold text-brand-secondary"
-                      : "num rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute"
-                  }
-                >
-                  {g.rooms.length}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+    <section className="flex flex-wrap items-center gap-2.5">
+      <div
+        className="-mx-1 flex items-center gap-1 overflow-x-auto px-1"
+        style={{ scrollbarWidth: "none" }}
+      >
+        <Chip
+          href={baseQuery({ listing: "all" })}
+          on={listingFilter === "all"}
+          label="All listings"
+          count={counts.all}
+        />
+        {groups.map((g) => (
+          <Chip
+            key={g.listing.id}
+            href={baseQuery({ listing: g.listing.id })}
+            on={listingFilter === g.listing.id}
+            label={g.listing.name}
+            count={g.rooms.length}
+          />
+        ))}
+      </div>
 
-        <div className="mx-1 hidden h-5 w-px bg-brand-line lg:block" />
-
-        {/* Status filters */}
-        <div className="hidden items-center gap-0.5 lg:flex">
-          <Link
+      <div className="ml-auto flex items-center gap-2">
+        {/* status chips */}
+        <div className="hidden items-center gap-1 sm:flex">
+          <StatusChip
             href={baseQuery({ status: "active" })}
-            className={
-              statusFilter === "active"
-                ? "flex items-center gap-1.5 rounded-md border border-brand-line bg-brand-light/60 px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink"
-                : "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            }
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
-            Live <span className="num text-brand-mute">{counts.active}</span>
-          </Link>
-          <Link
+            on={statusFilter === "active"}
+            dot="bg-status-confirmed"
+            label="Live"
+            count={counts.active}
+          />
+          <StatusChip
             href={baseQuery({ status: "draft" })}
-            className={
-              statusFilter === "draft"
-                ? "flex items-center gap-1.5 rounded-md border border-brand-line bg-brand-light/60 px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink"
-                : "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            }
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-status-draft" />
-            Draft <span className="num">{counts.draft}</span>
-          </Link>
-          {counts.missingPhotos > 0 ? (
-            <span className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-brand-mute">
-              <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
-              Missing photos <span className="num">{counts.missingPhotos}</span>
-            </span>
-          ) : null}
+            on={statusFilter === "draft"}
+            dot="bg-status-draft"
+            label="Draft"
+            count={counts.draft}
+          />
           {statusFilter !== "all" || listingFilter !== "all" || q ? (
             <Link
               href="/dashboard/rooms"
-              className="ml-1 rounded-md px-2.5 py-1.5 text-[11.5px] font-medium text-brand-primary hover:underline"
+              className="px-2 text-[12px] font-medium text-brand-primary hover:underline"
             >
               Reset
             </Link>
           ) : null}
         </div>
 
-        {/* Search */}
         <form
           action="/dashboard/rooms"
           method="GET"
-          className="ml-auto flex items-center gap-2"
+          className="relative hidden sm:block"
         >
           {listingFilter !== "all" ? (
             <input type="hidden" name="listing" value={listingFilter} />
@@ -802,28 +783,91 @@ function FilterBar({
           {statusFilter !== "all" ? (
             <input type="hidden" name="status" value={statusFilter} />
           ) : null}
-          <div className="relative">
-            <input
-              type="text"
-              name="q"
-              defaultValue={q}
-              placeholder="Search rooms…"
-              className="w-44 rounded-[10px] border border-brand-line bg-white py-1.5 pl-8 pr-3 text-[12px] text-brand-ink transition-colors focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)] focus:outline-none"
-            />
-            <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-brand-mute" />
-          </div>
+          <input
+            type="text"
+            name="q"
+            defaultValue={q}
+            placeholder="Search rooms…"
+            className="h-9 w-48 rounded-pill border border-brand-line bg-white pl-9 pr-3 text-[12.5px] text-brand-ink outline-none transition focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.12)]"
+          />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
         </form>
       </div>
     </section>
   );
 }
 
+function Chip({
+  href,
+  on,
+  label,
+  count,
+}: {
+  href: string;
+  on: boolean;
+  label: string;
+  count: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex h-8 items-center gap-2 whitespace-nowrap rounded-pill px-3 text-[12.5px] font-semibold transition ${
+        on
+          ? "bg-brand-accent text-brand-secondary"
+          : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+      }`}
+    >
+      <span className="max-w-[140px] truncate">{label}</span>
+      <span
+        className={`num rounded-pill px-[7px] py-px text-[11px] font-bold ${
+          on ? "bg-white/70 text-brand-secondary" : "bg-white text-brand-mute"
+        }`}
+      >
+        {count}
+      </span>
+    </Link>
+  );
+}
+
+function StatusChip({
+  href,
+  on,
+  dot,
+  label,
+  count,
+}: {
+  href: string;
+  on: boolean;
+  dot: string;
+  label: string;
+  count: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1.5 text-[11.5px] font-medium transition ${
+        on
+          ? "border border-brand-line bg-brand-light/60 text-brand-ink"
+          : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+      }`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label} <span className="num text-brand-mute">{count}</span>
+    </Link>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────
 // LISTING GROUP CARD
 // ─────────────────────────────────────────────────────────────
-function ListingGroupCard({ group }: { group: Group }) {
+function ListingGroupCard({
+  group,
+  occ,
+}: {
+  group: Group;
+  occ: Map<string, Occ>;
+}) {
   const { listing, rooms } = group;
-
   const totalSleeps = rooms.reduce((a, r) => a + r.max_guests, 0);
   const activeForAvg = rooms.filter(
     (r) => r.is_active && effectiveNightly(r) > 0,
@@ -835,6 +879,15 @@ function ListingGroupCard({ group }: { group: Group }) {
           activeForAvg.reduce((a, r) => a + effectiveNightly(r), 0) /
             activeForAvg.length,
         );
+  const activeRooms = rooms.filter((r) => r.is_active);
+  const bookedNights = activeRooms.reduce(
+    (a, r) => a + (occ.get(r.id)?.booked ?? 0),
+    0,
+  );
+  const listingOcc =
+    activeRooms.length === 0
+      ? 0
+      : Math.round((bookedNights / (activeRooms.length * OCC_DAYS)) * 100);
   const locationLine = [listing.city, listing.province]
     .filter(Boolean)
     .join(", ");
@@ -844,9 +897,9 @@ function ListingGroupCard({ group }: { group: Group }) {
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       {/* Header */}
-      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-line px-6 py-4">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-line px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-[10px] border border-brand-line bg-brand-light">
+          <div className="h-11 w-11 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
             {listing.cover_photo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -862,7 +915,7 @@ function ListingGroupCard({ group }: { group: Group }) {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="truncate font-display text-[16px] font-bold text-brand-ink">
+              <h3 className="truncate font-display text-[15.5px] font-bold text-brand-ink">
                 {listing.name}
               </h3>
               <span
@@ -871,12 +924,12 @@ function ListingGroupCard({ group }: { group: Group }) {
                 {BOOKING_MODE_LABEL[listing.booking_mode]}
               </span>
               {!listing.is_published ? (
-                <span className="rounded-pill bg-brand-line px-2 py-0.5 text-[10px] font-semibold text-brand-mute">
+                <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand-mute">
                   Draft listing
                 </span>
               ) : null}
             </div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11.5px] text-brand-mute">
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11.5px] text-brand-mute">
               {locationLine ? <span>{locationLine}</span> : null}
               {locationLine ? <span className="text-brand-line">·</span> : null}
               <span>
@@ -885,15 +938,14 @@ function ListingGroupCard({ group }: { group: Group }) {
               {totalSleeps > 0 ? (
                 <>
                   <span className="text-brand-line">·</span>
-                  <span>Sleeps up to {totalSleeps}</span>
+                  <span>sleeps up to {totalSleeps}</span>
                 </>
               ) : null}
               {avgPrice > 0 ? (
                 <>
                   <span className="text-brand-line">·</span>
-                  <span className="font-mono">
-                    R {avgPrice.toLocaleString("en-ZA").replace(/,/g, " ")} avg
-                    / night
+                  <span className="num font-mono">
+                    {fmtRand(avgPrice)} avg / night
                   </span>
                 </>
               ) : null}
@@ -903,24 +955,14 @@ function ListingGroupCard({ group }: { group: Group }) {
         <div className="flex items-center gap-1.5">
           <Link
             href={addRoomHref}
-            className="inline-flex items-center gap-1 rounded-[8px] border border-brand-line px-2.5 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-light/60"
+            className="inline-flex items-center gap-1 rounded-pill border border-brand-line px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-light"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" />
             Add room
           </Link>
-          {listing.is_published && listing.slug ? (
-            <Link
-              href={`/listing/${listing.slug}`}
-              target="_blank"
-              className="inline-flex h-7 items-center justify-center gap-1 rounded-[8px] px-2 text-[11.5px] text-brand-mute hover:bg-brand-light/60 hover:text-brand-ink"
-              title="View public listing"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          ) : null}
           <Link
             href={editListingHref}
-            className="flex h-7 w-7 items-center justify-center rounded-[8px] text-brand-mute hover:bg-brand-light/60 hover:text-brand-ink"
+            className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute hover:bg-brand-light hover:text-brand-ink"
             title="Listing settings"
           >
             <MoreHorizontal className="h-4 w-4" />
@@ -932,32 +974,41 @@ function ListingGroupCard({ group }: { group: Group }) {
         <EmptyStateNoRooms listingId={listing.id} />
       ) : (
         <>
-          {/* Column headers — hidden below md so the row collapses cleanly */}
-          <div className="hidden grid-cols-[1.6fr_0.75fr_0.7fr_1fr_auto] gap-3 border-b border-brand-line bg-brand-light/40 px-6 py-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute md:grid">
+          {/* Column headers */}
+          <div className="hidden items-center gap-3.5 border-b border-brand-line bg-[#FAFCFB] px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-brand-mute md:grid md:grid-cols-[1.7fr_0.62fr_0.62fr_1.45fr_34px]">
             <div>Room</div>
             <div>Capacity</div>
             <div className="text-right">Rate / night</div>
-            <div>Details</div>
-            <div className="w-7" />
+            <div>{OCC_DAYS}-day occupancy</div>
+            <div />
           </div>
 
-          {/* Rooms */}
-          <ul className="divide-y divide-brand-line">
+          <div className="divide-y divide-brand-line">
             {rooms.map((r) => (
-              <RoomRow key={r.id} listingId={listing.id} room={r} />
+              <RoomRow
+                key={r.id}
+                listingId={listing.id}
+                room={r}
+                occ={occ.get(r.id)}
+              />
             ))}
-          </ul>
+          </div>
 
           {/* Footer summary */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-brand-line bg-brand-light/40 px-6 py-2.5 text-[11.5px] text-brand-mute">
-            <span className="inline-flex items-center gap-1">
-              <BarChart3 className="h-3 w-3" />
-              <span>
-                {rooms.filter((r) => r.is_active).length} of {rooms.length} live
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-brand-line bg-[#FAFCFB] px-5 py-2.5 text-[11.5px] text-brand-mute">
+            <span className="num">
+              Occupancy{" "}
+              <span className="font-semibold text-brand-ink">
+                {listingOcc}%
               </span>
             </span>
             <span className="text-brand-line">·</span>
-            <span>
+            <span className="num">
+              {bookedNights} night{bookedNights === 1 ? "" : "s"} booked ·{" "}
+              {OCC_DAYS}d
+            </span>
+            <span className="text-brand-line">·</span>
+            <span className="num">
               {rooms.reduce((a, r) => a + (r.photos?.length ?? 0), 0)} photos
             </span>
             <Link
@@ -965,7 +1016,7 @@ function ListingGroupCard({ group }: { group: Group }) {
               className="ml-auto inline-flex items-center gap-1 text-[11.5px] font-semibold text-brand-secondary hover:underline"
             >
               Open listing
-              <ExternalLink className="h-3 w-3" />
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </>
@@ -977,20 +1028,30 @@ function ListingGroupCard({ group }: { group: Group }) {
 // ─────────────────────────────────────────────────────────────
 // ROOM ROW
 // ─────────────────────────────────────────────────────────────
-function RoomRow({ listingId, room }: { listingId: string; room: EditorRoom }) {
+function RoomRow({
+  listingId,
+  room,
+  occ,
+}: {
+  listingId: string;
+  room: EditorRoom;
+  occ: Occ | undefined;
+}) {
   const editHref = `/dashboard/listings/${listingId}/edit/rooms/${room.id}`;
   const photoCount = room.photos?.length ?? 0;
-  const bedsText = describeBeds(room.beds);
-  const featuresText = describeRoomFeatures(room);
-  const subTitle = [bedsText, featuresText].filter(Boolean).join(" · ");
+  const subTitle =
+    [describeBeds(room.beds), describeRoomFeatures(room)]
+      .filter(Boolean)
+      .join(" · ") || "Add room details";
   const rate = roomRate(room);
+  const muted = !room.is_active;
 
   return (
-    <li className="grid grid-cols-1 gap-y-2 px-6 py-3 hover:bg-brand-light/40 md:grid-cols-[1.6fr_0.75fr_0.7fr_1fr_auto] md:items-center md:gap-3">
+    <div className="grid grid-cols-1 gap-y-2.5 px-5 py-3 transition hover:bg-[#FAFCFB] md:grid-cols-[1.7fr_0.62fr_0.62fr_1.45fr_34px] md:items-center md:gap-3.5">
       {/* Room */}
       <div className="flex min-w-0 items-center gap-3">
         <div
-          className={`h-12 w-16 shrink-0 overflow-hidden rounded-[8px] border border-brand-line ${room.is_active ? "" : "opacity-70"}`}
+          className={`h-12 w-16 shrink-0 overflow-hidden rounded-[9px] border border-brand-line bg-brand-light ${muted ? "opacity-70" : ""}`}
         >
           {room.featuredPhotoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -1000,62 +1061,60 @@ function RoomRow({ listingId, room }: { listingId: string; room: EditorRoom }) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-white text-brand-mute">
+            <div className="flex h-full w-full items-center justify-center text-brand-mute">
               <ImageIcon className="h-4 w-4" />
             </div>
           )}
         </div>
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span
               className={`h-1.5 w-1.5 shrink-0 rounded-full ${room.is_active ? "bg-status-confirmed" : "bg-status-draft"}`}
             />
             <span
-              className={`truncate text-[13px] font-semibold ${room.is_active ? "text-brand-ink" : "text-brand-mute"}`}
+              className={`truncate text-[13.5px] font-semibold ${muted ? "text-brand-mute" : "text-brand-ink"}`}
             >
               {room.name}
             </span>
-            {!room.is_active ? (
-              <span className="inline-flex items-center rounded-pill bg-status-draft/15 px-1.5 py-0.5 text-[9.5px] font-semibold text-status-draft">
-                Draft
-              </span>
-            ) : null}
-            {photoCount === 0 ? (
-              <span className="inline-flex items-center gap-0.5 rounded-pill bg-status-pending/15 px-1.5 py-0.5 text-[9.5px] font-semibold text-status-pending">
-                <ImageIcon className="h-2.5 w-2.5" />
-                No photos
-              </span>
-            ) : null}
-            {room.has_ensuite_bathroom && room.private_entrance ? (
-              <span className="inline-flex items-center rounded-pill bg-brand-accent px-1.5 py-0.5 text-[9.5px] font-semibold text-brand-secondary">
+            {muted ? (
+              <Taglet tone="gray">Draft</Taglet>
+            ) : photoCount === 0 ? (
+              <Taglet tone="amber" icon={<ImageOff className="h-3 w-3" />}>
+                Missing photos
+              </Taglet>
+            ) : room.has_ensuite_bathroom && room.private_entrance ? (
+              <Taglet tone="green" icon={<Award className="h-3 w-3" />}>
                 Private suite
-              </span>
+              </Taglet>
             ) : null}
           </div>
-          <div className="mt-0.5 truncate text-[11px] text-brand-mute">
-            {subTitle || "Add room details"}
+          <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+            {subTitle}
           </div>
         </div>
       </div>
 
       {/* Capacity */}
-      <div className="text-[12.5px] text-brand-ink">
+      <div
+        className={`text-[12.5px] ${muted ? "text-brand-mute" : "text-brand-ink"}`}
+      >
         <div className="num font-semibold">Sleeps {room.max_guests || "—"}</div>
         <div className="text-[10.5px] text-brand-mute">
           {room.inventory_count > 1
-            ? `${room.inventory_count} identical units`
-            : room.bedrooms != null && room.bedrooms > 0
-              ? `${room.bedrooms} bedroom${room.bedrooms === 1 ? "" : "s"}`
+            ? `${room.inventory_count} units`
+            : room.beds && room.beds.length > 0
+              ? `${room.beds.length} bed${room.beds.length === 1 ? "" : "s"}`
               : "Single room"}
         </div>
       </div>
 
-      {/* Rate / night — resolved per pricing mode (per_room / per_person /
-          per_room_plus_extra) so the saved rate always shows here. */}
+      {/* Rate */}
       <div className="md:text-right">
         {rate ? (
           <>
-            <div className="num font-display text-[14px] font-bold text-brand-ink">
+            <div
+              className={`num font-display text-[14px] font-bold ${muted ? "text-brand-mute" : "text-brand-ink"}`}
+            >
               {rate.amount}
             </div>
             <div className="num text-[10.5px] text-brand-mute">{rate.sub}</div>
@@ -1063,49 +1122,139 @@ function RoomRow({ listingId, room }: { listingId: string; room: EditorRoom }) {
         ) : (
           <>
             <div className="num font-display text-[14px] font-semibold text-brand-mute">
-              Set rate
+              —
             </div>
-            <div className="num text-[10.5px] text-brand-mute">—</div>
+            <div className="text-[10.5px] text-brand-mute">No rate</div>
           </>
         )}
       </div>
 
-      {/* Details — beds count, size, amenities */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-brand-mute">
-        <span className="inline-flex items-center gap-1">
-          <BedDouble className="h-3 w-3" />
-          {room.beds?.length ?? 0} bed
-          {(room.beds?.length ?? 0) === 1 ? "" : "s"}
-        </span>
-        {room.room_size_sqm != null ? (
-          <span className="inline-flex items-center gap-1">
-            <Ruler className="h-3 w-3" />
-            <span className="num">{room.room_size_sqm} m²</span>
-          </span>
-        ) : null}
-        <span className="inline-flex items-center gap-1">
-          <ImageIcon className="h-3 w-3" />
-          <span className="num">{photoCount}</span>
-        </span>
-        {(room.amenityKeys?.length ?? 0) > 0 ? (
-          <span className="inline-flex items-center gap-1">
-            <Sparkles className="h-3 w-3" />
-            <span className="num">{room.amenityKeys?.length ?? 0}</span>
-          </span>
-        ) : null}
+      {/* 14-day occupancy */}
+      <div>
+        {occ ? (
+          <OccStrip occ={occ} muted={muted} />
+        ) : (
+          <div className="text-[10.5px] text-brand-mute">—</div>
+        )}
       </div>
 
       {/* Edit */}
       <div className="flex justify-end">
         <Link
           href={editHref}
-          className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] text-brand-mute hover:bg-brand-accent hover:text-brand-secondary"
+          className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-brand-mute transition hover:bg-brand-accent hover:text-brand-secondary"
           title="Edit room"
         >
-          <Pencil className="h-3.5 w-3.5" />
+          <Pencil className="h-4 w-4" />
         </Link>
       </div>
-    </li>
+    </div>
+  );
+}
+
+const CELL_CLASS: Record<Cell, string> = {
+  b: "bg-brand-primary text-white",
+  h: "bg-status-pending/[0.18] text-[#92590e]",
+  x: "bg-brand-line text-brand-mute line-through",
+  o: "bg-brand-light text-brand-mute",
+};
+
+function OccStrip({ occ, muted }: { occ: Occ; muted?: boolean }) {
+  return (
+    <div className={muted ? "opacity-70" : ""}>
+      <div className="grid grid-cols-[repeat(14,minmax(0,1fr))] gap-0.5">
+        {occ.cells.map((c, i) => (
+          <div
+            key={i}
+            className={`flex h-[22px] items-center justify-center rounded-[4px] font-mono text-[10px] ${CELL_CLASS[c]} ${
+              i === 0 ? "ring-[1.5px] ring-inset ring-brand-secondary" : ""
+            }`}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-[10px] text-brand-mute">
+        <span className="num">
+          {occ.booked} / {OCC_DAYS} nights booked
+        </span>
+        <span
+          className={`num font-semibold ${occ.pct >= 50 ? "text-brand-primary" : "text-status-pending"}`}
+        >
+          {occ.pct}%
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Taglet({
+  children,
+  tone,
+  icon,
+}: {
+  children: React.ReactNode;
+  tone: "green" | "amber" | "gray";
+  icon?: React.ReactNode;
+}) {
+  const cls =
+    tone === "green"
+      ? "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]"
+      : tone === "amber"
+        ? "border-[#FCE9B6] bg-[#FFFBEB] text-[#B45309]"
+        : "border-brand-line bg-[#F4F7F5] text-[#5B7065]";
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-pill border px-2 py-[2px] text-[10.5px] font-semibold ${cls}`}
+    >
+      {icon}
+      {children}
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// RIGHT RAIL
+// ─────────────────────────────────────────────────────────────
+function RailCard({
+  title,
+  subtitle,
+  badge,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  badge?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            {title}
+          </div>
+          {subtitle ? (
+            <div className="mt-0.5 text-[12px] text-brand-mute">{subtitle}</div>
+          ) : null}
+        </div>
+        {badge != null ? (
+          <span className="num inline-flex items-center rounded-pill bg-status-pending/15 px-2 py-0.5 text-[10.5px] font-semibold text-status-pending">
+            {badge}
+          </span>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function LegendSwatch({ cell, label }: { cell: Cell; label: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className={`h-[22px] w-6 rounded-[4px] ${CELL_CLASS[cell]} ${cell === "o" ? "border border-brand-line" : ""}`}
+      />
+      {label}
+    </div>
   );
 }
 
@@ -1149,7 +1298,7 @@ function EmptyStateNoRooms({ listingId }: { listingId: string }) {
       </p>
       <Link
         href={`/dashboard/listings/${listingId}/edit?tab=rooms&add=1`}
-        className="mt-1 inline-flex items-center gap-1 rounded-[8px] bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-secondary"
+        className="mt-1 inline-flex items-center gap-1 rounded-[9px] bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-secondary"
       >
         <Plus className="h-3 w-3" />
         Add first room
