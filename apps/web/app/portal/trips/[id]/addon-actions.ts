@@ -94,6 +94,7 @@ export async function addGuestBookingAddonAction(input: {
       label: addon.name,
       quantity: qty,
       unit_price: unitPrice,
+      subtotal,
       sort_order: sort,
       source: "guest_added",
       added_by: user.id,

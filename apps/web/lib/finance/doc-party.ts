@@ -36,7 +36,7 @@ export async function getHostParty(
   const [{ data: host }, { data: biz }, { data: bank }] = await Promise.all([
     admin
       .from("hosts")
-      .select("display_name, handle, contact_email, contact_phone, user_id")
+      .select("display_name, handle, user_id")
       .eq("id", hostId)
       .maybeSingle(),
     admin
@@ -58,16 +58,17 @@ export async function getHostParty(
       .maybeSingle(),
   ]);
 
-  let email = host?.contact_email ?? null;
-  let phone = host?.contact_phone ?? null;
-  if ((!email || !phone) && host?.user_id) {
+  // Host contact lives on the linked user_profiles row (hosts has no contact_*).
+  let email: string | null = null;
+  let phone: string | null = null;
+  if (host?.user_id) {
     const { data: up } = await admin
       .from("user_profiles")
       .select("email, phone")
       .eq("id", host.user_id)
       .maybeSingle();
-    email = email ?? up?.email ?? null;
-    phone = phone ?? up?.phone ?? null;
+    email = up?.email ?? null;
+    phone = up?.phone ?? null;
   }
 
   const name =

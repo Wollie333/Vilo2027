@@ -84,14 +84,25 @@ export async function getReceiptByToken(
   if (!host) {
     const { data: h } = await admin
       .from("hosts")
-      .select("display_name, handle, contact_email, contact_phone")
+      .select("display_name, handle, user_id")
       .eq("id", b.host_id)
       .maybeSingle();
+    let hEmail: string | undefined;
+    let hPhone: string | undefined;
+    if (h?.user_id) {
+      const { data: up } = await admin
+        .from("user_profiles")
+        .select("email, phone")
+        .eq("id", h.user_id)
+        .maybeSingle();
+      hEmail = up?.email ?? undefined;
+      hPhone = up?.phone ?? undefined;
+    }
     host = {
       display_name: h?.display_name,
       handle: h?.handle,
-      email: h?.contact_email ?? undefined,
-      phone: h?.contact_phone ?? undefined,
+      email: hEmail,
+      phone: hPhone,
     };
   }
   const guest: GuestSnap = (inv?.guest_snapshot as GuestSnap) ?? {

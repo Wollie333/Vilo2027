@@ -44,10 +44,23 @@ export async function createAddonInvoice(
 
   const { data: host } = await admin
     .from("hosts")
-    .select("id, display_name, handle, contact_email, contact_phone")
+    .select("id, display_name, handle, user_id")
     .eq("id", booking.host_id)
     .maybeSingle();
   if (!host) return null;
+
+  // Host contact lives on user_profiles (hosts has no contact_* columns).
+  let hostEmail: string | null = null;
+  let hostPhone: string | null = null;
+  if (host.user_id) {
+    const { data: hostProfile } = await admin
+      .from("user_profiles")
+      .select("email, phone")
+      .eq("id", host.user_id)
+      .maybeSingle();
+    hostEmail = hostProfile?.email ?? null;
+    hostPhone = hostProfile?.phone ?? null;
+  }
 
   let guestName = booking.guest_name;
   let guestEmail = booking.guest_email;
@@ -88,8 +101,8 @@ export async function createAddonInvoice(
         host_id: host.id,
         display_name: host.display_name,
         handle: host.handle,
-        email: host.contact_email,
-        phone: host.contact_phone,
+        email: hostEmail,
+        phone: hostPhone,
       },
       guest_snapshot: {
         guest_id: booking.guest_id,

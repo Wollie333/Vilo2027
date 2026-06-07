@@ -411,6 +411,7 @@ export async function addBookingAddonAction(input: {
       label: i.label,
       quantity: i.quantity,
       unit_price: i.unitPrice,
+      subtotal: Math.round(i.quantity * i.unitPrice * 100) / 100,
       sort_order: sort++,
       source: "host_added",
       added_by: userId,

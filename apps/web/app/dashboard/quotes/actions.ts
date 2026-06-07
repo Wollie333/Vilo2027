@@ -767,6 +767,8 @@ export async function convertQuoteAction(
         label: a.label,
         quantity: a.quantity,
         unit_price: a.unit_price,
+        subtotal:
+          Math.round(Number(a.quantity) * Number(a.unit_price) * 100) / 100,
         sort_order: a.sort_order,
       })),
     );
