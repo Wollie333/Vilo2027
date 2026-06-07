@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-07 — New booking — v3 design refresh of the 5-step wizard — branch `main`
+
+### Changed
+- **New Booking wizard restyle** (`bookings/new/ManualBookingForm.tsx`) to the "New Booking v3" design. Shared `.pick` selectable-card style (lighter green wash + thin ring) across listing / room / add-on / payment cards; sentence-case field labels (#3A5A4E) instead of all-caps; comfier inputs (11px radius); larger toggle (38×22) and stepper (34×36) to match the spec; progress step's active dot now uses brand ink. Added "Manage rooms" (`?tab=rooms`) and "New add-on" (`?tab=addons`) deep-links to the relevant section headers, and renamed step 1 to "Which property?".
+
+### Notes
+- Surface-only: all booking logic, validation, real-data wiring and the payment step's behaviour are unchanged. Deliberately did **not** adopt the mock's non-functional/finance-coupled extras (pet/infant counters, Country field, deposit & damage-hold toggles) — those would be placeholder UI or collide with the in-flight payments/ledger work. Built in parallel with a finance agent; touched only the booking form.
+
+### Commit
+- `feat(bookings): refresh New Booking wizard to v3 design` — see git log
+
+---
+
 ## 2026-06-07 — Listings — redesigned host listings index (KPI strip, tabs, grid/list, listing health) — branch `main`
 
 ### Changed

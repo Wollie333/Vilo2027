@@ -493,7 +493,7 @@ export function ManualBookingForm({
   }
 
   return (
-    <div className="mx-auto max-w-[860px] pb-4">
+    <div className="mx-auto max-w-[820px] pb-4">
       <ProgressSteps current={step} onGo={goTo} />
 
       <div className="mt-7">
@@ -574,7 +574,7 @@ export function ManualBookingForm({
                 }. Pick the one this guest will use.`}
                 action={
                   <Link
-                    href={`/dashboard/listings/${listingId}/edit/rooms`}
+                    href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
                     className="text-[13px] font-medium text-brand-primary hover:underline"
                   >
                     Manage rooms
@@ -1310,7 +1310,7 @@ function ProgressSteps({
               <span
                 className={`flex h-[30px] w-[30px] items-center justify-center rounded-pill font-display text-[13px] font-bold transition ${
                   active
-                    ? "bg-brand-secondary text-brand-accent"
+                    ? "bg-brand-ink text-brand-accent"
                     : done
                       ? "bg-brand-primary text-white"
                       : "bg-brand-line text-brand-mute"
@@ -1540,14 +1540,14 @@ function Switch({
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className={`relative h-[18px] w-8 shrink-0 rounded-pill transition-colors ${
+      className={`relative h-[22px] w-[38px] shrink-0 rounded-pill transition-colors ${
         on ? "bg-brand-primary" : "bg-brand-line"
       }`}
       aria-pressed={on}
     >
       <span
-        className={`absolute left-0.5 top-0.5 h-[14px] w-[14px] rounded-full bg-white shadow transition-transform ${
-          on ? "translate-x-[14px]" : ""
+        className={`absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-4" : ""
         }`}
       />
     </button>
@@ -1566,23 +1566,23 @@ function Stepper({
   onChange: (v: number) => void;
 }) {
   return (
-    <div className="inline-flex items-center overflow-hidden rounded-[10px] border border-brand-line bg-white">
+    <div className="inline-flex items-center overflow-hidden rounded-[11px] border border-brand-line bg-white">
       <button
         type="button"
         disabled={value <= min}
         onClick={() => onChange(value - 1)}
-        className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40 disabled:text-brand-line"
+        className="flex h-9 w-[34px] items-center justify-center text-brand-mute transition-colors hover:bg-brand-accent hover:text-brand-secondary disabled:text-brand-line disabled:hover:bg-transparent"
       >
         <Minus className="h-3.5 w-3.5" />
       </button>
-      <span className="num min-w-[26px] text-center text-[13px] font-semibold text-brand-ink">
+      <span className="num min-w-[30px] text-center text-[14px] font-bold text-brand-ink">
         {value}
       </span>
       <button
         type="button"
         disabled={max != null && value >= max}
         onClick={() => onChange(value + 1)}
-        className="flex h-8 w-7 items-center justify-center text-brand-mute hover:bg-brand-accent/40 disabled:text-brand-line"
+        className="flex h-9 w-[34px] items-center justify-center text-brand-mute transition-colors hover:bg-brand-accent hover:text-brand-secondary disabled:text-brand-line disabled:hover:bg-transparent"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>
@@ -1630,15 +1630,7 @@ function PayCard({
   sub: string;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative rounded-[12px] border p-4 text-left transition ${
-        active
-          ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-          : "border-brand-line hover:bg-brand-accent/20"
-      }`}
-    >
+    <button type="button" onClick={onClick} className={pick(active, "p-4")}>
       <div className="flex items-start justify-between">
         <span className="text-brand-secondary">{icon}</span>
         <Dot active={active} />
@@ -1652,8 +1644,9 @@ function PayCard({
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
+  // Design v3 uses friendly sentence-case labels (#3A5A4E), not all-caps.
   return (
-    <label className="block text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+    <label className="block text-[12px] font-semibold text-[#3A5A4E]">
       {children}
     </label>
   );
