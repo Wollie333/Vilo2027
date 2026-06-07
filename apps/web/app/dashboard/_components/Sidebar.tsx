@@ -19,6 +19,7 @@ import {
   Receipt,
   RotateCcw,
   RotateCw,
+  ScrollText,
   Settings,
   ShieldCheck,
   Star,
@@ -67,6 +68,12 @@ const MAIN: GmailNavItem[] = [
 ];
 
 const FINANCES: GmailNavItem[] = [
+  {
+    href: "/dashboard/ledger",
+    label: "Ledger",
+    icon: ScrollText,
+    match: "prefix",
+  },
   { href: "/dashboard/payments", label: "Payments", icon: CreditCard },
   {
     href: "/dashboard/quotes",
