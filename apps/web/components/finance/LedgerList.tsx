@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
@@ -102,16 +103,42 @@ export function LedgerList({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [menuId, setMenuId] = useState<string | null>(null);
+  // The actions menu is portalled to <body> so the table's horizontal-scroll
+  // wrapper can't clip it. We remember which row is open and where to anchor it.
+  const [menu, setMenu] = useState<{ entry: Txn; x: number; y: number } | null>(
+    null,
+  );
 
   useEffect(() => {
-    const close = () => setMenuId(null);
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key === "Escape") setMenu(null);
+    };
     document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, []);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  function toggleMenu(ev: React.MouseEvent, entry: Txn) {
+    ev.stopPropagation();
+    if (menu?.entry.id === entry.id) {
+      setMenu(null);
+      return;
+    }
+    const rect = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenu({ entry, x: rect.right, y: rect.bottom });
+  }
 
   function sendLink(e: Txn) {
-    setMenuId(null);
+    setMenu(null);
     if (!e.bookingId || !e.doc?.viewPath) {
       toast.error("This entry has no shareable document.");
       return;
@@ -268,72 +295,18 @@ export function LedgerList({
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
                       {rowActions ? rowActions(e) : null}
-                      <div className="relative inline-block">
-                        <button
-                          type="button"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            setMenuId(menuId === e.id ? null : e.id);
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-                          title="Actions"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
-                        {menuId === e.id ? (
-                          <div
-                            className="absolute right-0 top-9 z-20 w-52 overflow-hidden rounded-[10px] border border-brand-line bg-white text-left shadow-card"
-                            onClick={(ev) => ev.stopPropagation()}
-                          >
-                            {e.doc?.viewPath ? (
-                              <Link
-                                href={e.doc.viewPath}
-                                target="_blank"
-                                className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
-                              >
-                                <FileText className="h-3.5 w-3.5 text-brand-mute" />
-                                Open document
-                              </Link>
-                            ) : null}
-                            {e.doc?.pdfPath ? (
-                              <a
-                                href={e.doc.pdfPath}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
-                              >
-                                <Download className="h-3.5 w-3.5 text-brand-mute" />
-                                Download document
-                              </a>
-                            ) : null}
-                            {e.bookingId && e.doc?.viewPath ? (
-                              <button
-                                type="button"
-                                onClick={() => sendLink(e)}
-                                disabled={pending}
-                                className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                              >
-                                <Send className="h-3.5 w-3.5 text-brand-mute" />
-                                Send link to guest
-                              </button>
-                            ) : null}
-                            {e.bookingId ? (
-                              <Link
-                                href={`/dashboard/bookings/${e.bookingId}?tab=payments`}
-                                className="flex items-center gap-2 border-t border-brand-line px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
-                              >
-                                <ScrollText className="h-3.5 w-3.5 text-brand-mute" />
-                                Open booking
-                              </Link>
-                            ) : null}
-                            {!e.doc && !e.bookingId ? (
-                              <div className="px-3 py-2 text-[12px] text-brand-mute">
-                                No actions
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
+                      <button
+                        type="button"
+                        onClick={(ev) => toggleMenu(ev, e)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-pill transition hover:bg-brand-light hover:text-brand-ink ${
+                          menu?.entry.id === e.id
+                            ? "bg-brand-light text-brand-ink"
+                            : "text-brand-mute"
+                        }`}
+                        title="Actions"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -342,6 +315,71 @@ export function LedgerList({
           )}
         </tbody>
       </table>
+
+      {/* Actions menu — portalled to <body> so the scroll wrapper can't clip it. */}
+      {menu
+        ? createPortal(
+            <div
+              className="fixed z-[60] w-52 overflow-hidden rounded-[10px] border border-brand-line bg-white text-left shadow-lift"
+              style={{
+                top: menu.y + 6,
+                left: Math.max(8, menu.x - 208),
+              }}
+              onClick={(ev) => ev.stopPropagation()}
+            >
+              {menu.entry.doc?.viewPath ? (
+                <Link
+                  href={menu.entry.doc.viewPath}
+                  target="_blank"
+                  onClick={() => setMenu(null)}
+                  className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                >
+                  <FileText className="h-3.5 w-3.5 text-brand-mute" />
+                  Open document
+                </Link>
+              ) : null}
+              {menu.entry.doc?.pdfPath ? (
+                <a
+                  href={menu.entry.doc.pdfPath}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMenu(null)}
+                  className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                >
+                  <Download className="h-3.5 w-3.5 text-brand-mute" />
+                  Download document
+                </a>
+              ) : null}
+              {menu.entry.bookingId && menu.entry.doc?.viewPath ? (
+                <button
+                  type="button"
+                  onClick={() => sendLink(menu.entry)}
+                  disabled={pending}
+                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  <Send className="h-3.5 w-3.5 text-brand-mute" />
+                  Send link to guest
+                </button>
+              ) : null}
+              {menu.entry.bookingId ? (
+                <Link
+                  href={`/dashboard/bookings/${menu.entry.bookingId}?tab=payments`}
+                  onClick={() => setMenu(null)}
+                  className="flex items-center gap-2 border-t border-brand-line px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                >
+                  <ScrollText className="h-3.5 w-3.5 text-brand-mute" />
+                  Open booking
+                </Link>
+              ) : null}
+              {!menu.entry.doc && !menu.entry.bookingId ? (
+                <div className="px-3 py-2 text-[12px] text-brand-mute">
+                  No actions for this entry
+                </div>
+              ) : null}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
