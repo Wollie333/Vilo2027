@@ -172,7 +172,7 @@
 ## 5. Progress
 
 - [x] **Phase 0** — Plan saved + CURRENT_TASK pointed here
-- [ ] **Phase 1** — Listing: display-only + 2 CTAs
+- [x] **Phase 1** — Listing: display-only + 2 CTAs
 - [ ] **Phase 2** — Booking flow 3-step shell
 - [ ] **Phase 3** — Step 1 Rooms (in-flow selection)
 - [ ] **Phase 4** — Step 2 Details (+ add-ons + coupon)
@@ -184,3 +184,17 @@
 - 2026-06-07 — Plan created. Decisions locked: self-contained checkout;
   listing display-only with Reserve + Request-a-quote; quote feature reused
   as-is; real payment rails only; server logic preserved.
+- 2026-06-07 — **Phase 1 done.** New `ReservePanel.tsx` (dark sticky card +
+  mobile bar) with **Reserve** (→ `/listing/[slug]/book`) and **Request a
+  quote** (existing `RequestQuoteButton`, now accepts `triggerClassName` /
+  `triggerLabel`). Listing page collapsed to a single display-only body for all
+  booking modes: `RoomsInfoGrid` (now shows "from / night") replaces the
+  interactive `RoomsGrid`; removed inline date/room/guest selection. Build +
+  lint green.
+  - **Now unused on the listing (pending deletion — F3 cleanup):**
+    `BookingWidget.tsx`, `RoomsCartSidebar.tsx`, `MobileBookingBar.tsx`,
+    `WholeListingToggle.tsx`, `RoomsGrid.tsx`. `RoomsCartProvider.tsx` kept
+    only for its `BookingMode` type. Defer deletion until Phase 2 settles what
+    `/book` + `rooms/[roomId]` still import.
+  - **Interim:** Reserve links to `/book` with no params; the old 2-step form
+    still renders there until Phase 2 rebuilds it self-contained.

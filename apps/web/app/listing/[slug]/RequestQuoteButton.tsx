@@ -23,6 +23,8 @@ export function RequestQuoteButton({
   prefillName = "",
   prefillEmail = "",
   prefillPhone = "",
+  triggerClassName,
+  triggerLabel = "Request a quote",
 }: {
   listingId: string;
   listingName: string;
@@ -36,6 +38,10 @@ export function RequestQuoteButton({
   prefillName?: string;
   prefillEmail?: string;
   prefillPhone?: string;
+  // Lets callers restyle the trigger (e.g. full-width secondary on the dark
+  // reserve panel, or a compact button on the mobile bar).
+  triggerClassName?: string;
+  triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
@@ -144,9 +150,12 @@ export function RequestQuoteButton({
           reset();
           setOpen(true);
         }}
-        className="inline-flex items-center gap-1.5 rounded bg-brand-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+        className={
+          triggerClassName ??
+          "inline-flex items-center gap-1.5 rounded bg-brand-ink px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+        }
       >
-        <MessageSquarePlus className="h-4 w-4" /> Request a quote
+        <MessageSquarePlus className="h-4 w-4" /> {triggerLabel}
       </button>
 
       <FormModal

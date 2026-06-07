@@ -27,11 +27,9 @@ import { createServerClient } from "@/lib/supabase/server";
 import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";
 import { AvailabilityCalendar } from "./AvailabilityCalendar";
-import { BookingWidget } from "./BookingWidget";
 import { ListingHero } from "./ListingHero";
 import { LocationSection, type Poi } from "./LocationSection";
-import { MobileBookingBar } from "./MobileBookingBar";
-import { RoomsCalendarSection } from "./RoomsCalendarSection";
+import { type BookingMode } from "./RoomsCartProvider";
 import { SimilarListings } from "./SimilarListings";
 import { SuitabilityChips } from "./SuitabilityChips";
 import { TrustCard } from "./TrustCard";
@@ -39,14 +37,12 @@ import { HostCard } from "./HostCard";
 import { PhotoGallery, type GalleryPhoto } from "./PhotoGallery";
 import { RatesSection, type SeasonRow } from "./RatesSection";
 import { RequestQuoteButton } from "./RequestQuoteButton";
+import { ReservePanel } from "./ReservePanel";
 import { loadListingReviews } from "./reviews-data";
 import { ReviewsSection } from "./ReviewsSection";
-import { RoomsCartProvider, type BookingMode } from "./RoomsCartProvider";
-import { RoomsCartSidebar } from "./RoomsCartSidebar";
-import { RoomsGrid, type PublicRoom } from "./RoomsGrid";
+import { type PublicRoom } from "./roomDisplay";
 import { RoomsInfoGrid } from "./RoomsInfoGrid";
 import { StickySubnav } from "./StickySubnav";
-import { WholeListingToggle } from "./WholeListingToggle";
 
 // Always read live listing/room/add-on data — never serve it from Next's Data
 // Cache, which would otherwise freeze Supabase `.select()` GETs and show stale
@@ -447,16 +443,8 @@ export default async function ListingDetailPage({
 }) {
   const data = await loadListing(params.slug);
   if (!data) notFound();
-  const {
-    listing,
-    photos,
-    amenities,
-    rooms,
-    seasons,
-    seasonalRules,
-    unavailableDates,
-    pois,
-  } = data;
+  const { listing, photos, amenities, rooms, seasons, unavailableDates, pois } =
+    data;
 
   // If the visitor is signed in, prefill (and hide) the contact fields on the
   // quote-request form so they don't re-type details we already have. The
@@ -478,8 +466,6 @@ export default async function ListingDetailPage({
         pois={pois}
       />
     ) : null;
-
-  const hasRoomsMode = listing.booking_mode !== "whole_listing";
 
   const ratesNode =
     rooms.length > 0 || seasons.length > 0 ? (
@@ -542,46 +528,49 @@ export default async function ListingDetailPage({
           <PhotoGallery photos={photos} />
         </div>
 
-        {hasRoomsMode ? (
-          <RoomsCartProvider mode={listing.booking_mode}>
-            <ListingBody
-              listing={listing}
-              amenities={amenities}
-              showRoomsGrid
-              roomsNode={
-                <RoomsGrid rooms={rooms} currency={listing.currency} />
-              }
-              roomsHeaderAction={
-                <WholeListingToggle
-                  roomIds={rooms.map((r) => r.id)}
-                  discountPct={listing.whole_listing_discount_pct}
-                />
-              }
-              ratesNode={ratesNode}
-              calendarNode={
-                <RoomsCalendarSection unavailable={unavailableDates} />
-              }
-              reviewsNode={reviewsNode}
-              locationNode={locationNode}
-              sidebarNode={
-                <RoomsCartSidebar
-                  slug={listing.slug ?? params.slug}
-                  rooms={rooms}
-                  currency={listing.currency}
-                  maxGuestsCap={listing.max_guests ?? 50}
-                  instantBooking={listing.instant_booking}
-                  rating={listing.avg_rating}
-                  reviewCount={listing.total_reviews}
-                  basePrice={listing.base_price}
-                  weekendPrice={listing.weekend_price}
-                  cleaningFee={listing.cleaning_fee}
-                  minNights={listing.min_nights}
-                  seasonalRules={seasonalRules}
-                  wholeDiscountPct={listing.whole_listing_discount_pct}
-                  weeklyDiscountPct={listing.weekly_discount_pct}
-                  monthlyDiscountPct={listing.monthly_discount_pct}
-                />
-              }
+        <ListingBody
+          listing={listing}
+          amenities={amenities}
+          showRoomsGrid={rooms.length > 0}
+          roomsNode={
+            rooms.length > 0 ? (
+              <RoomsInfoGrid rooms={rooms} currency={listing.currency} />
+            ) : null
+          }
+          ratesNode={ratesNode}
+          calendarNode={
+            unavailableDates.length > 0 ? (
+              <section
+                id="sec-calendar"
+                className="border-b border-brand-line py-7"
+              >
+                <h3 className="font-display text-xl font-bold text-brand-ink">
+                  Availability
+                </h3>
+                <p className="mt-1 text-sm text-brand-mute">
+                  Dates the host has blocked or that are already booked.
+                </p>
+                <div className="mt-5">
+                  <AvailabilityCalendar
+                    unavailable={unavailableDates}
+                    from=""
+                    to=""
+                  />
+                </div>
+              </section>
+            ) : null
+          }
+          reviewsNode={reviewsNode}
+          locationNode={locationNode}
+          sidebarNode={
+            <ReservePanel
+              slug={listing.slug ?? params.slug}
+              basePrice={listing.base_price}
+              currency={listing.currency}
+              rating={listing.avg_rating}
+              reviewCount={listing.total_reviews}
+              instantBooking={listing.instant_booking}
+              refundNote={CANCELLATION_BLURB[listing.cancellation_policy]}
               quoteButton={
                 <RequestQuoteButton
                   listingId={listing.id}
@@ -592,88 +581,39 @@ export default async function ListingDetailPage({
                   prefillName={guest.name}
                   prefillEmail={guest.email}
                   prefillPhone={guest.phone}
+                  triggerLabel="Request a quote"
+                  triggerClassName="inline-flex w-full items-center justify-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.12]"
+                />
+              }
+              quoteButtonMobile={
+                <RequestQuoteButton
+                  listingId={listing.id}
+                  listingName={listing.name}
+                  bookingMode={listing.booking_mode}
+                  rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+                  isAuthed={guest.isAuthed}
+                  prefillName={guest.name}
+                  prefillEmail={guest.email}
+                  prefillPhone={guest.phone}
+                  triggerLabel="Quote"
+                  triggerClassName="inline-flex shrink-0 items-center gap-1.5 rounded border border-brand-line px-3 py-3 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
                 />
               }
             />
-            <MobileBookingBar
-              slug={listing.slug ?? params.slug}
-              rooms={rooms}
-              currency={listing.currency}
-              basePrice={listing.base_price}
-              weekendPrice={listing.weekend_price}
-              cleaningFee={listing.cleaning_fee}
-              minNights={listing.min_nights}
-              seasonalRules={seasonalRules}
-              wholeDiscountPct={listing.whole_listing_discount_pct}
-              weeklyDiscountPct={listing.weekly_discount_pct}
-              monthlyDiscountPct={listing.monthly_discount_pct}
-              maxGuestsCap={listing.max_guests ?? 50}
+          }
+          quoteButton={
+            <RequestQuoteButton
+              listingId={listing.id}
+              listingName={listing.name}
+              bookingMode={listing.booking_mode}
+              rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
+              isAuthed={guest.isAuthed}
+              prefillName={guest.name}
+              prefillEmail={guest.email}
+              prefillPhone={guest.phone}
             />
-          </RoomsCartProvider>
-        ) : (
-          <ListingBody
-            listing={listing}
-            amenities={amenities}
-            showRoomsGrid={rooms.length > 0}
-            roomsNode={
-              rooms.length > 0 ? <RoomsInfoGrid rooms={rooms} /> : null
-            }
-            ratesNode={ratesNode}
-            calendarNode={
-              unavailableDates.length > 0 ? (
-                <section
-                  id="sec-calendar"
-                  className="border-b border-brand-line py-7"
-                >
-                  <h3 className="font-display text-xl font-bold text-brand-ink">
-                    Availability
-                  </h3>
-                  <p className="mt-1 text-sm text-brand-mute">
-                    Dates the host has blocked or that are already booked.
-                  </p>
-                  <div className="mt-5">
-                    <AvailabilityCalendar
-                      unavailable={unavailableDates}
-                      from=""
-                      to=""
-                    />
-                  </div>
-                </section>
-              ) : null
-            }
-            reviewsNode={reviewsNode}
-            locationNode={locationNode}
-            sidebarNode={
-              <BookingWidget
-                slug={listing.slug ?? params.slug}
-                basePrice={listing.base_price}
-                weekendPrice={listing.weekend_price}
-                cleaningFee={listing.cleaning_fee}
-                currency={listing.currency}
-                maxGuests={listing.max_guests}
-                minNights={listing.min_nights}
-                instantBooking={listing.instant_booking}
-                rating={listing.avg_rating}
-                reviewCount={listing.total_reviews}
-                seasonalRules={seasonalRules}
-                weeklyDiscountPct={listing.weekly_discount_pct}
-                monthlyDiscountPct={listing.monthly_discount_pct}
-              />
-            }
-            quoteButton={
-              <RequestQuoteButton
-                listingId={listing.id}
-                listingName={listing.name}
-                bookingMode={listing.booking_mode}
-                rooms={rooms.map((r) => ({ id: r.id, name: r.name }))}
-                isAuthed={guest.isAuthed}
-                prefillName={guest.name}
-                prefillEmail={guest.email}
-                prefillPhone={guest.phone}
-              />
-            }
-          />
-        )}
+          }
+        />
 
         <SimilarListings
           currentSlug={listing.slug ?? params.slug}
@@ -692,7 +632,6 @@ async function ListingBody({
   amenities,
   showRoomsGrid,
   roomsNode,
-  roomsHeaderAction,
   ratesNode,
   calendarNode,
   reviewsNode,
@@ -704,7 +643,6 @@ async function ListingBody({
   amenities: string[];
   showRoomsGrid: boolean;
   roomsNode: React.ReactNode;
-  roomsHeaderAction?: React.ReactNode;
   ratesNode?: React.ReactNode;
   calendarNode?: React.ReactNode;
   reviewsNode?: React.ReactNode;
@@ -862,31 +800,29 @@ async function ListingBody({
             </div>
           </section>
 
-          {/* ROOMS */}
+          {/* ROOMS — display only; selection happens inside the booking flow */}
           {showRoomsGrid ? (
             <section id="sec-rooms" className="border-b border-brand-line py-7">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h3 className="font-display text-xl font-bold text-brand-ink">
-                    {listing.booking_mode === "flexible"
-                      ? "Or pick specific rooms"
-                      : listing.booking_mode === "whole_listing"
-                        ? "Rooms in this place"
-                        : "Choose your room(s)"}
+                    The rooms
                   </h3>
                   {listing.booking_mode !== "whole_listing" ? (
                     <p className="mt-1 text-sm text-brand-mute">
-                      Tap to select. Book one room, a few, or the whole place.
+                      Book one room, a few, or the whole place — you&rsquo;ll
+                      choose when you reserve.
                     </p>
                   ) : null}
                 </div>
-                {roomsHeaderAction}
               </div>
               <div className="mt-5">{roomsNode}</div>
               {listing.booking_mode !== "whole_listing" ? (
                 <p className="mt-4 inline-flex items-start gap-1.5 text-[11.5px] leading-relaxed text-brand-mute">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  You can adjust your room selection again at checkout.
+                  Tap{" "}
+                  <span className="font-medium text-brand-ink">Reserve</span> to
+                  pick your dates and rooms.
                 </p>
               ) : null}
             </section>
