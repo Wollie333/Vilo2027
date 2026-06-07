@@ -32,6 +32,13 @@ export async function getHostParty(
   admin: Admin,
   hostId: string,
   bookingRef?: string | null,
+  /**
+   * VAT number to print, overriding the business one. Pass the booking's
+   * listing VAT number so a tax invoice shows the VAT identity that actually
+   * charged the VAT (each listing owns its VAT). Pass `undefined` to fall back
+   * to the host's business VAT number; pass null/'' to show no VAT line.
+   */
+  listingVatNumber?: string | null,
 ): Promise<DocHostParty> {
   const [{ data: host }, { data: biz }, { data: bank }] = await Promise.all([
     admin
@@ -88,7 +95,12 @@ export async function getHostParty(
   lines.push(...addr);
   if (email) lines.push(email);
   if (phone) lines.push(phone);
-  if (biz?.vat_number) lines.push(`VAT ${biz.vat_number}`);
+  // Per-listing VAT identity when supplied, else the business default.
+  const vatToShow =
+    listingVatNumber !== undefined
+      ? listingVatNumber?.trim() || null
+      : (biz?.vat_number ?? null);
+  if (vatToShow) lines.push(`VAT ${vatToShow}`);
   if (biz?.company_registration_number)
     lines.push(`Reg ${biz.company_registration_number}`);
 

@@ -81,19 +81,28 @@ export default async function PublicInvoicePage({
   const c = invoice.currency;
   const brandName = await getBrandName();
 
-  // Booking reference (for the banking payment reference) + VAT rate.
+  // Booking reference (for the banking payment reference) + VAT rate + the
+  // listing's VAT number (the per-listing VAT identity for the tax invoice).
   let bookingRef: string | null = null;
   let bookingVatRate = 0;
+  let listingVatNumber: string | null | undefined = undefined;
   if (invoice.booking_id) {
     const { data: b } = await admin
       .from("bookings")
-      .select("reference, vat_rate")
+      .select("reference, vat_rate, listing:listings ( vat_number )")
       .eq("id", invoice.booking_id)
       .maybeSingle();
     bookingRef = b?.reference ?? null;
     bookingVatRate = Number(b?.vat_rate ?? 0);
+    const lst = Array.isArray(b?.listing) ? b?.listing[0] : b?.listing;
+    listingVatNumber = (lst as { vat_number?: string | null })?.vat_number;
   }
-  const party = await getHostParty(admin, invoice.host_id, bookingRef);
+  const party = await getHostParty(
+    admin,
+    invoice.host_id,
+    bookingRef,
+    listingVatNumber,
+  );
 
   // Line items.
   const lineRows: DocLine[] = [];
