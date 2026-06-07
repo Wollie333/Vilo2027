@@ -37,6 +37,7 @@ type RawBooking = {
   nights: number | null;
   guests_count: number;
   total_amount: number;
+  balance_due: number | null;
   currency: string;
   channel: string | null;
   created_at: string;
@@ -78,7 +79,7 @@ export default async function GuestRecordPage({
   let bookingQuery = supabase
     .from("bookings")
     .select(
-      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency, channel, created_at, special_requests, listing:listings ( name, listing_photos ( url, sort_order ) )",
+      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, listing:listings ( name, listing_photos ( url, sort_order ) )",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -119,12 +120,14 @@ export default async function GuestRecordPage({
       nights: b.nights,
       guestsCount: b.guests_count,
       totalAmount: Number(b.total_amount),
+      balanceDue: Number(b.balance_due ?? 0),
       currency: b.currency,
       channel: b.channel,
       createdAt: b.created_at,
       specialRequests: b.special_requests,
       listingName: b.listing?.name ?? "Listing",
       listingThumb: thumb,
+      finance: { payments: [], creditNotes: [], refunds: [] },
     };
   });
 
@@ -135,11 +138,20 @@ export default async function GuestRecordPage({
     const { data: rawPayments } = await supabase
       .from("payments")
       .select(
-        "id, amount, currency, method, status, captured_at, created_at, booking_id",
+        "id, amount, currency, method, status, kind, captured_at, created_at, booking_id, receipt_token, receipt_number",
       )
       .in("booking_id", bookingIds)
       .order("created_at", { ascending: false });
     const refByBooking = new Map(bookings.map((b) => [b.id, b.reference]));
+    const bookingById = new Map(bookings.map((b) => [b.id, b]));
+    const KIND_LABEL: Record<string, string> = {
+      deposit: "Deposit",
+      balance: "Balance",
+      addon: "Add-on",
+      payment: "Payment",
+      credit: "Store credit",
+      refund: "Refund",
+    };
     payments = (rawPayments ?? []).map((p) => ({
       id: p.id,
       amount: Number(p.amount),
@@ -150,6 +162,22 @@ export default async function GuestRecordPage({
       createdAt: p.created_at,
       reference: refByBooking.get(p.booking_id) ?? "",
     }));
+    // Attach each payment to its booking's expandable finance table.
+    for (const p of rawPayments ?? []) {
+      const b = bookingById.get(p.booking_id);
+      if (!b) continue;
+      b.finance.payments.push({
+        id: p.id,
+        label: KIND_LABEL[p.kind as string] ?? "Payment",
+        amount: Number(p.amount),
+        status: p.status,
+        date: (p.captured_at ?? p.created_at) as string,
+        receiptToken:
+          p.status === "completed"
+            ? ((p.receipt_token ?? null) as string | null)
+            : null,
+      });
+    }
   }
 
   // Listing id → name map (for reviews + quotes that reference a listing directly).
@@ -194,7 +222,7 @@ export default async function GuestRecordPage({
       supabase
         .from("refund_requests")
         .select(
-          "id, status, requested_amount, approved_amount, currency, reason, created_at",
+          "id, status, requested_amount, approved_amount, currency, reason, created_at, booking_id",
         )
         .in("booking_id", bookingIds)
         .is("deleted_at", null)
@@ -202,11 +230,31 @@ export default async function GuestRecordPage({
       supabase
         .from("credit_notes")
         .select(
-          "id, credit_note_number, status, total_amount, currency, issued_at",
+          "id, credit_note_number, status, total_amount, currency, issued_at, booking_id",
         )
         .in("booking_id", bookingIds)
         .order("issued_at", { ascending: false }),
     ]);
+    const byBooking = new Map(bookings.map((b) => [b.id, b]));
+    for (const c of cn.data ?? []) {
+      const b = c.booking_id ? byBooking.get(c.booking_id) : null;
+      if (b)
+        b.finance.creditNotes.push({
+          id: c.id,
+          number: c.credit_note_number,
+          total: Number(c.total_amount),
+          status: c.status,
+        });
+    }
+    for (const r of rf.data ?? []) {
+      const b = r.booking_id ? byBooking.get(r.booking_id) : null;
+      if (b)
+        b.finance.refunds.push({
+          id: r.id,
+          amount: Number(r.approved_amount ?? r.requested_amount),
+          status: r.status,
+        });
+    }
     invoices = (inv.data ?? []).map((i) => ({
       id: i.id,
       number: i.invoice_number,
@@ -389,6 +437,24 @@ export default async function GuestRecordPage({
   const prevGkey = idx > 0 ? gkeys[idx - 1] : null;
   const nextGkey = idx >= 0 && idx < gkeys.length - 1 ? gkeys[idx + 1] : null;
 
+  // ── Net guest balance ──────────────────────────────────────────────
+  // Store credit the host owes this guest minus what the guest still owes
+  // across their non-cancelled bookings. Positive = host owes (credit, green);
+  // negative = guest owes (red).
+  const { data: creditRows } = await supabase
+    .from("guest_credit_ledger")
+    .select("amount")
+    .eq("host_id", host.id)
+    .eq("gkey", gkey);
+  const storeCredit = (creditRows ?? []).reduce(
+    (s, c) => s + Number(c.amount),
+    0,
+  );
+  const outstanding = bookings
+    .filter((b) => !b.status.startsWith("cancelled") && b.status !== "declined")
+    .reduce((s, b) => s + Math.max(0, b.balanceDue), 0);
+  const netBalance = Math.round((storeCredit - outstanding) * 100) / 100;
+
   return (
     <GuestRecord
       record={record}
@@ -404,6 +470,11 @@ export default async function GuestRecordPage({
       templates={templates}
       prevGkey={prevGkey}
       nextGkey={nextGkey}
+      balance={{
+        net: netBalance,
+        outstanding: Math.round(outstanding * 100) / 100,
+        storeCredit: Math.round(storeCredit * 100) / 100,
+      }}
     />
   );
 }

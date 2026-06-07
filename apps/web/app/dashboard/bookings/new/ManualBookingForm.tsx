@@ -18,6 +18,7 @@ import {
   Trash2,
   Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -137,8 +138,20 @@ const MONTHS = [
   "December",
 ];
 
+// Field + selectable-card primitives — mirror the New Booking v3 design tokens
+// (.field-input, .pick) so every step shares one calm, modern surface.
 const FIELD =
-  "w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13.5px] text-brand-ink transition focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15 placeholder:text-brand-mute/70";
+  "w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink transition focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12] placeholder:text-brand-mute/70";
+
+// Selectable card (listing / room / add-on / payment). Selected = thin green
+// ring on a light wash, matching the design's .pick.is-selected.
+const PICK_BASE =
+  "relative text-left transition border rounded-[13px] bg-white";
+const PICK_ON =
+  "border-brand-primary bg-brand-light shadow-[0_0_0_3px_rgba(16,185,129,0.13)]";
+const PICK_OFF = "border-brand-line hover:bg-brand-light/60";
+const pick = (on: boolean, extra = "") =>
+  `${PICK_BASE} ${on ? PICK_ON : PICK_OFF} ${extra}`;
 
 export function ManualBookingForm({
   listings,
@@ -491,8 +504,8 @@ export function ManualBookingForm({
             <SectionCard
               n={next()}
               done={Boolean(listingId)}
-              title="Which listing?"
-              subtitle="Pick the property the guest will stay in."
+              title="Which property?"
+              subtitle="Pick the listing (and room) this guest will stay in."
             >
               <div className="grid gap-3 sm:grid-cols-3">
                 {listings.map((l) => {
@@ -502,13 +515,9 @@ export function ManualBookingForm({
                       key={l.id}
                       type="button"
                       onClick={() => setListingId(l.id)}
-                      className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
-                        sel
-                          ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-                          : "border-brand-line hover:bg-brand-accent/20"
-                      }`}
+                      className={pick(sel, "flex flex-col p-3")}
                     >
-                      <div className="relative h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                      <div className="relative h-24 w-full overflow-hidden rounded-[10px] bg-brand-light">
                         {l.photo_url ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -563,6 +572,14 @@ export function ManualBookingForm({
                 subtitle={`${listing?.name ?? "This listing"} has ${listingRooms.length} room${
                   listingRooms.length === 1 ? "" : "s"
                 }. Pick the one this guest will use.`}
+                action={
+                  <Link
+                    href={`/dashboard/listings/${listingId}/edit/rooms`}
+                    className="text-[13px] font-medium text-brand-primary hover:underline"
+                  >
+                    Manage rooms
+                  </Link>
+                }
               >
                 <div className="grid gap-3 sm:grid-cols-3">
                   {listingRooms.map((r) => {
@@ -574,13 +591,12 @@ export function ManualBookingForm({
                         type="button"
                         disabled={unavailable || wholeListing}
                         onClick={() => setRoomId(r.id)}
-                        className={`relative flex gap-3 rounded-[12px] border p-3 text-left transition ${
-                          sel
-                            ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-                            : "border-brand-line hover:bg-brand-accent/20"
-                        } ${unavailable || wholeListing ? "cursor-not-allowed opacity-60" : ""}`}
+                        className={pick(
+                          sel,
+                          `flex gap-3 p-3 ${unavailable || wholeListing ? "cursor-not-allowed opacity-60" : ""}`,
+                        )}
                       >
-                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
                           {r.photo_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -1002,6 +1018,14 @@ export function ManualBookingForm({
                 done
                 title="Add-ons"
                 subtitle="Extras the guest can opt into. Selected items show in the summary."
+                action={
+                  <Link
+                    href={`/dashboard/listings/${listingId}/edit?tab=addons`}
+                    className="text-[13px] font-medium text-brand-primary hover:underline"
+                  >
+                    New add-on
+                  </Link>
+                }
               >
                 <div className="grid gap-3 sm:grid-cols-2">
                   {listingAddons.map((a) => {
@@ -1011,11 +1035,7 @@ export function ManualBookingForm({
                     return (
                       <div
                         key={a.id}
-                        className={`relative flex items-start gap-3 rounded-[12px] border p-3.5 transition ${
-                          sel
-                            ? "border-brand-primary bg-brand-accent/40 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]"
-                            : "border-brand-line hover:bg-brand-accent/20"
-                        }`}
+                        className={pick(sel, "flex items-start gap-3 p-3.5")}
                       >
                         <button
                           type="button"
@@ -1447,6 +1467,7 @@ function shiftMonth(
 function SectionCard({
   title,
   subtitle,
+  action,
   children,
 }: {
   // n/done are accepted for call-site compatibility but no longer rendered —
@@ -1455,14 +1476,20 @@ function SectionCard({
   done?: boolean;
   title: string;
   subtitle: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section>
-      <h2 className="font-display text-[20px] font-bold tracking-tight text-brand-ink">
-        {title}
-      </h2>
-      <p className="mt-1 text-[13.5px] text-brand-mute">{subtitle}</p>
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-[20px] font-bold tracking-tight text-brand-ink">
+            {title}
+          </h2>
+          <p className="mt-1 text-[13.5px] text-brand-mute">{subtitle}</p>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
       <div className="mt-5">{children}</div>
     </section>
   );

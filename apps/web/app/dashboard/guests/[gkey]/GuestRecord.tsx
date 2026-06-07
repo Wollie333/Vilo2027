@@ -8,6 +8,7 @@ import {
   Calendar,
   Ban,
   ChevronLeft,
+  ChevronDown,
   ChevronRight,
   CreditCard,
   Download,
@@ -97,6 +98,19 @@ export type GuestRecordData = {
   preferred_listing: string | null;
 };
 
+export type BookingFinance = {
+  payments: {
+    id: string;
+    label: string;
+    amount: number;
+    status: string;
+    date: string;
+    receiptToken: string | null;
+  }[];
+  creditNotes: { id: string; number: string; total: number; status: string }[];
+  refunds: { id: string; amount: number; status: string }[];
+};
+
 export type BookingItem = {
   id: string;
   reference: string;
@@ -106,12 +120,14 @@ export type BookingItem = {
   nights: number | null;
   guestsCount: number;
   totalAmount: number;
+  balanceDue: number;
   currency: string;
   channel: string | null;
   createdAt: string;
   specialRequests: string | null;
   listingName: string;
   listingThumb: string | null;
+  finance: BookingFinance;
 };
 
 export type PaymentItem = {
@@ -274,6 +290,7 @@ export function GuestRecord({
   templates,
   prevGkey,
   nextGkey,
+  balance,
 }: {
   record: GuestRecordData;
   bookings: BookingItem[];
@@ -288,6 +305,7 @@ export function GuestRecord({
   templates: TemplateItem[];
   prevGkey: string | null;
   nextGkey: string | null;
+  balance: { net: number; outstanding: number; storeCredit: number };
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -478,8 +496,11 @@ export function GuestRecord({
             </div>
           </div>
 
+          {/* net balance banner */}
+          <BalanceBanner balance={balance} currency={r.currency} />
+
           {/* lifetime stat band */}
-          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-5">
             <StatTile
               label="Total stays"
               value={String(r.total_stays)}
@@ -837,8 +858,69 @@ function Overview({
   );
 }
 
-// ── Bookings panel ──────────────────────────────────────────────────────
+// ── Net balance banner ──────────────────────────────────────────────────
+function BalanceBanner({
+  balance,
+  currency,
+}: {
+  balance: { net: number; outstanding: number; storeCredit: number };
+  currency: string;
+}) {
+  const owes = balance.net < -0.001; // guest owes the host
+  const credit = balance.net > 0.001; // host owes the guest
+  const tone = owes
+    ? "border-red-200 bg-red-50"
+    : credit
+      ? "border-emerald-200 bg-emerald-50"
+      : "border-brand-line bg-brand-light";
+  const numTone = owes
+    ? "text-red-600"
+    : credit
+      ? "text-emerald-700"
+      : "text-brand-ink";
+  return (
+    <div
+      className={`mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-5 py-4 ${tone}`}
+    >
+      <div>
+        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+          Guest balance
+        </div>
+        <div
+          className={`mt-1 font-display text-[26px] font-extrabold leading-none ${numTone}`}
+        >
+          {owes ? "– " : credit ? "+ " : ""}
+          {formatMoney(Math.abs(balance.net), currency)}
+        </div>
+        <div className="mt-1.5 text-[12px] text-brand-mute">
+          {owes
+            ? "Owed to you by this guest"
+            : credit
+              ? "Store credit you owe this guest"
+              : "All settled"}
+        </div>
+      </div>
+      <div className="text-right text-[12px] text-brand-mute">
+        <div>
+          Outstanding{" "}
+          <span className="font-semibold text-brand-ink">
+            {formatMoney(balance.outstanding, currency)}
+          </span>
+        </div>
+        <div className="mt-1">
+          Store credit{" "}
+          <span className="font-semibold text-emerald-700">
+            {formatMoney(balance.storeCredit, currency)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Bookings panel (expandable finance per booking) ──────────────────────
 function BookingsPanel({ bookings }: { bookings: BookingItem[] }) {
+  const [open, setOpen] = useState<string | null>(null);
   if (bookings.length === 0) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
@@ -850,44 +932,141 @@ function BookingsPanel({ bookings }: { bookings: BookingItem[] }) {
     <div className="space-y-3">
       {bookings.map((b) => {
         const tag = statusTag(b.status);
+        const isOpen = open === b.id;
+        const docCount =
+          b.finance.payments.length +
+          b.finance.creditNotes.length +
+          b.finance.refunds.length;
         return (
-          <Link
+          <div
             key={b.id}
-            href={`/dashboard/bookings/${b.id}`}
-            className="flex items-center gap-4 rounded-[13px] border border-brand-line bg-white p-3.5 transition hover:border-[#CDE6D8] hover:shadow-[0_10px_24px_-16px_rgba(6,78,59,.25)]"
+            className="overflow-hidden rounded-[13px] border border-brand-line bg-white"
           >
-            {b.listingThumb ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={b.listingThumb}
-                alt=""
-                className="h-12 w-16 shrink-0 rounded-[10px] object-cover"
-              />
-            ) : (
-              <div className="h-12 w-16 shrink-0 rounded-[10px] bg-brand-light" />
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[14px] font-semibold text-brand-ink">
-                {b.listingName}
-              </div>
-              <div className="mt-0.5 text-[12px] text-brand-mute">
-                {fmtShort(b.checkIn)} → {fmtShort(b.checkOut)} · {b.nights}{" "}
-                nights ·{" "}
-                <span className="font-mono text-[10.5px]">{b.reference}</span>
-              </div>
-            </div>
-            <div className="shrink-0 text-right">
-              <div className="font-display text-[14px] font-bold text-brand-ink">
-                {formatMoney(b.totalAmount, b.currency)}
-              </div>
-            </div>
-            <span
-              className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tag.cls}`}
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? null : b.id)}
+              className="flex w-full items-center gap-4 p-3.5 text-left transition hover:bg-brand-light/40"
             >
-              {tag.label}
-            </span>
-            <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
-          </Link>
+              {b.listingThumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={b.listingThumb}
+                  alt=""
+                  className="h-12 w-16 shrink-0 rounded-[10px] object-cover"
+                />
+              ) : (
+                <div className="h-12 w-16 shrink-0 rounded-[10px] bg-brand-light" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-semibold text-brand-ink">
+                  {b.listingName}
+                </div>
+                <div className="mt-0.5 text-[12px] text-brand-mute">
+                  {fmtShort(b.checkIn)} → {fmtShort(b.checkOut)} · {b.nights}{" "}
+                  nights ·{" "}
+                  <span className="font-mono text-[10.5px]">{b.reference}</span>
+                </div>
+              </div>
+              <div className="hidden shrink-0 text-right sm:block">
+                <div className="font-display text-[14px] font-bold text-brand-ink">
+                  {formatMoney(b.totalAmount, b.currency)}
+                </div>
+                {b.balanceDue > 0 ? (
+                  <div className="text-[11px] font-semibold text-amber-700">
+                    {formatMoney(b.balanceDue, b.currency)} due
+                  </div>
+                ) : null}
+              </div>
+              <span
+                className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11.5px] font-semibold ${tag.cls}`}
+              >
+                {tag.label}
+              </span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-brand-mute transition-transform ${isOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {isOpen ? (
+              <div className="border-t border-brand-line bg-[#F8FBF9] px-4 py-3.5">
+                {docCount === 0 ? (
+                  <p className="text-[12.5px] text-brand-mute">
+                    No payments or documents on this booking yet.
+                  </p>
+                ) : (
+                  <table className="w-full text-[12.5px]">
+                    <tbody className="divide-y divide-brand-line">
+                      {b.finance.payments.map((p) => (
+                        <tr key={p.id}>
+                          <td className="py-1.5 text-brand-ink">{p.label}</td>
+                          <td className="py-1.5 text-brand-mute">
+                            <span className="capitalize">{p.status}</span> ·{" "}
+                            {fmtDate(p.date)}
+                          </td>
+                          <td className="num py-1.5 text-right font-semibold text-brand-ink">
+                            {formatMoney(p.amount, b.currency)}
+                          </td>
+                          <td className="py-1.5 pl-2 text-right">
+                            {p.receiptToken ? (
+                              <a
+                                href={`/receipt/${p.receiptToken}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-brand-secondary hover:underline"
+                              >
+                                Receipt
+                              </a>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                      {b.finance.creditNotes.map((c) => (
+                        <tr key={c.id}>
+                          <td className="py-1.5 text-rose-700">
+                            Credit note {c.number}
+                          </td>
+                          <td className="py-1.5 capitalize text-brand-mute">
+                            {c.status}
+                          </td>
+                          <td className="num py-1.5 text-right font-semibold text-rose-700">
+                            – {formatMoney(c.total, b.currency)}
+                          </td>
+                          <td className="py-1.5 pl-2 text-right">
+                            <Link
+                              href={`/dashboard/credit-notes/${c.id}`}
+                              className="text-brand-secondary hover:underline"
+                            >
+                              Open
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                      {b.finance.refunds.map((rf) => (
+                        <tr key={rf.id}>
+                          <td className="py-1.5 text-amber-700">Refund</td>
+                          <td className="py-1.5 capitalize text-brand-mute">
+                            {rf.status}
+                          </td>
+                          <td className="num py-1.5 text-right font-semibold text-amber-700">
+                            – {formatMoney(rf.amount, b.currency)}
+                          </td>
+                          <td className="py-1.5" />
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <div className="mt-3 flex justify-end">
+                  <Link
+                    href={`/dashboard/bookings/${b.id}?tab=payments`}
+                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:bg-brand-secondary"
+                  >
+                    View booking <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+          </div>
         );
       })}
     </div>
