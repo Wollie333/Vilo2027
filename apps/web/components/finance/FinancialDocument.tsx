@@ -82,6 +82,9 @@ export type FinancialDocumentProps = {
   viewHref?: { href: string; label: string } | null;
   /** Extra action-bar buttons (e.g. a Send control). */
   actions?: ReactNode;
+  /** Interactive content rendered under the paper (e.g. quote accept/decline).
+   *  Hidden when printing. */
+  belowPaper?: ReactNode;
 };
 
 export function FinancialDocument(p: FinancialDocumentProps) {
@@ -345,6 +348,12 @@ export function FinancialDocument(p: FinancialDocumentProps) {
             ) : null}
           </div>
         </div>
+
+        {p.belowPaper ? (
+          <div className="no-print mx-auto mt-4 max-w-[820px]">
+            {p.belowPaper}
+          </div>
+        ) : null}
 
         {p.viewHref ? (
           <div className="no-print mx-auto mt-4 max-w-[820px] px-2 text-center text-[11.5px] text-brand-mute">

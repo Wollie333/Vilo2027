@@ -2,7 +2,13 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import {
+  FinancialDocument,
+  type DocLine,
+  type DocTone,
+} from "@/components/finance/FinancialDocument";
 import { getBrandName } from "@/lib/brand";
+import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -10,12 +16,11 @@ import { QuoteResponseActions } from "./QuoteResponseActions";
 
 export const metadata: Metadata = {
   title: "Your quote",
+  robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-// Coarse, non-PII device bucket from the user agent — drives the host's
-// activity log ("opened on mobile"). No IP, no fingerprinting.
 function deviceFromUserAgent(ua: string | null): string {
   if (!ua) return "unknown";
   if (/iPad|Tablet/i.test(ua)) return "tablet";
@@ -23,9 +28,6 @@ function deviceFromUserAgent(ua: string | null): string {
   return "desktop";
 }
 
-// Record a guest open of a sent quote as a quote_view_events row (the source of
-// truth for the host's open count + activity). Runs with the service role (the
-// token already authed the page). Best-effort — never blocks or breaks render.
 async function recordQuoteView(
   supabase: ReturnType<typeof createAdminClient>,
   quoteId: string,
@@ -40,12 +42,20 @@ async function recordQuoteView(
   }
 }
 
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-ZA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso.length <= 10 ? `${iso}T00:00:00` : iso));
+}
+
 export default async function PublicQuotePage({
   params,
 }: {
   params: { id: string; token: string };
 }) {
-  // Service-role bypasses RLS — the token is the auth.
   const supabase = createAdminClient();
   const brandName = await getBrandName();
 
@@ -53,8 +63,8 @@ export default async function PublicQuotePage({
     .from("quotes")
     .select(
       `
-      id, quote_number, status, accept_token,
-      guest_name, guest_email,
+      id, quote_number, status, accept_token, host_id,
+      guest_name, guest_email, guest_phone,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until,
@@ -69,8 +79,6 @@ export default async function PublicQuotePage({
     notFound();
   }
 
-  // Track the open (best-effort) — powers the host's view count, stepper and
-  // activity log. Only count a live quote the guest can still act on.
   if (!["accepted", "declined", "converted"].includes(quote.status)) {
     await recordQuoteView(supabase, quote.id);
   }
@@ -85,117 +93,104 @@ export default async function PublicQuotePage({
     ? quote.listing[0]?.name
     : (quote.listing as { name?: string } | null)?.name;
 
-  const expired = quote.valid_until && new Date(quote.valid_until) < new Date();
+  const party = await getHostParty(supabase, quote.host_id);
+  const c = quote.currency;
+
+  const expired =
+    !!quote.valid_until && new Date(quote.valid_until) < new Date();
   const decided = ["accepted", "declined", "converted"].includes(quote.status);
 
+  const nights =
+    quote.check_in && quote.check_out
+      ? Math.max(
+          1,
+          Math.round(
+            (new Date(quote.check_out).getTime() -
+              new Date(quote.check_in).getTime()) /
+              86_400_000,
+          ),
+        )
+      : null;
+
+  const lineRows: DocLine[] = [
+    {
+      title: `${listingName ?? "Stay"} — base`,
+      sub: nights ? `${nights} night${nights === 1 ? "" : "s"}` : null,
+      amount: formatMoney(quote.base_amount, c),
+    },
+  ];
+  if (quote.cleaning_fee > 0) {
+    lineRows.push({
+      title: "Cleaning",
+      amount: formatMoney(quote.cleaning_fee, c),
+    });
+  }
+  for (const a of addons ?? []) {
+    lineRows.push({
+      title: a.label,
+      mid: a.quantity > 1 ? `× ${a.quantity}` : null,
+      amount: formatMoney(a.subtotal, c),
+    });
+  }
+
+  const tone: DocTone = expired
+    ? "grey"
+    : quote.status === "accepted" || quote.status === "converted"
+      ? "green"
+      : quote.status === "declined"
+        ? "red"
+        : quote.status === "sent"
+          ? "amber"
+          : "grey";
+  const statusLabel = expired
+    ? "Expired"
+    : quote.status.charAt(0).toUpperCase() + quote.status.slice(1);
+
   return (
-    <div className="min-h-screen bg-brand-light px-4 py-10">
-      <div className="mx-auto max-w-2xl space-y-6">
-        <header className="text-center">
-          <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded bg-brand-primary text-2xl font-bold text-white">
-            {brandName.charAt(0).toUpperCase()}
-          </div>
-          <div className="mt-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            Quote · {quote.quote_number}
-          </div>
-          <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Your stay at {listingName ?? "—"}
-          </h1>
-          <p className="mt-2 text-sm text-brand-mute">
-            Prepared for {quote.guest_name}
-          </p>
-        </header>
-
-        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <div className="grid gap-4 text-sm sm:grid-cols-3">
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                Check-in
-              </div>
-              <div className="font-medium text-brand-ink">{quote.check_in}</div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                Check-out
-              </div>
-              <div className="font-medium text-brand-ink">
-                {quote.check_out}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-brand-mute">
-                Guests
-              </div>
-              <div className="font-medium text-brand-ink">
-                {quote.headcount}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <h2 className="font-display text-base font-bold text-brand-ink">
-            Line items
-          </h2>
-          <table className="mt-3 w-full text-sm">
-            <tbody className="divide-y divide-brand-line">
-              <tr>
-                <td className="py-2 text-brand-ink">Stay — base</td>
-                <td className="py-2 text-right font-medium text-brand-ink">
-                  {formatMoney(quote.base_amount, quote.currency)}
-                </td>
-              </tr>
-              {quote.cleaning_fee > 0 ? (
-                <tr>
-                  <td className="py-2 text-brand-ink">Cleaning</td>
-                  <td className="py-2 text-right font-medium text-brand-ink">
-                    {formatMoney(quote.cleaning_fee, quote.currency)}
-                  </td>
-                </tr>
-              ) : null}
-              {(addons ?? []).map((a, i) => (
-                <tr key={i}>
-                  <td className="py-2 text-brand-ink">
-                    {a.label}
-                    <span className="ml-1 text-brand-mute">× {a.quantity}</span>
-                  </td>
-                  <td className="py-2 text-right font-medium text-brand-ink">
-                    {formatMoney(a.subtotal, quote.currency)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td className="pt-3 font-display text-base font-bold text-brand-ink">
-                  Total
-                </td>
-                <td className="pt-3 text-right font-display text-lg font-bold text-brand-primary">
-                  {formatMoney(quote.total_amount, quote.currency)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </section>
-
-        {quote.notes ? (
-          <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-            <h2 className="font-display text-base font-bold text-brand-ink">
-              Notes from the host
-            </h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-brand-ink">
-              {quote.notes}
-            </p>
-          </section>
-        ) : null}
-
-        {expired ? (
+    <FinancialDocument
+      kind="Quote"
+      number={quote.quote_number}
+      status={{ label: statusLabel, tone }}
+      brandName={brandName}
+      brandTagline="Your stay quote"
+      from={{ name: party.name, lines: party.lines }}
+      to={{
+        label: "Prepared for",
+        party: {
+          name: quote.guest_name ?? "Guest",
+          lines: [quote.guest_email, quote.guest_phone].filter(
+            Boolean,
+          ) as string[],
+        },
+      }}
+      metaRows={[
+        { label: "Guests", value: String(quote.headcount) },
+        ...(quote.valid_until
+          ? [{ label: "Valid until", value: fmtDate(quote.valid_until) }]
+          : []),
+      ]}
+      stay={{
+        listingName: listingName ?? null,
+        checkIn: fmtDate(quote.check_in),
+        checkOut: fmtDate(quote.check_out),
+        nights: String(nights ?? "—"),
+      }}
+      lineHeaders={{ desc: "Description", amount: "Amount" }}
+      lines={lineRows}
+      totals={[]}
+      grandTotal={{
+        label: "Total",
+        value: formatMoney(quote.total_amount, c),
+      }}
+      banking={expired || decided ? null : party.banking}
+      pdfHref={`/q/${quote.id}/${quote.accept_token}/pdf`}
+      footerTitle={quote.notes ? "A note from your host" : undefined}
+      footerNote={quote.notes ?? undefined}
+      belowPaper={
+        expired ? (
           <div className="rounded-card border border-status-cancelled/30 bg-status-cancelled/5 p-5 text-center shadow-card">
             <p className="text-sm font-medium text-status-cancelled">
-              This quote expired on{" "}
-              {quote.valid_until &&
-                new Date(quote.valid_until).toLocaleDateString("en-ZA")}
-              .
+              This quote expired on {fmtDate(quote.valid_until)}.
             </p>
             <p className="mt-1 text-xs text-brand-mute">
               Reach out to the host for an updated quote.
@@ -212,13 +207,8 @@ export default async function PublicQuotePage({
           </div>
         ) : (
           <QuoteResponseActions quoteId={quote.id} token={quote.accept_token} />
-        )}
-
-        <p className="text-center text-[11px] text-brand-mute">
-          Sent via{" "}
-          <span className="font-semibold text-brand-primary">{brandName}</span>
-        </p>
-      </div>
-    </div>
+        )
+      }
+    />
   );
 }
