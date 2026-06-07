@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { ExternalLink } from "lucide-react";
 
+import { SendDocumentButton } from "@/components/finance/SendDocumentButton";
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
@@ -109,6 +110,13 @@ export default async function CreditNoteDetailPage({
             Share link
             <ExternalLink className="h-3.5 w-3.5" />
           </Link>
+          {cn.booking_id ? (
+            <SendDocumentButton
+              bookingId={cn.booking_id}
+              path={`/credit-note/${cn.hosted_token}`}
+              label={`credit note ${cn.credit_note_number}`}
+            />
+          ) : null}
           <Link
             href={`/dashboard/invoices/${cn.invoice_id}`}
             className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent"

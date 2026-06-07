@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { FinancialDocument } from "@/components/finance/FinancialDocument";
+import { SendDocumentButton } from "@/components/finance/SendDocumentButton";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { getReceiptByToken } from "@/lib/payments/receipt-data";
@@ -51,6 +52,13 @@ export default async function ReceiptRecordPage({
         href: `/dashboard/bookings/${receipt.bookingId}?tab=payments`,
         label: "View booking",
       }}
+      actions={
+        <SendDocumentButton
+          bookingId={receipt.bookingId}
+          path={`/receipt/${params.token}`}
+          label={`receipt ${receipt.receiptNumber}`}
+        />
+      }
       from={{ name: receipt.party.name, lines: receipt.party.lines }}
       to={{
         label: "Received from",

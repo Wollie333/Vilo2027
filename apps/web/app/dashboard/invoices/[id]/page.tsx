@@ -12,6 +12,8 @@ import { createServerClient } from "@/lib/supabase/server";
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../../quotes/schemas";
 
 import { CreateCreditNote } from "./CreateCreditNote";
+import { SendDocumentButton } from "@/components/finance/SendDocumentButton";
+
 import { InvoiceActions } from "./InvoiceActions";
 
 export const metadata: Metadata = {
@@ -334,13 +336,22 @@ export default async function InvoiceDetailPage({
       </section>
 
       <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-        <h2 className="font-display text-base font-bold text-brand-ink">
-          Share with guest
-        </h2>
-        <p className="mt-1 text-xs text-brand-mute">
-          Guests can view this URL without an account. It links to the same PDF
-          download.
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-base font-bold text-brand-ink">
+              Share with guest
+            </h2>
+            <p className="mt-1 text-xs text-brand-mute">
+              Guests can view this URL without an account. It links to the same
+              PDF download.
+            </p>
+          </div>
+          <SendDocumentButton
+            bookingId={invoice.booking_id}
+            path={`/invoice/${invoice.hosted_token}`}
+            label={`invoice ${invoice.invoice_number}`}
+          />
+        </div>
         <code className="mt-3 block overflow-x-auto rounded border border-brand-line bg-brand-light/40 px-3 py-2 font-mono text-[11px] text-brand-ink">
           {hostedUrl}
         </code>
