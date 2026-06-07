@@ -65,6 +65,15 @@ export type FinancialDocumentProps = {
   totals: DocTotal[];
   grandTotal: { label: string; value: string };
   trailingTotals?: DocTotal[];
+  banking?: {
+    bankName: string;
+    accountHolder: string;
+    accountNumber: string;
+    accountType: string;
+    branchCode: string;
+    swiftCode: string | null;
+    reference: string | null;
+  } | null;
   stamp?: string | null;
   footerTitle?: string;
   footerNote?: string;
@@ -273,6 +282,34 @@ export function FinancialDocument(p: FinancialDocumentProps) {
                 </div>
               </div>
             </div>
+
+            {/* banking — footer-left payment details */}
+            {p.banking ? (
+              <div className="mt-8 rounded-[12px] border border-brand-line bg-[#F6FAF7] p-4">
+                <div className="eyebrow mb-2 text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#8AA89B]">
+                  Payment details
+                </div>
+                <div className="text-[12.5px] font-semibold text-brand-ink">
+                  {p.banking.bankName}
+                  {p.banking.accountHolder
+                    ? ` — ${p.banking.accountHolder}`
+                    : ""}
+                </div>
+                <div className="num mt-0.5 text-[12.5px] text-brand-mute">
+                  Account {p.banking.accountNumber}
+                  {p.banking.accountType ? ` · ${p.banking.accountType}` : ""}
+                  {p.banking.branchCode
+                    ? ` · Branch ${p.banking.branchCode}`
+                    : ""}
+                  {p.banking.swiftCode ? ` · SWIFT ${p.banking.swiftCode}` : ""}
+                </div>
+                {p.banking.reference ? (
+                  <div className="mt-1 text-[12.5px] font-medium text-brand-secondary">
+                    Use reference: {p.banking.reference}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* stamp */}
             {p.stamp ? (

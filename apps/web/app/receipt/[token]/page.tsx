@@ -34,10 +34,6 @@ export default async function ReceiptRecordPage({
   if (!receipt) notFound();
 
   const c = receipt.currency;
-  const fromLines = [
-    receipt.host.handle ? `@${receipt.host.handle}` : null,
-    receipt.host.email,
-  ].filter(Boolean) as string[];
   const toLines = [receipt.guest.email, receipt.guest.phone].filter(
     Boolean,
   ) as string[];
@@ -55,11 +51,12 @@ export default async function ReceiptRecordPage({
         href: `/dashboard/bookings/${receipt.bookingId}?tab=payments`,
         label: "View booking",
       }}
-      from={{ name: receipt.host.displayName ?? brandName, lines: fromLines }}
+      from={{ name: receipt.party.name, lines: receipt.party.lines }}
       to={{
         label: "Received from",
         party: { name: receipt.guest.name ?? "Guest", lines: toLines },
       }}
+      banking={receipt.party.banking}
       metaRows={[
         { label: "Paid on", value: fmtDate(receipt.paidAt) },
         { label: "Method", value: receipt.method.replace(/_/g, " ") },

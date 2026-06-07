@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getHostParty, type DocHostParty } from "@/lib/finance/doc-party";
 import type { InvoiceBusiness } from "@/lib/pdf/InvoiceDocument";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -23,6 +24,7 @@ export type ReceiptData = {
   bookingRef: string | null;
   balanceAfter: number | null;
   hostId: string;
+  party: DocHostParty;
   host: {
     displayName: string | null;
     handle: string | null;
@@ -102,7 +104,10 @@ export async function getReceiptByToken(
     ? (b.listing[0] as { name?: string } | undefined)?.name
     : (b.listing as { name?: string } | null)?.name;
 
+  const party = await getHostParty(admin, b.host_id, b.reference ?? null);
+
   return {
+    party,
     receiptNumber: p.receipt_number,
     paidAt: (p.captured_at ?? p.created_at) as string,
     method: p.method as string,
