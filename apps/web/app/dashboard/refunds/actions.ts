@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { logFinanceEvent } from "@/lib/finance/audit";
+import { assertPeriodOpen } from "@/lib/finance/periods";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -234,6 +236,14 @@ export async function hostInitiatedRefundAction(input: {
     };
   }
 
+  const periodAdmin = createAdminClient();
+  const period = await assertPeriodOpen(
+    periodAdmin,
+    host.hostId,
+    new Date().toISOString(),
+  );
+  if (!period.ok) return { ok: false, error: period.error };
+
   const { data: payment } = await supabase
     .from("payments")
     .select("id, status, amount")
@@ -289,6 +299,21 @@ export async function hostInitiatedRefundAction(input: {
 
   if (completeErr) return { ok: false, error: completeErr.message };
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await logFinanceEvent(admin, {
+    hostId: host.hostId,
+    actorId: user?.id ?? null,
+    action: "refund.issue",
+    bookingId: booking.id,
+    entityType: "refund",
+    entityId: inserted.id,
+    amount: parsed.data.amount,
+    currency: booking.currency || "ZAR",
+    reason: parsed.data.reason,
+    metadata: { method: parsed.data.method },
+  });
   revalidatePath("/dashboard/refunds");
   revalidatePath(`/dashboard/bookings/${booking.id}`);
   return { ok: true };

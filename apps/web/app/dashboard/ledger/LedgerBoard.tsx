@@ -7,6 +7,8 @@ import { LedgerList } from "@/components/finance/LedgerList";
 import { formatMoney } from "@/lib/format";
 import type { Txn, TxnStats, TxnType } from "@/lib/finance/transactions";
 
+import { PeriodControl } from "./PeriodControl";
+
 const FILTERS: {
   key: string;
   label: string;
@@ -54,11 +56,13 @@ export function LedgerBoard({
   stats,
   guests,
   currency,
+  closedMonths,
 }: {
   entries: Txn[];
   stats: TxnStats;
   guests: { key: string; name: string }[];
   currency: string;
+  closedMonths: string[];
 }) {
   const [filter, setFilter] = useState("all");
   const [guest, setGuest] = useState("all");
@@ -104,6 +108,9 @@ export function LedgerBoard({
           <p className="text-[12.5px] text-brand-mute">
             Every transaction across your whole account
           </p>
+        </div>
+        <div className="ml-auto">
+          <PeriodControl closedMonths={closedMonths} />
         </div>
       </div>
 

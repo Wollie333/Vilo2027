@@ -42,12 +42,22 @@ export default async function LedgerPage() {
 
   const currency = entries[0]?.currency ?? "ZAR";
 
+  // Closed accounting months (YYYY-MM) for the period control.
+  const { data: periods } = await admin
+    .from("accounting_periods")
+    .select("period_month")
+    .eq("host_id", hostId);
+  const closedMonths = (periods ?? []).map((p) =>
+    (p.period_month as string).slice(0, 7),
+  );
+
   return (
     <LedgerBoard
       entries={entries as Txn[]}
       stats={stats}
       guests={guests}
       currency={currency}
+      closedMonths={closedMonths}
     />
   );
 }

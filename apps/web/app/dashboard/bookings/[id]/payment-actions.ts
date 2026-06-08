@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logFinanceEvent } from "@/lib/finance/audit";
+import { assertPeriodOpen } from "@/lib/finance/periods";
 import { grossUpVat } from "@/lib/finance/vat";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
@@ -110,6 +112,13 @@ export async function recordBookingPaymentAction(input: {
     return { ok: false, error: "Not your booking." };
   }
 
+  const period = await assertPeriodOpen(
+    admin,
+    hostId,
+    new Date().toISOString(),
+  );
+  if (!period.ok) return { ok: false, error: period.error };
+
   const res = await recordBookingPayment(admin, {
     bookingId: input.bookingId,
     amount: input.amount,
@@ -122,6 +131,16 @@ export async function recordBookingPaymentAction(input: {
 
   await confirmBookingIfPending(admin, booking as OwnedBooking);
   await markBookingInvoicesPaidIfSettled(admin, input.bookingId);
+  await logFinanceEvent(admin, {
+    hostId,
+    actorId: userId,
+    action: "payment.record",
+    bookingId: input.bookingId,
+    entityType: "payment",
+    amount: input.amount,
+    reason: input.note ?? null,
+    metadata: { kind: input.kind },
+  });
   revalidateBooking(input.bookingId);
   return { ok: true };
 }
@@ -346,6 +365,13 @@ export async function issueBookingCreditNoteAction(input: {
     };
   }
 
+  const period = await assertPeriodOpen(
+    admin,
+    hostId,
+    new Date().toISOString(),
+  );
+  if (!period.ok) return { ok: false, error: period.error };
+
   const res = await createCreditNoteAction({
     invoiceId: invoice.id,
     amount,
@@ -353,6 +379,15 @@ export async function issueBookingCreditNoteAction(input: {
   });
   if (!res.ok) return res;
 
+  await logFinanceEvent(admin, {
+    hostId,
+    actorId: await getUserId(),
+    action: "credit_note.issue",
+    bookingId: input.bookingId,
+    entityType: "credit_note",
+    amount,
+    reason,
+  });
   revalidateBooking(input.bookingId);
   return { ok: true };
 }
@@ -398,6 +433,12 @@ export async function addBookingAddonAction(input: {
   if (TERMINAL_STATUSES.includes(booking.status as string)) {
     return { ok: false, error: "Can't add to a cancelled booking." };
   }
+  const period = await assertPeriodOpen(
+    admin,
+    hostId,
+    new Date().toISOString(),
+  );
+  if (!period.ok) return { ok: false, error: period.error };
 
   const { data: existing } = await admin
     .from("booking_addons")
@@ -483,6 +524,17 @@ export async function addBookingAddonAction(input: {
 
   await recomputeBookingPaymentState(admin, booking.id);
   await markBookingInvoicesPaidIfSettled(admin, booking.id);
+  await logFinanceEvent(admin, {
+    hostId,
+    actorId: userId,
+    action: "charge.add",
+    bookingId: booking.id,
+    entityType: "invoice",
+    entityId: invoiceId,
+    amount: addonInclusive,
+    reason: items.map((i) => i.label).join(", "),
+    metadata: { markPaid: input.markPaid },
+  });
   revalidateBooking(booking.id);
   return { ok: true };
 }

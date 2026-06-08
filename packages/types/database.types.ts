@@ -39,6 +39,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_periods: {
+        Row: {
+          closed_at: string
+          closed_by: string | null
+          host_id: string
+          id: string
+          note: string | null
+          period_month: string
+        }
+        Insert: {
+          closed_at?: string
+          closed_by?: string | null
+          host_id: string
+          id?: string
+          note?: string | null
+          period_month: string
+        }
+        Update: {
+          closed_at?: string
+          closed_by?: string | null
+          host_id?: string
+          id?: string
+          note?: string | null
+          period_month?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_periods_closed_by_fkey"
+            columns: ["closed_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_periods_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addons: {
         Row: {
           allow_custom_quantity: boolean
@@ -1570,6 +1612,76 @@ export type Database = {
             columns: ["listing_id"]
             isOneToOne: true
             referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          currency: string | null
+          entity_id: string | null
+          entity_type: string | null
+          host_id: string
+          id: string
+          metadata: Json | null
+          reason: string | null
+          txn_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          host_id: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          txn_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          currency?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          host_id?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string | null
+          txn_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_audit_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_audit_log_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_audit_log_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
         ]
@@ -6908,6 +7020,10 @@ export type Database = {
       increment_help_article_view: {
         Args: { p_article_id: string }
         Returns: undefined
+      }
+      is_period_closed: {
+        Args: { p_date: string; p_host_id: string }
+        Returns: boolean
       }
       is_super_admin: { Args: never; Returns: boolean }
       listing_doc_code: { Args: { p_listing_id: string }; Returns: string }

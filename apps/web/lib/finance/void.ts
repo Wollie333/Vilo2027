@@ -1,5 +1,7 @@
 import "server-only";
 
+import { logFinanceEvent } from "@/lib/finance/audit";
+import { assertPeriodOpen } from "@/lib/finance/periods";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -39,14 +41,34 @@ export async function voidTransaction(
   if (prefix === "pay") {
     const { data: p } = await admin
       .from("payments")
-      .select("id, booking_id, voided_at, booking:bookings!inner ( host_id )")
+      .select(
+        "id, booking_id, amount, currency, captured_at, created_at, voided_at, booking:bookings!inner ( host_id )",
+      )
       .eq("id", id)
       .eq("booking.host_id", hostId)
       .maybeSingle();
     if (!p) return { ok: false, error: "Not your transaction." };
     if (p.voided_at) return { ok: false, error: "Already voided." };
+    const pc = await assertPeriodOpen(
+      admin,
+      hostId,
+      (p.captured_at ?? p.created_at) as string,
+    );
+    if (!pc.ok) return pc;
     await admin.from("payments").update(stamp).eq("id", id);
     if (p.booking_id) await recomputeBookingPaymentState(admin, p.booking_id);
+    await logFinanceEvent(admin, {
+      hostId,
+      actorId: userId,
+      action: "payment.void",
+      bookingId: p.booking_id,
+      txnId,
+      entityType: "payment",
+      entityId: id,
+      amount: Number(p.amount),
+      currency: p.currency,
+      reason,
+    });
     return { ok: true, bookingId: p.booking_id };
   }
 
@@ -55,13 +77,15 @@ export async function voidTransaction(
     const { data: cn } = await admin
       .from("credit_notes")
       .select(
-        "id, booking_id, host_id, guest_id, total_amount, voided_at, guest_snapshot",
+        "id, booking_id, host_id, guest_id, total_amount, currency, issued_at, voided_at, guest_snapshot",
       )
       .eq("id", id)
       .eq("host_id", hostId)
       .maybeSingle();
     if (!cn) return { ok: false, error: "Not your transaction." };
     if (cn.voided_at) return { ok: false, error: "Already voided." };
+    const pc = await assertPeriodOpen(admin, hostId, cn.issued_at as string);
+    if (!pc.ok) return pc;
     await admin.from("credit_notes").update(stamp).eq("id", id);
     const snap = (cn.guest_snapshot ?? {}) as { email?: string };
     const gkey = gkeyFor(cn.guest_id, snap.email ?? null);
@@ -75,6 +99,18 @@ export async function voidTransaction(
       });
     }
     if (cn.booking_id) await recomputeBookingPaymentState(admin, cn.booking_id);
+    await logFinanceEvent(admin, {
+      hostId,
+      actorId: userId,
+      action: "credit_note.void",
+      bookingId: cn.booking_id,
+      txnId,
+      entityType: "credit_note",
+      entityId: id,
+      amount: Number(cn.total_amount),
+      currency: cn.currency,
+      reason,
+    });
     return { ok: true, bookingId: cn.booking_id };
   }
 
@@ -82,14 +118,30 @@ export async function voidTransaction(
   if (prefix === "rf") {
     const { data: rf } = await admin
       .from("refund_requests")
-      .select("id, booking_id, host_id, voided_at")
+      .select(
+        "id, booking_id, host_id, requested_amount, approved_amount, currency, created_at, voided_at",
+      )
       .eq("id", id)
       .eq("host_id", hostId)
       .maybeSingle();
     if (!rf) return { ok: false, error: "Not your transaction." };
     if (rf.voided_at) return { ok: false, error: "Already voided." };
+    const pc = await assertPeriodOpen(admin, hostId, rf.created_at as string);
+    if (!pc.ok) return pc;
     await admin.from("refund_requests").update(stamp).eq("id", id);
     if (rf.booking_id) await recomputeBookingPaymentState(admin, rf.booking_id);
+    await logFinanceEvent(admin, {
+      hostId,
+      actorId: userId,
+      action: "refund.void",
+      bookingId: rf.booking_id,
+      txnId,
+      entityType: "refund",
+      entityId: id,
+      amount: Number(rf.approved_amount ?? rf.requested_amount),
+      currency: rf.currency,
+      reason,
+    });
     return { ok: true, bookingId: rf.booking_id };
   }
 
@@ -98,7 +150,7 @@ export async function voidTransaction(
     const { data: inv } = await admin
       .from("invoices")
       .select(
-        "id, booking_id, host_id, kind, total_amount, vat_amount, voided_at",
+        "id, booking_id, host_id, kind, total_amount, vat_amount, currency, issued_at, voided_at",
       )
       .eq("id", id)
       .eq("host_id", hostId)
@@ -112,6 +164,8 @@ export async function voidTransaction(
           "This is the booking's main charge — cancel the booking instead of voiding the stay invoice.",
       };
     }
+    const pc = await assertPeriodOpen(admin, hostId, inv.issued_at as string);
+    if (!pc.ok) return pc;
     await admin.from("invoices").update(stamp).eq("id", id);
     if (inv.booking_id) {
       const { data: b } = await admin
@@ -137,6 +191,18 @@ export async function voidTransaction(
       await admin.from("booking_addons").delete().eq("invoice_id", inv.id);
       await recomputeBookingPaymentState(admin, inv.booking_id);
     }
+    await logFinanceEvent(admin, {
+      hostId,
+      actorId: userId,
+      action: "charge.void",
+      bookingId: inv.booking_id,
+      txnId,
+      entityType: "invoice",
+      entityId: id,
+      amount: Number(inv.total_amount),
+      currency: inv.currency,
+      reason,
+    });
     return { ok: true, bookingId: inv.booking_id };
   }
 

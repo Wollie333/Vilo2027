@@ -90,6 +90,14 @@ function fmtDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+function fmtTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+}
+
 function amountDisplay(e: Txn): { text: string; cls: string } {
   const money = formatMoney(e.amount, e.currency);
   // Standard accounting convention: debits (charges & refunds — they increase
@@ -345,8 +353,11 @@ export function LedgerList({
                       </div>
                     ) : null}
                   </td>
-                  <td className="num whitespace-nowrap px-2 py-3 text-brand-mute">
-                    {fmtDate(e.date)}
+                  <td className="whitespace-nowrap px-2 py-3 text-brand-mute">
+                    <div className="num">{fmtDate(e.date)}</div>
+                    <div className="num text-[10.5px] opacity-70">
+                      {fmtTime(e.date)}
+                    </div>
                   </td>
                   {showGuest ? (
                     <td className="px-2 py-3">
