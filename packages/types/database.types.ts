@@ -720,6 +720,7 @@ export type Database = {
           listing_id: string
           nights: number | null
           origin: string
+          pay_token: string
           payment_method: string | null
           payment_status: string
           policy_acknowledged: boolean
@@ -779,6 +780,7 @@ export type Database = {
           listing_id: string
           nights?: number | null
           origin?: string
+          pay_token?: string
           payment_method?: string | null
           payment_status?: string
           policy_acknowledged?: boolean
@@ -838,6 +840,7 @@ export type Database = {
           listing_id?: string
           nights?: number | null
           origin?: string
+          pay_token?: string
           payment_method?: string | null
           payment_status?: string
           policy_acknowledged?: boolean
