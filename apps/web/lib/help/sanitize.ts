@@ -28,11 +28,19 @@ const ALLOWED_TAGS = [
   "tr",
   "td",
   "th",
+  // Layout primitives for rich, design-system-styled articles. Safe to allow:
+  // they carry no script vector. `class` is whitelisted below so articles can
+  // opt into the scoped `.help-article .hc-*` components; `style` stays banned.
+  "div",
+  "span",
 ];
 
 const sanitizeOptions: sanitizeHtml.IOptions = {
   allowedTags: ALLOWED_TAGS,
   allowedAttributes: {
+    // `class` on any tag drives the scoped `.hc-*` styling. `style` is never
+    // allowed, so this stays XSS-safe (no CSS-based exfil / expression vector).
+    "*": ["class"],
     a: ["href", "name", "target", "rel"],
     img: ["src", "alt", "width", "height", "loading"],
   },

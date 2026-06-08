@@ -11,6 +11,7 @@ import {
 import { sanitizeHelpHtml } from "@/lib/help/sanitize";
 import { createServerClient } from "@/lib/supabase/server";
 
+import "@/app/help/help-article.css";
 import { ArticleFeedback } from "../_components/ArticleFeedback";
 import { ArticleView } from "../_components/ArticleView";
 
@@ -114,7 +115,7 @@ export default async function HelpArticlePage({ params }: { params: Params }) {
           ) : null}
 
           <div
-            className="prose prose-emerald mt-6 max-w-none rounded-card border border-brand-line bg-white p-6 text-[15px] leading-relaxed text-brand-ink [&_a]:text-brand-primary [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_ul]:list-disc [&_ul]:pl-6"
+            className="help-article prose prose-emerald mt-6 max-w-none rounded-card border border-brand-line bg-white p-6 text-[15px] leading-relaxed text-brand-ink [&_a]:text-brand-primary [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-6 [&_h3]:font-display [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mt-4 [&_ul]:list-disc [&_ul]:pl-6"
             dangerouslySetInnerHTML={{
               __html: sanitizeHelpHtml(article.body_html),
             }}

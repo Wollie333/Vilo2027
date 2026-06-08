@@ -82,17 +82,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
-## 2026-06-08 — Help Centre — Ledger article — branch `main`
+## 2026-06-08 — Help Centre — Ledger article + rich help-content design system — branch `main`
 
 ### Built
 - **Help article `ledger-account-finance-view`** ("The Ledger: every transaction in one place") covering the account-wide Ledger (`/dashboard/ledger`): the five KPI totals (Outstanding, Collected, Refunded, Credits, Net), how to read a row (Type / For / Amount parentheses convention / running Balance / Document), filter pills + guest dropdown + search + date sort, the per-row `…` actions (record payment, mark received, refund, credit note, add charge, document share), voiding as a non-destructive audit correction, and closing/reopening accounting periods. Published, `host` audience, `payments` category.
+- **Rich help-content design system** (`apps/web/app/help/help-article.css`, scoped under `.help-article`) — reusable `hc-*` components any article can opt into: check-mark lists (no black dots), brand-coloured Type/For pills mirroring the live Ledger, KPI cards, a faithful mini-ledger table, an action grid, audit/periods callouts, and tasteful **CSS motion** (a staggered sheen wave across the KPI cards, a pulsing "Pending" dot, a shimmering progress-bar fill). All animation is wrapped in `prefers-reduced-motion: reduce`.
+- The Ledger article now uses these components end-to-end so it shows real, on-brand elements of exactly what the text describes.
+
+### Changed
+- **`lib/help/sanitize.ts`** — allow `div`, `span`, and the `class` attribute (via `'*': ['class']`) so articles can carry layout + design-system classes. `style`/`script`/event handlers stay banned; verified the sanitiser still strips `onclick`/`style`/`<script>` while keeping `div`/`span`/`class`.
+- **Both help renderers** (`app/help/[slug]/page.tsx`, `app/dashboard/help/[slug]/page.tsx`) import the new stylesheet and add `help-article` to the body wrapper. Backward-compatible: existing articles (plain semantic HTML) render unchanged.
 
 ### Notes
-- Complements the existing `booking-payments-deposits-credit` article (which covers the per-booking Payments tab) — this one documents the whole-account finance view. No overlap.
-- Renamed from a `…000001` to `…000004` timestamp to avoid colliding with the already-applied `20260608000001_transaction_void.sql`.
+- Complements the existing `booking-payments-deposits-credit` article (per-booking Payments tab); this documents the whole-account finance view.
+- No animated GIFs — used CSS-animated real elements instead (cleaner, lighter, themable, reduced-motion-safe).
+- Timestamp collisions with parallel-agent migrations forced two renames (`…000001`→`…000004`, `…000005`→`…000007`).
 
 ### Migrations
-- `supabase/migrations/20260608000004_help_ledger.sql` (idempotent `INSERT … ON CONFLICT (slug) DO UPDATE`; applied to linked remote)
+- `supabase/migrations/20260608000004_help_ledger.sql` — initial article (idempotent upsert; applied to linked remote)
+- `supabase/migrations/20260608000007_help_ledger_rich.sql` — rich-layout body for the same slug (idempotent upsert; applied to linked remote)
 
 ## 2026-06-07 — Booking redesign — simplified guest journey (display-only listing + 3-step checkout) — branch `main`
 
