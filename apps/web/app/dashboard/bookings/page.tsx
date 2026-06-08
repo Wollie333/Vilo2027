@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { BookingsBoard, type BookingRow, type Kpis } from "./BookingsBoard";
@@ -72,36 +73,33 @@ type RawBooking = {
 export default async function BookingsListPage() {
   const supabase = createServerClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Scope strictly to the signed-in user's own host. RLS alone is NOT enough
+  // here: the same user can be a *guest* on another host's booking (and the
+  // guest-read RLS policy returns those rows), so an unscoped list would leak
+  // other hosts' bookings onto this host's board. Filter by host_id explicitly,
+  // exactly like the booking detail page does.
+  const myHostId = await getMyHostId(supabase);
 
   // Listing count powers the occupancy denominator + toolbar label.
   let listingCount = 0;
-  if (user) {
-    const { data: host } = await supabase
-      .from("hosts")
-      .select("id")
-      .eq("user_id", user.id)
-      .is("deleted_at", null)
-      .maybeSingle();
-    if (host) {
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("host_id", host.id);
-      listingCount = count ?? 0;
-    }
+  if (myHostId) {
+    const { count } = await supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("host_id", myHostId);
+    listingCount = count ?? 0;
   }
 
-  // RLS host_manage_own_bookings — only this host's bookings come back.
-  const { data } = await supabase
-    .from("bookings")
-    .select(
-      "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
-    )
-    .order("created_at", { ascending: false })
-    .limit(400);
+  const { data } = myHostId
+    ? await supabase
+        .from("bookings")
+        .select(
+          "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+        )
+        .eq("host_id", myHostId)
+        .order("created_at", { ascending: false })
+        .limit(400)
+    : { data: [] };
 
   const raw = (data ?? []) as unknown as RawBooking[];
 

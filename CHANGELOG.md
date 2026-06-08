@@ -31,6 +31,36 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Bookings — Host-scope leak fix on bookings list + dashboard home — branch `main`
+
+### Fixed
+- **Cross-host booking leak.** The bookings list (`/dashboard/bookings`) and the
+  dashboard home KPIs/upcoming-arrivals queried `bookings` with no
+  `host_id` filter, trusting RLS to scope them. But a host who is also a
+  *guest* on another host's booking gets that row back via the guest-read RLS
+  policy — so another host's booking surfaced on their board and linked to a
+  detail page that (correctly) 404s. Now every host-dashboard booking read
+  filters `.eq("host_id", myHostId)` explicitly, matching the booking detail
+  page's guard.
+  - `apps/web/app/dashboard/bookings/page.tsx` — list query now scoped via
+    `getMyHostId`; empty board when the user has no host.
+  - `apps/web/app/dashboard/page.tsx` — all five booking reads (month, prev
+    month, last-90, upcoming, pending-count) now filter `host_id`.
+
+### Changed
+- The bookings list no longer relies on RLS alone for scoping (it never was
+  sufficient for users who are both host and guest).
+
+### Notes
+- No DB/data change — the booking and guest records were consistent; this was
+  purely a query-scoping bug. Calendar, Guests CRM, inbox, new-booking and
+  quote-edit reads were already correctly `host_id`-scoped.
+
+### Commit
+- `fix(bookings): scope host dashboard booking reads to own host_id`
+
+---
+
 ## 2026-06-08 — Reports — Ledger-backed Cash position on Analytics — branch `main`
 
 ### Built

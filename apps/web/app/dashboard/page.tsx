@@ -180,22 +180,26 @@ export default async function DashboardPage({
     supabase
       .from("bookings")
       .select("id, total_amount, status, nights, listing_id")
+      .eq("host_id", host.id)
       .gte("check_in", isoDate(monthStart))
       .lte("check_in", isoDate(monthEnd)),
     supabase
       .from("bookings")
       .select("total_amount, status")
+      .eq("host_id", host.id)
       .gte("check_in", isoDate(prevStart))
       .lte("check_in", isoDate(prevEnd)),
     supabase
       .from("bookings")
       .select("total_amount, nights, status, check_in, created_at")
+      .eq("host_id", host.id)
       .gte("check_in", ninetyAgo),
     supabase
       .from("bookings")
       .select(
         "id, check_in, check_out, nights, guests_count, total_amount, currency, status, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
       )
+      .eq("host_id", host.id)
       .in("status", ["confirmed", "checked_in"])
       .gte("check_in", today)
       .order("check_in", { ascending: true })
@@ -218,6 +222,7 @@ export default async function DashboardPage({
     supabase
       .from("bookings")
       .select("id", { count: "exact", head: true })
+      .eq("host_id", host.id)
       .eq("status", "pending"),
     supabase
       .from("conversations")
