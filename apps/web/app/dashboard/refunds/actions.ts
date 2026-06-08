@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
+import { requireHost as getMyHostId } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -70,23 +71,6 @@ const requestSchema = z.object({
   reason: z.string().min(1).max(200),
   reasonDetail: z.string().max(2000).optional().nullable(),
 });
-
-async function getMyHostId(): Promise<
-  { ok: true; hostId: string } | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
-  return { ok: true, hostId: host.id };
-}
 
 /**
  * Host approves a refund. Status flips to 'approved', then we immediately

@@ -4,25 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { voidTransaction } from "@/lib/finance/void";
+import { requireHost as currentHost } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type VoidResult = { ok: true } | { ok: false; error: string };
-
-async function currentHost() {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false as const, error: "Not signed in." };
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false as const, error: "No host profile." };
-  return { ok: true as const, hostId: host.id, userId: user.id };
-}
 
 /** Close an accounting month (YYYY-MM). Locks it against further money moves. */
 export async function closePeriodAction(input: {

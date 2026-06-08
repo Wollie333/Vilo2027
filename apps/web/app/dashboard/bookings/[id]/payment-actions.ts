@@ -6,6 +6,7 @@ import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
 import { grossUpVat } from "@/lib/finance/vat";
 import { round2 } from "@/lib/format";
+import { requireHost } from "@/lib/host/current";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
@@ -23,18 +24,11 @@ import { createCreditNoteAction } from "../../credit-notes/actions";
 
 export type PaymentResult = { ok: true } | { ok: false; error: string };
 
+// Thin string|null adapter over the canonical requireHost (this file's callers
+// branch on a nullable id rather than the discriminated result).
 async function getHostId(): Promise<string | null> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  return host?.id ?? null;
+  const h = await requireHost();
+  return h.ok ? h.hostId : null;
 }
 
 async function getUserId(): Promise<string | null> {

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
+import { requireHost as getHostId } from "@/lib/host/current";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -49,24 +50,6 @@ async function assertOwnership(
     .user_id;
   if (ownerId !== user.id) return { ok: false, error: "Not your quote." };
   return { ok: true, hostId: quote.host_id as string, userId: user.id };
-}
-
-async function getHostId(): Promise<
-  { ok: true; hostId: string } | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
-  return { ok: true, hostId: host.id };
 }
 
 // Add a host-only internal note to a quote (quote_notes). Never shown to the

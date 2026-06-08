@@ -12,6 +12,8 @@ import {
   createPaystackPaymentLink,
   validatePaystackSecret,
 } from "@/lib/paystack";
+import { requireHost as resolveHost } from "@/lib/host/current";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { validatePayPalCredentials } from "@/lib/paypal";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -33,23 +35,6 @@ import {
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
 const PLAN_GATE_MSG = "Banking details aren't available on your plan.";
-
-async function resolveHost(): Promise<
-  { ok: true; hostId: string } | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Sign in to manage banking." };
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile on this account." };
-  return { ok: true, hostId: host.id };
-}
 
 // Pre-MVP policy (AGENT_RULES.md §3.4): every feature is open to the free
 // plan while there's no subscription management UI. The RPC infrastructure
@@ -671,16 +656,13 @@ export async function createPaymentLinkAction(
   const host = await resolveHost();
   if (!host.ok) return host;
 
-  const supabase = createServerClient();
-  const { data: row } = await supabase
-    .from("host_payment_gateways")
-    .select("secret_cipher, statement_descriptor, is_enabled")
-    .eq("host_id", host.hostId)
-    .eq("gateway", "paystack")
-    .maybeSingle();
-  if (!row) return { ok: false, error: "Connect your Paystack account first." };
-  if (!row.is_enabled) {
-    return { ok: false, error: "Enable Paystack before creating a link." };
+  // One source of truth for the host's connected, enabled Paystack secret.
+  const hostPaystack = await getHostPaystack(host.hostId);
+  if (!hostPaystack) {
+    return {
+      ok: false,
+      error: "Connect and enable your Paystack account first.",
+    };
   }
 
   try {
@@ -688,8 +670,8 @@ export async function createPaymentLinkAction(
       amount: parsed.data.amount,
       email: parsed.data.email,
       description: parsed.data.description || undefined,
-      statementDescriptor: row.statement_descriptor,
-      secretKey: decryptSecret(row.secret_cipher),
+      statementDescriptor: hostPaystack.statementDescriptor,
+      secretKey: hostPaystack.secretKey,
     });
     return { ok: true, url: result.url, reference: result.reference };
   } catch {

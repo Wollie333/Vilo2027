@@ -2,6 +2,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 
 import {
   computeAgeExtras,
+  nightsBetween,
   priceStay,
   type AgeExtraLine,
   type PricingUnit,
@@ -14,12 +15,6 @@ function numOrNull(v: unknown): number | null {
   if (v == null || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-function nightsBetween(checkIn: string, checkOut: string): number {
-  const f = new Date(`${checkIn}T00:00:00Z`).getTime();
-  const t = new Date(`${checkOut}T00:00:00Z`).getTime();
-  return Math.round((t - f) / 86_400_000);
 }
 
 export type StayPricing = {

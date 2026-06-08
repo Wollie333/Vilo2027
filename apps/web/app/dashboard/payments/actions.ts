@@ -2,24 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireHost } from "@/lib/host/current";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerClient } from "@/lib/supabase/server";
 
 export type PaymentActionResult = { ok: true } | { ok: false; error: string };
 
+// Thin string|null adapter over the canonical requireHost.
 async function getHostId(): Promise<string | null> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  return host?.id ?? null;
+  const h = await requireHost();
+  return h.ok ? h.hostId : null;
 }
 
 /**

@@ -28,3 +28,31 @@ export async function getMyHostId(
     .maybeSingle();
   return data?.id ?? null;
 }
+
+/**
+ * The signed-in user's host id + user id, as a discriminated result — the single
+ * source of truth for the "resolve my host before a mutation" guard that every
+ * host Server Action needs. Self-contained (makes its own server client), so an
+ * action just does `const h = await requireHost(); if (!h.ok) return h;`.
+ *
+ * Replaces the ~dozen per-file copies (getHost / getHostId / resolveHost /
+ * currentHost / getMyHostId). Most files import it aliased to their old local
+ * name so call sites are unchanged.
+ */
+export async function requireHost(): Promise<
+  { ok: true; hostId: string; userId: string } | { ok: false; error: string }
+> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  const { data } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "No host profile." };
+  return { ok: true, hostId: data.id, userId: user.id };
+}

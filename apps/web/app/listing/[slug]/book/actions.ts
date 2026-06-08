@@ -19,6 +19,7 @@ import {
 import { resolveCoupon } from "@/lib/coupons";
 import {
   computeAgeExtras,
+  nightsBetween,
   priceStay,
   type AgeExtraLine,
   type PriceBreakdown,
@@ -165,13 +166,6 @@ export async function createCheckoutGuestAccountAction(
   }
 
   return { ok: true };
-}
-
-function nightsBetween(checkIn: string, checkOut: string): number {
-  const f = new Date(`${checkIn}T00:00:00Z`).getTime();
-  const t = new Date(`${checkOut}T00:00:00Z`).getTime();
-  const n = Math.round((t - f) / (1000 * 60 * 60 * 24));
-  return n;
 }
 
 // ─── Guest coupon preview ─────────────────────────────────────────
