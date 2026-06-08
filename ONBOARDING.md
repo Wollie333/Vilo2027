@@ -296,15 +296,18 @@ For `migration/*` branches: merge to `develop` first, validate on staging, then 
 
 ## 11. Common Issues
 
-### `supabase start` fails
+### Migrations / type-gen not reflecting the database
+
+This project does **not** run the local Supabase stack — there is no Docker
+dependency. Apply migrations straight to the linked cloud project and regenerate
+types against it:
 
 ```bash
-supabase stop
-docker system prune -f   # clear Docker state
-supabase start
+supabase db push --linked
+supabase gen types typescript --linked > packages/types/database.types.ts
 ```
 
-Requires Docker Desktop running. Check `docker ps` to confirm.
+See `MIGRATIONS.md` for the full no-Docker workflow.
 
 ### Types are out of date
 

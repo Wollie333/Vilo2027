@@ -8,7 +8,7 @@
 
 ## 1. Overview
 
-All CI/CD runs through GitHub Actions. Five workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `mobile-preview.yml`, `docker-build.yml`). The web app deploys via Vercel's native GitHub integration, not a workflow. Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `DOCKERHUB_*`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
+All CI/CD runs through GitHub Actions. Four workflow files live in `.github/workflows/` (`ci.yml`, `db-migrate.yml`, `deploy-functions.yml`, `mobile-preview.yml`). The web app deploys via Vercel's native GitHub integration, not a workflow. Secrets are managed via Doppler — no **app** secrets are stored directly in GitHub Secrets, only **CI-infrastructure** credentials (`DOPPLER_TOKEN`, `VERCEL_*`, `SUPABASE_ACCESS_TOKEN`, `EXPO_TOKEN`).
 
 **Doppler integration:**
 - Workflows that need app secrets at build time use either `doppler run -- <command>` (full env injection) or `dopplerhq/secrets-fetch-action` (named outputs for build-args).
@@ -248,8 +248,7 @@ All secrets are set in GitHub → Repo Settings → Secrets and variables → Ac
 
 | Secret | Used in | Where to get it |
 |---|---|---|
-| `DOPPLER_TOKEN` | docker-build (and any workflow needing app secrets) | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
-| `GITHUB_TOKEN` | docker-build | Auto-provided by GitHub Actions — used to push images to ghcr.io. No setup needed. |
+| `DOPPLER_TOKEN` | any workflow needing app secrets | Doppler Dashboard → vilo2027 → `prd` config → Access → Service Tokens |
 | `SUPABASE_ACCESS_TOKEN` | db-migrate, deploy-functions, ci | supabase.com → Account → Access Tokens |
 | `SUPABASE_PROJECT_ID` | db-migrate, deploy-functions | Supabase Dashboard → Project Settings → General |
 | `SUPABASE_DB_URL` | db-migrate | Supabase Dashboard → Settings → Database → Connection String (Transaction mode) |
