@@ -141,6 +141,7 @@ export default async function BookingDetailPage({
       "id, status, method, kind, amount, note, created_at, captured_at, receipt_number, receipt_token",
     )
     .eq("booking_id", booking.id)
+    .is("voided_at", null)
     .order("created_at", { ascending: true });
 
   const ledger = paymentRows ?? [];

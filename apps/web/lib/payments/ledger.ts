@@ -38,7 +38,8 @@ export async function sumCompletedPaid(
     .from("payments")
     .select("amount, kind, status")
     .eq("booking_id", bookingId)
-    .eq("status", "completed");
+    .eq("status", "completed")
+    .is("voided_at", null);
   let paid = 0;
   for (const p of data ?? []) {
     if (INBOUND_KINDS.includes(p.kind as string)) paid += Number(p.amount);

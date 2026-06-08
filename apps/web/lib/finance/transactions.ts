@@ -63,6 +63,9 @@ export type Txn = {
   status?: string | null;
   /** What the transaction was for — booking/add-on/credit/refund. */
   category: TxnCategory;
+  /** Voided (kept for audit, hidden from the live ledger; zero effect). */
+  voided?: boolean;
+  voidReason?: string | null;
 };
 
 export type TxnStats = {
@@ -84,6 +87,10 @@ type Filter = {
    * them to offer "mark received". They carry zero balance/cash effect until
    * completed, so they never distort the running balance or collected total. */
   includePending?: boolean;
+  /** Include voided transactions (for the ledger's "Voided" filter). They're
+   * flagged `voided` and carry zero balance/cash effect, so the audit view never
+   * affects live totals. Excluded by default. */
+  includeVoided?: boolean;
 };
 
 /** Fetch + normalise every transaction for a host (optionally one guest/booking). */
@@ -92,45 +99,53 @@ export async function fetchHostTransactions(
   filter: Filter,
 ): Promise<Txn[]> {
   const { hostId } = filter;
+  const live = !filter.includeVoided; // exclude voided unless explicitly asked
+
+  let invoicesQ = admin
+    .from("invoices")
+    .select(
+      "id, invoice_number, kind, total_amount, currency, issued_at, booking_id, hosted_token, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+    )
+    .eq("host_id", hostId);
+  let paymentsQ = admin
+    .from("payments")
+    .select(
+      "id, amount, currency, kind, status, method, note, captured_at, created_at, receipt_token, receipt_number, booking_id, voided_at, void_reason, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
+    )
+    .eq("booking.host_id", hostId)
+    .in(
+      "status",
+      filter.includePending ? ["completed", "pending"] : ["completed"],
+    );
+  let creditNotesQ = admin
+    .from("credit_notes")
+    .select(
+      "id, credit_note_number, total_amount, currency, issued_at, booking_id, hosted_token, origin, status, guest_id, guest_snapshot, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+    )
+    .eq("host_id", hostId)
+    .eq("origin", "manual")
+    .neq("status", "cancelled");
+  let refundsQ = admin
+    .from("refund_requests")
+    .select(
+      "id, requested_amount, approved_amount, currency, created_at, booking_id, status, refund_number, guest_id, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+    )
+    .eq("host_id", hostId)
+    .in("status", ["approved", "processing", "completed"]);
+
+  if (live) {
+    invoicesQ = invoicesQ.is("voided_at", null);
+    paymentsQ = paymentsQ.is("voided_at", null);
+    creditNotesQ = creditNotesQ.is("voided_at", null);
+    refundsQ = refundsQ.is("voided_at", null);
+  }
 
   const [
     { data: invoices },
     { data: payments },
     { data: creditNotes },
     { data: refunds },
-  ] = await Promise.all([
-    admin
-      .from("invoices")
-      .select(
-        "id, invoice_number, kind, total_amount, currency, issued_at, booking_id, hosted_token, guest_id, guest_snapshot, booking:bookings ( reference, guest_name, guest_email )",
-      )
-      .eq("host_id", hostId),
-    admin
-      .from("payments")
-      .select(
-        "id, amount, currency, kind, status, method, note, captured_at, created_at, receipt_token, receipt_number, booking_id, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
-      )
-      .eq("booking.host_id", hostId)
-      .in(
-        "status",
-        filter.includePending ? ["completed", "pending"] : ["completed"],
-      ),
-    admin
-      .from("credit_notes")
-      .select(
-        "id, credit_note_number, total_amount, currency, issued_at, booking_id, hosted_token, origin, status, guest_id, guest_snapshot, booking:bookings ( reference, guest_name, guest_email )",
-      )
-      .eq("host_id", hostId)
-      .eq("origin", "manual")
-      .neq("status", "cancelled"),
-    admin
-      .from("refund_requests")
-      .select(
-        "id, requested_amount, approved_amount, currency, created_at, booking_id, status, refund_number, guest_id, booking:bookings ( reference, guest_name, guest_email )",
-      )
-      .eq("host_id", hostId)
-      .in("status", ["approved", "processing", "completed"]),
-  ]);
+  ] = await Promise.all([invoicesQ, paymentsQ, creditNotesQ, refundsQ]);
 
   const one = <T>(v: T | T[] | null | undefined): T | null =>
     Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
@@ -148,6 +163,7 @@ export async function fetchHostTransactions(
       email?: string;
     };
     const email = snap.email ?? b?.guest_email ?? null;
+    const voided = Boolean(inv.voided_at);
     entries.push({
       id: `inv_${inv.id}`,
       date: inv.issued_at as string,
@@ -168,9 +184,11 @@ export async function fetchHostTransactions(
         pdfPath: inv.hosted_token ? `/invoice/${inv.hosted_token}/pdf` : null,
       },
       balance: 0,
-      owedEffect: 1,
+      owedEffect: voided ? 0 : 1,
       cashEffect: 0,
       category: inv.kind === "addon" ? "addon" : "booking",
+      voided,
+      voidReason: (inv.void_reason as string) ?? null,
     });
   }
 
@@ -184,6 +202,7 @@ export async function fetchHostTransactions(
     const isCredit = p.kind === "credit";
     const isCash = CASH_KINDS.includes(p.kind as string);
     const isPending = p.status !== "completed";
+    const voided = Boolean(p.voided_at);
     entries.push({
       id: `pay_${p.id}`,
       date: (p.captured_at ?? p.created_at) as string,
@@ -221,15 +240,17 @@ export async function fetchHostTransactions(
             }
           : null,
       balance: 0,
-      // Pending payments are informational only — no effect on the running
-      // balance or collected cash until they settle.
-      owedEffect: isPending ? 0 : isCredit ? 0 : -1,
-      cashEffect: isPending ? 0 : isCash ? 1 : 0,
+      // Pending or voided payments are informational only — no effect on the
+      // running balance or collected cash.
+      owedEffect: voided || isPending ? 0 : isCredit ? 0 : -1,
+      cashEffect: voided || isPending ? 0 : isCash ? 1 : 0,
       pending: isPending,
       paymentId: p.id as string,
       kind: (p.kind as string) ?? null,
       status: (p.status as string) ?? null,
       category: p.kind === "addon" ? "addon" : isCredit ? "credit" : "booking",
+      voided,
+      voidReason: (p.void_reason as string) ?? null,
     });
   }
 
@@ -241,6 +262,7 @@ export async function fetchHostTransactions(
     } | null;
     const snap = (cn.guest_snapshot ?? {}) as { name?: string; email?: string };
     const email = snap.email ?? b?.guest_email ?? null;
+    const voided = Boolean(cn.voided_at);
     entries.push({
       id: `cn_${cn.id}`,
       date: cn.issued_at as string,
@@ -261,9 +283,11 @@ export async function fetchHostTransactions(
         pdfPath: cn.hosted_token ? `/credit-note/${cn.hosted_token}/pdf` : null,
       },
       balance: 0,
-      owedEffect: -1,
+      owedEffect: voided ? 0 : -1,
       cashEffect: 0,
       category: "credit",
+      voided,
+      voidReason: (cn.void_reason as string) ?? null,
     });
   }
 
@@ -273,6 +297,7 @@ export async function fetchHostTransactions(
       guest_name?: string;
       guest_email?: string;
     } | null;
+    const voided = Boolean(rf.voided_at);
     entries.push({
       id: `rf_${rf.id}`,
       date: rf.created_at as string,
@@ -295,9 +320,11 @@ export async function fetchHostTransactions(
           }
         : null,
       balance: 0,
-      owedEffect: 1,
-      cashEffect: -1,
+      owedEffect: voided ? 0 : 1,
+      cashEffect: voided ? 0 : -1,
       category: "refund",
+      voided,
+      voidReason: (rf.void_reason as string) ?? null,
     });
   }
 
@@ -327,6 +354,7 @@ export function txnStats(entries: Txn[]): TxnStats {
   let refunded = 0;
   let credits = 0;
   for (const e of entries) {
+    if (e.voided) continue; // voided entries never count toward KPIs
     if (e.cashEffect > 0) collected += e.amount;
     if (e.type === "refund") refunded += e.amount;
     if (e.type === "credit") credits += e.amount;
