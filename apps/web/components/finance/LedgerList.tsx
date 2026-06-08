@@ -242,20 +242,24 @@ export function LedgerList({
     });
   }
 
-  function creditOne(e: Txn) {
+  // Issue a credit note against the entry — works for a settled payment (refund
+  // as store credit) OR a charge/invoice (credit the invoice). Both reduce what
+  // the guest nets-owes and add to their store credit; no cash leaves.
+  function issueCredit(e: Txn) {
     setMenu(null);
     if (!e.bookingId) return;
+    const subject = (e.note ?? e.label).toLowerCase();
     start(async () => {
       const ok = await modal.confirm({
-        title: "Credit this payment?",
-        description: `Issue a ${formatMoney(e.amount, e.currency)} credit note for the ${e.label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
+        title: "Issue a credit note?",
+        description: `Issue a ${formatMoney(e.amount, e.currency)} credit note for the ${subject} — it credits this booking and adds the amount to the guest's store credit to spend later (no cash returned).`,
         confirmLabel: "Issue credit note",
       });
       if (!ok) return;
       const r = await issueBookingCreditNoteAction({
         bookingId: e.bookingId!,
         amount: e.amount,
-        reason: `Credit of ${e.label.toLowerCase()}`,
+        reason: `Credit of ${subject}`,
       });
       if (r.ok) {
         toast.success("Credit note issued.");
@@ -266,18 +270,26 @@ export function LedgerList({
     });
   }
 
-  // Whether a given entry has any host-manage action available.
+  // Which host-manage actions a given entry supports.
   function canSettle(e: Txn): boolean {
     return Boolean(canManage && e.pending && e.method === "eft" && e.paymentId);
   }
-  function canRefundOrCredit(e: Txn): boolean {
+  function isSettledInbound(e: Txn): boolean {
     return Boolean(
-      canManage &&
       !e.pending &&
       e.status === "completed" &&
       e.kind &&
-      INBOUND_KINDS.includes(e.kind) &&
-      e.bookingId,
+      INBOUND_KINDS.includes(e.kind),
+    );
+  }
+  // Refund (cash back) applies to a settled inbound payment.
+  function canRefund(e: Txn): boolean {
+    return Boolean(canManage && e.bookingId && isSettledInbound(e));
+  }
+  // A credit note can be raised against a settled payment OR a charge/invoice.
+  function canCredit(e: Txn): boolean {
+    return Boolean(
+      canManage && e.bookingId && (isSettledInbound(e) || e.type === "charge"),
     );
   }
 
@@ -520,32 +532,33 @@ export function LedgerList({
                   Mark as received
                 </button>
               ) : null}
-              {canRefundOrCredit(menu.entry) ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => refundOne(menu.entry)}
-                    disabled={pending}
-                    className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-red-50 disabled:opacity-50"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
-                    Refund this payment
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => creditOne(menu.entry)}
-                    disabled={pending}
-                    className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                  >
-                    <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
-                    Credit to store credit
-                  </button>
-                </>
+              {canRefund(menu.entry) ? (
+                <button
+                  type="button"
+                  onClick={() => refundOne(menu.entry)}
+                  disabled={pending}
+                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
+                  Refund this payment
+                </button>
+              ) : null}
+              {canCredit(menu.entry) ? (
+                <button
+                  type="button"
+                  onClick={() => issueCredit(menu.entry)}
+                  disabled={pending}
+                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
+                  Issue credit note
+                </button>
               ) : null}
               {!menu.entry.doc &&
               !menu.entry.bookingId &&
               !canSettle(menu.entry) &&
-              !canRefundOrCredit(menu.entry) ? (
+              !canRefund(menu.entry) &&
+              !canCredit(menu.entry) ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
                   No actions for this entry
                 </div>
