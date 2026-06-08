@@ -107,6 +107,10 @@ host never re-enters provider payments.** The mechanism (already partly built):
 - **PayPal webhook** — only Paystack exists; PayPal needs its own verified webhook (Verification API).
 - **Webhook must recompute** — the Paystack webhook flips status directly but does NOT call `recomputeBookingPaymentState`, so `balance_due` + overpayment→store-credit won't reconcile on a card payment. Add a Postgres RPC (`recompute_booking_payment_state(booking_id)`) the Edge Function (Deno) can call, then invoke it after marking the payment completed.
 
+**Keys / config (Paystack is in TEST mode):** secrets live in env, never in the repo.
+- Web (Next): `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` + `PAYSTACK_SECRET_KEY` — already in `apps/web/.env.local` (gitignored).
+- Webhook (Edge Function runs in Supabase, NOT Next): the same `PAYSTACK_SECRET_KEY` + `PAYSTACK_WEBHOOK_SECRET` must be set as Supabase secrets — `supabase secrets set PAYSTACK_SECRET_KEY=… PAYSTACK_WEBHOOK_SECRET=…` — then `supabase functions deploy paystack-webhook --no-verify-jwt`, and register the function URL in Paystack Dashboard → API Keys & Webhooks. See `ENV_VARS.md` §3. Swap the test keys for live keys at launch.
+
 ---
 
 ## 4. Invariants future agents must preserve
