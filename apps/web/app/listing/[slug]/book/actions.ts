@@ -4,9 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { initializeTransaction } from "@/lib/paystack";
-import { hostHasValidEft } from "@/lib/payments/eft";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import { startBookingPayment } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -958,101 +956,48 @@ export async function createBookingAction(
     p_listing_id: listing.id,
   });
 
-  // 7. Pending payment row. provider_reference filled after init.
-  const { data: payment, error: paymentErr } = await admin
-    .from("payments")
-    .insert({
-      booking_id: booking.id,
-      amount: totalAmount,
-      currency: listing.currency,
-      method: d.payment_method,
-      status: "pending",
-    })
-    .select("id")
-    .single();
-  if (paymentErr || !payment) {
-    await releaseReserved();
-    await admin.from("booking_addons").delete().eq("booking_id", booking.id);
-    await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
-    await admin.from("bookings").delete().eq("id", booking.id);
-    return { ok: false, error: "Could not prepare payment. Try again." };
-  }
-
-  // 7b. Manual EFT — no payment provider. The booking sits in pending_eft; the
-  // guest lands on the confirmation/thank-you page (which shows the awaiting-
-  // transfer state) and follows "View my booking" for the host's banking
-  // details + reference. Skip the Paystack hop entirely.
-  if (isEft) {
-    redirect(`/booking/${booking.id}/success`);
-  }
-
-  // 8. Initialize Paystack on the HOST's OWN account so funds settle directly
-  // to them (Vilo takes 0%). The platform PAYSTACK_SECRET_KEY is reserved for
-  // Vilo's subscription billing and must never charge a guest booking.
+  // 7. Take payment through the ONE canonical path. startBookingPayment is the
+  // single source of truth for charging a booking (the guest pay page and the
+  // host pay-link use it too): it creates the pending payment row, initialises
+  // Paystack on the HOST's own account (Vilo takes 0%), falls back to the host's
+  // EFT when there's no usable card rail, and returns where to send the guest.
+  // Keeping ONE payment path here — instead of a second inline Paystack init —
+  // means `origin`/method is just data on the booking, not a forked code path.
   const origin = headers().get("origin") ?? "";
+  const pay = await startBookingPayment({
+    booking: {
+      id: booking.id,
+      reference: booking.reference,
+      scope: d.scope,
+      status: isEft ? "pending_eft" : "pending",
+      payment_status: "pending",
+      total_amount: totalAmount,
+      deposit_amount: null,
+      currency: listing.currency,
+      guest_id: user.id,
+      listing_id: listing.id,
+      listing_name: listing.name,
+      host_id: listing.host_id,
+    },
+    method: d.payment_method,
+    amount: "full",
+    email: user.email,
+    origin,
+    returnTo: `/booking/${booking.id}/success`,
+  });
 
-  // Gateway fallback (AGENT_RULES.md §4.6): never lose a booking when the host
-  // can't take card right now (no connected Paystack, or the gateway is
-  // unreachable) — fall back to the host's EFT account. A published listing
-  // always has a valid default account (§4.5), so this is reliable; we keep the
-  // booking + reserved add-ons and just switch it to manual EFT. If somehow no
-  // EFT exists, roll the whole booking back rather than leaving it stuck.
-  const fallBackToEftOrUnwind = async (): Promise<CreateBookingResult> => {
-    if (await hostHasValidEft(listing.host_id)) {
-      await admin
-        .from("bookings")
-        .update({ payment_method: "eft", status: "pending_eft" })
-        .eq("id", booking.id);
-      await admin
-        .from("payments")
-        .update({ method: "eft" })
-        .eq("id", payment.id);
-      redirect(`/booking/${booking.id}/success`);
-    }
+  if (!pay.ok) {
+    // Provider unreachable AND the host has no EFT rail to fall back to
+    // (startBookingPayment already switches to EFT when one exists). Unwind the
+    // whole booking rather than leave it stranded.
     await releaseReserved();
-    await admin.from("payments").delete().eq("id", payment.id);
     await admin.from("booking_addons").delete().eq("booking_id", booking.id);
     await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
     await admin.from("bookings").delete().eq("id", booking.id);
-    return {
-      ok: false,
-      error: "Couldn't reach the payment provider. Try again in a moment.",
-    };
-  };
-
-  // Host's connected Paystack key (null = no usable card rail → EFT fallback).
-  const hostPaystack = await getHostPaystack(listing.host_id);
-  if (!hostPaystack) {
-    return await fallBackToEftOrUnwind();
+    return { ok: false, error: pay.error };
   }
 
-  let initResult;
-  try {
-    initResult = await initializeTransaction({
-      amount: totalAmount,
-      currency: listing.currency,
-      email: user.email,
-      callbackUrl: `${origin}/booking/${booking.id}/success`,
-      secretKey: hostPaystack.secretKey,
-      statementDescriptor: hostPaystack.statementDescriptor,
-      metadata: {
-        booking_id: booking.id,
-        payment_id: payment.id,
-        listing_id: listing.id,
-        listing_name: listing.name,
-        guest_id: user.id,
-        reference: booking.reference,
-        scope: d.scope,
-      },
-    });
-  } catch {
-    return await fallBackToEftOrUnwind();
-  }
-
-  await admin
-    .from("payments")
-    .update({ provider_reference: initResult.reference })
-    .eq("id", payment.id);
-
-  redirect(initResult.authorization_url);
+  // Card → Paystack checkout URL; EFT (chosen or fallback) → the success page,
+  // which shows the awaiting-transfer state + the host's banking details.
+  redirect(pay.redirectTo);
 }

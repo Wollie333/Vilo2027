@@ -31,6 +31,30 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Refactor — One payment path (guest checkout → startBookingPayment) — branch `main`
+
+### Changed
+- Guest checkout (`createBookingAction` in `listing/[slug]/book/actions.ts`) no
+  longer reimplements the Paystack init + EFT fallback + pending-payment-row
+  creation inline. After it builds the booking it now calls the canonical
+  **`startBookingPayment`** — the same path the guest pay page and the host
+  pay-link use. ~95 lines of duplicated payment logic deleted; dropped the
+  now-unused `initializeTransaction` / `getHostPaystack` / `hostHasValidEft`
+  imports.
+- Net effect: ONE creation path + ONE payment path + `origin` as a data column
+  (`guest_request` / `host_manual` / `quote_converted`). Origin is data, not a
+  forked code path — the model we're standardising on.
+
+### Notes
+- Behaviour parity verified by review: card → host Paystack checkout; no card
+  rail or gateway down → host EFT fallback; no EFT either → booking unwound.
+- `startBookingPayment` sets `balance_due` to the post-payment balance (0 for a
+  full charge) at init, same as the existing pay-page flow — the ledger
+  recomputes it on confirm/cancel. Consistent now across every entry point.
+- Worth a live test-checkout to confirm the redirect chain end-to-end.
+
+---
+
 ## 2026-06-08 — Feature — Shared Messages tab on the booking record — branch `main`
 
 ### Built
