@@ -1273,6 +1273,9 @@ export type Database = {
           total_amount: number
           updated_at: string
           vat_amount: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           booking_id: string
@@ -1298,6 +1301,9 @@ export type Database = {
           total_amount: number
           updated_at?: string
           vat_amount?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           booking_id?: string
@@ -1323,6 +1329,9 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           vat_amount?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -1358,6 +1367,13 @@ export type Database = {
             columns: ["refund_request_id"]
             isOneToOne: false
             referencedRelation: "refund_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_notes_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2727,6 +2743,9 @@ export type Database = {
           total_amount: number
           updated_at: string
           vat_amount: number
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           booking_id: string
@@ -2751,6 +2770,9 @@ export type Database = {
           total_amount: number
           updated_at?: string
           vat_amount?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           booking_id?: string
@@ -2775,6 +2797,9 @@ export type Database = {
           total_amount?: number
           updated_at?: string
           vat_amount?: number
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -2803,6 +2828,13 @@ export type Database = {
             columns: ["payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4198,6 +4230,9 @@ export type Database = {
           refunded_amount: number | null
           status: string
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           amount: number
@@ -4220,6 +4255,9 @@ export type Database = {
           refunded_amount?: number | null
           status?: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           amount?: number
@@ -4242,6 +4280,9 @@ export type Database = {
           refunded_amount?: number | null
           status?: string
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -4254,6 +4295,13 @@ export type Database = {
           {
             foreignKeyName: "payments_recorded_by_fkey"
             columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_voided_by_fkey"
+            columns: ["voided_by"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -5206,6 +5254,9 @@ export type Database = {
           status: string
           supporting_doc_url: string | null
           updated_at: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           actioned_at?: string | null
@@ -5248,6 +5299,9 @@ export type Database = {
           status?: string
           supporting_doc_url?: string | null
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           actioned_at?: string | null
@@ -5290,6 +5344,9 @@ export type Database = {
           status?: string
           supporting_doc_url?: string | null
           updated_at?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -5339,6 +5396,13 @@ export type Database = {
             columns: ["policy_snapshot_id"]
             isOneToOne: false
             referencedRelation: "policy_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
