@@ -5,8 +5,11 @@ import {
   CreditCard,
   Globe,
   Link2,
+  Loader2,
   MoreVertical,
   Plug,
+  PlugZap,
+  XCircle,
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -32,6 +35,7 @@ import {
 import {
   deletePaymentGatewayAction,
   setDefaultCurrencyAction,
+  testPaymentGatewayAction,
   togglePaymentGatewayAction,
 } from "../actions";
 import {
@@ -68,6 +72,26 @@ export function PaymentGatewaysSection({
   const [editing, setEditing] = useState<GatewayView | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [pending, start] = useTransition();
+  // Per-gateway live connection-test result.
+  const [testState, setTestState] = useState<
+    Record<string, "loading" | "ok" | "fail" | undefined>
+  >({});
+
+  function handleTest(g: PaymentGateway) {
+    setTestState((s) => ({ ...s, [g]: "loading" }));
+    start(async () => {
+      const r = await testPaymentGatewayAction(g);
+      if (r.ok) {
+        setTestState((s) => ({ ...s, [g]: "ok" }));
+        toast.success(
+          `Connection OK — ${r.mode === "live" ? "Live" : "Test"} mode.`,
+        );
+      } else {
+        setTestState((s) => ({ ...s, [g]: "fail" }));
+        toast.error(r.error);
+      }
+    });
+  }
 
   const byKind = (g: PaymentGateway) =>
     gateways.find((row) => row.gateway === g) ?? null;
@@ -174,9 +198,16 @@ export function PaymentGatewaysSection({
                       ) : (
                         <Badge variant="outline">Not connected</Badge>
                       )}
-                      {view?.environment === "test" ? (
-                        <Badge variant="outline" className="uppercase">
-                          Test
+                      {view ? (
+                        <Badge
+                          variant="outline"
+                          className={`uppercase ${
+                            view.environment === "live"
+                              ? "border-emerald-300 text-emerald-700"
+                              : "border-amber-300 text-amber-700"
+                          }`}
+                        >
+                          {view.environment === "live" ? "Live" : "Test"}
                         </Badge>
                       ) : null}
                     </div>
@@ -219,6 +250,35 @@ export function PaymentGatewaysSection({
 
                   {view ? (
                     <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleTest(g)}
+                        disabled={pending}
+                        className={`gap-1.5 ${
+                          testState[g] === "ok"
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:text-emerald-700"
+                            : testState[g] === "fail"
+                              ? "border-red-300 bg-red-50 text-red-600 hover:text-red-600"
+                              : ""
+                        }`}
+                      >
+                        {testState[g] === "loading" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : testState[g] === "ok" ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : testState[g] === "fail" ? (
+                          <XCircle className="h-4 w-4" />
+                        ) : (
+                          <PlugZap className="h-4 w-4" />
+                        )}
+                        {testState[g] === "ok"
+                          ? "Connected"
+                          : testState[g] === "fail"
+                            ? "Failed"
+                            : "Test"}
+                      </Button>
                       <Button
                         type="button"
                         size="sm"

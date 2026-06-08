@@ -561,6 +561,61 @@ export async function togglePaymentGatewayAction(
   return { ok: true };
 }
 
+/**
+ * Live "test connection" for a saved gateway — decrypts the stored secret and
+ * pings the provider so the host can confirm the integration works (and which
+ * mode it's in) without re-entering the key.
+ */
+export async function testPaymentGatewayAction(
+  gateway: PaymentGateway,
+): Promise<{ ok: true; mode: "test" | "live" } | { ok: false; error: string }> {
+  const host = await resolveHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_payment_gateways")
+    .select("id, secret_cipher, public_identifier, environment")
+    .eq("host_id", host.hostId)
+    .eq("gateway", gateway)
+    .maybeSingle();
+  if (!row?.secret_cipher) {
+    return { ok: false, error: "No credentials saved for this gateway yet." };
+  }
+
+  let secret: string;
+  try {
+    secret = decryptSecret(row.secret_cipher);
+  } catch {
+    return { ok: false, error: "Stored secret couldn't be read." };
+  }
+
+  if (gateway === "paystack") {
+    const r = await validatePaystackSecret(secret);
+    if (!r.valid) {
+      return { ok: false, error: "Paystack didn't accept the saved key." };
+    }
+    await supabase
+      .from("host_payment_gateways")
+      .update({ last_validated_at: new Date().toISOString() })
+      .eq("id", row.id);
+    return { ok: true, mode: r.environment };
+  }
+
+  const okPaypal = await validatePayPalCredentials({
+    clientId: row.public_identifier,
+    secret,
+    env: row.environment as "test" | "live",
+  });
+  if (!okPaypal) {
+    return { ok: false, error: "PayPal didn't accept the saved credentials." };
+  }
+  await supabase
+    .from("host_payment_gateways")
+    .update({ last_validated_at: new Date().toISOString() })
+    .eq("id", row.id);
+  return { ok: true, mode: row.environment as "test" | "live" };
+}
+
 export async function deletePaymentGatewayAction(
   gateway: PaymentGateway,
 ): Promise<ActionResult> {
