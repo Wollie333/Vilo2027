@@ -98,6 +98,8 @@ export function TxnActionModal({
   const [kind, setKind] = useState<"deposit" | "balance" | "payment">(
     "balance",
   );
+  const [method, setMethod] = useState<"eft" | "paystack" | "paypal">("eft");
+  const [reference, setReference] = useState(""); // provider txn id / EFT ref
   const [text, setText] = useState(""); // note / reason / charge label
   const [markPaid, setMarkPaid] = useState(false);
 
@@ -106,6 +108,7 @@ export function TxnActionModal({
     onOpenChange(false);
     setAmount("");
     setText("");
+    setReference("");
     setMarkPaid(false);
     router.refresh();
   }
@@ -145,6 +148,8 @@ export function TxnActionModal({
           bookingId,
           amount: value,
           kind,
+          method,
+          reference: reference.trim() || null,
           note: text.trim() || null,
         });
         if (r.ok) done("Payment recorded.");
@@ -153,7 +158,8 @@ export function TxnActionModal({
         const r = await hostInitiatedRefundAction({
           bookingId,
           amount: value,
-          method: "eft",
+          method,
+          reference: reference.trim() || null,
           reason: text.trim(),
         });
         if (r.ok) done("Refund recorded.");
@@ -238,13 +244,58 @@ export function TxnActionModal({
           </div>
         ) : null}
 
+        {mode === "record_payment" || mode === "refund" ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className={LABEL}>Method</span>
+              <select
+                value={method}
+                onChange={(e) =>
+                  setMethod(e.target.value as "eft" | "paystack" | "paypal")
+                }
+                className={FIELD}
+              >
+                <option value="eft">EFT / bank transfer</option>
+                <option value="paystack">Paystack (card)</option>
+                <option value="paypal">PayPal</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className={LABEL}>
+                {method === "eft" ? "Reference" : "Transaction ID"}
+              </span>
+              <input
+                value={reference}
+                onChange={(e) => setReference(e.target.value)}
+                placeholder={
+                  method === "eft"
+                    ? "e.g. EFT ref 4471"
+                    : method === "paystack"
+                      ? "Paystack transaction ID"
+                      : "PayPal transaction ID"
+                }
+                className={FIELD}
+              />
+            </label>
+          </div>
+        ) : null}
+
+        {method !== "eft" &&
+        (mode === "record_payment" || mode === "refund") ? (
+          <p className="-mt-1 text-[11px] text-brand-mute">
+            Once card payments go live, the{" "}
+            {method === "paystack" ? "Paystack" : "PayPal"} transaction ID is
+            captured automatically — until then, paste it here for the record.
+          </p>
+        ) : null}
+
         {mode === "record_payment" ? (
           <label className="block">
             <span className={LABEL}>Note (optional)</span>
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="e.g. EFT ref 4471"
+              placeholder="e.g. paid in cash"
               className={FIELD}
             />
           </label>

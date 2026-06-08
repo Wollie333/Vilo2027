@@ -98,6 +98,14 @@ function fmtTime(iso: string): string {
   }).format(new Date(iso));
 }
 
+function methodLabel(m: string | null | undefined): string {
+  if (m === "paystack") return "Paystack";
+  if (m === "paypal") return "PayPal";
+  if (m === "eft") return "EFT";
+  if (m === "manual") return "Manual";
+  return m ?? "";
+}
+
 function amountDisplay(e: Txn): { text: string; cls: string } {
   const money = formatMoney(e.amount, e.currency);
   // Standard accounting convention: debits (charges & refunds — they increase
@@ -345,6 +353,13 @@ export function LedgerList({
                     {e.bookingRef ? (
                       <div className="font-mono text-[10.5px] text-brand-mute">
                         {e.bookingRef}
+                      </div>
+                    ) : null}
+                    {e.reference ? (
+                      <div className="text-[10.5px] text-brand-mute">
+                        {methodLabel(e.method)}
+                        {e.method ? " · " : ""}
+                        <span className="font-mono">{e.reference}</span>
                       </div>
                     ) : null}
                     {e.voided && e.voidReason ? (

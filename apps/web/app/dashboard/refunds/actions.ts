@@ -66,6 +66,7 @@ const requestSchema = z.object({
   bookingId: z.string().uuid(),
   amount: z.number().positive(),
   method: z.enum(refundMethods),
+  reference: z.string().max(120).optional().nullable(),
   reason: z.string().min(1).max(200),
   reasonDetail: z.string().max(2000).optional().nullable(),
 });
@@ -205,6 +206,7 @@ export async function hostInitiatedRefundAction(input: {
   bookingId: string;
   amount: number;
   method: RefundMethod;
+  reference?: string | null;
   reason: string;
   reasonDetail?: string | null;
 }): Promise<ActionResult> {
@@ -275,6 +277,7 @@ export async function hostInitiatedRefundAction(input: {
       requested_amount: parsed.data.amount,
       approved_amount: parsed.data.amount,
       refund_method: parsed.data.method,
+      provider_refund_id: parsed.data.reference?.trim() || null,
       currency: booking.currency || "ZAR",
       reason: parsed.data.reason,
       reason_detail: parsed.data.reasonDetail?.trim() || null,

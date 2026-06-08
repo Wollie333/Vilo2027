@@ -96,6 +96,8 @@ export async function recordBookingPaymentAction(input: {
   bookingId: string;
   amount: number;
   kind: "deposit" | "balance" | "payment";
+  method?: "eft" | "paystack" | "paypal";
+  reference?: string | null;
   note?: string | null;
 }): Promise<PaymentResult> {
   const hostId = await getHostId();
@@ -119,13 +121,16 @@ export async function recordBookingPaymentAction(input: {
   );
   if (!period.ok) return { ok: false, error: period.error };
 
+  const method = input.method ?? "eft";
+  const reference = input.reference?.trim() || null;
   const res = await recordBookingPayment(admin, {
     bookingId: input.bookingId,
     amount: input.amount,
     kind: input.kind,
-    method: "eft",
+    method,
     note: input.note ?? null,
     recordedBy: userId,
+    providerReference: reference,
   });
   if (!res.ok) return res;
 
@@ -139,7 +144,7 @@ export async function recordBookingPaymentAction(input: {
     entityType: "payment",
     amount: input.amount,
     reason: input.note ?? null,
-    metadata: { kind: input.kind },
+    metadata: { kind: input.kind, method, reference },
   });
   revalidateBooking(input.bookingId);
   return { ok: true };

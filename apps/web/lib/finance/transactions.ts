@@ -61,6 +61,8 @@ export type Txn = {
   kind?: string | null;
   /** Raw payments.status (completed/pending). */
   status?: string | null;
+  /** Provider/EFT reference — Paystack/PayPal transaction id or EFT ref. */
+  reference?: string | null;
   /** What the transaction was for — booking/add-on/credit/refund. */
   category: TxnCategory;
   /** Voided (kept for audit, hidden from the live ledger; zero effect). */
@@ -110,7 +112,7 @@ export async function fetchHostTransactions(
   let paymentsQ = admin
     .from("payments")
     .select(
-      "id, amount, currency, kind, status, method, note, captured_at, created_at, receipt_token, receipt_number, booking_id, voided_at, void_reason, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
+      "id, amount, currency, kind, status, method, note, provider_reference, captured_at, created_at, receipt_token, receipt_number, booking_id, voided_at, void_reason, booking:bookings!inner ( host_id, reference, guest_id, guest_name, guest_email )",
     )
     .eq("booking.host_id", hostId)
     .in(
@@ -128,7 +130,7 @@ export async function fetchHostTransactions(
   let refundsQ = admin
     .from("refund_requests")
     .select(
-      "id, requested_amount, approved_amount, currency, created_at, booking_id, status, refund_number, guest_id, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
+      "id, requested_amount, approved_amount, currency, created_at, booking_id, status, refund_number, refund_method, provider_refund_id, guest_id, voided_at, void_reason, booking:bookings ( reference, guest_name, guest_email )",
     )
     .eq("host_id", hostId)
     .in("status", ["approved", "processing", "completed"]);
@@ -248,6 +250,7 @@ export async function fetchHostTransactions(
       paymentId: p.id as string,
       kind: (p.kind as string) ?? null,
       status: (p.status as string) ?? null,
+      reference: (p.provider_reference as string) ?? null,
       category: p.kind === "addon" ? "addon" : isCredit ? "credit" : "booking",
       voided,
       voidReason: (p.void_reason as string) ?? null,
@@ -309,7 +312,8 @@ export async function fetchHostTransactions(
       guestName: b?.guest_name ?? null,
       bookingId: rf.booking_id,
       bookingRef: b?.reference ?? null,
-      method: null,
+      method: (rf.refund_method as string) ?? null,
+      reference: (rf.provider_refund_id as string) ?? null,
       note: "Refund to guest",
       doc: rf.refund_number
         ? {
