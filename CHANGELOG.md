@@ -31,6 +31,30 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Fix — Guest checkout step 3 (payment) bugs — branch `main`
+
+### Fixed
+- **Auto-redirect without clicking Pay.** The whole 3-step wizard was one
+  `<form onSubmit={pay}>` with `type="submit"` Pay buttons, so any implicit
+  submit (Enter in the coupon field, etc.) charged the guest and created a
+  booking before they chose a method. Payment now fires ONLY from the Pay
+  button's `onClick={pay}`; the form's `onSubmit` just advances the step
+  (`if (step !== 2) goNext()`) and never charges.
+- **R0 / "weird stuff" on the payment step.** Added a `canPay` guard: when the
+  total is R0 (e.g. the picked room just became unavailable for the dates and
+  was auto-deselected) or the host has no payment rail, the Pay button is
+  disabled and a clear amber notice explains it + offers "Back to dates &
+  rooms". No more silently sitting on a R0 checkout that can't complete.
+- **"Booking made before payment" copy.** Reworded the EFT panel from "Your
+  dates are held while you pay" to "Nothing is booked yet. When you tap reserve,
+  we'll hold your dates…" so the pre-payment state is unambiguous.
+
+### Notes
+- A provisional `pending` booking is still created at the Pay click (Paystack
+  needs it) and auto-expires after 30 min via `expire-pending-bookings`.
+
+---
+
 ## 2026-06-08 — Feature — "Respond to quote request" framing + rich request card — branch `main`
 
 ### Built

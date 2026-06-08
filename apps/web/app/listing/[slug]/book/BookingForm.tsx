@@ -808,8 +808,12 @@ export function BookingForm({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Payment fires ONLY from an explicit click on the Pay button (below). It is
+  // never wired to the form's submit event, so an implicit submit — Enter in the
+  // coupon field, a stray button — can never charge the guest before they
+  // choose a method and tap Pay on step 3.
+  function pay() {
+    if (isPending || !canPay) return;
     if (!validateRooms()) {
       setStep(0);
       return;
@@ -917,6 +921,15 @@ export function BookingForm({
         ]
       : []),
   ];
+
+  // The guest can only pay when there's a real, available, priced stay AND the
+  // host offers at least one payment rail. Guards the R0 / room-just-became-
+  // unavailable / host-has-no-payment-method cases so we never charge nothing.
+  const noPriceableStay =
+    !datesValid ||
+    total <= 0 ||
+    (scope === "rooms" && selectedRooms.length === 0);
+  const canPay = !noPriceableStay && paymentMethods.length > 0;
 
   /* ── Step 1 · Rooms (dates, guests, room selection) ────────── */
   const roomsBody = (
@@ -1864,6 +1877,25 @@ export function BookingForm({
         </p>
       </header>
 
+      {/* Can't-pay guard — nothing is created or charged in these states. */}
+      {!canPay ? (
+        <div className="flex items-start gap-2.5 rounded-card border border-amber-200 bg-amber-50 p-4">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+          <div className="min-w-0 flex-1 text-[13px] leading-relaxed text-amber-800">
+            {paymentMethods.length === 0
+              ? "This host hasn’t set up a way to take payment yet. You can’t complete a booking until they connect a card or EFT method."
+              : "Your total is R0 — the room you picked may no longer be available for these dates. Nothing has been booked. Go back to choose different dates or another room."}
+            <button
+              type="button"
+              onClick={() => setStep(0)}
+              className="mt-2 inline-flex items-center gap-1.5 rounded border border-amber-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-amber-900 hover:bg-amber-100"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to dates &amp; rooms
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* Method selector */}
       <section className="space-y-2.5">
         {paymentMethods.map((m) => {
@@ -1980,8 +2012,9 @@ export function BookingForm({
             <div className="flex items-start gap-2.5 rounded border border-amber-200 bg-amber-50 p-3">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
               <div className="text-xs leading-relaxed text-amber-800">
-                Your dates are held while you pay. Use the exact reference we
-                give you so the host can match your transfer.
+                Nothing is booked yet. When you tap reserve, we&rsquo;ll hold
+                your dates and show the host&rsquo;s banking details — use the
+                exact reference we give you so they can match your transfer.
               </div>
             </div>
           </div>
@@ -2156,7 +2189,13 @@ export function BookingForm({
       </section>
 
       <form
-        onSubmit={onSubmit}
+        onSubmit={(e) => {
+          // The form never charges on submit. Enter on steps 1–2 just advances
+          // the wizard; on the payment step it does nothing — the guest must
+          // click Pay. Payment is wired to the Pay button's onClick only.
+          e.preventDefault();
+          if (step !== 2) goNext();
+        }}
         className="grid items-start gap-5 lg:grid-cols-[1fr_380px] lg:gap-7"
       >
         {/* ── Left column: the current step ───────────────────────── */}
@@ -2470,9 +2509,10 @@ export function BookingForm({
               {/* CTA — travels with the card (desktop) */}
               {step === 2 ? (
                 <button
-                  type="submit"
-                  disabled={isPending}
-                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-progress disabled:opacity-70 lg:inline-flex"
+                  type="button"
+                  onClick={pay}
+                  disabled={isPending || !canPay}
+                  className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
                 >
                   {isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -2527,9 +2567,10 @@ export function BookingForm({
             </div>
             {step === 2 ? (
               <button
-                type="submit"
-                disabled={isPending}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-progress disabled:opacity-70"
+                type="button"
+                onClick={pay}
+                disabled={isPending || !canPay}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
