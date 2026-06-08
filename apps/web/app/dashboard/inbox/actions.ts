@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireHost as getHost } from "@/lib/host/current";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -64,6 +65,105 @@ export async function sendMessageAction(
 
   revalidatePath("/dashboard/inbox");
   return { ok: true, data: { id: row.id } };
+}
+
+/**
+ * Open a host→guest thread when none exists yet — the "start a conversation"
+ * affordance on the booking + guest-record Messages tabs. Find-or-creates the
+ * host↔guest conversation (reusing the most recent non-archived one so we never
+ * fork a duplicate thread) and posts the host's first message. The message
+ * AFTER INSERT trigger maintains last_message_at / preview / unread counters.
+ * Guarded so a host can only message a guest they actually deal with.
+ */
+export async function startGuestConversationAction(input: {
+  guestId: string;
+  body: string;
+  bookingId?: string | null;
+  listingId?: string | null;
+}): Promise<ActionResult<{ conversationId: string }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const text = input.body?.trim() ?? "";
+  if (!text) return { ok: false, error: "Message can't be empty." };
+  if (text.length > 4000) return { ok: false, error: "Message is too long." };
+  if (!input.guestId) {
+    return { ok: false, error: "This contact has no account to message." };
+  }
+
+  const admin = createAdminClient();
+
+  // Ownership: the host may only open a thread with a guest they actually deal
+  // with — one who has a booking OR a CRM contact with them. Stops a host from
+  // cold-messaging an arbitrary user_profiles id.
+  const [{ data: bk }, { data: contact }] = await Promise.all([
+    admin
+      .from("bookings")
+      .select("id")
+      .eq("host_id", host.hostId)
+      .eq("guest_id", input.guestId)
+      .limit(1)
+      .maybeSingle(),
+    admin
+      .from("host_contacts")
+      .select("id")
+      .eq("host_id", host.hostId)
+      .eq("guest_id", input.guestId)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!bk && !contact) {
+    return {
+      ok: false,
+      error: "You don't have a booking or contact for this guest.",
+    };
+  }
+
+  // Find-or-create the host↔guest thread (reuse the most recent non-archived).
+  let conversationId: string;
+  const { data: existing } = await admin
+    .from("conversations")
+    .select("id")
+    .eq("host_id", host.hostId)
+    .eq("guest_id", input.guestId)
+    .neq("status", "archived")
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing) {
+    conversationId = existing.id;
+  } else {
+    const { data: conv, error: convErr } = await admin
+      .from("conversations")
+      .insert({
+        host_id: host.hostId,
+        guest_id: input.guestId,
+        listing_id: input.listingId ?? null,
+        booking_id: input.bookingId ?? null,
+        is_enquiry: false,
+        status: "open",
+      })
+      .select("id")
+      .single();
+    if (convErr || !conv) {
+      return { ok: false, error: "Could not start the conversation." };
+    }
+    conversationId = conv.id;
+  }
+
+  const { error: msgErr } = await admin.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: host.userId,
+    body: text,
+    read_by_host: true,
+  });
+  if (msgErr) return { ok: false, error: "Could not send message. Try again." };
+
+  revalidatePath("/dashboard/inbox");
+  if (input.bookingId) {
+    revalidatePath(`/dashboard/bookings/${input.bookingId}`);
+  }
+  return { ok: true, data: { conversationId } };
 }
 
 export async function markConversationReadAction(

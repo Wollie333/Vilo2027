@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Feature — Start a conversation from the Messages tab — branch `main`
+
+### Built
+- New `startGuestConversationAction` (inbox actions): find-or-creates the
+  host↔guest conversation (reuses the most recent non-archived one — never forks
+  a duplicate) and posts the host's first message. Guarded so a host can only
+  open a thread with a guest they have a booking or CRM contact with.
+- `GuestMessagesPanel` now shows the composer when there's no thread yet but the
+  guest has an account (`guestId`), so the host can open the conversation right
+  from the booking record or the guest record. Email-only contacts still show
+  the "no account" empty state (a conversation needs a `guest_id`).
+- Wired `guestId` (+ `bookingId` / `listingId` context) through both call sites.
+
+### Notes
+- The first message sets `last_message_at` via the message AFTER INSERT trigger,
+  so the new thread immediately resolves on BOTH the booking and guest-record
+  Messages tabs — still one shared thread.
+
+---
+
 ## 2026-06-08 — Refactor — One payment path (guest checkout → startBookingPayment) — branch `main`
 
 ### Changed
@@ -74,11 +94,7 @@ Copy this template and fill it in at the end of every session:
   imports they owned.
 
 ### Notes
-- Follow-up (not done): when a guest has no conversation yet (e.g. a direct
-  booking that was never messaged), both tabs show the empty state with no
-  composer — same as before. Starting a thread from the booking needs a
-  conversation-create affordance on the shared component; deferred pending a
-  decision on how the new conversation is keyed.
+- Start-a-thread affordance added in the follow-up entry above.
 
 ---
 

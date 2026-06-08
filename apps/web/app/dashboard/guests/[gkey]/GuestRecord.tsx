@@ -556,6 +556,7 @@ export function GuestRecord({
             conversationId={conversationId}
             templates={templates}
             isRegistered={r.is_verified}
+            guestId={r.guest_id}
           />
         ) : tab === "notes" ? (
           <NotesPanel gkey={r.gkey} notes={notes} />

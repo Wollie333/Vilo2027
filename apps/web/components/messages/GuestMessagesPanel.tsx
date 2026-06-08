@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { sendMessageAction } from "@/app/dashboard/inbox/actions";
+import {
+  sendMessageAction,
+  startGuestConversationAction,
+} from "@/app/dashboard/inbox/actions";
 import { modal } from "@/components/ui/modal-host";
 
 /**
@@ -35,25 +38,44 @@ export function GuestMessagesPanel({
   conversationId,
   templates,
   isRegistered,
+  guestId = null,
+  bookingId = null,
+  listingId = null,
 }: {
   firstName: string;
   messages: MessageItem[];
   conversationId: string | null;
   templates: TemplateItem[];
   isRegistered: boolean;
+  /** The guest's user_profiles id — required to START a thread when none
+   * exists. Null for email-only contacts (no account → can't open a thread). */
+  guestId?: string | null;
+  /** Optional context stamped on a newly-created conversation. */
+  bookingId?: string | null;
+  listingId?: string | null;
 }) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  // No thread yet, but the guest has an account → let the host open one here.
+  const canStart = !conversationId && !!guestId;
+
   async function send() {
-    if (!conversationId || !text.trim()) return;
+    const body = text.trim();
+    if (!body || sending) return;
     setSending(true);
-    const res = await sendMessageAction({
-      conversation_id: conversationId,
-      body: text.trim(),
-    });
+    const res = conversationId
+      ? await sendMessageAction({ conversation_id: conversationId, body })
+      : guestId
+        ? await startGuestConversationAction({
+            guestId,
+            body,
+            bookingId,
+            listingId,
+          })
+        : { ok: false as const, error: "No one to message." };
     setSending(false);
     if (!res.ok) {
       void modal.error({ title: "Couldn't send", description: res.error });
@@ -83,9 +105,11 @@ export function GuestMessagesPanel({
             No messages yet
           </div>
           <div className="mx-auto mt-1 max-w-sm text-[12.5px] text-brand-mute">
-            {isRegistered
-              ? "Start a conversation from the inbox — replies will appear here."
-              : "This contact has no account, so there's no message thread. Reach them by email or phone."}
+            {canStart
+              ? `Send the first message below to start the conversation with ${firstName}.`
+              : isRegistered
+                ? "Start a conversation from the inbox — replies will appear here."
+                : "This contact has no account, so there's no message thread. Reach them by email or phone."}
           </div>
         </div>
       ) : (
@@ -120,8 +144,8 @@ export function GuestMessagesPanel({
         </div>
       )}
 
-      {/* reply composer (only when there's a thread to reply to) */}
-      {conversationId ? (
+      {/* composer — reply to a thread, or start one when the guest has an account */}
+      {conversationId || canStart ? (
         <div className="border-t border-brand-line p-3">
           <div className="flex items-center gap-2">
             {templates.length > 0 ? (
@@ -169,7 +193,11 @@ export function GuestMessagesPanel({
                   void send();
                 }
               }}
-              placeholder={`Reply to ${firstName}…`}
+              placeholder={
+                conversationId
+                  ? `Reply to ${firstName}…`
+                  : `Message ${firstName}…`
+              }
               className="flex-1 rounded-pill border border-brand-line px-4 py-2.5 text-[13px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10"
             />
             <button

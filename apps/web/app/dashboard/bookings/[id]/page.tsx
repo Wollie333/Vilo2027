@@ -543,6 +543,8 @@ export default async function BookingDetailPage({
     conversationId,
     messages,
     templates,
+    guestId: booking.guest_id,
+    listingId: booking.listing_id,
     status,
     statusLabel: meta.label,
     statusTone: meta.tone,

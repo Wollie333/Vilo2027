@@ -61,6 +61,10 @@ export type BookingDetailData = {
   conversationId: string | null;
   messages: MessageItem[];
   templates: TemplateItem[];
+  /** Guest's user id + listing context — lets the host START a thread from the
+   * Messages tab when none exists yet (guestId null = email-only, can't start). */
+  guestId: string | null;
+  listingId: string;
   status: string;
   statusLabel: string;
   statusTone: "confirmed" | "pending" | "cancelled" | "completed" | "inhouse";
@@ -547,6 +551,9 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
             conversationId={d.conversationId}
             templates={d.templates}
             isRegistered={d.guestRegistered}
+            guestId={d.guestId}
+            bookingId={d.id}
+            listingId={d.listingId}
           />
         ) : tab === "activity" ? (
           <ActivityPanel d={d} />
