@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
 import { grossUpVat } from "@/lib/finance/vat";
+import { round2 } from "@/lib/format";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { createAddonInvoice } from "@/lib/payments/invoicing";
@@ -271,8 +272,7 @@ export async function applyGuestCreditAction(input: {
     return { ok: false, error: "This guest has no available credit." };
   }
   const paid = await sumCompletedPaid(admin, booking.id);
-  const outstanding =
-    Math.round((Number(booking.total_amount) - paid) * 100) / 100;
+  const outstanding = round2(Number(booking.total_amount) - paid);
   if (outstanding <= 0) {
     return { ok: false, error: "This booking is already paid in full." };
   }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { logFinanceEvent } from "@/lib/finance/audit";
 import { assertPeriodOpen } from "@/lib/finance/periods";
+import { round2 } from "@/lib/format";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -11,8 +12,6 @@ type Admin = ReturnType<typeof createAdminClient>;
 export type VoidOutcome =
   | { ok: true; bookingId: string | null }
   | { ok: false; error: string };
-
-const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * Void a ledger transaction — the ONE place voiding happens. Stamps

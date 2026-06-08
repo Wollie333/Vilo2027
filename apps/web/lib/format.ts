@@ -14,3 +14,12 @@ export function formatMoney(
   const grouped = Math.round(amount).toLocaleString("en-ZA").replace(/,/g, " ");
   return currency === "ZAR" ? `R ${grouped}` : `${currency} ${grouped}`;
 }
+
+/**
+ * Round to 2 decimals (cents), the single rounding helper for all money maths.
+ * The `Number.EPSILON` nudge avoids float artefacts like `1.005 → 1.00`.
+ * Import this everywhere instead of re-deriving `Math.round(n * 100) / 100`.
+ */
+export function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}

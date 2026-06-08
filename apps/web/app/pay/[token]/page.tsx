@@ -14,7 +14,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, round2 } from "@/lib/format";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { sumCompletedPaid } from "@/lib/payments/ledger";
 import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
@@ -91,7 +91,7 @@ export default async function PayPage({
   const currency = booking.currency;
   const total = Number(booking.total_amount);
   const paid = await sumCompletedPaid(admin, booking.id);
-  const outstanding = Math.max(0, Math.round((total - paid) * 100) / 100);
+  const outstanding = Math.max(0, round2(total - paid));
 
   const isPaid = booking.payment_status === "completed" || outstanding <= 0;
   const cancelledLike = [

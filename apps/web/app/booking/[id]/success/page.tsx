@@ -3,9 +3,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
-import { verifyTransaction } from "@/lib/paystack";
 import { getBrandName } from "@/lib/brand";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -101,10 +100,10 @@ export default async function BookingSuccessPage({
 
   if (!booking) notFound();
 
-  // Confirm the payment. The card transaction was created on the HOST's own
-  // Paystack account, so we verify it with the host's key (the platform key
-  // can't see a host-account transaction). For direct-host payments this
-  // verify — not a platform webhook — is the authoritative confirmation.
+  // Confirm the payment via the one canonical helper (verifies with the HOST's
+  // key, flips the pending row, recomputes the ledger, confirms the booking).
+  // For direct-host card payments this — not a platform webhook — is the
+  // authoritative confirmation.
   const reference = searchParams?.reference;
   if (
     booking.payment_status === "pending" &&
@@ -112,42 +111,20 @@ export default async function BookingSuccessPage({
     reference.length > 0
   ) {
     const hostId = (booking.listing as unknown as { host_id: string }).host_id;
-    const hostPaystack = await getHostPaystack(hostId);
-    const verification = await verifyTransaction(
+    await confirmHostCardPaymentByReference({
       reference,
-      hostPaystack?.secretKey,
-    );
-    if (verification && verification.status === "success") {
-      // Mirror what the webhook would do, with idempotency via the unique
-      // provider_reference constraint.
-      const admin = createAdminClient();
-      await admin
-        .from("payments")
-        .update({
-          status: "completed",
-          captured_at: new Date().toISOString(),
-        })
-        .eq("provider_reference", reference)
-        .eq("status", "pending");
-      await admin
-        .from("bookings")
-        .update({
-          status: "confirmed",
-          payment_status: "completed",
-          confirmed_at: new Date().toISOString(),
-        })
-        .eq("id", booking.id)
-        .eq("status", "pending");
-      // Re-fetch the latest row.
-      const { data: refreshed } = await supabase
-        .from("bookings")
-        .select("status, payment_status")
-        .eq("id", booking.id)
-        .single();
-      if (refreshed) {
-        booking.status = refreshed.status;
-        booking.payment_status = refreshed.payment_status;
-      }
+      hostId,
+      bookingId: booking.id,
+    });
+    // Re-fetch the latest row.
+    const { data: refreshed } = await supabase
+      .from("bookings")
+      .select("status, payment_status")
+      .eq("id", booking.id)
+      .single();
+    if (refreshed) {
+      booking.status = refreshed.status;
+      booking.payment_status = refreshed.payment_status;
     }
   }
 

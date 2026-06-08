@@ -1,5 +1,6 @@
 import "server-only";
 
+import { round2 } from "@/lib/format";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
@@ -30,10 +31,6 @@ export type PayableBooking = {
   listing_name: string;
   host_id: string;
 };
-
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
 
 /**
  * THE single source of truth for taking a payment against an ALREADY-CREATED

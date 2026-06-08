@@ -19,6 +19,7 @@ import {
   computeAddonSubtotal,
   type PricingModel,
 } from "@/app/dashboard/addons/schemas";
+import { round2 } from "@/lib/format";
 
 import { applyStayDiscounts, type StayDiscount } from "./discounts";
 import { occupancyNightly, type RoomPricing } from "./occupancy";
@@ -218,9 +219,6 @@ function eachNight(checkIn: string, checkOut: string): string[] {
   }
   return out;
 }
-
-const round2 = (n: number): number =>
-  Math.round((n + Number.EPSILON) * 100) / 100;
 
 /**
  * Pick the one seasonal rule that governs `dateStr` for `unit`, or null.

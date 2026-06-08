@@ -10,13 +10,22 @@
 // Server-only. All writes use the service-role admin client; callers verify the
 // host owns the booking first (payments have no host-write RLS).
 
+import { round2 } from "@/lib/format";
 import { gkeyFor } from "@/lib/guests/gkey";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-/** Ledger entries that count as money received against the booking total. */
-const INBOUND_KINDS = ["deposit", "balance", "addon", "payment", "credit"];
+/** Ledger entries that count as money received against the booking total. The
+ * single source of truth for "which payment kinds add up to amount paid" —
+ * import this everywhere instead of re-declaring the list. */
+export const INBOUND_KINDS = [
+  "deposit",
+  "balance",
+  "addon",
+  "payment",
+  "credit",
+];
 
 export type BookingPaymentState = {
   total: number;
@@ -25,26 +34,48 @@ export type BookingPaymentState = {
   status: "pending" | "partial" | "completed";
 };
 
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
+/** One payment row's fields that matter for the paid-sum (any caller can pass
+ * already-fetched rows here instead of re-querying). */
+export type LedgerRowLike = {
+  amount: number | string;
+  kind: string | null;
+  status: string | null;
+  voided_at?: string | null;
+};
+
+/**
+ * Sum the completed inbound payments from ALREADY-FETCHED rows — the one place
+ * that defines what "amount paid" means. Pages that already loaded a booking's
+ * payments for display should call this rather than reduce with their own copy
+ * of INBOUND_KINDS.
+ */
+export function sumPaidFromRows(rows: LedgerRowLike[]): number {
+  let paid = 0;
+  for (const p of rows) {
+    if (
+      p.status === "completed" &&
+      p.voided_at == null &&
+      INBOUND_KINDS.includes(p.kind ?? "")
+    ) {
+      paid += Number(p.amount);
+    }
+  }
+  return round2(paid);
 }
 
-/** Sum of completed inbound payments for a booking. */
+/** Sum of completed inbound payments for a booking (queries, then sums via the
+ * canonical {@link sumPaidFromRows}). */
 export async function sumCompletedPaid(
   admin: Admin,
   bookingId: string,
 ): Promise<number> {
   const { data } = await admin
     .from("payments")
-    .select("amount, kind, status")
+    .select("amount, kind, status, voided_at")
     .eq("booking_id", bookingId)
     .eq("status", "completed")
     .is("voided_at", null);
-  let paid = 0;
-  for (const p of data ?? []) {
-    if (INBOUND_KINDS.includes(p.kind as string)) paid += Number(p.amount);
-  }
-  return round2(paid);
+  return sumPaidFromRows(data ?? []);
 }
 
 /**

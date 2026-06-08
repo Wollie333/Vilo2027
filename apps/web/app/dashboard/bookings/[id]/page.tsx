@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -145,14 +146,8 @@ export default async function BookingDetailPage({
     .order("created_at", { ascending: true });
 
   const ledger = paymentRows ?? [];
-  const INBOUND_KINDS = ["deposit", "balance", "addon", "payment", "credit"];
-  const amountPaid = ledger.reduce(
-    (s, p) =>
-      p.status === "completed" && INBOUND_KINDS.includes(p.kind as string)
-        ? s + Number(p.amount)
-        : s,
-    0,
-  );
+  // Canonical paid-sum from the already-fetched rows (one INBOUND_KINDS list).
+  const amountPaid = sumPaidFromRows(ledger);
   // Latest pending manual EFT entry still drives the legacy "settle" affordance.
   const pendingEft = [...ledger]
     .reverse()
