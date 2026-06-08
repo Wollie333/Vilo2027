@@ -31,6 +31,43 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Refactor — Single-source-of-truth consolidation (payments/finance) — branch `main`
+
+### Changed (no behaviour change unless noted)
+- **One `round2`** in `lib/format.ts`; `ledger`, `pay-booking`, `pricing/engine`
+  and `finance/void` import it. **Bug fix:** `void.ts` previously rounded
+  without the `Number.EPSILON` guard.
+- **One `INBOUND_KINDS` + `sumPaidFromRows`** exported from `ledger.ts`; the
+  booking detail page dropped its hardcoded copy + inline reduce.
+- **Booking success page** now confirms via `confirmHostCardPaymentByReference`
+  (verify-with-host-key → flip row → recompute ledger → confirm) instead of an
+  inline copy that set `payment_status` by hand — closes the §4.7 gap.
+- **One `requireHost()`** in `lib/host/current.ts`; the ~14 per-file
+  `getHost`/`getHostId`/`resolveHost`/`currentHost`/`getMyHostId` copies now
+  import it (aliased to their old names, so call sites are unchanged). Files:
+  ledger, refunds, quotes, banking, payments, payment-actions, addons, coupons,
+  guests, policies, seasonal-pricing, staff, subscription, inbox.
+- **Banking `createPaymentLinkAction`** loads its secret via `getHostPaystack`
+  instead of re-selecting + decrypting inline.
+- **One `nightsBetween`** (from the pricing engine) in the booking action and
+  `pricing/quote.ts` — dropped two local copies.
+
+### Notes
+- Per the new RULES §3 single-source-of-truth principle. Net code reduction.
+- **Deliberately NOT consolidated:** the per-page `fmtDate`/`fmtLong`/`fmtStamp`
+  date formatters — they're intentionally different per surface (weekday vs not,
+  etc.), so forcing them into one risked changing displayed formats (guardrail:
+  don't merge divergent code). Left as justified-local.
+- Minor: a few unified error strings (e.g. banking/subscription host-lookup
+  messages) are now the canonical "Not signed in." / "No host profile.".
+
+### Commit
+- `refactor(payments): one round2, one INBOUND_KINDS, success page via the ledger` — `723adfd`
+- `refactor(payments): one requireHost + getHostPaystack + nightsBetween (finance)` — `0ec85a1`
+- `refactor(host): route remaining actions through the canonical requireHost` — pending
+
+---
+
 ## 2026-06-08 — Payments — Host-Paystack spine + shareable pay-now link — branch `main`
 
 ### Built

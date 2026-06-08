@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireHost as getHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -16,24 +17,6 @@ import {
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-async function getHost(): Promise<
-  { ok: true; hostId: string; userId: string } | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
-  return { ok: true, hostId: host.id, userId: user.id };
-}
 
 async function getSeatLimit(hostId: string): Promise<number | null> {
   const supabase = createServerClient();

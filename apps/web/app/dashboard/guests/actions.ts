@@ -8,6 +8,7 @@ import {
   gkeyForEmail,
   guestIdFromGkey,
 } from "@/lib/guests/gkey";
+import { requireHost as getHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 import type { GuestRow } from "./GuestsBoard";
@@ -15,25 +16,6 @@ import type { GuestRow } from "./GuestsBoard";
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-async function getHost(): Promise<
-  { ok: true; hostId: string; userId: string } | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .is("deleted_at", null)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile." };
-  return { ok: true, hostId: host.id, userId: user.id };
-}
 
 type ContactRow = {
   id: string;

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { requireHost as getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 const PLAN_VALUES = ["free", "basic", "pro", "business"] as const;
@@ -27,27 +28,6 @@ function addMonths(date: Date, months: number): Date {
   const d = new Date(date);
   d.setUTCMonth(d.getUTCMonth() + months);
   return d;
-}
-
-async function getMyHostId(): Promise<
-  | {
-      ok: true;
-      hostId: string;
-    }
-  | { ok: false; error: string }
-> {
-  const supabase = createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Not signed in." };
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (!host) return { ok: false, error: "No host profile for this account." };
-  return { ok: true, hostId: host.id };
 }
 
 /**

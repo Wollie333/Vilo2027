@@ -24,9 +24,12 @@ invoices must be airtight, and everything wires into one money engine.
    (guest checkout card path + the `/pay/[token]` link). Founder-driven.
 2. **Pay-link in the guest message thread** — deferred fast-follow (needs
    conversation lookup/creation; Copy/WhatsApp/Email cover resend today).
-3. **Single-source-of-truth consolidation pass** (founder request) — factor
-   duplicated functions into shared modules and reuse, *only when necessary*.
-   Scope with the founder before broad refactors (parallel-agent risk).
+3. ✅ **Single-source-of-truth consolidation pass** (founder request) — DONE for
+   the payments/finance audit: one `round2` (lib/format), one `INBOUND_KINDS` +
+   `sumPaidFromRows`, success page via `confirmHostCardPaymentByReference`, one
+   `requireHost()` adopted across ~14 action files, `getHostPaystack` in the
+   banking link action, one `nightsBetween`. _Deliberately left:_ per-page
+   `fmtDate` formatters (intentionally divergent — not forced).
 
 ---
 
