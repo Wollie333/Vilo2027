@@ -21,7 +21,12 @@ export default async function LedgerPage() {
   if (!hostId) notFound();
 
   const admin = createAdminClient();
-  const entries = await fetchHostTransactions(admin, { hostId });
+  // Include voided so the board can offer a "Voided" filter (audit view); they
+  // carry zero effect, so KPIs and balances are unaffected.
+  const entries = await fetchHostTransactions(admin, {
+    hostId,
+    includeVoided: true,
+  });
   const stats = txnStats(entries);
 
   // Guest filter options (unique, by gkey).

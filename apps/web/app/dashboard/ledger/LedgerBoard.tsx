@@ -64,23 +64,32 @@ export function LedgerBoard({
   const [guest, setGuest] = useState("all");
   const [search, setSearch] = useState("");
 
+  // Live (active) vs voided — voided are an audit view, hidden unless asked.
+  const live = useMemo(() => entries.filter((e) => !e.voided), [entries]);
+  const voidedEntries = useMemo(
+    () => entries.filter((e) => e.voided),
+    [entries],
+  );
+
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
     for (const f of FILTERS)
-      c[f.key] = entries.filter((e) => f.match(e.type)).length;
+      c[f.key] = live.filter((e) => f.match(e.type)).length;
+    c["voided"] = voidedEntries.length;
     return c;
-  }, [entries]);
+  }, [live, voidedEntries]);
 
   const rows = useMemo(() => {
-    const f = FILTERS.find((x) => x.key === filter) ?? FILTERS[0];
     const q = search.trim().toLowerCase();
-    return entries.filter(
+    const base = filter === "voided" ? voidedEntries : live;
+    const f = FILTERS.find((x) => x.key === filter);
+    return base.filter(
       (e) =>
-        f.match(e.type) &&
+        (filter === "voided" || !f || f.match(e.type)) &&
         (guest === "all" || e.guestKey === guest) &&
         (!q || searchBlob(e).includes(q)),
     );
-  }, [entries, filter, guest, search]);
+  }, [live, voidedEntries, filter, guest, search]);
 
   return (
     <div className="mx-auto max-w-[1180px] px-4 py-6 lg:px-6">
@@ -148,6 +157,23 @@ export function LedgerBoard({
               </span>
             </button>
           ))}
+          {counts["voided"] > 0 ? (
+            <button
+              type="button"
+              onClick={() => setFilter("voided")}
+              className={`rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                filter === "voided"
+                  ? "border-red-500 bg-red-500 text-white"
+                  : "border-brand-line bg-white text-brand-mute hover:bg-brand-light"
+              }`}
+              title="Voided transactions (audit trail)"
+            >
+              Voided
+              <span className="ml-1.5 tabular-nums opacity-70">
+                {counts["voided"]}
+              </span>
+            </button>
+          ) : null}
         </div>
         <select
           value={guest}

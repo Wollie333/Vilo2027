@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Ban,
   Check,
   ChevronDown,
   ChevronUp,
@@ -323,14 +324,24 @@ export function LedgerList({
               const tag = TYPE_TAG[e.type];
               const amt = amountDisplay(e);
               return (
-                <tr key={e.id} className="align-middle">
+                <tr
+                  key={e.id}
+                  className={`align-middle ${e.voided ? "opacity-60" : ""}`}
+                >
                   <td className="px-4 py-3">
-                    <div className="font-medium text-brand-ink">
+                    <div
+                      className={`font-medium text-brand-ink ${e.voided ? "line-through decoration-red-400" : ""}`}
+                    >
                       {e.note ?? tag.label}
                     </div>
                     {e.bookingRef ? (
                       <div className="font-mono text-[10.5px] text-brand-mute">
                         {e.bookingRef}
+                      </div>
+                    ) : null}
+                    {e.voided && e.voidReason ? (
+                      <div className="mt-0.5 text-[10.5px] italic text-red-500">
+                        Voided — {e.voidReason}
                       </div>
                     ) : null}
                   </td>
@@ -364,9 +375,14 @@ export function LedgerList({
                     >
                       {tag.label}
                     </span>
-                    {e.pending ? (
+                    {e.pending && !e.voided ? (
                       <span className="ml-1 inline-flex rounded-pill border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                         Pending
+                      </span>
+                    ) : null}
+                    {e.voided ? (
+                      <span className="ml-1 inline-flex rounded-pill border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-semibold text-red-600">
+                        Voided
                       </span>
                     ) : null}
                   </td>
@@ -552,6 +568,16 @@ export function LedgerList({
                   Open booking
                 </Link>
               ) : null}
+              {canManage && menu.entry.bookingId && !menu.entry.voided ? (
+                <button
+                  type="button"
+                  onClick={() => openAction("void", menu.entry)}
+                  className={`${MENU_ITEM} text-red-600 hover:bg-red-50`}
+                >
+                  <Ban className="h-3.5 w-3.5" />
+                  Void transaction
+                </button>
+              ) : null}
               {!menu.entry.doc && !menu.entry.bookingId ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
                   No actions for this entry
@@ -572,6 +598,7 @@ export function LedgerList({
           bookingId={action.entry.bookingId}
           currency={action.entry.currency}
           defaultAmount={defaultAmountFor(action.mode, action.entry)}
+          txnId={action.entry.id}
         />
       ) : null}
     </div>

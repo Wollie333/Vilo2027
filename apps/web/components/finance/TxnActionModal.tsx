@@ -9,6 +9,7 @@ import {
   issueBookingCreditNoteAction,
   recordBookingPaymentAction,
 } from "@/app/dashboard/bookings/[id]/payment-actions";
+import { voidTransactionAction } from "@/app/dashboard/ledger/actions";
 import { hostInitiatedRefundAction } from "@/app/dashboard/refunds/actions";
 import {
   FormModal,
@@ -20,7 +21,8 @@ export type TxnActionMode =
   | "record_payment"
   | "refund"
   | "credit_note"
-  | "add_charge";
+  | "add_charge"
+  | "void";
 
 const META: Record<
   TxnActionMode,
@@ -50,6 +52,12 @@ const META: Record<
       "Add an extra charge to this booking — it issues its own invoice and shows on the ledger.",
     submit: "Add charge",
   },
+  void: {
+    title: "Void transaction",
+    description:
+      "Reverse this transaction and remove it from the live ledger. It's kept in the audit trail with your reason and can be found under the Voided filter — never deleted.",
+    submit: "Void transaction",
+  },
 };
 
 const FIELD =
@@ -69,6 +77,7 @@ export function TxnActionModal({
   bookingId,
   currency,
   defaultAmount,
+  txnId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -76,6 +85,8 @@ export function TxnActionModal({
   bookingId: string;
   currency: string;
   defaultAmount?: number;
+  /** Ledger Txn id — required for the destructive `void` mode. */
+  txnId?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -100,6 +111,20 @@ export function TxnActionModal({
   }
 
   function submit() {
+    if (mode === "void") {
+      if (text.trim().length < 3) {
+        toast.error("Give a reason for voiding this transaction.");
+        return;
+      }
+      if (!txnId) return;
+      start(async () => {
+        const r = await voidTransactionAction({ txnId, reason: text.trim() });
+        if (r.ok) done("Transaction voided.");
+        else toast.error(r.error);
+      });
+      return;
+    }
+
     const value = Math.round((Number(amount) || 0) * 100) / 100;
     if (mode === "add_charge" && !text.trim()) {
       toast.error("Give the charge a name.");
@@ -181,35 +206,37 @@ export function TxnActionModal({
           </label>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {mode === "record_payment" ? (
+        {mode !== "void" ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {mode === "record_payment" ? (
+              <label className="block">
+                <span className={LABEL}>Type</span>
+                <select
+                  value={kind}
+                  onChange={(e) =>
+                    setKind(e.target.value as "deposit" | "balance" | "payment")
+                  }
+                  className={FIELD}
+                >
+                  <option value="deposit">Deposit</option>
+                  <option value="balance">Balance</option>
+                  <option value="payment">Other payment</option>
+                </select>
+              </label>
+            ) : null}
             <label className="block">
-              <span className={LABEL}>Type</span>
-              <select
-                value={kind}
-                onChange={(e) =>
-                  setKind(e.target.value as "deposit" | "balance" | "payment")
-                }
+              <span className={LABEL}>Amount ({currency})</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 className={FIELD}
-              >
-                <option value="deposit">Deposit</option>
-                <option value="balance">Balance</option>
-                <option value="payment">Other payment</option>
-              </select>
+              />
             </label>
-          ) : null}
-          <label className="block">
-            <span className={LABEL}>Amount ({currency})</span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className={FIELD}
-            />
-          </label>
-        </div>
+          </div>
+        ) : null}
 
         {mode === "record_payment" ? (
           <label className="block">
@@ -223,16 +250,19 @@ export function TxnActionModal({
           </label>
         ) : null}
 
-        {mode === "refund" || mode === "credit_note" ? (
+        {mode === "refund" || mode === "credit_note" || mode === "void" ? (
           <label className="block">
             <span className={LABEL}>Reason</span>
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
+              autoFocus={mode === "void"}
               placeholder={
                 mode === "refund"
                   ? "e.g. Cancelled — deposit returned"
-                  : "e.g. Goodwill for late check-in"
+                  : mode === "void"
+                    ? "e.g. Entered in error / duplicate"
+                    : "e.g. Goodwill for late check-in"
               }
               className={FIELD}
             />
@@ -258,7 +288,11 @@ export function TxnActionModal({
           type="submit"
           form="txn-action-form"
           disabled={pending}
-          className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+          className={`rounded px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50 ${
+            mode === "void"
+              ? "bg-red-600 hover:bg-red-700"
+              : "bg-brand-primary hover:bg-brand-secondary"
+          }`}
         >
           {meta.submit}
         </button>
