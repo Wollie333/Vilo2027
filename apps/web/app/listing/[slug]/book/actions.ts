@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { initializeTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -991,30 +992,18 @@ export async function createBookingAction(
     redirect(`/booking/${booking.id}/success`);
   }
 
-  // 8. Initialize Paystack transaction.
+  // 8. Initialize Paystack on the HOST's OWN account so funds settle directly
+  // to them (Vilo takes 0%). The platform PAYSTACK_SECRET_KEY is reserved for
+  // Vilo's subscription billing and must never charge a guest booking.
   const origin = headers().get("origin") ?? "";
-  let initResult;
-  try {
-    initResult = await initializeTransaction({
-      amount: totalAmount,
-      currency: listing.currency,
-      email: user.email,
-      callbackUrl: `${origin}/booking/${booking.id}/success`,
-      metadata: {
-        booking_id: booking.id,
-        payment_id: payment.id,
-        listing_id: listing.id,
-        listing_name: listing.name,
-        guest_id: user.id,
-        reference: booking.reference,
-        scope: d.scope,
-      },
-    });
-  } catch {
-    // Gateway fallback (AGENT_RULES.md §4.6): never lose a booking to a
-    // Paystack/PayPal outage — fall back to the host's EFT account. A published
-    // listing always has a valid default account (§4.5), so this is reliable;
-    // we keep the booking + reserved add-ons and just switch it to manual EFT.
+
+  // Gateway fallback (AGENT_RULES.md §4.6): never lose a booking when the host
+  // can't take card right now (no connected Paystack, or the gateway is
+  // unreachable) — fall back to the host's EFT account. A published listing
+  // always has a valid default account (§4.5), so this is reliable; we keep the
+  // booking + reserved add-ons and just switch it to manual EFT. If somehow no
+  // EFT exists, roll the whole booking back rather than leaving it stuck.
+  const fallBackToEftOrUnwind = async (): Promise<CreateBookingResult> => {
     if (await hostHasValidEft(listing.host_id)) {
       await admin
         .from("bookings")
@@ -1026,9 +1015,6 @@ export async function createBookingAction(
         .eq("id", payment.id);
       redirect(`/booking/${booking.id}/success`);
     }
-
-    // No EFT fallback configured (shouldn't happen for a live listing) — roll
-    // the booking back rather than leaving it stuck.
     await releaseReserved();
     await admin.from("payments").delete().eq("id", payment.id);
     await admin.from("booking_addons").delete().eq("booking_id", booking.id);
@@ -1038,6 +1024,35 @@ export async function createBookingAction(
       ok: false,
       error: "Couldn't reach the payment provider. Try again in a moment.",
     };
+  };
+
+  // Host's connected Paystack key (null = no usable card rail → EFT fallback).
+  const hostPaystack = await getHostPaystack(listing.host_id);
+  if (!hostPaystack) {
+    return await fallBackToEftOrUnwind();
+  }
+
+  let initResult;
+  try {
+    initResult = await initializeTransaction({
+      amount: totalAmount,
+      currency: listing.currency,
+      email: user.email,
+      callbackUrl: `${origin}/booking/${booking.id}/success`,
+      secretKey: hostPaystack.secretKey,
+      statementDescriptor: hostPaystack.statementDescriptor,
+      metadata: {
+        booking_id: booking.id,
+        payment_id: payment.id,
+        listing_id: listing.id,
+        listing_name: listing.name,
+        guest_id: user.id,
+        reference: booking.reference,
+        scope: d.scope,
+      },
+    });
+  } catch {
+    return await fallBackToEftOrUnwind();
   }
 
   await admin

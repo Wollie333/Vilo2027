@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 
 import { initializeTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -103,14 +104,19 @@ export async function initializePaymentForBookingAction(
     return { ok: true, redirectTo: `/booking/${booking.id}/success` };
   }
 
-  // Paystack.
+  // Paystack — charge on the HOST's own connected account (Vilo takes 0%).
+  // No usable card rail → fall through to the EFT fallback below.
   const origin = headers().get("origin") ?? "";
+  const hostPaystack = await getHostPaystack(listing.host_id);
   try {
+    if (!hostPaystack) throw new Error("Host has no connected Paystack.");
     const init = await initializeTransaction({
       amount: payNow,
       currency: booking.currency,
       email: user.email,
       callbackUrl: `${origin}/booking/${booking.id}/success`,
+      secretKey: hostPaystack.secretKey,
+      statementDescriptor: hostPaystack.statementDescriptor,
       metadata: {
         booking_id: booking.id,
         payment_id: payment.id,

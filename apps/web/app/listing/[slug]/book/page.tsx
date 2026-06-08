@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -253,6 +254,11 @@ export default async function BookingPage({
     .maybeSingle();
   const hasEftBanking = !!eftRow;
 
+  // Whether the host can take card right now (their own connected Paystack).
+  // Card is only offered when true; otherwise the guest pays by EFT. The
+  // booking action enforces the same predicate server-side.
+  const hasPaystack = !!(await getHostPaystack(listing.host_id));
+
   // Prefill contact for a signed-in guest.
   let guestName = "";
   let guestPhone = "";
@@ -388,6 +394,7 @@ export default async function BookingPage({
           initialRoomGuests={initialRoomGuests}
           availableAddons={availableAddons}
           hasEftBanking={hasEftBanking}
+          hasPaystack={hasPaystack}
           seasonalRules={seasonalRules}
           wholeListingDiscountPct={
             listing.whole_listing_discount_pct == null

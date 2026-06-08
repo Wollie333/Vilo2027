@@ -5,6 +5,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { verifyTransaction } from "@/lib/paystack";
 import { getBrandName } from "@/lib/brand";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -100,14 +101,22 @@ export default async function BookingSuccessPage({
 
   if (!booking) notFound();
 
-  // Fast-path: if webhook hasn't landed yet, ask Paystack directly.
+  // Confirm the payment. The card transaction was created on the HOST's own
+  // Paystack account, so we verify it with the host's key (the platform key
+  // can't see a host-account transaction). For direct-host payments this
+  // verify — not a platform webhook — is the authoritative confirmation.
   const reference = searchParams?.reference;
   if (
     booking.payment_status === "pending" &&
     reference &&
     reference.length > 0
   ) {
-    const verification = await verifyTransaction(reference);
+    const hostId = (booking.listing as unknown as { host_id: string }).host_id;
+    const hostPaystack = await getHostPaystack(hostId);
+    const verification = await verifyTransaction(
+      reference,
+      hostPaystack?.secretKey,
+    );
     if (verification && verification.status === "success") {
       // Mirror what the webhook would do, with idempotency via the unique
       // provider_reference constraint.

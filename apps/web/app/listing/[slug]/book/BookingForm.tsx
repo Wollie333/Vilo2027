@@ -214,6 +214,7 @@ export function BookingForm({
   initialRoomGuests,
   availableAddons,
   hasEftBanking,
+  hasPaystack,
   seasonalRules,
   wholeListingDiscountPct,
   weeklyDiscountPct,
@@ -255,6 +256,7 @@ export function BookingForm({
   initialRoomGuests: Record<string, number>;
   availableAddons: AvailableAddon[];
   hasEftBanking: boolean;
+  hasPaystack: boolean;
   seasonalRules: SeasonalRule[];
   wholeListingDiscountPct: number | null;
   weeklyDiscountPct: number | null;
@@ -355,7 +357,11 @@ export function BookingForm({
   }
 
   // ── Payment method state ──────────────────────────────────────
-  const [method, setMethod] = useState<"paystack" | "eft">("paystack");
+  // Card is only available when the host has connected their own Paystack;
+  // otherwise the guest pays by EFT. Default to whichever the host offers.
+  const [method, setMethod] = useState<"paystack" | "eft">(
+    hasPaystack ? "paystack" : "eft",
+  );
 
   // Pre-select required addons at their default quantity.
   const [addonQty, setAddonQty] = useState<Map<string, number>>(() => {
@@ -888,13 +894,17 @@ export function BookingForm({
     "px-5 py-4 border-b border-brand-line flex items-center justify-between gap-3";
 
   const paymentMethods = [
-    {
-      id: "paystack" as const,
-      label: "Pay with card",
-      sub: "Visa, Mastercard & instant EFT · secured by Paystack",
-      Icon: CreditCard,
-      cards: ["visa", "mc"] as const,
-    },
+    ...(hasPaystack
+      ? [
+          {
+            id: "paystack" as const,
+            label: "Pay with card",
+            sub: "Visa, Mastercard & instant EFT · secured by Paystack",
+            Icon: CreditCard,
+            cards: ["visa", "mc"] as const,
+          },
+        ]
+      : []),
     ...(hasEftBanking
       ? [
           {
