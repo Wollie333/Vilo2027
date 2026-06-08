@@ -1,17 +1,28 @@
 "use client";
 
-import { Check, Copy, Link2, Mail, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import {
+  Check,
+  Copy,
+  Link2,
+  Loader2,
+  Mail,
+  MessageCircle,
+  Send,
+} from "lucide-react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
+
+import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
 
 /**
  * Host-facing "Send payment link" surface on a booking's Payments tab. The link
  * is the public /pay/[token] page (built from the booking's pay_token); the host
- * copies it or fires a pre-filled WhatsApp / email so the guest can settle an
- * unpaid booking via the host's own Paystack (or EFT). Shown only while the
- * booking has an outstanding balance.
+ * copies it, fires a pre-filled WhatsApp / email, or drops it into the guest's
+ * inbox thread so the guest can settle an unpaid booking via the host's own
+ * Paystack (or EFT). Shown only while the booking has an outstanding balance.
  */
 export function PaymentLinkCard({
+  bookingId,
   url,
   reference,
   listingName,
@@ -20,6 +31,7 @@ export function PaymentLinkCard({
   guestEmail,
   guestPhone,
 }: {
+  bookingId: string;
   url: string;
   reference: string;
   listingName: string;
@@ -29,6 +41,22 @@ export function PaymentLinkCard({
   guestPhone: string | null;
 }) {
   const [copied, setCopied] = useState(false);
+  const [sending, startSending] = useTransition();
+
+  // Drop the link into the guest's inbox thread — reuses the same canonical
+  // "share a link in the thread" action the invoice/quote pages use. Account-
+  // less guests (or no thread yet) get a clear nudge to use email / WhatsApp.
+  function sendToChat() {
+    startSending(async () => {
+      const r = await sendDocumentLinkAction({
+        bookingId,
+        url,
+        label: "payment link",
+      });
+      if (r.ok) toast.success("Payment link sent to the guest's inbox.");
+      else toast.error(r.error);
+    });
+  }
 
   const greeting = guestName ? `Hi ${guestName.split(" ")[0]}, ` : "";
   const message =
@@ -111,6 +139,19 @@ export function PaymentLinkCard({
           >
             <Mail className="h-3.5 w-3.5" /> Email the link
           </a>
+          <button
+            type="button"
+            onClick={sendToChat}
+            disabled={sending}
+            className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-xs font-semibold text-brand-ink transition hover:bg-brand-accent disabled:opacity-50"
+          >
+            {sending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Send className="h-3.5 w-3.5" />
+            )}
+            Send in chat
+          </button>
         </div>
       </div>
     </div>

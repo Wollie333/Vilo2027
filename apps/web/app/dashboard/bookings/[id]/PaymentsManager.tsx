@@ -195,6 +195,7 @@ export function PaymentsManager({
       {/* shareable pay-now link (only while there's an outstanding balance) */}
       {payLink && balanceDue > 0 ? (
         <PaymentLinkCard
+          bookingId={bookingId}
           url={payLink.url}
           reference={payLink.reference}
           listingName={payLink.listingName}
