@@ -55,9 +55,19 @@ Copy this template and fill it in at the end of every session:
 - No DB/data change — the booking and guest records were consistent; this was
   purely a query-scoping bug. Calendar, Guests CRM, inbox, new-booking and
   quote-edit reads were already correctly `host_id`-scoped.
+- **Full audit follow-up.** Swept every `/dashboard` subtree (bookings, quotes,
+  invoices, credit-notes, payments, refunds, ledger, inbox, reviews, guests,
+  calendar, listings + sub-resources, reports, settings, staff, setup, help)
+  for the same guest-read/public-read RLS leak class. Every other surface was
+  already correctly scoped — explicit `host_id`, `bookings!inner` host join, or
+  a transitively host-scoped parent id (conversation/booking/quote/invoice).
+  Only extra change: `dashboard/notifications/page.tsx` now filters
+  `.eq("user_id", user.id)` explicitly (was RLS-only; not a leak — the table has
+  only a `user_id = auth.uid()` policy — but hardened to kill the pattern).
 
 ### Commit
 - `fix(bookings): scope host dashboard booking reads to own host_id`
+- `fix(notifications): explicit user_id filter on notifications list (audit hardening)`
 
 ---
 
