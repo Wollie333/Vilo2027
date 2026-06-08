@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Help Centre — Ledger article — branch `main`
+
+### Built
+- **Help article `ledger-account-finance-view`** ("The Ledger: every transaction in one place") covering the account-wide Ledger (`/dashboard/ledger`): the five KPI totals (Outstanding, Collected, Refunded, Credits, Net), how to read a row (Type / For / Amount parentheses convention / running Balance / Document), filter pills + guest dropdown + search + date sort, the per-row `…` actions (record payment, mark received, refund, credit note, add charge, document share), voiding as a non-destructive audit correction, and closing/reopening accounting periods. Published, `host` audience, `payments` category.
+
+### Notes
+- Complements the existing `booking-payments-deposits-credit` article (which covers the per-booking Payments tab) — this one documents the whole-account finance view. No overlap.
+- Renamed from a `…000001` to `…000004` timestamp to avoid colliding with the already-applied `20260608000001_transaction_void.sql`.
+
+### Migrations
+- `supabase/migrations/20260608000004_help_ledger.sql` (idempotent `INSERT … ON CONFLICT (slug) DO UPDATE`; applied to linked remote)
+
 ## 2026-06-07 — Booking redesign — simplified guest journey (display-only listing + 3-step checkout) — branch `main`
 
 ### Built
