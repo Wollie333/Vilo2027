@@ -171,6 +171,14 @@ export type BookingDetailData = {
   canRefund: boolean;
   refundDefaultMethod: "paystack" | "paypal" | "eft" | "manual";
   hasWorkflow: boolean;
+  payLink: {
+    url: string;
+    reference: string;
+    listingName: string;
+    guestName: string | null;
+    guestEmail: string | null;
+    guestPhone: string | null;
+  } | null;
 };
 
 const STATUS_TAG: Record<
@@ -927,6 +935,7 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               canRecord={d.hasWorkflow || d.status === "completed"}
               addonCatalog={d.addonCatalog}
               canAddAddons={d.canEditAddons}
+              payLink={d.payLink}
             />
           </div>
 

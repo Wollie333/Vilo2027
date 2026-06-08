@@ -125,7 +125,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, listing_id, reference, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, listing_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -619,6 +619,23 @@ export default async function BookingDetailPage({
       ? (latestPayment!.method as string)
       : "eft") as "paystack" | "paypal" | "eft" | "manual",
     hasWorkflow,
+
+    // Shareable pay-now link — only while the booking is payable with an
+    // outstanding balance. The public /pay/[token] page is built from the
+    // booking's pay_token; absolute URL via NEXT_PUBLIC_SITE_URL.
+    payLink:
+      !TERMINAL_CANCELLED.has(status) &&
+      booking.payment_status !== "completed" &&
+      Number(booking.total_amount) - amountPaid > 0.005
+        ? {
+            url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/pay/${booking.pay_token}`,
+            reference: booking.reference,
+            listingName: listing.name,
+            guestName: guest.full_name ?? booking.guest_name ?? null,
+            guestEmail: guest.email,
+            guestPhone: guest.phone,
+          }
+        : null,
   };
 
   return <BookingDetail data={data} />;

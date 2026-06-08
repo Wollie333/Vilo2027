@@ -127,6 +127,17 @@ Only expose when `payment_method = 'eft'` and status is `pending_eft` or `pendin
 ### 4.6 Payments always fall back to the host's EFT account
 If a card gateway (Paystack / PayPal) fails or isn't usable at payment time, the booking must degrade to manual **EFT** rather than failing — keep the booking + any reserved inventory, set `payment_method = 'eft'` and status `pending_eft`, and send the guest to the booking's awaiting-transfer view. Because §4.5 guarantees every live listing's host has a valid default account, this fallback is always available. Never delete a booking solely because a gateway call threw.
 
+### 4.7 The payment ledger is the single source of truth for booking money — wire INTO it, never around it
+`apps/web/lib/payments/ledger.ts` owns what a booking has been **paid**, what it **owes**, and how overpayment becomes guest store credit. **Never re-implement or fork this maths, and never directly set `bookings.balance_due` / `payment_status` from a payment flow.** Instead:
+- Read "paid so far" via `sumCompletedPaid(admin, bookingId)`.
+- After any payment row changes status (created, completed, voided, refunded), call `recomputeBookingPaymentState(admin, bookingId)` to derive + persist `balance_due` + `payment_status`, and `postOverpaymentCredit(...)` for excess.
+- Record money received via the ledger's entry points (e.g. `recordBookingPayment`) so `kind` + `currency` + caps stay consistent.
+
+If the ledger is missing something a feature needs, **extend `ledger.ts` itself** (add a function there) so it stays the one place — do not compute booking balances inline in an action, page, webhook, or trigger. Any new pay path (guest checkout, signed-in pay, the `/pay/[token]` link, host manual entry) must funnel its money state through this module.
+
+### 4.8 Guest booking payments charge the HOST's own gateway, never the platform key
+A guest paying for a booking (card) must settle to the **host's** connected Paystack account so funds reach the host directly (Vilo takes 0%). Use the single source of truth `getHostPaystack(hostId)` in `apps/web/lib/payments/host-paystack.ts` to load + decrypt the host's secret, and pass it to **both** `initializeTransaction` and `verifyTransaction`. The platform `PAYSTACK_SECRET_KEY` is reserved exclusively for Vilo's own subscription billing — never use it to charge a booking. Because host-account transactions can't be confirmed by the platform webhook, the **success/return page `verifyTransaction` (with the host key) is the authoritative confirmation** for direct-host card payments. No usable host card rail → fall back to EFT per §4.6. All "pay an existing booking" flows must funnel through `startBookingPayment` in `apps/web/lib/payments/pay-booking.ts`.
+
 ---
 
 ## 5. Code Quality Rules

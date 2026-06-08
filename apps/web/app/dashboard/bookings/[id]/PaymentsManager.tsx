@@ -11,6 +11,7 @@ import { formatMoney } from "@/lib/format";
 import type { Txn } from "@/lib/finance/transactions";
 
 import { AddonManager } from "./AddonManager";
+import { PaymentLinkCard } from "./PaymentLinkCard";
 import {
   applyGuestCreditAction,
   issueBookingCreditNoteAction,
@@ -28,6 +29,7 @@ export function PaymentsManager({
   canRecord,
   addonCatalog,
   canAddAddons,
+  payLink,
 }: {
   bookingId: string;
   currency: string;
@@ -49,6 +51,16 @@ export function PaymentsManager({
     active: boolean;
   }[];
   canAddAddons: boolean;
+  // Shareable pay-now link — present only while the booking is payable with an
+  // outstanding balance (built from the booking's pay_token in the page).
+  payLink: {
+    url: string;
+    reference: string;
+    listingName: string;
+    guestName: string | null;
+    guestEmail: string | null;
+    guestPhone: string | null;
+  } | null;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -179,6 +191,19 @@ export function PaymentsManager({
           />
         </div>
       </div>
+
+      {/* shareable pay-now link (only while there's an outstanding balance) */}
+      {payLink && balanceDue > 0 ? (
+        <PaymentLinkCard
+          url={payLink.url}
+          reference={payLink.reference}
+          listingName={payLink.listingName}
+          amountLabel={formatMoney(balanceDue, currency)}
+          guestName={payLink.guestName}
+          guestEmail={payLink.guestEmail}
+          guestPhone={payLink.guestPhone}
+        />
+      ) : null}
 
       {/* ledger — every transaction for this booking, the shared canonical rows */}
       <LedgerList

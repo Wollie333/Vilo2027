@@ -31,6 +31,55 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Payments — Host-Paystack spine + shareable pay-now link — branch `main`
+
+### Built
+- **Pay-now link.** Every unpaid booking now has a secure, unguessable
+  `pay_token` backing a public **`/pay/[token]`** page (no login). The guest
+  sees the stay + amount due and pays by **card on the host's own Paystack** or
+  by **EFT** (banking + reference) when the host hasn't connected card. On
+  return from Paystack the page verifies with the host key and confirms via the
+  ledger.
+- **Host share UI.** A **Payment link** panel on the booking's Payments tab
+  (`PaymentLinkCard`) with Copy, **Send on WhatsApp** (pre-filled, uses the
+  guest's number), and **Email the link** (pre-filled) — shown only while a
+  balance is outstanding.
+- **Shared payment core** `lib/payments/pay-booking.ts` — `startBookingPayment`
+  (host-Paystack init + EFT fallback + ledger-aware amounts) and
+  `confirmHostCardPaymentByReference` (verify with host key → flip pending row →
+  `recomputeBookingPaymentState` → confirm booking). Both the signed-in pay flow
+  and the public pay link funnel through it.
+- **`lib/payments/host-paystack.ts`** — `getHostPaystack(hostId)`, the single
+  source of truth for a host's connected, enabled Paystack secret.
+
+### Changed
+- **Guest card payments now charge the HOST's own Paystack account** (not the
+  platform key). `createBookingAction`, `initializePaymentForBookingAction` and
+  the `/booking/[id]/success` verify were all using no key → platform account +
+  stuck-pending host-account transactions. Fixed; checkout only offers Card when
+  the host has Paystack connected.
+- `initializePaymentForBookingAction` slimmed to call the shared core.
+
+### Migrations
+- `20260608000005_booking_pay_token.sql` — `bookings.pay_token`
+  (`gen_url_token()`, unique). **Applied to the linked remote**; types regenerated.
+- `20260608000006_help_payment_links.sql` — host help article
+  `send-a-payment-link` (payments category). _Not yet pushed._
+
+### Notes
+- New guardrails: **AGENT_RULES §4.7** (wire into the ledger — never fork the
+  balance maths) and **§4.8** (booking card payments use the host's gateway via
+  `getHostPaystack`; success-page verify is the authoritative confirmation).
+- Renamed my migration from `…0001` to `…0005` after discovering a concurrent
+  finance agent had already applied `20260608000001-000004`.
+- Deferred (fast follow): "send payment link in the guest message thread"
+  (needs conversation lookup/creation; Copy/WhatsApp/Email cover resend today).
+
+### Commit
+- `feat(payments): shareable pay-now link (/pay/[token]) + host share UI` — pending
+
+---
+
 ## 2026-06-08 — Help Centre — Ledger article — branch `main`
 
 ### Built
