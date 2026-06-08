@@ -27,12 +27,18 @@ const REASON_COLORS: Record<string, string> = {
   "Host unavailable": "#F59E0B", // amber
   "Payment failed": "#EF4444", // red
   "Policy violation": "#8B5CF6", // purple
-  "Other": "#9CA3AF", // gray
+  Other: "#9CA3AF", // gray
 };
 
 export function RefundsCancellations({ data }: RefundsCancellationsProps) {
-  const totalReasons = data.cancellation_reasons.reduce((sum, r) => sum + r.count, 0);
-  const maxReasonCount = Math.max(...data.cancellation_reasons.map((r) => r.count), 1);
+  const totalReasons = data.cancellation_reasons.reduce(
+    (sum, r) => sum + r.count,
+    0,
+  );
+  const maxReasonCount = Math.max(
+    ...data.cancellation_reasons.map((r) => r.count),
+    1,
+  );
 
   return (
     <div className="rounded-card border border-brand-line bg-white p-5 lg:p-6">
@@ -59,6 +65,9 @@ export function RefundsCancellations({ data }: RefundsCancellationsProps) {
           </div>
           <div className="mt-2 font-display text-2xl font-bold text-red-900">
             {data.cancellation_rate}%
+            <span className="ml-1 text-xs font-medium text-red-700/70">
+              of bookings
+            </span>
           </div>
           <div className="mt-1 text-xs text-red-700">
             {data.cancellation_count} bookings · R{" "}
@@ -74,6 +83,9 @@ export function RefundsCancellations({ data }: RefundsCancellationsProps) {
           </div>
           <div className="mt-2 font-display text-2xl font-bold text-amber-900">
             {data.refund_rate}%
+            <span className="ml-1 text-xs font-medium text-amber-700/70">
+              of bookings
+            </span>
           </div>
           <div className="mt-1 text-xs text-amber-700">
             {data.refund_count} issued · R {formatCurrency(data.refund_amount)}
@@ -103,9 +115,11 @@ export function RefundsCancellations({ data }: RefundsCancellationsProps) {
             {data.cancellation_reasons
               .filter((reason) => reason.count > 0)
               .map((reason) => {
-                const percentage = totalReasons > 0 ? (reason.count / totalReasons) * 100 : 0;
+                const percentage =
+                  totalReasons > 0 ? (reason.count / totalReasons) * 100 : 0;
                 const barWidth = (reason.count / maxReasonCount) * 100;
-                const color = REASON_COLORS[reason.reason] || REASON_COLORS["Other"];
+                const color =
+                  REASON_COLORS[reason.reason] || REASON_COLORS["Other"];
 
                 return (
                   <div key={reason.reason}>
@@ -140,10 +154,10 @@ export function RefundsCancellations({ data }: RefundsCancellationsProps) {
           {data.cancellation_rate > 10
             ? `High cancellation rate (${data.cancellation_rate}%). Review policies and guest communication.`
             : data.refund_rate > 5
-            ? `Refund rate at ${data.refund_rate}%. Investigate common refund causes.`
-            : data.avg_refund_turnaround_days > 7
-            ? `Refund turnaround is ${data.avg_refund_turnaround_days.toFixed(1)} days. Aim for <7 days to improve guest satisfaction.`
-            : "Low cancellation and refund rates. Maintain current service quality."}
+              ? `Refund rate at ${data.refund_rate}%. Investigate common refund causes.`
+              : data.avg_refund_turnaround_days > 7
+                ? `Refund turnaround is ${data.avg_refund_turnaround_days.toFixed(1)} days. Aim for <7 days to improve guest satisfaction.`
+                : "Low cancellation and refund rates. Maintain current service quality."}
         </div>
       </div>
     </div>

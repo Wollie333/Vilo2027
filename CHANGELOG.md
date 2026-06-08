@@ -31,6 +31,46 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Reports — Ledger-backed Cash position on Analytics — branch `main`
+
+### Built
+- **Cash position panel** on Analytics & Reports — a ledger-sourced money
+  section sitting under the booked-value KPIs: Collected (period + lifetime),
+  Outstanding (live, all-account), Refunded, Net cash, and a lifetime
+  collection-rate bar. Reads from the SAME `fetchHostTransactions` ledger as the
+  Ledger/Finances/Payments views, so the numbers reconcile to the cent.
+  (`apps/web/app/dashboard/reports/_components/CashPosition.tsx`)
+- An inline explainer that reconciles **booked value (accrual)** vs **collected
+  (cash)** so the headline "Total revenue" and the bank balance no longer look
+  contradictory, plus an "Open ledger" jump to chase what's owed.
+
+### Changed
+- **Reporting now wired to the ledger.** Previously Analytics computed revenue
+  only from `bookings.total_amount` (accrual) with no cash view anywhere; it now
+  surfaces collected/outstanding/refunded straight from the canonical ledger.
+- New canonical `txnFlows(entries)` in `lib/finance/transactions.ts` (the one
+  definition of collected/refunded/credits/charged); `txnStats` refactored to
+  build on it. Period totals = date-filtered slice; lifetime/outstanding = full.
+- `RefundsCancellations` cards now label their rates "of bookings" (frequency),
+  distinct from the value-based "Refund rate" KPI — no more two unexplained
+  refund-rate %s on one page.
+
+### Migrations
+- `20260608000009_help_reports_cash_position.sql` — Help article
+  `reports-cash-position` (idempotent; verified live).
+
+### Notes
+- All 12 analytics RPCs were probed live against the real schema — none stale;
+  `fetch_primary_kpis` revenue reconciles exactly with `SUM(total_amount)` for
+  confirmed/checked_in/completed. ADR/RevPAR/occupancy/channel/regional left on
+  accrual (correct for those). Refund flow auto-completes to `completed`, so the
+  ledger's wider refund-status set already matches analytics in practice.
+
+### Commit
+- `feat(reports): ledger-backed Cash position panel` — [hash below]
+
+---
+
 ## 2026-06-08 — Fix/UX — Checkout availability messaging + host attribution — branch `main`
 
 ### Verified (no code bug)

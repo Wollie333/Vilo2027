@@ -6,6 +6,13 @@
 invoices must be airtight, and everything wires into one money engine.
 
 ## ✅ Done this session (2026-06-08)
+- **Reporting wired to the ledger** — new **Cash position** panel on Analytics
+  (Collected/Outstanding/Refunded/Net cash + lifetime collection bar) sourced
+  from `fetchHostTransactions`, so Reports, Ledger and Finances agree. Added
+  canonical `txnFlows` (SSOT for collected/refunded/credits/charged); `txnStats`
+  builds on it. Booked-value (accrual) vs cash explainer added; refund-rate
+  labels disambiguated. Help article `reports-cash-position` (live). All 12
+  analytics RPCs probed green against the real schema.
 - **Booking-flow follow-ups** — live per-room availability + whole-place toggle
   (`b063d76`).
 - **Host-Paystack spine fix** — guest card payments now charge the **host's own**

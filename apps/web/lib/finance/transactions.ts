@@ -79,6 +79,19 @@ export type TxnStats = {
   net: number;
 };
 
+/** Directional money flows over a set of transactions (no balance maths). Pass a
+ * date-filtered slice for "this period", or the whole list for lifetime. */
+export type TxnFlows = {
+  /** Cash received (completed inbound payments). */
+  collected: number;
+  /** Cash refunded to guests. */
+  refunded: number;
+  /** Store credit granted via credit notes. */
+  credits: number;
+  /** Total billed (booking + add-on invoices). */
+  charged: number;
+};
+
 const CASH_KINDS = ["deposit", "balance", "addon", "payment"];
 
 type Filter = {
@@ -352,17 +365,37 @@ export async function fetchHostTransactions(
   return list.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-/** Account-wide KPIs from a transaction list. */
-export function txnStats(entries: Txn[]): TxnStats {
+/**
+ * Directional money flows over a transaction list — the ONE place that defines
+ * what "collected / refunded / credits / charged" mean. Pass a date-filtered
+ * slice for period totals, or the full list for lifetime. Voided entries never
+ * count. {@link txnStats} builds on this so every money view agrees.
+ */
+export function txnFlows(entries: Txn[]): TxnFlows {
   let collected = 0;
   let refunded = 0;
   let credits = 0;
+  let charged = 0;
   for (const e of entries) {
-    if (e.voided) continue; // voided entries never count toward KPIs
+    if (e.voided) continue; // voided entries never count toward totals
     if (e.cashEffect > 0) collected += e.amount;
     if (e.type === "refund") refunded += e.amount;
     if (e.type === "credit") credits += e.amount;
+    if (e.type === "charge") charged += e.amount;
   }
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    collected: r2(collected),
+    refunded: r2(refunded),
+    credits: r2(credits),
+    charged: r2(charged),
+  };
+}
+
+/** Account-wide KPIs from a transaction list. */
+export function txnStats(entries: Txn[]): TxnStats {
+  // Flows (collected / refunded / credits) come from the canonical aggregator.
+  const { collected, refunded, credits } = txnFlows(entries);
   // Outstanding = sum of positive final balances per guest.
   const finalByGuest: Record<string, number> = {};
   for (const e of entries) {

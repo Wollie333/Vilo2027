@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  fetchHostTransactions,
+  txnStats,
+  txnFlows,
+} from "@/lib/finance/transactions";
 import { ReportsFilters } from "./_components/ReportsFilters";
 import { PrimaryKPIs } from "./_components/PrimaryKPIs";
+import { CashPosition } from "./_components/CashPosition";
 import { SecondaryMetrics } from "./_components/SecondaryMetrics";
 import { RevenueTrendChart } from "./_components/RevenueTrendChart";
 import { ChannelMixPieChart } from "./_components/ChannelMixPieChart";
@@ -133,7 +140,8 @@ export default async function ReportsPage({
   const today = new Date();
   const startOfYear = new Date(today.getFullYear(), 0, 1);
 
-  const startDate = searchParams?.start || startOfYear.toISOString().split("T")[0];
+  const startDate =
+    searchParams?.start || startOfYear.toISOString().split("T")[0];
   const endDate = searchParams?.end || today.toISOString().split("T")[0];
 
   const filters = {
@@ -230,17 +238,40 @@ export default async function ReportsPage({
   ]);
 
   // Log errors for debugging
-  if (primaryKpisRes.error) console.error("fetch_primary_kpis error:", primaryKpisRes.error);
-  if (secondaryMetricsRes.error) console.error("fetch_secondary_metrics error:", secondaryMetricsRes.error);
-  if (revenueTrendRes.error) console.error("fetch_revenue_trend error:", revenueTrendRes.error);
-  if (channelMixRes.error) console.error("fetch_channel_mix error:", channelMixRes.error);
-  if (conversionFunnelRes.error) console.error("fetch_conversion_funnel error:", conversionFunnelRes.error);
-  if (timeToBookRes.error) console.error("fetch_time_to_book error:", timeToBookRes.error);
-  if (regionalBreakdownRes.error) console.error("fetch_regional_breakdown error:", regionalBreakdownRes.error);
-  if (seasonalityHeatmapRes.error) console.error("fetch_seasonality_heatmap error:", seasonalityHeatmapRes.error);
-  if (guestDemographicsRes.error) console.error("fetch_guest_demographics error:", guestDemographicsRes.error);
-  if (popularRoomsRes.error) console.error("fetch_popular_rooms error:", popularRoomsRes.error);
-  if (refundsCancellationsRes.error) console.error("fetch_refunds_cancellations error:", refundsCancellationsRes.error);
+  if (primaryKpisRes.error)
+    console.error("fetch_primary_kpis error:", primaryKpisRes.error);
+  if (secondaryMetricsRes.error)
+    console.error("fetch_secondary_metrics error:", secondaryMetricsRes.error);
+  if (revenueTrendRes.error)
+    console.error("fetch_revenue_trend error:", revenueTrendRes.error);
+  if (channelMixRes.error)
+    console.error("fetch_channel_mix error:", channelMixRes.error);
+  if (conversionFunnelRes.error)
+    console.error("fetch_conversion_funnel error:", conversionFunnelRes.error);
+  if (timeToBookRes.error)
+    console.error("fetch_time_to_book error:", timeToBookRes.error);
+  if (regionalBreakdownRes.error)
+    console.error(
+      "fetch_regional_breakdown error:",
+      regionalBreakdownRes.error,
+    );
+  if (seasonalityHeatmapRes.error)
+    console.error(
+      "fetch_seasonality_heatmap error:",
+      seasonalityHeatmapRes.error,
+    );
+  if (guestDemographicsRes.error)
+    console.error(
+      "fetch_guest_demographics error:",
+      guestDemographicsRes.error,
+    );
+  if (popularRoomsRes.error)
+    console.error("fetch_popular_rooms error:", popularRoomsRes.error);
+  if (refundsCancellationsRes.error)
+    console.error(
+      "fetch_refunds_cancellations error:",
+      refundsCancellationsRes.error,
+    );
 
   const kpisError =
     primaryKpisRes.error ||
@@ -406,6 +437,32 @@ export default async function ReportsPage({
     scope_filter: Record<string, unknown>;
   }>;
 
+  // ---- Cash position (ledger-sourced) ----------------------------------
+  // The analytics RPCs above report booked value (accrual). The Cash position
+  // panel reports actual money, read from the SAME ledger the Ledger and
+  // Finances pages use, so the numbers always agree. Outstanding + lifetime
+  // collected are live (all-time); collected/refunded are scoped to the period.
+  const admin = createAdminClient();
+  const ledgerEntries = await fetchHostTransactions(admin, { hostId: host.id });
+  const ledgerStats = txnStats(ledgerEntries);
+  const lifetimeFlows = txnFlows(ledgerEntries);
+  const periodEntries = ledgerEntries.filter((e) => {
+    const day = (e.date ?? "").slice(0, 10);
+    return day >= startDate && day <= endDate;
+  });
+  const periodFlows = txnFlows(periodEntries);
+  const periodRefundCount = periodEntries.filter(
+    (e) => e.type === "refund",
+  ).length;
+  const cashCurrency = ledgerEntries[0]?.currency ?? "ZAR";
+  const periodLabel = `${new Date(startDate).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  })} – ${new Date(endDate).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "short",
+  })}`;
+
   return (
     <>
       {/* Header */}
@@ -465,6 +522,21 @@ export default async function ReportsPage({
           <>
             <PrimaryKPIs data={primaryKpis} />
 
+            {/* Cash position — actual money, straight from the ledger */}
+            <CashPosition
+              periodLabel={periodLabel}
+              data={{
+                collected: periodFlows.collected,
+                collectedLifetime: lifetimeFlows.collected,
+                refunded: periodFlows.refunded,
+                refundCount: periodRefundCount,
+                outstanding: ledgerStats.outstanding,
+                owingGuests: ledgerStats.owingGuests,
+                bookedValue: primaryKpis.revenue.current,
+                currency: cashCurrency,
+              }}
+            />
+
             {/* Secondary Metrics */}
             <SecondaryMetrics data={secondaryMetrics} />
 
@@ -478,7 +550,9 @@ export default async function ReportsPage({
                 />
               )}
 
-              {channelMix.length > 0 && <ChannelMixPieChart data={channelMix} />}
+              {channelMix.length > 0 && (
+                <ChannelMixPieChart data={channelMix} />
+              )}
             </section>
 
             {/* Conversion Funnel + Customer Journey */}
@@ -515,10 +589,16 @@ export default async function ReportsPage({
             )}
 
             {/* Guest Demographics + Popular Rooms + Refunds */}
-            {(guestDemographics || popularRooms.length > 0 || refundsCancellations) && (
+            {(guestDemographics ||
+              popularRooms.length > 0 ||
+              refundsCancellations) && (
               <section className="grid gap-3 lg:grid-cols-3 lg:gap-4">
-                {guestDemographics && <GuestDemographics data={guestDemographics} />}
-                {popularRooms.length > 0 && <PopularRooms data={popularRooms} />}
+                {guestDemographics && (
+                  <GuestDemographics data={guestDemographics} />
+                )}
+                {popularRooms.length > 0 && (
+                  <PopularRooms data={popularRooms} />
+                )}
                 {refundsCancellations && (
                   <RefundsCancellations data={refundsCancellations} />
                 )}
@@ -553,8 +633,9 @@ export default async function ReportsPage({
                   Failed to Load Analytics
                 </h3>
                 <p className="mb-4 text-sm text-brand-mute">
-                  The analytics database functions are not available. This usually means
-                  the analytics migrations haven&apos;t been applied yet.
+                  The analytics database functions are not available. This
+                  usually means the analytics migrations haven&apos;t been
+                  applied yet.
                 </p>
                 <div className="rounded-lg bg-brand-light/50 p-4 text-left">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-brand-mute">
