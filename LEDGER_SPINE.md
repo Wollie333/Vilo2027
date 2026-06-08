@@ -81,16 +81,19 @@ spine.**
 ### 3c. Guests / CRM (read layer)
 - Guest record Finances tab = `fetchHostTransactions({gkey})`. Store credit = `guest_credit_ledger`. Pure reads.
 
-### 3d. Audit log  (point 1 — building now)
-- New append-only `finance_audit_log` (host-scoped; `admin_audit_log` is super-admin only).
-- `lib/finance/audit.ts → logFinanceEvent()` writes one row per money mutation: actor, action, txn/booking/entity, amount, reason, before/after snapshot.
-- Wired into every canonical action above. Tamper-evident history for disputes / future SOC2.
+### 3d. Audit log  (point 1 — ✅ BUILT)
+- Append-only `finance_audit_log` (host-scoped; `admin_audit_log` is super-admin only). Migration `20260608000002`.
+- `lib/finance/audit.ts → logFinanceEvent()` is the ONE logger — best-effort (never breaks a money action). One row per mutation: actor, action, txn/booking/entity, amount, currency, reason, metadata.
+- Wired into: record payment, refund, credit note, add charge, void (all 4 types), period close/reopen. **New money actions must call it.**
 
-### 3e. Period close  (point 2 — building now)
-- New `accounting_periods` (per host, per month: open/closed + closed_by/at).
-- `assertPeriodOpen(admin, hostId, date)` guard throws if a transaction's date falls in a closed month.
-- Wired into the money mutations (and void). Closed months can't be edited — you post a reversing entry in the open period instead. Closing is reversible (reopen, audited).
-- UI: "Close month" control on the ledger.
+### 3e. Period close  (point 2 — ✅ BUILT)
+- `accounting_periods` (a row = that host-month is closed). Migration `20260608000003` + SQL `is_period_closed()`.
+- `lib/finance/periods.ts → assertPeriodOpen(admin, hostId, dateISO)` is the ONE guard — refuses a mutation dated in a closed month. **New money actions must call it.**
+- Wired into record payment, refund, credit note, add charge, and void (checks the entity's own date). Closing is reversible (reopen, audited).
+- UI: `PeriodControl` on the ledger (Periods button → close/reopen recent months).
+
+### 3f. Payment method + provider reference  (✅ BUILT)
+- Record payment & issue refund capture method (EFT/Paystack/PayPal) + a reference/transaction id → `payments.provider_reference` / `refund_requests.provider_refund_id`. Shown under the ledger row. Card webhooks will auto-fill the id when live.
 
 ---
 
@@ -104,5 +107,7 @@ spine.**
 
 ---
 
-_Last updated: 2026-06-08 — spine hardened (one source, VAT, void); audit log +
-period close in progress (§3d, §3e)._
+_Last updated: 2026-06-08 — spine complete: one source, per-listing VAT,
+audit-safe void, append-only audit log (§3d), period close (§3e), payment
+method + provider reference (§3f). Live-verified: scripts/verify-vat.mjs,
+verify-void.mjs._
