@@ -1,11 +1,14 @@
 "use client";
 
 import {
+  Check,
   ChevronDown,
   ChevronUp,
   Download,
+  FileMinus,
   FileText,
   MoreHorizontal,
+  RotateCcw,
   ScrollText,
   Send,
 } from "lucide-react";
@@ -15,9 +18,18 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
+import {
+  issueBookingCreditNoteAction,
+  markPaymentReceivedAction,
+} from "@/app/dashboard/bookings/[id]/payment-actions";
 import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
+import { hostInitiatedRefundAction } from "@/app/dashboard/refunds/actions";
+import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 import type { Txn, TxnCategory, TxnType } from "@/lib/finance/transactions";
+
+// Inbound payment kinds that can be refunded / credited after settling.
+const INBOUND_KINDS = ["deposit", "balance", "addon", "payment"];
 
 // The canonical transaction row. The account-wide Ledger, the per-guest
 // Finances tab and the per-booking Payments tab all render with this exact
@@ -93,7 +105,7 @@ export function LedgerList({
   showBalance = true,
   emptyLabel = "No transactions match your filters.",
   minWidth = 820,
-  rowActions,
+  canManage = false,
 }: {
   entries: Txn[];
   /** Show the Guest column (hide on per-guest / per-booking views). */
@@ -102,9 +114,9 @@ export function LedgerList({
   showBalance?: boolean;
   emptyLabel?: string;
   minWidth?: number;
-  /** Per-row controls injected by the booking tab (settle / refund / credit),
-   * rendered in the actions cell before the shared document menu. */
-  rowActions?: (e: Txn) => React.ReactNode;
+  /** Host context — surface the manage actions (settle / refund / credit note)
+   * in each row's ⋯ menu so any transaction can be managed from the ledger. */
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -176,6 +188,97 @@ export function LedgerList({
         toast.error(r.error);
       }
     });
+  }
+
+  // ── Per-transaction management (host) ──────────────────────────────────
+  // A pending EFT payment can be settled; a settled inbound payment can be
+  // refunded (cash back) or credited (store credit). Same server actions and
+  // confirmations the booking Payments tab uses — now reachable from any ledger.
+  function markReceived(e: Txn) {
+    setMenu(null);
+    if (!e.paymentId) return;
+    start(async () => {
+      const ok = await modal.confirm({
+        title: "Mark as received?",
+        description: `Confirm the ${e.label.toLowerCase()} of ${formatMoney(
+          e.amount,
+          e.currency,
+        )} reflects in your account. This updates the balance and confirms the booking if it's the first payment.`,
+        confirmLabel: "Yes, mark received",
+      });
+      if (!ok) return;
+      const r = await markPaymentReceivedAction(e.paymentId!);
+      if (r.ok) {
+        toast.success("Payment marked received.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function refundOne(e: Txn) {
+    setMenu(null);
+    if (!e.bookingId) return;
+    start(async () => {
+      const ok = await modal.destructive({
+        title: "Refund this payment?",
+        description: `Record a ${formatMoney(e.amount, e.currency)} refund for the ${e.label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
+        confirmLabel: "Refund payment",
+      });
+      if (!ok) return;
+      const r = await hostInitiatedRefundAction({
+        bookingId: e.bookingId!,
+        amount: e.amount,
+        method: "eft",
+        reason: `Refund of ${e.label.toLowerCase()}`,
+      });
+      if (r.ok) {
+        toast.success("Refund recorded.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  function creditOne(e: Txn) {
+    setMenu(null);
+    if (!e.bookingId) return;
+    start(async () => {
+      const ok = await modal.confirm({
+        title: "Credit this payment?",
+        description: `Issue a ${formatMoney(e.amount, e.currency)} credit note for the ${e.label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
+        confirmLabel: "Issue credit note",
+      });
+      if (!ok) return;
+      const r = await issueBookingCreditNoteAction({
+        bookingId: e.bookingId!,
+        amount: e.amount,
+        reason: `Credit of ${e.label.toLowerCase()}`,
+      });
+      if (r.ok) {
+        toast.success("Credit note issued.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  // Whether a given entry has any host-manage action available.
+  function canSettle(e: Txn): boolean {
+    return Boolean(canManage && e.pending && e.method === "eft" && e.paymentId);
+  }
+  function canRefundOrCredit(e: Txn): boolean {
+    return Boolean(
+      canManage &&
+      !e.pending &&
+      e.status === "completed" &&
+      e.kind &&
+      INBOUND_KINDS.includes(e.kind) &&
+      e.bookingId,
+    );
   }
 
   const cols = 6 + (showGuest ? 1 : 0) + (showBalance ? 1 : 0);
@@ -329,7 +432,6 @@ export function LedgerList({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1.5">
-                      {rowActions ? rowActions(e) : null}
                       <button
                         type="button"
                         onClick={(ev) => toggleMenu(ev, e)}
@@ -406,7 +508,44 @@ export function LedgerList({
                   Open booking
                 </Link>
               ) : null}
-              {!menu.entry.doc && !menu.entry.bookingId ? (
+
+              {canSettle(menu.entry) ? (
+                <button
+                  type="button"
+                  onClick={() => markReceived(menu.entry)}
+                  disabled={pending}
+                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] font-medium text-brand-primary transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Mark as received
+                </button>
+              ) : null}
+              {canRefundOrCredit(menu.entry) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => refundOne(menu.entry)}
+                    disabled={pending}
+                    className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
+                    Refund this payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => creditOne(menu.entry)}
+                    disabled={pending}
+                    className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                  >
+                    <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
+                    Credit to store credit
+                  </button>
+                </>
+              ) : null}
+              {!menu.entry.doc &&
+              !menu.entry.bookingId &&
+              !canSettle(menu.entry) &&
+              !canRefundOrCredit(menu.entry) ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
                   No actions for this entry
                 </div>

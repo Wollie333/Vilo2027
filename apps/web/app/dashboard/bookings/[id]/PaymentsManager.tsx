@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  Check,
-  CreditCard,
-  FileMinus,
-  Plus,
-  RotateCcw,
-  Wallet,
-  X,
-} from "lucide-react";
+import { CreditCard, FileMinus, Plus, Wallet, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -19,16 +11,11 @@ import { formatMoney } from "@/lib/format";
 import type { Txn } from "@/lib/finance/transactions";
 
 import { AddonManager } from "./AddonManager";
-import { hostInitiatedRefundAction } from "../../refunds/actions";
 import {
   applyGuestCreditAction,
   issueBookingCreditNoteAction,
-  markPaymentReceivedAction,
   recordBookingPaymentAction,
 } from "./payment-actions";
-
-// Inbound payment kinds that can be refunded / credited after the fact.
-const INBOUND_KINDS = ["deposit", "balance", "addon", "payment"];
 
 export function PaymentsManager({
   bookingId,
@@ -103,27 +90,6 @@ export function PaymentsManager({
     });
   }
 
-  function markReceived(id: string, label: string, amt: number) {
-    start(async () => {
-      const ok = await modal.confirm({
-        title: "Mark as received?",
-        description: `Confirm the ${label.toLowerCase()} of ${formatMoney(
-          amt,
-          currency,
-        )} reflects in your account. This updates the balance and confirms the booking if it's the first payment.`,
-        confirmLabel: "Yes, mark received",
-      });
-      if (!ok) return;
-      const r = await markPaymentReceivedAction(id);
-      if (r.ok) {
-        toast.success("Payment marked received.");
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
-    });
-  }
-
   function applyCredit() {
     const usable = Math.min(guestCredit, balanceDue);
     start(async () => {
@@ -180,99 +146,6 @@ export function PaymentsManager({
     });
   }
 
-  function refundOne(amt: number, label: string) {
-    start(async () => {
-      const ok = await modal.destructive({
-        title: "Refund this payment?",
-        description: `Record a ${formatMoney(amt, currency)} refund for the ${label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
-        confirmLabel: "Refund payment",
-      });
-      if (!ok) return;
-      const r = await hostInitiatedRefundAction({
-        bookingId,
-        amount: amt,
-        method: "eft",
-        reason: `Refund of ${label.toLowerCase()}`,
-      });
-      if (r.ok) {
-        toast.success("Refund recorded.");
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
-    });
-  }
-
-  function creditOne(amt: number, label: string) {
-    start(async () => {
-      const ok = await modal.confirm({
-        title: "Credit this payment?",
-        description: `Issue a ${formatMoney(amt, currency)} credit note for the ${label.toLowerCase()} — added to the guest's store credit to spend later (no cash returned).`,
-        confirmLabel: "Issue credit note",
-      });
-      if (!ok) return;
-      const r = await issueBookingCreditNoteAction({
-        bookingId,
-        amount: amt,
-        reason: `Credit of ${label.toLowerCase()}`,
-      });
-      if (r.ok) {
-        toast.success("Credit note issued.");
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
-    });
-  }
-
-  // Per-row controls injected into the shared ledger: settle a pending EFT, or
-  // refund / credit a settled inbound payment.
-  function rowActions(e: Txn) {
-    if (!canRecord) return null;
-    if (e.pending && e.method === "eft" && e.paymentId) {
-      return (
-        <button
-          type="button"
-          onClick={() => markReceived(e.paymentId!, e.label, e.amount)}
-          disabled={pending}
-          className="inline-flex items-center gap-1 rounded border border-brand-primary bg-brand-primary px-2 py-1 text-[11px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
-        >
-          <Check className="h-3 w-3" /> Received
-        </button>
-      );
-    }
-    if (
-      !e.pending &&
-      e.status === "completed" &&
-      e.kind &&
-      INBOUND_KINDS.includes(e.kind)
-    ) {
-      return (
-        <span className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => refundOne(e.amount, e.label)}
-            disabled={pending}
-            title="Refund this payment"
-            className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => creditOne(e.amount, e.label)}
-            disabled={pending}
-            title="Credit this payment to store credit"
-            className="flex h-7 w-7 items-center justify-center rounded-pill text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
-          >
-            <FileMinus className="h-3.5 w-3.5" />
-          </button>
-        </span>
-      );
-    }
-    return null;
-  }
-
   return (
     <div className="space-y-5">
       {/* money summary */}
@@ -313,7 +186,7 @@ export function PaymentsManager({
         showGuest={false}
         minWidth={720}
         emptyLabel="No transactions yet."
-        rowActions={rowActions}
+        canManage={canRecord}
       />
 
       {/* actions */}

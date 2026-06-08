@@ -173,7 +173,7 @@ export function LedgerBoard({
       </div>
 
       {/* Table — the shared canonical ledger rows */}
-      <LedgerList entries={rows} />
+      <LedgerList entries={rows} canManage />
       <p className="mt-3 text-[11.5px] text-brand-mute">
         Showing {rows.length} of {entries.length} transactions · Balance shows
         what each guest owes you (or their credit) after that entry.
