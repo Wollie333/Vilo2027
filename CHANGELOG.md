@@ -64,7 +64,7 @@ Copy this template and fill it in at the end of every session:
 - `20260608000005_booking_pay_token.sql` — `bookings.pay_token`
   (`gen_url_token()`, unique). **Applied to the linked remote**; types regenerated.
 - `20260608000006_help_payment_links.sql` — host help article
-  `send-a-payment-link` (payments category). _Not yet pushed._
+  `send-a-payment-link` (payments category). Applied to the linked remote.
 
 ### Notes
 - New guardrails: **AGENT_RULES §4.7** (wire into the ledger — never fork the
@@ -76,7 +76,9 @@ Copy this template and fill it in at the end of every session:
   (needs conversation lookup/creation; Copy/WhatsApp/Email cover resend today).
 
 ### Commit
-- `feat(payments): shareable pay-now link (/pay/[token]) + host share UI` — pending
+- `fix(payments): route guest card payments to the host's own Paystack account` — `8a83d31`
+- `migration: add bookings.pay_token for the public pay-now link` — `d6cffe3`
+- `feat(payments): shareable pay-now link (/pay/[token]) + host share UI` — `3cd1134`
 
 ---
 

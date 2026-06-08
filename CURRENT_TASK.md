@@ -2,10 +2,39 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Next task:** **Booking Redesign** — simplified guest booking.
+**Active focus:** **Finances are the spine** — bookings → payments → ledger →
+invoices must be airtight, and everything wires into one money engine.
+
+## ✅ Done this session (2026-06-08)
+- **Booking-flow follow-ups** — live per-room availability + whole-place toggle
+  (`b063d76`).
+- **Host-Paystack spine fix** — guest card payments now charge the **host's own**
+  connected Paystack (not the platform key); success-page verify uses the host
+  key. `getHostPaystack` is the SSOT (`8a83d31`).
+- **Pay-now link** — `bookings.pay_token` + public **`/pay/[token]`** page (card
+  on host Paystack or EFT) + host **Payment link** card (Copy / WhatsApp /
+  Email) on the Payments tab. Shared `startBookingPayment` core
+  (`d6cffe3`, `3cd1134`). Help article `send-a-payment-link` applied.
+- **Guardrails added** — AGENT_RULES **§4.7** (wire into the ledger, never fork
+  the maths) + **§4.8** (booking card → host gateway). See
+  `[[feedback_ledger_single_source_of_truth]]`.
+
+## ▶ Next
+1. **Test bookings end-to-end** with the host's connected Paystack test account
+   (guest checkout card path + the `/pay/[token]` link). Founder-driven.
+2. **Pay-link in the guest message thread** — deferred fast-follow (needs
+   conversation lookup/creation; Copy/WhatsApp/Email cover resend today).
+3. **Single-source-of-truth consolidation pass** (founder request) — factor
+   duplicated functions into shared modules and reuse, *only when necessary*.
+   Scope with the founder before broad refactors (parallel-agent risk).
+
+---
+
+<details><summary>Previous task — Booking Redesign — COMPLETE</summary>
+
 **Plan:** see **`BOOKING_REDESIGN_PLAN.md`** (repo root) — full, buildable, phased.
 **Designs:** `C:\Users\Wollie\Downloads\Listing 3.0.html` (listing) +
-`C:\Users\Wollie\Downloads\Booking Flow.html` (checkout) — match exactly.
+`C:\Users\Wollie\Downloads\Booking Flow.html` (checkout).
 
 ## Start here
 1. Read `BOOKING_REDESIGN_PLAN.md` end-to-end.
@@ -17,6 +46,8 @@
 > Goal: listing page is **display-only** with **two CTAs** — **Reserve**
 > (→ self-contained 3-step Rooms→Details→Payment flow) and **Request a quote**
 > (→ existing modal). Guests cannot select rooms or book on the listing itself.
+
+</details>
 
 <details><summary>Previous task — Guest Record (CRM) — COMPLETE</summary>
 
