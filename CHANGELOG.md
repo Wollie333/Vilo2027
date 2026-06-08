@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Fix/UX — Checkout availability messaging + host attribution — branch `main`
+
+### Verified (no code bug)
+- Per-room availability already works correctly: a confirmed booking blocks ONLY
+  the booked room (`blocked_dates.room_id` set), so two rooms can be booked on
+  the same dates by different guests. Only confirmed (paid) bookings + quote
+  soft-holds write blocks — pending/unpaid bookings never close a room.
+  (`BK-0007` proved it: only "rrom 1" is blocked; `room_is_available(Room 2)` =
+  true.) The "Lone Creek" confusion was a `whole_listing`-mode listing where one
+  occupied room correctly makes the *whole place* unavailable.
+
+### Fixed (UX)
+- The whole-place card no longer says "Not available — try different ones" when
+  rooms are still free; it now says "The whole place is taken — but you can
+  still book an available room below" (amber, not red) when `anyRoomAvailable`.
+- Rooms step now shows a plain-language reason under the disabled Continue
+  button (pick dates / select an available room / no rooms for these dates /
+  whole place booked), on desktop + mobile — so the guest always knows why they
+  can't proceed.
+
+### Changed
+- Removed the redundant top "You're booking at …" listing hero card. The summary
+  card now leads with **"You're booking with {host}"** + host avatar (fetched in
+  page.tsx and threaded as `hostName`/`hostAvatarUrl`).
+
+---
+
 ## 2026-06-08 — Fix — Guest checkout step 3 (payment) bugs — branch `main`
 
 ### Fixed

@@ -3,7 +3,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   BedDouble,
   Building2,
   Check,
@@ -13,14 +12,12 @@ import {
   Loader2,
   Lock,
   Mail,
-  MapPin,
   Minus,
   Moon,
   PackagePlus,
   Percent,
   Plus,
   ShieldCheck,
-  Star,
   Trash2,
   User as UserIcon,
   UserPlus,
@@ -181,12 +178,12 @@ export function BookingForm({
   listingId,
   listingSlug,
   listingName,
+  hostName,
+  hostAvatarUrl,
   listingTypeLabel,
   listingCity,
   listingProvince,
   coverImageUrl,
-  ratingValue,
-  reviewCount,
   basePrice,
   weekendPrice: listingWeekendPrice,
   cleaningFee,
@@ -223,12 +220,12 @@ export function BookingForm({
   listingId: string;
   listingSlug: string;
   listingName: string;
+  hostName: string | null;
+  hostAvatarUrl: string | null;
   listingTypeLabel: string;
   listingCity: string | null;
   listingProvince: string | null;
   coverImageUrl: string | null;
-  ratingValue: number | null;
-  reviewCount: number | null;
   basePrice: number;
   weekendPrice: number | null;
   cleaningFee: number;
@@ -317,6 +314,11 @@ export function BookingForm({
   const roomAvailable = (roomId: string) =>
     availability?.rooms[roomId] !== false;
   const wholeAvailable = availability?.whole !== false;
+  // The whole place can be unavailable (a room is taken) while individual rooms
+  // are still free — they book independently. Used to keep the "whole place
+  // unavailable" notice from implying the dates are fully gone.
+  const anyRoomAvailable =
+    allRooms.length > 0 && allRooms.some((r) => roomAvailable(r.id));
   // Party split for age-based pricing (children/infants/pets priced separately).
   const [childrenCount, setChildrenCount] = useState(0);
   const [infantsCount, setInfantsCount] = useState(0);
@@ -741,6 +743,17 @@ export function BookingForm({
   // Step 1 can't advance until dates are valid, a room (or whole place) is
   // chosen, and that choice is actually available for the dates.
   const step0Blocked = !datesValid || needsRoom || (isWhole && !wholeAvailable);
+  // A plain-language reason for the disabled Continue, shown on the rooms step
+  // so the guest always knows why they can't move on.
+  const step0Reason: string | null = !datesValid
+    ? "Choose your check-in and check-out dates to continue."
+    : isWhole && !wholeAvailable
+      ? "The whole place is booked for these dates — pick other dates or book an available room."
+      : needsRoom
+        ? anyRoomAvailable
+          ? "Select an available room to continue."
+          : "No rooms are available for these dates — try different dates."
+        : null;
 
   const locationLine = [listingCity, listingProvince]
     .filter(Boolean)
@@ -1232,10 +1245,17 @@ export function BookingForm({
             </div>
           </div>
           {datesValid && !wholeAvailable ? (
-            <div className="mx-5 mb-5 inline-flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-              <Info className="h-4 w-4" /> Not available for these dates — try
-              different ones.
-            </div>
+            anyRoomAvailable ? (
+              <div className="mx-5 mb-5 inline-flex items-center gap-2 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                <Info className="h-4 w-4" /> The whole place is taken for these
+                dates — but you can still book an available room below.
+              </div>
+            ) : (
+              <div className="mx-5 mb-5 inline-flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                <Info className="h-4 w-4" /> Not available for these dates — try
+                different ones.
+              </div>
+            )
           ) : null}
         </section>
       )}
@@ -2131,63 +2151,6 @@ export function BookingForm({
         </div>
       </section>
 
-      {/* Listing hero */}
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="grid sm:grid-cols-[200px_1fr] md:grid-cols-[260px_1fr]">
-          <div className="relative h-32 overflow-hidden sm:h-auto sm:min-h-[140px]">
-            {coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={coverImageUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0 bg-brand-gradient-dark" />
-            )}
-            {instantBooking ? (
-              <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-pill bg-white/95 px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary shadow-card backdrop-blur">
-                <Zap className="h-3 w-3" /> Instant Book
-              </span>
-            ) : null}
-          </div>
-          <div className="flex flex-col justify-center p-4 sm:p-5">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-              <MapPin className="h-3 w-3" />
-              {locationLine
-                ? `${listingTypeLabel} · ${locationLine}`
-                : listingTypeLabel}
-            </div>
-            <h1 className="mt-1 font-display text-xl font-bold tracking-tight text-brand-ink sm:text-2xl">
-              You&rsquo;re booking at{" "}
-              <span className="text-brand-secondary">{listingName}</span>
-            </h1>
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-brand-mute">
-              {ratingValue != null ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
-                  <span className="font-semibold text-brand-ink">
-                    {ratingValue.toFixed(2)}
-                  </span>{" "}
-                  · {reviewCount ?? 0}{" "}
-                  {(reviewCount ?? 0) === 1 ? "review" : "reviews"}
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1.5">
-                <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
-                Verified host
-              </span>
-              {allRooms.length > 0 ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <BedDouble className="h-3.5 w-3.5" />
-                  {allRooms.length} {allRooms.length === 1 ? "room" : "rooms"}
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      </section>
-
       <form
         onSubmit={(e) => {
           // The form never charges on submit. Enter on steps 1–2 just advances
@@ -2270,6 +2233,32 @@ export function BookingForm({
             </div>
 
             <div className="relative p-5">
+              {/* You're booking with — host attribution */}
+              {hostName ? (
+                <div className="mb-4 flex items-center gap-2.5 border-b border-white/10 pb-4">
+                  {hostAvatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={hostAvatarUrl}
+                      alt=""
+                      className="h-9 w-9 shrink-0 rounded-pill object-cover ring-2 ring-white/15"
+                    />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-white/10 text-[12px] font-bold text-emerald-200 ring-2 ring-white/15">
+                      {hostName.trim().charAt(0).toUpperCase() || "H"}
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-medium uppercase tracking-wider text-white/50">
+                      You&rsquo;re booking with
+                    </div>
+                    <div className="truncate text-[13.5px] font-semibold text-white">
+                      {hostName}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {/* date rail */}
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-card border border-white/10 bg-white/[0.06] p-3">
                 <div>
@@ -2533,6 +2522,14 @@ export function BookingForm({
                 </button>
               )}
 
+              {/* Why you can't continue yet (rooms step) */}
+              {step === 0 && step0Reason ? (
+                <div className="mt-2.5 flex items-start gap-1.5 rounded border border-amber-300/40 bg-amber-400/10 px-3 py-2 text-[11.5px] leading-relaxed text-amber-100">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+                  {step0Reason}
+                </div>
+              ) : null}
+
               {/* refund / safety strip */}
               <div className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
@@ -2555,6 +2552,12 @@ export function BookingForm({
 
         {/* ── Mobile sticky action bar ────────────────────────────── */}
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-line bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+          {step === 0 && step0Reason ? (
+            <div className="mx-auto mb-2 flex max-w-3xl items-start gap-1.5 rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] leading-snug text-amber-800">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+              {step0Reason}
+            </div>
+          ) : null}
           <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="font-display text-base font-bold text-brand-ink">

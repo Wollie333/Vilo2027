@@ -259,6 +259,13 @@ export default async function BookingPage({
   // booking action enforces the same predicate server-side.
   const hasPaystack = !!(await getHostPaystack(listing.host_id));
 
+  // Host identity for the "You're booking with …" attribution in the summary.
+  const { data: hostRow } = await supabase
+    .from("hosts")
+    .select("display_name, avatar_url")
+    .eq("id", listing.host_id)
+    .maybeSingle();
+
   // Prefill contact for a signed-in guest.
   let guestName = "";
   let guestPhone = "";
@@ -357,14 +364,12 @@ export default async function BookingPage({
           listingId={listing.id}
           listingSlug={params.slug}
           listingName={listing.name}
+          hostName={hostRow?.display_name ?? null}
+          hostAvatarUrl={hostRow?.avatar_url ?? null}
           listingTypeLabel={listingTypeLabel}
           listingCity={listing.city}
           listingProvince={listing.province}
           coverImageUrl={coverImageUrl}
-          ratingValue={
-            listing.avg_rating == null ? null : Number(listing.avg_rating)
-          }
-          reviewCount={listing.total_reviews ?? null}
           basePrice={Number(listing.base_price ?? 0)}
           weekendPrice={
             listing.weekend_price == null ? null : Number(listing.weekend_price)
