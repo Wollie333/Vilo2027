@@ -95,6 +95,18 @@ spine.**
 ### 3f. Payment method + provider reference  (✅ BUILT)
 - Record payment & issue refund capture method (EFT/Paystack/PayPal) + a reference/transaction id → `payments.provider_reference` / `refund_requests.provider_refund_id`. Shown under the ledger row. Card webhooks will auto-fill the id when live.
 
+### 3g. Card payments auto-record (Paystack/PayPal)  (design done; wiring deferred)
+**Principle: a guest paying by card must land in the ledger automatically — the
+host never re-enters provider payments.** The mechanism (already partly built):
+1. At checkout, create a PENDING `payments` row with `method` + `provider_reference` (the provider's txn id).
+2. The provider webhook flips it to `completed`. `supabase/functions/paystack-webhook` already does this — verifies HMAC SHA-512, idempotent via the `provider_reference` UNIQUE constraint, on `charge.success` sets the payment completed + confirms the booking.
+3. The ledger reads completed payments from the spine → it appears automatically, tagged with the provider id (§3f display). **No host action.**
+
+**Remaining to go live (deferred — no card checkout yet):**
+- **Checkout initiation** — create the pending card payment + redirect to Paystack/PayPal (guest booking flow is EFT-only today).
+- **PayPal webhook** — only Paystack exists; PayPal needs its own verified webhook (Verification API).
+- **Webhook must recompute** — the Paystack webhook flips status directly but does NOT call `recomputeBookingPaymentState`, so `balance_due` + overpayment→store-credit won't reconcile on a card payment. Add a Postgres RPC (`recompute_booking_payment_state(booking_id)`) the Edge Function (Deno) can call, then invoke it after marking the payment completed.
+
 ---
 
 ## 4. Invariants future agents must preserve
