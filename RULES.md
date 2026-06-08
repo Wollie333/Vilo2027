@@ -55,6 +55,17 @@ The following DB triggers already run automatically — never duplicate them:
 
 ## 3. Use the Least Code Possible
 
+### Single source of truth — one canonical home per concept
+**Every distinct piece of logic lives in exactly ONE place, and everywhere else reuses it.** This is a standing platform principle, not a nice-to-have: the goal is less code, one place to manage each function, and no behaviour that can silently drift between two copies.
+
+- **Before writing logic, search for it.** If a function, predicate, query, type, or constant already exists, import and reuse it — never paste a second copy or re-derive it inline. (The best code is no code.)
+- **If it doesn't exist yet and will be used by more than one caller, give it ONE home** — a shared module (`lib/…`), a DB function/trigger, a shared package (`packages/…`), or a single component — and have every caller funnel through it.
+- **When a shared thing is missing a case, EXTEND the canonical module** (add to it). Do **not** fork it, wrap it with a divergent copy, or compute the same result a different way somewhere else.
+- **Money is the spine — never fork it.** All booking-money state flows through the ledger (`lib/payments/ledger.ts`); all "pay an existing booking" through `startBookingPayment` (`lib/payments/pay-booking.ts`); host card credentials through `getHostPaystack` (`lib/payments/host-paystack.ts`); host EFT validity through `hostHasValidEft` (`lib/payments/eft.ts`); pricing through `priceStay` (`lib/pricing`). See `AGENT_RULES.md` §4.7–§4.8. These are examples of the rule, not exceptions to it.
+- **Consolidate when you touch duplication.** If you find the same logic in two places, unify it in the same commit and point both at the one home — leave the codebase with fewer copies than you found it.
+
+> **The one guardrail (don't over-correct):** reuse what genuinely *is* the same concept — don't force unrelated code to share a function just because it looks similar, and don't pre-abstract a pattern you've only seen once (see *Prefer composition over abstraction* below). Consolidate real duplication and canonical domain logic; resist speculative abstraction.
+
 ### Solve the problem with the minimum viable code
 Before writing a new function, ask: does this already exist in the codebase, in a shared package, or as a DB function? The best code is no code.
 
