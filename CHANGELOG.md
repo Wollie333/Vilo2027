@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Feature — Shared Messages tab on the booking record — branch `main`
+
+### Built
+- Extracted the guest record's message panel into one shared component
+  `components/messages/GuestMessagesPanel.tsx` (carries `MessageItem` /
+  `TemplateItem`). The Guest CRM record now imports it instead of its own copy.
+- Added a **Messages** tab to the booking detail page (`BookingDetail.tsx`)
+  rendering that same component, bound to the SAME host↔guest conversation the
+  guest record resolves (match by `guest_id` OR same-email profile → most recent
+  `conversations` row). Messaging a guest from a booking and from their CRM
+  record is now literally one thread — no per-booking fork.
+
+### Changed
+- `GuestRecord.tsx` re-exports `MessageItem` / `TemplateItem` from the shared
+  component so its `page.tsx` import is unchanged; dropped the local
+  `MessagesPanel` + `applyTemplate` + the `Sparkles` / `sendMessageAction`
+  imports they owned.
+
+### Notes
+- Follow-up (not done): when a guest has no conversation yet (e.g. a direct
+  booking that was never messaged), both tabs show the empty state with no
+  composer — same as before. Starting a thread from the booking needs a
+  conversation-create affordance on the shared component; deferred pending a
+  decision on how the new conversation is keyed.
+
+---
+
 ## 2026-06-08 — Fix — Paid bookings stuck `pending` (invoice trigger 42703) — branch `main`
 
 ### Built / Fixed

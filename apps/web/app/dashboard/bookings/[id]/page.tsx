@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import {
+  type MessageItem,
+  type TemplateItem,
+} from "@/components/messages/GuestMessagesPanel";
 import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
@@ -479,9 +483,66 @@ export default async function BookingDetailPage({
   push(booking.confirmed_at, "Booking confirmed", "primary");
   push(booking.created_at, "Booking created", "mute", channel.label);
 
+  // ── Guest conversation thread (the SAME thread as the guest record) ──
+  // Resolve it exactly like the guest CRM record: match the booking's guest by
+  // id OR any profile sharing their email, then surface that host↔guest
+  // conversation. So the Messages tab here and on the guest record are one
+  // thread, not a per-booking fork.
+  const {
+    data: { user: me },
+  } = await supabase.auth.getUser();
+  let conversationId: string | null = null;
+  let messages: MessageItem[] = [];
+  const guestUserIds = new Set<string>();
+  if (booking.guest_id) guestUserIds.add(booking.guest_id);
+  const guestEmailForThread = guest.email ?? booking.guest_email;
+  if (guestEmailForThread) {
+    const { data: sameEmail } = await supabase
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", guestEmailForThread);
+    for (const p of sameEmail ?? []) guestUserIds.add(p.id);
+  }
+  if (guestUserIds.size > 0) {
+    const { data: conv } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("host_id", booking.host_id)
+      .in("guest_id", [...guestUserIds])
+      .order("last_message_at", { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle();
+    if (conv) {
+      conversationId = conv.id;
+      const { data: msgs } = await supabase
+        .from("messages")
+        .select("id, body, sender_id, created_at, is_system_message")
+        .eq("conversation_id", conv.id)
+        .order("created_at", { ascending: true })
+        .limit(200);
+      messages = (msgs ?? [])
+        .filter((m) => !m.is_system_message && m.body)
+        .map((m) => ({
+          id: m.id,
+          body: m.body ?? "",
+          mine: m.sender_id === me?.id,
+          createdAt: m.created_at,
+        }));
+    }
+  }
+  const { data: templatesData } = await supabase
+    .from("message_templates")
+    .select("id, title, body")
+    .eq("host_id", booking.host_id)
+    .order("sort_order");
+  const templates: TemplateItem[] = (templatesData ?? []) as TemplateItem[];
+
   const data: BookingDetailData = {
     id: booking.id,
     reference: booking.reference,
+    conversationId,
+    messages,
+    templates,
     status,
     statusLabel: meta.label,
     statusTone: meta.tone,

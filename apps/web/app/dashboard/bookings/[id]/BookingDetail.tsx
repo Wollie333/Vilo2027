@@ -32,6 +32,11 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import {
+  GuestMessagesPanel,
+  type MessageItem,
+  type TemplateItem,
+} from "@/components/messages/GuestMessagesPanel";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
@@ -51,6 +56,11 @@ export type BookingTimelineItem = {
 export type BookingDetailData = {
   id: string;
   reference: string;
+  /** The host↔guest conversation shown on the Messages tab — the SAME thread as
+   * the guest record's Messages tab (null until a conversation exists). */
+  conversationId: string | null;
+  messages: MessageItem[];
+  templates: TemplateItem[];
   status: string;
   statusLabel: string;
   statusTone: "confirmed" | "pending" | "cancelled" | "completed" | "inhouse";
@@ -226,6 +236,7 @@ const TABS = [
   { key: "payments", label: "Payments" },
   { key: "arrivals", label: "Arrivals" },
   { key: "guest", label: "Guest" },
+  { key: "messages", label: "Messages" },
   { key: "activity", label: "Activity" },
   { key: "notes", label: "Notes" },
 ] as const;
@@ -529,6 +540,14 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
           <ArrivalsPanel d={d} />
         ) : tab === "guest" ? (
           <GuestPanel d={d} />
+        ) : tab === "messages" ? (
+          <GuestMessagesPanel
+            firstName={(d.guestName || "guest").split(/\s+/)[0]}
+            messages={d.messages}
+            conversationId={d.conversationId}
+            templates={d.templates}
+            isRegistered={d.guestRegistered}
+          />
         ) : tab === "activity" ? (
           <ActivityPanel d={d} />
         ) : (
