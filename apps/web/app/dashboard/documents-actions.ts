@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -76,5 +77,67 @@ export async function sendDocumentLinkAction(input: {
   if (error) return { ok: false, error: "Couldn't send the link." };
 
   revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
+/**
+ * Email a financial document's public link straight to the guest's email
+ * address (works even for account-less guests, unlike the inbox link). Host
+ * ownership verified; sends via the app's transactional email.
+ */
+export async function emailDocumentToGuestAction(input: {
+  bookingId: string;
+  url: string;
+  label: string;
+}): Promise<SendDocumentResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!host) return { ok: false, error: "No host profile." };
+
+  if (!/^https?:\/\//.test(input.url)) {
+    return { ok: false, error: "Invalid document link." };
+  }
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, host_id, guest_id, guest_name, guest_email")
+    .eq("id", input.bookingId)
+    .maybeSingle();
+  if (!booking || booking.host_id !== host.id) {
+    return { ok: false, error: "Not your booking." };
+  }
+
+  let to = booking.guest_email ?? null;
+  if (!to && booking.guest_id) {
+    const { data: gp } = await admin
+      .from("user_profiles")
+      .select("email")
+      .eq("id", booking.guest_id)
+      .maybeSingle();
+    to = gp?.email ?? null;
+  }
+  if (!to) {
+    return { ok: false, error: "This guest has no email on file." };
+  }
+
+  const name = (booking.guest_name ?? "there").split(" ")[0] || "there";
+  const res = await sendTransactionalEmail({
+    to,
+    subject: `Your ${input.label}`,
+    html: `<p>Hi ${name},</p><p>Here's your ${input.label}:</p><p><a href="${input.url}">${input.url}</a></p><p>Thank you for booking direct.</p>`,
+  });
+  if (!res.ok) {
+    return { ok: false, error: res.error ?? "Couldn't send the email." };
+  }
   return { ok: true };
 }

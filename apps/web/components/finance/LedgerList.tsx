@@ -4,10 +4,13 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  CreditCard,
   Download,
   FileMinus,
   FileText,
+  Mail,
   MoreHorizontal,
+  Plus,
   RotateCcw,
   ScrollText,
   Send,
@@ -18,18 +21,18 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
+import { markPaymentReceivedAction } from "@/app/dashboard/bookings/[id]/payment-actions";
 import {
-  issueBookingCreditNoteAction,
-  markPaymentReceivedAction,
-} from "@/app/dashboard/bookings/[id]/payment-actions";
-import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
-import { hostInitiatedRefundAction } from "@/app/dashboard/refunds/actions";
+  emailDocumentToGuestAction,
+  sendDocumentLinkAction,
+} from "@/app/dashboard/documents-actions";
+import {
+  TxnActionModal,
+  type TxnActionMode,
+} from "@/components/finance/TxnActionModal";
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 import type { Txn, TxnCategory, TxnType } from "@/lib/finance/transactions";
-
-// Inbound payment kinds that can be refunded / credited after settling.
-const INBOUND_KINDS = ["deposit", "balance", "addon", "payment"];
 
 // The canonical transaction row. The account-wide Ledger, the per-guest
 // Finances tab and the per-booking Payments tab all render with this exact
@@ -74,6 +77,9 @@ const CATEGORY_TAG: Record<TxnCategory, { label: string; cls: string }> = {
   },
   refund: { label: "Refund", cls: "border-red-200 bg-red-50 text-red-600" },
 };
+
+const MENU_ITEM =
+  "flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light first:border-t-0 disabled:opacity-50";
 
 function fmtDate(iso: string): string {
   return new Intl.DateTimeFormat("en-ZA", {
@@ -125,6 +131,11 @@ export function LedgerList({
   const [menu, setMenu] = useState<{ entry: Txn; x: number; y: number } | null>(
     null,
   );
+  // The booking-level money action modal (record / refund / credit / charge).
+  const [action, setAction] = useState<{
+    mode: TxnActionMode;
+    entry: Txn;
+  } | null>(null);
 
   useEffect(() => {
     if (!menu) return;
@@ -217,80 +228,43 @@ export function LedgerList({
     });
   }
 
-  function refundOne(e: Txn) {
+  // Email the document's public link straight to the guest's email address.
+  function emailToGuest(e: Txn) {
     setMenu(null);
-    if (!e.bookingId) return;
+    if (!e.bookingId || !e.doc?.viewPath) {
+      toast.error("This entry has no document to email.");
+      return;
+    }
+    const url = `${window.location.origin}${e.doc.viewPath}`;
     start(async () => {
-      const ok = await modal.destructive({
-        title: "Refund this payment?",
-        description: `Record a ${formatMoney(e.amount, e.currency)} refund for the ${e.label.toLowerCase()} (money returned to the guest by EFT). This can't be undone.`,
-        confirmLabel: "Refund payment",
-      });
-      if (!ok) return;
-      const r = await hostInitiatedRefundAction({
+      const r = await emailDocumentToGuestAction({
         bookingId: e.bookingId!,
-        amount: e.amount,
-        method: "eft",
-        reason: `Refund of ${e.label.toLowerCase()}`,
+        url,
+        label: `${e.doc!.kind.replace(/_/g, " ")} ${e.doc!.number}`,
       });
-      if (r.ok) {
-        toast.success("Refund recorded.");
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
+      if (r.ok) toast.success("Emailed to the guest.");
+      else toast.error(r.error);
     });
   }
 
-  // Issue a credit note against the entry — works for a settled payment (refund
-  // as store credit) OR a charge/invoice (credit the invoice). Both reduce what
-  // the guest nets-owes and add to their store credit; no cash leaves.
-  function issueCredit(e: Txn) {
+  // Booking-level money actions open a modal scoped to the row's booking, with
+  // the amount pre-filled from the row where it makes sense.
+  function openAction(mode: TxnActionMode, e: Txn) {
     setMenu(null);
     if (!e.bookingId) return;
-    const subject = (e.note ?? e.label).toLowerCase();
-    start(async () => {
-      const ok = await modal.confirm({
-        title: "Issue a credit note?",
-        description: `Issue a ${formatMoney(e.amount, e.currency)} credit note for the ${subject} — it credits this booking and adds the amount to the guest's store credit to spend later (no cash returned).`,
-        confirmLabel: "Issue credit note",
-      });
-      if (!ok) return;
-      const r = await issueBookingCreditNoteAction({
-        bookingId: e.bookingId!,
-        amount: e.amount,
-        reason: `Credit of ${subject}`,
-      });
-      if (r.ok) {
-        toast.success("Credit note issued.");
-        router.refresh();
-      } else {
-        toast.error(r.error);
-      }
-    });
+    setAction({ mode, entry: e });
   }
 
-  // Which host-manage actions a given entry supports.
   function canSettle(e: Txn): boolean {
     return Boolean(canManage && e.pending && e.method === "eft" && e.paymentId);
   }
-  function isSettledInbound(e: Txn): boolean {
-    return Boolean(
-      !e.pending &&
-      e.status === "completed" &&
-      e.kind &&
-      INBOUND_KINDS.includes(e.kind),
-    );
+  // Record / refund / credit / add-charge apply to any transaction with a booking.
+  function canMoney(e: Txn): boolean {
+    return Boolean(canManage && e.bookingId);
   }
-  // Refund (cash back) applies to a settled inbound payment.
-  function canRefund(e: Txn): boolean {
-    return Boolean(canManage && e.bookingId && isSettledInbound(e));
-  }
-  // A credit note can be raised against a settled payment OR a charge/invoice.
-  function canCredit(e: Txn): boolean {
-    return Boolean(
-      canManage && e.bookingId && (isSettledInbound(e) || e.type === "charge"),
-    );
+  // Pre-fill the modal amount from the row for refund / credit (not record / charge).
+  function defaultAmountFor(mode: TxnActionMode, e: Txn): number | undefined {
+    return mode === "refund" || mode === "credit_note" ? e.amount : undefined;
   }
 
   const cols = 6 + (showGuest ? 1 : 0) + (showBalance ? 1 : 0);
@@ -476,12 +450,59 @@ export function LedgerList({
               }}
               onClick={(ev) => ev.stopPropagation()}
             >
+              {canMoney(menu.entry) ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openAction("record_payment", menu.entry)}
+                    className={MENU_ITEM}
+                  >
+                    <CreditCard className="h-3.5 w-3.5 text-brand-mute" />
+                    Record payment
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openAction("refund", menu.entry)}
+                    className={MENU_ITEM}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
+                    Issue refund
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openAction("credit_note", menu.entry)}
+                    className={MENU_ITEM}
+                  >
+                    <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
+                    Give credit note
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openAction("add_charge", menu.entry)}
+                    className={MENU_ITEM}
+                  >
+                    <Plus className="h-3.5 w-3.5 text-brand-mute" />
+                    Add a charge
+                  </button>
+                </>
+              ) : null}
+              {canSettle(menu.entry) ? (
+                <button
+                  type="button"
+                  onClick={() => markReceived(menu.entry)}
+                  disabled={pending}
+                  className={`${MENU_ITEM} font-medium text-brand-primary`}
+                >
+                  <Check className="h-3.5 w-3.5" />
+                  Mark as received
+                </button>
+              ) : null}
               {menu.entry.doc?.viewPath ? (
                 <Link
                   href={menu.entry.doc.viewPath}
                   target="_blank"
                   onClick={() => setMenu(null)}
-                  className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                  className={MENU_ITEM}
                 >
                   <FileText className="h-3.5 w-3.5 text-brand-mute" />
                   Open document
@@ -493,7 +514,7 @@ export function LedgerList({
                   target="_blank"
                   rel="noreferrer"
                   onClick={() => setMenu(null)}
-                  className="flex items-center gap-2 px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                  className={MENU_ITEM}
                 >
                   <Download className="h-3.5 w-3.5 text-brand-mute" />
                   Download document
@@ -504,61 +525,34 @@ export function LedgerList({
                   type="button"
                   onClick={() => sendLink(menu.entry)}
                   disabled={pending}
-                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                  className={MENU_ITEM}
                 >
                   <Send className="h-3.5 w-3.5 text-brand-mute" />
                   Send link to guest
+                </button>
+              ) : null}
+              {menu.entry.bookingId && menu.entry.doc?.viewPath ? (
+                <button
+                  type="button"
+                  onClick={() => emailToGuest(menu.entry)}
+                  disabled={pending}
+                  className={MENU_ITEM}
+                >
+                  <Mail className="h-3.5 w-3.5 text-brand-mute" />
+                  Email to guest
                 </button>
               ) : null}
               {menu.entry.bookingId ? (
                 <Link
                   href={`/dashboard/bookings/${menu.entry.bookingId}?tab=payments`}
                   onClick={() => setMenu(null)}
-                  className="flex items-center gap-2 border-t border-brand-line px-3 py-2 text-[12.5px] text-brand-ink transition hover:bg-brand-light"
+                  className={MENU_ITEM}
                 >
                   <ScrollText className="h-3.5 w-3.5 text-brand-mute" />
                   Open booking
                 </Link>
               ) : null}
-
-              {canSettle(menu.entry) ? (
-                <button
-                  type="button"
-                  onClick={() => markReceived(menu.entry)}
-                  disabled={pending}
-                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] font-medium text-brand-primary transition hover:bg-brand-light disabled:opacity-50"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Mark as received
-                </button>
-              ) : null}
-              {canRefund(menu.entry) ? (
-                <button
-                  type="button"
-                  onClick={() => refundOne(menu.entry)}
-                  disabled={pending}
-                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-red-50 disabled:opacity-50"
-                >
-                  <RotateCcw className="h-3.5 w-3.5 text-brand-mute" />
-                  Refund this payment
-                </button>
-              ) : null}
-              {canCredit(menu.entry) ? (
-                <button
-                  type="button"
-                  onClick={() => issueCredit(menu.entry)}
-                  disabled={pending}
-                  className="flex w-full items-center gap-2 border-t border-brand-line px-3 py-2 text-left text-[12.5px] text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                >
-                  <FileMinus className="h-3.5 w-3.5 text-brand-mute" />
-                  Issue credit note
-                </button>
-              ) : null}
-              {!menu.entry.doc &&
-              !menu.entry.bookingId &&
-              !canSettle(menu.entry) &&
-              !canRefund(menu.entry) &&
-              !canCredit(menu.entry) ? (
+              {!menu.entry.doc && !menu.entry.bookingId ? (
                 <div className="px-3 py-2 text-[12px] text-brand-mute">
                   No actions for this entry
                 </div>
@@ -567,6 +561,19 @@ export function LedgerList({
             document.body,
           )
         : null}
+
+      {action && action.entry.bookingId ? (
+        <TxnActionModal
+          open
+          onOpenChange={(v) => {
+            if (!v) setAction(null);
+          }}
+          mode={action.mode}
+          bookingId={action.entry.bookingId}
+          currency={action.entry.currency}
+          defaultAmount={defaultAmountFor(action.mode, action.entry)}
+        />
+      ) : null}
     </div>
   );
 }
