@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Feature — "Respond to quote request" framing + rich request card — branch `main`
+
+### Built
+- The quote editor stays the single source of truth (`QuoteForm`). When a quote
+  came from a guest's public request (`conversation_id` set), the edit page now
+  reframes as **"Respond to {guest}'s request"** (eyebrow + design subtitle,
+  back-to-inbox) and shows a redesigned **`QuoteRequestCard`** above the one
+  form — the only thing that differs between "new quote" and "respond".
+- `QuoteRequestCard` matches the supplied design: dark "Their request" header
+  with received-relative-time · via {listing}; guest avatar + stays/returning
+  chips; contact + last-stayed line; their message bubble; a 4-up grid (wants to
+  stay · dates · party · asked-about add-on); footer with calendar-open status
+  and an "Open full chat" deep link (`/dashboard/inbox?c=…`).
+- Edit page loads the real context: prior-stays count + last checkout, guest
+  avatar, requested room names + draft add-on labels, and a dates-open check
+  against `blocked_dates` (excluding this quote's own soft-hold).
+
+### Notes
+- No fork: `QuoteForm` (shared with New Quote) is untouched. The request card is
+  the sole respond-mode addition, per the single-source-of-truth rule.
+
+---
+
 ## 2026-06-08 — Feature — Start a conversation from the Messages tab — branch `main`
 
 ### Built

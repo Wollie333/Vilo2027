@@ -38,7 +38,7 @@ export default async function EditQuotePage({
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "id, listing_id, status, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
+      "id, listing_id, status, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -64,18 +64,81 @@ export default async function EditQuotePage({
 
   // If this quote came from a guest's public "Request a quote" enquiry (only
   // those carry a conversation_id), surface what they originally asked for —
-  // including their own message — as read-only context above the form. The
-  // message is the first non-system line the guest posted in the thread.
+  // their own message, who they are, the requested stay, party + add-ons — as
+  // read-only context above the form. This card is the ONLY thing that differs
+  // between "new quote" and "respond to a request".
+  const matchedListing = list.find((l) => l.id === quote.listing_id) ?? null;
   let requestCtx: QuoteRequestContext | null = null;
   if (quote.conversation_id) {
-    const { data: firstMsg } = await supabase
-      .from("messages")
-      .select("body")
-      .eq("conversation_id", quote.conversation_id)
-      .eq("is_system_message", false)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    const today = new Date().toISOString().slice(0, 10);
+    const guestMatch = quote.guest_id
+      ? `guest_id.eq.${quote.guest_id}`
+      : quote.guest_email
+        ? `guest_email.ilike.${quote.guest_email}`
+        : null;
+
+    const [
+      { data: firstMsg },
+      { data: priorBookings },
+      { data: gProfile },
+      { data: blocks },
+    ] = await Promise.all([
+      supabase
+        .from("messages")
+        .select("body")
+        .eq("conversation_id", quote.conversation_id)
+        .eq("is_system_message", false)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      // Prior stays with THIS host (stays count + most recent past checkout).
+      guestMatch
+        ? supabase
+            .from("bookings")
+            .select("check_out, status")
+            .eq("host_id", host.id)
+            .or(guestMatch)
+            .not(
+              "status",
+              "in",
+              "(cancelled_by_host,cancelled_by_guest,declined,expired)",
+            )
+        : Promise.resolve({
+            data: [] as { check_out: string; status: string }[],
+          }),
+      quote.guest_id
+        ? supabase
+            .from("user_profiles")
+            .select("avatar_url")
+            .eq("id", quote.guest_id)
+            .maybeSingle()
+        : Promise.resolve({
+            data: null as { avatar_url: string | null } | null,
+          }),
+      // Are the requested dates free? Any block in [check_in, check_out) that
+      // isn't this quote's own soft-hold means not fully open.
+      quote.check_in && quote.check_out
+        ? supabase
+            .from("blocked_dates")
+            .select("date")
+            .eq("listing_id", quote.listing_id)
+            .gte("date", quote.check_in)
+            .lt("date", quote.check_out)
+            .or(`quote_id.is.null,quote_id.neq.${quote.id}`)
+            .limit(1)
+        : Promise.resolve({ data: [] as { date: string }[] }),
+    ]);
+
+    const stayRows = (priorBookings ?? []) as {
+      check_out: string;
+      status: string;
+    }[];
+    const pastCheckouts = stayRows
+      .map((b) => b.check_out)
+      .filter((d) => d && d < today)
+      .sort();
+    const lastCheckout = pastCheckouts[pastCheckouts.length - 1] ?? null;
+
     const party =
       (quote.guests_breakdown as {
         adults?: number;
@@ -83,26 +146,50 @@ export default async function EditQuotePage({
         infants?: number;
         pets?: number;
       } | null) ?? null;
+
+    // Requested rooms → names; draft add-ons → "asked about" labels.
+    const roomNameById = new Map(
+      (matchedListing?.rooms ?? []).map((r) => [r.id, r.name]),
+    );
+    const roomNames = (qrooms ?? [])
+      .map((r) => roomNameById.get(r.room_id))
+      .filter((n): n is string => !!n);
+    const requestedAddonLabels = (qaddons ?? [])
+      .filter((a) => a.kind !== "age")
+      .map((a) => a.label)
+      .filter((l): l is string => !!l);
+
     requestCtx = {
       guestName: quote.guest_name,
+      guestEmail: quote.guest_email,
+      guestPhone: quote.guest_phone,
+      guestAvatarUrl: gProfile?.avatar_url ?? null,
+      stays: stayRows.length,
+      lastStayedLabel: lastCheckout
+        ? new Date(`${lastCheckout}T00:00:00`).toLocaleDateString("en-ZA", {
+            month: "short",
+            year: "numeric",
+          })
+        : null,
+      listingName: matchedListing?.name ?? null,
+      listingCity: matchedListing?.city ?? null,
+      roomNames,
       checkIn: quote.check_in,
       checkOut: quote.check_out,
       party,
       headcount: quote.headcount,
       scope: quote.scope,
-      roomCount: (qrooms ?? []).length,
+      requestedAddonLabels,
       message: firstMsg?.body?.trim() || null,
       requestedAt: quote.created_at,
+      datesOpen: (blocks ?? []).length === 0,
+      conversationId: quote.conversation_id,
     };
   }
 
   // Split saved add-ons: catalog lines (addon_id still in the listing's catalog)
   // rehydrate the picker; everything else is a custom line.
-  const catalogIds = new Set(
-    (list.find((l) => l.id === quote.listing_id)?.addons ?? []).map(
-      (a) => a.id,
-    ),
-  );
+  const catalogIds = new Set((matchedListing?.addons ?? []).map((a) => a.id));
   const catalogAddons: { addon_id: string; quantity: number }[] = [];
   const customAddons: {
     label: string;
@@ -166,23 +253,45 @@ export default async function EditQuotePage({
     customAddons,
   };
 
+  const firstName = quote.guest_name?.trim().split(/\s+/)[0] || "the guest";
+
   return (
     <div className="mx-auto max-w-[1280px]">
       <header className="mb-6">
         <Link
-          href={`/dashboard/quotes/${quote.id}`}
+          href={
+            requestCtx ? "/dashboard/inbox" : `/dashboard/quotes/${quote.id}`
+          }
           className="text-sm font-medium text-brand-mute hover:text-brand-primary"
         >
-          ← Back to quote
+          {requestCtx ? "← Back to inbox" : "← Back to quote"}
         </Link>
-        <h1 className="mt-1 font-display text-[30px] font-bold tracking-tight text-brand-ink">
-          Edit quote
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          {quote.status === "sent"
-            ? "This quote has already been sent — saving keeps a copy of the previous version and re-issues an updated PDF."
-            : "Make your changes and save the draft."}
-        </p>
+        {requestCtx ? (
+          <>
+            <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+              Quote request
+            </div>
+            <h1 className="mt-0.5 font-display text-[30px] font-bold tracking-tight text-brand-ink">
+              Respond to {firstName}&rsquo;s request
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-brand-mute">
+              {firstName} asked for a price — review what they want, then build
+              and send the quote. When they accept and pay, Vilo turns it into a
+              confirmed booking automatically.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-1 font-display text-[30px] font-bold tracking-tight text-brand-ink">
+              Edit quote
+            </h1>
+            <p className="mt-1 text-sm text-brand-mute">
+              {quote.status === "sent"
+                ? "This quote has already been sent — saving keeps a copy of the previous version and re-issues an updated PDF."
+                : "Make your changes and save the draft."}
+            </p>
+          </>
+        )}
       </header>
       {requestCtx ? (
         <div className="mb-6">
