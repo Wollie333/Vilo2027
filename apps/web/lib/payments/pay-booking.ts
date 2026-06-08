@@ -209,12 +209,21 @@ export async function confirmHostCardPaymentByReference(opts: {
 
   // Confirm the booking (pending → confirmed) so the invoice + date-blocking
   // triggers run. The invoice is created already-paid because payment_status is
-  // 'completed' by the time this fires.
-  await admin
+  // 'completed' by the time this fires. We MUST surface an error here: the
+  // confirm triggers (invoice mint, calendar block) run inside this UPDATE, and
+  // if one throws, Postgres rolls back ONLY this statement — leaving a paid
+  // booking stuck 'pending'. Swallowing it once hid a bad-column bug in the
+  // invoice trigger for a full release. Throw so the caller/page sees it.
+  const { error: confirmErr } = await admin
     .from("bookings")
     .update({ status: "confirmed", confirmed_at: new Date().toISOString() })
     .eq("id", opts.bookingId)
     .eq("status", "pending");
+  if (confirmErr) {
+    throw new Error(
+      `Payment captured but booking ${opts.bookingId} failed to confirm: ${confirmErr.message}`,
+    );
+  }
 
   return true;
 }

@@ -31,6 +31,39 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Fix — Paid bookings stuck `pending` (invoice trigger 42703) — branch `main`
+
+### Built / Fixed
+- **Root cause:** `on_booking_confirmed_create_invoice()` (regressed by
+  `20260606000012` + `20260607000006`) read host contact via
+  `SELECT * INTO v_host FROM hosts` → `v_host.contact_email`/`contact_phone`,
+  columns that don't exist on `hosts`. Every `pending → confirmed` flip raised
+  `42703 record "v_host" has no field "contact_email"`, rolling back **only**
+  the status UPDATE — so a Paystack-paid booking kept its `completed` payment +
+  settled ledger but stayed `pending` with no invoice, no calendar block, no
+  counter bump. (A guest test booking on Paystack test keys hit this.)
+- **Fix:** new migration restores the canonical snapshot — host email/phone from
+  `user_profiles` (via `hosts.user_id`), banking from `eft_banking_details`,
+  business from `host_business_details`, plus `booking_ref` — keeping the
+  post-regression VAT split, `kind = 'booking'`, and `source = 'quote'` add-on
+  filter. Snapshot shape now matches `invoice/[token]/pdf/route.ts`.
+- **App hardening:** `confirmHostCardPaymentByReference` now THROWS if the final
+  `→ confirmed` UPDATE errors instead of swallowing it — a paid-but-unconfirmed
+  booking must never masquerade as benign `pending` again.
+- Reconciled the stuck test booking `BK-LONECREEK-6EDD7-0007` → confirmed/paid,
+  invoice `INV-MANA-10355-00007` minted, dates 9–11 Jun blocked.
+
+### Migrations
+- `20260608000008_fix_invoice_host_snapshot_source.sql`
+
+### Notes
+- No `database.types.ts` regen — function-only change, no table/column reshape.
+- Activity-timeline "Manual booking" vs "Vilo direct" is driven correctly by
+  `bookings.origin` (`guest_request` → "Vilo direct"); 0007 is `guest_request`,
+  so it now reads "Vilo direct". No code change needed there.
+
+---
+
 ## 2026-06-08 — Refactor — Single-source-of-truth consolidation (payments/finance) — branch `main`
 
 ### Changed (no behaviour change unless noted)
