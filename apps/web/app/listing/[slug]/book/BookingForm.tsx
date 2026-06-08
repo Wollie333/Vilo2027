@@ -57,6 +57,7 @@ import {
   type StayAddon,
 } from "@/lib/pricing";
 import {
+  checkAvailabilityAction,
   createBookingAction,
   createCheckoutGuestAccountAction,
   validateCouponAction,
@@ -302,6 +303,18 @@ export function BookingForm({
     Boolean(dates.from && dates.to) && nights >= effectiveMinNights;
   const [wholeListing, setWholeListing] = useState(false);
   const [guestCount, setGuestCount] = useState(wholeGuests);
+
+  // ── Live availability for the chosen dates (step 1) ────────────
+  // null = not checked yet (treat everything as available). Mirrors the server
+  // RPCs; the booking action re-checks authoritatively at submit.
+  const [availability, setAvailability] = useState<{
+    whole: boolean;
+    rooms: Record<string, boolean>;
+  } | null>(null);
+  const [checkingAvail, setCheckingAvail] = useState(false);
+  const roomAvailable = (roomId: string) =>
+    availability?.rooms[roomId] !== false;
+  const wholeAvailable = availability?.whole !== false;
   // Party split for age-based pricing (children/infants/pets priced separately).
   const [childrenCount, setChildrenCount] = useState(0);
   const [infantsCount, setInfantsCount] = useState(0);
@@ -424,7 +437,45 @@ export function BookingForm({
     });
   }, [leadDays, availableAddons, nights]);
 
+  // Re-check availability whenever the (valid) date range changes. Small debounce
+  // so rapid date edits don't spam the server. The booking action re-checks.
+  useEffect(() => {
+    if (!datesValid) {
+      setAvailability(null);
+      return;
+    }
+    let cancelled = false;
+    setCheckingAvail(true);
+    const t = setTimeout(async () => {
+      const res = await checkAvailabilityAction({
+        listing_id: listingId,
+        check_in: dates.from,
+        check_out: dates.to,
+        room_ids: allRooms.map((r) => r.id),
+      });
+      if (cancelled) return;
+      setCheckingAvail(false);
+      if (res.ok) setAvailability({ whole: res.whole, rooms: res.rooms });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [datesValid, dates.from, dates.to, listingId, allRooms]);
+
+  // Drop any selected room (or whole-place) that just became unavailable so the
+  // summary, price and submit never include a date-blocked room.
+  useEffect(() => {
+    if (!availability) return;
+    setSelectedRoomIds((prev) => {
+      const next = prev.filter((id) => availability.rooms[id] !== false);
+      return next.length === prev.length ? prev : next;
+    });
+    if (wholeListing && !availability.whole) setWholeListing(false);
+  }, [availability, wholeListing]);
+
   function toggleRoom(roomId: string) {
+    if (!roomAvailable(roomId)) return;
     setSelectedRoomIds((prev) =>
       prev.includes(roomId)
         ? prev.filter((id) => id !== roomId)
@@ -681,6 +732,9 @@ export function BookingForm({
   const total = (breakdown?.total ?? 0) + ageExtras.total;
 
   const needsRoom = roomsMode && !wholeListing && selectedRooms.length === 0;
+  // Step 1 can't advance until dates are valid, a room (or whole place) is
+  // chosen, and that choice is actually available for the dates.
+  const step0Blocked = !datesValid || needsRoom || (isWhole && !wholeAvailable);
 
   const locationLine = [listingCity, listingProvince]
     .filter(Boolean)
@@ -706,6 +760,10 @@ export function BookingForm({
     }
     if (needsRoom) {
       toast.error("Select at least one room to continue.");
+      return false;
+    }
+    if (isWhole && !wholeAvailable) {
+      toast.error("These dates aren't available. Try different ones.");
       return false;
     }
     return true;
@@ -869,7 +927,7 @@ export function BookingForm({
       {/* Rooms / whole-place selection */}
       {roomsMode ? (
         <section className={cardLabel}>
-          <div className={`${sectionHead} flex-wrap`}>
+          <div className={sectionHead}>
             <div className="min-w-0">
               <div className="font-display font-semibold text-brand-ink">
                 Your rooms
@@ -884,24 +942,56 @@ export function BookingForm({
                       } selected`}
               </div>
             </div>
-            {bookingMode !== "rooms_only" && basePrice > 0 ? (
+          </div>
+
+          {/* Prominent whole-place toggle (design signature) */}
+          {bookingMode !== "rooms_only" && basePrice > 0 ? (
+            <div className="px-4 pt-4 sm:px-5">
               <button
                 type="button"
                 onClick={() => setWholeListing((v) => !v)}
-                disabled={isPending}
-                className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-semibold transition ${
+                disabled={isPending || (!wholeListing && !wholeAvailable)}
+                aria-pressed={wholeListing}
+                className={`flex w-full items-center gap-3 rounded-card border p-3.5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                   wholeListing
-                    ? "border border-brand-primary bg-brand-primary text-white"
-                    : "border border-brand-primary/30 bg-brand-accent text-brand-secondary hover:bg-brand-primary hover:text-white"
+                    ? "ck-selected border-brand-primary bg-brand-light/50"
+                    : "border-brand-line bg-white hover:border-brand-primary/50"
                 }`}
               >
-                <Home className="h-3.5 w-3.5" />
-                {wholeListing
-                  ? "Booking the whole place"
-                  : "Book the whole place"}
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-secondary">
+                  <Home className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-display font-semibold text-brand-ink">
+                    Book the whole place
+                  </div>
+                  <div className="text-xs text-brand-mute">
+                    All {allRooms.length}{" "}
+                    {allRooms.length === 1 ? "room" : "rooms"}
+                    {wholeListingDiscountPct && wholeListingDiscountPct > 0 ? (
+                      <>
+                        {" "}
+                        ·{" "}
+                        <span className="font-semibold text-brand-primary">
+                          save {wholeListingDiscountPct}%
+                        </span>
+                      </>
+                    ) : null}
+                    {!wholeAvailable ? " · unavailable for these dates" : ""}
+                  </div>
+                </div>
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition ${
+                    wholeListing
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-line bg-white"
+                  }`}
+                >
+                  {wholeListing ? <Check className="h-3.5 w-3.5" /> : null}
+                </span>
               </button>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
 
           {wholeListing ? (
             <div className="flex items-center gap-3 p-5">
@@ -930,20 +1020,27 @@ export function BookingForm({
                 const selected = selectedRoomIds.includes(r.id);
                 const nightly = roomNightly(r);
                 const g = guestsForRoom(r);
+                const available = roomAvailable(r.id);
                 return (
                   <div
                     key={r.id}
                     className={`overflow-hidden rounded-card border bg-white transition ${
-                      selected
-                        ? "ck-selected border-brand-primary"
-                        : "border-brand-line hover:border-brand-primary/50"
+                      !available
+                        ? "border-brand-line opacity-60"
+                        : selected
+                          ? "ck-selected border-brand-primary"
+                          : "border-brand-line hover:border-brand-primary/50"
                     }`}
                   >
                     <button
                       type="button"
                       onClick={() => toggleRoom(r.id)}
-                      disabled={isPending}
-                      className="flex w-full items-stretch gap-3 p-3 text-left transition hover:bg-brand-light/40 sm:gap-4 sm:p-4"
+                      disabled={isPending || !available}
+                      className={`flex w-full items-stretch gap-3 p-3 text-left transition sm:gap-4 sm:p-4 ${
+                        available
+                          ? "hover:bg-brand-light/40"
+                          : "cursor-not-allowed"
+                      }`}
                     >
                       {r.photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -971,15 +1068,21 @@ export function BookingForm({
                               Sleeps {r.maxGuests}
                             </div>
                           </div>
-                          <div
-                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
-                              selected
-                                ? "border-brand-primary bg-brand-primary text-white"
-                                : "border-brand-line bg-white"
-                            }`}
-                          >
-                            {selected ? <Check className="h-3 w-3" /> : null}
-                          </div>
+                          {available ? (
+                            <div
+                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition ${
+                                selected
+                                  ? "border-brand-primary bg-brand-primary text-white"
+                                  : "border-brand-line bg-white"
+                              }`}
+                            >
+                              {selected ? <Check className="h-3 w-3" /> : null}
+                            </div>
+                          ) : (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-pill bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-status-cancelled">
+                              Unavailable
+                            </span>
+                          )}
                         </div>
                         {r.features.length > 0 ? (
                           <div className="mt-2 hidden flex-wrap gap-1.5 sm:flex">
@@ -1006,18 +1109,37 @@ export function BookingForm({
                               ? ` · ${formatMoney(r.cleaningFee, currency)} cleaning`
                               : ""}
                           </div>
-                          {selected ? (
-                            <div className="font-mono text-[11px] text-brand-secondary">
-                              × {nights} ={" "}
-                              <span className="font-semibold">
-                                {formatMoney(
-                                  nightly * nights + r.cleaningFee,
-                                  currency,
-                                )}
-                              </span>
-                            </div>
+                          {available ? (
+                            <span
+                              className={`inline-flex shrink-0 items-center gap-1 rounded-pill border px-3 py-1 text-xs font-semibold transition ${
+                                selected
+                                  ? "border-brand-primary bg-brand-primary text-white"
+                                  : "border-brand-line text-brand-ink"
+                              }`}
+                            >
+                              {selected ? (
+                                <>
+                                  <Check className="h-3.5 w-3.5" /> Added
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-3.5 w-3.5" /> Add room
+                                </>
+                              )}
+                            </span>
                           ) : null}
                         </div>
+                        {selected ? (
+                          <div className="mt-1.5 text-right font-mono text-[11px] text-brand-secondary">
+                            × {nights} ={" "}
+                            <span className="font-semibold">
+                              {formatMoney(
+                                nightly * nights + r.cleaningFee,
+                                currency,
+                              )}
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
                     </button>
 
@@ -1086,6 +1208,12 @@ export function BookingForm({
               </div>
             </div>
           </div>
+          {datesValid && !wholeAvailable ? (
+            <div className="mx-5 mb-5 inline-flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+              <Info className="h-4 w-4" /> Not available for these dates — try
+              different ones.
+            </div>
+          ) : null}
         </section>
       )}
 
@@ -1096,8 +1224,14 @@ export function BookingForm({
             <div className="font-display font-semibold text-brand-ink">
               Your trip
             </div>
-            <div className="mt-0.5 text-xs text-brand-mute">
+            <div className="mt-0.5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
               {nights} {nights === 1 ? "night" : "nights"}
+              {checkingAvail ? (
+                <span className="inline-flex items-center gap-1 text-brand-primary">
+                  <Loader2 className="h-3 w-3 animate-spin" /> checking
+                  availability…
+                </span>
+              ) : null}
             </div>
           </div>
           {instantBooking ? (
@@ -2341,7 +2475,7 @@ export function BookingForm({
                 <button
                   type="button"
                   onClick={goNext}
-                  disabled={step === 0 && (needsRoom || !datesValid)}
+                  disabled={step === 0 && step0Blocked}
                   className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
                 >
                   {step === 0 ? "Continue to details" : "Continue to payment"}{" "}
@@ -2398,7 +2532,7 @@ export function BookingForm({
               <button
                 type="button"
                 onClick={goNext}
-                disabled={step === 0 && (needsRoom || !datesValid)}
+                disabled={step === 0 && step0Blocked}
                 className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue <ArrowRight className="h-4 w-4" />

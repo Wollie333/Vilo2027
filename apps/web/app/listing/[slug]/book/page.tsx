@@ -343,7 +343,7 @@ export default async function BookingPage({
     ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
 
   return (
-    <div className="bg-[#F4F6F4] text-brand-ink">
+    <div className="bg-white text-brand-ink">
       <SiteHeader />
 
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">

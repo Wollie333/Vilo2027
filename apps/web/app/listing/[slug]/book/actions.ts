@@ -30,6 +30,61 @@ import { createBookingSchema, type CreateBookingInput } from "./schemas";
 
 export type CreateBookingResult = { ok: true } | { ok: false; error: string };
 
+// ─── Live availability for the in-flow room picker (step 1) ───────
+// Calls the SAME RPCs the booking action enforces with, via the admin client
+// so anonymous visitors can check before creating an account. Read-only and
+// non-sensitive (just which rooms are free for these dates).
+const availabilitySchema = z.object({
+  listing_id: z.string().uuid(),
+  check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  room_ids: z.array(z.string().uuid()).max(50).default([]),
+});
+export type CheckAvailabilityInput = z.infer<typeof availabilitySchema>;
+export type CheckAvailabilityResult =
+  | { ok: true; whole: boolean; rooms: Record<string, boolean> }
+  | { ok: false; error: string };
+
+export async function checkAvailabilityAction(
+  input: CheckAvailabilityInput,
+): Promise<CheckAvailabilityResult> {
+  const parsed = availabilitySchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid dates." };
+  const { listing_id, check_in, check_out, room_ids } = parsed.data;
+  if (check_out <= check_in) return { ok: false, error: "Invalid dates." };
+
+  const admin = createAdminClient();
+  try {
+    const [{ data: wholeData }, roomResults] = await Promise.all([
+      admin.rpc("listing_is_available_whole", {
+        p_listing_id: listing_id,
+        p_check_in: check_in,
+        p_check_out: check_out,
+      }),
+      Promise.all(
+        room_ids.map(async (rid) => {
+          const { data } = await admin.rpc("room_is_available", {
+            p_listing_id: listing_id,
+            p_room_id: rid,
+            p_check_in: check_in,
+            p_check_out: check_out,
+          });
+          return [rid, data !== false] as const;
+        }),
+      ),
+    ]);
+    return {
+      ok: true,
+      whole: wholeData !== false,
+      rooms: Object.fromEntries(roomResults),
+    };
+  } catch {
+    // On any error, don't block the guest — the booking action re-checks and is
+    // the authoritative gate.
+    return { ok: true, whole: true, rooms: {} };
+  }
+}
+
 // PostgREST returns numeric columns as strings — coerce to number | null.
 function numOrNull(v: unknown): number | null {
   if (v == null || v === "") return null;

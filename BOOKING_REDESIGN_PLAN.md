@@ -182,6 +182,50 @@
 - [x] **Phase 6** — Cleanup (deleted unused cluster) + help article + changelog
       — _live per-room availability (F2) intentionally deferred; see notes_
 
+## ▶ RESUME HERE (next session) — 2026-06-07
+
+**Status:** Phases 0–6 done & pushed. Two follow-up fixes are **complete in the
+working tree but NOT committed** (paused mid-way because a parallel *finance
+agent* was running — do not lose this; see [[project_parallel_reset_pattern]]).
+
+**Uncommitted changes (parts 1 & 2 the founder asked for):**
+- **(1) Live per-room availability in step 1** — DONE.
+  - `book/actions.ts`: new `checkAvailabilityAction` (+ `CheckAvailabilityInput`
+    / `CheckAvailabilityResult`) — calls the same RPCs (`room_is_available`,
+    `listing_is_available_whole`) via the **admin client** so anonymous visitors
+    can check; fails open (booking action is the authoritative gate).
+  - `book/BookingForm.tsx`: `availability` + `checkingAvail` state;
+    `roomAvailable()` / `wholeAvailable`; debounced fetch effect on valid date
+    change; auto-deselect effect drops blocked rooms / whole-place; `toggleRoom`
+    guard; `step0Blocked` derived flag used by both CTAs + `validateRooms`;
+    per-room "Unavailable" badge + greyed card; whole-place "unavailable"
+    states; "checking availability…" hint.
+- **(2) Polish toward `Booking Flow.html`** — DONE.
+  - Prominent **"Book the whole place"** segmented toggle (icon + "save X%" +
+    check) above the room list (replaced the small header pill).
+  - **"Add room / Added"** pills on room cards.
+  - `book/page.tsx`: background set to **`bg-white`** (founder rejected the light
+    green — keep backgrounds WHITE everywhere, never `brand-light`/green).
+
+**To do first thing next session:**
+1. `git status` — confirm the 3 files above are intact (BookingForm.tsx,
+   actions.ts, page.tsx under `app/listing/[slug]/book/`). If the finance agent
+   wiped them, redo from this note.
+2. Clean rebuild: `rm -rf apps/web/.next && pnpm -C apps/web build`. (The last
+   build failed with `MODULE_NOT_FOUND` inside Next's own `dist` + a `.next`
+   manifest race — an artefact of two agents touching `node_modules`/`.next`
+   at once, NOT a code error. tsc + lint were green.)
+3. If green: commit + push parts 1 & 2, e.g.
+   `feat(checkout): live per-room availability + whole-place toggle & add-room pills`.
+4. Then re-assess: optional finer stepper styling vs the mockup; verify the full
+   flow end-to-end in the browser ("flawless simple booking flow" goal).
+
+**Apply when ready (not yet pushed to DB):** help article migration
+`supabase/migrations/20260607000003_help_guest_booking_flow.sql` via
+`supabase db push --linked`.
+
+---
+
 ## 6. Session notes (append as we go)
 
 - 2026-06-07 — Plan created. Decisions locked: self-contained checkout;
