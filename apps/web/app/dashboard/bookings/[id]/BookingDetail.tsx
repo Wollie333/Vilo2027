@@ -956,6 +956,7 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               totalAmount={d.totalAmount}
               amountPaid={d.amountPaid}
               balanceDue={d.balanceDue}
+              depositAmount={d.depositAmount}
               guestCredit={d.guestCredit}
               txns={d.txns}
               canRecord={d.hasWorkflow || d.status === "completed"}

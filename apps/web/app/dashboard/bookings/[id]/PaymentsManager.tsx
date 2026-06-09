@@ -24,6 +24,7 @@ export function PaymentsManager({
   totalAmount,
   amountPaid,
   balanceDue,
+  depositAmount,
   guestCredit,
   txns,
   canRecord,
@@ -36,6 +37,7 @@ export function PaymentsManager({
   totalAmount: number;
   amountPaid: number;
   balanceDue: number;
+  depositAmount: number;
   guestCredit: number;
   // The same canonical transactions as the account-wide Ledger and the guest
   // record, filtered to this booking (incl. pending) — rendered with the one
@@ -72,6 +74,21 @@ export function PaymentsManager({
     amountPaid <= 0 ? "deposit" : "balance",
   );
   const [note, setNote] = useState("");
+  // Quick amount presets: Deposit (= the booking's deposit), Full (= the
+  // outstanding balance) or Custom (host-entered).
+  const [amountMode, setAmountMode] = useState<"deposit" | "full" | "custom">(
+    balanceDue > 0 ? "full" : "custom",
+  );
+  function setQuick(mode: "deposit" | "full" | "custom") {
+    setAmountMode(mode);
+    if (mode === "deposit") {
+      setAmount(depositAmount > 0 ? String(depositAmount) : "");
+      setKind("deposit");
+    } else if (mode === "full") {
+      setAmount(balanceDue > 0 ? String(balanceDue) : "");
+      setKind(amountPaid > 0 ? "balance" : "deposit");
+    }
+  }
 
   const paidPct =
     totalAmount > 0
@@ -85,6 +102,26 @@ export function PaymentsManager({
       return;
     }
     start(async () => {
+      // Safety check: warn before recording more than what's owed — the excess
+      // becomes store credit, so make sure that's intended.
+      if (value > balanceDue + 0.005) {
+        const over = value - balanceDue;
+        const ok = await modal.confirm({
+          title: "That's more than the balance due",
+          description: `The balance due is ${formatMoney(
+            balanceDue,
+            currency,
+          )}. Recording ${formatMoney(
+            value,
+            currency,
+          )} overpays by ${formatMoney(
+            over,
+            currency,
+          )}, which will be added to the guest's store credit. Continue?`,
+          confirmLabel: "Record anyway",
+        });
+        if (!ok) return;
+      }
       const r = await recordBookingPaymentAction({
         bookingId,
         amount: value,
@@ -310,6 +347,34 @@ export function PaymentsManager({
 
           {showForm ? (
             <div className="rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {(
+                  [
+                    {
+                      m: "deposit" as const,
+                      label: `Deposit · ${formatMoney(depositAmount, currency)}`,
+                    },
+                    {
+                      m: "full" as const,
+                      label: `Full · ${formatMoney(balanceDue, currency)}`,
+                    },
+                    { m: "custom" as const, label: "Custom" },
+                  ] as const
+                ).map(({ m, label }) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setQuick(m)}
+                    className={`rounded-pill border px-3 py-1.5 text-[12px] font-semibold transition ${
+                      amountMode === m
+                        ? "border-brand-primary bg-brand-accent text-brand-secondary"
+                        : "border-brand-line bg-white text-brand-ink hover:bg-brand-light/60"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <label className="block">
                   <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
@@ -338,7 +403,10 @@ export function PaymentsManager({
                     min="0"
                     step="0.01"
                     value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setAmountMode("custom");
+                    }}
                     className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none"
                   />
                 </label>
