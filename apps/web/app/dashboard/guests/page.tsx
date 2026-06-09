@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { gkeyFor } from "@/lib/guests/gkey";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { GuestsBoard, type GuestRow, type GuestSummary } from "./GuestsBoard";
+import {
+  GuestsBoard,
+  type AcceptedQuoteLite,
+  type GuestRow,
+  type GuestSummary,
+} from "./GuestsBoard";
 
 export const metadata: Metadata = {
   title: "Guests",
@@ -50,6 +56,7 @@ export default async function GuestsPage({
       <GuestsBoard
         summary={null}
         guests={[]}
+        acceptedQuotes={{}}
         totalCount={0}
         listings={[]}
         seg="all"
@@ -99,10 +106,31 @@ export default async function GuestsPage({
 
   const listObj = (list ?? {}) as { guests?: GuestRow[]; total_count?: number };
 
+  // Accepted-but-not-converted quotes → pulsing "Quote accepted" pill on the
+  // matching guest row (keyed by the same gkey scheme the directory uses).
+  const { data: acceptedRows } = await supabase
+    .from("quotes")
+    .select("id, guest_id, guest_email, total_amount, currency")
+    .eq("host_id", host.id)
+    .eq("status", "accepted")
+    .is("deleted_at", null);
+  const acceptedQuotes: Record<string, AcceptedQuoteLite> = {};
+  for (const q of acceptedRows ?? []) {
+    const gkey = gkeyFor(q.guest_id, q.guest_email);
+    if (gkey && !acceptedQuotes[gkey]) {
+      acceptedQuotes[gkey] = {
+        id: q.id,
+        amount: Number(q.total_amount),
+        currency: q.currency,
+      };
+    }
+  }
+
   return (
     <GuestsBoard
       summary={(summary as GuestSummary | null) ?? null}
       guests={listObj.guests ?? []}
+      acceptedQuotes={acceptedQuotes}
       totalCount={listObj.total_count ?? 0}
       listings={(listingRows ?? []) as { id: string; name: string }[]}
       seg={seg}

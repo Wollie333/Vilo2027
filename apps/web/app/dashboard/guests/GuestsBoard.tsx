@@ -38,6 +38,8 @@ import {
 import { modal } from "@/components/ui/modal-host";
 import { formatMoney } from "@/lib/format";
 
+import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
+
 import { AddGuestModal } from "./AddGuestModal";
 import { BroadcastModal } from "./BroadcastModal";
 import { bulkTagAction, exportGuestsAction } from "./actions";
@@ -216,9 +218,16 @@ function download(filename: string, text: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
+export type AcceptedQuoteLite = {
+  id: string;
+  amount: number;
+  currency: string;
+};
+
 export function GuestsBoard({
   summary,
   guests,
+  acceptedQuotes,
   totalCount,
   listings,
   seg,
@@ -232,6 +241,8 @@ export function GuestsBoard({
 }: {
   summary: GuestSummary | null;
   guests: GuestRow[];
+  /** gkey → accepted-but-not-converted quote, drives the pulsing list pill. */
+  acceptedQuotes: Record<string, AcceptedQuoteLite>;
   totalCount: number;
   listings: { id: string; name: string }[];
   seg: string;
@@ -649,6 +660,7 @@ export function GuestsBoard({
                 density={density}
                 selected={selected.has(g.gkey)}
                 onToggle={() => toggle(g.gkey)}
+                acceptedQuote={acceptedQuotes[g.gkey] ?? null}
               />
             ))}
           </div>
@@ -854,7 +866,9 @@ function GuestRowItem({
   density,
   selected,
   onToggle,
+  acceptedQuote,
 }: {
+  acceptedQuote: AcceptedQuoteLite | null;
   g: GuestRow;
   density: "comfortable" | "compact";
   selected: boolean;
@@ -922,6 +936,17 @@ function GuestRowItem({
             <span className="truncate text-[14px] font-semibold text-brand-ink">
               {g.name ?? "Guest"}
             </span>
+            {acceptedQuote ? (
+              <span onClick={(e) => e.stopPropagation()}>
+                <AcceptedQuotePill
+                  quoteId={acceptedQuote.id}
+                  guestFirstName={(g.name ?? "Guest").split(/\s+/)[0]}
+                  amount={acceptedQuote.amount}
+                  currency={acceptedQuote.currency}
+                  size="xs"
+                />
+              </span>
+            ) : null}
             {g.is_verified ? (
               <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-status-confirmed" />
             ) : null}
