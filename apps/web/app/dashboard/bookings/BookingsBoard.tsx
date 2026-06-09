@@ -250,6 +250,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 const SORTS = [
   { key: "group", label: "Date grouped", icon: Layers },
+  { key: "recent", label: "Most recent", icon: CalendarClock },
   { key: "soon", label: "Soonest check-in", icon: CalendarClock },
   { key: "amount", label: "Amount: high → low", icon: Banknote },
   { key: "name", label: "Guest: A → Z", icon: ArrowDownAZ },
@@ -405,6 +406,8 @@ export function BookingsBoard({
   const sorted = useMemo(() => {
     const arr = filtered.slice();
     if (sort === "amount") arr.sort((a, b) => b.totalAmount - a.totalAmount);
+    else if (sort === "recent")
+      arr.sort((a, b) => dts(b.createdAt) - dts(a.createdAt));
     else if (sort === "name")
       arr.sort((a, b) => a.guestName.localeCompare(b.guestName));
     else if (sort === "soon")

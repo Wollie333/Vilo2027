@@ -197,7 +197,7 @@ export default async function DashboardPage({
     supabase
       .from("bookings")
       .select(
-        "id, check_in, check_out, nights, guests_count, total_amount, currency, status, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+        "id, check_in, check_out, nights, guests_count, total_amount, currency, status, guest_name, guest_email, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
       )
       .eq("host_id", host.id)
       .in("status", ["confirmed", "checked_in"])
@@ -304,6 +304,8 @@ export default async function DashboardPage({
     guests_count: number;
     total_amount: number;
     status: string;
+    guest_name: string | null;
+    guest_email: string | null;
     listing: { name: string } | null;
     guest: { full_name: string | null } | null;
   }[];
@@ -376,22 +378,30 @@ export default async function DashboardPage({
                 : nextInDays === 1
                   ? "Tomorrow"
                   : `In ${nextInDays} days`,
-            guest: next.guest?.full_name ?? "Guest",
+            guest:
+              next.guest?.full_name ??
+              next.guest_name ??
+              next.guest_email ??
+              "Guest",
             listing: next.listing?.name ?? "Listing",
           }
         : null,
     },
     needs,
-    upcoming: upcomingRows.map((b) => ({
-      id: b.id,
-      guest: b.guest?.full_name ?? "Guest",
-      initials: initialsOf(b.guest?.full_name ?? null),
-      listing: b.listing?.name ?? "Listing",
-      dates: fmtRange(b.check_in, b.check_out),
-      meta: `${b.nights ?? 0} night${b.nights === 1 ? "" : "s"} · ${b.guests_count} guest${b.guests_count === 1 ? "" : "s"}`,
-      amount: Number(b.total_amount),
-      tag: tagForStatus(b.status),
-    })),
+    upcoming: upcomingRows.map((b) => {
+      const guestName =
+        b.guest?.full_name ?? b.guest_name ?? b.guest_email ?? "Guest";
+      return {
+        id: b.id,
+        guest: guestName,
+        initials: initialsOf(guestName),
+        listing: b.listing?.name ?? "Listing",
+        dates: fmtRange(b.check_in, b.check_out),
+        meta: `${b.nights ?? 0} night${b.nights === 1 ? "" : "s"} · ${b.guests_count} guest${b.guests_count === 1 ? "" : "s"}`,
+        amount: Number(b.total_amount),
+        tag: tagForStatus(b.status),
+      };
+    }),
     revenue90: {
       total: rev90Total,
       points,
