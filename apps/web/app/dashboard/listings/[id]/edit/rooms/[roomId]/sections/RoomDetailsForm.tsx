@@ -3,6 +3,7 @@
 import { Minus, Plus, Save, Trash2, Users } from "lucide-react";
 import {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -95,10 +96,13 @@ export const RoomDetailsForm = forwardRef<
     room: RoomEditorRoom;
     mode?: "create" | "edit";
     onSaved?: (patch: Partial<RoomEditorRoom>) => void;
+    // Fires on every edit so the parent's live preview/header update as the
+    // host types — two-way binding without waiting for a save.
+    onDraft?: (patch: Partial<RoomEditorRoom>) => void;
     onCreated?: (id: string) => void;
   }
 >(function RoomDetailsForm(
-  { listingId, room, mode = "edit", onSaved, onCreated },
+  { listingId, room, mode = "edit", onSaved, onDraft, onCreated },
   ref,
 ) {
   const [pending, start] = useTransition();
@@ -163,6 +167,40 @@ export const RoomDetailsForm = forwardRef<
   const [allowChildren, setAllowChildren] = useState(room.allow_children);
   const [allowInfants, setAllowInfants] = useState(room.allow_infants);
   const [allowPets, setAllowPets] = useState(room.allow_pets);
+
+  // ── Live preview binding ──────────────────────────────────────────
+  // Emit the preview-relevant fields on every change so the parent's header
+  // card + guest preview update as the host types. A ref holds the latest
+  // callback so the effect doesn't re-fire just because the parent re-rendered.
+  const onDraftRef = useRef(onDraft);
+  onDraftRef.current = onDraft;
+  useEffect(() => {
+    onDraftRef.current?.({
+      name,
+      description: description.trim().length > 0 ? description.trim() : null,
+      max_guests: capacity,
+      pricing_mode: pricingMode,
+      base_price: toNum(basePrice) ?? 0,
+      price_per_person: toNum(pricePerPerson),
+      cleaning_fee: toNum(cleaningFee) ?? 0,
+      bed_type: bedType.length > 0 ? bedType : bedSummaryString(beds),
+      beds: beds.map((b) => ({
+        bed_kind: b.bed_kind,
+        quantity: b.quantity,
+        sleeps: b.sleeps,
+      })),
+    });
+  }, [
+    name,
+    description,
+    capacity,
+    pricingMode,
+    basePrice,
+    pricePerPerson,
+    cleaningFee,
+    bedType,
+    beds,
+  ]);
 
   function toggleExperience(label: string) {
     setExperiences((prev) =>

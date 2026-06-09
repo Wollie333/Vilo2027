@@ -391,6 +391,7 @@ export function RoomEditor({
             listingId={listingId}
             room={room}
             onSaved={(patch) => setRoom((r) => ({ ...r, ...patch }))}
+            onDraft={(patch) => setRoom((r) => ({ ...r, ...patch }))}
           />
 
           <RoomPhotosSection
