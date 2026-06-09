@@ -1,3 +1,4 @@
+import { CalendarPlus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";
@@ -124,6 +125,18 @@ export default async function DashboardLayout({
             search={<EntitySearch />}
             actions={
               <>
+                {host?.handle ? (
+                  <a
+                    href={`/book/${host.handle}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open your direct booking link"
+                    aria-label="Open your direct booking link"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded border border-brand-line bg-white text-brand-ink transition-colors hover:bg-brand-light"
+                  >
+                    <CalendarPlus className="h-4 w-4" />
+                  </a>
+                ) : null}
                 <NotificationBell />
                 <AvatarMenu
                   initials={initials}
