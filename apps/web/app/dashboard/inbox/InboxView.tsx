@@ -385,8 +385,12 @@ export function InboxView({
     markedRef.current = selectedId;
     void markConversationReadAction(selectedId).then((r) => {
       if (!r.ok) toast.error(r.error);
+      // Re-fetch the server tree so the read drops out of EVERY badge at once —
+      // the tab counts, the pipeline stages, the folder rail and the sidebar
+      // all read the same unread_host counter we just zeroed.
+      else router.refresh();
     });
-  }, [selectedId, conversations]);
+  }, [selectedId, conversations, router]);
 
   // Close the details drawer whenever the open thread changes.
   useEffect(() => {

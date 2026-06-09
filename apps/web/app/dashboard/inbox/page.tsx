@@ -127,8 +127,13 @@ export default async function InboxPage({
     .eq("host_id", host.id);
 
   const all = countsRaw ?? [];
-  const stageCount = (s: string) =>
-    all.filter((c) => c.status !== "archived" && c.pipeline_stage === s).length;
+  // Every tab / folder / pipeline-stage badge reflects UNREAD threads only (and
+  // hides at zero) — a host only needs a number where something is waiting on
+  // them. All badges read off the same conversations.unread_host counter, so a
+  // thread marked read drops out of every badge at once.
+  const isLive = (c: (typeof all)[number]) => c.status !== "archived";
+  const unreadIn = (pred: (c: (typeof all)[number]) => boolean) =>
+    all.filter((c) => c.unread_host > 0 && pred(c)).length;
 
   // Pipeline value: the latest quote total per conversation, summed by stage.
   const { data: stageQuotes } = await supabase
@@ -163,33 +168,30 @@ export default async function InboxPage({
   }
 
   const counts = {
-    all: all.filter((c) => c.status !== "archived").length,
-    unread: all
-      .filter((c) => c.status !== "archived")
-      .reduce((n, c) => n + (c.unread_host > 0 ? 1 : 0), 0),
-    needs_reply: all.filter((c) => c.status !== "archived" && c.unread_host > 0)
-      .length,
-    follow_up: all.filter(
-      (c) =>
-        c.status !== "archived" &&
-        c.follow_up_at != null &&
-        c.follow_up_at <= nowIso,
-    ).length,
-    enquiries: all.filter((c) => c.is_enquiry && c.status === "open").length,
-    open: all.filter((c) => c.status === "open").length,
-    archived: all.filter((c) => c.status === "archived").length,
-    starred: all.filter((c) => c.status !== "archived" && c.pinned).length,
-    booked: all.filter((c) => c.status !== "archived" && c.booking_id != null)
-      .length,
-    past: all.filter((c) => c.status === "archived").length,
+    all: unreadIn(isLive),
+    unread: unreadIn(isLive),
+    needs_reply: unreadIn(isLive),
+    follow_up: unreadIn(
+      (c) => isLive(c) && c.follow_up_at != null && c.follow_up_at <= nowIso,
+    ),
+    enquiries: unreadIn((c) => c.is_enquiry && c.status === "open"),
+    open: unreadIn((c) => c.status === "open"),
+    archived: unreadIn((c) => c.status === "archived"),
+    starred: unreadIn((c) => isLive(c) && c.pinned),
+    booked: unreadIn((c) => isLive(c) && c.booking_id != null),
+    past: unreadIn((c) => c.status === "archived"),
     unread_total: all.reduce((n, c) => n + (c.unread_host ?? 0), 0),
     pipeline: {
-      new_quote: stageCount("new_quote"),
-      quote_sent: stageCount("quote_sent"),
-      negotiating: stageCount("negotiating"),
-      accepted: stageCount("accepted"),
-      declined: stageCount("declined"),
-      lost: stageCount("lost"),
+      new_quote: unreadIn((c) => isLive(c) && c.pipeline_stage === "new_quote"),
+      quote_sent: unreadIn(
+        (c) => isLive(c) && c.pipeline_stage === "quote_sent",
+      ),
+      negotiating: unreadIn(
+        (c) => isLive(c) && c.pipeline_stage === "negotiating",
+      ),
+      accepted: unreadIn((c) => isLive(c) && c.pipeline_stage === "accepted"),
+      declined: unreadIn((c) => isLive(c) && c.pipeline_stage === "declined"),
+      lost: unreadIn((c) => isLive(c) && c.pipeline_stage === "lost"),
     },
     pipelineValue,
   };
