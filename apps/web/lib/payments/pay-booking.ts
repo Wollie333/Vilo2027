@@ -11,7 +11,18 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type StartBookingPaymentResult =
-  | { ok: true; redirectTo: string }
+  | {
+      ok: true;
+      /** Hosted-checkout URL — the navigation fallback + the EFT landing path. */
+      redirectTo: string;
+      /** Paystack transaction access code — present on the card rail so the
+       * client can open the inline popup (resumeTransaction) instead of a
+       * full-page redirect. Absent for the EFT fallback. */
+      accessCode?: string;
+      /** The initialised transaction reference, so the client can return to the
+       * confirm URL deterministically after the popup succeeds. */
+      reference?: string;
+    }
   | { ok: false; error: string };
 
 /** Minimal booking shape the payment mechanics need. The caller is responsible
@@ -152,7 +163,12 @@ export async function startBookingPayment(opts: {
       .from("payments")
       .update({ provider_reference: init.reference })
       .eq("id", payment.id);
-    return { ok: true, redirectTo: init.authorization_url };
+    return {
+      ok: true,
+      redirectTo: init.authorization_url,
+      accessCode: init.access_code,
+      reference: init.reference,
+    };
   } catch {
     // Gateway fallback: switch to EFT if the host has a valid account.
     if (await hostHasValidEft(booking.host_id)) {

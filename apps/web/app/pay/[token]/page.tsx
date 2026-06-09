@@ -46,6 +46,7 @@ type ListingSnap = {
   host_id: string;
   city: string | null;
   province: string | null;
+  listing_photos: { url: string; sort_order: number }[] | null;
 };
 
 export default async function PayPage({
@@ -61,13 +62,36 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, city, province )",
+      "id, reference, scope, status, payment_status, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, city, province, listing_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
   if (!booking) notFound();
 
   const listing = booking.listing as unknown as ListingSnap;
+
+  // Listing feature image (first photo by sort order) for the hero banner.
+  const featureImage =
+    [...(listing.listing_photos ?? [])].sort(
+      (a, b) => a.sort_order - b.sort_order,
+    )[0]?.url ?? null;
+
+  // Host identity — business/display name + the host's avatar — so the payer
+  // sees who they're paying. Pulled fresh, independent of payable state.
+  const { data: hostRow } = await admin
+    .from("hosts")
+    .select("display_name, handle, user_id")
+    .eq("id", listing.host_id)
+    .maybeSingle();
+  let hostAvatar: string | null = null;
+  if (hostRow?.user_id) {
+    const { data: hostProfile } = await admin
+      .from("user_profiles")
+      .select("avatar_url")
+      .eq("id", hostRow.user_id)
+      .maybeSingle();
+    hostAvatar = hostProfile?.avatar_url ?? null;
+  }
 
   // Returned from Paystack → confirm with the host key + the ledger (idempotent).
   const reference = searchParams?.reference;
@@ -114,6 +138,9 @@ export default async function PayPage({
     .filter(Boolean)
     .join(", ");
 
+  const hostName = party?.name ?? hostRow?.display_name ?? "your host";
+  const hostInitial = hostName.trim().charAt(0).toUpperCase() || "H";
+
   return (
     <div className="min-h-screen bg-white text-brand-ink">
       <SiteHeader />
@@ -136,13 +163,47 @@ export default async function PayPage({
         </header>
 
         {/* Booking summary */}
-        <section className="mt-7 rounded-card border border-brand-line bg-white">
+        <section className="mt-7 overflow-hidden rounded-card border border-brand-line bg-white">
+          {featureImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={featureImage}
+              alt={listing.name}
+              className="h-44 w-full object-cover sm:h-52"
+            />
+          ) : null}
           <div className="border-b border-brand-line px-5 py-4">
             <div className="font-display font-semibold text-brand-ink">
               {listing.name}
             </div>
             <div className="mt-0.5 text-xs text-brand-mute">
               Booking for {booking.guest_name ?? "guest"}
+            </div>
+            {/* Host identity — who the guest is paying. */}
+            <div className="mt-3 flex items-center gap-2.5 border-t border-brand-line pt-3">
+              {hostAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={hostAvatar}
+                  alt={hostName}
+                  className="h-8 w-8 rounded-pill object-cover ring-1 ring-brand-line"
+                />
+              ) : (
+                <div className="flex h-8 w-8 items-center justify-center rounded-pill bg-brand-light font-display text-xs font-bold text-brand-secondary">
+                  {hostInitial}
+                </div>
+              )}
+              <div className="min-w-0 leading-tight">
+                <div className="text-[11px] text-brand-mute">Hosted by</div>
+                <div className="truncate text-sm font-medium text-brand-ink">
+                  {hostName}
+                  {hostRow?.handle ? (
+                    <span className="ml-1 font-normal text-brand-mute">
+                      @{hostRow.handle}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
             </div>
           </div>
           <dl className="divide-y divide-brand-line text-sm">
