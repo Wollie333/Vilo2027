@@ -43,6 +43,8 @@ import { formatMoney } from "@/lib/format";
 import { BookingActions } from "./BookingActions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
+import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
+
 import { PaymentsManager } from "./PaymentsManager";
 import { WelcomeNoteCard } from "./WelcomeNoteCard";
 
@@ -74,6 +76,9 @@ export type BookingDetailData = {
   channelLabel: string;
   channelMark: string;
   channelBg: string;
+  /** Set when the originating quote is accepted-but-not-converted — drives the
+   * pulsing "Quote accepted" pill + auto-prompt to convert. */
+  acceptedQuote: { id: string; amount: number; currency: string } | null;
 
   guestName: string;
   guestEmail: string | null;
@@ -330,6 +335,15 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                     <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[10.5px] font-semibold text-brand-secondary">
                       Returning guest
                     </span>
+                  ) : null}
+                  {d.acceptedQuote ? (
+                    <AcceptedQuotePill
+                      quoteId={d.acceptedQuote.id}
+                      guestFirstName={(d.guestName || "Guest").split(/\s+/)[0]}
+                      amount={d.acceptedQuote.amount}
+                      currency={d.acceptedQuote.currency}
+                      autoOpen
+                    />
                   ) : null}
                 </div>
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-brand-mute">

@@ -131,13 +131,32 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, listing_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, listing_id, quote_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:listings!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:listing_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
     .maybeSingle();
 
   if (!booking) notFound();
+
+  // If this booking came from a quote that's ACCEPTED but not yet converted/
+  // paid, surface the pulsing "Quote accepted — convert" pill + prompt.
+  let acceptedQuote: { id: string; amount: number; currency: string } | null =
+    null;
+  if (booking.quote_id) {
+    const { data: aq } = await supabase
+      .from("quotes")
+      .select("id, status, total_amount, currency")
+      .eq("id", booking.quote_id)
+      .maybeSingle();
+    if (aq && aq.status === "accepted") {
+      acceptedQuote = {
+        id: aq.id,
+        amount: Number(aq.total_amount),
+        currency: aq.currency,
+      };
+    }
+  }
 
   // Payment ledger (deposit + balance + extras). The booking's money state is
   // derived from completed inbound entries.
@@ -555,6 +574,7 @@ export default async function BookingDetailPage({
     channelLabel: channel.label,
     channelMark: channel.mark,
     channelBg: channel.bg,
+    acceptedQuote,
 
     guestName: guest.full_name || "Guest",
     guestEmail: guest.email,
