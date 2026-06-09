@@ -31,6 +31,40 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-08 — Quotes — Redesigned quote-response builder (3-step layout) — branch `main`
+
+### Changed
+- **Rebuilt `QuoteForm` to match the "Respond to Quote Request" design.** The
+  builder is now a single-column, three-step flow — **Confirm the stay** (guest +
+  matched listing/room + dates/party behind Change/Adjust), **Your price**, and
+  **Terms & your reply** — with a sticky **Review & send** bar at the bottom.
+  Replaces the old 7-section form + right-hand summary sidebar. One form still
+  powers new quotes, edits, and request responses (the "Their request" card only
+  shows for an actual request).
+- **New: Itemised vs Single-total price mode.** Single total stores the whole
+  stay as one accommodation amount (no breakdown shown to the guest) — no schema
+  change; maps onto existing `base_amount`.
+- **New: preview-before-send.** "Review & send" opens a guest-facing preview of
+  the exact branded quote (hero, message, breakdown, accept-and-pay button);
+  nothing is sent until confirmed.
+- Added a **Your payout** readout (0% fee) and an "Until check-in" hold option.
+- Narrowed the New/Edit quote pages to a single 880px column.
+
+### Omitted (feature freeze)
+- The mockup's "Let the guest propose changes" (counter-offers) and "Suggest with
+  AI" controls were intentionally left out — neither is wired in the backend.
+
+### Migrations
+- `20260608000010_help_quote_response_redesign.sql` — refresh the
+  `sending-quotes` Help article for the new flow (not yet pushed to remote).
+
+### Notes
+- Soft-hold is shown as an informational note (sending soft-holds the dates via
+  the existing quote-status trigger) rather than a fake toggle.
+- `pnpm build` + `pnpm lint` pass clean.
+
+---
+
 ## 2026-06-08 — Bookings — Host-scope leak fix on bookings list + dashboard home — branch `main`
 
 ### Fixed

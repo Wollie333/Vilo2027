@@ -52,7 +52,7 @@ export default async function NewQuotePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1280px]">
+    <div className="mx-auto max-w-[880px]">
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">

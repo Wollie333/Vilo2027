@@ -5,12 +5,18 @@ import {
   BedDouble,
   Calculator,
   Check,
+  ChevronRight,
   Clock,
+  Eye,
+  ListPlus,
+  Lock,
+  Pencil,
   Plus,
   Send,
-  ShieldCheck,
+  Tag,
   Trash2,
   User,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -129,14 +135,14 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return n > 0 ? n : 0;
 }
 
-function fmtDayLong(iso: string): string {
-  if (!iso) return "—";
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-ZA", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+function fmtDayShort(iso: string): { dow: string; day: string; mo: string } {
+  if (!iso) return { dow: "—", day: "—", mo: "" };
+  const d = new Date(`${iso}T00:00:00`);
+  return {
+    dow: d.toLocaleDateString("en-ZA", { weekday: "short" }),
+    day: d.toLocaleDateString("en-ZA", { day: "numeric" }),
+    mo: d.toLocaleDateString("en-ZA", { month: "short", year: "numeric" }),
+  };
 }
 
 export function QuoteForm({
@@ -180,6 +186,11 @@ export function QuoteForm({
   );
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [validDays, setValidDays] = useState(3);
+  // Itemised (line-by-line) vs a single negotiated total for the whole stay.
+  const [priceMode, setPriceMode] = useState<"itemised" | "single">("itemised");
+  const [singleTotal, setSingleTotal] = useState(
+    String(initial?.baseAmount ?? ""),
+  );
   // Optional quote-level discount.
   const [discountOn, setDiscountOn] = useState(
     !!initial?.discountType && (initial?.discountValue ?? 0) > 0,
@@ -245,6 +256,15 @@ export function QuoteForm({
   const nights = nightsBetween(checkIn, checkOut);
   const headcount = Math.max(1, adults + children);
   const blockedSet = useMemo(() => new Set(listing?.blocked ?? []), [listing]);
+
+  // Collapsible panels — open by default when there's nothing chosen yet.
+  const [changingListing, setChangingListing] = useState(!initial?.listingId);
+  const [adjustingStay, setAdjustingStay] = useState(
+    !(initial?.checkIn && initial?.checkOut),
+  );
+  const [addCatalogOpen, setAddCatalogOpen] = useState(false);
+  // Guest-facing preview + send modal.
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Which age/pet categories the host allows for the current selection. Rooms
   // scope: every selected room must allow it; whole-listing: the listing's flag.
@@ -320,6 +340,7 @@ export function QuoteForm({
     setRoomGuests({});
     setPricedRooms([]);
     setCatalogSel({});
+    setChangingListing(false);
     const next = listings.find((l) => l.id === id);
     setScope(
       next && next.rooms.length > 0 && next.booking_mode === "rooms_only"
@@ -354,6 +375,18 @@ export function QuoteForm({
   }, [listing, catalogSel, nights, headcount]);
 
   const totals = useMemo(() => {
+    if (priceMode === "single") {
+      const t = parseFloat(singleTotal) || 0;
+      return {
+        base: t,
+        cleaning: 0,
+        addonsSum: 0,
+        ageSum: 0,
+        subtotal: t,
+        discountAmount: 0,
+        total: t,
+      };
+    }
     const base =
       scope === "rooms"
         ? pricedRooms.reduce((s, r) => s + r.base_amount, 0)
@@ -392,6 +425,8 @@ export function QuoteForm({
       total: subtotal - discountAmount,
     };
   }, [
+    priceMode,
+    singleTotal,
     scope,
     pricedRooms,
     baseAmount,
@@ -527,7 +562,46 @@ export function QuoteForm({
     setNotes((n) => (n.trim() ? `${n.trim()}\n\n${text}` : text));
   }
 
+  function switchPriceMode(mode: "itemised" | "single") {
+    if (mode === "single" && !(parseFloat(singleTotal) > 0)) {
+      // Seed the single total from the itemised total so nothing is lost.
+      setSingleTotal(String(Math.round(totals.total)));
+    }
+    setPriceMode(mode);
+  }
+
   function buildInput() {
+    if (priceMode === "single") {
+      return {
+        listing_id: listingId,
+        guest_name: guestName.trim(),
+        guest_email: guestEmail.trim(),
+        guest_phone: guestPhone.trim(),
+        check_in: checkIn,
+        check_out: checkOut,
+        headcount,
+        scope: "whole_listing" as const,
+        base_amount: parseFloat(singleTotal) || 0,
+        cleaning_fee: 0,
+        currency,
+        rooms: [] as PricedRoom[],
+        addons: [] as {
+          label: string;
+          quantity: number;
+          unit_price: number;
+          addon_id: string | null;
+          kind: "custom" | "catalog" | "age";
+        }[],
+        guests_breakdown: { adults, children, infants, pets },
+        discount_type: null as "percent" | "fixed" | null,
+        discount_value: 0,
+        discount_reason: "",
+        deposit_type: depositType,
+        deposit_pct: parseFloat(depositPct) || 50,
+        balance_due_days: parseInt(balanceDueDays, 10) || 7,
+        notes: notes.trim(),
+      };
+    }
     const addons = [
       ...catalogLines.map((a) => ({
         label: a.label,
@@ -592,17 +666,40 @@ export function QuoteForm({
     return { due: t, balance: 0 };
   }, [totals.total, depositType, depositPct]);
 
-  function save(sendAfter: boolean) {
+  function validate(): boolean {
     const input = buildInput();
-    if (!input.listing_id) return toast.error("Pick a listing.");
-    if (!input.guest_name || !input.guest_email)
-      return toast.error("Add the guest's name and email.");
-    if (input.scope === "rooms" && input.rooms.length === 0)
-      return toast.error("Select rooms and price them first.");
-    if (overCapacity)
-      return toast.error(
+    if (!input.listing_id) {
+      toast.error("Pick a listing.");
+      return false;
+    }
+    if (!input.guest_name || !input.guest_email) {
+      toast.error("Add the guest's name and email.");
+      return false;
+    }
+    if (!datesValid) {
+      toast.error("Set valid check-in and check-out dates.");
+      return false;
+    }
+    if (input.scope === "rooms" && input.rooms.length === 0) {
+      toast.error("Select rooms and price them first.");
+      return false;
+    }
+    if (input.base_amount <= 0 && totals.total <= 0) {
+      toast.error("Add a price before sending.");
+      return false;
+    }
+    if (overCapacity) {
+      toast.error(
         `That's more guests than this sleeps (${capacityLimit}). Adults + children must fit.`,
       );
+      return false;
+    }
+    return true;
+  }
+
+  function save(sendAfter: boolean) {
+    if (!validate()) return;
+    const input = buildInput();
 
     if (initial?.id) {
       start(async () => {
@@ -642,6 +739,11 @@ export function QuoteForm({
     }
   }
 
+  function openPreview() {
+    if (!validate()) return;
+    setPreviewOpen(true);
+  }
+
   const busy = pending || sendingPending || pricing;
   const validUntil = useMemo(() => {
     const d = new Date();
@@ -650,628 +752,922 @@ export function QuoteForm({
       weekday: "short",
       day: "numeric",
       month: "short",
+      year: "numeric",
     });
   }, [validDays]);
+
+  // "Until check-in" expiry — days from today to the check-in date.
+  const daysToCheckIn = useMemo(() => {
+    if (!checkIn) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const ci = new Date(`${checkIn}T00:00:00`).getTime();
+    const d = Math.round((ci - today.getTime()) / 86_400_000);
+    return d > 0 ? d : null;
+  }, [checkIn]);
 
   const selectedRoomObjs = (listing?.rooms ?? []).filter(
     (r) => selectedRooms[r.id],
   );
+  const roomScopeLabel =
+    scope === "rooms"
+      ? selectedRoomObjs.map((r) => r.name).join(", ") || "Select rooms"
+      : "Whole listing";
+
+  // Line items shown to the guest (preview) and in the itemised editor summary.
+  const guestLines = useMemo(() => {
+    if (priceMode === "single") {
+      return [{ label: "Your stay", amount: totals.total, muted: false }];
+    }
+    const lines: { label: string; amount: number; muted?: boolean }[] = [];
+    if (scope === "rooms") {
+      for (const r of pricedRooms) {
+        const name =
+          (listing?.rooms ?? []).find((x) => x.id === r.room_id)?.name ??
+          "Room";
+        lines.push({ label: name, amount: r.base_amount });
+      }
+    } else if (totals.base > 0) {
+      lines.push({
+        label:
+          nights > 0 ? `Accommodation · ${nights} nights` : "Accommodation",
+        amount: totals.base,
+      });
+    }
+    if (totals.cleaning > 0)
+      lines.push({ label: "Cleaning fee", amount: totals.cleaning });
+    for (const a of catalogLines)
+      lines.push({ label: a.label, amount: a.quantity * a.unit_price });
+    for (const a of customAddons.filter((x) => x.label.trim()))
+      lines.push({
+        label: a.label,
+        amount: (parseFloat(a.quantity) || 0) * (parseFloat(a.unitPrice) || 0),
+      });
+    for (const a of ageLines)
+      lines.push({ label: a.label, amount: a.subtotal });
+    return lines;
+  }, [
+    priceMode,
+    scope,
+    pricedRooms,
+    listing,
+    totals.base,
+    totals.cleaning,
+    totals.total,
+    nights,
+    catalogLines,
+    customAddons,
+    ageLines,
+  ]);
+
+  const ci = fmtDayShort(checkIn);
+  const co = fmtDayShort(checkOut);
+  const firstName = guestName.trim().split(/\s+/)[0] || "the guest";
+  const step1Done = !!listingId && datesValid && !!guestName && !!guestEmail;
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-      {/* LEFT COLUMN */}
-      <div className="space-y-5">
-        {/* 1 — Lead guest */}
-        <Section
-          n={1}
-          title="Who is this for?"
-          sub={`The guest who'll receive the quote — ${brandName} searches your past guests as you type.`}
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="relative">
-              <FieldLabel>Full name *</FieldLabel>
-              <Input
-                value={guestName}
-                onChange={(e) => onGuestNameChange(e.target.value)}
-                onFocus={() => guestResults.length && setShowResults(true)}
-                onBlur={() => setTimeout(() => setShowResults(false), 150)}
-                placeholder="e.g. Aisha Patel"
-              />
-              {showResults && guestResults.length > 0 ? (
-                <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
-                  {guestResults.map((g) => (
-                    <button
-                      key={g.email}
-                      type="button"
-                      onMouseDown={() => pickGuest(g)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
-                    >
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
-                        {(g.name || g.email)[0]?.toUpperCase()}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium text-brand-ink">
-                          {g.name || g.email}
-                        </span>
-                        <span className="block truncate text-xs text-brand-mute">
-                          {g.email}
-                        </span>
-                      </span>
-                      {g.stays > 0 ? (
-                        <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
-                          {g.stays} stay{g.stays === 1 ? "" : "s"}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-            <div>
-              <FieldLabel>Email *</FieldLabel>
-              <Input
-                type="email"
-                value={guestEmail}
-                onChange={(e) => setGuestEmail(e.target.value)}
-                placeholder="guest@email.com"
-              />
-            </div>
-            <div>
-              <FieldLabel>Phone (for WhatsApp)</FieldLabel>
-              <Input
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                placeholder="+27 …"
-              />
-            </div>
-            <div>
-              <FieldLabel>Send quote via</FieldLabel>
-              <Seg
-                value={sendVia}
-                onChange={(v) => setSendVia(v as typeof sendVia)}
-                options={[
-                  { value: "both", label: "Email + WhatsApp" },
-                  { value: "email", label: "Email only" },
-                  { value: "link", label: "Link" },
-                ]}
-              />
-            </div>
-          </div>
-        </Section>
+    <>
+      {/* divider label */}
+      <div className="flex items-center gap-3 pb-1">
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          {initial?.id ? "Your response" : "Build the quote"}
+        </span>
+        <span className="h-px flex-1 bg-brand-line" />
+        <span className="text-[11px] text-brand-mute">3 quick steps</span>
+      </div>
 
-        {/* 2 — Listing & room */}
-        <Section
-          n={2}
-          title="Listing & room"
-          sub="What are you quoting on? Nightly rates fill in automatically."
-        >
-          <div className="grid gap-3 sm:grid-cols-3">
-            {listings.map((l) => {
-              const on = l.id === listingId;
-              return (
-                <button
-                  type="button"
-                  key={l.id}
-                  onClick={() => changeListing(l.id)}
-                  className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
-                    on
-                      ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
-                      : "border-brand-line bg-white hover:bg-brand-accent/20"
-                  }`}
-                >
-                  <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
-                    {l.coverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={l.coverUrl}
-                        alt={l.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                        <BedDouble className="h-6 w-6" />
-                      </span>
-                    )}
-                    {on ? (
-                      <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
-                        <Check className="h-3 w-3" />
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="mt-2.5 flex items-start justify-between gap-2">
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-semibold text-brand-ink">
-                        {l.name}
-                      </span>
-                      <span className="block truncate text-[10.5px] text-brand-mute">
-                        {l.city ?? "—"}
-                        {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
-                      </span>
-                    </span>
-                    {l.base_price != null ? (
-                      <span className="text-right">
-                        <span className="block font-display text-[12.5px] font-bold text-brand-ink">
-                          {formatMoney(l.base_price, l.currency)}
-                        </span>
-                        <span className="block text-[9.5px] text-brand-mute">
-                          / night
-                        </span>
-                      </span>
-                    ) : null}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      <div className="mt-5 space-y-5 pb-28">
+        {/* ===== STEP 1 — CONFIRM THE STAY ===== */}
+        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+          <SecHeader
+            n={1}
+            done={step1Done}
+            title="Confirm the stay"
+            sub="Who it's for, where they're staying, and the dates. Adjust anything that needs changing."
+          />
 
-          {hasRooms ? (
-            <div className="mt-4">
-              <FieldLabel>Quoting</FieldLabel>
-              <div className="mt-1 flex gap-2">
-                <Chip
-                  active={scope === "whole_listing"}
-                  onClick={() => {
-                    setScope("whole_listing");
-                    setPricedRooms([]);
-                  }}
-                  label="Whole listing"
+          {/* Guest */}
+          <div className="mt-5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+              Guest
+            </div>
+            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+              <div className="relative">
+                <FieldLabel>Full name *</FieldLabel>
+                <Input
+                  value={guestName}
+                  onChange={(e) => onGuestNameChange(e.target.value)}
+                  onFocus={() => guestResults.length && setShowResults(true)}
+                  onBlur={() => setTimeout(() => setShowResults(false), 150)}
+                  placeholder="e.g. Aisha Patel"
                 />
-                <Chip
-                  active={scope === "rooms"}
-                  onClick={() => setScope("rooms")}
-                  label="Specific rooms"
-                />
-              </div>
-              {scope === "rooms" ? (
-                <div className="mt-3 space-y-2">
-                  {(listing?.rooms ?? []).map((r) => {
-                    const on = !!selectedRooms[r.id];
-                    const priced = pricedRooms.find((p) => p.room_id === r.id);
-                    return (
-                      <div
-                        key={r.id}
-                        className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                {showResults && guestResults.length > 0 ? (
+                  <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
+                    {guestResults.map((g) => (
+                      <button
+                        key={g.email}
+                        type="button"
+                        onMouseDown={() => pickGuest(g)}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
                       >
-                        <button
-                          type="button"
-                          onClick={() => toggleRoom(r.id)}
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
-                        >
-                          {on ? <Check className="h-3 w-3" /> : null}
-                        </button>
-                        <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
-                          {r.coverUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={r.coverUrl}
-                              alt={r.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <span className="flex h-full w-full items-center justify-center text-brand-mute">
-                              <BedDouble className="h-4 w-4" />
-                            </span>
-                          )}
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
+                          {(g.name || g.email)[0]?.toUpperCase()}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
-                            {r.name}
-                            {r.bed_type ? ` · ${r.bed_type}` : ""}
+                          <span className="block truncate font-medium text-brand-ink">
+                            {g.name || g.email}
                           </span>
-                          <span className="block text-[11px] text-brand-mute">
-                            {r.max_guests ? `sleeps ${r.max_guests}` : ""}
+                          <span className="block truncate text-xs text-brand-mute">
+                            {g.email}
                           </span>
                         </span>
-                        {on ? (
-                          <span className="flex items-center gap-2 text-xs text-brand-mute">
-                            <span>Guests</span>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={r.max_guests ?? undefined}
-                              value={
-                                roomGuests[r.id] ??
-                                String(r.base_occupancy ?? 1)
-                              }
-                              onChange={(e) =>
-                                setRoomGuests((p) => ({
-                                  ...p,
-                                  [r.id]: e.target.value,
-                                }))
-                              }
-                              className="h-8 w-16"
-                            />
-                            {priced ? (
-                              <span className="font-medium text-brand-ink">
-                                {formatMoney(
-                                  priced.base_amount + priced.cleaning_fee,
-                                  currency,
-                                )}
-                              </span>
-                            ) : null}
+                        {g.stays > 0 ? (
+                          <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                            {g.stays} stay{g.stays === 1 ? "" : "s"}
                           </span>
                         ) : null}
-                      </div>
-                    );
-                  })}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <div>
+                <FieldLabel>Email *</FieldLabel>
+                <Input
+                  type="email"
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="guest@email.com"
+                />
+              </div>
+              <div>
+                <FieldLabel>Phone (for WhatsApp)</FieldLabel>
+                <Input
+                  value={guestPhone}
+                  onChange={(e) => setGuestPhone(e.target.value)}
+                  placeholder="+27 …"
+                />
+              </div>
+              <div>
+                <FieldLabel>Send quote via</FieldLabel>
+                <Seg
+                  value={sendVia}
+                  onChange={(v) => setSendVia(v as typeof sendVia)}
+                  options={[
+                    { value: "both", label: "Email + WhatsApp" },
+                    { value: "email", label: "Email" },
+                    { value: "link", label: "Link" },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Matched listing / room */}
+          <div className="mt-6">
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+              Listing &amp; room
+            </div>
+            <div className="mt-2 flex items-center gap-3 rounded-[12px] border border-brand-line bg-brand-light/40 p-3">
+              <span className="relative h-14 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-light">
+                {listing?.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={listing.coverUrl}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                    <BedDouble className="h-5 w-5" />
+                  </span>
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-semibold text-brand-ink">
+                  {listing?.name ?? "Pick a listing"}
+                  {scope === "rooms" && selectedRoomObjs.length > 0
+                    ? ` · ${selectedRoomObjs.map((r) => r.name).join(", ")}`
+                    : ""}
                 </div>
-              ) : null}
-            </div>
-          ) : null}
-        </Section>
-
-        {/* 3 — Dates */}
-        <Section
-          n={3}
-          title="Stay dates"
-          sub="Hatched cells are already booked. Dates aren't held until the guest accepts."
-        >
-          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_120px]">
-            <div>
-              <FieldLabel>Check-in</FieldLabel>
-              <div className="flex h-[38px] items-center rounded-[10px] border border-brand-line bg-white px-3 text-[13px] text-brand-ink">
-                {checkIn ? fmtDayLong(checkIn) : "Pick a date"}
+                <div className="truncate text-[11.5px] text-brand-mute">
+                  {[
+                    listing?.city,
+                    listing?.max_guests ? `sleeps ${listing.max_guests}` : null,
+                    listing?.base_price != null
+                      ? `base ${formatMoney(listing.base_price, currency)} / night`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </div>
               </div>
+              <button
+                type="button"
+                onClick={() => setChangingListing((v) => !v)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-[8px] border border-brand-line bg-white px-3 py-1.5 text-[11.5px] font-medium text-brand-ink hover:bg-brand-accent/40"
+              >
+                {changingListing ? "Done" : "Change"}
+                <ChevronRight className="h-3 w-3" />
+              </button>
             </div>
-            <div>
-              <FieldLabel>Check-out</FieldLabel>
-              <div className="flex h-[38px] items-center rounded-[10px] border border-brand-line bg-white px-3 text-[13px] text-brand-ink">
-                {checkOut ? fmtDayLong(checkOut) : "Pick a date"}
-              </div>
-            </div>
-            <div>
-              <FieldLabel>Nights</FieldLabel>
-              <div className="flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/50 px-3">
-                <span className="font-display text-[18px] font-bold text-brand-ink">
-                  {nights}
-                </span>
-                <span className="text-[11px] text-brand-mute">nights</span>
-              </div>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-medium text-brand-mute">
-              Quick add:
-            </span>
-            <Pill onClick={() => quickDates(2, true)}>This weekend</Pill>
-            <Pill onClick={() => quickDates(3, true)}>Long weekend</Pill>
-            <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
-          </div>
-          <div className="mt-4">
-            <QuoteCalendar
-              checkIn={checkIn}
-              checkOut={checkOut}
-              blocked={blockedSet}
-              onChange={(ci, co) => {
-                setCheckIn(ci);
-                setCheckOut(co);
-              }}
-            />
-          </div>
-        </Section>
 
-        {/* 4 — Guest party */}
-        <Section
-          n={4}
-          title="Guest party"
-          sub={
-            listing?.max_guests
-              ? `${listing.name} sleeps ${listing.max_guests}.`
-              : "Who's coming along."
-          }
-        >
-          <div className="grid gap-3 sm:grid-cols-4">
-            <Stepper
-              label="Adults"
-              hint="13 +"
-              value={adults}
-              min={1}
-              max={adults + capacityRemaining}
-              onChange={setAdults}
-            />
-            {allow.children ? (
-              <Stepper
-                label="Children"
-                hint="2 – 12"
-                value={children}
-                min={0}
-                max={children + capacityRemaining}
-                onChange={setChildren}
-              />
-            ) : null}
-            {allow.infants ? (
-              <Stepper
-                label="Infants"
-                hint="Under 2"
-                value={infants}
-                min={0}
-                onChange={setInfants}
-              />
-            ) : null}
-            {allow.pets ? (
-              <Stepper
-                label="Pets"
-                hint="Fee may apply"
-                value={pets}
-                min={0}
-                onChange={setPets}
-              />
-            ) : null}
-          </div>
-          {capacityLimit !== Infinity ? (
-            <p
-              className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
-            >
-              {overCapacity
-                ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
-                : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
-            </p>
-          ) : null}
-        </Section>
-
-        {/* 5 — Pricing */}
-        <Section
-          n={5}
-          title="Pricing"
-          sub="Priced from your calendar — tweak any line or add charges. Guests see exactly this."
-          accent
-        >
-          <button
-            type="button"
-            onClick={() => priceStayNow(false)}
-            disabled={busy || !datesValid}
-            className="mb-3 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-50"
-          >
-            <Calculator className="h-4 w-4" />
-            {pricing ? "Pricing…" : "Re-price from calendar"}
-          </button>
-          {!datesValid ? (
-            <span className="ml-2 text-xs text-brand-mute">
-              Add dates above to price.
-            </span>
-          ) : null}
-
-          {scope === "whole_listing" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <FieldLabel>{`Accommodation (${currency})`}</FieldLabel>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={baseAmount}
-                  onChange={(e) => setBaseAmount(e.target.value)}
-                />
-              </div>
-              <div>
-                <FieldLabel>{`Cleaning fee (${currency})`}</FieldLabel>
-                <Input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={cleaningFee}
-                  onChange={(e) => setCleaningFee(e.target.value)}
-                />
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-brand-mute">
-              Per-room amounts come from your calendar once rooms are priced
-              above.
-            </p>
-          )}
-
-          {listing && listing.addons.length > 0 ? (
-            <div className="mt-4">
-              <FieldLabel>Add-ons from your catalog</FieldLabel>
-              <div className="mt-2 space-y-1.5">
-                {listing.addons.map((a) => {
-                  const checked = catalogSel[a.id] != null;
+            {changingListing ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {listings.map((l) => {
+                  const on = l.id === listingId;
                   return (
-                    <label
-                      key={a.id}
-                      className="flex flex-wrap items-center gap-3 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm"
+                    <button
+                      type="button"
+                      key={l.id}
+                      onClick={() => changeListing(l.id)}
+                      className={`relative flex flex-col rounded-[12px] border p-3 text-left transition ${
+                        on
+                          ? "border-brand-primary bg-brand-accent/40 ring-2 ring-brand-primary/15"
+                          : "border-brand-line bg-white hover:bg-brand-accent/20"
+                      }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) =>
-                          setCatalogSel((p) => {
-                            const next = { ...p };
-                            if (e.target.checked)
-                              next[a.id] = String(a.min_quantity || 1);
-                            else delete next[a.id];
-                            return next;
-                          })
-                        }
-                      />
-                      <span className="font-medium text-brand-ink">
-                        {a.name}
+                      <span className="relative block h-24 w-full overflow-hidden rounded-[8px] bg-brand-light">
+                        {l.coverUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={l.coverUrl}
+                            alt={l.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                            <BedDouble className="h-6 w-6" />
+                          </span>
+                        )}
+                        {on ? (
+                          <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-white">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        ) : null}
                       </span>
-                      <span className="text-xs text-brand-mute">
-                        {formatMoney(a.unit_price, a.currency)} ·{" "}
-                        {a.pricing_model.replace(/_/g, " ")}
+                      <span className="mt-2.5 flex items-start justify-between gap-2">
+                        <span className="min-w-0">
+                          <span className="block truncate text-[13px] font-semibold text-brand-ink">
+                            {l.name}
+                          </span>
+                          <span className="block truncate text-[10.5px] text-brand-mute">
+                            {l.city ?? "—"}
+                            {l.max_guests ? ` · sleeps ${l.max_guests}` : ""}
+                          </span>
+                        </span>
+                        {l.base_price != null ? (
+                          <span className="text-right">
+                            <span className="block font-display text-[12.5px] font-bold text-brand-ink">
+                              {formatMoney(l.base_price, l.currency)}
+                            </span>
+                            <span className="block text-[9.5px] text-brand-mute">
+                              / night
+                            </span>
+                          </span>
+                        ) : null}
                       </span>
-                      {checked && a.pricing_model === "per_unit" ? (
-                        <Input
-                          type="number"
-                          min={1}
-                          max={a.max_quantity ?? undefined}
-                          value={catalogSel[a.id]}
-                          onChange={(e) =>
-                            setCatalogSel((p) => ({
-                              ...p,
-                              [a.id]: e.target.value,
-                            }))
-                          }
-                          className="ml-auto h-8 w-16"
-                        />
-                      ) : null}
-                    </label>
+                    </button>
                   );
                 })}
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <div className="mt-4">
-            <FieldLabel>Custom line items</FieldLabel>
-            <div className="mt-2 space-y-2">
-              {customAddons.map((a, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-[1fr_70px_100px_36px] gap-2"
-                >
-                  <Input
-                    value={a.label}
-                    onChange={(e) => updateCustom(i, { label: e.target.value })}
-                    placeholder="Early check-in"
+            {hasRooms ? (
+              <div className="mt-3">
+                <div className="flex gap-2">
+                  <Chip
+                    active={scope === "whole_listing"}
+                    onClick={() => {
+                      setScope("whole_listing");
+                      setPricedRooms([]);
+                    }}
+                    label="Whole listing"
                   />
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={a.quantity}
-                    onChange={(e) =>
-                      updateCustom(i, { quantity: e.target.value })
-                    }
-                  />
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={a.unitPrice}
-                    onChange={(e) =>
-                      updateCustom(i, { unitPrice: e.target.value })
-                    }
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeCustom(i)}
-                    aria-label="Remove line"
-                    className="flex items-center justify-center rounded-[8px] border border-brand-line text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={addCustom}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-[8px] border border-dashed border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
-            >
-              <Plus className="h-3.5 w-3.5 text-brand-primary" /> Custom line
-            </button>
-          </div>
-
-          {/* Discount */}
-          <div className="mt-4 rounded-[10px] border border-brand-line bg-brand-light/50 p-3">
-            <label className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDiscountOn((v) => !v)}
-                aria-pressed={discountOn}
-                className={`relative h-[18px] w-8 shrink-0 rounded-full transition-colors ${discountOn ? "bg-brand-primary" : "bg-brand-line"}`}
-              >
-                <span
-                  className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-transform ${discountOn ? "translate-x-[16px]" : "translate-x-[2px]"}`}
-                />
-              </button>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[12.5px] font-semibold text-brand-ink">
-                  Apply a discount
-                </span>
-                <span className="block text-[11px] text-brand-mute">
-                  Shown as its own line on the quote.
-                </span>
-              </span>
-            </label>
-            {discountOn ? (
-              <div className="mt-3 flex flex-wrap items-end gap-2">
-                <div>
-                  <FieldLabel>Type</FieldLabel>
-                  <Seg
-                    value={discountType}
-                    onChange={(v) => setDiscountType(v as "percent" | "fixed")}
-                    options={[
-                      { value: "percent", label: "%" },
-                      {
-                        value: "fixed",
-                        label: currency === "ZAR" ? "R" : currency,
-                      },
-                    ]}
+                  <Chip
+                    active={scope === "rooms"}
+                    onClick={() => setScope("rooms")}
+                    label="Specific rooms"
                   />
                 </div>
-                <div className="w-24">
-                  <FieldLabel>Value</FieldLabel>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                  />
-                </div>
-                <div className="min-w-[10rem] flex-1">
-                  <FieldLabel>Reason</FieldLabel>
-                  <Input
-                    value={discountReason}
-                    onChange={(e) => setDiscountReason(e.target.value)}
-                    placeholder="Returning guest"
-                  />
-                </div>
-                {totals.discountAmount > 0 ? (
-                  <span className="pb-2 text-[12px] font-medium text-brand-primary">
-                    −{formatMoney(totals.discountAmount, currency)}
-                  </span>
+                {scope === "rooms" ? (
+                  <div className="mt-3 space-y-2">
+                    {(listing?.rooms ?? []).map((r) => {
+                      const on = !!selectedRooms[r.id];
+                      const priced = pricedRooms.find(
+                        (p) => p.room_id === r.id,
+                      );
+                      return (
+                        <div
+                          key={r.id}
+                          className={`flex items-center gap-3 rounded-[10px] border p-3 ${on ? "border-brand-primary bg-brand-accent/30" : "border-brand-line bg-white"}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleRoom(r.id)}
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${on ? "border-brand-primary bg-brand-primary text-white" : "border-brand-line bg-white"}`}
+                          >
+                            {on ? <Check className="h-3 w-3" /> : null}
+                          </button>
+                          <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] bg-brand-light">
+                            {r.coverUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={r.coverUrl}
+                                alt={r.name}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-full w-full items-center justify-center text-brand-mute">
+                                <BedDouble className="h-4 w-4" />
+                              </span>
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[12.5px] font-semibold text-brand-ink">
+                              {r.name}
+                              {r.bed_type ? ` · ${r.bed_type}` : ""}
+                            </span>
+                            <span className="block text-[11px] text-brand-mute">
+                              {r.max_guests ? `sleeps ${r.max_guests}` : ""}
+                            </span>
+                          </span>
+                          {on ? (
+                            <span className="flex items-center gap-2 text-xs text-brand-mute">
+                              <span>Guests</span>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={r.max_guests ?? undefined}
+                                value={
+                                  roomGuests[r.id] ??
+                                  String(r.base_occupancy ?? 1)
+                                }
+                                onChange={(e) =>
+                                  setRoomGuests((p) => ({
+                                    ...p,
+                                    [r.id]: e.target.value,
+                                  }))
+                                }
+                                className="h-8 w-16"
+                              />
+                              {priced ? (
+                                <span className="font-medium text-brand-ink">
+                                  {formatMoney(
+                                    priced.base_amount + priced.cleaning_fee,
+                                    currency,
+                                  )}
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : null}
               </div>
             ) : null}
           </div>
 
-          <div className="mt-4 flex items-center justify-between rounded-[10px] bg-brand-accent/40 px-4 py-3">
-            <span className="text-[12px] text-brand-secondary">
-              Accommodation {formatMoney(totals.base, currency)} · cleaning{" "}
-              {formatMoney(totals.cleaning, currency)} · add-ons{" "}
-              {formatMoney(totals.addonsSum, currency)}
-              {totals.discountAmount > 0
-                ? ` · −${formatMoney(totals.discountAmount, currency)}`
-                : ""}
-            </span>
-            <span className="font-display text-[15px] font-bold text-brand-secondary">
-              Total {formatMoney(totals.total, currency)}
-            </span>
-          </div>
-        </Section>
-
-        {/* 6 — Quote settings (validity; deposit lands in Phase 2) */}
-        <Section
-          n={6}
-          title="Quote settings"
-          sub="How long the offer stands and what the guest pays to lock it in."
-        >
-          <FieldLabel>Valid for</FieldLabel>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {[1, 3, 7, 14].map((d) => (
+          {/* Dates + party summary */}
+          <div className="mt-6">
+            <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+              Dates &amp; party
+            </div>
+            <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                    Check-in → out
+                  </div>
+                  <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                    {datesValid
+                      ? `${ci.dow} ${ci.day} → ${co.dow} ${co.day} ${co.mo.split(" ")[0]}`
+                      : "Pick dates"}
+                  </div>
+                </div>
+                <span className="shrink-0 rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
+                  {nights} nt{nights === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                    Guest party
+                  </div>
+                  <div className="mt-0.5 truncate text-[13px] font-bold text-brand-ink">
+                    {adults} adult{adults === 1 ? "" : "s"}
+                    {children
+                      ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                      : ""}
+                    {infants
+                      ? ` · ${infants} infant${infants === 1 ? "" : "s"}`
+                      : ""}
+                    {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
+                  </div>
+                </div>
+              </div>
               <button
-                key={d}
                 type="button"
-                onClick={() => setValidDays(d)}
-                className={`rounded-pill px-2.5 py-1 text-[11px] font-semibold ${validDays === d ? "bg-brand-accent text-brand-secondary" : "border border-brand-line bg-white text-brand-ink hover:bg-brand-accent/40"}`}
+                onClick={() => setAdjustingStay((v) => !v)}
+                className="flex items-center justify-center gap-1.5 rounded-[10px] border border-dashed border-brand-line bg-white px-4 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
               >
-                {d === 1 ? "24 hours" : `${d} days`}
+                <Pencil className="h-3.5 w-3.5 text-brand-primary" />
+                {adjustingStay ? "Done" : "Adjust"}
               </button>
-            ))}
-            <span className="ml-1 inline-flex items-center text-[11px] text-brand-mute">
-              Expires {validUntil}
-            </span>
-          </div>
+            </div>
 
-          <div className="mt-4">
-            <FieldLabel>To accept, guest pays</FieldLabel>
-            <div className="mt-1">
+            {adjustingStay ? (
+              <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-brand-mute">
+                    Quick add:
+                  </span>
+                  <Pill onClick={() => quickDates(2, true)}>This weekend</Pill>
+                  <Pill onClick={() => quickDates(3, true)}>Long weekend</Pill>
+                  <Pill onClick={() => quickDates(7, false)}>7 nights</Pill>
+                </div>
+                <div className="mt-3">
+                  <QuoteCalendar
+                    checkIn={checkIn}
+                    checkOut={checkOut}
+                    blocked={blockedSet}
+                    onChange={(a, b) => {
+                      setCheckIn(a);
+                      setCheckOut(b);
+                    }}
+                  />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-4">
+                  <Stepper
+                    label="Adults"
+                    hint="13 +"
+                    value={adults}
+                    min={1}
+                    max={adults + capacityRemaining}
+                    onChange={setAdults}
+                  />
+                  {allow.children ? (
+                    <Stepper
+                      label="Children"
+                      hint="2 – 12"
+                      value={children}
+                      min={0}
+                      max={children + capacityRemaining}
+                      onChange={setChildren}
+                    />
+                  ) : null}
+                  {allow.infants ? (
+                    <Stepper
+                      label="Infants"
+                      hint="Under 2"
+                      value={infants}
+                      min={0}
+                      onChange={setInfants}
+                    />
+                  ) : null}
+                  {allow.pets ? (
+                    <Stepper
+                      label="Pets"
+                      hint="Fee may apply"
+                      value={pets}
+                      min={0}
+                      onChange={setPets}
+                    />
+                  ) : null}
+                </div>
+                {capacityLimit !== Infinity ? (
+                  <p
+                    className={`mt-2 text-[11px] ${overCapacity ? "font-semibold text-status-cancelled" : "text-brand-mute"}`}
+                  >
+                    {overCapacity
+                      ? `Over capacity — sleeps up to ${capacityLimit} (adults + children). You have ${partySize}.`
+                      : `${partySize} of ${capacityLimit} guest${capacityLimit === 1 ? "" : "s"} (adults + children). Infants & pets don't count.`}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        {/* ===== STEP 2 — YOUR PRICE ===== */}
+        <section className="rounded-card border border-brand-primary/30 bg-white p-6 shadow-card ring-1 ring-brand-primary/10">
+          <SecHeader
+            n={2}
+            title="Your price"
+            sub="The heart of your reply. Tweak any line, add charges, or give a discount — the guest sees exactly this."
+            right={
+              <div className="flex w-full rounded-[10px] border border-brand-line bg-brand-light p-[3px] sm:w-auto">
+                {(
+                  [
+                    ["itemised", "Itemised"],
+                    ["single", "Single total"],
+                  ] as const
+                ).map(([v, label]) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => switchPriceMode(v)}
+                    className={`flex-1 rounded-[7px] px-3 py-1.5 text-[12px] font-medium transition sm:flex-none ${priceMode === v ? "bg-white font-semibold text-brand-ink shadow-card" : "text-brand-mute hover:text-brand-ink"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+
+          {priceMode === "itemised" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => priceStayNow(false)}
+                disabled={busy || !datesValid}
+                className="mt-5 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-50"
+              >
+                <Calculator className="h-4 w-4" />
+                {pricing ? "Pricing…" : "Re-price from calendar"}
+              </button>
+              {!datesValid ? (
+                <span className="ml-2 text-xs text-brand-mute">
+                  Add dates above to price.
+                </span>
+              ) : null}
+
+              <div className="mt-4 rounded-[12px] border border-brand-line p-4">
+                <div className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                  <span>Item</span>
+                  <span className="pr-1 text-right">Amount</span>
+                  <span />
+                </div>
+
+                {/* Accommodation */}
+                {scope === "rooms" ? (
+                  pricedRooms.length > 0 ? (
+                    pricedRooms.map((r) => (
+                      <PriceRow
+                        key={r.room_id}
+                        title={
+                          (listing?.rooms ?? []).find((x) => x.id === r.room_id)
+                            ?.name ?? "Room"
+                        }
+                        sub={nights > 0 ? `× ${nights} nights` : undefined}
+                        amount={
+                          <StaticAmount
+                            value={r.base_amount}
+                            currency={currency}
+                          />
+                        }
+                      />
+                    ))
+                  ) : (
+                    <p className="py-3 text-[12px] text-brand-mute">
+                      Select rooms above — per-room amounts price from your
+                      calendar.
+                    </p>
+                  )
+                ) : (
+                  <PriceRow
+                    title="Nightly rate"
+                    sub={
+                      nights > 0 && totals.base > 0
+                        ? `${formatMoney(Math.round(totals.base / nights), currency)} × ${nights} nights`
+                        : "Accommodation for the stay"
+                    }
+                    amount={
+                      <AmountInput
+                        value={baseAmount}
+                        onChange={setBaseAmount}
+                        currency={currency}
+                      />
+                    }
+                  />
+                )}
+
+                {/* Cleaning */}
+                {scope === "rooms" ? (
+                  totals.cleaning > 0 ? (
+                    <PriceRow
+                      title="Cleaning fee"
+                      sub="Per stay · from your rooms"
+                      amount={
+                        <StaticAmount
+                          value={totals.cleaning}
+                          currency={currency}
+                        />
+                      }
+                    />
+                  ) : null
+                ) : (
+                  <PriceRow
+                    title="Cleaning fee"
+                    sub="One-off · per stay"
+                    amount={
+                      <AmountInput
+                        value={cleaningFee}
+                        onChange={setCleaningFee}
+                        currency={currency}
+                      />
+                    }
+                    onDelete={() => setCleaningFee("0")}
+                  />
+                )}
+
+                {/* Catalog add-ons */}
+                {catalogLines.map((a) => (
+                  <PriceRow
+                    key={a.addon_id}
+                    title={a.label}
+                    chip={a.quantity > 1 ? `× ${a.quantity}` : "Add-on"}
+                    sub="From your add-on library"
+                    amount={
+                      <StaticAmount
+                        value={a.quantity * a.unit_price}
+                        currency={currency}
+                      />
+                    }
+                    onDelete={() =>
+                      setCatalogSel((p) => {
+                        const next = { ...p };
+                        delete next[a.addon_id];
+                        return next;
+                      })
+                    }
+                  />
+                ))}
+
+                {/* Custom lines */}
+                {customAddons.map((a, i) => (
+                  <div
+                    key={`custom-${i}`}
+                    className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 border-b border-dashed border-brand-line py-2.5 last:border-0"
+                  >
+                    <Input
+                      value={a.label}
+                      onChange={(e) =>
+                        updateCustom(i, { label: e.target.value })
+                      }
+                      placeholder="e.g. Early check-in"
+                      className="h-9"
+                    />
+                    <AmountInput
+                      value={a.unitPrice}
+                      onChange={(v) =>
+                        updateCustom(i, { unitPrice: v, quantity: "1" })
+                      }
+                      currency={currency}
+                    />
+                    <RowDelete onClick={() => removeCustom(i)} />
+                  </div>
+                ))}
+
+                {/* Derived age/pet lines */}
+                {ageLines.map((a, i) => (
+                  <PriceRow
+                    key={`age-${i}`}
+                    title={a.label}
+                    sub="Priced from the guest party"
+                    amount={
+                      <StaticAmount value={a.subtotal} currency={currency} />
+                    }
+                  />
+                ))}
+
+                {/* Discount */}
+                {discountOn ? (
+                  <PriceRow
+                    title={discountReason.trim() || "Discount"}
+                    chip={
+                      discountType === "percent"
+                        ? `${parseFloat(discountValue) || 0}%`
+                        : "Fixed"
+                    }
+                    accent
+                    amount={
+                      <span className="block w-[120px] pr-2 text-right font-mono text-[13px] font-semibold text-brand-primary">
+                        −{formatMoney(totals.discountAmount, currency)}
+                      </span>
+                    }
+                    onDelete={() => setDiscountOn(false)}
+                  />
+                ) : null}
+
+                {/* Add-line buttons */}
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-brand-line pt-3">
+                  <AddBtn
+                    icon={<Plus className="h-3.5 w-3.5" />}
+                    onClick={addCustom}
+                  >
+                    Custom line
+                  </AddBtn>
+                  {listing && listing.addons.length > 0 ? (
+                    <AddBtn
+                      icon={<ListPlus className="h-3.5 w-3.5" />}
+                      onClick={() => setAddCatalogOpen((v) => !v)}
+                    >
+                      Add-on from library
+                    </AddBtn>
+                  ) : null}
+                  {!discountOn ? (
+                    <AddBtn
+                      icon={<Tag className="h-3.5 w-3.5" />}
+                      onClick={() => setDiscountOn(true)}
+                    >
+                      Discount
+                    </AddBtn>
+                  ) : null}
+                </div>
+
+                {/* Catalog picker */}
+                {addCatalogOpen && listing ? (
+                  <div className="mt-3 space-y-1.5 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                    {listing.addons.map((a) => {
+                      const checked = catalogSel[a.id] != null;
+                      return (
+                        <label
+                          key={a.id}
+                          className="flex flex-wrap items-center gap-3 rounded-[8px] bg-white px-3 py-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) =>
+                              setCatalogSel((p) => {
+                                const next = { ...p };
+                                if (e.target.checked)
+                                  next[a.id] = String(a.min_quantity || 1);
+                                else delete next[a.id];
+                                return next;
+                              })
+                            }
+                          />
+                          <span className="font-medium text-brand-ink">
+                            {a.name}
+                          </span>
+                          <span className="text-xs text-brand-mute">
+                            {formatMoney(a.unit_price, a.currency)} ·{" "}
+                            {a.pricing_model.replace(/_/g, " ")}
+                          </span>
+                          {checked && a.pricing_model === "per_unit" ? (
+                            <Input
+                              type="number"
+                              min={1}
+                              max={a.max_quantity ?? undefined}
+                              value={catalogSel[a.id]}
+                              onChange={(e) =>
+                                setCatalogSel((p) => ({
+                                  ...p,
+                                  [a.id]: e.target.value,
+                                }))
+                              }
+                              className="ml-auto h-8 w-16"
+                            />
+                          ) : null}
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {/* Discount editor */}
+                {discountOn ? (
+                  <div className="mt-3 flex flex-wrap items-end gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
+                    <div>
+                      <FieldLabel>Type</FieldLabel>
+                      <Seg
+                        value={discountType}
+                        onChange={(v) =>
+                          setDiscountType(v as "percent" | "fixed")
+                        }
+                        options={[
+                          { value: "percent", label: "%" },
+                          {
+                            value: "fixed",
+                            label: currency === "ZAR" ? "R" : currency,
+                          },
+                        ]}
+                      />
+                    </div>
+                    <div className="w-24">
+                      <FieldLabel>Value</FieldLabel>
+                      <Input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={discountValue}
+                        onChange={(e) => setDiscountValue(e.target.value)}
+                      />
+                    </div>
+                    <div className="min-w-[10rem] flex-1">
+                      <FieldLabel>Reason</FieldLabel>
+                      <Input
+                        value={discountReason}
+                        onChange={(e) => setDiscountReason(e.target.value)}
+                        placeholder="Returning guest"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div className="mt-5 rounded-[12px] border border-brand-line p-4">
+              <FieldLabel>One price for the whole stay</FieldLabel>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-brand-mute">
+                  {currency === "ZAR" ? "R" : currency}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={singleTotal}
+                  onChange={(e) => setSingleTotal(e.target.value)}
+                  className="w-full rounded-[10px] border border-brand-line bg-white py-2 pl-8 pr-3 font-mono text-[16px] font-bold text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
+                />
+              </div>
+              <p className="mt-2 text-[11.5px] text-brand-mute">
+                The guest sees a single total with no line-by-line breakdown.
+                Good for bespoke or negotiated pricing.
+              </p>
+            </div>
+          )}
+
+          {/* Totals strip */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                Guest pays
+              </div>
+              <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
+                {formatMoney(totals.total, currency)}
+              </div>
+            </div>
+            <div className="rounded-[12px] border border-brand-line bg-brand-light/40 px-4 py-3">
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                Avg / night
+              </div>
+              <div className="mt-1 font-display text-[20px] font-bold text-brand-ink">
+                {nights > 0
+                  ? formatMoney(Math.round(totals.total / nights), currency)
+                  : "—"}
+              </div>
+            </div>
+            <div className="rounded-[12px] border border-brand-primary/30 bg-brand-accent/40 px-4 py-3">
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-secondary/80">
+                Your payout
+              </div>
+              <div className="mt-1 font-display text-[20px] font-bold text-brand-secondary">
+                {formatMoney(totals.total, currency)}
+              </div>
+              <div className="text-[10px] text-brand-secondary/70">
+                0% {brandName} fee · you keep it all
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ===== STEP 3 — TERMS & REPLY ===== */}
+        <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
+          <SecHeader
+            n={3}
+            title="Terms &amp; your reply"
+            sub="How long the offer stands, what they pay to lock it in, and a personal note."
+          />
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div>
+              <FieldLabel>Hold this price until</FieldLabel>
+              <div className="flex h-[38px] items-center gap-2 rounded-[10px] border border-brand-line bg-brand-light/40 px-3">
+                <Clock className="h-4 w-4 text-brand-mute" />
+                <span className="text-[13px] font-medium text-brand-ink">
+                  {validUntil}
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <HoldPill on={validDays === 1} onClick={() => setValidDays(1)}>
+                  24 hours
+                </HoldPill>
+                <HoldPill on={validDays === 3} onClick={() => setValidDays(3)}>
+                  3 days
+                </HoldPill>
+                <HoldPill on={validDays === 7} onClick={() => setValidDays(7)}>
+                  7 days
+                </HoldPill>
+                {daysToCheckIn ? (
+                  <HoldPill
+                    on={validDays === daysToCheckIn}
+                    onClick={() => setValidDays(daysToCheckIn)}
+                  >
+                    Until check-in
+                  </HoldPill>
+                ) : null}
+              </div>
+            </div>
+            <div>
+              <FieldLabel>To accept, {firstName} pays</FieldLabel>
               <Seg
                 value={depositType}
                 onChange={(v) =>
@@ -1283,21 +1679,18 @@ export function QuoteForm({
                   { value: "reserve", label: "Reserve only" },
                 ]}
               />
-            </div>
-            {depositType === "deposit" ? (
-              <div className="mt-3 flex flex-wrap items-end gap-3">
-                <div className="w-20">
-                  <FieldLabel>Deposit %</FieldLabel>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={depositPct}
-                    onChange={(e) => setDepositPct(e.target.value)}
-                  />
-                </div>
-                <div className="w-28">
-                  <FieldLabel>Balance due</FieldLabel>
+              {depositType === "deposit" ? (
+                <div className="mt-2 flex flex-wrap items-end gap-3">
+                  <div className="w-20">
+                    <FieldLabel>Deposit %</FieldLabel>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={depositPct}
+                      onChange={(e) => setDepositPct(e.target.value)}
+                    />
+                  </div>
                   <div className="flex items-center gap-1.5">
                     <Input
                       type="number"
@@ -1307,324 +1700,389 @@ export function QuoteForm({
                       className="w-16"
                     />
                     <span className="text-[11px] text-brand-mute">
-                      days before
+                      days before check-in for the balance
                     </span>
                   </div>
                 </div>
-                <span className="pb-2 text-[12px] text-brand-mute">
-                  Due now{" "}
-                  <span className="font-semibold text-brand-ink">
-                    {formatMoney(deposit.due, currency)}
-                  </span>{" "}
-                  · balance {formatMoney(deposit.balance, currency)}
-                </span>
-              </div>
-            ) : (
-              <p className="mt-2 text-[11px] text-brand-mute">
-                {depositType === "full"
-                  ? "Guest pays the full amount to confirm."
-                  : "Guest reserves the dates; you collect payment separately."}
-              </p>
-            )}
+              ) : (
+                <p className="mt-1.5 text-[11px] text-brand-mute">
+                  {depositType === "full"
+                    ? "Guest pays the full amount to confirm."
+                    : "Guest reserves the dates; you collect payment separately."}
+                </p>
+              )}
+            </div>
           </div>
-        </Section>
 
-        {/* 7 — Message */}
-        <Section
-          n={7}
-          title="Message to guest"
-          sub="A short personal note. This appears above the quote."
-        >
-          <textarea
-            rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Hi — here's a quote for your stay…"
-            className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
-          />
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            <span className="mr-1 text-[11px] font-medium text-brand-mute">
-              Quick inserts:
+          {/* Soft-hold note (sending soft-holds the dates automatically). */}
+          <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-4 py-3">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-secondary">
+              <Lock className="h-3.5 w-3.5" />
             </span>
-            <Pill
-              onClick={() =>
-                insertSnippet(
-                  "Check-in is from 14:00. I'll send directions and the key code the day before.",
-                )
-              }
-            >
-              + Check-in details
-            </Pill>
-            <Pill
-              onClick={() =>
-                insertSnippet(
-                  "Free cancellation up to 5 days before check-in; 50% refundable after that.",
-                )
-              }
-            >
-              + Cancellation policy
-            </Pill>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12.5px] font-semibold text-brand-ink">
+                Dates soft-held while {firstName} decides
+              </div>
+              <div className="text-[11px] text-brand-mute">
+                Sending marks{" "}
+                {datesValid
+                  ? `${ci.dow} ${ci.day} – ${co.dow} ${co.day}`
+                  : "the stay"}{" "}
+                as &ldquo;quote pending&rdquo; so you don&rsquo;t double-book.
+                It frees up if the quote expires or is declined.
+              </div>
+            </div>
           </div>
-        </Section>
+
+          {/* Reply message */}
+          <div className="mt-5">
+            <FieldLabel>Your reply to {firstName}</FieldLabel>
+            <textarea
+              rows={4}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Hi — here's a quote for your stay…"
+              className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
+            />
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              <span className="mr-1 text-[11px] font-medium text-brand-mute">
+                Quick inserts:
+              </span>
+              <Pill
+                onClick={() =>
+                  insertSnippet(
+                    "Check-in is from 14:00. I'll send directions and the key code the day before.",
+                  )
+                }
+              >
+                + Check-in details
+              </Pill>
+              <Pill
+                onClick={() =>
+                  insertSnippet(
+                    "Free cancellation up to 5 days before check-in; 50% refundable after that.",
+                  )
+                }
+              >
+                + Cancellation policy
+              </Pill>
+              <Pill
+                onClick={() =>
+                  insertSnippet(
+                    "I'll share full directions and parking details once your booking is confirmed.",
+                  )
+                }
+              >
+                + Directions
+              </Pill>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* RIGHT COLUMN — sticky summary */}
-      <aside className="lg:sticky lg:top-[88px] lg:self-start">
-        <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-lift">
-          <div className="relative bg-brand-gradient-dark p-5 text-white">
-            <div className="flex items-center justify-between">
-              <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-accent">
-                <span className="h-1.5 w-1.5 rounded-full bg-status-draft" />{" "}
-                {initial?.id ? "Editing" : "New quote"}
-              </span>
-            </div>
-            <div className="mt-3 flex items-center gap-3">
-              <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-white/10 ring-2 ring-white/20">
-                {listing?.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={listing.coverUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
-              </span>
-              <div className="min-w-0">
-                <div className="truncate font-display text-[15px] font-semibold leading-tight">
-                  {listing?.name ?? "Pick a listing"}
-                </div>
-                <div className="mt-0.5 truncate text-[11px] text-brand-accent/70">
-                  {scope === "rooms"
-                    ? selectedRoomObjs.map((r) => r.name).join(", ") ||
-                      "Select rooms"
-                    : "Whole listing"}
-                </div>
+      {/* ===== REVIEW & SEND BAR (sticky) ===== */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-brand-line bg-white/95 backdrop-blur lg:left-64">
+        <div className="mx-auto flex max-w-[880px] flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between lg:px-8">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div>
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                Quote total
+              </div>
+              <div className="font-display text-[20px] font-bold leading-none text-brand-ink">
+                {formatMoney(totals.total, currency)}
               </div>
             </div>
-            <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3">
-              <div className="text-center">
-                <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                  Check-in
-                </div>
-                <div className="mt-1 font-display text-[15px] font-bold leading-none">
-                  {checkIn ? fmtDayLong(checkIn).slice(0, 6) : "—"}
-                </div>
+            <div className="hidden h-9 w-px bg-brand-line sm:block" />
+            <div className="hidden sm:block">
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                Your payout
               </div>
-              <div className="flex flex-col items-center">
-                <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
-                  {nights} night{nights === 1 ? "" : "s"}
+              <div className="font-display text-[14px] font-bold leading-none text-brand-secondary">
+                {formatMoney(totals.total, currency)}{" "}
+                <span className="text-[11px] font-medium text-brand-mute">
+                  · 0% fee
                 </span>
-                <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
-              </div>
-              <div className="text-center">
-                <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
-                  Check-out
-                </div>
-                <div className="mt-1 font-display text-[15px] font-bold leading-none">
-                  {checkOut ? fmtDayLong(checkOut).slice(0, 6) : "—"}
-                </div>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-2 text-[11.5px]">
-              <User className="h-3.5 w-3.5 text-brand-primary" />
-              <span className="text-white">{guestName || "Guest"}</span>
-              <span className="text-brand-accent/50">·</span>
-              <span className="text-brand-accent/70">
-                {adults} adult{adults === 1 ? "" : "s"}
-                {children
-                  ? ` · ${children} child${children === 1 ? "" : "ren"}`
-                  : ""}
-                {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
-              </span>
+            <div className="hidden h-9 w-px bg-brand-line sm:block" />
+            <div className="hidden sm:block">
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+                Due to accept
+              </div>
+              <div className="font-display text-[14px] font-bold leading-none text-brand-ink">
+                {formatMoney(deposit.due, currency)}{" "}
+                <span className="text-[11px] font-medium text-brand-mute">
+                  ·{" "}
+                  {depositType === "deposit"
+                    ? `${parseFloat(depositPct) || 0}%`
+                    : depositType === "reserve"
+                      ? "reserve"
+                      : "full"}
+                </span>
+              </div>
             </div>
           </div>
-
-          <div className="px-5 pt-5 text-[12.5px]">
-            <ul className="space-y-2">
-              <SumRow
-                label="Accommodation"
-                value={formatMoney(totals.base, currency)}
-              />
-              {totals.cleaning > 0 ? (
-                <SumRow
-                  label="Cleaning fee"
-                  value={formatMoney(totals.cleaning, currency)}
-                />
-              ) : null}
-              {catalogLines.map((a, i) => (
-                <SumRow
-                  key={`c${i}`}
-                  label={a.label}
-                  value={formatMoney(a.quantity * a.unit_price, currency)}
-                />
-              ))}
-              {customAddons
-                .filter((a) => a.label.trim())
-                .map((a, i) => (
-                  <SumRow
-                    key={`x${i}`}
-                    label={a.label}
-                    value={formatMoney(
-                      (parseFloat(a.quantity) || 0) *
-                        (parseFloat(a.unitPrice) || 0),
-                      currency,
-                    )}
-                  />
-                ))}
-              {ageLines.map((a, i) => (
-                <SumRow
-                  key={`a${i}`}
-                  label={a.label}
-                  value={formatMoney(a.subtotal, currency)}
-                />
-              ))}
-              {totals.discountAmount > 0 ? (
-                <li className="flex items-center justify-between">
-                  <span className="text-brand-primary">
-                    {discountReason.trim() || "Discount"}
-                    {discountType === "percent"
-                      ? ` · ${parseFloat(discountValue) || 0}%`
-                      : ""}
-                  </span>
-                  <span className="font-medium text-brand-primary">
-                    −{formatMoney(totals.discountAmount, currency)}
-                  </span>
-                </li>
-              ) : null}
-            </ul>
-            <div className="my-4 h-px bg-brand-line" />
-            <div className="flex items-baseline justify-between">
-              <div>
-                <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
-                  Quote total
-                </div>
-                <div className="mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
-                  {formatMoney(totals.total, currency)}
-                </div>
-              </div>
-              {nights > 0 ? (
-                <div className="text-right">
-                  <div className="text-[10.5px] text-brand-mute">
-                    avg / night
-                  </div>
-                  <div className="font-display text-[14px] font-bold text-brand-ink">
-                    {formatMoney(totals.total / nights, currency)}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            {depositType !== "full" ? (
-              <div className="mt-4 rounded-[10px] border border-brand-line bg-brand-light/40 p-3">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-[11px] font-semibold text-brand-secondary">
-                    {depositType === "reserve"
-                      ? "To reserve"
-                      : `Due to accept (${parseFloat(depositPct) || 0}%)`}
-                  </span>
-                  <span className="font-display text-[16px] font-bold text-brand-secondary">
-                    {formatMoney(deposit.due, currency)}
-                  </span>
-                </div>
-                {deposit.balance > 0 ? (
-                  <div className="mt-0.5 text-[10.5px] text-brand-mute">
-                    Balance {formatMoney(deposit.balance, currency)} due{" "}
-                    {balanceDueDays} days before check-in
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="mt-4 flex items-center gap-2 rounded-[10px] border border-status-pending/30 bg-status-pending/10 px-3 py-2.5">
-              <Clock className="h-4 w-4 shrink-0 text-status-pending" />
-              <span className="text-[11.5px] text-brand-ink">
-                Valid until <span className="font-semibold">{validUntil}</span>{" "}
-                · {validDays} day{validDays === 1 ? "" : "s"}
-              </span>
-            </div>
-            <div className="mt-4 pb-5">
-              <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-brand-mute">
-                What happens next
-              </div>
-              <ol className="space-y-2 text-[11.5px]">
-                <NextStep n={1} active>
-                  Guest gets the quote by{" "}
-                  {sendVia === "email"
-                    ? "email"
-                    : sendVia === "link"
-                      ? "a link"
-                      : "email + WhatsApp"}
-                </NextStep>
-                <NextStep n={2}>They accept &amp; pay online</NextStep>
-                <NextStep n={3}>
-                  {brandName} confirms the booking &amp; blocks the calendar
-                </NextStep>
-              </ol>
-            </div>
-          </div>
-
-          <div className="space-y-2 border-t border-brand-line bg-white p-4">
-            <button
-              type="button"
-              onClick={() => save(true)}
-              disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-4 py-3 text-[14px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
-            >
-              {sendingPending
-                ? "Sending…"
-                : initial?.id
-                  ? "Save & send"
-                  : `Send quote${guestName ? ` to ${guestName.split(" ")[0]}` : ""}`}
-              <Send className="h-4 w-4" />
-            </button>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => save(false)}
               disabled={busy}
-              className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
+              className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
             >
               {pending && !sendingPending ? "Saving…" : "Save draft"}
             </button>
-            <div className="flex items-center justify-center gap-1.5 pt-1 text-[10.5px] text-brand-mute">
-              <ShieldCheck className="h-3 w-3" /> No charge until the guest
-              accepts &amp; pays
+            <button
+              type="button"
+              onClick={openPreview}
+              disabled={busy}
+              className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
+            >
+              <Eye className="h-4 w-4" />
+              Review &amp; send
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== GUEST PREVIEW + SEND MODAL ===== */}
+      {previewOpen ? (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            aria-label="Close preview"
+            onClick={() => setPreviewOpen(false)}
+            className="absolute inset-0 bg-brand-dark/55 backdrop-blur-sm"
+          />
+          <div className="absolute inset-0 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
+            <div className="relative my-auto w-full max-w-[540px] overflow-hidden rounded-card bg-white shadow-lift">
+              <div className="flex items-center gap-2.5 border-b border-brand-line px-5 py-3.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-brand-accent text-brand-secondary">
+                  <Eye className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-[13.5px] font-bold text-brand-ink">
+                    Preview before you send
+                  </div>
+                  <div className="text-[11.5px] text-brand-mute">
+                    This is exactly what {firstName} will receive
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(false)}
+                  className="ml-auto flex h-8 w-8 items-center justify-center rounded-full text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="max-h-[64vh] overflow-y-auto bg-brand-light/50 p-4">
+                <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+                  {/* hero */}
+                  <div className="relative bg-brand-gradient-dark p-5 text-white">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-accent">
+                        <Check className="h-3 w-3" /> Your quote
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center gap-3">
+                      <span className="h-12 w-12 shrink-0 overflow-hidden rounded-[10px] bg-white/10 ring-2 ring-white/20">
+                        {listing?.coverUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={listing.coverUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-[15px] font-semibold leading-tight">
+                          {listing?.name ?? "Your stay"}
+                        </div>
+                        <div className="mt-0.5 truncate text-[11px] text-brand-accent/70">
+                          {roomScopeLabel}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[10px] border border-white/10 bg-black/20 p-3">
+                      <div className="text-center">
+                        <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                          Check-in
+                        </div>
+                        <div className="mt-1 font-display text-[18px] font-bold leading-none">
+                          {ci.dow} {ci.day}
+                        </div>
+                        <div className="text-[10.5px] text-brand-accent/70">
+                          {ci.mo}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <span className="rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-bold text-brand-dark">
+                          {nights} night{nights === 1 ? "" : "s"}
+                        </span>
+                        <ArrowRight className="mt-1 h-3 w-3 text-brand-primary" />
+                      </div>
+                      <div className="text-center">
+                        <div className="text-[9.5px] uppercase tracking-wider text-brand-accent/70">
+                          Check-out
+                        </div>
+                        <div className="mt-1 font-display text-[18px] font-bold leading-none">
+                          {co.dow} {co.day}
+                        </div>
+                        <div className="text-[10.5px] text-brand-accent/70">
+                          {co.mo}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-[11.5px]">
+                      <User className="h-3.5 w-3.5 text-brand-primary" />
+                      <span className="text-white">{guestName || "Guest"}</span>
+                      <span className="text-brand-accent/50">·</span>
+                      <span className="text-brand-accent/70">
+                        {adults} adult{adults === 1 ? "" : "s"}
+                        {children
+                          ? ` · ${children} child${children === 1 ? "" : "ren"}`
+                          : ""}
+                        {pets ? ` · ${pets} pet${pets === 1 ? "" : "s"}` : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* host message */}
+                  {notes.trim() ? (
+                    <div className="px-5 pt-4">
+                      <div className="rounded-[12px] rounded-tl-sm border border-brand-line bg-brand-light/50 p-3.5 text-[12.5px] leading-relaxed text-brand-ink">
+                        {notes.trim()}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* breakdown */}
+                  <ul className="space-y-2 px-5 pt-4 text-[12.5px]">
+                    {guestLines.map((l, i) => (
+                      <li key={i} className="flex items-center justify-between">
+                        <span className="text-brand-mute">{l.label}</span>
+                        <span className="font-mono font-medium text-brand-ink">
+                          {formatMoney(l.amount, currency)}
+                        </span>
+                      </li>
+                    ))}
+                    {totals.discountAmount > 0 ? (
+                      <li className="flex items-center justify-between text-brand-primary">
+                        <span>
+                          {discountReason.trim() || "Discount"}
+                          {discountType === "percent"
+                            ? ` · ${parseFloat(discountValue) || 0}%`
+                            : ""}
+                        </span>
+                        <span className="font-mono font-medium">
+                          −{formatMoney(totals.discountAmount, currency)}
+                        </span>
+                      </li>
+                    ) : null}
+                  </ul>
+                  <div className="mx-5 my-4 h-px bg-brand-line" />
+                  <div className="flex items-baseline justify-between px-5">
+                    <div>
+                      <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                        Quote total
+                      </div>
+                      <div className="mt-1 font-display text-[26px] font-bold leading-none text-brand-ink">
+                        {formatMoney(totals.total, currency)}
+                      </div>
+                    </div>
+                    {nights > 0 ? (
+                      <div className="text-right">
+                        <div className="text-[10.5px] text-brand-mute">
+                          avg / night
+                        </div>
+                        <div className="font-display text-[14px] font-bold text-brand-ink">
+                          {formatMoney(
+                            Math.round(totals.total / nights),
+                            currency,
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-5 border-t border-brand-line p-4">
+                    <div className="pointer-events-none flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-4 py-3 text-[14px] font-semibold text-white">
+                      {depositType === "reserve"
+                        ? "Reserve these dates"
+                        : `Accept & pay ${formatMoney(deposit.due, currency)}${depositType === "deposit" ? " deposit" : ""}`}
+                    </div>
+                    <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-[10.5px] text-brand-mute">
+                      <Lock className="h-3 w-3" />
+                      Secure payment · valid until {validUntil}
+                      {deposit.balance > 0
+                        ? ` · balance due ${balanceDueDays} days before check-in`
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* footer actions */}
+              <div className="flex items-center gap-2 border-t border-brand-line bg-white p-4">
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(false)}
+                  className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-accent/40"
+                >
+                  ← Keep editing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPreviewOpen(false);
+                    save(true);
+                  }}
+                  disabled={busy}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-4 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
+                >
+                  {sendingPending ? "Sending…" : `Send to ${firstName}`}
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </aside>
-    </div>
+      ) : null}
+    </>
   );
 }
 
 // ── Small presentational helpers ───────────────────────────────────
-function Section({
+function SecHeader({
   n,
   title,
   sub,
-  accent,
-  children,
+  done,
+  right,
 }: {
   n: number;
   title: string;
   sub: string;
-  accent?: boolean;
-  children: React.ReactNode;
+  done?: boolean;
+  right?: React.ReactNode;
 }) {
   return (
-    <section
-      className={`rounded-card border bg-white p-6 shadow-card ${accent ? "border-brand-primary/30 ring-1 ring-brand-primary/10" : "border-brand-line"}`}
-    >
-      <div className="flex items-start gap-3">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-secondary font-display text-[11px] font-bold text-brand-accent">
-          {n}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-[17px] font-bold text-brand-ink">
-            {title}
-          </h2>
-          <p className="mt-0.5 text-[12.5px] text-brand-mute">{sub}</p>
-        </div>
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-display text-[11px] font-bold ${done ? "bg-brand-primary text-white" : "bg-brand-secondary text-brand-accent"}`}
+      >
+        {done ? <Check className="h-3.5 w-3.5" /> : n}
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="font-display text-[17px] font-bold text-brand-ink">
+          {title}
+        </h2>
+        <p className="mt-0.5 text-[12.5px] text-brand-mute">{sub}</p>
       </div>
-      <div className="mt-5">{children}</div>
-    </section>
+      {right ? <div className="shrink-0">{right}</div> : null}
+    </div>
   );
 }
 
@@ -1633,6 +2091,118 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <label className="mb-1.5 block text-[11px] font-semibold text-brand-mute">
       {children}
     </label>
+  );
+}
+
+function PriceRow({
+  title,
+  sub,
+  chip,
+  amount,
+  accent,
+  onDelete,
+}: {
+  title: string;
+  sub?: string;
+  chip?: string;
+  amount: React.ReactNode;
+  accent?: boolean;
+  onDelete?: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 border-b border-dashed border-brand-line py-2.5 last:border-0">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-[13px] font-semibold ${accent ? "text-brand-primary" : "text-brand-ink"}`}
+          >
+            {title}
+          </span>
+          {chip ? (
+            <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[10px] font-semibold text-brand-mute">
+              {chip}
+            </span>
+          ) : null}
+        </div>
+        {sub ? <div className="text-[11px] text-brand-mute">{sub}</div> : null}
+      </div>
+      {amount}
+      {onDelete ? <RowDelete onClick={onDelete} /> : <span />}
+    </div>
+  );
+}
+
+function AmountInput({
+  value,
+  onChange,
+  currency,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  currency: string;
+}) {
+  return (
+    <div className="relative w-[120px] justify-self-end">
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-brand-mute">
+        {currency === "ZAR" ? "R" : currency}
+      </span>
+      <input
+        type="number"
+        min={0}
+        step="0.01"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="focus:ring-brand-primary/12 w-full rounded-[8px] border border-brand-line bg-white py-1.5 pl-7 pr-2 text-right font-mono text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2"
+      />
+    </div>
+  );
+}
+
+function StaticAmount({
+  value,
+  currency,
+}: {
+  value: number;
+  currency: string;
+}) {
+  return (
+    <span className="block w-[120px] justify-self-end pr-2 text-right font-mono text-[13px] font-medium text-brand-ink">
+      {formatMoney(value, currency)}
+    </span>
+  );
+}
+
+function RowDelete({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Remove line"
+      className="flex h-7 w-7 items-center justify-center rounded-[8px] text-brand-mute transition-colors hover:bg-status-cancelled/10 hover:text-status-cancelled"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+  );
+}
+
+function AddBtn({
+  icon,
+  onClick,
+  children,
+}: {
+  icon: React.ReactNode;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-[8px] border border-dashed border-brand-line bg-white px-3 py-1.5 text-[12px] font-medium text-brand-ink hover:bg-brand-accent/40"
+    >
+      <span className="text-brand-primary">{icon}</span>
+      {children}
+    </button>
   );
 }
 
@@ -1668,6 +2238,26 @@ function Pill({
       type="button"
       onClick={onClick}
       className="rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11px] font-medium text-brand-ink hover:bg-brand-accent/40"
+    >
+      {children}
+    </button>
+  );
+}
+
+function HoldPill({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-pill px-2.5 py-1 text-[11px] font-semibold transition ${on ? "bg-brand-accent text-brand-secondary" : "border border-brand-line bg-white text-brand-ink hover:bg-brand-accent/40"}`}
     >
       {children}
     </button>
@@ -1716,7 +2306,7 @@ function Stepper({
 }) {
   const atMax = max != null && value >= max;
   return (
-    <div className="flex items-center justify-between rounded-[10px] border border-brand-line p-3">
+    <div className="flex items-center justify-between rounded-[10px] border border-brand-line bg-white p-3">
       <div>
         <div className="text-[12.5px] font-semibold text-brand-ink">
           {label}
@@ -1745,37 +2335,5 @@ function Stepper({
         </button>
       </div>
     </div>
-  );
-}
-
-function SumRow({ label, value }: { label: string; value: string }) {
-  return (
-    <li className="flex items-center justify-between">
-      <span className="text-brand-mute">{label}</span>
-      <span className="font-medium text-brand-ink">{value}</span>
-    </li>
-  );
-}
-
-function NextStep({
-  n,
-  active,
-  children,
-}: {
-  n: number;
-  active?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <li className="flex gap-2">
-      <span
-        className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${active ? "bg-brand-primary text-white" : "bg-brand-line text-brand-mute"}`}
-      >
-        {n}
-      </span>
-      <span className={active ? "text-brand-ink" : "text-brand-mute"}>
-        {children}
-      </span>
-    </li>
   );
 }

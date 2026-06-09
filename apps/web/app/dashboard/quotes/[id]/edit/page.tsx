@@ -256,7 +256,7 @@ export default async function EditQuotePage({
   const firstName = quote.guest_name?.trim().split(/\s+/)[0] || "the guest";
 
   return (
-    <div className="mx-auto max-w-[1280px]">
+    <div className="mx-auto max-w-[880px]">
       <header className="mb-6">
         <Link
           href={
