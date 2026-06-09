@@ -163,7 +163,6 @@ export const RoomDetailsForm = forwardRef<
   const [allowChildren, setAllowChildren] = useState(room.allow_children);
   const [allowInfants, setAllowInfants] = useState(room.allow_infants);
   const [allowPets, setAllowPets] = useState(room.allow_pets);
-  const [isActive, setIsActive] = useState(room.is_active);
 
   function toggleExperience(label: string) {
     setExperiences((prev) =>
@@ -254,7 +253,6 @@ export const RoomDetailsForm = forwardRef<
         Math.max(0, Math.min(17, toInt(infantMaxAge) ?? 2)),
         Math.min(17, toInt(childMaxAge) ?? 12),
       ),
-      is_active: isActive,
       room_size_sqm: toNum(roomSize),
       bed_type: bedType.length > 0 ? bedType : bedSummaryString(beds),
       view_type: viewType.length > 0 ? viewType : null,
@@ -322,481 +320,498 @@ export const RoomDetailsForm = forwardRef<
   useImperativeHandle(ref, () => ({ save: () => doSaveRef.current() }), []);
 
   return (
-    <Card className="rounded-card border-brand-line shadow-card">
-      <CardHeader>
-        <CardTitle className="font-display text-xl font-bold text-brand-dark">
-          Room details
-        </CardTitle>
-        <CardDescription className="text-brand-mute">
-          What makes this room itself. Beds set the capacity; pricing, vibe and
-          the rest set it once here — guests see it in the listing.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <Field label="Room name">
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={pending}
-            maxLength={120}
-          />
-        </Field>
-
-        <Field label="Description" hint="What the guest will see first.">
-          <Textarea
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={pending}
-            maxLength={2000}
-          />
-        </Field>
-
-        {/* ── Beds + derived capacity ─────────────────────────── */}
-        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              Beds in this room
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-xs font-semibold text-brand-primary">
-              <Users className="h-3.5 w-3.5" />
-              Sleeps {capacity}
-            </span>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {beds.length === 0 ? (
-              <div className="rounded border border-dashed border-brand-line bg-white px-3 py-4 text-center text-xs text-brand-mute">
-                No beds yet. Add what&rsquo;s in the room — e.g. 1 King + 2
-                Singles + 1 Futon. Capacity is worked out from these.
-              </div>
-            ) : (
-              beds.map((b, i) => (
-                <div
-                  key={i}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded border border-brand-line bg-white px-3 py-2.5"
-                >
-                  <select
-                    value={b.bed_kind}
-                    onChange={(e) => {
-                      const kind = e.target.value as BedKind;
-                      // Capacity follows the bed kind (e.g. King/Twin sleep 2,
-                      // Single sleeps 1).
-                      updateBed(i, {
-                        bed_kind: kind,
-                        sleeps: defaultSleepsForKind(kind),
-                      });
-                    }}
-                    disabled={pending}
-                    className="h-8 rounded border border-brand-line bg-white px-2 text-sm text-brand-dark outline-none focus:border-brand-primary"
-                  >
-                    {BED_KINDS.map((k) => (
-                      <option key={k.value} value={k.value}>
-                        {k.label}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* The only number the host sets — how many of this bed. Each
-                      bed's capacity comes from its kind. */}
-                  <Stepper
-                    label="Qty"
-                    value={b.quantity}
-                    min={1}
-                    max={20}
-                    disabled={pending}
-                    onChange={(n) => updateBed(i, { quantity: n })}
-                  />
-
-                  <span className="text-[11px] text-brand-mute">
-                    {defaultSleepsForKind(b.bed_kind)} per bed ·{" "}
-                    <span className="font-medium text-brand-ink">
-                      {defaultSleepsForKind(b.bed_kind) * b.quantity} guest
-                      {defaultSleepsForKind(b.bed_kind) * b.quantity === 1
-                        ? ""
-                        : "s"}
-                    </span>
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => removeBed(i)}
-                    disabled={pending}
-                    className="ml-auto flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
-                    aria-label="Remove bed"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addBed}
-            disabled={pending}
-            className="mt-3 gap-1.5"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Add a bed
-          </Button>
-        </div>
-
-        {/* ── Minimum booking ───────────────────────────────────── */}
-        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-            <Users className="h-4 w-4 text-brand-primary" />
-            Minimum booking
-          </div>
-          <p className="mt-0.5 text-xs text-brand-mute">
-            Require a floor on guests and length-of-stay for this room. Leave at
-            1 for no minimum. The booking takes the longer of the
-            listing&rsquo;s and the selected rooms&rsquo; minimum nights.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <Field label={`Min guests (room sleeps ${capacity || 1})`}>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={Math.max(1, capacity)}
-                value={minGuests}
-                onChange={(e) => setMinGuests(e.target.value)}
-                disabled={pending}
-              />
-            </Field>
-            <Field label="Min nights">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={minNights}
-                onChange={(e) => setMinNights(e.target.value)}
-                disabled={pending}
-              />
-            </Field>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Field label="Bedrooms">
+    <div className="space-y-6">
+      <Card className="rounded-card border-brand-line shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display text-base font-bold text-brand-ink">
+            Name &amp; description
+          </CardTitle>
+          <CardDescription className="text-brand-mute">
+            What the guest sees first in the room picker.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <Field label="Room name">
             <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={bedrooms}
-              onChange={(e) => setBedrooms(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               disabled={pending}
+              maxLength={120}
             />
           </Field>
-          <Field label="Bathrooms">
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={bathrooms}
-              onChange={(e) => setBathrooms(e.target.value)}
-              disabled={pending}
-            />
-          </Field>
-          <Field label="Room size (m²)">
-            <Input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              step="0.1"
-              value={roomSize}
-              onChange={(e) => setRoomSize(e.target.value)}
-              disabled={pending}
-              placeholder="24"
-            />
-          </Field>
-        </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
           <Field
-            label="Headline bed type"
-            hint="Shown on cards. Auto-filled from beds."
+            label="Description"
+            hint="One short paragraph guests read first."
           >
-            <select
-              value={bedType}
-              onChange={(e) => setBedType(e.target.value)}
+            <Textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               disabled={pending}
-              className="h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark outline-none focus:border-brand-primary"
-            >
-              <option value="">Auto ({bedSummaryString(beds) ?? "—"})</option>
-              {BED_TYPES.map((bt) => (
-                <option key={bt} value={bt}>
-                  {bt}
-                </option>
-              ))}
-            </select>
+              maxLength={2000}
+            />
           </Field>
-          <Field label="View">
-            <select
-              value={viewType}
-              onChange={(e) => setViewType(e.target.value)}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-card border-brand-line shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display text-base font-bold text-brand-ink">
+            Beds &amp; capacity
+          </CardTitle>
+          <CardDescription className="text-brand-mute">
+            Beds set how many guests the room sleeps.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* ── Beds + derived capacity ─────────────────────────── */}
+          <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+                Beds in this room
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-xs font-semibold text-brand-primary">
+                <Users className="h-3.5 w-3.5" />
+                Sleeps {capacity}
+              </span>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {beds.length === 0 ? (
+                <div className="rounded border border-dashed border-brand-line bg-white px-3 py-4 text-center text-xs text-brand-mute">
+                  No beds yet. Add what&rsquo;s in the room — e.g. 1 King + 2
+                  Singles + 1 Futon. Capacity is worked out from these.
+                </div>
+              ) : (
+                beds.map((b, i) => (
+                  <div
+                    key={i}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded border border-brand-line bg-white px-3 py-2.5"
+                  >
+                    <select
+                      value={b.bed_kind}
+                      onChange={(e) => {
+                        const kind = e.target.value as BedKind;
+                        // Capacity follows the bed kind (e.g. King/Twin sleep 2,
+                        // Single sleeps 1).
+                        updateBed(i, {
+                          bed_kind: kind,
+                          sleeps: defaultSleepsForKind(kind),
+                        });
+                      }}
+                      disabled={pending}
+                      className="h-8 rounded border border-brand-line bg-white px-2 text-sm text-brand-dark outline-none focus:border-brand-primary"
+                    >
+                      {BED_KINDS.map((k) => (
+                        <option key={k.value} value={k.value}>
+                          {k.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* The only number the host sets — how many of this bed. Each
+                      bed's capacity comes from its kind. */}
+                    <Stepper
+                      label="Qty"
+                      value={b.quantity}
+                      min={1}
+                      max={20}
+                      disabled={pending}
+                      onChange={(n) => updateBed(i, { quantity: n })}
+                    />
+
+                    <span className="text-[11px] text-brand-mute">
+                      {defaultSleepsForKind(b.bed_kind)} per bed ·{" "}
+                      <span className="font-medium text-brand-ink">
+                        {defaultSleepsForKind(b.bed_kind) * b.quantity} guest
+                        {defaultSleepsForKind(b.bed_kind) * b.quantity === 1
+                          ? ""
+                          : "s"}
+                      </span>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => removeBed(i)}
+                      disabled={pending}
+                      className="ml-auto flex h-8 w-8 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
+                      aria-label="Remove bed"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addBed}
               disabled={pending}
-              className="h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark outline-none focus:border-brand-primary"
+              className="mt-3 gap-1.5"
             >
-              <option value="">—</option>
-              {VIEW_TYPES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            Experiences{" "}
-            <span className="font-normal normal-case text-brand-mute">
-              (pick all that apply)
-            </span>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {EXPERIENCES.map((label) => {
-              const active = experiences.includes(label);
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => toggleExperience(label)}
-                  disabled={pending}
-                  className={`rounded-pill border px-3 py-1 text-xs font-medium transition-colors ${
-                    active
-                      ? "border-brand-primary bg-brand-primary text-white"
-                      : "border-brand-line bg-white text-brand-dark hover:bg-brand-light/60"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Pricing model ───────────────────────────────────── */}
-        <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-            How this room is priced
-          </div>
-          <div className="mt-2 grid gap-2 sm:grid-cols-3">
-            {PRICING_MODES.map((m) => {
-              const active = pricingMode === m.value;
-              return (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setPricingMode(m.value)}
-                  disabled={pending}
-                  className={`rounded-card border p-3 text-left transition-colors ${
-                    active
-                      ? "border-brand-primary bg-white ring-1 ring-brand-primary/40"
-                      : "border-brand-line bg-white hover:bg-brand-light/60"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-brand-dark">
-                    {m.label}
-                  </div>
-                  <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
-                    {m.body}
-                  </div>
-                </button>
-              );
-            })}
+              <Plus className="h-3.5 w-3.5" />
+              Add a bed
+            </Button>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {pricingMode === "per_person" ? (
-              <Field label="Price / person / night">
+          {/* ── Minimum booking ───────────────────────────────────── */}
+          <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
+              <Users className="h-4 w-4 text-brand-primary" />
+              Minimum booking
+            </div>
+            <p className="mt-0.5 text-xs text-brand-mute">
+              Require a floor on guests and length-of-stay for this room. Leave
+              at 1 for no minimum. The booking takes the longer of the
+              listing&rsquo;s and the selected rooms&rsquo; minimum nights.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label={`Min guests (room sleeps ${capacity || 1})`}>
                 <Input
                   type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={pricePerPerson}
-                  onChange={(e) => setPricePerPerson(e.target.value)}
+                  inputMode="numeric"
+                  min={1}
+                  max={Math.max(1, capacity)}
+                  value={minGuests}
+                  onChange={(e) => setMinGuests(e.target.value)}
                   disabled={pending}
                 />
               </Field>
-            ) : (
-              <Field label="Base price / night">
+              <Field label="Min nights">
                 <Input
                   type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(e.target.value)}
+                  inputMode="numeric"
+                  min={1}
+                  value={minNights}
+                  onChange={(e) => setMinNights(e.target.value)}
                   disabled={pending}
                 />
               </Field>
-            )}
+            </div>
+          </div>
 
-            {pricingMode === "per_room" ? (
-              <Field label="Weekend price (optional)">
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  min={0}
-                  step="0.01"
-                  value={weekendPrice}
-                  onChange={(e) => setWeekendPrice(e.target.value)}
-                  disabled={pending}
-                />
-              </Field>
-            ) : null}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Field label="Bedrooms">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={bedrooms}
+                onChange={(e) => setBedrooms(e.target.value)}
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Bathrooms">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={bathrooms}
+                onChange={(e) => setBathrooms(e.target.value)}
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Room size (m²)">
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.1"
+                value={roomSize}
+                onChange={(e) => setRoomSize(e.target.value)}
+                disabled={pending}
+                placeholder="24"
+              />
+            </Field>
+          </div>
 
-            {pricingMode === "per_room_plus_extra" ? (
-              <>
-                <Field
-                  label="Base covers"
-                  hint="Guests included in the base price."
-                >
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={capacity || 50}
-                    value={baseOccupancy}
-                    onChange={(e) => setBaseOccupancy(e.target.value)}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label="Headline bed type"
+              hint="Shown on cards. Auto-filled from beds."
+            >
+              <select
+                value={bedType}
+                onChange={(e) => setBedType(e.target.value)}
+                disabled={pending}
+                className="h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark outline-none focus:border-brand-primary"
+              >
+                <option value="">Auto ({bedSummaryString(beds) ?? "—"})</option>
+                {BED_TYPES.map((bt) => (
+                  <option key={bt} value={bt}>
+                    {bt}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="View">
+              <select
+                value={viewType}
+                onChange={(e) => setViewType(e.target.value)}
+                disabled={pending}
+                className="h-10 w-full rounded border border-brand-line bg-white px-3 text-sm text-brand-dark outline-none focus:border-brand-primary"
+              >
+                <option value="">—</option>
+                {VIEW_TYPES.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              Experiences{" "}
+              <span className="font-normal normal-case text-brand-mute">
+                (pick all that apply)
+              </span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {EXPERIENCES.map((label) => {
+                const active = experiences.includes(label);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleExperience(label)}
                     disabled={pending}
-                  />
-                </Field>
-                <Field label="Each extra guest / night">
+                    className={`rounded-pill border px-3 py-1 text-xs font-medium transition-colors ${
+                      active
+                        ? "border-brand-primary bg-brand-primary text-white"
+                        : "border-brand-line bg-white text-brand-dark hover:bg-brand-light/60"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-card border-brand-line shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display text-base font-bold text-brand-ink">
+            Rates &amp; rules
+          </CardTitle>
+          <CardDescription className="text-brand-mute">
+            How this room is priced — feeds quotes, bookings and your ledger.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* ── Pricing model ───────────────────────────────────── */}
+          <div className="rounded-card border border-brand-line bg-brand-light/40 p-4">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
+              How this room is priced
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+              {PRICING_MODES.map((m) => {
+                const active = pricingMode === m.value;
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setPricingMode(m.value)}
+                    disabled={pending}
+                    className={`rounded-card border p-3 text-left transition-colors ${
+                      active
+                        ? "border-brand-primary bg-white ring-1 ring-brand-primary/40"
+                        : "border-brand-line bg-white hover:bg-brand-light/60"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-brand-dark">
+                      {m.label}
+                    </div>
+                    <div className="mt-0.5 text-[11px] leading-snug text-brand-mute">
+                      {m.body}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {pricingMode === "per_person" ? (
+                <Field label="Price / person / night">
                   <Input
                     type="number"
                     inputMode="decimal"
                     min={0}
                     step="0.01"
-                    value={extraGuestPrice}
-                    onChange={(e) => setExtraGuestPrice(e.target.value)}
+                    value={pricePerPerson}
+                    onChange={(e) => setPricePerPerson(e.target.value)}
                     disabled={pending}
                   />
                 </Field>
-              </>
-            ) : null}
+              ) : (
+                <Field label="Base price / night">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={basePrice}
+                    onChange={(e) => setBasePrice(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+              )}
 
-            <Field label="Cleaning fee">
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                value={cleaningFee}
-                onChange={(e) => setCleaningFee(e.target.value)}
-                disabled={pending}
-              />
-            </Field>
-          </div>
+              {pricingMode === "per_room" ? (
+                <Field label="Weekend price (optional)">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="0.01"
+                    value={weekendPrice}
+                    onChange={(e) => setWeekendPrice(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+              ) : null}
 
-          {/* Age + pet pricing — flat per-night amounts added as quote/booking
+              {pricingMode === "per_room_plus_extra" ? (
+                <>
+                  <Field
+                    label="Base covers"
+                    hint="Guests included in the base price."
+                  >
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={capacity || 50}
+                      value={baseOccupancy}
+                      onChange={(e) => setBaseOccupancy(e.target.value)}
+                      disabled={pending}
+                    />
+                  </Field>
+                  <Field label="Each extra guest / night">
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={extraGuestPrice}
+                      onChange={(e) => setExtraGuestPrice(e.target.value)}
+                      disabled={pending}
+                    />
+                  </Field>
+                </>
+              ) : null}
+
+              <Field label="Cleaning fee">
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={cleaningFee}
+                  onChange={(e) => setCleaningFee(e.target.value)}
+                  disabled={pending}
+                />
+              </Field>
+            </div>
+
+            {/* Age + pet pricing — flat per-night amounts added as quote/booking
               lines. Leave at 0 for free (infants) or not charged. */}
-          <div className="mt-4 rounded-card border border-brand-line bg-brand-light/40 p-4">
-            <div className="text-[12.5px] font-semibold text-brand-ink">
-              Age &amp; pet pricing
-            </div>
-            <p className="mt-0.5 text-[11.5px] text-brand-mute">
-              Flat per-night charges added on top of the room rate. Adults pay
-              the room rate above. Leave at 0 for free.
-            </p>
-            <div className="mt-3 grid gap-4 sm:grid-cols-3">
-              <AgeCategory
-                label="Children"
-                allowed={allowChildren}
-                onToggle={() => setAllowChildren((v) => !v)}
-                priceLabel="Child / night"
-                price={childPrice}
-                onPrice={setChildPrice}
-                disabled={pending}
-              />
-              <AgeCategory
-                label="Infants"
-                allowed={allowInfants}
-                onToggle={() => setAllowInfants((v) => !v)}
-                priceLabel="Infant / night"
-                price={infantPrice}
-                onPrice={setInfantPrice}
-                disabled={pending}
-              />
-              <AgeCategory
-                label="Pets"
-                allowed={allowPets}
-                onToggle={() => setAllowPets((v) => !v)}
-                priceLabel="Pet fee / night"
-                price={petFee}
-                onPrice={setPetFee}
-                disabled={pending}
-              />
-            </div>
-            <div className="mt-3 grid gap-4 sm:grid-cols-2">
-              <Field label="Infant up to age">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={17}
-                  step="1"
-                  value={infantMaxAge}
-                  onChange={(e) => setInfantMaxAge(e.target.value)}
+            <div className="mt-4 rounded-card border border-brand-line bg-brand-light/40 p-4">
+              <div className="text-[12.5px] font-semibold text-brand-ink">
+                Age &amp; pet pricing
+              </div>
+              <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                Flat per-night charges added on top of the room rate. Adults pay
+                the room rate above. Leave at 0 for free.
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <AgeCategory
+                  label="Children"
+                  allowed={allowChildren}
+                  onToggle={() => setAllowChildren((v) => !v)}
+                  priceLabel="Child / night"
+                  price={childPrice}
+                  onPrice={setChildPrice}
                   disabled={pending}
                 />
-              </Field>
-              <Field label="Child up to age">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={17}
-                  step="1"
-                  value={childMaxAge}
-                  onChange={(e) => setChildMaxAge(e.target.value)}
+                <AgeCategory
+                  label="Infants"
+                  allowed={allowInfants}
+                  onToggle={() => setAllowInfants((v) => !v)}
+                  priceLabel="Infant / night"
+                  price={infantPrice}
+                  onPrice={setInfantPrice}
                   disabled={pending}
                 />
-              </Field>
+                <AgeCategory
+                  label="Pets"
+                  allowed={allowPets}
+                  onToggle={() => setAllowPets((v) => !v)}
+                  priceLabel="Pet fee / night"
+                  price={petFee}
+                  onPrice={setPetFee}
+                  disabled={pending}
+                />
+              </div>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <Field label="Infant up to age">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={17}
+                    step="1"
+                    value={infantMaxAge}
+                    onChange={(e) => setInfantMaxAge(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+                <Field label="Child up to age">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={17}
+                    step="1"
+                    value={childMaxAge}
+                    onChange={(e) => setChildMaxAge(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+              </div>
+              <p className="mt-2 text-[11px] text-brand-mute">
+                Infants 0–{infantMaxAge || "2"} · children{" "}
+                {Number(infantMaxAge || 2) + 1}–{childMaxAge || "12"} · adults{" "}
+                {Number(childMaxAge || 12) + 1}+.
+              </p>
             </div>
-            <p className="mt-2 text-[11px] text-brand-mute">
-              Infants 0–{infantMaxAge || "2"} · children{" "}
-              {Number(infantMaxAge || 2) + 1}–{childMaxAge || "12"} · adults{" "}
-              {Number(childMaxAge || 12) + 1}+.
-            </p>
           </div>
-        </div>
 
-        <label className="flex items-center gap-2 text-sm text-brand-dark">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(e) => setIsActive(e.target.checked)}
-            disabled={pending}
-            className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-          />
-          Bookable
-        </label>
-
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={save}
-            disabled={pending}
-            className="gap-1.5"
-          >
-            <Save className="h-4 w-4" />
-            {pending
-              ? "Saving…"
-              : mode === "create"
-                ? "Create room"
-                : "Save room"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              onClick={save}
+              disabled={pending}
+              className="gap-1.5"
+            >
+              <Save className="h-4 w-4" />
+              {pending
+                ? "Saving…"
+                : mode === "create"
+                  ? "Create room"
+                  : "Save room"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 });
 
