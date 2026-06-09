@@ -339,6 +339,9 @@ export default async function GuestRecordPage({
     .reduce((s, b) => s + Math.max(0, b.balanceDue), 0);
   const netBalance = Math.round((storeCredit - outstanding) * 100) / 100;
 
+  // An accepted-but-not-converted quote drives the pulsing "Quote accepted" pill.
+  const acceptedQ = quotes.find((q) => q.status === "accepted") ?? null;
+
   return (
     <GuestRecord
       record={record}
@@ -346,6 +349,15 @@ export default async function GuestRecordPage({
       reviews={reviews}
       txns={txns}
       quotes={quotes}
+      acceptedQuote={
+        acceptedQ
+          ? {
+              id: acceptedQ.id,
+              amount: acceptedQ.total,
+              currency: acceptedQ.currency,
+            }
+          : null
+      }
       marketingState={marketingState}
       notes={notes}
       pinnedNote={pinnedNote}

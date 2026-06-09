@@ -28,6 +28,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
 import { LedgerList } from "@/components/finance/LedgerList";
 import {
   GuestMessagesPanel,
@@ -237,6 +238,7 @@ export function GuestRecord({
   prevGkey,
   nextGkey,
   balance,
+  acceptedQuote,
 }: {
   record: GuestRecordData;
   bookings: BookingItem[];
@@ -252,6 +254,7 @@ export function GuestRecord({
   prevGkey: string | null;
   nextGkey: string | null;
   balance: { net: number; outstanding: number; storeCredit: number };
+  acceptedQuote: { id: string; amount: number; currency: string } | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -358,6 +361,15 @@ export function GuestRecord({
                   <span className="inline-flex items-center gap-1.5 rounded-pill border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-emerald-700">
                     {segLabel}
                   </span>
+                  {acceptedQuote ? (
+                    <AcceptedQuotePill
+                      quoteId={acceptedQuote.id}
+                      guestFirstName={(r.name ?? "Guest").split(/\s+/)[0]}
+                      amount={acceptedQuote.amount}
+                      currency={acceptedQuote.currency}
+                      autoOpen
+                    />
+                  ) : null}
                   {r.is_blocked ? (
                     <span className="rounded-pill bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
                       Blocked
