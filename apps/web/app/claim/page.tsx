@@ -170,206 +170,238 @@ export default async function ClaimPage({
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-light px-4 py-12">
-      <div className="w-full max-w-md rounded-card border border-brand-line bg-white p-6 shadow-card sm:p-8">
-        <div className="text-center">
-          <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-[10px] bg-brand-gradient text-lg font-bold text-white">
+    <div className="min-h-screen w-full bg-brand-light text-brand-ink">
+      {/* Mobile brand header */}
+      <div className="flex items-center justify-between px-5 py-4 lg:hidden">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-brand-gradient text-sm font-bold text-white">
             V
           </div>
-          <h1 className="mt-4 font-display text-xl font-bold text-brand-ink">
-            {alreadyClaimed
-              ? "Your account is ready"
-              : enquiry
-                ? `Thanks${firstName ? `, ${firstName}` : ""} — your request is in!`
-                : "Claim your account"}
-          </h1>
-          <p className="mt-1 text-sm text-brand-mute">
-            {alreadyClaimed
-              ? "You've already set a password — you can sign in any time."
-              : enquiry
-                ? "We've sent your details straight to the host. You'll get their reply by email and WhatsApp — usually within a few hours."
-                : `Set a password${
-                    firstName ? `, ${firstName}` : ""
-                  } to track this quote and message the host any time.`}
-          </p>
+          <span className="font-display text-[15px] font-bold">
+            {brandName}
+          </span>
         </div>
+        <Link
+          href="/login"
+          className="text-[13px] font-medium text-brand-mute hover:text-brand-ink"
+        >
+          Sign in
+        </Link>
+      </div>
 
-        {/* What they just sent — featured image + listing & request details */}
-        {enquiry ? (
-          <div className="mt-5 overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            <div className="relative aspect-[16/9] w-full bg-brand-light">
-              {enquiry.photoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={enquiry.photoUrl}
-                  alt={enquiry.listingName ?? "Listing"}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-brand-mute">
-                  <ImageIcon className="h-7 w-7" />
-                </div>
-              )}
-              <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-brand-ink shadow-card">
-                <MessageSquare className="h-3 w-3 text-brand-primary" />
-                Request sent
+      <div className="lg:grid lg:min-h-screen lg:grid-cols-[1fr_minmax(0,480px)]">
+        {/* LEFT — set a password (mirrors the signup fields column) */}
+        <div className="flex flex-col justify-center px-6 py-10 lg:px-14 lg:py-16">
+          <div className="mx-auto w-full max-w-md">
+            <div className="hidden items-center gap-2 lg:flex">
+              <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-gradient text-base font-bold text-white">
+                V
+              </div>
+              <span className="font-display text-[15px] font-bold">
+                {brandName}
               </span>
             </div>
 
-            <div className="p-4">
-              {enquiry.listingName ? (
-                <div className="text-[14px] font-bold leading-tight text-brand-ink">
-                  {enquiry.listingName}
-                </div>
-              ) : null}
-              <div className="mt-0.5 text-[12px] text-brand-mute">
-                Hosted by {enquiry.hostName}
-              </div>
+            <h1 className="mt-6 font-display text-[26px] font-bold leading-tight tracking-tight text-brand-ink lg:text-[30px]">
+              {alreadyClaimed
+                ? "Your account is ready"
+                : `Thanks${firstName ? `, ${firstName}` : ""} — your request is in!`}
+            </h1>
+            <p className="mt-1.5 max-w-md text-sm text-brand-mute">
+              {alreadyClaimed
+                ? "You've already set a password — you can sign in any time."
+                : `Set a password to finish your free ${brandName} account — track this quote, chat with the host, and book faster next time.`}
+            </p>
 
-              {enquiry.location ? (
-                <div className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-brand-mute">
-                  <MapPin className="h-3.5 w-3.5 text-brand-primary" />
-                  {enquiry.location}
-                </div>
-              ) : null}
+            <div className="mt-6">
+              {alreadyClaimed ? (
+                <Link
+                  href={target}
+                  className="inline-flex w-full items-center justify-center rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
+                >
+                  {conversationId ? "Go to your request" : "Go to my trips"}
+                </Link>
+              ) : (
+                <ClaimForm next={target} />
+              )}
+            </div>
 
-              {/* Listing facts */}
-              {enquiry.bedrooms != null ||
-              enquiry.bathrooms != null ||
-              enquiry.maxGuests != null ? (
-                <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-brand-mute">
-                  {enquiry.bedrooms != null ? (
-                    <span className="inline-flex items-center gap-1">
-                      <BedDouble className="h-3.5 w-3.5" />
-                      {enquiry.bedrooms} bd
+            {!alreadyClaimed ? (
+              <>
+                <ul className="mt-6 space-y-2.5 border-t border-brand-line pt-5">
+                  <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
+                    <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                    <span>
+                      Chat with the host straight away — sort out the details
+                      without waiting on email.
                     </span>
-                  ) : null}
-                  {enquiry.bathrooms != null ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Bath className="h-3.5 w-3.5" />
-                      {enquiry.bathrooms} ba
+                  </li>
+                  <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
+                    <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                    <span>
+                      Keep this quote and every future booking safely in one
+                      place.
                     </span>
-                  ) : null}
-                  {enquiry.maxGuests != null ? (
-                    <span className="inline-flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      Sleeps {enquiry.maxGuests}
+                  </li>
+                  <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
+                    <BadgePercent className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                    <span>
+                      Book faster next time and unlock guest perks across{" "}
+                      {brandName}.
                     </span>
-                  ) : null}
-                </div>
-              ) : null}
+                  </li>
+                </ul>
 
-              {/* Their request */}
-              <dl className="mt-3 space-y-1.5 border-t border-brand-line pt-3 text-[12.5px]">
-                {enquiry.checkIn ? (
-                  <div className="flex items-center justify-between">
-                    <dt className="inline-flex items-center gap-1.5 text-brand-mute">
-                      <CalendarDays className="h-3.5 w-3.5 text-brand-primary" />
-                      Dates
-                    </dt>
-                    <dd className="font-semibold text-brand-ink">
-                      {fmtDate(enquiry.checkIn)} → {fmtDate(enquiry.checkOut)}
-                      {enquiry.nights != null ? (
-                        <span className="ml-1 font-normal text-brand-mute">
-                          ({enquiry.nights}{" "}
-                          {enquiry.nights === 1 ? "night" : "nights"})
+                <div className="mt-5 flex items-center gap-4 text-[12.5px] font-medium text-brand-mute">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Mail className="h-4 w-4 text-brand-primary" />
+                    Email
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MessageCircle className="h-4 w-4 text-brand-primary" />
+                    WhatsApp
+                  </span>
+                  <span className="text-brand-mute/70">
+                    — that&rsquo;s how the host&rsquo;s reply reaches you.
+                  </span>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+
+        {/* RIGHT — what they just requested (dark hero, mirrors signup rail) */}
+        <aside className="relative overflow-hidden bg-brand-gradient-dark px-6 py-10 text-white lg:px-12 lg:py-16">
+          <div aria-hidden className="dotgrid absolute inset-0 opacity-20" />
+          <div
+            aria-hidden
+            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/20 blur-3xl"
+          />
+          <div className="relative mx-auto flex h-full w-full max-w-sm flex-col justify-center">
+            <div className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-brand-accent backdrop-blur">
+              <MessageSquare className="h-3 w-3" />
+              Request sent
+            </div>
+
+            {enquiry ? (
+              <div className="mt-4 overflow-hidden rounded-card border border-white/10 bg-white/5 backdrop-blur">
+                <div className="relative aspect-[16/9] w-full bg-white/10">
+                  {enquiry.photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={enquiry.photoUrl}
+                      alt={enquiry.listingName ?? "Listing"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-white/40">
+                      <ImageIcon className="h-7 w-7" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  {enquiry.listingName ? (
+                    <div className="font-display text-[15px] font-bold leading-tight">
+                      {enquiry.listingName}
+                    </div>
+                  ) : null}
+                  <div className="mt-0.5 text-[12px] text-brand-accent/70">
+                    Hosted by {enquiry.hostName}
+                  </div>
+
+                  {enquiry.location ? (
+                    <div className="mt-1.5 inline-flex items-center gap-1 text-[12px] text-brand-accent/70">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {enquiry.location}
+                    </div>
+                  ) : null}
+
+                  {enquiry.bedrooms != null ||
+                  enquiry.bathrooms != null ||
+                  enquiry.maxGuests != null ? (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-brand-accent/70">
+                      {enquiry.bedrooms != null ? (
+                        <span className="inline-flex items-center gap-1">
+                          <BedDouble className="h-3.5 w-3.5" />
+                          {enquiry.bedrooms} bd
                         </span>
                       ) : null}
-                    </dd>
-                  </div>
-                ) : null}
-                {enquiry.headcount != null ? (
-                  <div className="flex items-center justify-between">
-                    <dt className="inline-flex items-center gap-1.5 text-brand-mute">
-                      <Users className="h-3.5 w-3.5 text-brand-primary" />
-                      Guests
-                    </dt>
-                    <dd className="font-semibold text-brand-ink">
-                      {enquiry.headcount}
-                    </dd>
-                  </div>
-                ) : null}
-                {enquiry.total != null ? (
-                  <div className="flex items-center justify-between">
-                    <dt className="text-brand-mute">Estimated total</dt>
-                    <dd className="font-semibold text-brand-ink">
-                      {formatMoney(enquiry.total, enquiry.currency)}
-                      <span className="ml-1 font-normal text-brand-mute">
-                        est.
-                      </span>
-                    </dd>
-                  </div>
-                ) : null}
-              </dl>
-              {enquiry.total != null ? (
-                <p className="mt-2 text-[11px] leading-snug text-brand-mute">
-                  An estimate only — {enquiry.hostName.split(" ")[0]} will
-                  confirm your final quote.
-                </p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+                      {enquiry.bathrooms != null ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Bath className="h-3.5 w-3.5" />
+                          {enquiry.bathrooms} ba
+                        </span>
+                      ) : null}
+                      {enquiry.maxGuests != null ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" />
+                          Sleeps {enquiry.maxGuests}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
 
-        {!alreadyClaimed ? (
-          <>
-            {/* How the host's reply reaches them */}
-            <div className="mt-5 flex items-center justify-center gap-4 text-[12.5px] font-medium text-brand-mute">
-              <span className="inline-flex items-center gap-1.5">
-                <Mail className="h-4 w-4 text-brand-primary" />
-                Email
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <MessageCircle className="h-4 w-4 text-brand-primary" />
-                WhatsApp
-              </span>
-            </div>
-
-            {/* Why finish creating the free account */}
-            <div className="mt-5 rounded-card border border-brand-line bg-white p-4">
-              <p className="text-[13px] font-semibold text-brand-ink">
-                Set a password to unlock your free {brandName} account
+                  <dl className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-[12.5px]">
+                    {enquiry.checkIn ? (
+                      <div className="flex items-center justify-between">
+                        <dt className="inline-flex items-center gap-1.5 text-brand-accent/70">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          Dates
+                        </dt>
+                        <dd className="font-semibold text-white">
+                          {fmtDate(enquiry.checkIn)} →{" "}
+                          {fmtDate(enquiry.checkOut)}
+                          {enquiry.nights != null ? (
+                            <span className="ml-1 font-normal text-brand-accent/60">
+                              ({enquiry.nights}{" "}
+                              {enquiry.nights === 1 ? "night" : "nights"})
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {enquiry.headcount != null ? (
+                      <div className="flex items-center justify-between">
+                        <dt className="inline-flex items-center gap-1.5 text-brand-accent/70">
+                          <Users className="h-3.5 w-3.5" />
+                          Guests
+                        </dt>
+                        <dd className="font-semibold text-white">
+                          {enquiry.headcount}
+                        </dd>
+                      </div>
+                    ) : null}
+                    {enquiry.total != null ? (
+                      <div className="flex items-center justify-between">
+                        <dt className="text-brand-accent/70">
+                          Estimated total
+                        </dt>
+                        <dd className="font-semibold text-white">
+                          {formatMoney(enquiry.total, enquiry.currency)}
+                          <span className="ml-1 font-normal text-brand-accent/60">
+                            est.
+                          </span>
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+                  {enquiry.total != null ? (
+                    <p className="mt-2 text-[11px] leading-snug text-brand-accent/60">
+                      An estimate only — {enquiry.hostName.split(" ")[0]} will
+                      confirm your final quote.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <p className="mt-4 max-w-xs text-sm text-brand-accent/80">
+                Your request is on its way to the host. They&rsquo;ll reply with
+                a tailored quote shortly — by email and WhatsApp.
               </p>
-              <ul className="mt-3 space-y-2.5">
-                <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
-                  <MessageSquare className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                  <span>
-                    Chat with the host straight away — ask questions and sort
-                    out the details without waiting on email.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
-                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                  <span>
-                    Keep this quote and every future booking safely in one place
-                    — your trips, messages and documents, ready whenever you
-                    need them.
-                  </span>
-                </li>
-                <li className="flex items-start gap-2.5 text-[12.5px] text-brand-mute">
-                  <BadgePercent className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
-                  <span>
-                    Book faster next time and qualify for guest perks and member
-                    discounts on stays across {brandName}.
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </>
-        ) : null}
-
-        <div className="mt-6">
-          {alreadyClaimed ? (
-            <Link
-              href={target}
-              className="inline-flex w-full items-center justify-center rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
-            >
-              {conversationId ? "Go to your request" : "Go to my trips"}
-            </Link>
-          ) : (
-            <ClaimForm next={target} />
-          )}
-        </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   );
