@@ -122,13 +122,13 @@ export function QuoteActions({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2">
           {canSend ? (
             <Button
               type="button"
               onClick={send}
               disabled={pending}
-              className="gap-1.5"
+              className="w-full justify-center gap-1.5"
             >
               <Send className="h-4 w-4" /> Send quote
             </Button>
@@ -139,7 +139,7 @@ export function QuoteActions({
               variant="outline"
               onClick={markAccepted}
               disabled={pending}
-              className="gap-1.5"
+              className="w-full justify-center gap-1.5"
             >
               <CheckCircle2 className="h-4 w-4" /> Mark accepted
             </Button>
@@ -150,7 +150,7 @@ export function QuoteActions({
               variant="outline"
               onClick={decline}
               disabled={pending}
-              className="gap-1.5 text-status-cancelled hover:bg-red-50"
+              className="w-full justify-center gap-1.5 text-status-cancelled hover:bg-red-50"
             >
               <CircleSlash className="h-4 w-4" /> Decline
             </Button>
@@ -161,7 +161,7 @@ export function QuoteActions({
               variant="outline"
               onClick={softDelete}
               disabled={pending}
-              className="ml-auto gap-1.5 text-status-cancelled hover:bg-red-50"
+              className="w-full justify-center gap-1.5 text-status-cancelled hover:bg-red-50"
             >
               <Trash2 className="h-4 w-4" /> Delete
             </Button>

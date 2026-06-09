@@ -25,6 +25,16 @@ const STATUS_TONE: Record<QuoteStatus, string> = {
   converted: "bg-brand-accent text-brand-primary",
 };
 
+// Solid dot shown next to each quote's number so the stage reads at a glance.
+const STATUS_DOT: Record<QuoteStatus, string> = {
+  draft: "bg-brand-mute",
+  sent: "bg-status-pending",
+  accepted: "bg-status-confirmed",
+  declined: "bg-status-cancelled",
+  expired: "bg-status-draft",
+  converted: "bg-brand-primary",
+};
+
 export default async function QuotesListPage({
   searchParams,
 }: {
@@ -150,12 +160,19 @@ export default async function QuotesListPage({
                 return (
                   <tr key={q.id} className="hover:bg-brand-light/40">
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/dashboard/quotes/${q.id}`}
-                        className="font-medium text-brand-primary hover:underline"
-                      >
-                        {q.quote_number}
-                      </Link>
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[q.status as QuoteStatus]}`}
+                          title={QUOTE_STATUS_LABEL[q.status as QuoteStatus]}
+                          aria-hidden
+                        />
+                        <Link
+                          href={`/dashboard/quotes/${q.id}`}
+                          className="font-medium text-brand-primary hover:underline"
+                        >
+                          {q.quote_number}
+                        </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-brand-ink">

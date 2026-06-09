@@ -1331,20 +1331,19 @@ export function QuoteForm({
 
           {priceMode === "itemised" ? (
             <>
-              <button
-                type="button"
-                onClick={() => priceStayNow(false)}
-                disabled={busy || !datesValid}
-                className="mt-5 inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-50"
-              >
-                <Calculator className="h-4 w-4" />
-                {pricing ? "Pricing…" : "Re-price from calendar"}
-              </button>
               {!datesValid ? (
-                <span className="ml-2 text-xs text-brand-mute">
-                  Add dates above to price.
-                </span>
-              ) : null}
+                <p className="mt-5 text-xs text-brand-mute">
+                  Add dates above — the price fills in from your calendar
+                  automatically.
+                </p>
+              ) : (
+                <p className="mt-5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
+                  <Calculator className="h-3.5 w-3.5" />
+                  {pricing
+                    ? "Pricing from your calendar…"
+                    : "Priced automatically from your calendar — edit any line below."}
+                </p>
+              )}
 
               <div className="mt-4 rounded-[12px] border border-brand-line p-4">
                 <div className="grid grid-cols-[1fr_120px_28px] items-center gap-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">

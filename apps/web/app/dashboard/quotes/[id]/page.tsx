@@ -68,6 +68,14 @@ function fmtDayName(iso: string | null): string {
   });
 }
 
+function fmtTime(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function fmtDateTime(iso: string): string {
   return new Intl.DateTimeFormat("en-ZA", {
     day: "numeric",
@@ -114,6 +122,7 @@ export default async function QuoteDetailPage({
       guest_name, guest_email, guest_phone,
       check_in, check_out, headcount, scope,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
+      discount_type, discount_value, discount_amount, discount_reason,
       notes, accept_token, valid_until,
       sent_at, accepted_at, declined_at, converted_at, converted_booking_id,
       created_at,
@@ -189,6 +198,20 @@ export default async function QuoteDetailPage({
       imageUrl: photo?.url ?? null,
     };
   });
+
+  // Per-room price lines (rooms scope) so the breakdown mirrors the sent quote
+  // exactly — one line per booked room, plus their combined cleaning fee.
+  const roomBreakdown = (roomLines ?? []).map((r) => {
+    const room = firstOf(r.room as unknown as { name: string } | null);
+    return {
+      name: room?.name ?? "Room",
+      base: Number(r.base_amount ?? 0),
+      cleaning: Number(r.cleaning_fee ?? 0),
+    };
+  });
+  const roomsScope = quote.scope === "rooms" && roomBreakdown.length > 0;
+  const roomCleaning = roomBreakdown.reduce((s, r) => s + r.cleaning, 0);
+  const discountAmount = Number(quote.discount_amount ?? 0);
 
   const status = quote.status as QuoteStatus;
   const tone = STATUS_TONE[status];
@@ -502,6 +525,11 @@ export default async function QuoteDetailPage({
                       <div className="num text-[10px] text-brand-mute">
                         {s.date ? fmtDate(s.date) : "—"}
                       </div>
+                      {s.date ? (
+                        <div className="num text-[9px] leading-tight text-brand-mute/70">
+                          {fmtTime(s.date)}
+                        </div>
+                      ) : null}
                     </FragmentStep>
                   );
                 })}
@@ -596,24 +624,58 @@ export default async function QuoteDetailPage({
             </div>
             <div className="p-6">
               <ul className="space-y-3 text-[13.5px]">
-                <li className="flex items-center justify-between">
-                  <span className="text-brand-mute">
-                    {nights
-                      ? `${formatMoney(Number(quote.base_amount) / nights, quote.currency)} × ${nights} night${nights === 1 ? "" : "s"}`
-                      : "Accommodation"}
-                  </span>
-                  <span className="num font-medium text-brand-ink">
-                    {formatMoney(quote.base_amount, quote.currency)}
-                  </span>
-                </li>
-                {quote.cleaning_fee > 0 ? (
-                  <li className="flex items-center justify-between">
-                    <span className="text-brand-mute">Cleaning fee</span>
-                    <span className="num font-medium text-brand-ink">
-                      {formatMoney(quote.cleaning_fee, quote.currency)}
-                    </span>
-                  </li>
-                ) : null}
+                {roomsScope ? (
+                  <>
+                    {roomBreakdown.map((r, i) => (
+                      <li
+                        key={`room-${i}`}
+                        className="flex items-center justify-between"
+                      >
+                        <span className="text-brand-mute">
+                          {r.name}
+                          {nights ? (
+                            <span className="text-brand-mute/70">
+                              {" "}
+                              · {nights} night{nights === 1 ? "" : "s"}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="num font-medium text-brand-ink">
+                          {formatMoney(r.base, quote.currency)}
+                        </span>
+                      </li>
+                    ))}
+                    {roomCleaning > 0 ? (
+                      <li className="flex items-center justify-between">
+                        <span className="text-brand-mute">Cleaning fee</span>
+                        <span className="num font-medium text-brand-ink">
+                          {formatMoney(roomCleaning, quote.currency)}
+                        </span>
+                      </li>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    <li className="flex items-center justify-between">
+                      <span className="text-brand-mute">
+                        {nights
+                          ? `${formatMoney(Number(quote.base_amount) / nights, quote.currency)} × ${nights} night${nights === 1 ? "" : "s"}`
+                          : "Accommodation"}
+                      </span>
+                      <span className="num font-medium text-brand-ink">
+                        {formatMoney(quote.base_amount, quote.currency)}
+                      </span>
+                    </li>
+                    {quote.cleaning_fee > 0 ? (
+                      <li className="flex items-center justify-between">
+                        <span className="text-brand-mute">Cleaning fee</span>
+                        <span className="num font-medium text-brand-ink">
+                          {formatMoney(quote.cleaning_fee, quote.currency)}
+                        </span>
+                      </li>
+                    ) : null}
+                  </>
+                )}
                 {(addons ?? []).map((a, i) => (
                   <li key={i} className="flex items-center justify-between">
                     <span className="inline-flex items-center gap-1.5 text-brand-mute">
@@ -629,6 +691,21 @@ export default async function QuoteDetailPage({
                     </span>
                   </li>
                 ))}
+                {discountAmount > 0 ? (
+                  <li className="flex items-center justify-between text-brand-primary">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Tag className="h-3.5 w-3.5" />
+                      {quote.discount_reason?.trim() || "Discount"}
+                      {quote.discount_type === "percent" &&
+                      Number(quote.discount_value) > 0
+                        ? ` · ${Number(quote.discount_value)}%`
+                        : ""}
+                    </span>
+                    <span className="num font-medium">
+                      −{formatMoney(discountAmount, quote.currency)}
+                    </span>
+                  </li>
+                ) : null}
                 <li className="flex items-center justify-between border-t border-brand-line pt-3">
                   <span className="font-semibold text-brand-ink">
                     Total guest pays
