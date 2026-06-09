@@ -372,7 +372,11 @@ export function ThreadQuoteCard({
       : "Your request"
     : `Quote ${quote.quoteNumber ?? ""}`.trim();
 
-  const hostHref = `/dashboard/quotes/${quote.id}`;
+  // A draft request goes straight to the editor (no detour via the detail page)
+  // so "Complete & send quote" is one click; a sent quote opens its detail view.
+  const hostHref = isDraft
+    ? `/dashboard/quotes/${quote.id}/edit`
+    : `/dashboard/quotes/${quote.id}`;
   const guestHref = quote.acceptToken
     ? `/q/${quote.id}/${quote.acceptToken}`
     : null;
