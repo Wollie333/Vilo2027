@@ -77,6 +77,18 @@ export async function declineMyQuoteAction(
       .from("conversations")
       .update({ pipeline_stage: "declined" })
       .eq("id", q.conversation_id);
+    // Post a "declined" card into the thread — left unread for the host (a
+    // guest-initiated event) so it surfaces in their inbox badge.
+    await admin.from("messages").insert({
+      conversation_id: q.conversation_id,
+      sender_id: null,
+      is_system_message: true,
+      system_event: "quote_declined",
+      quote_id: quoteId,
+      body: "Quote declined.",
+      read_by_host: false,
+      read_by_guest: true,
+    });
   }
 
   revalidatePath("/portal/quotes");
