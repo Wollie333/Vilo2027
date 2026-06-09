@@ -138,7 +138,8 @@ export default async function EditRoomPage({
   const now = new Date();
   const todayStr = now.toISOString().slice(0, 10);
   const winStart = new Date(now);
-  winStart.setDate(winStart.getDate() - 30);
+  // 30-night window: today-29 .. today inclusive = 30 days (matches the /30 denom).
+  winStart.setDate(winStart.getDate() - 29);
   const winStartStr = winStart.toISOString().slice(0, 10);
   const monthStart = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
@@ -213,6 +214,7 @@ export default async function EditRoomPage({
       ? await admin
           .from("reviews")
           .select("rating")
+          .eq("is_published", true)
           .in("booking_id", bookingIds)
       : { data: [] as { rating: number | null }[] };
   const ratings = (revRows ?? [])

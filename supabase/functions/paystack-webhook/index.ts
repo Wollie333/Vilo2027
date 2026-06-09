@@ -121,6 +121,38 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
       })
       .eq("id", payment.id);
 
+    // Derive paid/balance from the ledger (sum of COMPLETED inbound payments,
+    // including the row just settled above) — a deposit-only card payment must
+    // confirm the booking but leave the balance owing, NOT mark it fully paid.
+    // Mirrors lib/payments/ledger.ts, the single source of truth.
+    const INBOUND = new Set([
+      "deposit",
+      "balance",
+      "addon",
+      "payment",
+      "credit",
+    ]);
+    const [{ data: bk }, { data: paidRows }] = await Promise.all([
+      supabase
+        .from("bookings")
+        .select("total_amount")
+        .eq("id", payment.booking_id)
+        .maybeSingle(),
+      supabase
+        .from("payments")
+        .select("amount, kind")
+        .eq("booking_id", payment.booking_id)
+        .eq("status", "completed"),
+    ]);
+    const total = Number(bk?.total_amount ?? 0);
+    const paid = (paidRows ?? [])
+      .filter((r: { kind: string }) => INBOUND.has(String(r.kind)))
+      .reduce(
+        (s: number, r: { amount: number }) => s + Number(r.amount ?? 0),
+        0,
+      );
+    const balanceDue = Math.max(0, Math.round((total - paid) * 100) / 100);
+
     // trigger_booking_confirmed in 20260501000013_create_triggers.sql
     // inserts blocked_dates rows automatically when status flips to
     // confirmed. No duplication here per AGENT_RULES.md §4.2.
@@ -128,7 +160,8 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
       .from("bookings")
       .update({
         status: "confirmed",
-        payment_status: "completed",
+        payment_status: paid + 0.001 >= total ? "completed" : "partial",
+        balance_due: balanceDue,
         confirmed_at: new Date().toISOString(),
       })
       .eq("id", payment.booking_id)

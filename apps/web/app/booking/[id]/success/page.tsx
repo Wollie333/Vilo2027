@@ -105,11 +105,7 @@ export default async function BookingSuccessPage({
   // For direct-host card payments this — not a platform webhook — is the
   // authoritative confirmation.
   const reference = searchParams?.reference;
-  if (
-    booking.payment_status === "pending" &&
-    reference &&
-    reference.length > 0
-  ) {
+  if (booking.status === "pending" && reference && reference.length > 0) {
     const hostId = (booking.listing as unknown as { host_id: string }).host_id;
     await confirmHostCardPaymentByReference({
       reference,

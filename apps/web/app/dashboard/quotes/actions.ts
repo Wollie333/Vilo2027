@@ -703,23 +703,27 @@ export async function convertQuoteAction(
           .update({
             status: "confirmed",
             confirmed_at: new Date().toISOString(),
-            payment_status:
-              payment.state === "paid" ? "completed" : existing.payment_status,
-            host_payment_note: payment.note || null,
-          })
-          .eq("id", existingId);
-      } else if (
-        payment.state === "paid" &&
-        existing.payment_status !== "completed"
-      ) {
-        await supabase
-          .from("bookings")
-          .update({
-            payment_status: "completed",
             host_payment_note: payment.note || null,
           })
           .eq("id", existingId);
       }
+
+      // Route payment through the ledger — the single source of truth — rather
+      // than hand-setting payment_status. Otherwise the seeded deposit row stays
+      // 'pending' and the booking flag contradicts the ledger (R0 paid).
+      const admin = createAdminClient();
+      if (payment.state === "paid") {
+        await admin
+          .from("payments")
+          .update({
+            status: "completed",
+            captured_at: new Date().toISOString(),
+            note: payment.note || "Payment received",
+          })
+          .eq("booking_id", existingId)
+          .eq("status", "pending");
+      }
+      await recomputeBookingPaymentState(admin, existingId);
 
       await supabase
         .from("quotes")

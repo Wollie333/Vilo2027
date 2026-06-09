@@ -742,6 +742,20 @@ export async function createRoomAction(
       price_per_person: parsed.data.price_per_person ?? null,
       base_occupancy: parsed.data.base_occupancy ?? null,
       extra_guest_price: parsed.data.extra_guest_price ?? null,
+      // Age/pet pricing + allowances, size, view, experiences — these were
+      // dropped on create, silently losing what the host typed. Persist them.
+      child_price: parsed.data.child_price ?? 0,
+      infant_price: parsed.data.infant_price ?? 0,
+      pet_fee: parsed.data.pet_fee ?? 0,
+      allow_children: parsed.data.allow_children ?? true,
+      allow_infants: parsed.data.allow_infants ?? true,
+      allow_pets: parsed.data.allow_pets ?? true,
+      infant_max_age: parsed.data.infant_max_age ?? 2,
+      child_max_age: parsed.data.child_max_age ?? 12,
+      room_size_sqm: parsed.data.room_size_sqm ?? null,
+      bed_type: parsed.data.bed_type ?? null,
+      view_type: parsed.data.view_type ?? null,
+      experiences: parsed.data.experiences ?? [],
     })
     .select("id")
     .single();
