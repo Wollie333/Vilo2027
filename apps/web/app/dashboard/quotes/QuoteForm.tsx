@@ -230,6 +230,9 @@ export function QuoteForm({
       cleaning_fee: r.cleaning_fee,
     })),
   );
+  // Bumped each time pricing replaces the rooms — used to remount the editable
+  // per-room amount fields so a fresh calendar price overrides a manual edit.
+  const [priceVersion, setPriceVersion] = useState(0);
   const [catalogSel, setCatalogSel] = useState<Record<string, string>>(
     Object.fromEntries(
       (initial?.catalogAddons ?? []).map((a) => [
@@ -444,6 +447,16 @@ export function QuoteForm({
     setPricedRooms([]);
   }
 
+  // Host override of a single room's pulled-in price. Stays until they change
+  // the stay (which re-prices) or hit "Re-price from calendar".
+  function setRoomBase(roomId: string, amount: number) {
+    setPricedRooms((prev) =>
+      prev.map((r) =>
+        r.room_id === roomId ? { ...r, base_amount: amount } : r,
+      ),
+    );
+  }
+
   const datesValid = !!checkIn && !!checkOut && nights > 0;
 
   const priceStayNow = useCallback(
@@ -487,6 +500,9 @@ export function QuoteForm({
           setCleaningFee(String(r.data.cleaning_fee));
         }
         setAgeLines(r.data.age_lines);
+        // Remount the per-room amount inputs so they show the fresh price,
+        // discarding any manual override the host had typed.
+        setPriceVersion((v) => v + 1);
       });
     },
     [
@@ -1313,11 +1329,17 @@ export function QuoteForm({
                           (listing?.rooms ?? []).find((x) => x.id === r.room_id)
                             ?.name ?? "Room"
                         }
-                        sub={nights > 0 ? `× ${nights} nights` : undefined}
+                        sub={
+                          nights > 0
+                            ? `${formatMoney(Math.round(r.base_amount / nights), currency)} × ${nights} nights · editable`
+                            : "Editable"
+                        }
                         amount={
-                          <StaticAmount
-                            value={r.base_amount}
+                          <RoomAmountInput
+                            key={`${r.room_id}-${priceVersion}`}
+                            initial={r.base_amount}
                             currency={currency}
+                            onChange={(n) => setRoomBase(r.room_id, n)}
                           />
                         }
                       />
@@ -2152,6 +2174,41 @@ function AmountInput({
         step="0.01"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="focus:ring-brand-primary/12 w-full rounded-[8px] border border-brand-line bg-white py-1.5 pl-7 pr-2 text-right font-mono text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2"
+      />
+    </div>
+  );
+}
+
+// Editable per-room amount. Holds its own text buffer (seeded from the priced
+// value) so the host can type freely; the parent is remounted via `key` when a
+// fresh calendar price should replace the override.
+function RoomAmountInput({
+  initial,
+  currency,
+  onChange,
+}: {
+  initial: number;
+  currency: string;
+  onChange: (n: number) => void;
+}) {
+  const [text, setText] = useState(String(initial));
+  return (
+    <div className="relative w-[120px] justify-self-end">
+      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[11.5px] font-semibold text-brand-mute">
+        {currency === "ZAR" ? "R" : currency}
+      </span>
+      <input
+        type="number"
+        min={0}
+        step="0.01"
+        value={text}
+        onChange={(e) => {
+          const v = e.target.value;
+          setText(v);
+          const n = parseFloat(v);
+          onChange(Number.isFinite(n) ? n : 0);
+        }}
         className="focus:ring-brand-primary/12 w-full rounded-[8px] border border-brand-line bg-white py-1.5 pl-7 pr-2 text-right font-mono text-[13px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2"
       />
     </div>
