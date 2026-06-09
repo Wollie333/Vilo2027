@@ -690,7 +690,10 @@ export default async function BookingDetailPage({
     timeline: tl,
 
     hostMessage: booking.host_message ?? null,
-    guestFirstName: (booking.guest_name ?? "").trim().split(" ")[0] || null,
+    guestFirstName:
+      (booking.guest_name || guest.full_name || guest.email || "")
+        .trim()
+        .split(/\s+/)[0] || null,
     canRefund,
     refundDefaultMethod: (["paystack", "paypal", "eft", "manual"].includes(
       latestPayment?.method ?? "",
