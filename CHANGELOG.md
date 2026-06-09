@@ -31,6 +31,46 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-09 — Quotes & Inbox — Per-room overrides, no-flash claim, event-sourced thread cards — branch `main`
+
+### Built / Changed
+- **Per-room price override** — in rooms scope, the pulled-in per-room amounts
+  are now editable line items; "Re-price from calendar" resets them.
+- **No-flash quote request + two-column claim** — the public request modal no
+  longer flashes the form before navigating; it shows an in-place two-column
+  thank-you (confirmation + create-account prompt left, request recap right).
+  `/claim` redesigned to a two-column page mirroring signup (fields left,
+  request preview as a dark hero right).
+- **Inbox badges = unread only** — every tab, folder-rail and pipeline-stage
+  badge now counts unread threads only and hides at zero; opening a thread
+  `router.refresh()`es so the read drops out of every badge (and the sidebar)
+  at once. Quote requests still land under Enquiries.
+- **Event-sourced quote thread cards** — the conversation thread renders one
+  immutable card per lifecycle event (request → sent/revised → accepted /
+  declined → converted) instead of a single mutating card. Older sent/revised
+  cards grey out as "Superseded" (the message body is the frozen snapshot);
+  the request card greys to "Answered" once a quote is sent.
+- **Quote revisions with a reason** — editing an already-sent quote prompts for
+  a reason, keeps the prior version (`quote_versions`), and posts a "revised"
+  card showing the reason. Quotes stay non-posting — the ledger only engages on
+  accept → booking → invoice → payments.
+
+### Migrations
+- `20260608000011_quote_thread_events.sql` — `messages.quote_version_no` +
+  `quote_versions.reason` (additive; pushed to remote, types regenerated).
+
+### Notes
+- Superseded cards show the snapshot from the event message body (accurate at
+  send time) rather than a re-rendered priced breakdown — a future enhancement.
+- `pnpm build` + `pnpm lint` pass clean across all commits.
+
+### Commits
+- `4b6e0f4` per-room override · `e8212bf` no-flash claim · `2a49cf8` inbox
+  badges · `a36d9b0` lifecycle events (phase 1) · `de942ad` thread cards +
+  revision reason (phase 2/3)
+
+---
+
 ## 2026-06-08 — Quotes — Redesigned quote-response builder (3-step layout) — branch `main`
 
 ### Changed
