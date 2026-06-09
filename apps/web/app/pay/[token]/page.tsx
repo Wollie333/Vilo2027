@@ -62,7 +62,7 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, city, province, listing_photos ( url, sort_order ) )",
+      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, city, province, listing_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -132,7 +132,12 @@ export default async function PayPage({
   const party = payable
     ? await getHostParty(admin, listing.host_id, booking.reference)
     : null;
-  const banking = party?.banking ?? null;
+
+  // EFT only appears when the HOST chose EFT for this booking — otherwise this
+  // link is for immediate card payment only.
+  const hostChoseEft =
+    booking.payment_method === "eft" || booking.status === "pending_eft";
+  const banking = hostChoseEft ? (party?.banking ?? null) : null;
 
   const locationLine = [listing.city, listing.province]
     .filter(Boolean)
@@ -272,18 +277,13 @@ export default async function PayPage({
               </div>
             </div>
 
-            {hasCard ? (
-              <PayNowPanel
-                token={params.token}
-                amountLabel={formatMoney(outstanding, currency)}
-              />
-            ) : null}
-
-            {banking ? (
+            {/* EFT only when the host chose it for this booking; otherwise this
+                link is immediate card payment. */}
+            {hostChoseEft && banking ? (
               <div className="rounded-card border border-brand-line bg-white">
                 <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3 font-display font-semibold text-brand-ink">
                   <Building2 className="h-4 w-4 text-brand-mute" />
-                  {hasCard ? "Or pay by EFT" : "Pay by EFT bank transfer"}
+                  Pay by EFT bank transfer
                 </div>
                 <dl className="divide-y divide-brand-line text-sm">
                   {[
@@ -309,14 +309,17 @@ export default async function PayPage({
                   Your booking is confirmed once the transfer is verified.
                 </p>
               </div>
-            ) : null}
-
-            {!hasCard && !banking ? (
+            ) : hasCard ? (
+              <PayNowPanel
+                token={params.token}
+                amountLabel={formatMoney(outstanding, currency)}
+              />
+            ) : (
               <div className="rounded-card border border-brand-line bg-brand-light/40 px-5 py-6 text-center text-sm text-brand-mute">
-                Online payment isn’t set up for this booking yet. Please contact
-                your host to arrange payment.
+                Payment isn’t set up for this booking yet. Please contact your
+                host to arrange payment.
               </div>
-            ) : null}
+            )}
           </section>
         )}
 
