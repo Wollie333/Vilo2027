@@ -3,6 +3,7 @@ import { ArrowRight, FileText } from "lucide-react";
 import Link from "next/link";
 
 import { formatMoney } from "@/lib/format";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -55,13 +56,21 @@ export default async function PortalQuotesPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // RLS (guest_read_own_quotes) scopes this to the guest's own quotes.
-  const { data: quotes } = await supabase
+  // A guest's quotes are matched by their linked guest_id OR their email —
+  // host-created quotes carry guest_email but no guest_id (the guest isn't
+  // linked until they accept), so an RLS-by-guest_id read alone shows nothing.
+  // Fetch with the admin client scoped to THIS user's own id + email (safe —
+  // both identify the signed-in guest).
+  const email = (user.email ?? "").trim().toLowerCase();
+  const ors = [`guest_id.eq.${user.id}`];
+  if (email) ors.push(`guest_email.ilike.${email}`);
+  const { data: quotes } = await createAdminClient()
     .from("quotes")
     .select(
       "id, quote_number, status, check_in, check_out, total_amount, currency, valid_until, created_at, listing:listings(name)",
     )
     .is("deleted_at", null)
+    .or(ors.join(","))
     .order("created_at", { ascending: false });
 
   const rows = (quotes ?? []).map((q) => {
