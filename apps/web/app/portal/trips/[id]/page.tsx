@@ -477,13 +477,14 @@ export default async function PortalTripDetailPage({
 
   // Access secrets (gate/door codes, Wi-Fi password) unlock from 1 hour before
   // check-in (a physical-key courtesy) and only for a live/completed booking.
-  // The check-in time-of-day is applied when available, else midnight.
+  // check_in_time is a wall-clock time in the property's timezone (SA, UTC+2,
+  // no DST) — pin it to +02:00 so the window is correct regardless of where the
+  // guest's browser/server clock sits (was parsed as local → unlocked ~2h late).
   const HOUR_MS = 3_600_000;
+  const checkInTime = (listing?.check_in_time ?? "00:00").slice(0, 5);
   const checkInWithTime =
     booking.check_in != null
-      ? new Date(
-          `${booking.check_in}T${listing?.check_in_time ?? "00:00"}:00`,
-        ).getTime()
+      ? new Date(`${booking.check_in}T${checkInTime}:00+02:00`).getTime()
       : null;
   const accessUnlocked =
     checkInWithTime != null &&
