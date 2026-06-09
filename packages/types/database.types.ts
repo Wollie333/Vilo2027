@@ -6706,6 +6706,7 @@ export type Database = {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
       }
+      clear_all: { Args: never; Returns: string }
       compute_addon_subtotal: {
         Args: {
           p_guests: number
