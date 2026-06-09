@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import {
@@ -680,13 +681,22 @@ export default async function BookingDetailPage({
 
     // Shareable pay-now link — only while the booking is payable with an
     // outstanding balance. The public /pay/[token] page is built from the
-    // booking's pay_token; absolute URL via NEXT_PUBLIC_SITE_URL.
+    // booking's pay_token. Build an ABSOLUTE url from the request origin so it
+    // works to copy/send and passes the "must be http(s)" link check — the
+    // NEXT_PUBLIC_SITE_URL env isn't set in prod, which left it relative.
     payLink:
       !TERMINAL_CANCELLED.has(status) &&
       booking.payment_status !== "completed" &&
       Number(booking.total_amount) - amountPaid > 0.005
         ? {
-            url: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/pay/${booking.pay_token}`,
+            url: `${(() => {
+              const h = headers();
+              const proto = h.get("x-forwarded-proto") ?? "https";
+              const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+              return host
+                ? `${proto}://${host}`
+                : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
+            })()}/pay/${booking.pay_token}`,
             reference: booking.reference,
             listingName: listing.name,
             guestName: guest.full_name ?? booking.guest_name ?? null,
