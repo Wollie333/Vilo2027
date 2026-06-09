@@ -916,11 +916,12 @@ function AgeCategory({
           type="button"
           onClick={onToggle}
           disabled={disabled}
-          aria-pressed={allowed}
-          className={`relative h-[18px] w-8 shrink-0 rounded-full transition-colors ${allowed ? "bg-brand-primary" : "bg-brand-line"}`}
+          role="switch"
+          aria-checked={allowed}
+          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${allowed ? "bg-brand-primary" : "bg-brand-line"}`}
         >
           <span
-            className={`absolute top-[2px] h-[14px] w-[14px] rounded-full bg-white shadow transition-transform ${allowed ? "translate-x-[16px]" : "translate-x-[2px]"}`}
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${allowed ? "translate-x-[18px]" : "translate-x-[2px]"}`}
           />
         </button>
       </div>
