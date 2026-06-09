@@ -30,11 +30,7 @@ export default async function HomePage() {
     <div className="bg-brand-light text-brand-ink">
       <UtilityBar />
       <SiteHeader />
-      <Hero
-        stats={data.stats}
-        popularCities={data.popularCities}
-        featured={data.featured}
-      />
+      <Hero stats={data.stats} popularCities={data.popularCities} />
       <CategoryChips chips={data.chips} />
       <TrendingDestinations destinations={data.destinations} />
       <FeaturedListings listings={data.featured} totalStays={data.totalStays} />
