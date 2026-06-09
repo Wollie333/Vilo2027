@@ -168,12 +168,24 @@ export async function acceptAndConvertQuote(
     .eq("id", quoteId);
 
   // Auto-advance the inbox pipeline so the host's board tracks the deal without
-  // manual moves (purely a label — doesn't affect the booking/payment flow).
+  // manual moves (purely a label — doesn't affect the booking/payment flow), and
+  // post an "accepted" card into the thread — left unread for the host so it
+  // surfaces in their inbox badge (a guest-initiated event).
   if (quote.conversation_id) {
     await admin
       .from("conversations")
       .update({ pipeline_stage: "accepted" })
       .eq("id", quote.conversation_id);
+    await admin.from("messages").insert({
+      conversation_id: quote.conversation_id,
+      sender_id: null,
+      is_system_message: true,
+      system_event: "quote_accepted",
+      quote_id: quoteId,
+      body: "Quote accepted — booking created, awaiting payment.",
+      read_by_host: false,
+      read_by_guest: true,
+    });
   }
 
   return { ok: true, bookingId: booking.id };

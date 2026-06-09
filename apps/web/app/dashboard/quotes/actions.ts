@@ -306,6 +306,9 @@ export async function createQuoteAction(
 export async function updateQuoteAction(
   quoteId: string,
   input: UpdateQuoteInput,
+  // Required when revising an already-SENT quote: why it changed. Kept on the
+  // superseded version's snapshot and shown on the revised-quote thread card.
+  reason?: string,
 ): Promise<ActionResult> {
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
@@ -322,7 +325,7 @@ export async function updateQuoteAction(
   // it's sent). Converted / declined / expired quotes are locked.
   const { data: current } = await supabase
     .from("quotes")
-    .select("status, version")
+    .select("status, version, quote_number")
     .eq("id", quoteId)
     .maybeSingle();
   if (!current) return { ok: false, error: "Quote not found." };
@@ -333,11 +336,21 @@ export async function updateQuoteAction(
     };
   }
 
+  // Revising an already-SENT quote needs a reason — the audit trail for why the
+  // issued price changed (industry-standard estimate revision).
+  const isRevision = current.status === "sent";
+  if (isRevision && !(reason ?? "").trim()) {
+    return {
+      ok: false,
+      error: "Add a short reason for revising this sent quote.",
+    };
+  }
+
   // Editing a quote that's already been sent snapshots the CURRENT (pre-edit)
   // state into quote_versions so the previously-issued quote — and the PDF that
   // can be regenerated from it — is preserved. Drafts edit in place.
-  if (current.status === "sent") {
-    await snapshotQuoteVersion(supabase, quoteId, current.version ?? 1);
+  if (isRevision) {
+    await snapshotQuoteVersion(supabase, quoteId, current.version ?? 1, reason);
   }
 
   const { addonsTotal, discountAmount, total } = totalsFor(parsed.data);
@@ -411,6 +424,19 @@ export async function updateQuoteAction(
     );
   }
 
+  // A revision of a sent quote posts its OWN card into the thread (the prior
+  // version stays as a greyed, superseded card). Draft edits stay silent.
+  if (isRevision) {
+    await postQuoteEventCard(supabase, quoteId, "quote_revised", {
+      body: `Quote ${current.quote_number ?? ""} revised · ${formatMoney(
+        total,
+        parsed.data.currency,
+      )}`.trim(),
+      versionNo: (current.version ?? 1) + 1,
+      fromHost: true,
+    });
+  }
+
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   return { ok: true };
@@ -418,11 +444,12 @@ export async function updateQuoteAction(
 
 // Freeze the current quote (header + rooms + addons) into quote_versions so an
 // edit never loses the previously-issued version. Best-effort — failure here
-// shouldn't block the edit.
+// shouldn't block the edit. `reason` records WHY this version was superseded.
 async function snapshotQuoteVersion(
   supabase: ReturnType<typeof createServerClient>,
   quoteId: string,
   versionNo: number,
+  reason?: string,
 ): Promise<void> {
   const { data: q } = await supabase
     .from("quotes")
@@ -454,6 +481,7 @@ async function snapshotQuoteVersion(
     version_no: versionNo,
     total_amount: q.total_amount,
     currency: q.currency,
+    reason: reason?.trim() || null,
     snapshot: {
       ...q,
       listing_name: listingName ?? null,
@@ -473,7 +501,7 @@ async function advanceConversationStage(
 ): Promise<void> {
   const { data: q } = await supabase
     .from("quotes")
-    .select("conversation_id, quote_number, total_amount, currency")
+    .select("conversation_id, quote_number, total_amount, currency, version")
     .eq("id", quoteId)
     .maybeSingle();
   if (!q?.conversation_id) return;
@@ -482,16 +510,57 @@ async function advanceConversationStage(
     .update({ pipeline_stage: stage })
     .eq("id", q.conversation_id);
   if (postCard) {
+    // The official quote card — pinned to the version that was sent so the
+    // thread can render it as a snapshot and grey it once it's superseded.
     await supabase.from("messages").insert({
       conversation_id: q.conversation_id,
       sender_id: null,
       is_system_message: true,
       system_event: "quote_sent",
       quote_id: quoteId,
+      quote_version_no: q.version ?? 1,
       body: `Quote ${q.quote_number} sent · ${formatMoney(Number(q.total_amount), q.currency)}`,
       read_by_host: true,
+      read_by_guest: false,
     });
   }
+  revalidatePath("/dashboard/inbox");
+}
+
+// Post an immutable quote-lifecycle card into the quote's conversation thread
+// (if it has one). Each transition is its OWN message — the thread renders one
+// card per event (request / sent / revised / accepted / declined / converted),
+// never a single mutating card. Host-initiated events are pre-read by the host;
+// guest-initiated ones (a guest accept/decline) are left unread for the host so
+// they surface in the inbox badge.
+async function postQuoteEventCard(
+  supabase: ReturnType<typeof createServerClient>,
+  quoteId: string,
+  event:
+    | "quote_revised"
+    | "quote_accepted"
+    | "quote_declined"
+    | "quote_converted",
+  opts: { body: string; versionNo?: number | null; fromHost?: boolean },
+): Promise<void> {
+  const { data: q } = await supabase
+    .from("quotes")
+    .select("conversation_id")
+    .eq("id", quoteId)
+    .maybeSingle();
+  if (!q?.conversation_id) return;
+  const fromHost = opts.fromHost !== false;
+  await supabase.from("messages").insert({
+    conversation_id: q.conversation_id,
+    sender_id: null,
+    is_system_message: true,
+    system_event: event,
+    quote_id: quoteId,
+    quote_version_no: opts.versionNo ?? null,
+    body: opts.body,
+    read_by_host: fromHost,
+    read_by_guest: !fromHost,
+  });
   revalidatePath("/dashboard/inbox");
 }
 
@@ -549,6 +618,10 @@ export async function declineQuoteAction(
   if (error) return { ok: false, error: "Could not decline the quote." };
 
   await advanceConversationStage(supabase, quoteId, "declined");
+  await postQuoteEventCard(supabase, quoteId, "quote_declined", {
+    body: "Quote declined.",
+    fromHost: true,
+  });
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   return { ok: true };
@@ -572,6 +645,10 @@ export async function markAcceptedAction(
   if (error) return { ok: false, error: "Could not mark accepted." };
 
   await advanceConversationStage(supabase, quoteId, "accepted");
+  await postQuoteEventCard(supabase, quoteId, "quote_accepted", {
+    body: "Quote marked accepted.",
+    fromHost: true,
+  });
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   return { ok: true };
 }
@@ -653,6 +730,10 @@ export async function convertQuoteAction(
         .eq("id", quoteId)
         .neq("status", "converted");
 
+      await postQuoteEventCard(supabase, quoteId, "quote_converted", {
+        body: "Quote converted to a booking.",
+        fromHost: true,
+      });
       revalidatePath(`/dashboard/quotes/${quoteId}`);
       revalidatePath("/dashboard/quotes");
       revalidatePath("/dashboard/bookings");
@@ -810,6 +891,10 @@ export async function convertQuoteAction(
     })
     .eq("id", quoteId);
 
+  await postQuoteEventCard(supabase, quoteId, "quote_converted", {
+    body: "Quote converted to a booking.",
+    fromHost: true,
+  });
   revalidatePath(`/dashboard/quotes/${quoteId}`);
   revalidatePath("/dashboard/quotes");
   revalidatePath("/dashboard/bookings");

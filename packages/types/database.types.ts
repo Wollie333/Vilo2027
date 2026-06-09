@@ -4067,6 +4067,7 @@ export type Database = {
           id: string
           is_system_message: boolean
           quote_id: string | null
+          quote_version_no: number | null
           read_at: string | null
           read_by_guest: boolean
           read_by_host: boolean
@@ -4083,6 +4084,7 @@ export type Database = {
           id?: string
           is_system_message?: boolean
           quote_id?: string | null
+          quote_version_no?: number | null
           read_at?: string | null
           read_by_guest?: boolean
           read_by_host?: boolean
@@ -4099,6 +4101,7 @@ export type Database = {
           id?: string
           is_system_message?: boolean
           quote_id?: string | null
+          quote_version_no?: number | null
           read_at?: string | null
           read_by_guest?: boolean
           read_by_host?: boolean
@@ -5092,6 +5095,7 @@ export type Database = {
           currency: string
           id: string
           quote_id: string
+          reason: string | null
           snapshot: Json
           total_amount: number
           version_no: number
@@ -5101,6 +5105,7 @@ export type Database = {
           currency?: string
           id?: string
           quote_id: string
+          reason?: string | null
           snapshot: Json
           total_amount?: number
           version_no: number
@@ -5110,6 +5115,7 @@ export type Database = {
           currency?: string
           id?: string
           quote_id?: string
+          reason?: string | null
           snapshot?: Json
           total_amount?: number
           version_no?: number
