@@ -5196,6 +5196,7 @@ export type Database = {
           notes: string | null
           policy_snapshot: Json | null
           previous_status: string | null
+          price_mode: string
           quote_number: string
           scope: string
           sent_at: string | null
@@ -5241,6 +5242,7 @@ export type Database = {
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
+          price_mode?: string
           quote_number: string
           scope?: string
           sent_at?: string | null
@@ -5286,6 +5288,7 @@ export type Database = {
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
+          price_mode?: string
           quote_number?: string
           scope?: string
           sent_at?: string | null

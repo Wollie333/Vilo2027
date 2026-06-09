@@ -390,6 +390,8 @@ export async function createEnquiry(
     quote_id: quote.id,
     body: `Quote request for ${listing.name} · ${d.check_in} → ${d.check_out}`,
     read_by_host: false,
+    // The guest's own action generated this card — don't flag it unread for them.
+    read_by_guest: true,
   });
 
   // Away auto-reply — if the host set one and the enquiry arrives during their

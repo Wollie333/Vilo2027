@@ -389,12 +389,12 @@ export function InboxView({
     markedRef.current = selectedId;
     void markConversationReadAction(selectedId).then((r) => {
       if (!r.ok) toast.error(r.error);
-      // Re-fetch the server tree so the read drops out of EVERY badge at once —
-      // the tab counts, the pipeline stages, the folder rail and the sidebar
-      // all read the same unread_host counter we just zeroed.
-      else router.refresh();
+      // No explicit refresh: zeroing unread_host is a conversations UPDATE, which
+      // the realtime subscription below already picks up and refreshes on — so
+      // every badge (tabs, pipeline, rail, sidebar) still clears at once, without
+      // firing a second redundant refresh per thread-open.
     });
-  }, [selectedId, conversations, router]);
+  }, [selectedId, conversations]);
 
   // Close the details drawer whenever the open thread changes.
   useEffect(() => {

@@ -43,6 +43,10 @@ export const quoteOrBookingBaseSchema = z
     cleaning_fee: z.coerce.number().min(0).max(1000000).default(0),
     currency: z.string().min(3).max(3).default("ZAR"),
 
+    // How the host priced it — itemised (line-by-line) or a single negotiated
+    // total. Persisted so the editor reopens in the right mode.
+    price_mode: z.enum(["itemised", "single"]).optional().default("itemised"),
+
     rooms: z.array(roomLineSchema).max(50).default([]),
     addons: z.array(addonLineSchema).max(50).default([]),
 

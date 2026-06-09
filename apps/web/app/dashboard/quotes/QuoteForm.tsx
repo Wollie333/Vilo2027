@@ -113,6 +113,7 @@ export type QuoteFormInitial = {
     pets?: number;
   };
   scope?: "whole_listing" | "rooms";
+  priceMode?: "itemised" | "single";
   baseAmount?: number;
   cleaningFee?: number;
   notes?: string;
@@ -200,10 +201,16 @@ export function QuoteForm({
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [validDays, setValidDays] = useState(3);
   // Itemised (line-by-line) vs a single negotiated total for the whole stay.
-  const [priceMode, setPriceMode] = useState<"itemised" | "single">("itemised");
+  // Seeded from the saved quote so a single-total quote reopens in single mode.
+  const [priceMode, setPriceMode] = useState<"itemised" | "single">(
+    initial?.priceMode ?? "itemised",
+  );
   const [singleTotal, setSingleTotal] = useState(
     String(initial?.baseAmount ?? ""),
   );
+  // Once the host hand-edits the whole-listing base/cleaning, auto-pricing stops
+  // overwriting it (e.g. on a party change) — mirrors the per-room override.
+  const [pricingTouched, setPricingTouched] = useState(false);
   // Optional quote-level discount.
   const [discountOn, setDiscountOn] = useState(
     !!initial?.discountType && (initial?.discountValue ?? 0) > 0,
@@ -508,7 +515,8 @@ export function QuoteForm({
           return;
         }
         if (scope === "rooms") setPricedRooms(r.data.rooms);
-        else {
+        // Don't overwrite a base/cleaning the host has manually edited.
+        else if (!pricingTouched) {
           setBaseAmount(String(r.data.base_amount));
           setCleaningFee(String(r.data.cleaning_fee));
         }
@@ -531,10 +539,13 @@ export function QuoteForm({
       selectedRooms,
       roomGuests,
       listing,
+      pricingTouched,
     ],
   );
 
   useEffect(() => {
+    // Single-total is a hand-set figure — never auto-price over it.
+    if (priceMode === "single") return;
     if (!datesValid) return;
     if (scope === "rooms") {
       const anyRoom = (listing?.rooms ?? []).some((r) => selectedRooms[r.id]);
@@ -545,6 +556,7 @@ export function QuoteForm({
     }
     priceStayNow(true);
   }, [
+    priceMode,
     scope,
     datesValid,
     listing,
@@ -628,6 +640,7 @@ export function QuoteForm({
         deposit_type: depositType,
         deposit_pct: parseFloat(depositPct) || 50,
         balance_due_days: parseInt(balanceDueDays, 10) || 7,
+        price_mode: "single" as const,
         notes: notes.trim(),
       };
     }
@@ -678,6 +691,7 @@ export function QuoteForm({
       deposit_type: depositType,
       deposit_pct: parseFloat(depositPct) || 50,
       balance_due_days: parseInt(balanceDueDays, 10) || 7,
+      price_mode: "itemised" as const,
       notes: notes.trim(),
     };
   }
@@ -1394,7 +1408,10 @@ export function QuoteForm({
                     amount={
                       <AmountInput
                         value={baseAmount}
-                        onChange={setBaseAmount}
+                        onChange={(v) => {
+                          setBaseAmount(v);
+                          setPricingTouched(true);
+                        }}
                         currency={currency}
                       />
                     }
@@ -1422,11 +1439,17 @@ export function QuoteForm({
                     amount={
                       <AmountInput
                         value={cleaningFee}
-                        onChange={setCleaningFee}
+                        onChange={(v) => {
+                          setCleaningFee(v);
+                          setPricingTouched(true);
+                        }}
                         currency={currency}
                       />
                     }
-                    onDelete={() => setCleaningFee("0")}
+                    onDelete={() => {
+                      setCleaningFee("0");
+                      setPricingTouched(true);
+                    }}
                   />
                 )}
 
