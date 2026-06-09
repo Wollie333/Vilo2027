@@ -353,7 +353,7 @@ export default async function InboxPage({
       supabase
         .from("messages")
         .select(
-          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, quote_id, read_by_host, read_by_guest, read_at, created_at",
+          "id, sender_id, body, attachment_url, attachment_type, attachment_filename, is_system_message, system_event, quote_id, quote_version_no, read_by_host, read_by_guest, read_at, created_at",
         )
         .eq("conversation_id", selectedId)
         .order("created_at", { ascending: true }),
@@ -422,6 +422,8 @@ export default async function InboxPage({
       isSystem: m.is_system_message,
       systemEvent: m.system_event,
       quoteId: (m as { quote_id: string | null }).quote_id ?? null,
+      quoteVersionNo:
+        (m as { quote_version_no: number | null }).quote_version_no ?? null,
       readByHost: m.read_by_host,
       readByGuest: m.read_by_guest,
       createdAt: m.created_at,

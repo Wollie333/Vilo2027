@@ -298,7 +298,11 @@ export default async function EditQuotePage({
           <QuoteRequestCard ctx={requestCtx} />
         </div>
       ) : null}
-      <QuoteForm listings={list} initial={initial} />
+      <QuoteForm
+        listings={list}
+        initial={initial}
+        isSentQuote={quote.status === "sent"}
+      />
     </div>
   );
 }

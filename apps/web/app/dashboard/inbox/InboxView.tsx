@@ -45,7 +45,10 @@ import {
   type ThreadBooking,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
-import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
+import {
+  latestIssuedVersionByQuote,
+  quoteCardKind,
+} from "@/components/inbox/quote-thread";
 import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
@@ -90,6 +93,7 @@ export type MessageRow = {
   isSystem: boolean;
   systemEvent: string | null;
   quoteId: string | null;
+  quoteVersionNo: number | null;
   readByHost: boolean;
   readByGuest: boolean;
   createdAt: string;
@@ -463,9 +467,9 @@ export function InboxView({
   }, [searchInput, search, navigateWith]);
 
   const messageDays = useMemo(() => groupMessagesByDay(messages), [messages]);
-  const quoteCardMsgIds = useMemo(
-    () => firstQuoteMessageIds(messages, quotesById),
-    [messages, quotesById],
+  const latestIssued = useMemo(
+    () => latestIssuedVersionByQuote(messages),
+    [messages],
   );
 
   return (
@@ -553,7 +557,7 @@ export function InboxView({
             context={context}
             messages={messages}
             messageDays={messageDays}
-            quoteCardMsgIds={quoteCardMsgIds}
+            latestIssued={latestIssued}
             quotesById={quotesById}
             bookingsById={bookingsById}
             selfUserId={selfUserId}
@@ -968,7 +972,7 @@ function ReadView({
   context,
   messages,
   messageDays,
-  quoteCardMsgIds,
+  latestIssued,
   quotesById,
   bookingsById,
   selfUserId,
@@ -985,7 +989,7 @@ function ReadView({
   context: ThreadContext;
   messages: MessageRow[];
   messageDays: { label: string; items: MessageRow[] }[];
-  quoteCardMsgIds: Set<string>;
+  latestIssued: Record<string, number>;
   quotesById: Record<string, ThreadQuote>;
   bookingsById: Record<string, ThreadBooking>;
   selfUserId: string;
@@ -1097,23 +1101,37 @@ function ReadView({
                   <span>{label}</span>
                   <span className="h-px flex-1 bg-[#E9F1EC]" />
                 </div>
-                {items.map((m) =>
-                  m.quoteId &&
-                  quoteCardMsgIds.has(m.id) &&
-                  quotesById[m.quoteId] ? (
-                    <ThreadQuoteCard
-                      key={m.id}
-                      quote={quotesById[m.quoteId]}
-                      booking={
-                        quotesById[m.quoteId].convertedBookingId
-                          ? (bookingsById[
-                              quotesById[m.quoteId].convertedBookingId as string
-                            ] ?? null)
-                          : null
-                      }
-                      viewer="host"
-                    />
-                  ) : (
+                {items.map((m) => {
+                  const kind =
+                    m.quoteId && quotesById[m.quoteId]
+                      ? quoteCardKind(m.systemEvent)
+                      : null;
+                  if (kind && m.quoteId) {
+                    const q = quotesById[m.quoteId];
+                    const superseded =
+                      kind === "request"
+                        ? q.status !== "draft"
+                        : kind === "issued"
+                          ? (m.quoteVersionNo ?? 1) <
+                            (latestIssued[m.quoteId] ?? 1)
+                          : false;
+                    return (
+                      <ThreadQuoteCard
+                        key={m.id}
+                        quote={q}
+                        kind={kind}
+                        superseded={superseded}
+                        snapshotBody={m.body}
+                        booking={
+                          kind === "converted" && q.convertedBookingId
+                            ? (bookingsById[q.convertedBookingId] ?? null)
+                            : null
+                        }
+                        viewer="host"
+                      />
+                    );
+                  }
+                  return (
                     <MessageBubble
                       key={m.id}
                       msg={m}
@@ -1123,8 +1141,8 @@ function ReadView({
                       hostAvatarUrl={hostAvatarUrl}
                       guestAvatarUrl={context.guest?.avatarUrl ?? null}
                     />
-                  ),
-                )}
+                  );
+                })}
               </div>
             ))
           )}

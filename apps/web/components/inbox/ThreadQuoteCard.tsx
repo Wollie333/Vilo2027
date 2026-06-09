@@ -5,6 +5,7 @@ import {
   Clock,
   Eye,
   FileText,
+  History,
   PenSquare,
   Users,
   XCircle,
@@ -13,10 +14,22 @@ import Link from "next/link";
 
 import { formatMoney } from "@/lib/format";
 
-// A quote rendered inline in a conversation thread. The SAME card is shown to
-// the host and the guest; it reflects the quote's LIVE state, so a draft (the
-// guest's request) becomes a full, priced quote in place once the host sends
-// it. `viewer` switches the call-to-action and what financials are emphasised.
+// A quote rendered inline in a conversation thread, shown to both host and
+// guest. The thread is event-sourced: each lifecycle transition is its own
+// message, so each renders its OWN immutable card via `kind` —
+//   request   → the guest's enquiry (greys out once an official quote exists)
+//   issued    → an official sent/revised quote (older versions grey as superseded)
+//   accepted  → a compact "accepted" status line
+//   declined  → a compact "declined" status line
+//   converted → the booking card (a booking now exists)
+// `viewer` switches the call-to-action and what financials are emphasised.
+
+export type QuoteCardKind =
+  | "request"
+  | "issued"
+  | "accepted"
+  | "declined"
+  | "converted";
 
 export type ThreadQuote = {
   id: string;
@@ -166,14 +179,83 @@ export function ThreadQuoteCard({
   quote,
   booking,
   viewer,
+  kind = "issued",
+  superseded = false,
+  snapshotBody = null,
 }: {
   quote: ThreadQuote;
   booking?: ThreadBooking | null;
   viewer: "host" | "guest";
+  // Which lifecycle event this card represents (see file header).
+  kind?: QuoteCardKind;
+  // An older issued version (or a request now answered) — render greyed/inactive.
+  superseded?: boolean;
+  // The event message body, used as the frozen snapshot label on superseded /
+  // status cards (e.g. "Quote QF-12 sent · R3 960").
+  snapshotBody?: string | null;
 }) {
   const n = nights(quote.checkIn, quote.checkOut);
 
-  // ── Booking-state card (quote accepted → booking exists) ──────────────
+  // ── Compact status-event cards (accept / decline) ─────────────────────
+  if (kind === "accepted" || kind === "declined") {
+    const accepted = kind === "accepted";
+    const Icon = accepted ? CheckCircle2 : XCircle;
+    return (
+      <div
+        className={`mx-auto flex w-full max-w-[420px] items-center gap-2 rounded-card border px-4 py-2.5 text-[12.5px] font-medium ${
+          accepted
+            ? "border-status-confirmed/30 bg-status-confirmed/10 text-status-confirmed"
+            : "border-[#FECACA] bg-[#FEE2E2] text-[#991B1B]"
+        }`}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="text-brand-ink">
+          {snapshotBody || (accepted ? "Quote accepted." : "Quote declined.")}
+        </span>
+      </div>
+    );
+  }
+
+  // ── Superseded request / issued card (a newer version exists) ─────────
+  if (superseded) {
+    const title =
+      kind === "request"
+        ? "Quote request"
+        : `Quote ${quote.quoteNumber ?? ""}`.trim();
+    return (
+      <div className="mx-auto w-full max-w-[420px] overflow-hidden rounded-card border border-brand-line bg-brand-light/40 opacity-75">
+        <div className="flex items-center gap-2 border-b border-brand-line px-4 py-2.5">
+          <FileText className="h-4 w-4 text-brand-mute" />
+          <span className="font-display text-[13px] font-bold text-brand-mute">
+            {title}
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+            <History className="h-3 w-3" />
+            {kind === "request" ? "Answered" : "Superseded"}
+          </span>
+        </div>
+        <div className="px-4 py-3 text-[12px] text-brand-mute">
+          <div>
+            {snapshotBody ||
+              (kind === "request"
+                ? "The host replied with a quote below."
+                : "Replaced by a revised quote below.")}
+          </div>
+          <div className="mt-1 inline-flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5" />
+            {fmtDate(quote.checkIn)} → {fmtDate(quote.checkOut)}
+            {n > 0 ? (
+              <span>
+                · {n} night{n === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Booking-state card (converted → booking exists) ───────────────────
   if (booking) {
     const { kind, meta } = bookingStateMeta(booking, viewer);
     const StatusIcon = meta.icon;

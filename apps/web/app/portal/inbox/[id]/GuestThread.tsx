@@ -10,7 +10,10 @@ import {
   type ThreadBooking,
   type ThreadQuote,
 } from "@/components/inbox/ThreadQuoteCard";
-import { firstQuoteMessageIds } from "@/components/inbox/quote-thread";
+import {
+  latestIssuedVersionByQuote,
+  quoteCardKind,
+} from "@/components/inbox/quote-thread";
 import { createClient } from "@/lib/supabase/client";
 
 import {
@@ -25,6 +28,7 @@ export type GuestMessage = {
   isSystem: boolean;
   systemEvent: string | null;
   quoteId: string | null;
+  quoteVersionNo: number | null;
   readByHost: boolean;
   readByGuest: boolean;
   createdAt: string;
@@ -68,9 +72,9 @@ export function GuestThread({
   quotesById: Record<string, ThreadQuote>;
   bookingsById: Record<string, ThreadBooking>;
 }) {
-  // One inline card per quote, at its first message — reflects the quote's
-  // live state (request → sent quote with an accept button).
-  const quoteCardMsgIds = firstQuoteMessageIds(messages, quotesById);
+  // Event-sourced: one immutable card per lifecycle message. Earlier issued
+  // versions grey out as superseded; the latest stays live with the accept CTA.
+  const latestIssued = latestIssuedVersionByQuote(messages);
   const router = useRouter();
   const [value, setValue] = useState("");
   const [pending, start] = useTransition();
@@ -171,18 +175,27 @@ export function GuestThread({
           </p>
         ) : (
           messages.map((m) => {
-            if (
-              m.quoteId &&
-              quoteCardMsgIds.has(m.id) &&
-              quotesById[m.quoteId]
-            ) {
+            const kind =
+              m.quoteId && quotesById[m.quoteId]
+                ? quoteCardKind(m.systemEvent)
+                : null;
+            if (kind && m.quoteId) {
               const q = quotesById[m.quoteId];
+              const superseded =
+                kind === "request"
+                  ? q.status !== "draft"
+                  : kind === "issued"
+                    ? (m.quoteVersionNo ?? 1) < (latestIssued[m.quoteId] ?? 1)
+                    : false;
               return (
                 <ThreadQuoteCard
                   key={m.id}
                   quote={q}
+                  kind={kind}
+                  superseded={superseded}
+                  snapshotBody={m.body}
                   booking={
-                    q.convertedBookingId
+                    kind === "converted" && q.convertedBookingId
                       ? (bookingsById[q.convertedBookingId] ?? null)
                       : null
                   }

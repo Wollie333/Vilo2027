@@ -30,6 +30,11 @@ import {
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import { Input } from "@/components/ui/input";
 import { formatMoney } from "@/lib/format";
 
@@ -148,15 +153,23 @@ function fmtDayShort(iso: string): { dow: string; day: string; mo: string } {
 export function QuoteForm({
   listings,
   initial,
+  isSentQuote = false,
 }: {
   listings: QuoteFormListing[];
   initial?: QuoteFormInitial;
+  // True when editing an already-SENT quote — saving is a revision: it needs a
+  // reason, keeps the prior version, and posts a "revised" card to the thread.
+  isSentQuote?: boolean;
 }) {
   const router = useRouter();
   const brandName = useBrandName();
   const [pending, start] = useTransition();
   const [sendingPending, startSending] = useTransition();
   const [pricing, startPricing] = useTransition();
+  // Revision-reason prompt (only for editing a sent quote).
+  const [reasonOpen, setReasonOpen] = useState(false);
+  const [reasonText, setReasonText] = useState("");
+  const [pendingSendAfter, setPendingSendAfter] = useState(false);
 
   const [listingId, setListingId] = useState(
     initial?.listingId ?? listings[0]?.id ?? "",
@@ -713,13 +726,25 @@ export function QuoteForm({
     return true;
   }
 
-  function save(sendAfter: boolean) {
+  function save(sendAfter: boolean, revisionReason?: string) {
     if (!validate()) return;
+    // Revising an already-sent quote needs a reason for the audit trail — gather
+    // it first (the server enforces this too).
+    if (isSentQuote && initial?.id && !(revisionReason ?? "").trim()) {
+      setPendingSendAfter(sendAfter);
+      setPreviewOpen(false);
+      setReasonOpen(true);
+      return;
+    }
     const input = buildInput();
 
     if (initial?.id) {
       start(async () => {
-        const result = await updateQuoteAction(initial.id!, input);
+        const result = await updateQuoteAction(
+          initial.id!,
+          input,
+          revisionReason,
+        );
         if (!result.ok) {
           toast.error(result.error);
           return;
@@ -732,7 +757,7 @@ export function QuoteForm({
             router.push(`/dashboard/quotes/${initial.id}`);
           });
         } else {
-          toast.success("Quote saved");
+          toast.success(isSentQuote ? "Quote revised" : "Quote saved");
           router.push(`/dashboard/quotes/${initial.id}`);
         }
       });
@@ -753,6 +778,15 @@ export function QuoteForm({
         router.push(`/dashboard/quotes/${result.data.id}`);
       });
     }
+  }
+
+  function confirmRevision() {
+    if (!reasonText.trim()) {
+      toast.error("Add a short reason for the change.");
+      return;
+    }
+    setReasonOpen(false);
+    save(pendingSendAfter, reasonText.trim());
   }
 
   function openPreview() {
@@ -1865,6 +1899,36 @@ export function QuoteForm({
           </div>
         </div>
       </div>
+
+      {/* ===== REVISION REASON PROMPT (editing a sent quote) ===== */}
+      <FormModal
+        open={reasonOpen}
+        onOpenChange={(v) => {
+          if (!busy) setReasonOpen(v);
+        }}
+        size="sm"
+        title="Why are you revising this quote?"
+        description="This quote was already sent. We'll keep the previous version and note the reason on the revised quote the guest sees."
+      >
+        <textarea
+          rows={3}
+          value={reasonText}
+          onChange={(e) => setReasonText(e.target.value)}
+          placeholder="e.g. Added the welcome hamper they asked for and adjusted the dates."
+          className="w-full rounded-[10px] border border-brand-line px-3 py-2 text-sm leading-relaxed text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/15"
+        />
+        <FormModalFooter>
+          <FormModalCancel>Cancel</FormModalCancel>
+          <button
+            type="button"
+            onClick={confirmRevision}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+          >
+            Save revision
+          </button>
+        </FormModalFooter>
+      </FormModal>
 
       {/* ===== GUEST PREVIEW + SEND MODAL ===== */}
       {previewOpen ? (

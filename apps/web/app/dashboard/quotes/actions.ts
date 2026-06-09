@@ -427,11 +427,12 @@ export async function updateQuoteAction(
   // A revision of a sent quote posts its OWN card into the thread (the prior
   // version stays as a greyed, superseded card). Draft edits stay silent.
   if (isRevision) {
+    const revisionReason = (reason ?? "").trim();
     await postQuoteEventCard(supabase, quoteId, "quote_revised", {
       body: `Quote ${current.quote_number ?? ""} revised · ${formatMoney(
         total,
         parsed.data.currency,
-      )}`.trim(),
+      )}${revisionReason ? ` · ${revisionReason}` : ""}`.trim(),
       versionNo: (current.version ?? 1) + 1,
       fromHost: true,
     });

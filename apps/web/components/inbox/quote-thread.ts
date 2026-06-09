@@ -1,4 +1,8 @@
-import type { ThreadBooking, ThreadQuote } from "./ThreadQuoteCard";
+import type {
+  QuoteCardKind,
+  ThreadBooking,
+  ThreadQuote,
+} from "./ThreadQuoteCard";
 
 // Shared plumbing for rendering quotes inside conversation threads, used by both
 // the host inbox and the guest portal so the column list, the row→view-model
@@ -84,20 +88,45 @@ export function mapBookingRow(b: BookingRow): ThreadBooking {
   };
 }
 
-// The set of message ids that should render a quote card: the FIRST message for
-// each distinct quote, in thread order. (One card per quote; it reflects the
-// quote's live state, so the request and the finished quote share one card.)
-export function firstQuoteMessageIds(
-  messages: { id: string; quoteId: string | null }[],
-  quotesById: Record<string, ThreadQuote>,
-): Set<string> {
-  const seenQuote = new Set<string>();
-  const ids = new Set<string>();
-  for (const m of messages) {
-    if (m.quoteId && quotesById[m.quoteId] && !seenQuote.has(m.quoteId)) {
-      seenQuote.add(m.quoteId);
-      ids.add(m.id);
-    }
+// Which kind of quote card a system message renders — or null if it isn't a
+// quote-lifecycle event (a plain reply). The thread is event-sourced: each
+// transition is its own message, so each renders its own immutable card.
+export function quoteCardKind(
+  systemEvent: string | null,
+): QuoteCardKind | null {
+  switch (systemEvent) {
+    case "quote_draft":
+    case "quote_request":
+      return "request";
+    case "quote_sent":
+    case "quote_revised":
+      return "issued";
+    case "quote_accepted":
+      return "accepted";
+    case "quote_declined":
+      return "declined";
+    case "quote_converted":
+      return "converted";
+    default:
+      return null;
   }
-  return ids;
+}
+
+// Per quote, the highest issued (sent/revised) version present in the thread —
+// the only issued card still live; any earlier issued card is superseded.
+// Legacy cards with no version pin count as version 1.
+export function latestIssuedVersionByQuote(
+  messages: {
+    systemEvent: string | null;
+    quoteId: string | null;
+    quoteVersionNo?: number | null;
+  }[],
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const m of messages) {
+    if (!m.quoteId || quoteCardKind(m.systemEvent) !== "issued") continue;
+    const v = m.quoteVersionNo ?? 1;
+    if (v >= (out[m.quoteId] ?? 0)) out[m.quoteId] = v;
+  }
+  return out;
 }
