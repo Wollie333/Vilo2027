@@ -43,6 +43,30 @@ function fmtTime(iso: string): string {
   });
 }
 
+function fmtClock(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function fmtDayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const that = new Date(d);
+  that.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - that.getTime()) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString("en-ZA", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 function hostInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return (
@@ -142,17 +166,18 @@ export function GuestThread({
   }
 
   return (
-    <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-      <div className="flex items-center gap-3 border-b border-brand-line px-5 py-3.5">
+    <div className="flex h-[78vh] flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      {/* Conversation header */}
+      <div className="flex shrink-0 items-center gap-3 border-b border-brand-line bg-white px-4 py-3">
         {hostAvatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={hostAvatarUrl}
             alt=""
-            className="h-9 w-9 shrink-0 rounded-full object-cover"
+            className="h-10 w-10 shrink-0 rounded-full object-cover"
           />
         ) : (
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[12px] font-bold text-white">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[13px] font-bold text-white">
             {hostInitials(hostName)}
           </span>
         )}
@@ -168,152 +193,159 @@ export function GuestThread({
         </div>
       </div>
 
-      <div className="max-h-[55vh] space-y-3 overflow-y-auto px-5 py-5">
-        {messages.length === 0 ? (
-          <p className="text-center text-sm text-brand-mute">
-            No messages yet.
-          </p>
-        ) : (
-          messages.map((m) => {
-            const kind =
-              m.quoteId && quotesById[m.quoteId]
-                ? quoteCardKind(m.systemEvent)
-                : null;
-            if (kind && m.quoteId) {
-              const q = quotesById[m.quoteId];
-              const superseded =
-                kind === "request"
-                  ? q.status !== "draft"
-                  : kind === "issued"
-                    ? (m.quoteVersionNo ?? 1) < (latestIssued[m.quoteId] ?? 1)
-                    : false;
-              return (
-                <ThreadQuoteCard
-                  key={m.id}
-                  quote={q}
-                  kind={kind}
-                  superseded={superseded}
-                  snapshotBody={m.body}
-                  booking={
-                    kind === "converted" && q.convertedBookingId
-                      ? (bookingsById[q.convertedBookingId] ?? null)
-                      : null
-                  }
-                  viewer="guest"
-                />
-              );
-            }
-            if (m.isSystem && m.systemEvent === "access_details") {
-              return (
-                <div
-                  key={m.id}
-                  className="rounded-card border border-brand-primary/30 bg-brand-accent/30 p-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
-                      <KeyRound className="h-4 w-4" />
-                    </span>
-                    <span className="font-display text-[14px] font-bold text-brand-ink">
-                      Access details
-                    </span>
-                  </div>
-                  <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-brand-ink">
-                    {m.body}
-                  </pre>
-                  <div className="mt-1 font-mono text-[10.5px] text-brand-mute">
-                    {fmtTime(m.createdAt)}
-                  </div>
-                </div>
-              );
-            }
-            if (m.isSystem) {
-              return (
-                <div key={m.id} className="text-center">
-                  <span className="inline-block rounded-pill bg-brand-light px-3 py-1 text-[11.5px] text-brand-mute">
-                    {m.body}
+      {/* Message wall */}
+      <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#E6EFE9]">
+        <div className="mx-auto max-w-[760px] space-y-1 px-4 py-5">
+          {messages.length === 0 ? (
+            <p className="py-10 text-center text-sm text-[#5B7065]">
+              No messages yet — say hello.
+            </p>
+          ) : (
+            messages.map((m, i) => {
+              const showDay =
+                i === 0 ||
+                fmtDayLabel(messages[i - 1].createdAt) !==
+                  fmtDayLabel(m.createdAt);
+              const dayPill = showDay ? (
+                <div className="flex justify-center py-3">
+                  <span className="rounded-lg bg-[#DCEAE0] px-3 py-1 text-[11.5px] font-semibold uppercase tracking-wide text-[#3F6155] shadow-sm">
+                    {fmtDayLabel(m.createdAt)}
                   </span>
                 </div>
-              );
-            }
-            const mine = m.senderId === selfId;
-            return (
-              <div
-                key={m.id}
-                className={`flex items-end gap-2 ${mine ? "justify-end" : "justify-start"}`}
-              >
-                {!mine ? (
-                  hostAvatarUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={hostAvatarUrl}
-                      alt=""
-                      className="h-7 w-7 shrink-0 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[10px] font-bold text-white">
-                      {hostInitials(hostName)}
-                    </span>
-                  )
-                ) : null}
-                <div className="max-w-[78%]">
-                  <div
-                    className={`whitespace-pre-line rounded-[14px] px-3.5 py-2 text-[13.5px] leading-relaxed ${
-                      mine
-                        ? "rounded-br-sm bg-brand-primary text-white"
-                        : "rounded-bl-sm bg-brand-light text-brand-ink"
-                    }`}
-                  >
-                    {m.body}
-                  </div>
-                  <div
-                    className={`mt-1 flex items-center gap-1 font-mono text-[10.5px] text-brand-mute ${
-                      mine ? "justify-end" : ""
-                    }`}
-                  >
-                    {fmtTime(m.createdAt)}
-                    {mine ? (
-                      <CheckCheck
-                        aria-label={m.readByHost ? "Read" : "Delivered"}
-                        className={`h-3.5 w-3.5 ${
-                          m.readByHost ? "text-sky-500" : "text-brand-mute"
-                        }`}
+              ) : null;
+
+              const kind =
+                m.quoteId && quotesById[m.quoteId]
+                  ? quoteCardKind(m.systemEvent)
+                  : null;
+              if (kind && m.quoteId) {
+                const q = quotesById[m.quoteId];
+                const superseded =
+                  kind === "request"
+                    ? q.status !== "draft"
+                    : kind === "issued"
+                      ? (m.quoteVersionNo ?? 1) < (latestIssued[m.quoteId] ?? 1)
+                      : false;
+                return (
+                  <div key={m.id}>
+                    {dayPill}
+                    <div className="py-1">
+                      <ThreadQuoteCard
+                        quote={q}
+                        kind={kind}
+                        superseded={superseded}
+                        snapshotBody={m.body}
+                        booking={
+                          kind === "converted" && q.convertedBookingId
+                            ? (bookingsById[q.convertedBookingId] ?? null)
+                            : null
+                        }
+                        viewer="guest"
                       />
-                    ) : null}
+                    </div>
+                  </div>
+                );
+              }
+              if (m.isSystem && m.systemEvent === "access_details") {
+                return (
+                  <div key={m.id}>
+                    {dayPill}
+                    <div className="mx-auto my-1 max-w-[420px] rounded-card border border-brand-primary/30 bg-white p-4 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
+                          <KeyRound className="h-4 w-4" />
+                        </span>
+                        <span className="font-display text-[14px] font-bold text-brand-ink">
+                          Access details
+                        </span>
+                      </div>
+                      <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-brand-ink">
+                        {m.body}
+                      </pre>
+                      <div className="mt-1 font-mono text-[10.5px] text-brand-mute">
+                        {fmtTime(m.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (m.isSystem) {
+                return (
+                  <div key={m.id}>
+                    {dayPill}
+                    <div className="flex justify-center py-1.5">
+                      <span className="max-w-[80%] rounded-lg bg-[#FBF6E3] px-3.5 py-1.5 text-center text-[11.5px] leading-snug text-[#8A6D2B] shadow-sm">
+                        {m.body}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              const mine = m.senderId === selfId;
+              return (
+                <div key={m.id}>
+                  {dayPill}
+                  <div
+                    className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[78%] whitespace-pre-line rounded-[9px] px-2.5 py-1.5 text-[14px] leading-relaxed shadow-sm ${
+                        mine
+                          ? "rounded-tr-sm bg-[#C7EFD7] text-[#0C2A1E]"
+                          : "rounded-tl-sm bg-white text-[#0C2A1E]"
+                      }`}
+                    >
+                      <span>{m.body}</span>
+                      <span className="float-right ml-2.5 mt-2 inline-flex items-center gap-1 font-mono text-[10px] leading-none text-[#6B8B7F]">
+                        {fmtClock(m.createdAt)}
+                        {mine ? (
+                          <CheckCheck
+                            aria-label={m.readByHost ? "Read" : "Delivered"}
+                            className={`h-[14px] w-[14px] ${
+                              m.readByHost ? "text-sky-400" : "text-[#86A99A]"
+                            }`}
+                          />
+                        ) : null}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })
-        )}
-        <div ref={bottomRef} />
+              );
+            })
+          )}
+          <div ref={bottomRef} />
+        </div>
       </div>
 
-      <div className="flex items-end gap-2 border-t border-brand-line p-3">
-        <textarea
-          value={value}
-          onChange={(e) => setValue(e.target.value.slice(0, 4000))}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          rows={2}
-          placeholder={`Message ${hostName}…`}
-          disabled={pending}
-          className="min-h-[44px] flex-1 resize-none rounded-[10px] border border-brand-line px-3 py-2 text-[13.5px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/10 disabled:opacity-60"
-        />
+      {/* Composer */}
+      <div className="flex shrink-0 items-end gap-2 bg-[#E6EFE9] p-3">
+        <div className="flex flex-1 items-end gap-1 rounded-[22px] bg-white px-3 py-1 shadow-sm focus-within:ring-2 focus-within:ring-brand-primary/20">
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value.slice(0, 4000))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            rows={1}
+            placeholder="Type a message"
+            disabled={pending}
+            className="max-h-[120px] min-h-[40px] flex-1 resize-none bg-transparent py-2.5 text-[14.5px] text-brand-ink placeholder:text-[#9DB6AB] focus:outline-none disabled:opacity-60"
+          />
+        </div>
         <button
           type="button"
           onClick={submit}
           disabled={pending || !value.trim()}
           aria-label="Send"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-brand-primary text-white transition hover:bg-brand-secondary disabled:opacity-50"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white shadow-[0_4px_12px_-3px_rgba(16,185,129,.5)] transition hover:bg-brand-secondary disabled:opacity-50"
         >
           {pending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <SendHorizontal className="h-4 w-4" />
+            <SendHorizontal className="h-5 w-5" />
           )}
         </button>
       </div>
