@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { BrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QuoteActions } from "./QuoteActions";
@@ -27,13 +28,17 @@ export default async function PortalQuotePage({
   // Layout gates auth; this guards the typed user.id below.
   if (!user) notFound();
 
-  // RLS (guest_read_own_quotes) scopes this to quotes the guest owns, so a row
-  // coming back is proof of ownership — no extra guest_id filter needed.
-  const { data: quote } = await supabase
+  // Resolve via the admin client scoped to THIS user's id OR email, then verify
+  // ownership in code — host-created quotes carry guest_email but no guest_id
+  // until accepted, so an RLS-by-guest_id read would 404 them (the list shows
+  // them by email, so the detail must match).
+  const admin = createAdminClient();
+  const email = (user.email ?? "").trim().toLowerCase();
+  const { data: quote } = await admin
     .from("quotes")
     .select(
       `
-      id, quote_number, status,
+      id, quote_number, status, guest_id, guest_email,
       guest_name,
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
@@ -45,9 +50,13 @@ export default async function PortalQuotePage({
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!quote) notFound();
+  const ownsQuote =
+    !!quote &&
+    (quote.guest_id === user.id ||
+      (quote.guest_email ?? "").toLowerCase() === email);
+  if (!quote || !ownsQuote) notFound();
 
-  const { data: addons } = await supabase
+  const { data: addons } = await admin
     .from("quote_addons")
     .select("label, quantity, unit_price, subtotal")
     .eq("quote_id", params.id)

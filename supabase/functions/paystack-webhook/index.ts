@@ -142,7 +142,10 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
         .from("payments")
         .select("amount, kind")
         .eq("booking_id", payment.booking_id)
-        .eq("status", "completed"),
+        .eq("status", "completed")
+        // Exclude voided rows — they keep status 'completed' but are not paid
+        // (matches lib/payments/ledger.ts, the single source of truth).
+        .is("voided_at", null),
     ]);
     const total = Number(bk?.total_amount ?? 0);
     const paid = (paidRows ?? [])

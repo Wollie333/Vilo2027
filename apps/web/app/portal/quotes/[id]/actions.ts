@@ -24,15 +24,21 @@ async function gateByOwner(
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Sign in to respond to this quote." };
 
-  // RLS (guest_read_own_quotes) already scopes this to quotes the guest owns,
-  // so a row coming back IS proof of ownership.
-  const { data: quote } = await supabase
+  // Resolve via the service role scoped to the signed-in user's id OR email,
+  // then verify ownership here — host-created quotes carry guest_email but no
+  // guest_id, so an RLS-by-guest_id read would 404 a quote the guest can see.
+  const email = (user.email ?? "").trim().toLowerCase();
+  const { data: quote } = await createAdminClient()
     .from("quotes")
-    .select("status, valid_until")
+    .select("status, valid_until, guest_id, guest_email")
     .eq("id", quoteId)
     .is("deleted_at", null)
     .maybeSingle();
-  if (!quote) return { ok: false, error: "Quote not found." };
+  const owns =
+    !!quote &&
+    (quote.guest_id === user.id ||
+      (quote.guest_email ?? "").toLowerCase() === email);
+  if (!quote || !owns) return { ok: false, error: "Quote not found." };
   if (quote.valid_until && new Date(quote.valid_until) < new Date()) {
     return { ok: false, error: "This quote has expired." };
   }
@@ -47,6 +53,19 @@ export async function acceptMyQuoteAction(
 ): Promise<ActionResult> {
   const gate = await gateByOwner(quoteId);
   if (!gate.ok) return gate;
+
+  // Link the quote to this signed-in guest if it was only email-matched (no
+  // guest_id yet), so the booking it becomes is owned by them.
+  const {
+    data: { user },
+  } = await createServerClient().auth.getUser();
+  if (user) {
+    await createAdminClient()
+      .from("quotes")
+      .update({ guest_id: user.id })
+      .eq("id", quoteId)
+      .is("guest_id", null);
+  }
 
   // Accepting auto-creates the booking (pending payment). The guest pays next.
   const res = await acceptAndConvertQuote(quoteId);

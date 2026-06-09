@@ -720,6 +720,26 @@ export async function convertQuoteAction(
       // than hand-setting payment_status. Otherwise the seeded deposit row stays
       // 'pending' and the booking flag contradicts the ledger (R0 paid).
       const admin = createAdminClient();
+      // Honour a host-set pay-now amount even when adopting a guest-accepted
+      // booking: re-point the pending deposit row + the booking deposit/balance
+      // so the convert modal's Deposit/Full/Custom takes effect either way.
+      if (payment.payNow != null) {
+        const adoptTotal = Number(quote.total_amount ?? 0);
+        const dueNow = Math.max(0, Math.min(payment.payNow, adoptTotal));
+        await admin
+          .from("payments")
+          .update({ amount: dueNow })
+          .eq("booking_id", existingId)
+          .eq("status", "pending")
+          .eq("kind", "deposit");
+        await supabase
+          .from("bookings")
+          .update({
+            deposit_amount: dueNow,
+            balance_due: Math.round((adoptTotal - dueNow) * 100) / 100,
+          })
+          .eq("id", existingId);
+      }
       if (payment.state === "paid") {
         await admin
           .from("payments")
