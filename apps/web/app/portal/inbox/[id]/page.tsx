@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 
 import type {
   ThreadBooking,
@@ -125,26 +123,15 @@ export default async function GuestThreadPage({
   }
 
   return (
-    <div className="mx-auto max-w-[760px]">
-      <Link
-        href="/portal/inbox"
-        className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light/60"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" /> Messages
-      </Link>
-
-      <div className="mt-5">
-        <GuestThread
-          conversationId={conv.id}
-          selfId={user.id}
-          hostName={host?.display_name ?? "Host"}
-          hostAvatarUrl={host?.avatar_url ?? null}
-          listingName={listing?.name ?? null}
-          messages={messages}
-          quotesById={quotesById}
-          bookingsById={bookingsById}
-        />
-      </div>
-    </div>
+    <GuestThread
+      conversationId={conv.id}
+      selfId={user.id}
+      hostName={host?.display_name ?? "Host"}
+      hostAvatarUrl={host?.avatar_url ?? null}
+      listingName={listing?.name ?? null}
+      messages={messages}
+      quotesById={quotesById}
+      bookingsById={bookingsById}
+    />
   );
 }

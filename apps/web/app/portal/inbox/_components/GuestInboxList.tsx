@@ -2,6 +2,7 @@
 
 import { CheckCheck, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 
 export type GuestConvRow = {
@@ -59,6 +60,10 @@ export function GuestInboxList({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
+  const pathname = usePathname();
+  const activeId = pathname?.startsWith("/portal/inbox/")
+    ? (pathname.split("/")[3] ?? null)
+    : null;
 
   const shown = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -129,14 +134,17 @@ export function GuestInboxList({
         ) : (
           shown.map((c) => {
             const unread = c.unread > 0;
+            const active = c.id === activeId;
             return (
               <Link
                 key={c.id}
                 href={`/portal/inbox/${c.id}`}
                 className={`flex gap-3 border-l-[3px] px-4 py-3 transition ${
-                  unread
-                    ? "border-l-brand-primary bg-[#F0FDF4]/60 hover:bg-[#F0FDF4]"
-                    : "border-l-transparent hover:bg-[#F7FBF8]"
+                  active
+                    ? "border-l-brand-primary bg-[#F0FDF4]"
+                    : unread
+                      ? "border-l-brand-primary bg-[#F0FDF4]/60 hover:bg-[#F0FDF4]"
+                      : "border-l-transparent hover:bg-[#F7FBF8]"
                 }`}
               >
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full">

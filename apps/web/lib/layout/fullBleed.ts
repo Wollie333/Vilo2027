@@ -32,5 +32,9 @@ export const FULL_BLEED_ROUTES = new Set<string>([
 
 export function isFullBleedRoute(pathname: string | null): boolean {
   if (!pathname) return false;
+  // The guest inbox is a two-pane chat (list + conversation), so an open
+  // thread (/portal/inbox/<id>) is full-bleed too — the list lives in the
+  // inbox layout and must fill the viewport alongside the conversation.
+  if (pathname.startsWith("/portal/inbox/")) return true;
   return FULL_BLEED_ROUTES.has(pathname);
 }

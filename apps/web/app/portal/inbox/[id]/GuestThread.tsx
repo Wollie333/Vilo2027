@@ -1,6 +1,13 @@
 "use client";
 
-import { CheckCheck, KeyRound, Loader2, SendHorizontal } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCheck,
+  KeyRound,
+  Loader2,
+  SendHorizontal,
+} from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -119,7 +126,7 @@ export function GuestThread({
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => window.location.reload(),
+        () => router.refresh(),
       )
       .on(
         "postgres_changes",
@@ -158,7 +165,7 @@ export function GuestThread({
       });
       if (result.ok) {
         setValue("");
-        window.location.reload();
+        router.refresh();
       } else {
         toast.error(result.error);
       }
@@ -166,9 +173,16 @@ export function GuestThread({
   }
 
   return (
-    <div className="flex h-[78vh] flex-col overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
       {/* Conversation header */}
       <div className="flex shrink-0 items-center gap-3 border-b border-brand-line bg-white px-4 py-3">
+        <Link
+          href="/portal/inbox"
+          aria-label="Back to messages"
+          className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-brand-mute hover:bg-brand-light hover:text-brand-ink lg:hidden"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Link>
         {hostAvatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
