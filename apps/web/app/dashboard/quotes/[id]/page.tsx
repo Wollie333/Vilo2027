@@ -123,6 +123,7 @@ export default async function QuoteDetailPage({
       check_in, check_out, headcount, scope,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_type, discount_value, discount_amount, discount_reason,
+      deposit_amount,
       notes, accept_token, valid_until,
       sent_at, accepted_at, declined_at, converted_at, converted_booking_id,
       created_at,
@@ -922,7 +923,13 @@ export default async function QuoteDetailPage({
             </section>
 
             {/* ACTIONS (state changes) */}
-            <QuoteActions quoteId={quote.id} status={status} />
+            <QuoteActions
+              quoteId={quote.id}
+              status={status}
+              total={Number(quote.total_amount)}
+              deposit={Number(quote.deposit_amount ?? 0)}
+              currency={quote.currency}
+            />
 
             {/* SHARE */}
             <QuoteShare

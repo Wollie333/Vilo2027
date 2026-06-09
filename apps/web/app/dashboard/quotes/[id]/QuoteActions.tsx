@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { formatMoney } from "@/lib/format";
 import { modal } from "@/components/ui/modal-host";
 import {
   Card,
@@ -27,16 +28,33 @@ import type { QuoteStatus } from "../schemas";
 export function QuoteActions({
   quoteId,
   status,
+  total,
+  deposit,
+  currency,
 }: {
   quoteId: string;
   status: QuoteStatus;
+  total: number;
+  deposit: number;
+  currency: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [convertPayState, setConvertPayState] = useState<"paid" | "unpaid">(
-    "paid",
+    "unpaid",
   );
   const [convertNote, setConvertNote] = useState("");
+  // What the guest pays now to confirm: deposit / full / custom.
+  const [payMode, setPayMode] = useState<"deposit" | "full" | "custom">(
+    deposit > 0 && deposit < total ? "deposit" : "full",
+  );
+  const [payCustom, setPayCustom] = useState(String(deposit || total || ""));
+  const payNow =
+    payMode === "deposit"
+      ? deposit
+      : payMode === "full"
+        ? total
+        : Number(payCustom) || 0;
 
   function refresh() {
     router.refresh();
@@ -81,6 +99,7 @@ export function QuoteActions({
       const r = await convertQuoteAction(quoteId, {
         state: convertPayState,
         note: convertNote.trim() || null,
+        payNow,
       });
       if (r.ok && r.data) {
         toast.success("Booking created — invoice attached");
@@ -174,20 +193,61 @@ export function QuoteActions({
               Convert to booking
             </div>
             <p className="mt-1 text-xs text-brand-mute">
-              The booking lands as <code>confirmed</code> and an invoice is
-              created automatically. Pick the payment state at conversion.
+              Creates the booking and posts a payment card to the guest&rsquo;s
+              chat. Set what they pay now to confirm.
             </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 text-sm text-brand-ink">
+
+            {/* What the guest pays now */}
+            <div className="mt-3">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Pay now to confirm
+              </div>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {(
+                  [
+                    {
+                      m: "deposit" as const,
+                      label: `Deposit · ${formatMoney(deposit, currency)}`,
+                      show: deposit > 0 && deposit < total,
+                    },
+                    {
+                      m: "full" as const,
+                      label: `Full · ${formatMoney(total, currency)}`,
+                      show: true,
+                    },
+                    { m: "custom" as const, label: "Custom", show: true },
+                  ] as const
+                )
+                  .filter((o) => o.show)
+                  .map((o) => (
+                    <button
+                      key={o.m}
+                      type="button"
+                      onClick={() => setPayMode(o.m)}
+                      className={`rounded-pill border px-3 py-1.5 text-[12px] font-semibold transition ${
+                        payMode === o.m
+                          ? "border-brand-primary bg-brand-accent text-brand-secondary"
+                          : "border-brand-line bg-white text-brand-ink hover:bg-brand-light/60"
+                      }`}
+                    >
+                      {o.label}
+                    </button>
+                  ))}
+              </div>
+              {payMode === "custom" ? (
                 <input
-                  type="radio"
-                  name="paystate"
-                  value="paid"
-                  checked={convertPayState === "paid"}
-                  onChange={() => setConvertPayState("paid")}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={payCustom}
+                  onChange={(e) => setPayCustom(e.target.value)}
+                  placeholder={`Amount (${currency})`}
+                  className="mt-2 block w-40 rounded border border-brand-line bg-white px-3 py-2 text-sm"
                 />
-                Paid (cash / EFT / off-platform)
-              </label>
+              ) : null}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-brand-ink">
                 <input
                   type="radio"
@@ -196,7 +256,17 @@ export function QuoteActions({
                   checked={convertPayState === "unpaid"}
                   onChange={() => setConvertPayState("unpaid")}
                 />
-                Unpaid — collect later
+                Request payment (or collect later)
+              </label>
+              <label className="flex items-center gap-2 text-sm text-brand-ink">
+                <input
+                  type="radio"
+                  name="paystate"
+                  value="paid"
+                  checked={convertPayState === "paid"}
+                  onChange={() => setConvertPayState("paid")}
+                />
+                Already paid (cash / EFT)
               </label>
             </div>
             {convertPayState === "paid" ? (

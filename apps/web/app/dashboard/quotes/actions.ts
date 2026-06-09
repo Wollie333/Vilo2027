@@ -658,7 +658,13 @@ export async function markAcceptedAction(
 
 export async function convertQuoteAction(
   quoteId: string,
-  payment: { state: "paid" | "unpaid"; note?: string | null },
+  // payNow overrides the deposit due now (host sets deposit / full / custom in
+  // the convert modal); omitted → use the quote's saved deposit.
+  payment: {
+    state: "paid" | "unpaid";
+    note?: string | null;
+    payNow?: number | null;
+  },
 ): Promise<ActionResult<{ bookingId: string }>> {
   const own = await assertOwnership(quoteId);
   if (!own.ok) return own;
@@ -766,6 +772,15 @@ export async function convertQuoteAction(
     .eq("quote_id", quoteId)
     .order("sort_order");
 
+  // Deposit due now — the host's chosen amount (deposit / full / custom) when
+  // provided, else the quote's saved deposit. The balance is whatever's left.
+  const convTotal = Number(quote.total_amount ?? 0);
+  const depositDue =
+    payment.payNow != null
+      ? Math.max(0, Math.min(payment.payNow, convTotal))
+      : Number(quote.deposit_amount ?? 0);
+  const balanceDue = Math.round((convTotal - depositDue) * 100) / 100;
+
   // Insert the booking as PENDING first. The calendar-block + invoice triggers
   // are AFTER UPDATE OF status — they don't fire on an insert that's already
   // 'confirmed'. So we insert pending, attach rooms/add-ons, snapshot policies,
@@ -789,11 +804,11 @@ export async function convertQuoteAction(
       guests_count: quote.headcount,
       guests_breakdown: quote.guests_breakdown ?? null,
       discount_amount: quote.discount_amount ?? 0,
-      deposit_amount: quote.deposit_amount ?? 0,
+      deposit_amount: depositDue,
       // Outstanding balance + when it's due (check-in minus the agreed days).
-      balance_due: quote.balance_amount ?? 0,
+      balance_due: balanceDue,
       balance_due_date:
-        Number(quote.balance_amount ?? 0) > 0 && quote.check_in
+        balanceDue > 0 && quote.check_in
           ? new Date(
               new Date(`${quote.check_in}T00:00:00Z`).getTime() -
                 (quote.balance_due_days ?? 7) * 86_400_000,
@@ -849,7 +864,7 @@ export async function convertQuoteAction(
   // so this goes through the service role. Marked received already when the host
   // says the deal is paid; otherwise pending for them to apply later.
   const admin = createAdminClient();
-  const depositAmount = Number(quote.deposit_amount ?? 0);
+  const depositAmount = depositDue;
   if (depositAmount > 0) {
     await admin.from("payments").insert({
       booking_id: booking.id,
