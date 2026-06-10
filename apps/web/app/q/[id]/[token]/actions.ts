@@ -6,7 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { acceptAndConvertQuote } from "@/lib/quotes/accept-convert";
 
 export type ActionResult =
-  | { ok: true; bookingId?: string }
+  | { ok: true; bookingId?: string; payToken?: string | null }
   | { ok: false; error: string };
 
 async function gateByToken(
@@ -47,8 +47,21 @@ export async function guestAcceptQuoteAction(
   const res = await acceptAndConvertQuote(quoteId);
   if (!res.ok) return { ok: false, error: res.error };
 
+  // The booking's pay_token drives the public /pay/[token] page so the guest can
+  // pay immediately after accepting (every booking gets one by default).
+  const supabase = createAdminClient();
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("pay_token")
+    .eq("id", res.bookingId)
+    .maybeSingle();
+
   revalidatePath(`/q/${quoteId}/${token}`);
-  return { ok: true, bookingId: res.bookingId };
+  return {
+    ok: true,
+    bookingId: res.bookingId,
+    payToken: booking?.pay_token ?? null,
+  };
 }
 
 export async function guestDeclineQuoteAction(
