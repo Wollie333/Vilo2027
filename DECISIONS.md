@@ -237,7 +237,7 @@ This file records every significant technical decision made for the Vilo platfor
 
 
 ## ADR-013 — Mapbox for maps (not Google Maps)
-**Status:** Accepted
+**Status:** Superseded by ADR-013a (Jun 2026)
 **Date:** May 2026
 
 **Decision:** Mapbox GL JS (`mapbox-gl` + `react-map-gl`) for web maps. `react-native-maps` with Google Maps provider for mobile.
@@ -253,6 +253,27 @@ This file records every significant technical decision made for the Vilo platfor
 - Leaflet: open-source but weaker mobile story and no built-in clustering
 
 **Constraint:** All map code goes through `react-map-gl` abstractions. Never call `mapboxgl` directly in components. Token must never be on the server — it's a `NEXT_PUBLIC_` variable and is intentionally public (restricted by allowed URLs in Mapbox dashboard).
+
+---
+
+
+## ADR-013a — Keyless OpenStreetMap maps (supersedes ADR-013)
+**Status:** Accepted
+**Date:** Jun 2026
+
+**Decision:** Drop Mapbox. Use Leaflet (vanilla, keyless) rendering OpenStreetMap tiles for all web maps, with Photon (komoot) for type-ahead geocoding/autocomplete and Nominatim for reverse-geocoding. No API token or paid map provider.
+
+**Reasons:**
+- No token to provision/rotate/secure, and nothing to break when it's missing — the old Mapbox picker was gated behind `NEXT_PUBLIC_MAPBOX_TOKEN` and silently hidden when unset, leaving listings without coordinates.
+- Zero map cost at any scale; Vilo is SA-only so OSM coverage is ample.
+- `leaflet` was already a dependency (guest listing map), so this removed a provider rather than adding one.
+- Photon is purpose-built for as-you-type autocomplete (a better fit than Mapbox's geocoder), and both it and Nominatim are free and keyless.
+
+**Rejected alternatives:**
+- Keeping Mapbox: needless cost + token management for a single-country MVP.
+- Google Places: best autocomplete, but paid and key-gated — fails the "no expensive API" constraint.
+
+**Constraint:** Map code is keyless. The one location picker lives in `components/location/LocationPicker.tsx` (rendered by `ListingLocationForm` in both the editor Location tab and the setup wizard); the guest map is `app/listing/[slug]/LocationMap.tsx`. If the public Photon/OSM instances ever hit rate limits at scale, point the endpoint constants at a self-hosted instance — no rewrite. CSP must allow `*.tile.openstreetmap.org` (img), `photon.komoot.io` + `nominatim.openstreetmap.org` (connect).
 
 ---
 

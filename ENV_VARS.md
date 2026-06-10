@@ -28,7 +28,6 @@ This file documents every environment variable used across the platform, what it
 | `NEXT_PUBLIC_APP_URL` | ✅ | — | ✅ | ✅ |
 | `NEXT_PUBLIC_SENTRY_DSN` | ✅ | ✅ | — | Staging/Prod |
 | `NEXT_PUBLIC_POSTHOG_KEY` | ✅ | ✅ | — | Staging/Prod |
-| `NEXT_PUBLIC_MAPBOX_TOKEN` | ✅ | ✅ | — | ✅ |
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `PAYMENT_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 
@@ -202,13 +201,11 @@ This file documents every environment variable used across the platform, what it
 
 ## 7. Maps
 
-### `NEXT_PUBLIC_MAPBOX_TOKEN`
-- **What:** Mapbox public access token for map rendering
-- **Format:** `pk.eyJ1...`
-- **Where to get:** Mapbox Dashboard → Tokens
-- **Used in:** Web directory map view, Mobile explore map
-- **Environments:** All
-- **Note:** Restrict this token to allowed URLs in the Mapbox dashboard for production.
+**No environment variable required.** Maps are keyless — Leaflet rendering
+OpenStreetMap tiles, with Photon (komoot) and Nominatim for geocoding and
+reverse-geocoding. See `components/location/LocationPicker.tsx` and
+`app/listing/[slug]/LocationMap.tsx`. (Superseded the previous Mapbox token —
+see ADR-013 in `DECISIONS.md`.)
 
 ---
 
@@ -267,8 +264,7 @@ EMAIL_FROM_ADDRESS=noreply@viloplatform.com
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_APP_NAME=Vilo
 
-# ─── Maps ───────────────────────────────────────────────
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.eyJ1XXXXXXXXXXXXXXXXXXXX
+# ─── Maps: keyless (Leaflet + OpenStreetMap + Photon/Nominatim) ─
 
 # ─── Monitoring (optional locally) ─────────────────────
 NEXT_PUBLIC_SENTRY_DSN=
