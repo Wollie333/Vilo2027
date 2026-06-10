@@ -31,6 +31,50 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews/Guests — party guests become guest records + relationships — branch `main`
+
+### Built
+- **Party guests are now first-class guest records.** Every person named on a
+  booking's party manifest (`bookings.additional_guests`) becomes a real,
+  deduped `host_contacts` row the host can open, message, tag and note — not just
+  a line on the booking. They appear automatically in the Guests directory + have
+  a working guest record (the directory already UNIONs `host_contacts`).
+- **Guest relationships.** New `guest_relationships` table links each party
+  member ↔ the lead booker (one row per direction, tagged with the source
+  booking). Surfaced on a new **Relationships** tab on the guest record —
+  "travelled with X · Booking …", linking both ways.
+- **Merged Guests tab on the booking record** (replaces the singular "Guest"
+  tab): lead booker + every party member in one place, each linking to their own
+  record, plus an **Add guest** action (name + email) that appends to the party
+  and mints the record + relationship.
+- **Thank-you page** now lists the rest of the party under *Your details*.
+
+### Changed
+- Checkout party manifest now requires **name AND email** per added guest (so
+  each becomes contactable); the form blocks partial rows and the Zod schema
+  enforces it.
+
+### Migrations
+- `20260610150000_guest_relationships.sql` — table + RLS + `_materialize_booking_party()`
+  + ownership-checked `materialize_booking_party()` RPC + `AFTER UPDATE OF status`
+  confirm trigger.
+- `20260610150001_help_party_guests.sql` — Help Centre article.
+
+### Notes
+- Materialisation is single-source: the confirm trigger and the app (lazy
+  fallback on the booking record + Add-guest) both call the same SQL function.
+  Only confirmed+ bookings materialise (never abandoned/unpaid).
+- Relationships are fetched with two plain queries (the relation has two FKs to
+  `host_contacts`, which would make a PostgREST embed ambiguous).
+
+### Commit
+- `migration: guest_relationships + party materialiser` — `e0f2db6`
+- `feat(bookings): merged Guests tab + add-guest-to-booking` — `3e5bc05`
+- `feat(guests): relationships tab on the guest record` — `673ac13`
+- `feat(checkout): require email per party guest + list party on thank-you` — `9ee9a00`
+
+---
+
 ## 2026-06-10 — Listing extras — auto-suggest nearby places (OpenStreetMap) — branch `main`
 
 ### Built

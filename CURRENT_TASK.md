@@ -5,7 +5,23 @@
 **Active focus:** **Harden each feature to 100% for MVP.** This session:
 the **Reviews** feature, end-to-end.
 
-## ✅ Done this session (2026-06-10) — Reviews to MVP
+## ✅ Done this session (2026-06-10) — Party guests → guest records + relationships
+- **Party members become guest records.** Each named person on a booking's
+  `additional_guests` is materialised into `host_contacts` (deduped by email) so
+  the host can open/message/tag them individually — they show in the Guests
+  directory + have a working record automatically (`_host_guest_rows` UNIONs
+  `host_contacts`).
+- **`guest_relationships`** table + RLS links each party member ↔ the lead booker
+  (one row per direction, tagged with the booking). New **Relationships** tab on
+  the guest record; **Guests** tab on the booking record (replaces "Guest")
+  showing lead + party with per-member record links + an **Add guest** action.
+- **Single-source materialiser** — `_materialize_booking_party()` called by an
+  `AFTER UPDATE OF status` confirm trigger AND the ownership-checked
+  `materialize_booking_party()` RPC (lazy fallback on the booking record +
+  Add-guest). Checkout party manifest now requires name + email; thank-you page
+  lists the party. Migrations `20260610150000`, `20260610150001` (help).
+
+## ✅ Done earlier (2026-06-10) — Reviews to MVP
 - **Photos on reviews** — public `review-photos` bucket + `review_photos` table;
   token-gated signed upload from the (account-less) submit form; one reusable
   `ReviewPhotoGrid` (lightbox) on listing / dashboard / admin / portal / confirm.
