@@ -300,6 +300,8 @@ export default async function BookingDetailPage({
 
   // Optional party manifest captured at checkout (guests beyond the lead
   // booker). Stored as jsonb [{ name, email?, phone? }]; show only named rows.
+  // Each member with an email links to its own guest record (gkey is server-only
+  // — computed here, not in the client component).
   const additionalGuests = (
     (booking.additional_guests ?? []) as unknown as Array<{
       name?: string | null;
@@ -308,11 +310,30 @@ export default async function BookingDetailPage({
     }>
   )
     .filter((g) => (g?.name ?? "").trim().length > 0)
-    .map((g) => ({
-      name: (g.name ?? "").trim(),
-      email: g.email?.trim() ? g.email.trim() : null,
-      phone: g.phone?.trim() ? g.phone.trim() : null,
-    }));
+    .map((g) => {
+      const email = g.email?.trim() ? g.email.trim() : null;
+      return {
+        name: (g.name ?? "").trim(),
+        email,
+        phone: g.phone?.trim() ? g.phone.trim() : null,
+        gkey: email ? gkeyFor(null, email) : null,
+      };
+    });
+
+  // Lazy fallback: ensure each named party member has a standalone contact +
+  // a relationship to the lead. The confirm trigger already does this on the
+  // pending→confirmed transition; this backfills bookings confirmed before the
+  // feature shipped (and is a harmless idempotent no-op otherwise).
+  if (
+    additionalGuests.length > 0 &&
+    ["confirmed", "checked_in", "completed", "checked_out"].includes(
+      booking.status,
+    )
+  ) {
+    await supabase.rpc("materialize_booking_party", {
+      p_booking_id: booking.id,
+    });
+  }
 
   const bookingRooms = (booking.booking_rooms ?? []) as unknown as Array<{
     id: string;

@@ -24,23 +24,31 @@ import {
   Receipt,
   ShieldCheck,
   Star,
+  UserPlus,
   UserRound,
   Users,
   Wifi,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import {
   GuestMessagesPanel,
   type MessageItem,
   type TemplateItem,
 } from "@/components/messages/GuestMessagesPanel";
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
 import { BookingActions } from "./BookingActions";
+import { addBookingGuestAction } from "./guest-actions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
@@ -101,10 +109,12 @@ export type BookingDetailData = {
   guestRating: number | null;
   returning: boolean;
   // Optional party manifest captured at checkout — guests beyond the lead booker.
+  // gkey links each member (with an email) to their own guest record.
   additionalGuests: {
     name: string;
     email: string | null;
     phone: string | null;
+    gkey: string | null;
   }[];
 
   listingName: string;
@@ -266,7 +276,7 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "payments", label: "Payments" },
   { key: "arrivals", label: "Arrivals" },
-  { key: "guest", label: "Guest" },
+  { key: "guests", label: "Guests" },
   { key: "messages", label: "Messages" },
   { key: "review", label: "Review" },
   { key: "activity", label: "Activity" },
@@ -292,6 +302,8 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const tabCount = (k: string): number | undefined => {
     if (k === "activity") return d.timeline.length || undefined;
     if (k === "notes") return d.notes.length || undefined;
+    // Whole party = lead booker + named additional guests.
+    if (k === "guests") return d.additionalGuests.length + 1;
     return undefined;
   };
 
@@ -560,8 +572,8 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
           <PaymentsPanel d={d} />
         ) : tab === "arrivals" ? (
           <ArrivalsPanel d={d} />
-        ) : tab === "guest" ? (
-          <GuestPanel d={d} />
+        ) : tab === "guests" ? (
+          <GuestsPanel d={d} />
         ) : tab === "messages" ? (
           <GuestMessagesPanel
             firstName={(d.guestName || "guest").split(/\s+/)[0]}
@@ -816,7 +828,7 @@ function OverviewPanel({
             <GlanceRow
               icon={UserRound}
               label="Guest"
-              onClick={() => setTab("guest")}
+              onClick={() => setTab("guests")}
               right={
                 <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-brand-ink">
                   {d.guestStays} stay{d.guestStays === 1 ? "" : "s"}
@@ -1154,12 +1166,12 @@ function AccessRow({
   );
 }
 
-// ── Guest ────────────────────────────────────────────────────────────────────
-function GuestPanel({ d }: { d: BookingDetailData }) {
+// ── Guests (lead booker + party) ─────────────────────────────────────────────
+function GuestsPanel({ d }: { d: BookingDetailData }) {
   return (
     <Card>
       <CardHead
-        title="Guest"
+        title="Lead guest"
         right={
           d.guestGkey ? (
             <Link
@@ -1250,51 +1262,170 @@ function GuestPanel({ d }: { d: BookingDetailData }) {
           )}
         </div>
 
-        {d.additionalGuests.length > 0 ? (
-          <div className="mt-5 border-t border-brand-line pt-4">
-            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-              <Users className="h-3.5 w-3.5" />
-              Additional guests in the party · {d.additionalGuests.length}
-            </div>
-            <ul className="mt-3 space-y-2">
-              {d.additionalGuests.map((g, i) => (
-                <li
-                  key={i}
-                  className="flex flex-col gap-1 rounded-[10px] bg-brand-light px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
-                    <UserRound className="h-4 w-4 shrink-0 text-brand-mute" />
-                    {g.name}
-                  </span>
-                  {g.email || g.phone ? (
-                    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 text-[12px] text-brand-mute sm:pl-0">
-                      {g.email ? (
-                        <a
-                          href={`mailto:${g.email}`}
-                          className="inline-flex items-center gap-1.5 hover:text-brand-primary"
-                        >
-                          <MailCheck className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{g.email}</span>
-                        </a>
-                      ) : null}
-                      {g.phone ? (
-                        <a
-                          href={`tel:${g.phone}`}
-                          className="inline-flex items-center gap-1.5 hover:text-brand-primary"
-                        >
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          {g.phone}
-                        </a>
-                      ) : null}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <PartySection d={d} />
       </div>
     </Card>
+  );
+}
+
+// The rest of the party named at checkout. Each member with an email is its own
+// guest record (materialised on confirmation), so the host can open + contact
+// them individually. The host can also add a guest to the booking here.
+function PartySection({ d }: { d: BookingDetailData }) {
+  const router = useRouter();
+  const [addOpen, setAddOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pending, start] = useTransition();
+
+  const reset = () => {
+    setName("");
+    setEmail("");
+    setPhone("");
+  };
+
+  function submit() {
+    start(async () => {
+      const res = await addBookingGuestAction(d.id, {
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+      });
+      if (res.ok) {
+        toast.success("Guest added to booking");
+        setAddOpen(false);
+        reset();
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  const canSubmit = name.trim().length > 0 && /\S+@\S+\.\S+/.test(email.trim());
+
+  return (
+    <div className="mt-5 border-t border-brand-line pt-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          <Users className="h-3.5 w-3.5" />
+          Others in the party · {d.additionalGuests.length}
+        </div>
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
+        >
+          <UserPlus className="h-3.5 w-3.5 text-brand-mute" /> Add guest
+        </button>
+      </div>
+
+      {d.additionalGuests.length === 0 ? (
+        <p className="mt-3 text-[12.5px] text-brand-mute">
+          No other guests named on this booking yet. Add one to keep their
+          details and reach them directly.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {d.additionalGuests.map((g, i) => (
+            <li
+              key={i}
+              className="flex flex-col gap-1 rounded-[10px] bg-brand-light px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+            >
+              {g.gkey ? (
+                <Link
+                  href={`/dashboard/guests/${g.gkey}`}
+                  className="inline-flex items-center gap-2 text-[13px] font-semibold text-brand-ink hover:text-brand-primary"
+                >
+                  <UserRound className="h-4 w-4 shrink-0 text-brand-mute" />
+                  {g.name}
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
+                  <UserRound className="h-4 w-4 shrink-0 text-brand-mute" />
+                  {g.name}
+                </span>
+              )}
+              {g.email || g.phone ? (
+                <span className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 text-[12px] text-brand-mute sm:pl-0">
+                  {g.email ? (
+                    <a
+                      href={`mailto:${g.email}`}
+                      className="inline-flex items-center gap-1.5 hover:text-brand-primary"
+                    >
+                      <MailCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{g.email}</span>
+                    </a>
+                  ) : null}
+                  {g.phone ? (
+                    <a
+                      href={`tel:${g.phone}`}
+                      className="inline-flex items-center gap-1.5 hover:text-brand-primary"
+                    >
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      {g.phone}
+                    </a>
+                  ) : null}
+                </span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <FormModal
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        size="sm"
+        title="Add a guest to this booking"
+        description="Name and email are required so they get their own guest record you can contact later."
+      >
+        <form
+          id="add-booking-guest-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (canSubmit) submit();
+          }}
+          className="space-y-2.5"
+        >
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Full name"
+            autoFocus
+            maxLength={120}
+            className="h-10 w-full rounded-lg border border-brand-line bg-white px-3 text-sm text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          />
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            placeholder="Email"
+            maxLength={160}
+            className="h-10 w-full rounded-lg border border-brand-line bg-white px-3 text-sm text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          />
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone (optional)"
+            maxLength={40}
+            className="h-10 w-full rounded-lg border border-brand-line bg-white px-3 text-sm text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          />
+        </form>
+        <FormModalFooter>
+          <FormModalCancel>Cancel</FormModalCancel>
+          <button
+            type="submit"
+            form="add-booking-guest-form"
+            disabled={!canSubmit || pending}
+            className="rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary disabled:opacity-50"
+          >
+            {pending ? "Adding…" : "Add guest"}
+          </button>
+        </FormModalFooter>
+      </FormModal>
+    </div>
   );
 }
 
