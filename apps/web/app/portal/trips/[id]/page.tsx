@@ -27,6 +27,7 @@ import {
   Snowflake,
   Sparkles,
   Tv,
+  Users,
   Utensils,
   Waves,
   Wifi,
@@ -218,6 +219,7 @@ export default async function PortalTripDetailPage({
       check_in, check_out, nights, guests_count,
       base_amount, cleaning_fee, discount_amount, total_amount, balance_due, currency,
       special_requests, host_message, created_at, confirmed_at,
+      guest_name, guest_email, guest_phone, additional_guests,
       has_open_refund,
       listing:listings (
         id, name, slug, city, province, address_line1, address_line2,
@@ -260,6 +262,12 @@ export default async function PortalTripDetailPage({
     host_message: string | null;
     created_at: string;
     confirmed_at: string | null;
+    guest_name: string | null;
+    guest_email: string | null;
+    guest_phone: string | null;
+    additional_guests:
+      | { name?: string | null; email?: string | null; phone?: string | null }[]
+      | null;
     has_open_refund: boolean | null;
     listing: ListingEmbed | ListingEmbed[] | null;
     host: HostEmbed | HostEmbed[] | null;
@@ -566,6 +574,20 @@ export default async function PortalTripDetailPage({
 
   const discount = Number(booking.discount_amount ?? 0);
 
+  // Who's coming — the lead booker plus any named party members the guest added.
+  const leadGuest = {
+    name: booking.guest_name?.trim() || "Lead guest",
+    email: booking.guest_email?.trim() || null,
+    phone: booking.guest_phone?.trim() || null,
+  };
+  const partyGuests = (booking.additional_guests ?? [])
+    .filter((g) => (g?.name ?? "").trim().length > 0)
+    .map((g) => ({
+      name: (g.name ?? "").trim(),
+      email: g.email?.trim() ? g.email.trim() : null,
+      phone: g.phone?.trim() ? g.phone.trim() : null,
+    }));
+
   return (
     <div className="mx-auto max-w-[1120px]">
       {/* ===== IN-CONTENT HEADER ===== */}
@@ -763,6 +785,58 @@ export default async function PortalTripDetailPage({
                 }
               />
             </div>
+          </section>
+
+          {/* WHO'S COMING */}
+          <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-brand-line px-6 py-4">
+              <div className="inline-flex items-center gap-2 font-display text-[15px] font-bold text-brand-ink">
+                <Users className="h-4 w-4 text-brand-primary" /> Who&rsquo;s
+                coming
+              </div>
+              <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute">
+                {1 + partyGuests.length} of {booking.guests_count} guest
+                {booking.guests_count === 1 ? "" : "s"}
+              </span>
+            </div>
+            <ul className="divide-y divide-brand-line">
+              {[
+                { ...leadGuest, lead: true },
+                ...partyGuests.map((g) => ({ ...g, lead: false })),
+              ].map((g, i) => (
+                <li key={i} className="flex items-center gap-3.5 px-6 py-3.5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill bg-brand-accent font-display text-[13px] font-bold text-brand-secondary">
+                    {(g.name.match(/\b\w/g) ?? [])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase() || "G"}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-[14px] font-semibold text-brand-ink">
+                        {g.name}
+                      </span>
+                      {g.lead ? (
+                        <span className="shrink-0 rounded-pill bg-brand-primary/10 px-2 py-0.5 text-[10px] font-semibold text-brand-primary">
+                          Lead guest
+                        </span>
+                      ) : null}
+                    </div>
+                    {g.email || g.phone ? (
+                      <div className="mt-0.5 truncate text-[12px] text-brand-mute">
+                        {[g.email, g.phone].filter(Boolean).join(" · ")}
+                      </div>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {partyGuests.length === 0 ? (
+              <div className="border-t border-brand-line px-6 py-3 text-[12px] text-brand-mute">
+                No additional guests added. Anyone the booker adds to the party
+                will appear here.
+              </div>
+            ) : null}
           </section>
 
           {/* NOTE FROM HOST */}
