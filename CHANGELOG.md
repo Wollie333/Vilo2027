@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 1/6) — resolver + snapshot SSOT — branch `main`
+
+### Fixed
+- 🔴 **Refunds could silently pay 0% when a host relied on a default policy.** `get_listing_policy_summary` resolved a listing's policy as *listing-wide assignment → host default*, but `snapshot_booking_policies` only ever snapshotted an explicit listing-wide assignment (no default fallback, no room scope). A listing covered solely by the host's default showed a real cancellation policy to the guest, but the booking snapshot was empty → `calculate_policy_refund_amount` returned `no_policy_snapshot` → 0% refund. The displayed policy did not match the enforced policy.
+
+### Built
+- Migration `20260610180000_policy_resolver_snapshot_ssot.sql`:
+  - `resolve_listing_policy_id(listing, room, type)` — the single canonical resolver. Precedence: room-level → listing-wide → host active default → NULL.
+  - `snapshot_booking_policies` rewritten to resolve via the canonical resolver (incl. default fallback) and derive the room from `booking_rooms` (single-room → that room; whole-listing/multi-room → listing-wide/default). No call-site change.
+  - `get_listing_policy_summary` now delegates to the resolver and accepts an optional `p_room_id` (1-arg RPC still works).
+  - Idempotent backfill: any booking missing a cancellation snapshot is re-snapshotted.
+- `apps/web/scripts/verify-policy-resolver.mjs` — live-DB QA gate: resolver callable, every published listing resolves a cancellation policy, every booking has a cancellation snapshot, refund calc returns a real rule.
+
+### Notes
+- Verified against the linked remote: all bookings now carry a cancellation snapshot and refund calc returns a real rule (e.g. `Full refund 100%`) instead of `no_policy_snapshot`.
+- Known gap surfaced by the verifier: a published listing whose host set **no default** still resolves nothing — closed in Phase 2 (auto-default per type).
+- Types regenerated from linked remote.
+
+---
+
 ## 2026-06-10 — Calendar — manage availability + book from the calendar — branch `main`
 
 ### Built

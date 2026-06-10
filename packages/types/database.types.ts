@@ -7125,7 +7125,7 @@ export type Database = {
         Returns: string[]
       }
       get_listing_policy_summary: {
-        Args: { p_listing_id: string }
+        Args: { p_listing_id: string; p_room_id?: string }
         Returns: Json
       }
       get_min_nights_for_stay: {
@@ -7247,6 +7247,10 @@ export type Database = {
       reserve_addon_stock: {
         Args: { p_addon_id: string; p_qty: number }
         Returns: boolean
+      }
+      resolve_listing_policy_id: {
+        Args: { p_listing_id: string; p_room_id: string; p_type: string }
+        Returns: string
       }
       resolve_notification_prefs: {
         Args: { p_category_id: string; p_user_id: string }

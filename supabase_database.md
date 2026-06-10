@@ -3334,9 +3334,11 @@ CREATE POLICY "admin_full_access_snapshots"         ON policy_snapshots   FOR AL
 
 ### 14.8 Domain 11 — Database Functions
 
+> **SSOT resolver (migration `20260610180000`).** `resolve_listing_policy_id(listing, room, type) → uuid` is the single source of truth for "which policy applies". Precedence: **room-level assignment (if a room is given) → listing-wide assignment → host active default (`is_default`) → NULL.** Both `snapshot_booking_policies` and `get_listing_policy_summary` delegate to it, so the policy a guest is shown is guaranteed to be the one snapshotted onto the booking and used by the refund engine. `get_listing_policy_summary` now takes an optional 2nd arg `p_room_id uuid DEFAULT NULL` (the 1-arg RPC call still resolves). The historical signatures below are superseded by `20260610180000`.
+
 **`snapshot_booking_policies`**
 
-Called inside `booking-create` Edge Function immediately before the booking is confirmed. Takes a complete snapshot of all policies assigned to the listing.
+Called immediately after the booking row is created (guest checkout, host manual booking, quote→booking). Snapshots the **effective** policy of each type (resolved via `resolve_listing_policy_id`, including the host-default fallback). Room is derived from `booking_rooms`: a single-room booking resolves room-level overrides; a whole-listing or multi-room booking uses listing-wide/default.
 
 ```sql
 CREATE OR REPLACE FUNCTION snapshot_booking_policies(
