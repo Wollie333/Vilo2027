@@ -6,6 +6,8 @@ import {
   planLabel,
 } from "../formatters";
 
+import { signReviewToken } from "../../review-token";
+
 import type { AdminClient, EmailResolver } from "./types";
 import { refId } from "./types";
 
@@ -147,14 +149,14 @@ const reviewRequestResolver: EmailResolver = async (refs, ctx) => {
       : Promise.resolve({ data: null }),
   ]);
 
+  // The template builds its own link from bookingId + reviewToken; sign the
+  // token here (server-side) so the emailed link is always valid.
   return {
     guestFirstName: firstName(guestUser?.data?.full_name ?? booking.guest_name),
     listingName: listing?.name ?? "your stay",
     hostName: host?.user_full_name ?? host?.display_name ?? "your host",
-    reviewUrl:
-      typeof refs.review_url === "string"
-        ? refs.review_url
-        : `/review/${bookingId}`,
+    bookingId,
+    reviewToken: signReviewToken(bookingId),
   };
 };
 

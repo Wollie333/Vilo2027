@@ -55,6 +55,8 @@ export type ReviewRefs = {
   guest_first_name?: string;
   rating?: number;
   excerpt?: string;
+  /** Tokenised relative review path (built via buildReviewPath) for in-app + push. */
+  review_path?: string;
 };
 
 export type SubscriptionRefs = {
@@ -497,6 +499,11 @@ export const NOTIFICATION_REGISTRY = {
       ),
       data: link("/review/[id]", { id: r.booking_id ?? "" }),
       sound: null,
+    }),
+    inApp: (r) => ({
+      title: "How was your stay?",
+      body: `Leave a review for ${r.listing_name ?? "your stay"} — it takes about 30 seconds.`,
+      link: r.review_path ?? `/review/${r.booking_id ?? ""}`,
     }),
     dedupeKey: (r) => `review_request:${r.booking_id ?? "x"}`,
   } satisfies EventBuilder<ReviewRefs>,

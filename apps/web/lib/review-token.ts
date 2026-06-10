@@ -41,3 +41,18 @@ export function verifyReviewToken(
   if (expected.length !== candidate.length) return false;
   return timingSafeEqual(Buffer.from(expected), Buffer.from(candidate));
 }
+
+/**
+ * The relative review path with its signed token — the single source of truth
+ * for the link the guest follows. Used by the email resolver, the in-app
+ * builder, the request worker and the host "share review link" card so every
+ * channel points at exactly the same tokenised URL.
+ */
+export function buildReviewPath(bookingId: string): string {
+  return `/review/${bookingId}?token=${signReviewToken(bookingId)}`;
+}
+
+/** Absolute review URL (origin + signed path). */
+export function buildReviewUrl(origin: string, bookingId: string): string {
+  return `${origin.replace(/\/$/, "")}${buildReviewPath(bookingId)}`;
+}

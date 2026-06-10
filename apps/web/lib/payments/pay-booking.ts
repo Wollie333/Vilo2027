@@ -8,6 +8,7 @@ import {
   recomputeBookingPaymentState,
   sumCompletedPaid,
 } from "@/lib/payments/ledger";
+import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type StartBookingPaymentResult =
@@ -255,86 +256,37 @@ export async function confirmHostCardPaymentByReference(opts: {
 
 /**
  * Post a one-time "Payment received — booking confirmed" system card into the
- * guest's conversation thread. Mirrors the access-card cron's conversation
- * resolution: the booking's quote thread (converted bookings) → an existing
- * open host↔guest thread for the listing → a fresh conversation. The converted
- * ThreadQuoteCard already exposes "View booking" (→ trip page + receipt), so
- * this card is the explicit payment confirmation that nudges both parties.
- * Best-effort: a thread-post failure must never roll back a captured payment.
+ * guest's conversation thread (resolved via the shared postGuestSystemCard /
+ * resolveGuestConversation helper). The converted ThreadQuoteCard already
+ * exposes "View booking" (→ trip page + receipt), so this card is the explicit
+ * payment confirmation that nudges both parties. Best-effort: a thread-post
+ * failure must never roll back a captured payment.
  */
 async function postPaymentConfirmedCard(
   admin: ReturnType<typeof createAdminClient>,
   bookingId: string,
 ): Promise<void> {
-  try {
-    const { data: b } = await admin
-      .from("bookings")
-      .select(
-        "id, reference, host_id, guest_id, listing_id, quote_id, listing:listings ( name )",
-      )
-      .eq("id", bookingId)
-      .maybeSingle();
-    // No registered guest → no portal thread to notify.
-    if (!b || !b.guest_id || !b.listing_id) return;
+  const { data: b } = await admin
+    .from("bookings")
+    .select(
+      "id, reference, host_id, guest_id, listing_id, quote_id, listing:listings ( name )",
+    )
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b) return;
 
-    const listingName =
-      (
-        (Array.isArray(b.listing) ? b.listing[0] : b.listing) as {
-          name: string;
-        } | null
-      )?.name ?? "your stay";
+  const listingName =
+    (
+      (Array.isArray(b.listing) ? b.listing[0] : b.listing) as {
+        name: string;
+      } | null
+    )?.name ?? "your stay";
 
-    // Resolve the conversation (quote thread → existing thread → create).
-    let conversationId: string | null = null;
-    if (b.quote_id) {
-      const { data: q } = await admin
-        .from("quotes")
-        .select("conversation_id")
-        .eq("id", b.quote_id)
-        .maybeSingle();
-      conversationId = q?.conversation_id ?? null;
-    }
-    if (!conversationId) {
-      const { data: conv } = await admin
-        .from("conversations")
-        .select("id")
-        .eq("host_id", b.host_id)
-        .eq("guest_id", b.guest_id)
-        .eq("listing_id", b.listing_id)
-        .neq("status", "archived")
-        .order("last_message_at", { ascending: false, nullsFirst: false })
-        .limit(1)
-        .maybeSingle();
-      conversationId = conv?.id ?? null;
-    }
-    if (!conversationId) {
-      const { data: created } = await admin
-        .from("conversations")
-        .insert({
-          host_id: b.host_id,
-          guest_id: b.guest_id,
-          listing_id: b.listing_id,
-          booking_id: b.id,
-          status: "open",
-          is_enquiry: false,
-        })
-        .select("id")
-        .single();
-      conversationId = created?.id ?? null;
-    }
-    if (!conversationId) return;
-
-    await admin.from("messages").insert({
-      conversation_id: conversationId,
-      sender_id: null,
-      is_system_message: true,
-      system_event: "payment_received",
-      body: `✅ Payment received — your booking ${b.reference} at ${listingName} is confirmed. Open your booking above to view your trip details and invoice.`,
-      // Guest just paid (they know); the host should see the unread nudge.
-      read_by_host: false,
-      read_by_guest: true,
-    });
-  } catch {
-    // Swallow — the payment is already captured + the booking confirmed.
-  }
+  await postGuestSystemCard(admin, b, {
+    systemEvent: "payment_received",
+    body: `✅ Payment received — your booking ${b.reference} at ${listingName} is confirmed. Open your booking above to view your trip details and invoice.`,
+    // Guest just paid (they know); the host should see the unread nudge.
+    readByHost: false,
+    readByGuest: true,
+  });
 }

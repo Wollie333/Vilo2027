@@ -8,7 +8,12 @@ import {
   type PolicyRefund,
 } from "@/lib/bookings/cancel";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+
+// How long after checkout the guest's review request is sent. The review
+// request worker drains review_request_queue rows once send_at has passed.
+const REVIEW_REQUEST_DELAY_MS = 5 * 60 * 1000;
 
 export type BookingActionResult = { ok: true } | { ok: false; error: string };
 
@@ -24,9 +29,8 @@ const NOTIFY_KIND = {
   confirm: "booking_confirmed_guest",
   decline: "booking_declined_guest",
   cancel: "booking_cancelled_guest",
-  // Checkout completes the stay → invite the guest to review (deduped per
-  // booking by dispatchEvent). Simplest path: no queue/cron needed.
-  checkOut: "review_request_guest",
+  // NB: checkout does NOT notify here — it enqueues a delayed review request
+  // (checkout + 5 min) into review_request_queue; see enqueueReviewRequest.
 } as const;
 
 type Transition = {
@@ -65,6 +69,29 @@ const TRANSITIONS: Record<
     setField: { checked_out_at: "now" },
   },
 };
+
+// Schedule the post-checkout review request (checkout + 5 min). Uses the admin
+// client because review_request_queue is service-role-only; ignores conflicts
+// so a backstop-cron row (or a re-run) never double-schedules. Best-effort —
+// a queue hiccup must not fail the checkout itself.
+async function enqueueReviewRequest(
+  bookingId: string,
+  guestId: string,
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.from("review_request_queue").upsert(
+      {
+        booking_id: bookingId,
+        guest_id: guestId,
+        send_at: new Date(Date.now() + REVIEW_REQUEST_DELAY_MS).toISOString(),
+      },
+      { onConflict: "booking_id", ignoreDuplicates: true },
+    );
+  } catch {
+    // Swallowed — the daily backstop cron will pick the booking up.
+  }
+}
 
 async function applyTransition(
   bookingId: string,
@@ -120,6 +147,14 @@ async function applyTransition(
       // In-app/push builders gracefully fall back when listing_name is absent.
       refs: { booking_id: booking.id },
     });
+  }
+
+  // Checkout → schedule the review request for 5 minutes from now. The worker
+  // re-validates (paid + no existing review) before sending, so enqueueing is
+  // safe even if eligibility changes. Account-less guests have no portal to
+  // review from, so they're skipped.
+  if (kind === "checkOut" && booking.guest_id) {
+    await enqueueReviewRequest(booking.id, booking.guest_id);
   }
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);

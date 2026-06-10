@@ -36,8 +36,8 @@ export default function ReviewRequestGuest({
       <Button href={link}>Leave a review</Button>
 
       <Text style={{ marginTop: 20, fontSize: 13, color: "#6B7280" }}>
-        Reviews go live after a 48-hour moderation window. {hostName} will be
-        able to reply once your review is published.
+        Your review goes live straight away, and you can add a few photos.{" "}
+        {hostName} will be able to reply to it publicly.
       </Text>
     </Layout>
   );
