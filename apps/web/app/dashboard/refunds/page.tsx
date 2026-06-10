@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Hourglass, RotateCcw, Wallet } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { RefundActions } from "./RefundActions";
@@ -137,7 +138,7 @@ export default async function RefundsPage({
     feedQuery = feedQuery.in("status", TAB_FILTERS[tab]!);
   }
 
-  const { data: rows } = await feedQuery;
+  const rows = await throwOnError(feedQuery, "dashboard/refunds");
 
   type Row = {
     id: string;

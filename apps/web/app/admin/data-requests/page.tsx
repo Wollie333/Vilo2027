@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Download, ShieldAlert, Trash2 } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnError } from "@/lib/supabase/query";
 import { requireAdmin } from "@/lib/admin";
 
 import { RequestActions } from "./RequestActions";
@@ -67,7 +68,7 @@ export default async function AdminDataRequestsPage({
     .limit(100);
   if (TAB_FILTERS[tab]) query = query.in("status", TAB_FILTERS[tab]!);
 
-  const { data: rows } = await query;
+  const rows = await throwOnError(query, "admin/data-requests");
 
   type Row = {
     id: string;

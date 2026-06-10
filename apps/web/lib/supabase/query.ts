@@ -22,11 +22,35 @@ export async function throwOnError<T>(
 ): Promise<T> {
   const { data, error } = await query;
   if (error) {
-    console.error(
-      `[query:${context}] ${error.code ?? "ERROR"}: ${error.message}`,
-      error.details ? { details: error.details, hint: error.hint } : "",
-    );
+    logQueryError(context, error);
     throw new Error(`Query failed (${context}): ${error.message}`);
   }
   return data;
+}
+
+/**
+ * Like {@link throwOnError} but preserves the row count for paginated lists
+ * (queries built with `{ count: "exact" }`). Returns `{ data, count }`.
+ */
+export async function throwOnErrorWithCount<T>(
+  query: PromiseLike<{
+    data: T;
+    count: number | null;
+    error: PostgrestError | null;
+  }>,
+  context: string,
+): Promise<{ data: T; count: number | null }> {
+  const { data, count, error } = await query;
+  if (error) {
+    logQueryError(context, error);
+    throw new Error(`Query failed (${context}): ${error.message}`);
+  }
+  return { data, count };
+}
+
+function logQueryError(context: string, error: PostgrestError): void {
+  console.error(
+    `[query:${context}] ${error.code ?? "ERROR"}: ${error.message}`,
+    error.details ? { details: error.details, hint: error.hint } : "",
+  );
 }

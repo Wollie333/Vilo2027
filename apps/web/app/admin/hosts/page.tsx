@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, Star } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +47,10 @@ export default async function AdminHostsPage({
   else if (status === "unverified") query = query.eq("is_verified", false);
   else if (status === "inactive") query = query.eq("is_active", false);
 
-  const { data: rows, count } = await query;
+  const { data: rows, count } = await throwOnErrorWithCount(
+    query,
+    "admin/hosts",
+  );
 
   return (
     <div className="space-y-6">

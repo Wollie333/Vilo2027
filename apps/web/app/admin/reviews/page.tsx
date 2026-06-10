@@ -3,6 +3,7 @@ import { Flag, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 
@@ -73,7 +74,10 @@ export default async function AdminReviewsPage({
     service.from("reviews").select("id", { count: "exact", head: true }),
   ]);
 
-  const { data: rows, count } = await TAB_FILTERS[tab](base(service));
+  const { data: rows, count } = await throwOnErrorWithCount(
+    TAB_FILTERS[tab](base(service)),
+    "admin/reviews",
+  );
 
   type Row = {
     id: string;

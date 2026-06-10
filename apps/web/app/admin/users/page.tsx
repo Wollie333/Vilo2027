@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search, User } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +46,10 @@ export default async function AdminUsersPage({
     query = query.eq("role", role);
   }
 
-  const { data: rows, count } = await query;
+  const { data: rows, count } = await throwOnErrorWithCount(
+    query,
+    "admin/users",
+  );
 
   return (
     <div className="space-y-6">

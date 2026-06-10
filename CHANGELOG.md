@@ -76,7 +76,12 @@ Copy this template and fill it in at the end of every session:
 
 ### Changed
 - Wrapped the primary list/figure query in `throwOnError` on the high-value
-  money/list pages: bookings, payments, invoices, credit-notes, guests.
+  money/list pages: bookings, payments, invoices, credit-notes, guests, quotes,
+  refunds. Added `throwOnErrorWithCount` (preserves pagination count) and rolled
+  it across all admin list pages: audit, bookings, broadcasts, data-requests,
+  hosts, listings, payments, reviews, subscriptions, users (caught by the
+  existing `admin/error.tsx`). Verified all wrapped queries return 200 live, so
+  no currently-working page changes behaviour.
 - Left reports as-is — it already logs each analytics RPC error and degrades
   gracefully (intentional; throwing would blank the whole dashboard).
 

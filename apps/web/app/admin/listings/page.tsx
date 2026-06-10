@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,10 @@ export default async function AdminListingsPage({
   else if (status === "draft") query = query.eq("is_published", false);
   else if (status === "featured") query = query.eq("is_featured", true);
 
-  const { data: rows, count } = await query;
+  const { data: rows, count } = await throwOnErrorWithCount(
+    query,
+    "admin/listings",
+  );
 
   type Row = {
     id: string;

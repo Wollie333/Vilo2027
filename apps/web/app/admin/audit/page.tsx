@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +59,7 @@ export default async function AuditLogPage({
     query = query.eq("target_type", searchParams.target_type);
   if (searchParams.since) query = query.gte("created_at", searchParams.since);
 
-  const { data, count } = await query;
+  const { data, count } = await throwOnErrorWithCount(query, "admin/audit");
   const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
 
   return (

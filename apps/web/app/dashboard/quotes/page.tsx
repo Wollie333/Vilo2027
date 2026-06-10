@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Plus } from "lucide-react";
 
 import { getMyHostId } from "@/lib/host/current";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { QUOTE_STATUS_LABEL, type QuoteStatus } from "./schemas";
@@ -70,7 +71,7 @@ export default async function QuotesListPage({
     query = query.eq("status", status);
   }
 
-  const { data: quotes } = await query;
+  const quotes = await throwOnError(query, "dashboard/quotes");
 
   return (
     <div className="space-y-6">

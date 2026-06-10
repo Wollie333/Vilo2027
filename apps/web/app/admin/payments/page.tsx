@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,10 @@ export default async function AdminPaymentsPage({
   }
   if (status !== "all") query = query.eq("status", status);
 
-  const { data: rows, count } = await query;
+  const { data: rows, count } = await throwOnErrorWithCount(
+    query,
+    "admin/payments",
+  );
 
   // KPI tiles: collected (sum completed), pending (count), failed (count)
   const [{ data: collected }, { count: pendingCount }, { count: failedCount }] =

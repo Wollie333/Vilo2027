@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { requirePermission } from "@/lib/admin/requirePermission";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { throwOnError } from "@/lib/supabase/query";
 
 export const metadata: Metadata = {
   title: "Broadcasts · Admin",
@@ -28,13 +29,16 @@ export default async function BroadcastsListPage() {
   await requirePermission("notifications.broadcast");
 
   const service = createAdminClient();
-  const { data: rows } = await service
-    .from("broadcast_announcements")
-    .select(
-      "id, severity, audience, title, starts_at, ends_at, cancelled_at, created_at",
-    )
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const rows = await throwOnError(
+    service
+      .from("broadcast_announcements")
+      .select(
+        "id, severity, audience, title, starts_at, ends_at, cancelled_at, created_at",
+      )
+      .order("created_at", { ascending: false })
+      .limit(50),
+    "admin/broadcasts",
+  );
 
   return (
     <section>
