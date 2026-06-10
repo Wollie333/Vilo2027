@@ -1,12 +1,14 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   ConversationList,
   ConversationRow,
 } from "@/components/inbox/ConversationList";
+
+import { touchGuestSeenAction } from "../actions";
 
 export type GuestConvRow = {
   id: string;
@@ -35,6 +37,12 @@ export function GuestInboxList({
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
+
+  // Mark the guest "online" so the host's messages flip to delivered.
+  useEffect(() => {
+    void touchGuestSeenAction();
+  }, []);
+
   const pathname = usePathname();
   const activeId = pathname?.startsWith("/portal/inbox/")
     ? (pathname.split("/")[3] ?? null)

@@ -179,7 +179,7 @@ export default async function InboxPage({
         .from("conversations")
         .select(
           `
-            id, status, is_enquiry, pinned, created_at,
+            id, status, is_enquiry, pinned, created_at, guest_last_seen_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug, city, province, max_guests, bedrooms ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
@@ -253,6 +253,7 @@ export default async function InboxPage({
       is_enquiry: boolean;
       pinned: boolean;
       created_at: string;
+      guest_last_seen_at: string | null;
       guest: {
         id: string;
         full_name: string | null;
@@ -288,6 +289,7 @@ export default async function InboxPage({
         status: ctx.status as "open" | "resolved" | "archived",
         isEnquiry: ctx.is_enquiry,
         pinned: ctx.pinned ?? false,
+        guestLastSeenAt: ctx.guest_last_seen_at ?? null,
         guest: ctx.guest
           ? {
               id: ctx.guest.id,

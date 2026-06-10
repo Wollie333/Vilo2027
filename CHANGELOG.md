@@ -83,18 +83,22 @@ Copy this template and fill it in at the end of every session:
   thread. Deep links (`?c=`, `?f=enquiries`) and the full-bleed shell are intact.
 - **Guest inbox** refactored onto the shared components (visually unchanged — it
   was the canonical design).
-- **WhatsApp-exact read receipts.** Sent ticks stay grey (delivered) and only
-  turn WhatsApp-blue (`#53BDEB`) once the other party has actually opened the
-  thread (`read_by_host`/`read_by_guest`). The receipt now also renders on the
-  outgoing **thread cards** — the guest's **quote-request** card, the host's
-  **issued-quote** card, the guest's **accepted** card, and **access details** —
-  not just plain bubbles. (A `pending` clock state is wired for future optimistic
-  sends; "delivered vs sent" single-tick isn't separately tracked — no delivery
-  column yet.)
+- **WhatsApp-exact read receipts (full 3-state).** Outgoing messages now show
+  **sent** (single grey ✓) → **delivered** (double grey ✓✓) → **read** (double
+  blue ✓✓ `#53BDEB`), with a **pending** clock for optimistic sends. Delivered is
+  driven by new per-side `conversations.host_last_seen_at` / `guest_last_seen_at`
+  stamps (recipient's inbox loaded at/after the message); read uses
+  `read_by_host`/`read_by_guest`. Receipts render on the outgoing **thread cards**
+  too — the guest's **quote-request** card, the host's **issued-quote** card, the
+  **accepted** card and **access details** — not just plain bubbles. Both apps
+  stamp "last seen" on inbox open + live message arrival; the guest thread also
+  subscribes to `conversations` so ticks flip live.
 
 ### Migrations
 - `20260610160000_help_inbox_redesign.sql` — new `using-your-inbox` host article;
   re-seeds the stale `enquiry-pipeline-inbox` article (no more pipeline rail).
+- `20260610170000_inbox_last_seen.sql` — `host_last_seen_at` /
+  `guest_last_seen_at` on `conversations` (delivered-receipt timestamps).
 
 ### Notes
 - Dropped `PipelineControl.tsx` + `ConversationNotes.tsx` and the now-unused

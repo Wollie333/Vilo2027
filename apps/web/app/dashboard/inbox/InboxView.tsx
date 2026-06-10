@@ -39,6 +39,7 @@ import {
   markConversationReadAction,
   sendMessageAction,
   togglePinAction,
+  touchInboxSeenAction,
   unarchiveConversationAction,
 } from "./actions";
 
@@ -68,6 +69,7 @@ export type ThreadContext = {
   status: "open" | "resolved" | "archived";
   isEnquiry: boolean;
   pinned: boolean;
+  guestLastSeenAt: string | null;
   guest: {
     id: string;
     fullName: string | null;
@@ -198,6 +200,11 @@ export function InboxView({
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Mark the host "online" so the guest's messages flip to delivered.
+  useEffect(() => {
+    void touchInboxSeenAction();
+  }, []);
+
   // Realtime: soft-refresh on any messages/conversations change.
   useEffect(() => {
     const supabase = createClient();
@@ -206,7 +213,10 @@ export function InboxView({
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
-        () => router.refresh(),
+        () => {
+          void touchInboxSeenAction();
+          router.refresh();
+        },
       )
       .on(
         "postgres_changes",
@@ -459,6 +469,7 @@ function ThreadPane({
         viewer="host"
         quotesById={quotesById}
         bookingsById={bookingsById}
+        otherLastSeenAt={context.guestLastSeenAt}
         emptyText="No messages yet. Send the first reply below."
       />
 

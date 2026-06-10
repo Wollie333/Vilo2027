@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, Clock, KeyRound, Paperclip } from "lucide-react";
+import { Check, CheckCheck, Clock, KeyRound, Paperclip } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
@@ -84,15 +84,18 @@ function isOutgoing(
 }
 
 // WhatsApp delivery/read state for one of my outgoing messages:
-//   pending   → single clock (not yet confirmed by the server)
-//   delivered → double grey ticks (sent + on the other side, not read)
-//   read      → double blue ticks (the other person opened it)
+//   pending   → clock        (not yet confirmed by the server)
+//   sent      → single grey ✓ (server has it; the other side isn't online yet)
+//   delivered → double grey ✓✓ (the other side's inbox has loaded since)
+//   read      → double blue ✓✓ (the other person opened the thread)
 function ReadTicks({
   read,
+  delivered,
   pending,
   className = "",
 }: {
   read: boolean;
+  delivered: boolean;
   pending?: boolean;
   className?: string;
 }) {
@@ -101,6 +104,14 @@ function ReadTicks({
       <Clock
         aria-label="Sending"
         className={`h-[13px] w-[13px] text-[#86A99A] ${className}`}
+      />
+    );
+  }
+  if (!read && !delivered) {
+    return (
+      <Check
+        aria-label="Sent"
+        className={`h-[14px] w-[14px] text-[#86A99A] ${className}`}
       />
     );
   }
@@ -119,6 +130,7 @@ export function ChatMessageWall({
   viewer,
   quotesById,
   bookingsById,
+  otherLastSeenAt = null,
   emptyText = "No messages yet — say hello.",
 }: {
   messages: ChatMessage[];
@@ -126,6 +138,9 @@ export function ChatMessageWall({
   viewer: "host" | "guest";
   quotesById: Record<string, ThreadQuote>;
   bookingsById: Record<string, ThreadBooking>;
+  // When the *other* participant last loaded their inbox — a message I sent
+  // counts as delivered once this is at/after the message time.
+  otherLastSeenAt?: string | null;
   emptyText?: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -160,6 +175,11 @@ export function ChatMessageWall({
             const readByOther =
               viewer === "host" ? m.readByGuest : m.readByHost;
             const mine = isOutgoing(m, viewer, selfId);
+            // Delivered = the other side's inbox loaded at/after this message.
+            const deliveredToOther =
+              otherLastSeenAt != null &&
+              new Date(otherLastSeenAt).getTime() >=
+                new Date(m.createdAt).getTime();
 
             // Quote lifecycle card.
             const kind =
@@ -193,7 +213,11 @@ export function ChatMessageWall({
                     {mine ? (
                       <div className="mx-auto mt-0.5 flex max-w-[420px] items-center justify-end gap-1 pr-1 font-mono text-[10px] text-[#6B8B7F]">
                         {fmtClock(m.createdAt)}
-                        <ReadTicks read={readByOther} pending={m.pending} />
+                        <ReadTicks
+                          read={readByOther}
+                          delivered={deliveredToOther}
+                          pending={m.pending}
+                        />
                       </div>
                     ) : null}
                   </div>
@@ -223,7 +247,11 @@ export function ChatMessageWall({
                     <div className="mt-1 flex items-center gap-1 font-mono text-[10.5px] text-brand-mute">
                       {fmtAccessTime(m.createdAt)}
                       {mine ? (
-                        <ReadTicks read={readByOther} pending={m.pending} />
+                        <ReadTicks
+                          read={readByOther}
+                          delivered={deliveredToOther}
+                          pending={m.pending}
+                        />
                       ) : null}
                     </div>
                   </div>
@@ -273,7 +301,11 @@ export function ChatMessageWall({
                     <span className="float-right ml-2.5 mt-2 inline-flex items-center gap-1 font-mono text-[10px] leading-none text-[#6B8B7F]">
                       {fmtClock(m.createdAt)}
                       {mine ? (
-                        <ReadTicks read={readByOther} pending={m.pending} />
+                        <ReadTicks
+                          read={readByOther}
+                          delivered={deliveredToOther}
+                          pending={m.pending}
+                        />
                       ) : null}
                     </span>
                   </div>

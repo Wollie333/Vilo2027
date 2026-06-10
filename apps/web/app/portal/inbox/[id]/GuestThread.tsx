@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   markGuestConversationReadAction,
   sendGuestMessageAction,
+  touchGuestSeenAction,
 } from "../actions";
 
 export type GuestMessage = ChatMessage;
@@ -28,6 +29,7 @@ export function GuestThread({
   selfId,
   hostName,
   hostAvatarUrl,
+  hostLastSeenAt,
   listingName,
   messages,
   quotesById,
@@ -37,6 +39,7 @@ export function GuestThread({
   selfId: string;
   hostName: string;
   hostAvatarUrl: string | null;
+  hostLastSeenAt: string | null;
   listingName: string | null;
   messages: GuestMessage[];
   quotesById: Record<string, ThreadQuote>;
@@ -45,8 +48,9 @@ export function GuestThread({
   const router = useRouter();
   const markedRef = useRef(false);
 
-  // Refresh the thread in realtime when a new message lands, and when read
-  // flags flip (so sent-tick receipts turn blue live once the host reads).
+  // Refresh the thread in realtime when a new message lands, when read flags
+  // flip (so sent ticks turn blue once the host reads), and when the host's
+  // last-seen changes (so ticks turn delivered once the host comes online).
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -59,7 +63,10 @@ export function GuestThread({
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => router.refresh(),
+        () => {
+          void touchGuestSeenAction();
+          router.refresh();
+        },
       )
       .on(
         "postgres_changes",
@@ -71,17 +78,28 @@ export function GuestThread({
         },
         () => router.refresh(),
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "conversations",
+          filter: `id=eq.${conversationId}`,
+        },
+        () => router.refresh(),
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [conversationId, router]);
 
-  // Mark read on mount.
+  // Mark read + online on mount.
   useEffect(() => {
     if (markedRef.current) return;
     markedRef.current = true;
     void markGuestConversationReadAction(conversationId);
+    void touchGuestSeenAction();
   }, [conversationId]);
 
   return (
@@ -98,6 +116,7 @@ export function GuestThread({
         viewer="guest"
         quotesById={quotesById}
         bookingsById={bookingsById}
+        otherLastSeenAt={hostLastSeenAt}
         emptyText="No messages yet — say hello."
       />
       <ChatComposer

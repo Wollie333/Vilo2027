@@ -185,11 +185,26 @@ export async function markConversationReadAction(
 
   const { error: convErr } = await supabase
     .from("conversations")
-    .update({ unread_host: 0 })
+    .update({ unread_host: 0, host_last_seen_at: new Date().toISOString() })
     .eq("id", conversationId);
   if (convErr) return { ok: false, error: "Could not mark as read." };
 
   revalidatePath("/dashboard/inbox");
+  return { ok: true };
+}
+
+// Mark the host "online" for delivery receipts: stamp host_last_seen_at across
+// their conversations so the guest's outgoing messages flip from sent → delivered.
+// Called when the host opens their inbox and when a new message arrives live.
+export async function touchInboxSeenAction(): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("conversations")
+    .update({ host_last_seen_at: new Date().toISOString() })
+    .eq("host_id", host.hostId);
+  if (error) return { ok: false, error: "Could not update presence." };
   return { ok: true };
 }
 

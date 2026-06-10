@@ -111,9 +111,26 @@ export async function markGuestConversationReadAction(
     .eq("read_by_guest", false);
   await supabase
     .from("conversations")
-    .update({ unread_guest: 0 })
+    .update({ unread_guest: 0, guest_last_seen_at: new Date().toISOString() })
     .eq("id", conversationId);
 
   revalidatePath("/portal/inbox");
+  return { ok: true };
+}
+
+// Mark the guest "online" for delivery receipts: stamp guest_last_seen_at across
+// their conversations so the host's outgoing messages flip from sent → delivered.
+// Called when the guest opens their inbox and when a new message arrives live.
+export async function touchGuestSeenAction(): Promise<GuestActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+  const { error } = await supabase
+    .from("conversations")
+    .update({ guest_last_seen_at: new Date().toISOString() })
+    .eq("guest_id", user.id);
+  if (error) return { ok: false, error: "Could not update presence." };
   return { ok: true };
 }

@@ -42,7 +42,7 @@ export default async function GuestThreadPage({
     .from("conversations")
     .select(
       `
-      id, guest_id,
+      id, guest_id, host_last_seen_at,
       host:hosts ( display_name, avatar_url ),
       listing:listings ( name )
     `,
@@ -55,6 +55,7 @@ export default async function GuestThreadPage({
   const conv = convRaw as unknown as {
     id: string;
     guest_id: string;
+    host_last_seen_at: string | null;
     host:
       | { display_name: string; avatar_url: string | null }
       | { display_name: string; avatar_url: string | null }[]
@@ -128,6 +129,7 @@ export default async function GuestThreadPage({
       selfId={user.id}
       hostName={host?.display_name ?? "Host"}
       hostAvatarUrl={host?.avatar_url ?? null}
+      hostLastSeenAt={conv.host_last_seen_at ?? null}
       listingName={listing?.name ?? null}
       messages={messages}
       quotesById={quotesById}

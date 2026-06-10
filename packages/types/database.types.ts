@@ -1048,7 +1048,9 @@ export type Database = {
           created_at: string
           follow_up_at: string | null
           guest_id: string
+          guest_last_seen_at: string | null
           host_id: string
+          host_last_seen_at: string | null
           id: string
           is_enquiry: boolean
           last_message_at: string | null
@@ -1068,7 +1070,9 @@ export type Database = {
           created_at?: string
           follow_up_at?: string | null
           guest_id: string
+          guest_last_seen_at?: string | null
           host_id: string
+          host_last_seen_at?: string | null
           id?: string
           is_enquiry?: boolean
           last_message_at?: string | null
@@ -1088,7 +1092,9 @@ export type Database = {
           created_at?: string
           follow_up_at?: string | null
           guest_id?: string
+          guest_last_seen_at?: string | null
           host_id?: string
+          host_last_seen_at?: string | null
           id?: string
           is_enquiry?: boolean
           last_message_at?: string | null
