@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Fixes — booking party manifest + guest record hero — branch `main`
+
+### Fixed
+- **Additional guests invisible on a booking.** Checkout captures an optional
+  party manifest (`bookings.additional_guests` jsonb `[{name, email?, phone?}]`),
+  but the booking detail page never selected the column and the Guest tab only
+  rendered the lead booker. Now selected, parsed and rendered in `GuestPanel`
+  with a count and tap-to-contact email/phone per guest.
+- **Guest record hero looked misaligned.** The marketing-consent control was a
+  heavy bordered box on its own line with the verification chips on another row.
+  Restructured to match the booking record hero: verification, "All direct" and
+  marketing consent share one aligned chip row, and the consent control is now a
+  lightweight pill. No elements removed.
+
+### Commits
+- `fix(bookings): show the party manifest (additional guests) in the Guest tab` — `3b90c98`
+- `fix(guests): tidy the guest record hero — one aligned status row` — `bcd062b`
+
+---
+
 ## 2026-06-10 — Reviews/Dashboard — fix invisible reviews + harden query error handling — branch `main`
 
 ### Fixed
