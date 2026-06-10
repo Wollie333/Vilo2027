@@ -29,6 +29,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
+import { ReviewCard } from "@/app/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
 import {
   GuestMessagesPanel,
@@ -140,13 +141,21 @@ export type NoteItem = {
 // Re-exported here so existing importers (this record's page.tsx) keep working.
 export type { MessageItem, TemplateItem };
 
+// Mirrors the host Reviews dashboard card (minus guestName, which is the
+// record's guest) so the canonical ReviewCard manage/respond/flag UI is reused
+// verbatim here.
 export type ReviewItem = {
   id: string;
   rating: number;
   body: string | null;
   createdAt: string;
-  isPublished: boolean;
+  hostResponse: string | null;
+  hostRespondedAt: string | null;
+  flagged: boolean;
   listingName: string;
+  nights: number | null;
+  stayMonth: string | null;
+  photos: string[];
 };
 
 export type QuoteItem = {
@@ -573,7 +582,7 @@ export function GuestRecord({
         ) : tab === "notes" ? (
           <NotesPanel gkey={r.gkey} notes={notes} />
         ) : tab === "reviews" ? (
-          <ReviewsPanel reviews={reviews} />
+          <ReviewsPanel reviews={reviews} guestName={r.name ?? "Guest"} />
         ) : (
           <FinancesPanel txns={txns} quotes={quotes} />
         )}
@@ -942,7 +951,15 @@ function MarketingConsent({
 }
 
 // ── Reviews panel ───────────────────────────────────────────────────────
-function ReviewsPanel({ reviews }: { reviews: ReviewItem[] }) {
+// Reuses the canonical host ReviewCard (reply / edit / clear / flag) so review
+// management is identical to the Reviews dashboard — single source of truth.
+function ReviewsPanel({
+  reviews,
+  guestName,
+}: {
+  reviews: ReviewItem[];
+  guestName: string;
+}) {
   if (reviews.length === 0) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
@@ -951,43 +968,9 @@ function ReviewsPanel({ reviews }: { reviews: ReviewItem[] }) {
     );
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {reviews.map((rev) => (
-        <section
-          key={rev.id}
-          className="rounded-card border border-brand-line bg-white p-5 shadow-card"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${i < rev.rating ? "fill-amber-400 text-amber-400" : "text-brand-line"}`}
-                />
-              ))}
-              <span className="ml-1 text-[13px] font-semibold text-brand-ink">
-                {rev.rating.toFixed(1)}
-              </span>
-            </div>
-            <span
-              className={`rounded-pill border px-2 py-0.5 text-[10.5px] font-semibold ${
-                rev.isPublished
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-brand-line bg-brand-light text-brand-mute"
-              }`}
-            >
-              {rev.isPublished ? "Published" : "Hidden"}
-            </span>
-          </div>
-          {rev.body ? (
-            <p className="mt-2.5 text-[13.5px] leading-relaxed text-brand-ink">
-              &ldquo;{rev.body}&rdquo;
-            </p>
-          ) : null}
-          <div className="mt-2.5 text-[11.5px] text-brand-mute">
-            {rev.listingName} · {fmtDate(rev.createdAt.slice(0, 10))}
-          </div>
-        </section>
+        <ReviewCard key={rev.id} guestName={guestName} {...rev} />
       ))}
     </div>
   );

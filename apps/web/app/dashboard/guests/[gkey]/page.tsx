@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -17,6 +18,15 @@ import {
 } from "./GuestRecord";
 
 export const dynamic = "force-dynamic";
+
+// Pre-formats a stay month ("Sept 2025") for the review card; mirrors the
+// Reviews dashboard's stayMonth.
+function reviewMonth(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-ZA", { month: "short", year: "numeric" });
+}
 
 export const metadata: Metadata = {
   title: "Guest",
@@ -142,18 +152,34 @@ export default async function GuestRecordPage({
   if (guestId) {
     const { data: rv } = await supabase
       .from("reviews")
-      .select("id, rating, body, created_at, is_published, listing_id")
+      .select(
+        `id, rating, body, created_at, listing_id,
+         host_response, host_responded_at, flagged,
+         booking:bookings ( nights, check_in ),
+         photos:review_photos ( storage_path, sort_order )`,
+      )
       .eq("host_id", host.id)
       .eq("guest_id", guestId)
       .order("created_at", { ascending: false });
-    reviews = (rv ?? []).map((r) => ({
-      id: r.id,
-      rating: r.rating,
-      body: r.body,
-      createdAt: r.created_at,
-      isPublished: r.is_published,
-      listingName: listingNames.get(r.listing_id) ?? "Listing",
-    }));
+    reviews = (rv ?? []).map((r) => {
+      const booking = Array.isArray(r.booking) ? r.booking[0] : r.booking;
+      return {
+        id: r.id,
+        rating: r.rating,
+        body: r.body,
+        createdAt: r.created_at,
+        hostResponse: r.host_response,
+        hostRespondedAt: r.host_responded_at,
+        flagged: r.flagged,
+        listingName: listingNames.get(r.listing_id) ?? "Listing",
+        nights: booking?.nights ?? null,
+        stayMonth: reviewMonth(booking?.check_in ?? null),
+        photos: (r.photos ?? [])
+          .slice()
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((p) => reviewPhotoUrl(p.storage_path)),
+      };
+    });
   }
 
   // Finances — every money event for this guest, normalised from the ONE

@@ -10,6 +10,7 @@ import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { buildReviewUrl } from "@/lib/review-token";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -240,7 +241,9 @@ export default async function BookingDetailPage({
       .maybeSingle(),
     supabase
       .from("reviews")
-      .select("id")
+      .select(
+        "id, rating, body, host_response, host_responded_at, flagged, created_at, photos:review_photos ( storage_path, sort_order )",
+      )
       .eq("booking_id", booking.id)
       .maybeSingle(),
   ]);
@@ -759,6 +762,37 @@ export default async function BookingDetailPage({
             guestPhone: guest.phone,
           }
         : null,
+
+    // The booking's review (one per booking), shaped for the canonical
+    // ReviewCard so the host can read + respond + flag from the Review tab.
+    review: reviewRow
+      ? {
+          id: reviewRow.id,
+          rating: reviewRow.rating,
+          body: reviewRow.body,
+          createdAt: reviewRow.created_at,
+          hostResponse: reviewRow.host_response,
+          hostRespondedAt: reviewRow.host_responded_at,
+          flagged: reviewRow.flagged,
+          guestName: guest.full_name ?? booking.guest_name ?? "Guest",
+          listingName: listing.name,
+          nights: booking.nights,
+          stayMonth: booking.check_in
+            ? new Date(booking.check_in).toLocaleDateString("en-ZA", {
+                month: "short",
+                year: "numeric",
+              })
+            : null,
+          photos: (
+            (reviewRow.photos as
+              | { storage_path: string; sort_order: number }[]
+              | null) ?? []
+          )
+            .slice()
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((p) => reviewPhotoUrl(p.storage_path)),
+        }
+      : null,
   };
 
   return <BookingDetail data={data} />;

@@ -45,6 +45,11 @@ import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
 
+import {
+  ReviewCard,
+  type ReviewCardProps,
+} from "@/app/dashboard/reviews/ReviewCard";
+
 import { PaymentsManager } from "./PaymentsManager";
 import { ReviewLinkCard } from "./ReviewLinkCard";
 import { WelcomeNoteCard } from "./WelcomeNoteCard";
@@ -207,6 +212,7 @@ export type BookingDetailData = {
     guestEmail: string | null;
     guestPhone: string | null;
   } | null;
+  review: ReviewCardProps | null;
 };
 
 const STATUS_TAG: Record<
@@ -255,6 +261,7 @@ const TABS = [
   { key: "arrivals", label: "Arrivals" },
   { key: "guest", label: "Guest" },
   { key: "messages", label: "Messages" },
+  { key: "review", label: "Review" },
   { key: "activity", label: "Activity" },
   { key: "notes", label: "Notes" },
 ] as const;
@@ -578,6 +585,8 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
             bookingId={d.id}
             listingId={d.listingId}
           />
+        ) : tab === "review" ? (
+          <ReviewPanel d={d} />
         ) : tab === "activity" ? (
           <ActivityPanel d={d} />
         ) : (
@@ -987,11 +996,6 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               canAddAddons={d.canEditAddons}
               payLink={d.payLink}
             />
-            {d.reviewLink ? (
-              <div className="mt-4">
-                <ReviewLinkCard bookingId={d.id} {...d.reviewLink} />
-              </div>
-            ) : null}
           </div>
 
           {d.canRefund ? (
@@ -1274,6 +1278,43 @@ function MiniStat({ value, label }: { value: React.ReactNode; label: string }) {
 }
 
 // ── Activity ─────────────────────────────────────────────────────────────────
+// ── Review ──────────────────────────────────────────────────────────────────
+// The review for this booking. Reuses the canonical host ReviewCard (read +
+// respond + flag); when there's no review yet, shows the shareable review link.
+function ReviewPanel({ d }: { d: BookingDetailData }) {
+  if (d.review) {
+    return (
+      <div className="space-y-4">
+        <ReviewCard {...d.review} />
+      </div>
+    );
+  }
+  if (d.reviewLink) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-8 text-center">
+          <p className="text-[14px] font-semibold text-brand-ink">
+            No review yet
+          </p>
+          <p className="mx-auto mt-1 max-w-md text-[12.5px] text-brand-mute">
+            The guest is invited to review automatically 5 minutes after
+            checkout. You can also send them the link directly below.
+          </p>
+        </div>
+        <ReviewLinkCard bookingId={d.id} {...d.reviewLink} />
+      </div>
+    );
+  }
+  return (
+    <Card>
+      <div className="px-6 py-12 text-center text-[13px] text-brand-mute">
+        Reviews open once the stay is completed. We&rsquo;ll invite the guest to
+        review 5 minutes after you check them out.
+      </div>
+    </Card>
+  );
+}
+
 function ActivityPanel({ d }: { d: BookingDetailData }) {
   return (
     <Card>
