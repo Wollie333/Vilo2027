@@ -864,8 +864,8 @@ async function ListingBody({
               hostingSince={listing.host.created_at}
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
+              quoteButton={quoteButton}
             />
-            {quoteButton ? <div className="mt-5">{quoteButton}</div> : null}
             <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
               <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
               For your safety, never transfer money or chat outside {brandName}.

@@ -22,6 +22,7 @@ export async function HostCard({
   hostingSince,
   rating,
   reviewCount,
+  quoteButton,
 }: {
   displayName: string;
   handle: string;
@@ -35,6 +36,9 @@ export async function HostCard({
   hostingSince: string | null;
   rating: number | null;
   reviewCount: number | null;
+  // Rendered directly beneath the "View host profile" button so the quote CTA
+  // sits with the host actions rather than detached below the whole card.
+  quoteButton?: React.ReactNode;
 }) {
   const brandName = await getBrandName();
   const initials = displayName.slice(0, 2).toUpperCase();
@@ -136,13 +140,14 @@ export async function HostCard({
             </div>
           ) : null}
         </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6 flex flex-col items-stretch gap-3 sm:max-w-xs">
           <Link
             href={`/${handle}`}
-            className="inline-flex items-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
+            className="inline-flex items-center justify-center gap-1.5 rounded border border-brand-line px-4 py-2.5 text-sm font-medium text-brand-ink hover:bg-brand-light"
           >
             View host profile
           </Link>
+          {quoteButton ? <div>{quoteButton}</div> : null}
         </div>
       </div>
     </div>
