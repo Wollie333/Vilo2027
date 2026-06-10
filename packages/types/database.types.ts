@@ -3816,6 +3816,7 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           experience_type: string | null
+          featured_review_id: string | null
           host_id: string
           house_rules: string | null
           id: string
@@ -3888,6 +3889,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           experience_type?: string | null
+          featured_review_id?: string | null
           host_id: string
           house_rules?: string | null
           id?: string
@@ -3960,6 +3962,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           experience_type?: string | null
+          featured_review_id?: string | null
           host_id?: string
           house_rules?: string | null
           id?: string
@@ -4007,6 +4010,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "listing_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_featured_review_id_fkey"
+            columns: ["featured_review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
             referencedColumns: ["id"]
           },
           {

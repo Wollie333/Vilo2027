@@ -31,6 +31,30 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews — activity log, featured review, star fix — branch `main`
+
+### Built
+- **Activity tab** on the Reviews manager (record-style tabs: Reviews | Activity):
+  per completed stay — request sent/scheduled, the review + stars, and who needs
+  a public response (attention-first, count on the tab). `fetchReviewActivity`.
+- **Featured review** — host pins a review per listing (`listings.featured_review_id`);
+  "Feature on listing"/"Unfeature" on every ReviewCard. The listing page uses the
+  pin, else falls back to the **latest highest-rated** published review.
+- **Shared `RecordTabs`** — one underline tab bar; booking + guest records reuse it
+  so tabs are identical across the app.
+
+### Fixed
+- Listing "What guests are saying" hero showed a hardcoded 5 stars — now renders
+  the real average (filled + empty), so the stars match the numeric rating.
+
+### Migrations
+- `20260610000006_listing_featured_review.sql` — `listings.featured_review_id`.
+
+### Commit
+- `feat(reviews): …` — see `git log`
+
+---
+
 ## 2026-06-10 — Reviews — account-less (manual) guests can review — branch `main`
 
 ### Changed

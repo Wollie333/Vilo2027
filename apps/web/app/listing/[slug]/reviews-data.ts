@@ -95,26 +95,33 @@ export async function loadListingReviews(
 ): Promise<ReviewsData> {
   const supabase = createServerClient();
 
-  const [{ data: reviewRows }, { data: themeRows }] = await Promise.all([
-    supabase
-      .from("reviews")
-      .select(
-        `id, rating, body, created_at, trip_type, helpful_count, host_response,
+  const [{ data: reviewRows }, { data: themeRows }, { data: listingRow }] =
+    await Promise.all([
+      supabase
+        .from("reviews")
+        .select(
+          `id, rating, body, created_at, trip_type, helpful_count, host_response,
          rating_cleanliness, rating_communication, rating_checkin,
          rating_accuracy, rating_location, rating_value,
          guest:user_profiles!reviews_guest_id_fkey ( full_name ),
          booking:bookings ( nights, guest_name ),
          photos:review_photos ( storage_path, sort_order )`,
-      )
-      .eq("listing_id", listingId)
-      .eq("is_published", true)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("listing_review_themes")
-      .select("label, icon_key, mention_count, sort_order")
-      .eq("listing_id", listingId)
-      .order("sort_order", { ascending: true }),
-  ]);
+        )
+        .eq("listing_id", listingId)
+        .eq("is_published", true)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("listing_review_themes")
+        .select("label, icon_key, mention_count, sort_order")
+        .eq("listing_id", listingId)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("listings")
+        .select("featured_review_id")
+        .eq("id", listingId)
+        .maybeSingle(),
+    ]);
+  const featuredReviewId = listingRow?.featured_review_id ?? null;
 
   const rows = (reviewRows ?? []) as unknown as RawReview[];
 
@@ -179,16 +186,19 @@ export async function loadListingReviews(
     count: t.mention_count,
   }));
 
-  // Featured = highest helpful count with a body, then most recent.
+  // Featured = the host's pinned review if set + still published; otherwise the
+  // latest highest-rated review (preferring one with written text).
+  const pinned = featuredReviewId
+    ? (reviews.find((r) => r.id === featuredReviewId) ?? null)
+    : null;
+  const byRatingThenRecent = (a: PublicReview, b: PublicReview) =>
+    b.rating - a.rating || b.createdAt.localeCompare(a.createdAt);
   const withBody = reviews.filter((r) => r.body && r.body.length > 0);
-  const featured =
-    withBody.length > 0
-      ? [...withBody].sort(
-          (a, b) =>
-            b.helpfulCount - a.helpfulCount ||
-            b.createdAt.localeCompare(a.createdAt),
-        )[0]
-      : null;
+  const fallback =
+    (withBody.length > 0 ? [...withBody] : [...reviews]).sort(
+      byRatingThenRecent,
+    )[0] ?? null;
+  const featured = pinned ?? fallback;
 
   return {
     count,

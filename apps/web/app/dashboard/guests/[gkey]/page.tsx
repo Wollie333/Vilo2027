@@ -145,10 +145,15 @@ export default async function GuestRecordPage({
   // Listing id → name map (for reviews + quotes that reference a listing directly).
   const { data: listingRows } = await supabase
     .from("listings")
-    .select("id, name")
+    .select("id, name, featured_review_id")
     .eq("host_id", host.id);
   const listingNames = new Map<string, string>(
     (listingRows ?? []).map((l) => [l.id, l.name]),
+  );
+  const featuredReviewIds = new Set(
+    (listingRows ?? [])
+      .map((l) => l.featured_review_id)
+      .filter((id): id is string => Boolean(id)),
   );
 
   // Reviews this guest has left — matched by their bookings (not guest_id), so
@@ -184,6 +189,7 @@ export default async function GuestRecordPage({
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((p) => reviewPhotoUrl(p.storage_path)),
+        isFeatured: featuredReviewIds.has(r.id),
       };
     });
   }

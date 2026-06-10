@@ -135,11 +135,18 @@ export default async function ReviewsPage({
     baseCountQuery().eq("flagged", true),
     supabase
       .from("listings")
-      .select("id, name, avg_rating, total_reviews")
+      .select("id, name, avg_rating, total_reviews, featured_review_id")
       .eq("host_id", host.id)
       .is("deleted_at", null)
       .order("total_reviews", { ascending: false }),
   ]);
+
+  // Review ids currently pinned as a listing's featured review.
+  const featuredReviewIds = new Set(
+    (hostListings ?? [])
+      .map((l) => l.featured_review_id)
+      .filter((id): id is string => Boolean(id)),
+  );
 
   // ─── Stats: overall rating + breakdown across all reviews ────────
   const { data: allRatings } = await supabase
@@ -253,6 +260,7 @@ export default async function ReviewsPage({
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order)
           .map((p) => reviewPhotoUrl(p.storage_path)),
+        isFeatured: featuredReviewIds.has(r.id),
       };
     },
   );

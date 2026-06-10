@@ -159,6 +159,7 @@ export type ReviewItem = {
   nights: number | null;
   stayMonth: string | null;
   photos: string[];
+  isFeatured: boolean;
 };
 
 export type QuoteItem = {

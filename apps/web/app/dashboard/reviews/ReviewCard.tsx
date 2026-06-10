@@ -1,10 +1,14 @@
 "use client";
 
-import { Flag, Hourglass } from "lucide-react";
+import { Flag, Hourglass, Loader2, Pin, PinOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 
+import { toggleFeaturedReviewAction } from "./actions";
 import { ReplyComposer } from "./ReplyComposer";
 import { StarRow } from "./StarRow";
 
@@ -66,12 +70,32 @@ export type ReviewCardProps = {
   nights: number | null;
   stayMonth: string | null; // pre-formatted "Sept 2025"
   photos: string[];
+  /** Whether this review is the listing's pinned featured review. */
+  isFeatured?: boolean;
 };
 
 export function ReviewCard(props: ReviewCardProps) {
   const brandName = useBrandName();
+  const router = useRouter();
+  const [featuring, startFeaturing] = useTransition();
   const hasReply = props.hostResponse != null && props.hostResponse.length > 0;
   const av = avatarStyle(props.guestName);
+
+  function toggleFeatured() {
+    startFeaturing(async () => {
+      const r = await toggleFeaturedReviewAction(props.id, !props.isFeatured);
+      if (r.ok) {
+        toast.success(
+          props.isFeatured
+            ? "Removed from featured."
+            : "Set as the featured review for this listing.",
+        );
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
 
   return (
     <article className="rounded-card border border-brand-line bg-white p-6 shadow-card">
@@ -122,12 +146,33 @@ export function ReviewCard(props: ReviewCardProps) {
           ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            {props.isFeatured ? (
+              <span className="inline-flex items-center gap-1 rounded-pill border border-brand-primary/30 bg-brand-accent px-2 py-0.5 text-[11px] font-semibold text-brand-primary">
+                <Pin className="h-3 w-3" />
+                Featured
+              </span>
+            ) : null}
             {props.flagged ? (
               <span className="inline-flex items-center gap-1 rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[11px] font-medium text-status-cancelled">
                 <Flag className="h-3 w-3" />
                 Flagged
               </span>
             ) : null}
+            <button
+              type="button"
+              onClick={toggleFeatured}
+              disabled={featuring}
+              className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-0.5 text-[11px] font-medium text-brand-mute transition-colors hover:bg-brand-accent hover:text-brand-ink disabled:opacity-50"
+            >
+              {featuring ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : props.isFeatured ? (
+                <PinOff className="h-3 w-3" />
+              ) : (
+                <Pin className="h-3 w-3" />
+              )}
+              {props.isFeatured ? "Unfeature" : "Feature on listing"}
+            </button>
             {!hasReply ? (
               <span className="inline-flex items-center gap-1 rounded-pill border border-status-pending/30 bg-status-pending/10 px-2 py-0.5 text-[11px] font-medium text-status-pending">
                 <Hourglass className="h-3 w-3" />

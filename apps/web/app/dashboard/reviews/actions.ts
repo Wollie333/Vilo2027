@@ -84,6 +84,58 @@ export async function requestReviewsAction(
   return { ok: true, sent, skipped };
 }
 
+/**
+ * Pin (or unpin) a review as the listing's featured review. Stored on
+ * listings.featured_review_id (outside the review-content lock); when null the
+ * listing falls back to the latest highest-rated published review. Host-scoped:
+ * RLS only returns the review if the caller owns it, and the listing UPDATE is
+ * gated to the host's own listing.
+ */
+export async function toggleFeaturedReviewAction(
+  reviewId: string,
+  featured: boolean,
+): Promise<ActionResult> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!host) return { ok: false, error: "No host profile." };
+
+  // RLS host_read_own_reviews → only the owning host gets a row back.
+  const { data: review } = await supabase
+    .from("reviews")
+    .select("id, listing_id, is_published")
+    .eq("id", reviewId)
+    .maybeSingle();
+  if (!review) return { ok: false, error: "Review not found." };
+  if (featured && !review.is_published) {
+    return { ok: false, error: "Only a published review can be featured." };
+  }
+
+  let update = supabase
+    .from("listings")
+    .update({ featured_review_id: featured ? reviewId : null })
+    .eq("id", review.listing_id)
+    .eq("host_id", host.id);
+  // Unpin only if THIS review is the current featured one (don't clear another).
+  if (!featured) update = update.eq("featured_review_id", reviewId);
+
+  const { error } = await update;
+  if (error) {
+    return { ok: false, error: "Couldn't update the featured review." };
+  }
+
+  revalidatePath("/dashboard/reviews");
+  return { ok: true };
+}
+
 const replySchema = z.object({
   body: z
     .string()

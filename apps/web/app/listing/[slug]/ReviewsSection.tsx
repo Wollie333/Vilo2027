@@ -46,12 +46,19 @@ function Stars({
   n: number;
   className?: string;
 }) {
+  // Always render 5 stars, filled to the nearest whole star, so the visual
+  // matches the numeric rating (e.g. 4.00 → 4 filled + 1 empty).
+  const filled = Math.round(n);
   return (
     <span className="inline-flex items-center gap-0.5">
-      {Array.from({ length: n }).map((_, i) => (
+      {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
-          className={`${className} fill-brand-ink stroke-brand-ink`}
+          className={`${className} ${
+            i <= filled
+              ? "fill-brand-ink stroke-brand-ink"
+              : "fill-none stroke-brand-mute/40"
+          }`}
         />
       ))}
     </span>
@@ -128,7 +135,7 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
             <span className="font-display text-2xl text-brand-mute">/ 5</span>
           </div>
           <div className="mt-3">
-            <Stars n={5} className="h-5 w-5" />
+            <Stars n={data.average} className="h-5 w-5" />
           </div>
           <div className="mt-2.5 text-sm text-brand-mute">
             From{" "}
