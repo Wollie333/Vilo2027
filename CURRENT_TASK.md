@@ -5,6 +5,21 @@
 **Active focus:** **Harden each feature to 100% for MVP.** This session:
 the **Reviews** feature, end-to-end.
 
+## ✅ Done this session (2026-06-10) — Calendar: select a range on the grid + inline book
+- **Industry-standard range selection on the month grid.** Tap check-in → later
+  check-out; nights highlight, a **Selected range** card shows (listing picker,
+  est. total, live booked/blocked conflict check). Actions: **Block** the nights
+  (`setManualBlocksAction`) or **Create booking**.
+- **Inline quick-book modal** (no page change) — compact `FormModal` over the
+  calendar, dates locked, guest + price + payment; posts to the existing
+  `createManualBookingAction` (SSOT, not forked). **Open the full editor**
+  deep-links the wizard with listing + both dates for rooms/add-ons.
+- Also fixed the single-day Availability panel from a UI re-review (booked rows
+  open the booking; real status label; past dates read-only).
+- Help: `20260610180007_help_calendar_inline_booking.sql` (re-upsert
+  `managing-your-calendar`). `tsc` + `eslint` green on changed files. Commits
+  `d22f8eb`, `5673295`.
+
 ## ✅ Done this session (2026-06-10) — Calendar: manage availability + book from it
 - **Wired the calendar's existing-but-unused block actions into the UI.** New
   right-rail **Availability** panel (per listing for the selected day:

@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Calendar — select a range on the grid + inline quick-book — branch `main`
+
+### Built
+- **Date-range selection on the month grid** (industry-standard host-calendar UX). Tap a check-in day, then a later check-out day; the nights highlight and a **Selected range** card appears in the rail with a listing picker, estimated total and a live booked/blocked conflict check. Tapping on/before the anchor restarts; an ✕ clears.
+- **Inline quick-book modal** — *Create booking* on the range card opens a compact `FormModal` over the calendar (dates locked; guest name/email/phone, party size, nightly rate + cleaning pre-filled, payment state) that posts straight to the existing `createManualBookingAction`. The host never leaves the calendar; on success the grid refreshes. **Open the full editor** deep-links the full wizard (carrying listing + both dates) for rooms/add-ons/discounts.
+- **Block from the range card** — one tap blocks every night in the selection listing-wide (`setManualBlocksAction`).
+
+### Changed
+- Reused the booking SSOT — the quick-book modal calls the same server action as the full wizard, so pricing/availability/calendar-block writes are **not forked**. `cleaning_fee` is now carried onto the calendar's `CalListing` for rate prefill.
+- Earlier same-day review fixes to the single-day Availability panel: booked rows open the booking; real status label shown (not a flat "booked"); past dates read-only.
+
+### Migrations
+- `20260610180007_help_calendar_inline_booking.sql` — re-upserts `managing-your-calendar` with the range-select + inline-book flow (applied to remote).
+
+### Notes
+- `npx tsc --noEmit` and `eslint` clean for the three changed calendar files. (Repo-wide tsc shows one unrelated error — `ThingsToKnow` in `app/listing/[slug]/page.tsx` — from a concurrent agent's uncommitted WIP, not touched here.) Full `pnpm build` still blocked pre-compile on the Google-Fonts TLS fetch in this environment.
+
+### Commit
+- `fix(calendar): availability panel polish from UI re-review` — `d22f8eb`
+- `feat(calendar): select a date range on the grid + inline quick-book` — `5673295`
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 3/6) — terms & privacy go platform-wide — branch `main`
 
 ### Fixed
