@@ -13,6 +13,9 @@ export async function loadQuoteFormListings(
   // at runtime and this loader is the single place they live.
   supabase: SupabaseClient,
   hostId: string,
+  // When editing a quote, exclude that quote's OWN soft-hold from the blocked
+  // nights so the calendar/availability guard doesn't flag its own dates.
+  excludeQuoteId?: string | null,
 ): Promise<QuoteFormListing[]> {
   const { data: listings } = await supabase
     .from("listings")
@@ -58,7 +61,7 @@ export async function loadQuoteFormListings(
     // room booked isn't shown as fully unavailable.
     supabase
       .from("blocked_dates")
-      .select("listing_id, date")
+      .select("listing_id, date, quote_id")
       .in("listing_id", listingIds)
       .is("room_id", null),
   ]);
@@ -70,7 +73,13 @@ export async function loadQuoteFormListings(
   }
 
   const blockedByListing = new Map<string, string[]>();
-  for (const b of (blocks ?? []) as { listing_id: string; date: string }[]) {
+  for (const b of (blocks ?? []) as {
+    listing_id: string;
+    date: string;
+    quote_id: string | null;
+  }[]) {
+    // Skip the edited quote's own soft-hold — those nights are "free" to it.
+    if (excludeQuoteId && b.quote_id === excludeQuoteId) continue;
     const list = blockedByListing.get(b.listing_id) ?? [];
     list.push(b.date);
     blockedByListing.set(b.listing_id, list);

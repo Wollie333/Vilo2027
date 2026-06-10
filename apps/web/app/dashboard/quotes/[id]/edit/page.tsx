@@ -60,7 +60,7 @@ export default async function EditQuotePage({
       .order("sort_order"),
   ]);
 
-  const list = await loadQuoteFormListings(supabase, host.id);
+  const list = await loadQuoteFormListings(supabase, host.id, quote.id);
 
   // If this quote came from a guest's public "Request a quote" enquiry (only
   // those carry a conversation_id), surface what they originally asked for —

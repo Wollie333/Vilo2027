@@ -141,6 +141,20 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return n > 0 ? n : 0;
 }
 
+// The YYYY-MM-DD nights a [check_in, check_out) stay occupies — tested against
+// the listing's blocked/booked dates to stop quoting unavailable nights.
+function nightDates(checkIn: string, checkOut: string): string[] {
+  if (!checkIn || !checkOut) return [];
+  const out: string[] = [];
+  const cursor = new Date(`${checkIn}T00:00:00Z`);
+  const end = new Date(`${checkOut}T00:00:00Z`);
+  while (cursor < end) {
+    out.push(cursor.toISOString().slice(0, 10));
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return out;
+}
+
 function fmtDayShort(iso: string): { dow: string; day: string; mo: string } {
   if (!iso) return { dow: "—", day: "—", mo: "" };
   const d = new Date(`${iso}T00:00:00`);
@@ -279,6 +293,16 @@ export function QuoteForm({
   const nights = nightsBetween(checkIn, checkOut);
   const headcount = Math.max(1, adults + children);
   const blockedSet = useMemo(() => new Set(listing?.blocked ?? []), [listing]);
+
+  // Availability guard — the chosen stay may not overlap nights that are already
+  // booked or blocked. Conflicting nights disable Save/Send until the host picks
+  // open dates (or the blocked nights free up). Excludes this quote's own hold
+  // (the loader already removed it for the edit page).
+  const conflictNights = useMemo(() => {
+    if (!checkIn || !checkOut) return [];
+    return nightDates(checkIn, checkOut).filter((d) => blockedSet.has(d));
+  }, [checkIn, checkOut, blockedSet]);
+  const hasDateConflict = conflictNights.length > 0;
 
   // Collapsible panels — open by default when there's nothing chosen yet.
   const [changingListing, setChangingListing] = useState(!initial?.listingId);
@@ -721,6 +745,12 @@ export function QuoteForm({
     }
     if (!datesValid) {
       toast.error("Set valid check-in and check-out dates.");
+      return false;
+    }
+    if (hasDateConflict) {
+      toast.error(
+        "Those dates include nights that are already booked or blocked. Pick open dates first.",
+      );
       return false;
     }
     if (input.scope === "rooms" && input.rooms.length === 0) {
@@ -1242,6 +1272,22 @@ export function QuoteForm({
                 {adjustingStay ? "Done" : "Adjust"}
               </button>
             </div>
+
+            {hasDateConflict ? (
+              <div className="mt-3 flex items-start gap-2 rounded-[10px] border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-2.5 text-[12px] text-status-cancelled">
+                <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  <span className="font-semibold">
+                    {conflictNights.length} night
+                    {conflictNights.length === 1 ? "" : "s"} in this range{" "}
+                    {conflictNights.length === 1 ? "is" : "are"} already booked
+                    or blocked.
+                  </span>{" "}
+                  Pick open dates (or free up those nights) — you can&rsquo;t
+                  quote dates that aren&rsquo;t available.
+                </span>
+              </div>
+            ) : null}
 
             {adjustingStay ? (
               <div className="mt-3 rounded-[12px] border border-brand-line bg-brand-light/30 p-4">
@@ -1904,7 +1950,12 @@ export function QuoteForm({
             <button
               type="button"
               onClick={() => save(false)}
-              disabled={busy}
+              disabled={busy || hasDateConflict}
+              title={
+                hasDateConflict
+                  ? "Those dates are booked or blocked — pick open dates first."
+                  : undefined
+              }
               className="rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink hover:bg-brand-accent/40 disabled:opacity-60"
             >
               {pending && !sendingPending ? "Saving…" : "Save draft"}
@@ -1912,7 +1963,12 @@ export function QuoteForm({
             <button
               type="button"
               onClick={openPreview}
-              disabled={busy}
+              disabled={busy || hasDateConflict}
+              title={
+                hasDateConflict
+                  ? "Those dates are booked or blocked — pick open dates first."
+                  : undefined
+              }
               className="inline-flex items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary disabled:opacity-60"
             >
               <Eye className="h-4 w-4" />
