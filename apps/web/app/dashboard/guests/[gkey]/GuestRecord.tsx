@@ -431,19 +431,21 @@ export function GuestRecord({
                     </span>
                   ) : null}
                 </div>
-                {r.is_verified ? (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+                {/* One aligned status row — verification, channel and marketing
+                    consent share a single line so the hero reads cleanly. */}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {r.is_verified ? (
+                    <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11px] font-semibold text-status-confirmed">
                       <MailCheck className="h-3 w-3" /> Email confirmed
                     </span>
-                    {r.is_all_direct && r.total_stays > 0 ? (
-                      <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-primary">
-                        All direct
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-                <MarketingConsent gkey={r.gkey} state={marketingState} />
+                  ) : null}
+                  {r.is_verified && r.is_all_direct && r.total_stays > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-primary">
+                      All direct
+                    </span>
+                  ) : null}
+                  <MarketingConsent gkey={r.gkey} state={marketingState} />
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -909,15 +911,15 @@ function MarketingConsent({
   }
 
   return (
-    <div className="mt-3 inline-flex items-center gap-2.5 rounded-lg border border-brand-line bg-brand-light/40 px-3 py-2">
+    <span className="inline-flex items-center gap-2 rounded-pill border border-brand-line bg-white px-2.5 py-1">
       <input
         type="checkbox"
         checked={meta.checked}
         disabled
         aria-label="Marketing subscription (read-only)"
-        className="h-4 w-4 rounded border-brand-line text-brand-primary disabled:opacity-100"
+        className="h-3.5 w-3.5 rounded border-brand-line text-brand-primary disabled:opacity-100"
       />
-      <span className={`text-[12px] font-semibold ${meta.tone}`}>
+      <span className={`text-[11px] font-semibold ${meta.tone}`}>
         {meta.label}
       </span>
       <span
@@ -930,14 +932,14 @@ function MarketingConsent({
         <button
           onClick={() => void optOut()}
           disabled={busy}
-          className="text-[12px] font-medium text-brand-mute underline-offset-2 hover:text-status-cancelled hover:underline disabled:opacity-50"
+          className="text-[11px] font-medium text-brand-mute underline-offset-2 hover:text-status-cancelled hover:underline disabled:opacity-50"
         >
           Record opt-out
         </button>
       ) : (
         <span className="text-[11px] text-brand-mute">guest-controlled</span>
       )}
-    </div>
+    </span>
   );
 }
 
