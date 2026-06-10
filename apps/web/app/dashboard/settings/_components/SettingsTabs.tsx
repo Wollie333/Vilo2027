@@ -37,8 +37,12 @@ export function SettingsTabs() {
   const pathname = usePathname();
 
   return (
-    <nav>
-      <ol role="tablist" className="flex flex-wrap gap-2">
+    <nav className="border-b border-brand-line">
+      <ol
+        role="tablist"
+        className="-mb-px flex items-stretch gap-7 overflow-x-auto"
+        style={{ scrollbarWidth: "none" }}
+      >
         {TABS.map((tab) => {
           const isActive =
             tab.match === "exact"
@@ -46,19 +50,22 @@ export function SettingsTabs() {
               : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
 
           return (
-            <li key={tab.href} role="presentation">
+            <li key={tab.href} role="presentation" className="shrink-0">
               <Link
                 href={tab.href}
                 role="tab"
                 aria-current={isActive ? "page" : undefined}
                 aria-selected={isActive}
-                className={`flex items-center gap-2 rounded-pill border px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                className={`relative block whitespace-nowrap py-3 text-[14px] font-semibold transition ${
                   isActive
-                    ? "border-brand-primary bg-white/10 text-white"
-                    : "border-white/15 bg-white/[0.04] text-white/70 hover:bg-white/10"
+                    ? "text-brand-secondary"
+                    : "text-brand-mute hover:text-brand-ink"
                 }`}
               >
                 {tab.label}
+                {isActive ? (
+                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
+                ) : null}
               </Link>
             </li>
           );

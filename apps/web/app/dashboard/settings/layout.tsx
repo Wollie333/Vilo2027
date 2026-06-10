@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { SettingsHero } from "@/components/settings/SettingsHero";
+import { SettingsProfileHeader } from "@/components/settings/SettingsProfileHeader";
 
 import { SettingsTabs } from "./_components/SettingsTabs";
 
@@ -14,15 +14,13 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div>
-      <SettingsHero
-        title="Settings"
-        subtitle="Manage your profile, public host page, banking, and plan."
-        backHref="/dashboard"
-        backLabel="Back to dashboard"
-      >
+    <div className="mx-auto max-w-[1140px] px-1 py-1">
+      {/* White profile header + stat band, then horizontal underline tabs
+          (matches the Settings design). */}
+      <SettingsProfileHeader />
+      <div className="mt-6">
         <SettingsTabs />
-      </SettingsHero>
+      </div>
       <div className="mt-6">{children}</div>
     </div>
   );
