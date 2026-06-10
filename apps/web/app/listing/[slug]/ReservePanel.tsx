@@ -34,7 +34,7 @@ export function ReservePanel({
     <>
       {/* ── Desktop sticky card ──────────────────────────────────── */}
       <div
-        className="book-dark sticky top-20 isolate hidden overflow-hidden rounded-card p-5 text-white lg:block"
+        className="book-dark sticky top-32 isolate hidden max-h-[calc(100vh-9rem)] overflow-y-auto overflow-x-hidden rounded-card p-5 text-white lg:block"
         style={{
           background:
             "linear-gradient(155deg,#11201A 0%,#0A1410 55%,#060F0B 100%)",
