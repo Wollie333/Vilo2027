@@ -195,6 +195,7 @@ export function BookingForm({
   listingAllowPets,
   currency,
   cancellationPolicy,
+  cancellation,
   instantBooking,
   bookingMode,
   checkIn,
@@ -237,6 +238,15 @@ export function BookingForm({
   listingAllowPets: boolean;
   currency: string;
   cancellationPolicy: "flexible" | "moderate" | "strict";
+  // The listing's effective cancellation policy (resolver: room → listing-wide →
+  // host default). This is the single source of truth shown + snapshotted. The
+  // legacy `cancellationPolicy` enum is kept only for older copy fallbacks.
+  cancellation: {
+    name: string;
+    isNonRefundable: boolean;
+    rules: { days_before: number; refund_percent: number; label: string }[];
+    note: string | null;
+  } | null;
   instantBooking: boolean;
   bookingMode: string;
   checkIn: string;
@@ -364,6 +374,10 @@ export function BookingForm({
   const [method, setMethod] = useState<"paystack" | "eft">(
     hasPaystack ? "paystack" : "eft",
   );
+
+  // Explicit acceptance of the cancellation policy + platform terms/privacy.
+  // Required before the booking can be confirmed (recorded on the booking).
+  const [ack, setAck] = useState(false);
 
   // Pre-select required addons at their default quantity.
   const [addonQty, setAddonQty] = useState<Map<string, number>>(() => {
@@ -846,6 +860,12 @@ export function BookingForm({
       setStep(1);
       return;
     }
+    if (!ack) {
+      toast.error(
+        "Please confirm you accept the cancellation policy and terms.",
+      );
+      return;
+    }
 
     start(async () => {
       if (!isAuthenticated) {
@@ -884,7 +904,7 @@ export function BookingForm({
         infants: infantsCount,
         pets: petsCount,
         payment_method: method,
-        policy_acknowledged: true,
+        policy_acknowledged: ack,
         selected_addons: Array.from(addonQty.entries())
           .filter(([, q]) => q > 0)
           .map(([addon_id, quantity]) => ({ addon_id, quantity })),
@@ -1868,26 +1888,95 @@ export function BookingForm({
         </div>
       </section>
 
-      {/* Cancellation policy */}
+      {/* Cancellation policy — the listing's REAL effective policy (resolver),
+          so what the guest accepts here is exactly what's snapshotted onto the
+          booking and used for any refund. */}
       <section className="rounded-card border border-brand-line bg-brand-light/50 p-5">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-brand-line bg-white text-brand-primary">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="font-display font-semibold capitalize text-brand-ink">
-              {cancellationPolicy} cancellation policy
+            <div className="font-display font-semibold text-brand-ink">
+              {cancellation?.name ??
+                `${cancellationPolicy} cancellation policy`}
             </div>
-            <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
-              {CANCELLATION_BULLETS[cancellationPolicy].map((b) => (
-                <li key={b.text} className="flex items-start gap-2">
-                  <span
-                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill ${b.dot}`}
-                  />
-                  {b.text}
-                </li>
-              ))}
-            </ul>
+            {cancellation?.isNonRefundable ? (
+              <p className="mt-2 text-sm font-medium text-brand-ink">
+                Non-refundable — no refund at any time.
+              </p>
+            ) : cancellation && cancellation.rules.length > 0 ? (
+              <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
+                {[...cancellation.rules]
+                  .sort((a, b) => b.days_before - a.days_before)
+                  .map((r) => (
+                    <li
+                      key={`${r.days_before}-${r.refund_percent}`}
+                      className="flex items-baseline justify-between gap-3"
+                    >
+                      <span className="text-brand-mute">
+                        {r.days_before <= 0
+                          ? "Less than 24 hours before"
+                          : `${r.days_before}+ day${r.days_before === 1 ? "" : "s"} before check-in`}
+                      </span>
+                      <span
+                        className={`shrink-0 font-semibold tabular-nums ${
+                          r.refund_percent >= 100
+                            ? "text-brand-primary"
+                            : r.refund_percent <= 0
+                              ? "text-red-600"
+                              : "text-amber-600"
+                        }`}
+                      >
+                        {r.refund_percent}% refund
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <ul className="mt-2 space-y-1.5 text-sm text-brand-ink">
+                {CANCELLATION_BULLETS[cancellationPolicy].map((b) => (
+                  <li key={b.text} className="flex items-start gap-2">
+                    <span
+                      className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill ${b.dot}`}
+                    />
+                    {b.text}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Explicit acceptance — required to confirm. */}
+            <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-md border border-brand-line bg-white p-3 text-sm text-brand-ink">
+              <input
+                type="checkbox"
+                checked={ack}
+                onChange={(e) => setAck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-brand-primary"
+              />
+              <span>
+                I understand the cancellation policy and refund schedule, and I
+                accept the{" "}
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-brand-primary underline underline-offset-2"
+                >
+                  booking terms
+                </a>{" "}
+                and{" "}
+                <a
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-brand-primary underline underline-offset-2"
+                >
+                  privacy notice
+                </a>
+                .
+              </span>
+            </label>
           </div>
         </div>
       </section>
@@ -2203,7 +2292,11 @@ export function BookingForm({
               <span className="font-medium text-brand-ink">{payLabel}</span>,
               you agree to {brandName}&rsquo;s Terms and the host&rsquo;s house
               rules, and that {brandName} may charge your payment method per the{" "}
-              <span className="capitalize">{cancellationPolicy}</span>{" "}
+              {cancellation?.name ? (
+                <span>{cancellation.name}</span>
+              ) : (
+                <span className="capitalize">{cancellationPolicy}</span>
+              )}{" "}
               cancellation policy if you cancel or fail to check in.
             </div>
           ) : null}
@@ -2546,7 +2639,8 @@ export function BookingForm({
               {/* refund / safety strip */}
               <div className="mt-3 flex items-center justify-center gap-1.5 text-center text-[11px] text-white/45">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-                {CANCELLATION_BULLETS[cancellationPolicy][0].text}
+                {cancellation?.note ??
+                  CANCELLATION_BULLETS[cancellationPolicy][0].text}
               </div>
 
               {step === 2 ? (

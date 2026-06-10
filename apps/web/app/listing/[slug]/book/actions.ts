@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { getLegalDocuments } from "@/lib/legal";
 import { startBookingPayment } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -792,6 +793,10 @@ export async function createBookingAction(
       ...(g.phone ? { phone: g.phone } : {}),
     }));
 
+  // Record exactly which platform legal versions the guest accepted (legal
+  // record), alongside the explicit acknowledgement.
+  const legal = await getLegalDocuments();
+
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
     .insert({
@@ -830,6 +835,10 @@ export async function createBookingAction(
       guest_phone: d.guest_phone ?? null,
       special_requests: d.special_requests ?? null,
       additional_guests: additionalGuests,
+      policy_acknowledged: true,
+      policy_acknowledged_at: new Date().toISOString(),
+      accepted_terms_version: legal.booking_terms.version,
+      accepted_privacy_version: legal.privacy.version,
     })
     .select("id, reference")
     .single();

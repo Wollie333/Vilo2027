@@ -5,6 +5,10 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
+import {
+  cancellationNote,
+  getListingPolicySummary,
+} from "@/lib/policy/listing-summary";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -355,6 +359,20 @@ export default async function BookingPage({
   const listingTypeLabel =
     ACC_TYPE_LABEL[listing.accommodation_type ?? "other"] ?? "Stay";
 
+  // The listing's effective cancellation policy (resolver) — the SSOT shown at
+  // checkout and snapshotted onto the booking. Listing-wide here; the snapshot
+  // refines to the booked room when a single room is chosen.
+  const policySummary = await getListingPolicySummary(listing.id);
+  const note = cancellationNote(policySummary);
+  const checkoutCancellation = policySummary.cancellation
+    ? {
+        name: policySummary.cancellation.name,
+        isNonRefundable: policySummary.cancellation.is_non_refundable,
+        rules: policySummary.cancellation.rules,
+        note: note?.note ?? null,
+      }
+    : null;
+
   return (
     <div className="bg-white text-brand-ink">
       <SiteHeader />
@@ -383,6 +401,7 @@ export default async function BookingPage({
           listingAllowPets={listing.allow_pets ?? true}
           currency={listing.currency}
           cancellationPolicy={listing.cancellation_policy}
+          cancellation={checkoutCancellation}
           instantBooking={listing.instant_booking}
           bookingMode={listing.booking_mode}
           checkIn={checkIn}

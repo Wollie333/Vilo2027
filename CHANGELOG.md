@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Guests — one record per email (dedup fix) — branch `main`
+
+### Built
+- `apps/web/lib/guests/contacts.ts` — `upsertHostContact()`, the ONE canonical find-or-update-by-email writer for `host_contacts`. Finds by `lower(email)`, updates in place (keeps the email, back-fills `guest_id`), or inserts. `mode: "fill"` (default, never clobbers host-curated fields — used by lazy-mint & enquiry leads) vs `"overwrite"` (explicit Add/Edit guest form).
+
+### Changed
+- **Guests directory no longer shows the same person twice.** `_host_guest_rows` now resolves any booking/contact whose email matches a registered account into that account's `u_` identity (the same email-merge the guest *record* RPC already used), so an email-only/OTA/manual row folds into the signed-in guest instead of forming a second card. Heals existing duplicates on read — no data backfill.
+- Routed the three contact-creation paths through the canonical writer: `addGuestContactAction` (manual add — now returns the canonical `u_`/`e_` gkey and back-fills `guest_id`), `ensureContact` (lazy mint — now back-fills `guest_id`), and `createEnquiry` (lead capture).
+
+### Migrations
+- `20260610180008_guest_directory_email_merge.sql` — `CREATE OR REPLACE _host_guest_rows` with email→account canonicalization (read-only; reversible).
+- `20260610180009_help_guests_email_merge.sql` — refresh the Guests help article with the one-record-per-email guarantee.
+
+### Notes
+- Root cause was a split-identity gkey: bookings/contacts keyed `u_<id>` when they had a `guest_id` else `e_<email>`, so the same email could occupy two keys. The fix makes email the canonical identity at both read (directory) and write (helper) layers, consistent with BUSINESS_PRINCIPLES #1.
+- Pre-existing, unrelated: `app/listing/[slug]/book/page.tsx` has a `cancellation` prop type error from the concurrent policies WIP — not touched here.
+- Migrations still need `supabase db push --linked` against the cloud project.
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 4/6) — public listing page SSOT cutover — branch `main`
 
 ### Changed
