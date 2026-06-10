@@ -5780,12 +5780,45 @@ export type Database = {
           },
         ]
       }
+      review_photos: {
+        Row: {
+          created_at: string
+          id: string
+          review_id: string
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          review_id: string
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          review_id?: string
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_photos_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       review_request_queue: {
         Row: {
           booking_id: string
           created_at: string
           guest_id: string
           id: string
+          send_at: string
           sent_at: string | null
         }
         Insert: {
@@ -5793,6 +5826,7 @@ export type Database = {
           created_at?: string
           guest_id: string
           id?: string
+          send_at?: string
           sent_at?: string | null
         }
         Update: {
@@ -5800,6 +5834,7 @@ export type Database = {
           created_at?: string
           guest_id?: string
           id?: string
+          send_at?: string
           sent_at?: string | null
         }
         Relationships: [
