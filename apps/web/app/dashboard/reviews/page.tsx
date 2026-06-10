@@ -179,7 +179,7 @@ export default async function ReviewsPage({
     .select(
       `
       id, rating, body, host_response, host_responded_at, flagged, created_at,
-      listing:listings ( id, name ),
+      listing:listings!reviews_listing_id_fkey ( id, name ),
       booking:bookings ( id, check_in, check_out, nights, guest_name ),
       guest:user_profiles!reviews_guest_id_fkey ( full_name ),
       photos:review_photos ( storage_path, sort_order )

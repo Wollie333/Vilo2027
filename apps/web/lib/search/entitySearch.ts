@@ -39,7 +39,9 @@ export async function searchEntities(rawQuery: string): Promise<SearchResult> {
       .limit(PER_KIND_LIMIT),
     supabase
       .from("reviews")
-      .select("id, body, rating, listing_id, listings(name)")
+      .select(
+        "id, body, rating, listing_id, listings!reviews_listing_id_fkey(name)",
+      )
       .ilike("body", ilike)
       .limit(PER_KIND_LIMIT),
     supabase

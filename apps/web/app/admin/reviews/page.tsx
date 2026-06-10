@@ -30,7 +30,7 @@ function base(service: ReturnType<typeof createAdminClient>) {
       `
       id, rating, body, flagged, flagged_reason, is_published, admin_decision,
       created_at, publish_at,
-      listing:listings ( name ),
+      listing:listings!reviews_listing_id_fkey ( name ),
       host:hosts ( handle, display_name ),
       guest:user_profiles!reviews_guest_id_fkey ( full_name, email ),
       booking:bookings ( guest_name ),
