@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Perf — instant navigation via loading.tsx skeletons — branch `main`
+
+### Built
+- `ContentSkeleton` (`app/_components/`) — shared loading skeleton for the padded content shell (title row, KPI cards, list rows).
+- `InboxSkeleton` (`components/inbox/`) — full-bleed two-pane chat skeleton for the inbox.
+- `loading.tsx` Suspense boundaries at each shell root: `/dashboard`, `/portal`, `/admin`, plus inbox-specific `/dashboard/inbox` and `/portal/inbox`.
+
+### Changed
+- Sidebar navigation now feels instant. Every logged-in page is `force-dynamic`, so each click was a blocking server roundtrip with no visual feedback until the server responded. The new `loading.tsx` boundaries render a skeleton the moment a link is clicked (and let Next prefetch the boundary on hover/viewport), so the app no longer feels delayed.
+
+### Notes
+- No functionality changed — purely perceived-performance. The shell (header + sidebar) stays mounted across navigation; only the content column swaps to a skeleton while data streams in.
+
 ## 2026-06-10 — Inbox — one chat design across host + guest (single source of truth) — branch `main`
 
 ### Built
