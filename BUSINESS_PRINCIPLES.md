@@ -137,8 +137,6 @@ breaks the entire value proposition.
 **Status:** Active
 **Technical ADR:** `AGENT_RULES.md` §4.7 / §4.8
 
-> _Draft from documented strategy — founder to confirm/refine wording._
-
 ### The principle
 
 When a guest pays for a booking, the money goes **directly to the host**, charged
