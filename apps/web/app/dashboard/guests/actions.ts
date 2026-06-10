@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { upsertHostContact } from "@/lib/guests/contacts";
 import {
   emailFromGkey,
   gkeyForEmail,
+  gkeyForGuest,
   guestIdFromGkey,
 } from "@/lib/guests/gkey";
 import { requireHost as getHost } from "@/lib/host/current";
@@ -67,26 +69,16 @@ async function ensureContact(
 
   if (!email) return null;
 
-  const { data: existing } = await supabase
-    .from("host_contacts")
-    .select("id, email, name, phone, tags, blocked")
-    .eq("host_id", hostId)
-    .ilike("email", email)
-    .maybeSingle();
-  if (existing) return existing as ContactRow;
-
-  const { data: inserted } = await supabase
-    .from("host_contacts")
-    .insert({
-      host_id: hostId,
-      guest_id: guestId,
-      email,
-      name,
-      phone,
-    })
-    .select("id, email, name, phone, tags, blocked")
-    .single();
-  return (inserted as ContactRow) ?? null;
+  // Lazy mint → fill-only (never clobber host-curated fields), deduped by email,
+  // guest_id back-filled. The one canonical contact writer.
+  const contact = await upsertHostContact(supabase, {
+    hostId,
+    email,
+    name,
+    phone,
+    guestId,
+  });
+  return (contact as ContactRow) ?? null;
 }
 
 // ── Marketing opt-out (POPIA: host may only ever turn it OFF) ───────────
@@ -237,42 +229,28 @@ export async function addGuestContactAction(
   }
   const v = parsed.data;
   const email = v.email.toLowerCase();
-  const gkey = gkeyForEmail(email);
   const supabase = createServerClient();
 
-  // Upsert by (host, email): updating an existing contact rather than erroring.
-  const { data: existing } = await supabase
-    .from("host_contacts")
-    .select("id")
-    .eq("host_id", host.hostId)
-    .ilike("email", email)
-    .maybeSingle();
-
-  const base = {
+  // Explicit host edit → find-or-update by email through the one canonical
+  // writer (dedupes on email, back-fills guest_id so the contact folds into the
+  // guest's account identity instead of spawning a duplicate directory card).
+  const contact = await upsertHostContact(supabase, {
+    hostId: host.hostId,
+    email,
     name: v.name,
     phone: v.phone || null,
     country: v.country || null,
     notes: v.notes || null,
-  };
+    // Write-once to TRUE — ticking grants consent; never revoked by a later edit.
+    emailConsent: v.email_consent || undefined,
+    mode: "overwrite",
+  });
+  if (!contact) return { ok: false, error: "Could not save the guest." };
 
-  if (existing) {
-    // email_consent is write-once to TRUE — ticking it can grant consent, but a
-    // later edit must never silently revoke it (POPIA provenance).
-    const update = v.email_consent ? { ...base, email_consent: true } : base;
-    const { error } = await supabase
-      .from("host_contacts")
-      .update(update)
-      .eq("id", existing.id);
-    if (error) return { ok: false, error: "Could not save the guest." };
-  } else {
-    const { error } = await supabase.from("host_contacts").insert({
-      host_id: host.hostId,
-      email,
-      ...base,
-      email_consent: v.email_consent ?? false,
-    });
-    if (error) return { ok: false, error: "Could not add the guest." };
-  }
+  // Canonical gkey: u_<id> once linked to an account, else e_<email>.
+  const gkey = contact.guest_id
+    ? gkeyForGuest(contact.guest_id)
+    : gkeyForEmail(email);
 
   revalidatePath("/dashboard/guests");
   return { ok: true, data: { gkey } };

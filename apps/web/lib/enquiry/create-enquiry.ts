@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { upsertHostContact } from "@/lib/guests/contacts";
 import type { StayPricingResult } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -216,29 +217,17 @@ export async function createEnquiry(
       .eq("id", guestId);
   }
 
-  // Upsert the host's contact row (manual find-then-write — the unique index is
-  // functional on lower(email), so PostgREST upsert can't target it directly).
-  if (contact) {
-    await admin
-      .from("host_contacts")
-      .update({
-        name: d.guest_name,
-        phone: d.guest_phone || null,
-        guest_id: guestId,
-        last_stage: "new_quote",
-        last_seen_at: new Date().toISOString(),
-      })
-      .eq("id", contact.id);
-  } else {
-    await admin.from("host_contacts").insert({
-      host_id: listing.host_id,
-      guest_id: guestId,
-      email: emailLc,
-      name: d.guest_name,
-      phone: d.guest_phone || null,
-      last_stage: "new_quote",
-    });
-  }
+  // Upsert the host's contact row through the one canonical writer (find-or-
+  // update by email, back-fill guest_id, never duplicate). Fill-only so a lead's
+  // enquiry can't clobber a name/phone the host already curated.
+  await upsertHostContact(admin, {
+    hostId: listing.host_id,
+    email: emailLc,
+    name: d.guest_name,
+    phone: d.guest_phone || null,
+    guestId,
+    lastStage: "new_quote",
+  });
 
   // Find-or-create the enquiry conversation.
   let conversationId: string;
