@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { upsertHostContact } from "@/lib/guests/contacts";
+import { isSelfRecipient } from "@/lib/host/self";
 import type { StayPricingResult } from "@/lib/pricing/quote";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -158,6 +159,20 @@ export async function createEnquiry(
     .eq("id", listing.host_id)
     .maybeSingle();
   if (!hostRow) return { ok: false, error: "Host unavailable." };
+
+  // A host can't enquire on their own listing (that would open a thread with
+  // themselves). Matched by email = the host's own account email.
+  if (
+    await isSelfRecipient({
+      userId: hostRow.user_id,
+      recipientEmail: emailLc,
+    })
+  ) {
+    return {
+      ok: false,
+      error: "You can't send an enquiry to your own listing.",
+    };
+  }
 
   // Light rate-limit: cap enquiries from one email to this host per hour so a
   // single visitor can't flood the host. Silently absorb extras.

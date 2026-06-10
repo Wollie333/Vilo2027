@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHostId } from "@/lib/host/current";
+import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -188,6 +189,15 @@ export async function createQuoteAction(
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
   }
 
+  if (
+    await isSelfRecipient({
+      userId: host.userId,
+      recipientEmail: parsed.data.guest_email,
+    })
+  ) {
+    return { ok: false, error: SELF_RECIPIENT_ERROR };
+  }
+
   const supabase = createServerClient();
 
   // Verify the listing belongs to this host (RLS will also enforce).
@@ -318,6 +328,15 @@ export async function updateQuoteAction(
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+
+  if (
+    await isSelfRecipient({
+      userId: own.userId,
+      recipientEmail: parsed.data.guest_email,
+    })
+  ) {
+    return { ok: false, error: SELF_RECIPIENT_ERROR };
   }
 
   const supabase = createServerClient();

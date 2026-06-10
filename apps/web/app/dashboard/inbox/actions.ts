@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 
 import { formatMoney } from "@/lib/format";
 import { requireHost as getHost } from "@/lib/host/current";
+import { SELF_RECIPIENT_ERROR } from "@/lib/host/self";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -170,6 +171,10 @@ export async function startGuestConversationAction(input: {
   if (text.length > 4000) return { ok: false, error: "Message is too long." };
   if (!input.guestId) {
     return { ok: false, error: "This contact has no account to message." };
+  }
+  // Never let a host open a thread with their own account.
+  if (input.guestId === host.userId) {
+    return { ok: false, error: SELF_RECIPIENT_ERROR };
   }
 
   const admin = createAdminClient();

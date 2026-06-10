@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { isSelfRecipient, SELF_RECIPIENT_ERROR } from "@/lib/host/self";
 import { recordBookingPayment } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -59,6 +60,17 @@ export async function createManualBookingAction(
     .eq("user_id", user.id)
     .maybeSingle();
   if (!host) return { ok: false, error: "No host profile." };
+
+  // A host can't book themselves — the guest is someone else.
+  if (
+    await isSelfRecipient({
+      userId: user.id,
+      selfEmail: user.email ?? null,
+      recipientEmail: data.guest_email,
+    })
+  ) {
+    return { ok: false, error: SELF_RECIPIENT_ERROR };
+  }
 
   const { data: listing } = await supabase
     .from("listings")
