@@ -5,6 +5,19 @@
 **Active focus:** **Harden each feature to 100% for MVP.** This session:
 the **Reviews** feature, end-to-end.
 
+## ✅ Done this session (2026-06-10) — Calendar: manage availability + book from it
+- **Wired the calendar's existing-but-unused block actions into the UI.** New
+  right-rail **Availability** panel (per listing for the selected day:
+  Open/Booked/Blocked) with one-tap **Block**, **Open up** (unblock) and **Book**
+  (deep-links the new-booking wizard with listing + check-in prefilled).
+- **Block dates** top-bar button → canonical `FormModal` to block/open a whole
+  range listing-wide (`setManualBlocksAction`); booked + quote-held nights left
+  untouched. Single-day toggle uses `toggleBlockedDateAction`.
+- **New-booking prefill** — `/dashboard/bookings/new` honours `?listing=&checkIn=&checkOut=`
+  (validated server-side); `ManualBookingForm` seeds listing/dates/picker month.
+- Help: `20260610170000_help_calendar_manage.sql` (`managing-your-calendar`).
+  `tsc` + `lint` green. Commits `73ae1f9`, `f95a48f`.
+
 ## ✅ Done this session (2026-06-10) — Inbox: one chat design (host = guest)
 - **Single source of truth for the inbox.** Extracted shared components in
   `components/inbox/` (`ConversationList`/`ConversationRow`, `ChatMessageWall`,

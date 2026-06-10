@@ -31,6 +31,28 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Calendar — manage availability + book from the calendar — branch `main`
+
+### Built
+- **Selected-day Availability panel** in the calendar right rail. Tap any date; per listing it shows **Open / Booked / Blocked** with one-tap actions: **Block** a night, **Open up** (unblock) a manual block, and **Book** — which deep-links the New booking wizard with that listing + check-in already filled in. Booked nights and pending-quote holds are read-only here.
+- **Block dates** button in the calendar top bar opens a canonical `FormModal` to block (or re-open) a whole date range listing-wide. Booked + quote-held nights inside the range are left untouched.
+- **New-booking deep-link prefill** — `/dashboard/bookings/new` now honours `?listing=`, `?checkIn=`, `?checkOut=` (validated server-side: listing must be the host's, dates ISO + checkOut > checkIn). The wizard seeds the listing, dates and date-picker month from them.
+
+### Changed
+- The calendar is no longer display-only — it now drives the existing `toggleBlockedDateAction` / `setManualBlocksAction` server actions (previously built but unwired). No change to the block/availability data model or RPCs.
+
+### Migrations
+- `20260610170000_help_calendar_manage.sql` — new host help article `managing-your-calendar` (category `bookings`), idempotent upsert.
+
+### Notes
+- `npx tsc --noEmit` clean; `pnpm lint` clean for the changed files (only pre-existing `<img>` warnings remain in unrelated reports components). `pnpm build` still fails before compilation on a Google Fonts fetch (`UNABLE_TO_VERIFY_LEAF_SIGNATURE`, network/TLS in this environment) — unrelated to these changes.
+
+### Commit
+- `feat(bookings): new-booking wizard accepts listing + date prefill` — `73ae1f9`
+- `feat(calendar): block/unblock days + quick-book from the rail, range-block modal` — `f95a48f`
+
+---
+
 ## 2026-06-10 — UI fix — Policies cards: stop title/subtitle overflowing the card — branch `main`
 
 ### Changed
