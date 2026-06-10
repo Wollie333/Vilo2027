@@ -80,26 +80,26 @@ export default async function BookingsListPage() {
   // exactly like the booking detail page does.
   const myHostId = await getMyHostId(supabase);
 
-  // Listing count powers the occupancy denominator + toolbar label.
-  let listingCount = 0;
-  if (myHostId) {
-    const { count } = await supabase
-      .from("listings")
-      .select("id", { count: "exact", head: true })
-      .eq("host_id", myHostId);
-    listingCount = count ?? 0;
-  }
-
-  const { data } = myHostId
-    ? await supabase
-        .from("bookings")
-        .select(
-          "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
-        )
-        .eq("host_id", myHostId)
-        .order("created_at", { ascending: false })
-        .limit(400)
-    : { data: [] };
+  // The listing count (occupancy denominator + toolbar label) and the
+  // bookings list both depend only on myHostId, so fetch them together
+  // instead of paying two sequential roundtrips.
+  const [{ count: listingCountRaw }, { data }] = myHostId
+    ? await Promise.all([
+        supabase
+          .from("listings")
+          .select("id", { count: "exact", head: true })
+          .eq("host_id", myHostId),
+        supabase
+          .from("bookings")
+          .select(
+            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+          )
+          .eq("host_id", myHostId)
+          .order("created_at", { ascending: false })
+          .limit(400),
+      ])
+    : [{ count: 0 }, { data: [] }];
+  const listingCount = listingCountRaw ?? 0;
 
   const raw = (data ?? []) as unknown as RawBooking[];
 

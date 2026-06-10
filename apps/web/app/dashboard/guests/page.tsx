@@ -83,46 +83,50 @@ export default async function GuestsPage({
   const minRating = rating ? Number.parseFloat(rating) : null;
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
 
-  const [summary, list, listingRows] = await Promise.all([
-    throwOnError(
-      supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
-      "dashboard/guests:summary",
-    ),
-    throwOnError(
-      supabase.rpc("fetch_host_guests", {
-        p_host_id: host.id,
-        p_segment: seg,
-        p_search: q || null,
-        p_listing_id: listingId || null,
-        p_channel: channel || null,
-        p_min_rating: minRating,
-        p_sort: sort,
-        p_limit: PAGE_SIZE,
-        p_offset: (page - 1) * PAGE_SIZE,
-      }),
-      "dashboard/guests:list",
-    ),
-    throwOnError(
+  // All four reads depend only on host.id (+ filters from the URL), so fetch
+  // them in one wave instead of awaiting the accepted-quotes query separately.
+  const [summary, list, listingRows, { data: acceptedRows }] =
+    await Promise.all([
+      throwOnError(
+        supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
+        "dashboard/guests:summary",
+      ),
+      throwOnError(
+        supabase.rpc("fetch_host_guests", {
+          p_host_id: host.id,
+          p_segment: seg,
+          p_search: q || null,
+          p_listing_id: listingId || null,
+          p_channel: channel || null,
+          p_min_rating: minRating,
+          p_sort: sort,
+          p_limit: PAGE_SIZE,
+          p_offset: (page - 1) * PAGE_SIZE,
+        }),
+        "dashboard/guests:list",
+      ),
+      throwOnError(
+        supabase
+          .from("listings")
+          .select("id, name")
+          .eq("host_id", host.id)
+          .is("deleted_at", null)
+          .order("name"),
+        "dashboard/guests:listings",
+      ),
+      // Accepted-but-not-converted quotes → pulsing "Quote accepted" pill on
+      // the matching guest row (keyed by the same gkey scheme the directory
+      // uses).
       supabase
-        .from("listings")
-        .select("id, name")
+        .from("quotes")
+        .select("id, guest_id, guest_email, total_amount, currency")
         .eq("host_id", host.id)
-        .is("deleted_at", null)
-        .order("name"),
-      "dashboard/guests:listings",
-    ),
-  ]);
+        .eq("status", "accepted")
+        .is("deleted_at", null),
+    ]);
 
   const listObj = (list ?? {}) as { guests?: GuestRow[]; total_count?: number };
 
-  // Accepted-but-not-converted quotes → pulsing "Quote accepted" pill on the
-  // matching guest row (keyed by the same gkey scheme the directory uses).
-  const { data: acceptedRows } = await supabase
-    .from("quotes")
-    .select("id, guest_id, guest_email, total_amount, currency")
-    .eq("host_id", host.id)
-    .eq("status", "accepted")
-    .is("deleted_at", null);
   const acceptedQuotes: Record<string, AcceptedQuoteLite> = {};
   for (const q of acceptedRows ?? []) {
     const gkey = gkeyFor(q.guest_id, q.guest_email);

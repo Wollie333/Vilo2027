@@ -65,22 +65,28 @@ export default async function DashboardPage({
   searchParams?: { welcome?: string };
 }) {
   const supabase = createServerClient();
-  const brandName = await getBrandName();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Brand name doesn't depend on the user, so resolve it alongside auth.
+  const [
+    brandName,
+    {
+      data: { user },
+    },
+  ] = await Promise.all([getBrandName(), supabase.auth.getUser()]);
 
-  const { data: host } = await supabase
-    .from("hosts")
-    .select("id, handle, display_name, avg_rating, total_reviews")
-    .eq("user_id", user!.id)
-    .maybeSingle();
+  // The host row and the getting-started state both depend only on user.id
+  // and are independent of each other — fetch them in one wave.
+  const [{ data: host }, setupState] = await Promise.all([
+    supabase
+      .from("hosts")
+      .select("id, handle, display_name, avg_rating, total_reviews")
+      .eq("user_id", user!.id)
+      .maybeSingle(),
+    fetchGettingStartedState(user!.id).catch(() => null),
+  ]);
 
   const firstName = host
     ? host.display_name.split(" ")[0]
     : (user?.email ?? "").split("@")[0];
-
-  const setupState = await fetchGettingStartedState(user!.id).catch(() => null);
   const setupSteps = setupState ? buildSetupSteps(setupState) : [];
   const setupComplete =
     !!host &&

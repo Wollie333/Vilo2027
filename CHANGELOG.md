@@ -46,6 +46,16 @@ Copy this template and fill it in at the end of every session:
 - ~70% of the machinery already exists (the passwordless-lead pattern in `create-enquiry.ts:184-217`, `is_lead`, `gkey`, `/claim`). The work is making it universal, not net-new.
 - Founder-directed architecture; not a violation of the pre-MVP feature freeze.
 
+## 2026-06-10 — Perf — parallelize sequential page queries — branch `main`
+
+### Changed
+- `dashboard/page.tsx` (Overview): `getBrandName` now runs alongside `auth.getUser` (it doesn't need the user), and the `hosts` row + `fetchGettingStartedState` (both depend only on `user.id`) run in one wave instead of two sequential awaits.
+- `dashboard/bookings/page.tsx`: the listing count and the bookings list (both depend only on `myHostId`) now run in a single `Promise.all` instead of two sequential roundtrips.
+- `dashboard/guests/page.tsx`: the accepted-quotes query (previously awaited after the main `Promise.all`) is folded into that wave — all four reads now fire together.
+
+### Notes
+- Pure latency reduction on the three highest-traffic host pages; no behaviour or query results changed. The data now arrives faster behind the loading skeletons added in the previous entry.
+
 ## 2026-06-10 — Perf — instant navigation via loading.tsx skeletons — branch `main`
 
 ### Built
