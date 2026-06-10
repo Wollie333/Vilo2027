@@ -35,7 +35,7 @@ export default async function ListingExtrasPage() {
   // portfolio private — never remove it. (Same fix as rooms/listings/seasonal.)
   const { data: listingsRaw } = await supabase
     .from("listings")
-    .select("id, name")
+    .select("id, name, latitude, longitude")
     .eq("host_id", host.id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
@@ -43,6 +43,7 @@ export default async function ListingExtrasPage() {
   const listings: ExtrasListing[] = (listingsRaw ?? []).map((l) => ({
     id: l.id,
     name: l.name,
+    hasLocation: l.latitude != null && l.longitude != null,
   }));
 
   const listingIds = listings.map((l) => l.id);

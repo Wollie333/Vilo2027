@@ -1,17 +1,26 @@
 "use client";
 
-import { MapPin, Plus, Sparkles, Trash2 } from "lucide-react";
+import { MapPin, Plus, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
+
+import {
   createPoiAction,
+  createPoisBatchAction,
   createThemeAction,
   deletePoiAction,
   deleteThemeAction,
+  suggestNearbyPlacesAction,
 } from "./actions";
+import type { NearbyCandidate, PoiCategory } from "./overpass";
 
-export type ExtrasListing = { id: string; name: string };
+export type ExtrasListing = { id: string; name: string; hasLocation: boolean };
 export type PoiItem = {
   id: string;
   listingId: string;
@@ -58,6 +67,10 @@ export function ExtrasManager({
   const [pois, setPois] = useState(initialPois);
   const [themes, setThemes] = useState(initialThemes);
 
+  const currentListing = useMemo(
+    () => listings.find((l) => l.id === listingId),
+    [listings, listingId],
+  );
   const listingPois = useMemo(
     () => pois.filter((p) => p.listingId === listingId),
     [pois, listingId],
@@ -97,6 +110,12 @@ export function ExtrasManager({
           Nearby spots shown in the guest&rsquo;s Location section, grouped by
           Eat / Do / Travel.
         </p>
+
+        <SuggestNearby
+          listingId={listingId}
+          hasLocation={currentListing?.hasLocation ?? false}
+          onAdded={(added) => setPois((prev) => [...prev, ...added])}
+        />
 
         <PoiAdder
           listingId={listingId}
@@ -354,6 +373,196 @@ function ThemeAdder({
         <Plus className="h-4 w-4" /> Add
       </button>
     </div>
+  );
+}
+
+// Editable selection state for one suggested place.
+type Pick = NearbyCandidate & { checked: boolean };
+
+const CATEGORY_LABELS: Record<PoiCategory, string> = {
+  eat: "Eat",
+  do: "Do",
+  travel: "Travel",
+};
+
+function SuggestNearby({
+  listingId,
+  hasLocation,
+  onAdded,
+}: {
+  listingId: string;
+  hasLocation: boolean;
+  onAdded: (added: PoiItem[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, start] = useTransition();
+  const [saving, startSave] = useTransition();
+  const [picks, setPicks] = useState<Pick[]>([]);
+
+  function loadSuggestions() {
+    if (!hasLocation) {
+      toast.error("Add this listing's location first, then try again.");
+      return;
+    }
+    start(async () => {
+      const r = await suggestNearbyPlacesAction(listingId);
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      const flat: Pick[] = [...r.data.eat, ...r.data.do, ...r.data.travel].map(
+        (c) => ({ ...c, checked: false }),
+      );
+      setPicks(flat);
+      setOpen(true);
+    });
+  }
+
+  function update(index: number, patch: Partial<Pick>) {
+    setPicks((prev) =>
+      prev.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+    );
+  }
+
+  function addSelected() {
+    const chosen = picks.filter((p) => p.checked);
+    if (chosen.length === 0) {
+      toast.error("Tick at least one place.");
+      return;
+    }
+    startSave(async () => {
+      const r = await createPoisBatchAction({
+        listing_id: listingId,
+        items: chosen.map((c) => ({
+          category: c.category,
+          name: c.name,
+          travel_time: c.travelTime.trim() || null,
+        })),
+      });
+      if (!r.ok) {
+        toast.error(r.error);
+        return;
+      }
+      // Match returned ids back to the chosen rows by name to rebuild PoiItems.
+      const byName = new Map(chosen.map((c) => [c.name, c]));
+      const added: PoiItem[] = r.data.map((row) => {
+        const c = byName.get(row.name);
+        return {
+          id: row.id,
+          listingId,
+          category: c?.category ?? "do",
+          name: row.name,
+          travelTime: c?.travelTime.trim() || null,
+        };
+      });
+      onAdded(added);
+      setOpen(false);
+      toast.success(
+        `Added ${added.length} place${added.length === 1 ? "" : "s"}.`,
+      );
+    });
+  }
+
+  const grouped = useMemo(() => {
+    const g: Record<PoiCategory, { pick: Pick; index: number }[]> = {
+      eat: [],
+      do: [],
+      travel: [],
+    };
+    picks.forEach((pick, index) => g[pick.category].push({ pick, index }));
+    return g;
+  }, [picks]);
+
+  const selectedCount = picks.filter((p) => p.checked).length;
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={loading}
+        onClick={loadSuggestions}
+        className="mt-4 inline-flex items-center gap-1.5 rounded border border-brand-primary px-3 py-2 text-sm font-medium text-brand-primary hover:bg-brand-accent disabled:opacity-60"
+      >
+        <Wand2 className="h-4 w-4" />
+        {loading ? "Finding nearby places…" : "Suggest nearby places"}
+      </button>
+
+      <FormModal
+        open={open}
+        onOpenChange={setOpen}
+        size="lg"
+        title="Nearby places"
+        description="From OpenStreetMap, around this listing. Tick the ones to show — times are estimates you can edit."
+      >
+        {picks.length === 0 ? (
+          <p className="text-sm text-brand-mute">
+            No nearby places found from OpenStreetMap — add them manually below.
+          </p>
+        ) : (
+          <div className="space-y-5">
+            {(Object.keys(grouped) as PoiCategory[]).map((cat) => {
+              const rows = grouped[cat];
+              if (rows.length === 0) return null;
+              return (
+                <div key={cat}>
+                  <div className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
+                    {CATEGORY_LABELS[cat]}
+                  </div>
+                  <ul className="mt-2 space-y-1.5">
+                    {rows.map(({ pick, index }) => (
+                      <li
+                        key={`${pick.category}-${pick.name}`}
+                        className="flex items-center gap-3 rounded border border-brand-line p-2.5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={pick.checked}
+                          onChange={(e) =>
+                            update(index, { checked: e.target.checked })
+                          }
+                          className="h-4 w-4 shrink-0 accent-brand-primary"
+                        />
+                        <span className="min-w-0 flex-1 truncate text-sm text-brand-ink">
+                          {pick.name}
+                          <span className="ml-2 font-mono text-xs text-brand-mute">
+                            {pick.distanceKm.toFixed(1)} km
+                          </span>
+                        </span>
+                        <input
+                          value={pick.travelTime}
+                          onChange={(e) =>
+                            update(index, { travelTime: e.target.value })
+                          }
+                          aria-label={`Travel time for ${pick.name}`}
+                          className="w-24 shrink-0 rounded border border-brand-line bg-white px-2 py-1 text-sm outline-none focus:border-brand-primary"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <FormModalFooter>
+          <FormModalCancel disabled={saving}>Cancel</FormModalCancel>
+          <button
+            type="button"
+            disabled={saving || selectedCount === 0}
+            onClick={addSelected}
+            className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary disabled:opacity-60"
+          >
+            <Plus className="h-4 w-4" />
+            {saving
+              ? "Adding…"
+              : selectedCount > 0
+                ? `Add selected (${selectedCount})`
+                : "Add selected"}
+          </button>
+        </FormModalFooter>
+      </FormModal>
+    </>
   );
 }
 

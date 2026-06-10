@@ -31,6 +31,39 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Listing extras — auto-suggest nearby places (OpenStreetMap) — branch `main`
+
+### Built
+- **"Suggest nearby places" on Listing extras.** Hosts no longer have to type
+  every "Where you'll be" spot by hand. A new button uses the listing's saved
+  coordinates to query the free, keyless **OpenStreetMap Overpass API** for real
+  places around it, buckets them into Eat / Do / Travel, and shows them in a
+  picker (canonical `FormModal`) with checkboxes and editable travel times. The
+  host ticks what to show and they're batch-inserted into
+  `listing_points_of_interest`. The manual "Add" form stays untouched.
+- Travel time is an estimate from straight-line (haversine) distance
+  (~40 km/h), always editable. Suggestions skip places already added and are
+  capped per category and sorted by distance.
+
+### Changed
+- `listing-extras` Help Centre article updated to document the new button.
+
+### Migrations
+- `20260610140001_help_listing_extras_suggest_nearby.sql` (help article only — no schema change)
+
+### Notes
+- Overpass is called server-side in `suggestNearbyPlacesAction` (8s timeout,
+  graceful failure → toast, manual flow remains). OSM coverage is thinner in
+  small/rural towns; that's expected and the manual add covers the gap.
+- New files: `apps/web/app/dashboard/listing-extras/overpass.ts` (pure helpers).
+  Batch insert via `createPoisBatchAction` reuses the same insert path/RLS as
+  `createPoiAction`.
+
+### Commit
+- pending
+
+---
+
 ## 2026-06-10 — Fixes — booking party manifest + guest record hero — branch `main`
 
 ### Fixed
