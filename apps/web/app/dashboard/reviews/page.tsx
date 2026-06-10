@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import {
+  AlertTriangle,
   Clock,
   Hourglass,
   Lightbulb,
@@ -197,7 +198,10 @@ export default async function ReviewsPage({
   if (listingFilter) feedQuery = feedQuery.eq("listing_id", listingFilter);
   if (ratingFilter) feedQuery = feedQuery.eq("rating", ratingFilter);
 
-  const { data: feedRaw } = await feedQuery;
+  // If the feed query itself errors (e.g. a schema change makes an embed
+  // ambiguous), surface it visibly rather than silently rendering an empty
+  // list — an empty feed should only ever mean "no reviews match".
+  const { data: feedRaw, error: feedError } = await feedQuery;
 
   type Row = {
     id: string;
@@ -479,7 +483,26 @@ export default async function ReviewsPage({
           <section className="grid gap-6 xl:grid-cols-[1fr_320px]">
             {/* Feed */}
             <div className="space-y-4">
-              {reviews.length === 0 ? (
+              {feedError ? (
+                <div className="rounded-card border border-status-cancelled/30 bg-status-cancelled/5 p-10 text-center shadow-card">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-status-cancelled/10 text-status-cancelled">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <h2 className="font-display text-lg font-bold text-brand-ink">
+                    Couldn&apos;t load your reviews
+                  </h2>
+                  <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
+                    Something went wrong fetching this list
+                    {allTotal > 0
+                      ? ` — you have ${allTotal} ${allTotal === 1 ? "review" : "reviews"} that aren't showing.`
+                      : "."}{" "}
+                    Please refresh; if it persists, contact support.
+                  </p>
+                  <p className="mx-auto mt-3 max-w-md font-mono text-[11px] text-brand-mute/70">
+                    {feedError.code ?? "error"}
+                  </p>
+                </div>
+              ) : reviews.length === 0 ? (
                 <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
                   <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
                     <StarIcon className="h-6 w-6" />
