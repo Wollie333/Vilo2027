@@ -31,6 +31,40 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Guests — party follow-ups: materialise on create, Bookings tab, start-thread — branch `main`
+
+### Built
+- **Bookings tab on the guest record** — the guest's full reservation history
+  (current + historical, newest first) with listing, dates, totals, balance-due,
+  status, each linking to the booking. (Data was already loaded; gave it a home.)
+- **Start a message thread from the guest record** — the hero *Message* button
+  now opens the Messages tab, where the host can compose the first message to a
+  registered guest (`conversations.listing_id` is nullable, so no listing context
+  is needed). Email-only contacts still have no in-app thread by design.
+
+### Changed
+- **Party guests now materialise on booking *creation*, not only on confirmation**
+  (and on any party/status change). The lead booker already shows in Guests the
+  moment a booking exists, so party members do too now — including on pending/EFT
+  bookings. Earlier "on confirmation" choice reversed after real usage showed a
+  pending guest's party member stayed invisible.
+
+### Migrations
+- `20260610150002_party_materialise_on_create.sql` — broaden the trigger to
+  `AFTER INSERT OR UPDATE OF status, additional_guests` + one-time backfill of
+  existing non-cancelled bookings (idempotent via the same SQL function).
+
+### Notes
+- Verified against the live DB with `scripts/verify-party-guests.mjs`: the one
+  existing party booking (pending EFT) now has its member as a contact + a
+  two-row relationship.
+
+### Commit
+- `fix(guests): materialise party on booking creation, not just confirmation` — `00ee780`
+- `feat(guests): bookings tab on the guest record + start thread from record` — `7501650`
+
+---
+
 ## 2026-06-10 — Reviews/Guests — party guests become guest records + relationships — branch `main`
 
 ### Built
@@ -61,9 +95,9 @@ Copy this template and fill it in at the end of every session:
 - `20260610150001_help_party_guests.sql` — Help Centre article.
 
 ### Notes
-- Materialisation is single-source: the confirm trigger and the app (lazy
-  fallback on the booking record + Add-guest) both call the same SQL function.
-  Only confirmed+ bookings materialise (never abandoned/unpaid).
+- Materialisation is single-source: the trigger and the app (lazy fallback on the
+  booking record + Add-guest) both call the same SQL function. (Gating later
+  widened from confirmed-only to on-create — see the follow-up entry above.)
 - Relationships are fetched with two plain queries (the relation has two FKs to
   `host_contacts`, which would make a PostgREST embed ambiguous).
 
