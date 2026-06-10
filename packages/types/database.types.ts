@@ -1937,6 +1937,62 @@ export type Database = {
           },
         ]
       }
+      guest_relationships: {
+        Row: {
+          contact_id: string
+          created_at: string
+          host_id: string
+          id: string
+          related_contact_id: string
+          source_booking_id: string | null
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          host_id: string
+          id?: string
+          related_contact_id: string
+          source_booking_id?: string | null
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          host_id?: string
+          id?: string
+          related_contact_id?: string
+          source_booking_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_relationships_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "host_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_relationships_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_relationships_related_contact_id_fkey"
+            columns: ["related_contact_id"]
+            isOneToOne: false
+            referencedRelation: "host_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_relationships_source_booking_id_fkey"
+            columns: ["source_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_article_feedback: {
         Row: {
           article_id: string
@@ -6593,6 +6649,10 @@ export type Database = {
           total_stays: number
         }[]
       }
+      _materialize_booking_party: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -7106,6 +7166,10 @@ export type Database = {
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
       mark_delivery_read: { Args: { p_log_id: string }; Returns: undefined }
+      materialize_booking_party: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
       next_credit_note_number: { Args: { p_host_id: string }; Returns: string }
       next_invoice_number: { Args: { p_host_id: string }; Returns: string }
       next_quote_number: { Args: { p_host_id: string }; Returns: string }
