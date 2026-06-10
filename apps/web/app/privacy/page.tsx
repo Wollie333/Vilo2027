@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
+import { getLegalDocument } from "@/lib/legal";
 
 import {
   LegalPage,
   type LegalSectionData,
 } from "../_components/legal/LegalPage";
+
+export const dynamic = "force-dynamic";
 
 // Swap the placeholder brand/company tokens for the configured values so the
 // legal text reflects the real entity once it's set. Replace the full legal
@@ -82,14 +85,16 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
 ];
 
 export default async function PrivacyPage() {
-  const [companyName, brand] = await Promise.all([
+  const [companyName, brand, doc] = await Promise.all([
     getCompanyLegalName(),
     getBrandName(),
+    getLegalDocument("privacy"),
   ]);
   return (
     <LegalPage
       title="Privacy Policy"
       lastUpdated={LAST_UPDATED}
+      bodyHtml={doc.html}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />
   );

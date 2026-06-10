@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 
 import { getBrandName, getCompanyLegalName } from "@/lib/brand";
+import { getLegalDocument } from "@/lib/legal";
 
 import {
   LegalPage,
   type LegalSectionData,
 } from "../_components/legal/LegalPage";
+
+export const dynamic = "force-dynamic";
 
 // Swap the placeholder brand/company tokens for the configured values. Replace
 // the full legal name first (it contains the brand word), then brand mentions.
@@ -97,14 +100,18 @@ const SECTIONS: ReadonlyArray<LegalSectionData> = [
 ];
 
 export default async function TermsPage() {
-  const [companyName, brand] = await Promise.all([
+  const [companyName, brand, doc] = await Promise.all([
     getCompanyLegalName(),
     getBrandName(),
+    getLegalDocument("booking_terms"),
   ]);
+  // When Vilo has published custom terms (Admin → Platform settings → Legal),
+  // render that; otherwise fall back to the built-in structural draft.
   return (
     <LegalPage
       title="Terms of Service"
       lastUpdated={LAST_UPDATED}
+      bodyHtml={doc.html}
       sections={applyIdentity(SECTIONS, companyName, brand)}
     />
   );

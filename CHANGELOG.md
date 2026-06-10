@@ -31,6 +31,28 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 3/6) — terms & privacy go platform-wide — branch `main`
+
+### Fixed
+- 🔴 **Every new booking's policy snapshot was failing** (`min(uuid) does not exist`). The Phase-1 snapshot rewrite derived a single-room booking's room via `min(room_id)`, but room_id is uuid and Postgres has no `min(uuid)` — the function threw at plan time, and since the booking-create call is best-effort the booking got NO cancellation snapshot → 0% refund. Pre-existing bookings were unaffected. Fixed by counting then selecting the lone room id (`20260610180006`), plus a heal-backfill. Caught by `verify-policy-resolver.mjs`.
+
+### Changed
+- **Booking terms + privacy (POPIA) are now platform-wide, Vilo-authored** — not per-host policies (founder decision):
+  - Removed both types from the host Policies UI (`POLICY_TYPES`, the "Terms & privacy" filter bucket, the create menu, the library query). Existing per-host legal policies retired (soft-deleted) and their listing assignments removed (`20260610180004`).
+  - Resolver + snapshot + public summary scoped to the three host-controlled types (cancellation, check-in/out, house rules). `ensure_host_legal_presets` is now a no-op.
+  - New `platform_settings` keys `legal_booking_terms` / `legal_privacy` hold a versioned `{html, version}` blob; `bookings.accepted_terms_version` / `accepted_privacy_version` record what each guest accepted.
+  - **Admin → Platform settings → Legal**: super-admin editor (`LegalDocsForm` + `saveLegalDocAction`, audited) — publishing bumps the version. Public `/terms` and `/privacy` render the published HTML when set, else fall back to the built-in static copy.
+  - `lib/legal.ts` read helper; `LegalPage` shell gained a `bodyHtml` mode.
+
+### Built
+- Help article `booking-terms-and-privacy` (RULES §9) explaining hosts control refunds/check-in/house-rules while terms & privacy are platform-managed.
+
+### Notes
+- `tsc --noEmit` clean app-wide (0 errors). Resolver verifier fully green (4/4 bookings snapshotted).
+- Types regenerated.
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 2/6) — guaranteed coverage + summary fix — branch `main`
 
 ### Fixed

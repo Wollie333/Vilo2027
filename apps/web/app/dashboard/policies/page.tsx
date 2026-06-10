@@ -43,12 +43,9 @@ export default async function PoliciesPage() {
     );
   }
 
-  // Materialise the locked refund presets + the editable legal starters
-  // (booking terms + POPIA) for this host. Both idempotent.
-  await Promise.all([
-    supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id }),
-    supabase.rpc("ensure_host_legal_presets", { p_host_id: host.id }),
-  ]);
+  // Materialise the locked refund presets for this host (idempotent). Booking
+  // terms + privacy are platform-wide (Vilo-authored) — no per-host legal seed.
+  await supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id });
   // Guarantee a default per type exists (cancellation prefers the Moderate
   // preset) so every listing without an explicit assignment still resolves a
   // policy — and refunds are enforceable. Idempotent.
@@ -62,6 +59,7 @@ export default async function PoliciesPage() {
     .eq("host_id", host.id)
     .is("deleted_at", null)
     .in("status", ["active", "draft"])
+    .in("type", ["cancellation", "check_in_out", "house_rules"])
     .order("type", { ascending: true })
     .order("created_at", { ascending: true });
 

@@ -680,6 +680,8 @@ export type Database = {
       }
       bookings: {
         Row: {
+          accepted_privacy_version: number | null
+          accepted_terms_version: number | null
           access_card_sent_at: string | null
           actioned_by: string | null
           additional_guests: Json
@@ -740,6 +742,8 @@ export type Database = {
           vat_rate: number
         }
         Insert: {
+          accepted_privacy_version?: number | null
+          accepted_terms_version?: number | null
           access_card_sent_at?: string | null
           actioned_by?: string | null
           additional_guests?: Json
@@ -800,6 +804,8 @@ export type Database = {
           vat_rate?: number
         }
         Update: {
+          accepted_privacy_version?: number | null
+          accepted_terms_version?: number | null
           access_card_sent_at?: string | null
           actioned_by?: string | null
           additional_guests?: Json

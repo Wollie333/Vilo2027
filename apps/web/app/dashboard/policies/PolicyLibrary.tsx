@@ -106,12 +106,13 @@ function bucketOf(type: PolicyType): Exclude<FilterKey, "all"> {
   return type === "booking_terms" || type === "privacy" ? "legal" : type;
 }
 
+// Booking terms + privacy are platform-wide (Vilo-authored), so there is no
+// "Terms & privacy" bucket here — hosts only manage these three types.
 const FILTERS: { key: FilterKey; label: string; icon: LucideIcon | null }[] = [
   { key: "all", label: "All", icon: null },
   { key: "cancellation", label: "Cancellation", icon: RotateCcw },
   { key: "house_rules", label: "House rules", icon: Home },
   { key: "check_in_out", label: "Check-in & out", icon: Clock },
-  { key: "legal", label: "Terms & privacy", icon: Gavel },
 ];
 
 const TYPE_META: Record<
