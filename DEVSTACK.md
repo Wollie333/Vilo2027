@@ -256,7 +256,7 @@ Run these from the repo root after cloning.
 pnpm add @supabase/supabase-js @supabase/ssr
 pnpm add lucide-react @radix-ui/react-slider clsx tailwind-merge class-variance-authority
 pnpm add @paypal/react-paypal-js
-pnpm add mapbox-gl react-map-gl
+pnpm add leaflet @types/leaflet
 pnpm add react-hook-form @hookform/resolvers zod
 pnpm add zustand @tanstack/react-query
 pnpm add date-fns react-big-calendar

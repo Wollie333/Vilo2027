@@ -29,7 +29,7 @@ Vilo is a **monorepo** containing a Next.js web app, an Expo React Native mobile
 │              EXTERNAL SERVICES                          │
 │  Paystack API  ┃  PayPal API  ┃  Resend (email)         │
 │  Expo Push     ┃  Sentry      ┃  PostHog                │
-│  Google OAuth  ┃  Mapbox      ┃  Doppler (secrets)      │
+│  Google OAuth  ┃  OSM tiles   ┃  Doppler (secrets)      │
 └─────────────────────────────────────────────────────────┘
 ```
 

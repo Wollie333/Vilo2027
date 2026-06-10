@@ -141,7 +141,7 @@ All Supabase Edge Functions return errors in this format:
 |---|---|---|
 | `SEARCH_QUERY_TOO_SHORT` | 400 | Search query is less than 2 characters |
 | `INVALID_COORDINATES` | 400 | Latitude or longitude values are out of valid range |
-| `GEOCODING_FAILED` | 502 | Mapbox geocoding API returned an error |
+| `GEOCODING_FAILED` | 502 | Geocoding provider (Photon/Nominatim) returned an error |
 
 ---
 
@@ -176,7 +176,7 @@ All Supabase Edge Functions return errors in this format:
 |---|---|---|
 | `INTERNAL_ERROR` | 500 | Unexpected server error — full error logged to Sentry |
 | `DATABASE_ERROR` | 500 | Supabase/PostgreSQL returned an unexpected error |
-| `EXTERNAL_SERVICE_ERROR` | 502 | Third-party API (Resend, Paystack, PayPal, Mapbox) returned an error |
+| `EXTERNAL_SERVICE_ERROR` | 502 | Third-party API (Resend, Paystack, PayPal) returned an error |
 | `RATE_LIMIT_EXCEEDED` | 429 | Too many requests from this IP (public endpoints: 60 req/min) |
 
 ---

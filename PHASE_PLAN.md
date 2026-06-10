@@ -183,7 +183,7 @@ Never silently edit another track's owned paths.
 
 ### Next.js Web App
 - ✅ Bootstrap with `create-next-app` (TypeScript, Tailwind, App Router)
-- ✅ Install web dependencies (core set — Mapbox/Tiptap/etc. installed when first needed)
+- ✅ Install web dependencies (core set — Leaflet/Tiptap/etc. installed when first needed)
 - ✅ Configure `tailwind.config.ts` with Vilo brand tokens
 - ✅ Initialise shadcn/ui (`components.json` + `lib/utils.ts` written; component installs ongoing)
 - ✅ Add shadcn/ui components — 18 installed (button, input, card, label, badge, skeleton, form, dialog, sonner, separator, avatar, alert, tabs, select, checkbox, textarea, dropdown-menu, sheet)
@@ -252,7 +252,7 @@ Never silently edit another track's owned paths.
 ### Listing Editor (Accommodation — Basic)
 - ⬜ Basic info tab (name, type, description with Tiptap)
 - ⬜ Photos tab (drag-and-drop upload → Supabase Storage)
-- ⬜ Location tab (address + Mapbox pin)
+- ⬜ Location tab (address + keyless OpenStreetMap pin)
 - ⬜ Rooms & capacity tab
 - ⬜ Amenities tab
 - ⬜ Pricing tab (base rate, weekend rate, cleaning fee)
@@ -276,7 +276,7 @@ Never silently edit another track's owned paths.
 ### Vilo Directory
 - ⬜ `/explore` search page (full-text + filters + sort)
 - ⬜ Directory listing card component
-- ⬜ Map view (web: Mapbox GL JS + `react-map-gl`)
+- ⬜ Map view (web: Leaflet + OpenStreetMap, keyless)
 - ⬜ Filters panel (type, dates, guests, price, amenities, instant book)
 - ⬜ `directory-search` Edge Function
 - ⬜ `directory-featured` Edge Function

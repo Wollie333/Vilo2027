@@ -897,7 +897,7 @@ Steps 1–5 are identical to JH-01.
 
 **Step 3 — Location Tab**
 - She types the street address.
-- A map auto-centres on the address (Mapbox API).
+- A map auto-centres on the address (keyless OpenStreetMap / Leaflet).
 - She drags the pin to the exact location.
 - Coordinates (lat/long) stored in `listings.address` jsonb.
 - **Exact address is private** — only shown to guests with confirmed bookings. Directory shows city/area only.

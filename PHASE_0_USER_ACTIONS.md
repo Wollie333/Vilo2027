@@ -43,7 +43,7 @@ For each: dashboard → Storage → "New bucket" → name + Public/Private toggl
 1. Sign up at **doppler.com** (free for individuals).
 2. Create project `vilo`.
 3. Add three configs: `dev`, `staging`, `production`.
-4. Populate each config with the variables in `ENV_VARS.md` (Supabase URL/keys, Paystack, PayPal, Resend, Mapbox, Sentry, PostHog, etc.).
+4. Populate each config with the variables in `ENV_VARS.md` (Supabase URL/keys, Paystack, PayPal, Resend, Sentry, PostHog, etc.).
 5. Doppler → Integrations:
    - **GitHub** — sync to repo secrets for the workflows.
    - **Vercel** — sync to Vercel env vars.
