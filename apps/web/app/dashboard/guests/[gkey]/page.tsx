@@ -151,9 +151,11 @@ export default async function GuestRecordPage({
     (listingRows ?? []).map((l) => [l.id, l.name]),
   );
 
-  // Reviews this (registered) guest has left.
+  // Reviews this guest has left — matched by their bookings (not guest_id), so
+  // account-less manual guests' reviews show too.
+  const guestBookingIds = bookings.map((b) => b.id);
   let reviews: ReviewItem[] = [];
-  if (guestId) {
+  if (guestBookingIds.length > 0) {
     const { data: rv } = await supabase
       .from("reviews")
       .select(
@@ -163,7 +165,7 @@ export default async function GuestRecordPage({
          photos:review_photos ( storage_path, sort_order )`,
       )
       .eq("host_id", host.id)
-      .eq("guest_id", guestId)
+      .in("booking_id", guestBookingIds)
       .order("created_at", { ascending: false });
     reviews = (rv ?? []).map((r) => {
       const booking = Array.isArray(r.booking) ? r.booking[0] : r.booking;
@@ -186,11 +188,16 @@ export default async function GuestRecordPage({
     });
   }
 
-  // Qualifying stays this guest can still be asked to review (none for an
-  // email-only contact — reviews need an account).
-  const requestableReviews: RequestableReview[] = guestId
-    ? await fetchRequestableReviews(supabase, { hostId: host.id, guestId })
-    : [];
+  // Qualifying stays this guest can still be asked to review — matched by their
+  // account and/or email, so account-less manual guests are included.
+  const requestableReviews: RequestableReview[] =
+    guestId || record.email
+      ? await fetchRequestableReviews(supabase, {
+          hostId: host.id,
+          guestId,
+          guestEmail: record.email,
+        })
+      : [];
 
   // Finances — every money event for this guest, normalised from the ONE
   // transaction source so the Finances tab, the account-wide Ledger and the

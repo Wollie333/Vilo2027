@@ -33,6 +33,7 @@ function base(service: ReturnType<typeof createAdminClient>) {
       listing:listings ( name ),
       host:hosts ( handle, display_name ),
       guest:user_profiles!reviews_guest_id_fkey ( full_name, email ),
+      booking:bookings ( guest_name ),
       photos:review_photos ( storage_path, sort_order )
     `,
       { count: "exact" },
@@ -93,6 +94,10 @@ export default async function AdminReviewsPage({
       | { full_name: string | null; email: string | null }
       | { full_name: string | null; email: string | null }[]
       | null;
+    booking:
+      | { guest_name: string | null }
+      | { guest_name: string | null }[]
+      | null;
     photos: { storage_path: string; sort_order: number }[] | null;
   };
 
@@ -136,6 +141,9 @@ export default async function AdminReviewsPage({
             const listing = Array.isArray(r.listing) ? r.listing[0] : r.listing;
             const host = Array.isArray(r.host) ? r.host[0] : r.host;
             const guest = Array.isArray(r.guest) ? r.guest[0] : r.guest;
+            const rbooking = Array.isArray(r.booking)
+              ? r.booking[0]
+              : r.booking;
             return (
               <article
                 key={r.id}
@@ -178,7 +186,9 @@ export default async function AdminReviewsPage({
                     </div>
                     <div className="mt-1 text-[12px] text-brand-mute">
                       <span className="font-medium text-brand-ink">
-                        {guest?.full_name ?? "Anonymous"}
+                        {guest?.full_name ??
+                          rbooking?.guest_name ??
+                          "Anonymous"}
                       </span>
                       {" → "}
                       <span className="font-medium text-brand-ink">

@@ -165,29 +165,40 @@ const newReviewHostResolver: EmailResolver = async (refs, ctx) => {
   if (!reviewId) return {};
   const { data: review } = await ctx.supabase
     .from("reviews")
-    .select("rating, body, guest_id, host_id, listing_id")
+    .select("rating, body, guest_id, host_id, listing_id, booking_id")
     .eq("id", reviewId)
     .maybeSingle();
   if (!review) return {};
 
-  const [host, { data: guestUser }, { data: listing }] = await Promise.all([
-    loadHostUser(ctx.supabase, review.host_id),
-    ctx.supabase
-      .from("user_profiles")
-      .select("full_name")
-      .eq("id", review.guest_id)
-      .maybeSingle(),
-    ctx.supabase
-      .from("listings")
-      .select("name")
-      .eq("id", review.listing_id)
-      .maybeSingle(),
-  ]);
+  const [host, { data: guestUser }, { data: listing }, { data: booking }] =
+    await Promise.all([
+      loadHostUser(ctx.supabase, review.host_id),
+      review.guest_id
+        ? ctx.supabase
+            .from("user_profiles")
+            .select("full_name")
+            .eq("id", review.guest_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      ctx.supabase
+        .from("listings")
+        .select("name")
+        .eq("id", review.listing_id)
+        .maybeSingle(),
+      // Account-less guest → name comes from the booking.
+      ctx.supabase
+        .from("bookings")
+        .select("guest_name")
+        .eq("id", review.booking_id)
+        .maybeSingle(),
+    ]);
 
   const body = review.body ?? "";
   return {
     hostFirstName: firstName(host?.user_full_name ?? host?.display_name),
-    guestName: guestDisplayName(guestUser?.full_name),
+    guestName: guestDisplayName(
+      guestUser?.full_name ?? booking?.guest_name ?? null,
+    ),
     listingName: listing?.name ?? "your listing",
     rating: review.rating,
     excerpt: body.length > 200 ? `${body.slice(0, 200)}…` : body,

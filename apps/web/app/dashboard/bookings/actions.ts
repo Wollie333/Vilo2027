@@ -76,7 +76,7 @@ const TRANSITIONS: Record<
 // a queue hiccup must not fail the checkout itself.
 async function enqueueReviewRequest(
   bookingId: string,
-  guestId: string,
+  guestId: string | null,
 ): Promise<void> {
   try {
     const admin = createAdminClient();
@@ -102,7 +102,7 @@ async function applyTransition(
   // RLS host_manage_own_bookings — the SELECT enforces ownership.
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, status, reference, guest_id")
+    .select("id, status, reference, guest_id, guest_email")
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking) {
@@ -150,10 +150,10 @@ async function applyTransition(
   }
 
   // Checkout → schedule the review request for 5 minutes from now. The worker
-  // re-validates (paid + no existing review) before sending, so enqueueing is
-  // safe even if eligibility changes. Account-less guests have no portal to
-  // review from, so they're skipped.
-  if (kind === "checkOut" && booking.guest_id) {
+  // re-validates (paid + no existing review) before sending. Enqueue whenever
+  // we can reach the guest — an account (in-app + email) OR just an email
+  // (account-less manual bookings get a direct email with the link).
+  if (kind === "checkOut" && (booking.guest_id || booking.guest_email)) {
     await enqueueReviewRequest(booking.id, booking.guest_id);
   }
 

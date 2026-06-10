@@ -99,12 +99,6 @@ export async function submitReviewAction(
       error: "You can only review a booking after the stay is complete.",
     };
   }
-  if (!booking.guest_id) {
-    return {
-      ok: false,
-      error: "This booking has no registered guest — reviews aren't supported.",
-    };
-  }
 
   const { data: existing } = await admin
     .from("reviews")
@@ -124,7 +118,9 @@ export async function submitReviewAction(
       booking_id: bookingId,
       listing_id: booking.listing_id,
       host_id: booking.host_id,
-      guest_id: booking.guest_id,
+      // Null for an account-less (manual-booking) guest — the review still maps
+      // to this real booking; the display name comes from bookings.guest_name.
+      guest_id: booking.guest_id ?? null,
       rating: parsed.data.rating,
       body: parsed.data.body?.trim() || null,
       rating_cleanliness: parsed.data.rating_cleanliness ?? null,

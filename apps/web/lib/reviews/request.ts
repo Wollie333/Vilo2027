@@ -1,5 +1,6 @@
 import "server-only";
 
+import { sendTransactionalEmail } from "@/lib/email/send";
 import { postGuestSystemCard } from "@/lib/messaging/system-card";
 import { dispatchEvent } from "@/lib/notifications/dispatch";
 import { buildReviewPath, buildReviewUrl } from "@/lib/review-token";
@@ -20,10 +21,11 @@ export type SendReviewRequestResult =
 
 /**
  * Single source of truth for "ask this guest to review their stay". Validates
- * eligibility (completed + paid + no existing review), then fires the request
- * across every channel:
- *   - email + in-app (push if a token exists) via dispatchEvent
- *   - a system card in the guest's thread with the tokenised review link
+ * eligibility (completed + paid + no existing review), then fires the request:
+ *   - Account guest → email + in-app (push if a token) via dispatchEvent, plus a
+ *     system card in their thread with the tokenised link.
+ *   - Account-less (manual) guest → a direct transactional email to the
+ *     booking's guest_email with the same tokenised link. No account needed.
  *
  * Idempotent: re-running for a booking that already has a review is a no-op,
  * and dispatchEvent dedupes the notification per booking. Called by the
@@ -37,8 +39,8 @@ export async function sendReviewRequest(
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      `id, status, payment_status, guest_id, host_id, listing_id, quote_id,
-       reference, deleted_at,
+      `id, status, payment_status, guest_id, guest_name, guest_email,
+       host_id, listing_id, quote_id, reference, deleted_at,
        listing:listings ( name ),
        host:hosts ( display_name )`,
     )
@@ -49,7 +51,6 @@ export async function sendReviewRequest(
   // never retries forever).
   if (!booking || booking.deleted_at)
     return { ok: true, skipped: "ineligible" };
-  if (!booking.guest_id) return { ok: true, skipped: "no_guest" };
   if (
     booking.status !== "completed" ||
     !PAID_STATUSES.has(booking.payment_status ?? "")
@@ -71,7 +72,27 @@ export async function sendReviewRequest(
   const listingName = listing?.name ?? "your stay";
   const hostFirstName = (host?.display_name ?? "").split(" ")[0] || undefined;
 
-  // Email + in-app (push if the guest has a token). The email resolver
+  // ─── Account-less (manual) guest: direct email with the link, if we have one.
+  if (!booking.guest_id) {
+    if (!booking.guest_email) return { ok: true, skipped: "no_guest" };
+    const reviewUrl = buildReviewUrl(SITE_URL, bookingId);
+    const first = (booking.guest_name ?? "there").split(" ")[0] || "there";
+    const res = await sendTransactionalEmail({
+      to: booking.guest_email,
+      subject: `How was your stay at ${listingName}?`,
+      html:
+        `<p>Hi ${first},</p>` +
+        `<p>Hope you enjoyed your stay at <strong>${listingName}</strong>. ` +
+        `Would you mind leaving a quick review? It takes about 30 seconds and you can add photos.</p>` +
+        `<p><a href="${reviewUrl}">Leave a review</a></p>` +
+        `<p>Your review goes live straight away${hostFirstName ? `, and ${hostFirstName} can reply to it publicly` : ""}.</p>`,
+    });
+    return res.ok
+      ? { ok: true }
+      : { ok: false, error: res.error ?? "Couldn't send the email." };
+  }
+
+  // ─── Account guest: email + in-app (push if a token). The email resolver
   // hydrates from booking_id and signs the link token; the in-app link uses
   // the tokenised path passed here.
   await dispatchEvent({

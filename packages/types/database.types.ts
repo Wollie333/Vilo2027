@@ -5816,7 +5816,7 @@ export type Database = {
         Row: {
           booking_id: string
           created_at: string
-          guest_id: string
+          guest_id: string | null
           id: string
           send_at: string
           sent_at: string | null
@@ -5824,7 +5824,7 @@ export type Database = {
         Insert: {
           booking_id: string
           created_at?: string
-          guest_id: string
+          guest_id?: string | null
           id?: string
           send_at?: string
           sent_at?: string | null
@@ -5832,7 +5832,7 @@ export type Database = {
         Update: {
           booking_id?: string
           created_at?: string
-          guest_id?: string
+          guest_id?: string | null
           id?: string
           send_at?: string
           sent_at?: string | null
@@ -5864,7 +5864,7 @@ export type Database = {
           flagged: boolean
           flagged_at: string | null
           flagged_reason: string | null
-          guest_id: string
+          guest_id: string | null
           helpful_count: number
           host_id: string
           host_responded_at: string | null
@@ -5894,7 +5894,7 @@ export type Database = {
           flagged?: boolean
           flagged_at?: string | null
           flagged_reason?: string | null
-          guest_id: string
+          guest_id?: string | null
           helpful_count?: number
           host_id: string
           host_responded_at?: string | null
@@ -5924,7 +5924,7 @@ export type Database = {
           flagged?: boolean
           flagged_at?: string | null
           flagged_reason?: string | null
-          guest_id?: string
+          guest_id?: string | null
           helpful_count?: number
           host_id?: string
           host_responded_at?: string | null

@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews — account-less (manual) guests can review — branch `main`
+
+### Changed
+- **A guest no longer needs an account to review.** Dropped `NOT NULL` on
+  `reviews.guest_id` + `review_request_queue.guest_id`; the review still maps 1:1
+  to a real booking (`booking_id` UNIQUE), so it stays a *verified stay*. Name
+  falls back to `bookings.guest_name` on the listing, dashboard, admin and host
+  email when there's no account.
+- `sendReviewRequest` now branches: account guest → email + in-app + thread card;
+  account-less guest → a direct transactional email to `guest_email` with the
+  tokenised link. Checkout enqueues the request when there's an account **or** an
+  email; the manager/guest-record modal and booking button include manual guests.
+- Guest record reviews are matched by the guest's bookings (not `guest_id`), and
+  requestable stays match by account id **and/or** email, so manual guests appear.
+
+### Migrations
+- `20260610000005_reviews_account_optional.sql` — nullable review/queue guest_id.
+
+### Commit
+- `feat(reviews): …` — see `git log`
+
+---
+
 ## 2026-06-10 — Reviews — request flow + record tabs — branch `main`
 
 ### Built

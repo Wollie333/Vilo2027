@@ -63,16 +63,18 @@ export async function requestReviewsAction(
     const result = await sendReviewRequest(id);
     if (result.ok && !result.skipped) {
       sent += 1;
-      const guestId = ownedGuest.get(id);
-      if (guestId) {
-        const now = new Date().toISOString();
-        await admin
-          .from("review_request_queue")
-          .upsert(
-            { booking_id: id, guest_id: guestId, send_at: now, sent_at: now },
-            { onConflict: "booking_id" },
-          );
-      }
+      // Stamp the queue (guest_id may be null for account-less guests) so the
+      // 5-min auto-send can't double-fire and "last requested" stays accurate.
+      const now = new Date().toISOString();
+      await admin.from("review_request_queue").upsert(
+        {
+          booking_id: id,
+          guest_id: ownedGuest.get(id) ?? null,
+          send_at: now,
+          sent_at: now,
+        },
+        { onConflict: "booking_id" },
+      );
     } else {
       skipped += 1;
     }

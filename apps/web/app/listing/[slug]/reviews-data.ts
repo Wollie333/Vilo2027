@@ -74,7 +74,7 @@ type RawReview = {
   rating_value: number | null;
   host_response: string | null;
   guest: { full_name: string | null } | null;
-  booking: { nights: number | null } | null;
+  booking: { nights: number | null; guest_name: string | null } | null;
   photos: { storage_path: string; sort_order: number }[] | null;
 };
 
@@ -103,7 +103,7 @@ export async function loadListingReviews(
          rating_cleanliness, rating_communication, rating_checkin,
          rating_accuracy, rating_location, rating_value,
          guest:user_profiles!reviews_guest_id_fkey ( full_name ),
-         booking:bookings ( nights ),
+         booking:bookings ( nights, guest_name ),
          photos:review_photos ( storage_path, sort_order )`,
       )
       .eq("listing_id", listingId)
@@ -120,7 +120,9 @@ export async function loadListingReviews(
 
   const reviews: PublicReview[] = rows.map((r) => ({
     id: r.id,
-    guestName: firstNameLastInitial(r.guest?.full_name ?? null),
+    guestName: firstNameLastInitial(
+      r.guest?.full_name ?? r.booking?.guest_name ?? null,
+    ),
     createdAt: r.created_at,
     rating: r.rating,
     body: r.body,

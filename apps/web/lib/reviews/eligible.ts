@@ -32,13 +32,15 @@ function one<T>(v: T | T[] | null | undefined): T | null {
 }
 
 /**
- * Bookings a host can request a review for: completed + paid + has a registered
- * guest (reviews require an account) + no review yet. Optionally scoped to one
- * guest. Host-scoped via the passed (RLS) client + an explicit host_id filter.
+ * Bookings a host can request a review for: completed + paid + no review yet.
+ * Account-less (manual) guests qualify too — the per-stay token link works
+ * without an account. Optionally scoped to one guest (by account id and/or
+ * email, since a manual guest is keyed by email). Host-scoped via the passed
+ * (RLS) client + an explicit host_id filter.
  */
 export async function fetchRequestableReviews(
   supabase: ServerClient,
-  opts: { hostId: string; guestId?: string | null },
+  opts: { hostId: string; guestId?: string | null; guestEmail?: string | null },
 ): Promise<RequestableReview[]> {
   let q = supabase
     .from("bookings")
@@ -52,10 +54,21 @@ export async function fetchRequestableReviews(
     .eq("host_id", opts.hostId)
     .eq("status", "completed")
     .in("payment_status", PAID_STATUSES)
-    .not("guest_id", "is", null)
     .order("check_out", { ascending: false })
     .limit(200);
-  if (opts.guestId) q = q.eq("guest_id", opts.guestId);
+
+  // Scope to one guest when asked — match the account id OR the email (a manual
+  // guest has no account, only an email).
+  const ors: string[] = [];
+  if (opts.guestId) ors.push(`guest_id.eq.${opts.guestId}`);
+  if (opts.guestEmail) ors.push(`guest_email.eq.${opts.guestEmail}`);
+  if (ors.length === 1) {
+    q = opts.guestId
+      ? q.eq("guest_id", opts.guestId)
+      : q.eq("guest_email", opts.guestEmail as string);
+  } else if (ors.length > 1) {
+    q = q.or(ors.join(","));
+  }
 
   const { data } = await q;
 
