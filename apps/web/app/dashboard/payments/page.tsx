@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getMyHostId } from "@/lib/host/current";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -52,14 +53,17 @@ export default async function PaymentsPage() {
   if (!myHostId) notFound();
 
   // Scope to this host's bookings (RLS alone would let admin/staff see all).
-  const { data } = await supabase
-    .from("payments")
-    .select(
-      "id, amount, currency, method, status, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
-    )
-    .eq("booking.host_id", myHostId)
-    .order("created_at", { ascending: false })
-    .limit(400);
+  const data = await throwOnError(
+    supabase
+      .from("payments")
+      .select(
+        "id, amount, currency, method, status, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
+      )
+      .eq("booking.host_id", myHostId)
+      .order("created_at", { ascending: false })
+      .limit(400),
+    "dashboard/payments",
+  );
 
   const raw = (data ?? []) as unknown as RawPayment[];
 

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -46,7 +47,7 @@ export default async function CreditNotesPage({
   if (q.length > 0) query = query.ilike("credit_note_number", `%${q}%`);
   if (status.length > 0) query = query.eq("status", status);
 
-  const { data: notes } = await query;
+  const notes = await throwOnError(query, "dashboard/credit-notes");
 
   return (
     <div className="space-y-6">

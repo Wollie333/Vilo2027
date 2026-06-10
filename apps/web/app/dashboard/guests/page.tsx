@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { gkeyFor } from "@/lib/guests/gkey";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -82,9 +83,12 @@ export default async function GuestsPage({
   const minRating = rating ? Number.parseFloat(rating) : null;
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
 
-  const [{ data: summary }, { data: list }, { data: listingRows }] =
-    await Promise.all([
+  const [summary, list, listingRows] = await Promise.all([
+    throwOnError(
       supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
+      "dashboard/guests:summary",
+    ),
+    throwOnError(
       supabase.rpc("fetch_host_guests", {
         p_host_id: host.id,
         p_segment: seg,
@@ -96,13 +100,18 @@ export default async function GuestsPage({
         p_limit: PAGE_SIZE,
         p_offset: (page - 1) * PAGE_SIZE,
       }),
+      "dashboard/guests:list",
+    ),
+    throwOnError(
       supabase
         .from("listings")
         .select("id, name")
         .eq("host_id", host.id)
         .is("deleted_at", null)
         .order("name"),
-    ]);
+      "dashboard/guests:listings",
+    ),
+  ]);
 
   const listObj = (list ?? {}) as { guests?: GuestRow[]; total_count?: number };
 

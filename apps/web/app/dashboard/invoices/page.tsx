@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getMyHostId } from "@/lib/host/current";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { INVOICE_STATUS_LABEL, type InvoiceStatus } from "../quotes/schemas";
@@ -47,7 +48,7 @@ export default async function InvoicesPage({
     query = query.eq("status", status);
   }
 
-  const { data: invoices } = await query;
+  const invoices = await throwOnError(query, "dashboard/invoices");
 
   return (
     <div className="space-y-6">

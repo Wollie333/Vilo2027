@@ -31,6 +31,35 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews/Dashboard — fix invisible reviews + harden query error handling — branch `main`
+
+### Fixed
+- Host reviews weren't showing on `/dashboard/reviews` despite the tab/stats
+  counting them. Root cause: `listings.featured_review_id` (added earlier today)
+  created a second FK between `reviews` and `listings`, making the un-pinned
+  `listing:listings` embed ambiguous → PostgREST `PGRST201` (HTTP 300). The
+  error was swallowed, so the feed rendered empty. Pinned the FK
+  (`listings!reviews_listing_id_fkey`) in the three affected reviews→listings
+  embeds: dashboard reviews feed, admin reviews list, global search. Verified
+  live (old embed → 300, new → 200).
+
+### Built
+- `lib/supabase/query.ts` → `throwOnError(query, context)`: awaits a Supabase
+  query, logs server-side + throws on error instead of the silent
+  `const { data } = await` pattern (68/78 dashboard pages used it). An empty
+  list now only ever means "no rows", not "query failed".
+- `app/dashboard/error.tsx`: catch-all route boundary (renders inside the
+  dashboard layout — sidebar survives). Shows a loud failure instead of a
+  misleading empty/zero view. Does not swallow `redirect()`/`notFound()`.
+- Reviews feed got a dedicated inline error card (keeps partial-page failure +
+  shows how many reviews aren't displaying).
+
+### Changed
+- Wrapped the primary list/figure query in `throwOnError` on the high-value
+  money/list pages: bookings, payments, invoices, credit-notes, guests.
+- Left reports as-is — it already logs each analytics RPC error and degrades
+  gracefully (intentional; throwing would blank the whole dashboard).
+
 ## 2026-06-10 — Reports — host savings vs OTAs (header "$" badge + Savings page) — branch `main`
 
 ### Built
