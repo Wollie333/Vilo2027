@@ -29,6 +29,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
+import { RecordTabs } from "@/app/dashboard/_components/RecordTabs";
 import { RequestReviewButton } from "@/app/dashboard/reviews/RequestReviewButton";
 import { ReviewCard } from "@/app/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
@@ -527,44 +528,25 @@ export function GuestRecord({
       </section>
 
       {/* ── Tabs ── */}
-      <div className="mt-6 border-b border-brand-line">
-        <nav className="flex items-stretch gap-7 overflow-x-auto">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const count =
-              t.key === "finances"
-                ? txns.length
-                : t.key === "messages"
-                  ? messages.length
-                  : t.key === "reviews"
-                    ? reviews.length
-                    : t.key === "notes"
-                      ? notes.length
-                      : undefined;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`relative whitespace-nowrap py-3 text-[14px] font-semibold transition-colors ${
-                  active
-                    ? "text-brand-secondary"
-                    : "text-brand-mute hover:text-brand-ink"
-                }`}
-              >
-                {t.label}
-                {count !== undefined ? (
-                  <span className="ml-1.5 rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
-                    {count}
-                  </span>
-                ) : null}
-                {active ? (
-                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      <RecordTabs
+        className="mt-6"
+        active={tab}
+        onSelect={setTab}
+        tabs={TABS.map((t) => ({
+          key: t.key,
+          label: t.label,
+          count:
+            t.key === "finances"
+              ? txns.length
+              : t.key === "messages"
+                ? messages.length
+                : t.key === "reviews"
+                  ? reviews.length
+                  : t.key === "notes"
+                    ? notes.length
+                    : undefined,
+        }))}
+      />
 
       <div className="mt-6">
         {tab === "overview" ? (

@@ -45,6 +45,7 @@ import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
 
+import { RecordTabs } from "@/app/dashboard/_components/RecordTabs";
 import {
   ReviewCard,
   type ReviewCardProps,
@@ -535,35 +536,16 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
       </section>
 
       {/* tabs */}
-      <div className="mt-6 border-b border-brand-line">
-        <nav className="flex items-stretch gap-6 overflow-x-auto">
-          {TABS.map((t) => {
-            const active = tab === t.key;
-            const c = tabCount(t.key);
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`relative whitespace-nowrap py-3 text-[14px] font-semibold transition-colors ${
-                  active
-                    ? "text-brand-secondary"
-                    : "text-brand-mute hover:text-brand-ink"
-                }`}
-              >
-                {t.label}
-                {c !== undefined ? (
-                  <span className="ml-1.5 rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
-                    {c}
-                  </span>
-                ) : null}
-                {active ? (
-                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
-                ) : null}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      <RecordTabs
+        className="mt-6"
+        active={tab}
+        onSelect={setTab}
+        tabs={TABS.map((t) => ({
+          key: t.key,
+          label: t.label,
+          count: tabCount(t.key),
+        }))}
+      />
 
       <div className="mt-6">
         {tab === "overview" ? (
