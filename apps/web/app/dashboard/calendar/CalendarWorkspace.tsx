@@ -385,6 +385,7 @@ export function CalendarWorkspace(props: Props) {
             bookings={bookings}
             blocks={props.blocks}
             onChanged={refresh}
+            onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
           />
           <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
             <div className="border-b border-brand-line px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
@@ -995,6 +996,7 @@ function DayAvailability({
   bookings,
   blocks,
   onChanged,
+  onOpenBooking,
 }: {
   selDay: string;
   today: string;
@@ -1002,6 +1004,7 @@ function DayAvailability({
   bookings: CalBooking[];
   blocks: CalBlock[];
   onChanged: () => void;
+  onOpenBooking: (id: string) => void;
 }) {
   const [pending, start] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -1050,6 +1053,97 @@ function DayAvailability({
           const block =
             dayBlocks.find((b) => b.roomId === null) ?? dayBlocks[0] ?? null;
           const busy = pending && busyId === l.id;
+          const firstName = booking ? booking.guest.split(/\s+/)[0] : "";
+
+          // Right-hand cell. Past dates are read-only (no point blocking or
+          // booking a night that has already gone).
+          let right: React.ReactNode;
+          if (booking) {
+            const pill = (
+              <>
+                {firstName} · {STATUS_META[booking.status].label}
+              </>
+            );
+            right = isPast ? (
+              <span
+                className="shrink-0 rounded-pill px-2.5 py-1 text-[11px] font-semibold"
+                style={{
+                  background: STATUS_META[booking.status].soft,
+                  color: STATUS_META[booking.status].ink,
+                }}
+              >
+                {pill}
+              </span>
+            ) : (
+              <button
+                onClick={() => onOpenBooking(booking.id)}
+                className="shrink-0 rounded-pill px-2.5 py-1 text-[11px] font-semibold transition hover:brightness-95"
+                style={{
+                  background: STATUS_META[booking.status].soft,
+                  color: STATUS_META[booking.status].ink,
+                }}
+                title="Open booking"
+              >
+                {pill}
+              </button>
+            );
+          } else if (block && block.kind !== "manual") {
+            right = (
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-mute">
+                <Lock className="h-3 w-3" />
+                {block.kind === "quote"
+                  ? "On hold"
+                  : (block.source ?? "Blocked")}
+              </span>
+            );
+          } else if (block) {
+            // Manual block — host can open it back up (also for past dates).
+            right = (
+              <button
+                onClick={() => toggle(l.id)}
+                disabled={busy}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+              >
+                {busy ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
+                )}
+                Open up
+              </button>
+            );
+          } else if (isPast) {
+            right = (
+              <span className="shrink-0 text-[11.5px] font-medium text-brand-mute">
+                Open
+              </span>
+            );
+          } else {
+            right = (
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={() => toggle(l.id)}
+                  disabled={busy}
+                  title="Block this night"
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-brand-mute" />
+                  )}
+                  Block
+                </button>
+                <Link
+                  href={`/dashboard/bookings/new?listing=${l.id}&checkIn=${selDay}`}
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-secondary"
+                >
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  Book
+                </Link>
+              </div>
+            );
+          }
 
           return (
             <div
@@ -1063,61 +1157,7 @@ function DayAvailability({
                 />
                 <span className="truncate">{l.name}</span>
               </span>
-
-              {booking ? (
-                <span
-                  className="shrink-0 rounded-pill px-2.5 py-1 text-[11px] font-semibold"
-                  style={{
-                    background: STATUS_META[booking.status].soft,
-                    color: STATUS_META[booking.status].ink,
-                  }}
-                >
-                  {booking.guest.split(/\s+/)[0]} · booked
-                </span>
-              ) : block && block.kind === "manual" ? (
-                <button
-                  onClick={() => toggle(l.id)}
-                  disabled={busy}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
-                >
-                  {busy ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
-                  )}
-                  Open up
-                </button>
-              ) : block ? (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-mute">
-                  <Lock className="h-3 w-3" />
-                  {block.kind === "quote"
-                    ? "On hold"
-                    : (block.source ?? "Blocked")}
-                </span>
-              ) : (
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button
-                    onClick={() => toggle(l.id)}
-                    disabled={busy || isPast}
-                    title={isPast ? "Date has passed" : "Block this night"}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
-                  >
-                    {busy ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Lock className="h-3.5 w-3.5 text-brand-mute" />
-                    )}
-                    Block
-                  </button>
-                  <Link
-                    href={`/dashboard/bookings/new?listing=${l.id}&checkIn=${selDay}`}
-                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-secondary"
-                  >
-                    <CalendarPlus className="h-3.5 w-3.5" />
-                    Book
-                  </Link>
-                </div>
-              )}
+              {right}
             </div>
           );
         })}
