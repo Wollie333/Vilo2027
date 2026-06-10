@@ -49,6 +49,10 @@ export default async function PoliciesPage() {
     supabase.rpc("ensure_host_policy_presets", { p_host_id: host.id }),
     supabase.rpc("ensure_host_legal_presets", { p_host_id: host.id }),
   ]);
+  // Guarantee a default per type exists (cancellation prefers the Moderate
+  // preset) so every listing without an explicit assignment still resolves a
+  // policy — and refunds are enforceable. Idempotent.
+  await supabase.rpc("ensure_host_default_policies", { p_host_id: host.id });
 
   const { data: policies } = await supabase
     .from("policies")

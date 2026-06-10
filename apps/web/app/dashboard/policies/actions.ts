@@ -73,6 +73,17 @@ async function ensurePresets(hostId: string): Promise<void> {
   await supabase.rpc("ensure_host_policy_presets", { p_host_id: hostId });
 }
 
+/**
+ * Guarantee the host has an active default per type (idempotent — only fills a
+ * type that has no default yet). Run after a policy is created or activated so a
+ * host's first active policy of a type becomes the default and is therefore
+ * immediately valid on every listing lacking an explicit assignment.
+ */
+async function ensureDefaults(hostId: string): Promise<void> {
+  const supabase = createServerClient();
+  await supabase.rpc("ensure_host_default_policies", { p_host_id: hostId });
+}
+
 function validate(
   input: PolicyInput,
 ): { ok: true } | { ok: false; error: string } {
@@ -199,6 +210,10 @@ export async function createPolicyAction(
     await supabase.from("policies").delete().eq("id", row.id);
     return { ok: false, error: "Could not save policy details." };
   }
+
+  // A host's first active policy of a type becomes the default (no-op if one
+  // already exists), so it's immediately valid on unassigned listings.
+  await ensureDefaults(host.hostId);
 
   revalidatePath("/dashboard/policies");
   return { ok: true, data: { id: row.id } };
@@ -407,6 +422,9 @@ export async function togglePolicyStatusAction(
     .update(update)
     .eq("id", policyId);
   if (error) return { ok: false, error: "Could not update policy." };
+
+  // Activating may be the first active policy of its type — backfill a default.
+  if (active) await ensureDefaults(host.hostId);
 
   revalidatePath("/dashboard/policies");
   return { ok: true };

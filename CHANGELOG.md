@@ -31,6 +31,22 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 2/6) — guaranteed coverage + summary fix — branch `main`
+
+### Fixed
+- 🔴 **`get_listing_policy_summary` threw on any policy with `body_html`** (latent since `20260531000020`): `v_cont` was declared `jsonb` but `body_html` is raw HTML TEXT, so the assignment cast tried to parse HTML as JSON → `invalid input syntax for type json`. The whole RPC failed, so the public `ListingPolicyBlock` silently rendered nothing whenever a resolved house-rules/check-in/legal policy had prose. Fixed by typing `v_cont` as `text` (`20260610180003`).
+
+### Built
+- `ensure_host_default_policies(host)` (`20260610180001`) — guarantees an active default per type (cancellation prefers the Moderate preset; check-in/house-rules take the oldest active). Idempotent; only fills types with no current default. Backfilled all hosts.
+- AFTER INSERT trigger on `hosts` (`20260610180002`) seeds the locked refund presets + a default at host creation, so every host (and every listing) resolves a cancellation policy from day one — presets are no longer only materialised lazily on the Policies page. Backfilled existing hosts + re-snapshotted bookings still missing a cancellation snapshot.
+- `createPolicyAction` / `togglePolicyStatusAction` now call `ensure_host_default_policies` after create/activate, so a host's first active policy of a type automatically becomes the default (immediately valid on unassigned listings). Policies page also ensures defaults on load.
+
+### Notes
+- `verify-policy-resolver.mjs` now passes fully: 1/1 published listings resolve a cancellation policy, all bookings carry a snapshot, refund calc returns a real rule.
+- Types regenerated.
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 1/6) — resolver + snapshot SSOT — branch `main`
 
 ### Fixed

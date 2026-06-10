@@ -6879,6 +6879,10 @@ export type Database = {
         }
         Returns: string
       }
+      ensure_host_default_policies: {
+        Args: { p_host_id: string }
+        Returns: undefined
+      }
       ensure_host_legal_presets: {
         Args: { p_host_id: string }
         Returns: undefined
