@@ -186,6 +186,7 @@ export type RelationshipItem = {
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "bookings", label: "Bookings" },
   { key: "finances", label: "Finances" },
   { key: "messages", label: "Messages" },
   { key: "reviews", label: "Reviews" },
@@ -463,12 +464,13 @@ export function GuestRecord({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Link
-                href="/dashboard/inbox"
+              <button
+                type="button"
+                onClick={() => setTab("messages")}
                 className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
               >
                 <MessageSquare className="h-4 w-4" /> Message
-              </Link>
+              </button>
               {r.phone ? (
                 <a
                   href={`tel:${r.phone}`}
@@ -553,17 +555,19 @@ export function GuestRecord({
           key: t.key,
           label: t.label,
           count:
-            t.key === "finances"
-              ? txns.length
-              : t.key === "messages"
-                ? messages.length
-                : t.key === "reviews"
-                  ? reviews.length
-                  : t.key === "relationships"
-                    ? relationships.length || undefined
-                    : t.key === "notes"
-                      ? notes.length
-                      : undefined,
+            t.key === "bookings"
+              ? bookings.length || undefined
+              : t.key === "finances"
+                ? txns.length
+                : t.key === "messages"
+                  ? messages.length
+                  : t.key === "reviews"
+                    ? reviews.length
+                    : t.key === "relationships"
+                      ? relationships.length || undefined
+                      : t.key === "notes"
+                        ? notes.length
+                        : undefined,
         }))}
       />
 
@@ -575,6 +579,8 @@ export function GuestRecord({
             nextBooking={nextBooking}
             pinnedNote={pinnedNote}
           />
+        ) : tab === "bookings" ? (
+          <BookingsPanel bookings={bookings} currency={r.currency} />
         ) : tab === "messages" ? (
           <GuestMessagesPanel
             firstName={(r.name ?? "guest").split(/\s+/)[0]}
@@ -1127,6 +1133,98 @@ function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
         </FinanceSection>
       ) : null}
     </div>
+  );
+}
+
+// ── Bookings panel ──────────────────────────────────────────────────────
+// Every booking for this guest — current and historical — newest first. The
+// merge rule (page.tsx) already includes same-email manual bookings, so this is
+// the guest's full reservation history with this host.
+function BookingsPanel({
+  bookings,
+  currency,
+}: {
+  bookings: BookingItem[];
+  currency: string;
+}) {
+  if (bookings.length === 0) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
+        <Calendar className="mx-auto h-6 w-6 text-brand-line" />
+        <p className="mt-3 text-[13px] text-brand-mute">
+          No bookings yet for this guest.
+        </p>
+      </div>
+    );
+  }
+  const sorted = [...bookings].sort((a, b) =>
+    (a.checkIn ?? a.createdAt) < (b.checkIn ?? b.createdAt) ? 1 : -1,
+  );
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+        <Calendar className="h-4 w-4 text-brand-mute" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          All bookings
+        </span>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {bookings.length}
+        </span>
+      </div>
+      <div>
+        {sorted.map((b) => {
+          const tag = statusTag(b.status);
+          return (
+            <Link
+              key={b.id}
+              href={`/dashboard/bookings/${b.id}`}
+              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0 hover:bg-brand-light/50"
+            >
+              {b.listingThumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={b.listingThumb}
+                  alt=""
+                  className="h-11 w-14 shrink-0 rounded-[10px] object-cover"
+                />
+              ) : (
+                <div className="h-11 w-14 shrink-0 rounded-[10px] bg-brand-light" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-semibold text-brand-ink">
+                  {b.listingName}
+                </div>
+                <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                  {fmtShort(b.checkIn)} → {fmtShort(b.checkOut)} ·{" "}
+                  {b.nights ?? 0} night{b.nights === 1 ? "" : "s"} ·{" "}
+                  {b.guestsCount} guest
+                  {b.guestsCount === 1 ? "" : "s"}
+                </div>
+                <div className="mt-0.5 font-mono text-[10.5px] text-brand-mute">
+                  {b.reference}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="font-display text-[13px] font-bold tabular-nums text-brand-ink">
+                  {formatMoney(b.totalAmount, b.currency || currency)}
+                </div>
+                {b.balanceDue > 0.005 ? (
+                  <div className="mt-0.5 text-[10.5px] font-semibold text-red-600">
+                    {formatMoney(b.balanceDue, b.currency || currency)} due
+                  </div>
+                ) : null}
+              </div>
+              <span
+                className={`shrink-0 rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${tag.cls}`}
+              >
+                {tag.label}
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+            </Link>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
