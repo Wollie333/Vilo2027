@@ -6625,6 +6625,7 @@ export type Database = {
           guest_since: string
           has_email: boolean
           has_phone: boolean
+          is_added_guest: boolean
           is_all_direct: boolean
           is_blocked: boolean
           is_inhouse: boolean

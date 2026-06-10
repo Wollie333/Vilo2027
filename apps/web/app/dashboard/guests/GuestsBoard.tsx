@@ -76,6 +76,7 @@ export type GuestRow = {
   is_inhouse: boolean;
   is_lapsed: boolean;
   is_all_direct: boolean;
+  is_added_guest: boolean;
   is_verified: boolean;
   is_blocked: boolean;
   has_email: boolean;
@@ -105,6 +106,7 @@ export type GuestSummary = {
     new: number;
     ota: number;
     lapsed: number;
+    added: number;
   };
 };
 
@@ -113,6 +115,7 @@ const SEG_TABS = [
   { key: "vip", label: "VIP" },
   { key: "returning", label: "Returning" },
   { key: "new", label: "New" },
+  { key: "added", label: "Added" },
   { key: "ota", label: "Via OTA" },
   { key: "lapsed", label: "Lapsed" },
 ] as const;
@@ -192,6 +195,12 @@ function segMeta(g: GuestRow): { label: string; cls: string; bar: string } {
       label: "Returning",
       cls: "bg-indigo-50 text-indigo-600 border-indigo-200",
       bar: "bg-status-completed",
+    };
+  if (g.is_added_guest)
+    return {
+      label: "Added guest",
+      cls: "bg-violet-50 text-violet-700 border-violet-200",
+      bar: "bg-violet-500",
     };
   if (g.is_ota)
     return {

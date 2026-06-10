@@ -79,6 +79,7 @@ export type GuestRecordData = {
   is_inhouse: boolean;
   is_lapsed: boolean;
   is_all_direct: boolean;
+  is_added_guest: boolean;
   has_email: boolean;
   has_phone: boolean;
   tags: string[];
@@ -305,9 +306,11 @@ export function GuestRecord({
       : "VIP"
     : r.is_returning
       ? "Returning"
-      : r.is_ota
-        ? "Via OTA"
-        : "New";
+      : r.is_added_guest
+        ? "Added guest"
+        : r.is_ota
+          ? "Via OTA"
+          : "New";
 
   const nextBooking = r.next_stay
     ? bookings.find(
@@ -388,7 +391,21 @@ export function GuestRecord({
                   <h1 className="font-display text-[24px] font-extrabold leading-tight text-brand-ink">
                     {r.name ?? "Guest"}
                   </h1>
-                  <span className="inline-flex items-center gap-1.5 rounded-pill border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11.5px] font-semibold text-emerald-700">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-[11.5px] font-semibold ${
+                      r.is_added_guest
+                        ? "border-violet-200 bg-violet-50 text-violet-700"
+                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    }`}
+                    title={
+                      r.is_added_guest
+                        ? "Came from a booking as an additional guest"
+                        : undefined
+                    }
+                  >
+                    {r.is_added_guest ? (
+                      <Users className="h-3.5 w-3.5" />
+                    ) : null}
                     {segLabel}
                   </span>
                   {acceptedQuote ? (
