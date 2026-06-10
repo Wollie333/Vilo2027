@@ -45,9 +45,10 @@ export async function sendReviewRequest(
     .eq("id", bookingId)
     .maybeSingle();
 
-  if (!booking || booking.deleted_at) {
-    return { ok: false, error: "Booking not found." };
-  }
+  // Missing/soft-deleted → terminal (the worker marks the queue row done so it
+  // never retries forever).
+  if (!booking || booking.deleted_at)
+    return { ok: true, skipped: "ineligible" };
   if (!booking.guest_id) return { ok: true, skipped: "no_guest" };
   if (
     booking.status !== "completed" ||

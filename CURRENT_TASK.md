@@ -2,10 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Active focus:** **Finances are the spine** — bookings → payments → ledger →
-invoices must be airtight, and everything wires into one money engine.
+**Active focus:** **Harden each feature to 100% for MVP.** This session:
+the **Reviews** feature, end-to-end.
 
-## ✅ Done this session (2026-06-08)
+## ✅ Done this session (2026-06-10) — Reviews to MVP
+- **Photos on reviews** — public `review-photos` bucket + `review_photos` table;
+  token-gated signed upload from the (account-less) submit form; one reusable
+  `ReviewPhotoGrid` (lightbox) on listing / dashboard / admin / portal / confirm.
+- **Delayed request** — checkout enqueues `review_request_queue(send_at=+5min)`;
+  `/api/review-request-worker` + `drain-review-requests` cron drain it via one
+  SSOT `lib/reviews/request.ts → sendReviewRequest()` (email + in-app + thread
+  card). Old daily queuer → paid-aware 24h backstop.
+- **Fixed broken plumbing** — emailed review link had no token (resolver now
+  signs it); added the missing in-app builder; fixed tokenless portal CTA.
+- **Publish immediately** (was 48h); `protect_review_content()` makes reviews
+  immutable (hosts may only respond); host **Review link** card on bookings.
+- **Eligibility** — only completed **+ paid** stays (refunded-after-stay still
+  counts). Help articles `how-reviews-work` (host) + `leaving-a-review` (guest).
+- **Ops TODO (founder, one-time):** Vault `review_request_worker_url`; confirm
+  `NEXT_PUBLIC_SITE_URL`. Probe: `scripts/verify-reviews.mjs` (green).
+
+<details><summary>Previous focus — Finances are the spine</summary>
+
+## ✅ Done (2026-06-08)
 - **Reporting wired to the ledger** — new **Cash position** panel on Analytics
   (Collected/Outstanding/Refunded/Net cash + lifetime collection bar) sourced
   from `fetchHostTransactions`, so Reports, Ledger and Finances agree. Added
@@ -25,6 +44,8 @@ invoices must be airtight, and everything wires into one money engine.
 - **Guardrails added** — AGENT_RULES **§4.7** (wire into the ledger, never fork
   the maths) + **§4.8** (booking card → host gateway). See
   `[[feedback_ledger_single_source_of_truth]]`.
+
+</details>
 
 ## ▶ Next
 1. **Test bookings end-to-end** with the host's connected Paystack test account

@@ -31,6 +31,54 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews — MVP hardening, delayed request, photos — branch `main`
+
+### Built
+- **Photos on reviews** — guests add up to 6 photos (JPEG/PNG/WebP, ≤8 MB) on
+  the submit form via a token-gated signed upload straight to a new public
+  `review-photos` bucket. New `review_photos` table. One reusable
+  `ReviewPhotoGrid` (thumbnails + lightbox) renders them on the listing page,
+  host dashboard, admin moderation, guest portal and the submit confirmation.
+- **Delayed review request** — checkout enqueues `review_request_queue`
+  (`send_at = +5 min`); `/api/review-request-worker` drains due rows via one
+  SSOT `sendReviewRequest()` that fires email + in-app + a tokenised thread
+  card. `drain-review-requests` pg_cron pings it each minute; the old daily
+  queuer is now a paid-aware 24h backstop.
+- **Host "Send review link" card** on completed bookings (Copy / WhatsApp /
+  Email / Send-in-chat), mirroring the pay-link card; shown until a review exists.
+
+### Changed
+- **Reviews publish immediately** (was a 48h hold) — admins can still hide.
+  `on_review_published` now recalcs aggregates on INSERT + un-publish too.
+- **Fixed the long-broken review email link** — the resolver now signs
+  `bookingId`+`reviewToken` (the template builds the link from those); added the
+  missing in-app builder. Fixed the tokenless portal "Write review" CTA.
+- **Reviews are immutable** — `protect_review_content()` trigger blocks anyone
+  but a super admin from changing rating/body/etc.; hosts may only respond.
+- Extracted `postGuestSystemCard`/`resolveGuestConversation` (pay-booking now
+  reuses it); `buildReviewPath`/`buildReviewUrl` = SSOT for the tokenised link.
+
+### Migrations
+- `20260610000001_reviews_mvp_hardening.sql` — `review_photos`, `send_at`,
+  content-lock trigger, publish-on-insert recalc.
+- `20260610000002_review_request_cron.sql` — worker cron + paid-aware backstop.
+- `20260610000003_review_photos_bucket.sql` — public `review-photos` bucket.
+- `20260610000004_help_reviews.sql` — host + guest Help Centre articles.
+
+### Notes
+- **Ops (one-time per env):** add Vault secret `review_request_worker_url` =
+  `https://<app>/api/review-request-worker` (reuses `email_worker_secret` as the
+  bearer; `EMAIL_WORKER_SECRET` already set in Vercel). Set `NEXT_PUBLIC_SITE_URL`
+  (or `NEXT_PUBLIC_APP_URL`) so absolute review links resolve in prod.
+- Probe: `node --env-file=.env.local scripts/verify-reviews.mjs` (all green).
+- "Paid" = `payment_status IN (completed, partially_refunded, refunded)` —
+  a guest who stayed can review even if later refunded (founder decision).
+
+### Commit
+- `feat(reviews): …` — see `git log` 42ebed0…adacffc
+
+---
+
 ## 2026-06-09 — Quotes & Inbox — Per-room overrides, no-flash claim, event-sourced thread cards — branch `main`
 
 ### Built / Changed
