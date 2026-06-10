@@ -135,7 +135,8 @@ export default async function ReviewSubmissionPage({
           Thanks — your review is in
         </h1>
         <p className="mt-2 text-center text-sm text-brand-mute">
-          Your review will be published publicly within 48 hours.
+          Your review is now live on the listing. Thanks for helping future
+          guests.
         </p>
         <div className="mx-auto mt-6 max-w-md rounded-card border border-brand-line bg-brand-light/50 p-5">
           <div className="flex items-center justify-center gap-1">
@@ -208,8 +209,8 @@ export default async function ReviewSubmissionPage({
       <ReviewSubmissionForm bookingId={params.bookingId} token={token} />
 
       <p className="mt-6 text-center text-[12px] text-brand-mute">
-        Reviews are public after a 48-hour moderation window. You can&apos;t
-        edit your review once submitted — write what you&apos;d want a fellow
+        Your review goes live on the listing as soon as you submit. You
+        can&apos;t edit it afterwards — write what you&apos;d want a fellow
         traveller to read.
       </p>
 

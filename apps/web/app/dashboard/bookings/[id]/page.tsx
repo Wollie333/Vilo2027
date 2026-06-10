@@ -10,6 +10,7 @@ import { fetchHostTransactions } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { getMyHostId } from "@/lib/host/current";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
+import { buildReviewUrl } from "@/lib/review-token";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -210,6 +211,7 @@ export default async function BookingDetailPage({
     { data: creditNoteRows },
     { data: notesRaw },
     { data: accessRow },
+    { data: reviewRow },
   ] = await Promise.all([
     supabase
       .from("invoices")
@@ -235,6 +237,11 @@ export default async function BookingDetailPage({
         "check_in_method, check_in_instructions, door_code, gate_code, wifi_network, wifi_password",
       )
       .eq("listing_id", booking.listing_id)
+      .maybeSingle(),
+    supabase
+      .from("reviews")
+      .select("id")
+      .eq("booking_id", booking.id)
       .maybeSingle(),
   ]);
 
@@ -720,6 +727,31 @@ export default async function BookingDetailPage({
                 ? `${proto}://${host}`
                 : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
             })()}/pay/${booking.pay_token}`,
+            reference: booking.reference,
+            listingName: listing.name,
+            guestName: guest.full_name ?? booking.guest_name ?? null,
+            guestEmail: guest.email,
+            guestPhone: guest.phone,
+          }
+        : null,
+
+    // Shareable review link — only once the stay is completed and no review
+    // exists yet. The public /review/[id] page is token-gated; build the same
+    // ABSOLUTE tokenised URL the email + thread card use.
+    reviewLink:
+      status === "completed" && !reviewRow
+        ? {
+            url: buildReviewUrl(
+              (() => {
+                const h = headers();
+                const proto = h.get("x-forwarded-proto") ?? "https";
+                const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+                return host
+                  ? `${proto}://${host}`
+                  : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
+              })(),
+              booking.id,
+            ),
             reference: booking.reference,
             listingName: listing.name,
             guestName: guest.full_name ?? booking.guest_name ?? null,

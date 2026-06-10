@@ -40,7 +40,10 @@ type ActionResult =
  *   - token must verify against the bookingId
  *   - booking must exist, be 'completed', and have a checked_out_at
  *   - no existing review may already be linked to the booking
- *   - publish_at is set to now() + 48h so the moderation cron still applies
+ *
+ * Reviews publish immediately (is_published = true); the host is notified at
+ * once and an admin can still hide a review via moderation. The on_review_published
+ * trigger recalculates listing/host aggregates on insert.
  */
 export async function submitReviewAction(
   bookingId: string,
@@ -113,7 +116,7 @@ export async function submitReviewAction(
     return { ok: false, error: "A review has already been submitted." };
   }
 
-  const publishAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
 
   const { data: inserted, error: insertError } = await admin
     .from("reviews")
@@ -131,8 +134,9 @@ export async function submitReviewAction(
       rating_location: parsed.data.rating_location ?? null,
       rating_value: parsed.data.rating_value ?? null,
       trip_type: parsed.data.trip_type ?? null,
-      is_published: false,
-      publish_at: publishAt,
+      // Publish immediately; admins can still hide via moderation.
+      is_published: true,
+      publish_at: nowIso,
     })
     .select("id")
     .single();

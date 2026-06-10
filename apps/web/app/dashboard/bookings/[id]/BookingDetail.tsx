@@ -46,6 +46,7 @@ import { IssueRefundButton } from "./IssueRefundButton";
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
 
 import { PaymentsManager } from "./PaymentsManager";
+import { ReviewLinkCard } from "./ReviewLinkCard";
 import { WelcomeNoteCard } from "./WelcomeNoteCard";
 
 export type BookingTimelineItem = {
@@ -191,6 +192,14 @@ export type BookingDetailData = {
   refundDefaultMethod: "paystack" | "paypal" | "eft" | "manual";
   hasWorkflow: boolean;
   payLink: {
+    url: string;
+    reference: string;
+    listingName: string;
+    guestName: string | null;
+    guestEmail: string | null;
+    guestPhone: string | null;
+  } | null;
+  reviewLink: {
     url: string;
     reference: string;
     listingName: string;
@@ -978,6 +987,11 @@ function PaymentsPanel({ d }: { d: BookingDetailData }) {
               canAddAddons={d.canEditAddons}
               payLink={d.payLink}
             />
+            {d.reviewLink ? (
+              <div className="mt-4">
+                <ReviewLinkCard bookingId={d.id} {...d.reviewLink} />
+              </div>
+            ) : null}
           </div>
 
           {d.canRefund ? (
