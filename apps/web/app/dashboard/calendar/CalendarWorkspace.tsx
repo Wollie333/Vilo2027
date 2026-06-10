@@ -3,20 +3,30 @@
 import {
   BedDouble,
   CalendarDays,
+  CalendarPlus,
   ChevronLeft,
   ChevronRight,
   GanttChartSquare,
   Home as HomeIcon,
+  Loader2,
   LogIn,
   LogOut,
   Lock,
+  LockOpen,
   Moon,
   Plus,
   SlidersHorizontal,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
+
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 
 import {
   type CalBlock,
@@ -35,6 +45,7 @@ import {
   STATUS_META,
   vmoney,
 } from "./calendar-data";
+import { setManualBlocksAction, toggleBlockedDateAction } from "./actions";
 
 type Props = {
   listings: CalListing[];
@@ -101,6 +112,18 @@ export function CalendarWorkspace(props: Props) {
   const [view, setView] = useState<"month" | "timeline">("month");
   const [filter, setFilter] = useState<string>("all");
   const [selDay, setSelDay] = useState<string>(props.today);
+  const [blockOpen, setBlockOpen] = useState(false);
+
+  const refresh = () => router.refresh();
+
+  // Listings shown in the right-rail availability panel follow the filter.
+  const railListings = useMemo(
+    () =>
+      filter === "all"
+        ? props.listings
+        : props.listings.filter((l) => l.id === filter),
+    [props.listings, filter],
+  );
 
   const blockRanges = useMemo(
     () => buildBlockRanges(props.blocks),
@@ -207,6 +230,12 @@ export function CalendarWorkspace(props: Props) {
             <SlidersHorizontal className="h-4 w-4 text-brand-mute" /> Sync &
             rates
           </Link>
+          <button
+            onClick={() => setBlockOpen(true)}
+            className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+          >
+            <Lock className="h-4 w-4 text-brand-mute" /> Block dates
+          </button>
           <Link
             href="/dashboard/bookings/new"
             className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-brand-primary px-5 text-[13.5px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
@@ -349,6 +378,14 @@ export function CalendarWorkspace(props: Props) {
             listings={props.listings}
             onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
           />
+          <DayAvailability
+            selDay={selDay}
+            today={props.today}
+            listings={railListings}
+            bookings={bookings}
+            blocks={props.blocks}
+            onChanged={refresh}
+          />
           <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
             <div className="border-b border-brand-line px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
               This month at a glance
@@ -383,6 +420,15 @@ export function CalendarWorkspace(props: Props) {
           </section>
         </div>
       </div>
+
+      <BlockRangeModal
+        open={blockOpen}
+        onOpenChange={setBlockOpen}
+        listings={props.listings}
+        defaultListingId={filter === "all" ? props.listings[0]?.id : filter}
+        today={props.today}
+        onChanged={refresh}
+      />
     </div>
   );
 }
@@ -938,6 +984,316 @@ function RailSection({
       </div>
       {children}
     </>
+  );
+}
+
+// ── Selected-day availability (block · unblock · quick-book) ────────────
+function DayAvailability({
+  selDay,
+  today,
+  listings,
+  bookings,
+  blocks,
+  onChanged,
+}: {
+  selDay: string;
+  today: string;
+  listings: CalListing[];
+  bookings: CalBooking[];
+  blocks: CalBlock[];
+  onChanged: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const dt = dateFromKey(selDay);
+  const isPast = selDay < today;
+
+  function toggle(listingId: string) {
+    setBusyId(listingId);
+    start(async () => {
+      const res = await toggleBlockedDateAction(listingId, selDay, null);
+      setBusyId(null);
+      if (res.ok) {
+        toast.success(res.data.nowBlocked ? "Date blocked." : "Date opened.");
+        onChanged();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center justify-between gap-2 border-b border-brand-line px-5 py-3.5">
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          Availability · {dt.getDate()} {MONTH_NAMES[dt.getMonth()].slice(0, 3)}
+        </span>
+        {isPast ? (
+          <span className="text-[10.5px] font-semibold text-brand-mute">
+            Past date
+          </span>
+        ) : null}
+      </div>
+      <div className="divide-y divide-brand-line">
+        {listings.map((l) => {
+          const booking = bookings.find(
+            (b) =>
+              b.listingId === l.id &&
+              b.status !== "cancelled" &&
+              b.ci <= selDay &&
+              selDay < b.co,
+          );
+          const dayBlocks = blocks.filter(
+            (b) => b.listingId === l.id && b.date === selDay,
+          );
+          // Prefer a listing-wide block; fall back to any room-scoped one.
+          const block =
+            dayBlocks.find((b) => b.roomId === null) ?? dayBlocks[0] ?? null;
+          const busy = pending && busyId === l.id;
+
+          return (
+            <div
+              key={l.id}
+              className="flex items-center justify-between gap-3 px-5 py-3"
+            >
+              <span className="inline-flex min-w-0 items-center gap-2 text-[13px] font-semibold text-brand-ink">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: l.tone }}
+                />
+                <span className="truncate">{l.name}</span>
+              </span>
+
+              {booking ? (
+                <span
+                  className="shrink-0 rounded-pill px-2.5 py-1 text-[11px] font-semibold"
+                  style={{
+                    background: STATUS_META[booking.status].soft,
+                    color: STATUS_META[booking.status].ink,
+                  }}
+                >
+                  {booking.guest.split(/\s+/)[0]} · booked
+                </span>
+              ) : block && block.kind === "manual" ? (
+                <button
+                  onClick={() => toggle(l.id)}
+                  disabled={busy}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
+                  )}
+                  Open up
+                </button>
+              ) : block ? (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-mute">
+                  <Lock className="h-3 w-3" />
+                  {block.kind === "quote"
+                    ? "On hold"
+                    : (block.source ?? "Blocked")}
+                </span>
+              ) : (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    onClick={() => toggle(l.id)}
+                    disabled={busy || isPast}
+                    title={isPast ? "Date has passed" : "Block this night"}
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                  >
+                    {busy ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5 text-brand-mute" />
+                    )}
+                    Block
+                  </button>
+                  <Link
+                    href={`/dashboard/bookings/new?listing=${l.id}&checkIn=${selDay}`}
+                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-2.5 py-1 text-[11.5px] font-semibold text-white transition hover:bg-brand-secondary"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    Book
+                  </Link>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── Block a date range (listing-wide manual blocks) ─────────────────────
+function datesInclusive(from: string, to: string): string[] {
+  const out: string[] = [];
+  let d = from;
+  let guard = 0;
+  while (d <= to && guard < 367) {
+    out.push(d);
+    d = addDays(d, 1);
+    guard++;
+  }
+  return out;
+}
+
+function BlockRangeModal({
+  open,
+  onOpenChange,
+  listings,
+  defaultListingId,
+  today,
+  onChanged,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  listings: CalListing[];
+  defaultListingId?: string;
+  today: string;
+  onChanged: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [listingId, setListingId] = useState(defaultListingId ?? "");
+  const [mode, setMode] = useState<"block" | "open">("block");
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+
+  // Reset to a clean slate each time the dialog opens.
+  useEffect(() => {
+    if (open) {
+      setListingId(defaultListingId ?? listings[0]?.id ?? "");
+      setMode("block");
+      setFrom(today);
+      setTo(today);
+    }
+  }, [open, defaultListingId, today, listings]);
+
+  const count = to >= from ? datesInclusive(from, to).length : 0;
+
+  function submit() {
+    if (!listingId) {
+      toast.error("Pick a listing.");
+      return;
+    }
+    if (to < from) {
+      toast.error("The end date is before the start date.");
+      return;
+    }
+    const list = datesInclusive(from, to);
+    start(async () => {
+      const res = await setManualBlocksAction(
+        listingId,
+        list,
+        mode === "block",
+      );
+      if (res.ok) {
+        toast.success(
+          mode === "block"
+            ? `Blocked ${list.length} night${list.length === 1 ? "" : "s"}.`
+            : "Those nights are open again.",
+        );
+        onChanged();
+        onOpenChange(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Block dates"
+      description="Hold nights off the calendar for maintenance, owner stays or any reason. Booked and quote-held nights are left untouched."
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+            Listing
+          </label>
+          <select
+            value={listingId}
+            onChange={(e) => setListingId(e.target.value)}
+            className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+          >
+            {listings.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="inline-flex w-full rounded-pill border border-brand-line bg-[#F4F8F5] p-[3px]">
+          {(["block", "open"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`flex-1 rounded-pill px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                mode === m
+                  ? "bg-white text-brand-secondary shadow-[0_1px_2px_rgba(6,78,59,.12)]"
+                  : "text-brand-mute"
+              }`}
+            >
+              {m === "block" ? "Block nights" : "Open nights"}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              From
+            </label>
+            <input
+              type="date"
+              value={from}
+              min={today}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                if (to < e.target.value) setTo(e.target.value);
+              }}
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              To
+            </label>
+            <input
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => setTo(e.target.value)}
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+        </div>
+
+        <p className="text-[12.5px] text-brand-mute">
+          {count > 0
+            ? `${mode === "block" ? "Blocking" : "Opening"} ${count} night${count === 1 ? "" : "s"}${from === to ? "" : ` · ${fmtShort(from)} – ${fmtShort(to)}`}.`
+            : "Pick a start and end date."}
+        </p>
+      </div>
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending || count === 0}
+          className="inline-flex items-center gap-2 rounded-pill bg-brand-primary px-5 py-2 text-[13.5px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {mode === "block" ? "Block dates" : "Open dates"}
+        </button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
