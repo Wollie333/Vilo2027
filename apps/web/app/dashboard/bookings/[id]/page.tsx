@@ -510,7 +510,17 @@ export default async function BookingDetailPage({
     listing.cancellation_policy.replace(/_/g, " ");
 
   const refundTotal = Number(booking.refund_total ?? 0);
-  const hasWorkflow = ["pending", "confirmed", "checked_in"].includes(status);
+  // Live (non-terminal) booking → show the Manage card + let the host record
+  // payments. Includes the EFT-pending variants: a booking awaiting an EFT or
+  // online (Paystack/PayPal) payment still needs the host to be able to apply
+  // payments by hand (e.g. mark the EFT received, take a deposit by card).
+  const hasWorkflow = [
+    "pending",
+    "pending_eft",
+    "pending_eft_review",
+    "confirmed",
+    "checked_in",
+  ].includes(status);
   const canRefund =
     Boolean(booking.guest_id) &&
     (status === "completed" ||
