@@ -320,16 +320,11 @@ export default async function BookingDetailPage({
       };
     });
 
-  // Lazy fallback: ensure each named party member has a standalone contact +
-  // a relationship to the lead. The confirm trigger already does this on the
-  // pending→confirmed transition; this backfills bookings confirmed before the
-  // feature shipped (and is a harmless idempotent no-op otherwise).
-  if (
-    additionalGuests.length > 0 &&
-    ["confirmed", "checked_in", "completed", "checked_out"].includes(
-      booking.status,
-    )
-  ) {
+  // Lazy fallback: ensure each named party member has a standalone contact + a
+  // relationship to the lead. The booking trigger already materialises on create
+  // and on party/status changes; this is a harmless idempotent safety net for
+  // any non-cancelled booking the host opens.
+  if (additionalGuests.length > 0 && !TERMINAL_CANCELLED.has(booking.status)) {
     await supabase.rpc("materialize_booking_party", {
       p_booking_id: booking.id,
     });
