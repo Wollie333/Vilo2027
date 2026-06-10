@@ -24,64 +24,81 @@ export function TrustCard({
   const replyLine = responseLine(avgResponseHours);
   const yearsLine = hostingYears(hostingSince);
   const sub = [replyLine, yearsLine].filter(Boolean).join(" · ");
+  const hasReviews = rating != null && (reviewCount ?? 0) > 0;
 
-  return (
-    <div className="w-full rounded-card border border-brand-line bg-white p-3.5 shadow-card md:w-[360px]">
-      <div className="flex items-center gap-3.5">
-        <div className="relative shrink-0">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-brand-accent font-display text-sm font-bold text-brand-secondary ring-2 ring-white">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={avatarUrl}
-                alt={hostName}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              hostName.slice(0, 2).toUpperCase()
-            )}
+  const inner = (
+    <div className="flex items-center gap-3.5">
+      <div className="relative shrink-0">
+        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-brand-accent font-display text-sm font-bold text-brand-secondary ring-2 ring-white">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt={hostName}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            hostName.slice(0, 2).toUpperCase()
+          )}
+        </div>
+        {isVerified ? (
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
+            <Check className="h-2.5 w-2.5" />
+          </span>
+        ) : null}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <div className="truncate font-display text-sm font-semibold leading-tight text-brand-ink">
+            {hostName}
           </div>
           {isVerified ? (
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
-              <Check className="h-2.5 w-2.5" />
+            <span className="inline-flex shrink-0 items-center gap-0.5 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-secondary">
+              <BadgeCheck className="h-2.5 w-2.5" /> Verified
             </span>
           ) : null}
         </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <div className="truncate font-display text-sm font-semibold leading-tight text-brand-ink">
-              {hostName}
-            </div>
-            {isVerified ? (
-              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-secondary">
-                <BadgeCheck className="h-2.5 w-2.5" /> Verified
-              </span>
-            ) : null}
-          </div>
-          {sub ? (
-            <div className="mt-0.5 truncate text-[11px] text-brand-mute">
-              {sub}
-            </div>
-          ) : null}
-        </div>
-
-        {rating != null && (reviewCount ?? 0) > 0 ? (
-          <div className="shrink-0 border-l border-brand-line pl-3 text-right">
-            <div className="inline-flex items-center gap-0.5 text-sm leading-none">
-              <Star className="h-3.5 w-3.5 fill-brand-ink stroke-brand-ink" />
-              <span className="font-semibold text-brand-ink">
-                {rating.toFixed(2)}
-              </span>
-            </div>
-            <div className="mt-1 text-[10px] text-brand-mute">
-              {reviewCount} review{reviewCount === 1 ? "" : "s"}
-            </div>
+        {sub ? (
+          <div className="mt-0.5 truncate text-[11px] text-brand-mute">
+            {sub}
           </div>
         ) : null}
       </div>
+
+      {hasReviews ? (
+        <div className="shrink-0 border-l border-brand-line pl-3 text-right">
+          <div className="inline-flex items-center gap-0.5 text-sm leading-none">
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <span className="font-semibold text-brand-ink">
+              {(rating ?? 0).toFixed(2)}
+            </span>
+          </div>
+          <div className="mt-1 text-[10px] text-brand-mute">
+            {reviewCount} review{reviewCount === 1 ? "" : "s"}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
+
+  const cardClass =
+    "block w-full rounded-card border border-brand-line bg-white p-3.5 shadow-card md:w-[360px]";
+
+  // When the listing has reviews, the whole card jumps to the reviews section.
+  if (hasReviews) {
+    return (
+      <a
+        href="#sec-reviews"
+        aria-label="See all reviews"
+        className={`${cardClass} cursor-pointer transition hover:border-brand-primary/40 hover:shadow-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40`}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return <div className={cardClass}>{inner}</div>;
 }
 
 function responseLine(hours: number | null): string | null {
