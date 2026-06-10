@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 5/6) — checkout shows + records acceptance — branch `main`
+
+### Fixed
+- **The guest's policy acknowledgement was never persisted.** `policy_acknowledged` was required by the schema but the booking insert never wrote it (and the form hardcoded `true`). Now the guest checkout writes `policy_acknowledged`, `policy_acknowledged_at`, and the accepted platform legal versions (`accepted_terms_version` / `accepted_privacy_version`) onto the booking.
+
+### Changed
+- The checkout's **Cancellation policy** section now shows the listing's **real effective policy** (resolver: room → listing-wide → host default) — the actual refund schedule / non-refundable state and policy name — replacing the generic flexible/moderate/strict bullet copy. So what the guest accepts matches what's snapshotted and used for refunds.
+- Added an **explicit acceptance checkbox** ("I understand the cancellation policy and refund schedule, and accept the booking terms + privacy") that gates the confirm/pay button, with links to `/terms` and `/privacy`. The legal disclaimer + refund strip also use the real policy name/note.
+
+### Notes
+- `book/page.tsx` resolves the cancellation via `getListingPolicySummary` + `cancellationNote` and passes it to `BookingForm`. Manual/quote bookings are host-made (no guest checkbox), so their acknowledgement stays unset — they still snapshot policies for refunds.
+- `tsc --noEmit` clean, lint clean.
+
+---
+
 ## 2026-06-10 — Guests — one record per email (dedup fix) — branch `main`
 
 ### Built
