@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
+import { formatMoney } from "@/lib/format";
 import { requireHost as getHost } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -61,6 +63,85 @@ export async function sendMessageAction(
     .single();
   if (error || !row) {
     return { ok: false, error: "Could not send message. Try again." };
+  }
+
+  revalidatePath("/dashboard/inbox");
+  return { ok: true, data: { id: row.id } };
+}
+
+/**
+ * Post the booking's secure pay-now link into the thread as a host message, so
+ * the guest can pay straight from chat. Resolves the conversation's linked
+ * booking, guards that there's an outstanding balance on a payable booking, and
+ * builds the public /pay/[pay_token] URL from the request origin.
+ */
+export async function sendPayLinkToThreadAction(
+  conversationId: string,
+): Promise<ActionResult<{ id: string }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertConversationOwnership(conversationId, host.hostId))) {
+    return { ok: false, error: "Not your conversation." };
+  }
+
+  const supabase = createServerClient();
+  const { data: conv } = await supabase
+    .from("conversations")
+    .select(
+      "booking:bookings ( id, reference, status, balance_due, currency, pay_token )",
+    )
+    .eq("id", conversationId)
+    .maybeSingle();
+  const booking = (
+    Array.isArray((conv as { booking?: unknown } | null)?.booking)
+      ? (conv as { booking: unknown[] }).booking[0]
+      : (conv as { booking?: unknown } | null)?.booking
+  ) as {
+    id: string;
+    reference: string;
+    status: string;
+    balance_due: number | string | null;
+    currency: string;
+    pay_token: string | null;
+  } | null;
+
+  if (!booking || !booking.pay_token) {
+    return { ok: false, error: "No booking is linked to this conversation." };
+  }
+  const balance = Number(booking.balance_due ?? 0);
+  const dead =
+    booking.status.startsWith("cancelled") ||
+    ["declined", "expired", "no_show"].includes(booking.status);
+  if (dead) return { ok: false, error: "This booking can no longer be paid." };
+  if (balance <= 0) {
+    return { ok: false, error: "This booking is already paid in full." };
+  }
+
+  const h = headers();
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (h.get("host")
+      ? `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host")}`
+      : "");
+  const url = `${origin}/pay/${booking.pay_token}`;
+  const body = `💳 Here's your secure payment link to confirm booking ${booking.reference} — ${formatMoney(
+    balance,
+    booking.currency,
+  )} due:\n${url}`;
+
+  const { data: row, error } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: host.userId,
+      body,
+      read_by_host: true,
+      read_by_guest: false,
+    })
+    .select("id")
+    .single();
+  if (error || !row) {
+    return { ok: false, error: "Could not send the payment link." };
   }
 
   revalidatePath("/dashboard/inbox");

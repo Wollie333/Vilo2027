@@ -4,9 +4,12 @@ import {
   Archive,
   ArchiveRestore,
   BadgeCheck,
+  Copy,
+  CreditCard,
   ExternalLink,
   Phone,
   ReceiptText,
+  Send,
   Star,
   X,
 } from "lucide-react";
@@ -38,6 +41,7 @@ import {
   archiveConversationAction,
   markConversationReadAction,
   sendMessageAction,
+  sendPayLinkToThreadAction,
   togglePinAction,
   touchInboxSeenAction,
   unarchiveConversationAction,
@@ -95,6 +99,9 @@ export type ThreadContext = {
     nights: number | null;
     guests: number | null;
     total: number | null;
+    balanceDue: number | null;
+    paymentStatus: string | null;
+    payToken: string | null;
     currency: string;
   } | null;
 };
@@ -650,6 +657,11 @@ function DetailsDrawer({
               >
                 <ExternalLink className="h-4 w-4" /> Open booking
               </Link>
+
+              <PayLinkSection
+                conversationId={context.conversationId}
+                booking={context.booking}
+              />
             </div>
           ) : null}
 
@@ -695,6 +707,75 @@ function DetailsDrawer({
         </div>
       </aside>
     </>
+  );
+}
+
+// Pay-now link for the linked booking: lets the host drop the secure payment
+// link straight into the chat, or copy it. Only shows while there's an
+// outstanding balance on a payable booking.
+function PayLinkSection({
+  conversationId,
+  booking,
+}: {
+  conversationId: string;
+  booking: NonNullable<ThreadContext["booking"]>;
+}) {
+  const [sending, start] = useTransition();
+  const balance = booking.balanceDue ?? 0;
+  const dead =
+    booking.status.startsWith("cancelled") ||
+    ["declined", "expired", "no_show"].includes(booking.status);
+  if (!booking.payToken || dead || balance <= 0) return null;
+
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/pay/${booking.payToken}`
+      : `/pay/${booking.payToken}`;
+
+  function send() {
+    start(async () => {
+      const r = await sendPayLinkToThreadAction(conversationId);
+      if (r.ok) toast.success("Payment link sent in the chat.");
+      else toast.error(r.error);
+    });
+  }
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Payment link copied.");
+    } catch {
+      toast.error("Couldn't copy the link.");
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-card border border-brand-line bg-brand-light/40 p-3.5">
+      <div className="flex items-center gap-2 text-[12px] font-semibold text-brand-ink">
+        <CreditCard className="h-4 w-4 text-brand-primary" />
+        {formatMoney(balance, booking.currency)} due
+      </div>
+      <p className="mt-1 text-[11.5px] text-brand-mute">
+        Send the guest a secure link to pay and confirm this booking.
+      </p>
+      <div className="mt-3 flex gap-2">
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending}
+          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-full bg-brand-primary text-[12.5px] font-semibold text-white hover:bg-brand-secondary disabled:opacity-60"
+        >
+          <Send className="h-3.5 w-3.5" />
+          {sending ? "Sending…" : "Send in chat"}
+        </button>
+        <button
+          type="button"
+          onClick={copy}
+          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full border border-brand-line bg-white px-3 text-[12.5px] font-medium text-brand-ink hover:bg-brand-light"
+        >
+          <Copy className="h-3.5 w-3.5 text-brand-mute" /> Copy
+        </button>
+      </div>
+    </div>
   );
 }
 

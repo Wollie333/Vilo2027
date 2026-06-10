@@ -708,7 +708,7 @@ export async function convertQuoteAction(
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
-      converted_booking_id
+      converted_booking_id, conversation_id
     `,
     )
     .eq("id", quoteId)
@@ -790,6 +790,14 @@ export async function convertQuoteAction(
         })
         .eq("id", quoteId)
         .neq("status", "converted");
+
+      // Link the booking to the thread so the inbox details panel shows it.
+      if (quote.conversation_id) {
+        await supabase
+          .from("conversations")
+          .update({ booking_id: existingId })
+          .eq("id", quote.conversation_id);
+      }
 
       await postQuoteEventCard(supabase, quoteId, "quote_converted", {
         body: "Quote converted to a booking.",
@@ -975,6 +983,14 @@ export async function convertQuoteAction(
       converted_booking_id: booking.id,
     })
     .eq("id", quoteId);
+
+  // Link the booking to the thread so the inbox details panel shows it.
+  if (quote.conversation_id) {
+    await supabase
+      .from("conversations")
+      .update({ booking_id: booking.id })
+      .eq("id", quote.conversation_id);
+  }
 
   await postQuoteEventCard(supabase, quoteId, "quote_converted", {
     body: "Quote converted to a booking.",

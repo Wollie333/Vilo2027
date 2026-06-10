@@ -182,7 +182,7 @@ export default async function InboxPage({
             id, status, is_enquiry, pinned, created_at, guest_last_seen_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
             listing:listings ( id, name, slug, city, province, max_guests, bedrooms ),
-            booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, currency )
+            booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, payment_status, pay_token, currency )
           `,
         )
         .eq("id", selectedId)
@@ -279,6 +279,9 @@ export default async function InboxPage({
         nights: number | null;
         guests_count: number | null;
         total_amount: string | number | null;
+        balance_due: string | number | null;
+        payment_status: string | null;
+        pay_token: string | null;
         currency: string;
       } | null;
     } | null;
@@ -323,6 +326,12 @@ export default async function InboxPage({
                 ctx.booking.total_amount == null
                   ? null
                   : Number(ctx.booking.total_amount),
+              balanceDue:
+                ctx.booking.balance_due == null
+                  ? null
+                  : Number(ctx.booking.balance_due),
+              paymentStatus: ctx.booking.payment_status,
+              payToken: ctx.booking.pay_token,
               currency: ctx.booking.currency,
             }
           : null,

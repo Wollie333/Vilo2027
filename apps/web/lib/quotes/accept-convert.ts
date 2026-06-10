@@ -185,9 +185,11 @@ export async function acceptAndConvertQuote(
   // post an "accepted" card into the thread — left unread for the host so it
   // surfaces in their inbox badge (a guest-initiated event).
   if (quote.conversation_id) {
+    // Link the booking to the thread so the host's details panel shows the live
+    // booking (stay + pay link) the moment the guest accepts.
     await admin
       .from("conversations")
-      .update({ pipeline_stage: "accepted" })
+      .update({ pipeline_stage: "accepted", booking_id: booking.id })
       .eq("id", quote.conversation_id);
     await admin.from("messages").insert({
       conversation_id: quote.conversation_id,
