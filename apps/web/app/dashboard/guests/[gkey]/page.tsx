@@ -385,9 +385,14 @@ export default async function GuestRecordPage({
     (s, c) => s + Number(c.amount),
     0,
   );
-  const outstanding = bookings
-    .filter((b) => !b.status.startsWith("cancelled") && b.status !== "declined")
-    .reduce((s, b) => s + Math.max(0, b.balanceDue), 0);
+  // Outstanding is derived from the ONE canonical ledger (txns) — the same
+  // source the Finances tab + account-wide Ledger render — so the headline
+  // balance always matches them and automatically accounts for refunds, credit
+  // notes and overpayments. (Summing bookings.balance_due here drifted from the
+  // ledger: it counted pending/uninvoiced bookings the ledger has no charge for,
+  // and ignored credit notes / refunds.)
+  const ledgerNet = txns.reduce((s, t) => s + t.owedEffect * t.amount, 0);
+  const outstanding = Math.max(0, Math.round(ledgerNet * 100) / 100);
   const netBalance = Math.round((storeCredit - outstanding) * 100) / 100;
 
   // An accepted-but-not-converted quote drives the pulsing "Quote accepted" pill.

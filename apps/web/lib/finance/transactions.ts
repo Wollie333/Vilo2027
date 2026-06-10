@@ -1,6 +1,6 @@
 import "server-only";
 
-import { gkeyFor } from "@/lib/guests/gkey";
+import { gkeyForEmail, gkeyForGuest } from "@/lib/guests/gkey";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -165,6 +165,56 @@ export async function fetchHostTransactions(
   const one = <T>(v: T | T[] | null | undefined): T | null =>
     Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
 
+  // ── Canonical guest key (email = identity) ────────────────────────────
+  // A money row may carry a guest_id (→ u_<id>) or only an email. Older
+  // invoices/credit-notes were stored with a NULL guest_id even though the
+  // booking is now linked to an account — so the SAME person would split into a
+  // u_<id> group (payments) and an e_<email> group (invoices), showing as two
+  // ledger guests with the same name. Resolve every email to its registered
+  // account (mirrors the directory RPC's email-merge) so one person = one group.
+  const refEmails = new Set<string>();
+  const collect = (
+    rows: { guest_snapshot?: { email?: string } | null }[] | null,
+    bookingEmailRows: { booking?: unknown }[] | null,
+  ) => {
+    for (const r of rows ?? []) {
+      const e = r.guest_snapshot?.email;
+      if (e) refEmails.add(e.trim().toLowerCase());
+    }
+    for (const r of bookingEmailRows ?? []) {
+      const b = one(r.booking) as { guest_email?: string } | null;
+      if (b?.guest_email) refEmails.add(b.guest_email.trim().toLowerCase());
+    }
+  };
+  collect(invoices ?? [], invoices ?? []);
+  collect(creditNotes ?? [], creditNotes ?? []);
+  collect(null, payments ?? []);
+  collect(null, refunds ?? []);
+
+  const acctByEmail = new Map<string, string>();
+  if (refEmails.size > 0) {
+    const { data: accts } = await admin
+      .from("user_profiles")
+      .select("id, email")
+      .in("email", [...refEmails]);
+    for (const a of accts ?? []) {
+      const k = (a.email ?? "").trim().toLowerCase();
+      if (k && !acctByEmail.has(k)) acctByEmail.set(k, a.id as string);
+    }
+  }
+  // guest_id wins; else fold an email that matches a registered account into
+  // that account's u_ key; else the plain e_<email> key.
+  const resolveKey = (
+    guestId: string | null | undefined,
+    email: string | null | undefined,
+  ): string | null => {
+    if (guestId) return gkeyForGuest(guestId);
+    const lower = email?.trim().toLowerCase();
+    if (lower && acctByEmail.has(lower))
+      return gkeyForGuest(acctByEmail.get(lower)!);
+    return lower ? gkeyForEmail(lower) : null;
+  };
+
   const entries: Txn[] = [];
 
   for (const inv of invoices ?? []) {
@@ -186,7 +236,7 @@ export async function fetchHostTransactions(
       label: inv.kind === "addon" ? "Add-on" : "Charge",
       amount: Number(inv.total_amount),
       currency: inv.currency,
-      guestKey: gkeyFor(inv.guest_id, email),
+      guestKey: resolveKey(inv.guest_id, email),
       guestName: snap.name ?? b?.guest_name ?? null,
       bookingId: inv.booking_id,
       bookingRef: b?.reference ?? null,
@@ -239,7 +289,7 @@ export async function fetchHostTransactions(
                 : "Payment",
       amount: Number(p.amount),
       currency: p.currency,
-      guestKey: gkeyFor(b?.guest_id ?? null, b?.guest_email ?? null),
+      guestKey: resolveKey(b?.guest_id ?? null, b?.guest_email ?? null),
       guestName: b?.guest_name ?? null,
       bookingId: p.booking_id,
       bookingRef: b?.reference ?? null,
@@ -286,7 +336,7 @@ export async function fetchHostTransactions(
       label: "Credit note",
       amount: Number(cn.total_amount),
       currency: cn.currency,
-      guestKey: gkeyFor(cn.guest_id, email),
+      guestKey: resolveKey(cn.guest_id, email),
       guestName: snap.name ?? b?.guest_name ?? null,
       bookingId: cn.booking_id,
       bookingRef: b?.reference ?? null,
@@ -321,7 +371,7 @@ export async function fetchHostTransactions(
       label: "Refund",
       amount: Number(rf.approved_amount ?? rf.requested_amount),
       currency: rf.currency,
-      guestKey: gkeyFor(rf.guest_id, b?.guest_email ?? null),
+      guestKey: resolveKey(rf.guest_id, b?.guest_email ?? null),
       guestName: b?.guest_name ?? null,
       bookingId: rf.booking_id,
       bookingRef: b?.reference ?? null,
