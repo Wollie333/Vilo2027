@@ -16,6 +16,8 @@ import {
   Moon,
   Plus,
   SlidersHorizontal,
+  Wallet,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,6 +47,9 @@ import {
   STATUS_META,
   vmoney,
 } from "./calendar-data";
+import { createManualBookingAction } from "../bookings/new/actions";
+import type { ManualBookingInput } from "../quotes/schemas";
+
 import { setManualBlocksAction, toggleBlockedDateAction } from "./actions";
 
 type Props = {
@@ -113,8 +118,32 @@ export function CalendarWorkspace(props: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [selDay, setSelDay] = useState<string>(props.today);
   const [blockOpen, setBlockOpen] = useState(false);
+  // Range selection (check-in → check-out) drawn straight on the month grid.
+  const [rangeStart, setRangeStart] = useState<string | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<string | null>(null);
+  const hasRange = !!(rangeStart && rangeEnd && rangeEnd > rangeStart);
 
   const refresh = () => router.refresh();
+
+  function clearRange() {
+    setRangeStart(null);
+    setRangeEnd(null);
+  }
+
+  // Click a day: 1st click sets the check-in anchor, 2nd (later) click sets
+  // check-out. Clicking on/before the anchor restarts the selection.
+  function pickDay(k: string) {
+    setSelDay(k);
+    if (!rangeStart || rangeEnd) {
+      setRangeStart(k);
+      setRangeEnd(null);
+    } else if (k <= rangeStart) {
+      setRangeStart(k);
+      setRangeEnd(null);
+    } else {
+      setRangeEnd(k);
+    }
+  }
 
   // Listings shown in the right-rail availability panel follow the filter.
   const railListings = useMemo(
@@ -318,12 +347,14 @@ export function CalendarWorkspace(props: Props) {
                 month={curMonth}
                 today={props.today}
                 selDay={selDay}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
                 bookings={bookings}
                 ranges={ranges}
                 filter={filter}
                 priceForDay={priceForDay}
                 listings={props.listings}
-                onSelectDay={setSelDay}
+                onSelectDay={pickDay}
                 onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
               />
             ) : (
@@ -367,26 +398,45 @@ export function CalendarWorkspace(props: Props) {
               />
               Blocked
             </span>
+            <span className="hidden items-center gap-1.5 sm:ml-auto sm:inline-flex">
+              <CalendarPlus className="h-3.5 w-3.5 text-brand-primary" />
+              Tap two days to block or book a range
+            </span>
           </div>
         </div>
 
         {/* right rail */}
         <div className="space-y-6">
+          {hasRange ? (
+            <RangeActionCard
+              checkIn={rangeStart!}
+              checkOut={rangeEnd!}
+              listings={props.listings}
+              defaultListingId={filter === "all" ? undefined : filter}
+              bookings={props.bookings}
+              blocks={props.blocks}
+              priceForDay={priceForDay}
+              onChanged={refresh}
+              onClear={clearRange}
+            />
+          ) : null}
           <DayRail
             selDay={selDay}
             bookings={bookings}
             listings={props.listings}
             onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
           />
-          <DayAvailability
-            selDay={selDay}
-            today={props.today}
-            listings={railListings}
-            bookings={bookings}
-            blocks={props.blocks}
-            onChanged={refresh}
-            onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
-          />
+          {hasRange ? null : (
+            <DayAvailability
+              selDay={selDay}
+              today={props.today}
+              listings={railListings}
+              bookings={bookings}
+              blocks={props.blocks}
+              onChanged={refresh}
+              onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
+            />
+          )}
           <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
             <div className="border-b border-brand-line px-5 py-3.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
               This month at a glance
@@ -440,6 +490,8 @@ function MonthView({
   month,
   today,
   selDay,
+  rangeStart,
+  rangeEnd,
   bookings,
   ranges,
   filter,
@@ -452,6 +504,8 @@ function MonthView({
   month: number;
   today: string;
   selDay: string;
+  rangeStart: string | null;
+  rangeEnd: string | null;
   bookings: CalBooking[];
   ranges: BlockRange[];
   filter: string;
@@ -553,6 +607,11 @@ function MonthView({
               {week.map((d) => {
                 const isToday = d.key === today;
                 const isSel = d.key === selDay && !isToday;
+                const inRange =
+                  !!rangeStart &&
+                  !!rangeEnd &&
+                  d.key >= rangeStart &&
+                  d.key <= rangeEnd;
                 const showPrice = filter !== "all" && d.inMonth;
                 const price = showPrice ? priceForDay(filter, d.key) : 0;
                 const over = showPrice && price > singleBase;
@@ -560,11 +619,13 @@ function MonthView({
                   <div
                     key={d.key}
                     className={`border-r border-[#EDF3EF] px-2 pb-1 pt-2 last:border-r-0 ${
-                      !d.inMonth
-                        ? "bg-[#FBFCFB]"
-                        : d.isWeekend
-                          ? "bg-[#FAFCFA]"
-                          : ""
+                      inRange
+                        ? "bg-brand-primary/[0.08]"
+                        : !d.inMonth
+                          ? "bg-[#FBFCFB]"
+                          : d.isWeekend
+                            ? "bg-[#FAFCFA]"
+                            : ""
                     }`}
                     style={{ minHeight: Math.max(118, minH) }}
                   >
@@ -1331,6 +1392,429 @@ function BlockRangeModal({
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {mode === "block" ? "Block dates" : "Open dates"}
+        </button>
+      </FormModalFooter>
+    </FormModal>
+  );
+}
+
+// ── Range selection action card (block · quick-book, no page change) ─────
+function RangeActionCard({
+  checkIn,
+  checkOut,
+  listings,
+  defaultListingId,
+  bookings,
+  blocks,
+  priceForDay,
+  onChanged,
+  onClear,
+}: {
+  checkIn: string;
+  checkOut: string;
+  listings: CalListing[];
+  defaultListingId?: string;
+  bookings: CalBooking[];
+  blocks: CalBlock[];
+  priceForDay: (listingId: string, dayKey: string) => number;
+  onChanged: () => void;
+  onClear: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [listingId, setListingId] = useState(
+    defaultListingId ?? listings[0]?.id ?? "",
+  );
+  const [bookOpen, setBookOpen] = useState(false);
+
+  const listing = listings.find((l) => l.id === listingId) ?? null;
+  const nights = nightsBetween(checkIn, checkOut);
+  // The nights the stay occupies: [check-in, check-out).
+  const nightCells = datesInclusive(checkIn, addDays(checkOut, -1));
+  const rate = listing ? priceForDay(listing.id, checkIn) : 0;
+  const estTotal = rate * nights + (listing?.cleaningFee ?? 0);
+
+  const bookedNights = nightCells.filter((d) =>
+    bookings.some(
+      (b) =>
+        b.listingId === listingId &&
+        b.status !== "cancelled" &&
+        b.ci <= d &&
+        d < b.co,
+    ),
+  ).length;
+  const blockedNights = nightCells.filter((d) =>
+    blocks.some((b) => b.listingId === listingId && b.date === d),
+  ).length;
+  const hasConflict = bookedNights > 0 || blockedNights > 0;
+
+  function blockRange() {
+    if (!listingId) return;
+    start(async () => {
+      const res = await setManualBlocksAction(listingId, nightCells, true);
+      if (res.ok) {
+        toast.success(
+          `Blocked ${nights} night${nights === 1 ? "" : "s"} at ${listing?.name ?? "this listing"}.`,
+        );
+        onChanged();
+        onClear();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-primary/40 bg-white shadow-card">
+      <div className="flex items-start justify-between gap-2 border-b border-brand-line bg-brand-light/50 px-5 py-3.5">
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-secondary">
+            Selected range
+          </div>
+          <div className="mt-1 font-display text-[16px] font-bold text-brand-ink">
+            {fmtShort(checkIn)} → {fmtShort(checkOut)}
+          </div>
+          <div className="mt-0.5 text-[12px] text-brand-mute">
+            {nights} night{nights === 1 ? "" : "s"}
+          </div>
+        </div>
+        <button
+          onClick={onClear}
+          title="Clear selection"
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-brand-mute transition hover:bg-brand-light"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-3 p-5">
+        {listings.length > 1 ? (
+          <div>
+            <label className="mb-1.5 block text-[11.5px] font-semibold text-brand-ink">
+              Listing
+            </label>
+            <select
+              value={listingId}
+              onChange={(e) => setListingId(e.target.value)}
+              className="w-full rounded-[11px] border border-brand-line bg-white px-3 py-2.5 text-[13.5px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            >
+              {listings.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-2 text-[13.5px] font-semibold text-brand-ink">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ background: listing?.tone }}
+            />
+            {listing?.name}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between rounded-xl bg-brand-light/60 px-3.5 py-2.5 text-[12.5px]">
+          <span className="text-brand-mute">
+            {vmoney(rate)} × {nights} + cleaning
+          </span>
+          <span className="font-bold text-brand-ink">~{vmoney(estTotal)}</span>
+        </div>
+
+        {hasConflict ? (
+          <div className="rounded-xl bg-status-pending/10 px-3.5 py-2.5 text-[12px] font-medium text-status-pending">
+            {bookedNights > 0
+              ? `${bookedNights} of these nights ${bookedNights === 1 ? "is" : "are"} already booked.`
+              : `${blockedNights} of these nights ${blockedNights === 1 ? "is" : "are"} already blocked.`}{" "}
+            Pick a free range to create a booking.
+          </div>
+        ) : null}
+
+        <div className="flex gap-2">
+          <button
+            onClick={blockRange}
+            disabled={pending || !listingId}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-2.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+          >
+            {pending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Lock className="h-4 w-4 text-brand-mute" />
+            )}
+            Block
+          </button>
+          <button
+            onClick={() => setBookOpen(true)}
+            disabled={!listingId || hasConflict}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-3 py-2.5 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary disabled:opacity-50"
+          >
+            <CalendarPlus className="h-4 w-4" /> Create booking
+          </button>
+        </div>
+
+        <Link
+          href={`/dashboard/bookings/new?listing=${listingId}&checkIn=${checkIn}&checkOut=${checkOut}`}
+          className="block text-center text-[12px] font-semibold text-brand-primary hover:underline"
+        >
+          More options (rooms, add-ons…) →
+        </Link>
+      </div>
+
+      {listing ? (
+        <QuickBookModal
+          open={bookOpen}
+          onOpenChange={setBookOpen}
+          listing={listing}
+          checkIn={checkIn}
+          checkOut={checkOut}
+          defaultRate={rate}
+          onCreated={() => {
+            setBookOpen(false);
+            onChanged();
+            onClear();
+          }}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+// ── Inline quick-book — stays on the calendar, posts to the SSOT action ──
+function QuickBookModal({
+  open,
+  onOpenChange,
+  listing,
+  checkIn,
+  checkOut,
+  defaultRate,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  listing: CalListing;
+  checkIn: string;
+  checkOut: string;
+  defaultRate: number;
+  onCreated: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [guestName, setGuestName] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guests, setGuests] = useState(2);
+  const [rate, setRate] = useState(String(defaultRate));
+  const [cleaning, setCleaning] = useState(String(listing.cleaningFee));
+  const [payState, setPayState] =
+    useState<ManualBookingInput["payment_state"]>("paid");
+
+  useEffect(() => {
+    if (open) {
+      setGuestName("");
+      setGuestEmail("");
+      setGuestPhone("");
+      setGuests(2);
+      setRate(String(defaultRate));
+      setCleaning(String(listing.cleaningFee));
+      setPayState("paid");
+    }
+  }, [open, defaultRate, listing.cleaningFee]);
+
+  const nights = nightsBetween(checkIn, checkOut);
+  const base = (parseFloat(rate) || 0) * nights;
+  const total = base + (parseFloat(cleaning) || 0);
+
+  function submit() {
+    if (!guestName.trim()) {
+      toast.error("Add the guest's name.");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(guestEmail.trim())) {
+      toast.error("Add a valid guest email.");
+      return;
+    }
+    if (base <= 0) {
+      toast.error("Set a nightly rate.");
+      return;
+    }
+    const input: ManualBookingInput = {
+      listing_id: listing.id,
+      guest_name: guestName.trim(),
+      guest_email: guestEmail.trim(),
+      guest_phone: guestPhone.trim(),
+      check_in: checkIn,
+      check_out: checkOut,
+      headcount: guests,
+      scope: "whole_listing",
+      base_amount: base,
+      cleaning_fee: parseFloat(cleaning) || 0,
+      currency: "ZAR",
+      rooms: [],
+      addons: [],
+      notes: "",
+      payment_state: payState,
+      payment_note: "",
+      internal_note: "",
+    };
+    start(async () => {
+      const res = await createManualBookingAction(input);
+      if (res.ok) {
+        toast.success(
+          payState === "send_paystack_link"
+            ? "Booking created — send the payment link from the booking."
+            : "Booking created.",
+        );
+        onCreated();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  const PAY_OPTS: {
+    value: ManualBookingInput["payment_state"];
+    label: string;
+  }[] = [
+    { value: "paid", label: "Already paid" },
+    { value: "unpaid", label: "Collect later" },
+    { value: "send_paystack_link", label: "Send payment link" },
+  ];
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="New booking"
+      description={`${listing.name} · ${fmtShort(checkIn)} → ${fmtShort(checkOut)} · ${nights} night${nights === 1 ? "" : "s"}`}
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Guest name
+            </label>
+            <input
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              placeholder="Full name"
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Email
+            </label>
+            <input
+              type="email"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+              placeholder="guest@email.com"
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Phone{" "}
+              <span className="font-normal text-brand-mute">(optional)</span>
+            </label>
+            <input
+              value={guestPhone}
+              onChange={(e) => setGuestPhone(e.target.value)}
+              placeholder="+27…"
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Guests
+            </label>
+            <input
+              type="number"
+              min={1}
+              value={guests}
+              onChange={(e) =>
+                setGuests(Math.max(1, parseInt(e.target.value) || 1))
+              }
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Rate / night
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+              Cleaning
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={cleaning}
+              onChange={(e) => setCleaning(e.target.value)}
+              className="w-full rounded-[11px] border border-brand-line bg-white px-[13px] py-[11px] text-[14px] text-brand-ink focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/[0.12]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[12.5px] font-semibold text-brand-ink">
+            Payment
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {PAY_OPTS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => setPayState(o.value)}
+                className={`rounded-[11px] border px-2 py-2.5 text-[12px] font-semibold transition ${
+                  payState === o.value
+                    ? "border-brand-primary bg-brand-light text-brand-secondary"
+                    : "border-brand-line bg-white text-brand-ink hover:bg-brand-light/60"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between rounded-xl bg-brand-light/60 px-4 py-3">
+          <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
+            <Wallet className="h-4 w-4 text-brand-mute" /> Total
+          </span>
+          <span className="font-display text-[18px] font-bold text-brand-ink">
+            {vmoney(total)}
+          </span>
+        </div>
+
+        <Link
+          href={`/dashboard/bookings/new?listing=${listing.id}&checkIn=${checkIn}&checkOut=${checkOut}`}
+          className="block text-center text-[12px] font-semibold text-brand-primary hover:underline"
+        >
+          Need rooms, add-ons or discounts? Open the full editor →
+        </Link>
+      </div>
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
+        <button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-pill bg-brand-primary px-5 py-2 text-[13.5px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          Create booking
         </button>
       </FormModalFooter>
     </FormModal>

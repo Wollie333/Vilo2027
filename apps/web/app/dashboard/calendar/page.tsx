@@ -39,6 +39,7 @@ type RawListing = {
   city: string | null;
   province: string | null;
   base_price: number | string | null;
+  cleaning_fee: number | string | null;
   booking_mode: string;
   listing_photos: RawPhoto[] | null;
   listing_rooms: { id: string }[] | null;
@@ -87,7 +88,7 @@ export default async function CalendarPage() {
     const { data: lr } = await supabase
       .from("listings")
       .select(
-        "id, name, city, province, base_price, booking_mode, listing_photos ( url, sort_order ), listing_rooms ( id )",
+        "id, name, city, province, base_price, cleaning_fee, booking_mode, listing_photos ( url, sort_order ), listing_rooms ( id )",
       )
       .eq("host_id", host.id)
       .eq("listing_type", "accommodation")
@@ -108,6 +109,7 @@ export default async function CalendarPage() {
             ? 1
             : Math.max(1, (l.listing_rooms ?? []).length),
         basePrice: Number(l.base_price ?? 0),
+        cleaningFee: Number(l.cleaning_fee ?? 0),
         photo,
         tone: LISTING_TONES[i % LISTING_TONES.length],
       };

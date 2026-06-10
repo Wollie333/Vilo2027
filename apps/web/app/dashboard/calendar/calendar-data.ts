@@ -19,6 +19,7 @@ export type CalListing = {
   location: string;
   rooms: number;
   basePrice: number;
+  cleaningFee: number;
   photo: string | null;
   tone: string;
 };
