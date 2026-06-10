@@ -19,12 +19,21 @@ import {
   SearchX,
   Sparkles,
   Star,
+  TrendingDown,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
 
 import { formatMoney } from "@/lib/format";
 import { createServerClient } from "@/lib/supabase/server";
+
+import {
+  OCCUPIED_STATUSES,
+  formatNextDate,
+  monthWindow,
+  occupancyPct,
+  overlapNights,
+} from "./occupancy";
 
 export const metadata: Metadata = {
   title: "Listings",
@@ -81,6 +90,14 @@ type ListingRow = {
   rooms: Array<{ id: string }> | null;
 };
 
+type MonthBookingRow = {
+  listing_id: string;
+  check_in: string | null;
+  check_out: string | null;
+  status: string;
+};
+type UpcomingBookingRow = { listing_id: string; check_in: string | null };
+
 type Derived = ListingRow & {
   status: "published" | "draft" | "paused";
   hero: { url: string; sort_order: number } | undefined;
@@ -93,6 +110,12 @@ type Derived = ListingRow & {
   typeLabel: string;
   location: string;
   setup: { done: number; total: number; missing: string[] };
+  /** This-month occupancy as 0–100, or null when not computable. */
+  occupancy: number | null;
+  /** Booked nights this month (for the occupancy bar context). */
+  bookedNights: number;
+  /** Next upcoming check-in, formatted ("Today" / "14 Jun"), or null. */
+  nextBooking: string | null;
 };
 
 function statusOf(l: ListingRow): "published" | "draft" | "paused" {
@@ -161,24 +184,84 @@ export default async function ListingsPage({
         .maybeSingle()
     : { data: null };
 
-  const { data: listingsRaw } = host
-    ? await supabase
-        .from("listings")
-        .select(
-          "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
-        )
-        .eq("host_id", host.id)
-        .eq("listing_type", "accommodation")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-    : { data: [] as ListingRow[] };
+  // Calendar-month windows for occupancy. `cur` drives the live KPIs; `prev`
+  // gives the month-on-month trend chips. `todayStr` anchors "next booking".
+  const now = new Date();
+  const cur = monthWindow(now.getUTCFullYear(), now.getUTCMonth());
+  const prev = monthWindow(now.getUTCFullYear(), now.getUTCMonth() - 1);
+  const todayStr = now.toISOString().slice(0, 10);
+
+  const [
+    { data: listingsRaw },
+    { data: monthBookings },
+    { data: upcomingBookings },
+  ] = host
+    ? await Promise.all([
+        supabase
+          .from("listings")
+          .select(
+            "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
+          )
+          .eq("host_id", host.id)
+          .eq("listing_type", "accommodation")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false }),
+        // Occupied stays overlapping the previous or current month — enough to
+        // compute both months' booked nights for the occupancy trend.
+        supabase
+          .from("bookings")
+          .select("listing_id, check_in, check_out, status")
+          .eq("host_id", host.id)
+          .is("deleted_at", null)
+          .in("status", [...OCCUPIED_STATUSES])
+          .not("check_in", "is", null)
+          .not("check_out", "is", null)
+          .lt("check_in", cur.endISO)
+          .gt("check_out", prev.startISO),
+        // Future arrivals, soonest first — first hit per listing is its "Next".
+        supabase
+          .from("bookings")
+          .select("listing_id, check_in")
+          .eq("host_id", host.id)
+          .is("deleted_at", null)
+          .in("status", [...OCCUPIED_STATUSES])
+          .gte("check_in", todayStr)
+          .order("check_in", { ascending: true }),
+      ])
+    : [
+        { data: [] as ListingRow[] },
+        { data: [] as MonthBookingRow[] },
+        { data: [] as UpcomingBookingRow[] },
+      ];
 
   const raw = (listingsRaw as ListingRow[] | null) ?? [];
+
+  // Booked nights per listing for each month, from the overlapping stays.
+  const bookedCur = new Map<string, number>();
+  const bookedPrev = new Map<string, number>();
+  for (const b of (monthBookings as MonthBookingRow[] | null) ?? []) {
+    if (!b.check_in || !b.check_out) continue;
+    const c = overlapNights(b.check_in, b.check_out, cur);
+    if (c > 0)
+      bookedCur.set(b.listing_id, (bookedCur.get(b.listing_id) ?? 0) + c);
+    const p = overlapNights(b.check_in, b.check_out, prev);
+    if (p > 0)
+      bookedPrev.set(b.listing_id, (bookedPrev.get(b.listing_id) ?? 0) + p);
+  }
+
+  // Soonest future arrival per listing (rows already sorted ascending).
+  const nextBy = new Map<string, string>();
+  for (const b of (upcomingBookings as UpcomingBookingRow[] | null) ?? []) {
+    if (b.check_in && !nextBy.has(b.listing_id))
+      nextBy.set(b.listing_id, b.check_in);
+  }
 
   const all: Derived[] = raw.map((l) => {
     const photos = (l.photos ?? []).sort((a, b) => a.sort_order - b.sort_order);
     const photoCount = photos.length;
     const roomCount = (l.rooms ?? []).length;
+    const nights = bookedCur.get(l.id) ?? 0;
+    const nextDate = nextBy.get(l.id);
     return {
       ...l,
       status: statusOf(l),
@@ -192,6 +275,9 @@ export default async function ListingsPage({
       typeLabel: TYPE_LABEL[l.accommodation_type ?? "other"] ?? "Stay",
       location: [l.city, l.province].filter(Boolean).join(", "),
       setup: setupOf(l, photoCount, roomCount),
+      occupancy: occupancyPct(nights, cur.days),
+      bookedNights: nights,
+      nextBooking: nextDate ? formatNextDate(nextDate, todayStr) : null,
     };
   });
 
@@ -210,16 +296,39 @@ export default async function ListingsPage({
       .filter((l) => l.status === "published")
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
 
-  // Portfolio KPIs — every figure is a real stored value, never a placeholder.
+  // Portfolio KPIs — every figure is computed from real rows, never a
+  // placeholder. Occupancy is measured against published (on-sale) inventory.
   const priced = all.filter((l) => l.price != null);
   const avgRate =
     priced.length > 0
       ? priced.reduce((s, l) => s + (l.price ?? 0), 0) / priced.length
       : null;
-  const totalBookings = all.reduce((s, l) => s + l.bookings, 0);
   const hostRating = host?.avg_rating ? Number(host.avg_rating) : null;
   const hostReviews = host?.total_reviews ?? 0;
   const currency = all[0]?.currency ?? "ZAR";
+
+  const publishedListings = all.filter((l) => l.status === "published");
+  const publishedIds = new Set(publishedListings.map((l) => l.id));
+  const bookedNightsCur = publishedListings.reduce(
+    (s, l) => s + l.bookedNights,
+    0,
+  );
+  const bookedNightsPrev = [...bookedPrev.entries()]
+    .filter(([id]) => publishedIds.has(id))
+    .reduce((s, [, n]) => s + n, 0);
+  const availableNightsCur = cur.days * publishedListings.length;
+  const availableNightsPrev = prev.days * publishedListings.length;
+  const occCur = occupancyPct(bookedNightsCur, availableNightsCur);
+  const occPrev = occupancyPct(bookedNightsPrev, availableNightsPrev);
+  // Month-on-month deltas — only shown when last month had something to compare.
+  const nightsTrendPct =
+    bookedNightsPrev > 0
+      ? Math.round(
+          ((bookedNightsCur - bookedNightsPrev) / bookedNightsPrev) * 100,
+        )
+      : null;
+  const occTrendPp =
+    occCur != null && occPrev != null ? occCur - occPrev : null;
 
   const filtered = all
     .filter((l) => (status === "all" ? true : l.status === status))
@@ -305,12 +414,30 @@ export default async function ListingsPage({
           {/* ===== KPI strip ===== */}
           <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <KpiCard
-              label="Total bookings"
-              chip={`${totalAll} listing${totalAll === 1 ? "" : "s"}`}
+              label={`Booked nights · ${cur.label}`}
+              chip={
+                nightsTrendPct != null && nightsTrendPct !== 0 ? (
+                  <TrendChip value={nightsTrendPct} unit="%" />
+                ) : (
+                  <CountChip>{publishedListings.length} live</CountChip>
+                )
+              }
             >
-              <span className="num">{totalBookings.toLocaleString()}</span>
+              {availableNightsCur > 0 ? (
+                <span className="num">
+                  {bookedNightsCur}
+                  <span className="text-[14px] font-semibold text-brand-mute">
+                    /{availableNightsCur}
+                  </span>
+                </span>
+              ) : (
+                "—"
+              )}
             </KpiCard>
-            <KpiCard label="Avg nightly rate" chip={`${priced.length} priced`}>
+            <KpiCard
+              label="Avg nightly rate"
+              chip={<CountChip>{priced.length} priced</CountChip>}
+            >
               <span className="num">
                 {avgRate == null
                   ? "—"
@@ -318,21 +445,24 @@ export default async function ListingsPage({
               </span>
             </KpiCard>
             <KpiCard
-              label="Live listings"
-              chip={`${counts.draft} draft`}
-              chipTone="mute"
+              label="Portfolio occupancy"
+              chip={
+                occTrendPp != null && occTrendPp !== 0 ? (
+                  <TrendChip value={occTrendPp} unit="pp" />
+                ) : (
+                  <CountChip>{publishedListings.length} live</CountChip>
+                )
+              }
             >
-              <span className="num">
-                {counts.published}
-                <span className="text-[14px] font-semibold text-brand-mute">
-                  /{totalAll}
-                </span>
-              </span>
+              <span className="num">{occCur == null ? "—" : `${occCur}%`}</span>
             </KpiCard>
             <KpiCard
               label="Avg rating"
-              chip={`${hostReviews} review${hostReviews === 1 ? "" : "s"}`}
-              chipTone="mute"
+              chip={
+                <CountChip>
+                  {hostReviews} review{hostReviews === 1 ? "" : "s"}
+                </CountChip>
+              }
             >
               <span className="inline-flex items-center gap-1.5">
                 <span className="num">
@@ -538,12 +668,10 @@ function CountPart({
 function KpiCard({
   label,
   chip,
-  chipTone = "good",
   children,
 }: {
   label: string;
-  chip: string;
-  chipTone?: "good" | "mute";
+  chip: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -552,18 +680,40 @@ function KpiCard({
         <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
           {label}
         </span>
-        <span
-          className={`num inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold ${
-            chipTone === "good" ? "text-status-confirmed" : "text-brand-mute"
-          }`}
-        >
-          {chip}
-        </span>
+        {chip}
       </div>
       <div className="mt-2 font-display text-[26px] font-bold leading-none text-brand-ink">
         {children}
       </div>
     </div>
+  );
+}
+
+// Muted pill for a contextual count (e.g. "6 priced").
+function CountChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="num inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold text-brand-mute">
+      {children}
+    </span>
+  );
+}
+
+// Month-on-month delta pill — green up / red down. `unit` is "%" (booked
+// nights) or "pp" (occupancy points).
+function TrendChip({ value, unit }: { value: number; unit: "%" | "pp" }) {
+  const up = value >= 0;
+  const Icon = up ? TrendingUp : TrendingDown;
+  return (
+    <span
+      className={`num inline-flex items-center gap-1 whitespace-nowrap rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold ${
+        up ? "text-status-confirmed" : "text-status-cancelled"
+      }`}
+    >
+      <Icon className="h-3 w-3" />
+      {up ? "+" : "−"}
+      {Math.abs(value)}
+      {unit}
+    </span>
   );
 }
 
@@ -818,6 +968,48 @@ function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
               </Link>
             </CardFooter>
           </>
+        ) : l.status === "published" ? (
+          <>
+            <div
+              className="mt-4 grid grid-cols-3 gap-3 rounded-[12px] px-3 py-2.5"
+              style={{ background: top ? "#D1FAE5" : "#F0FDF4" }}
+            >
+              <MiniStat
+                label="Occupancy"
+                value={
+                  <span className="num">
+                    {l.occupancy == null ? "—" : `${l.occupancy}%`}
+                  </span>
+                }
+              />
+              <MiniStat label="Next" value={l.nextBooking ?? "—"} />
+              <RatingStat rating={l.rating} />
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-pill bg-[#EAF4EE]">
+              <span
+                className="block h-full rounded-pill bg-brand-primary"
+                style={{ width: `${l.occupancy ?? 0}%` }}
+              />
+            </div>
+            <CardFooter l={l}>
+              <Link
+                href={`/dashboard/listings/${l.id}/edit`}
+                className="font-semibold text-brand-primary hover:underline"
+              >
+                Edit
+              </Link>
+              {l.slug ? (
+                <Link
+                  href={`/listing/${l.slug}`}
+                  target="_blank"
+                  className="inline-flex items-center gap-1 text-brand-mute hover:text-brand-ink"
+                >
+                  View
+                  <ArrowUpRight className="h-3 w-3" />
+                </Link>
+              ) : null}
+            </CardFooter>
+          </>
         ) : (
           <>
             <div className="mt-4 grid grid-cols-3 gap-3 rounded-[12px] bg-brand-light px-3 py-2.5">
@@ -836,18 +1028,8 @@ function ListingCard({ l, isSpotlight }: { l: Derived; isSpotlight: boolean }) {
                 href={`/dashboard/listings/${l.id}/edit`}
                 className="font-semibold text-brand-primary hover:underline"
               >
-                {l.status === "paused" ? "Resume" : "Edit"}
+                Resume
               </Link>
-              {l.status === "published" && l.slug ? (
-                <Link
-                  href={`/listing/${l.slug}`}
-                  target="_blank"
-                  className="inline-flex items-center gap-1 text-brand-mute hover:text-brand-ink"
-                >
-                  View
-                  <ArrowUpRight className="h-3 w-3" />
-                </Link>
-              ) : null}
             </CardFooter>
           </>
         )}
@@ -947,7 +1129,7 @@ function ListingRowItem({
         ) : (
           <span className="inline-flex items-center gap-3 text-[12.5px]">
             <span className="num font-semibold text-brand-ink">
-              {l.bookings} booking{l.bookings === 1 ? "" : "s"}
+              {l.occupancy == null ? "—" : `${l.occupancy}% occ`}
             </span>
             <span className="num inline-flex items-center gap-1 font-semibold text-brand-ink">
               <Star
