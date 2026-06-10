@@ -3,6 +3,19 @@
 **Version:** 1.0
 **Last Updated:** May 2026
 
+> **⚖️ LEGAL TODO (OPEN — before launch, 2026-06-11):** Vilo is a direct-booking
+> *platform*, not a payment processor or escrow. Hosts & guests transact
+> **directly** — card runs on the **host's own** Paystack/PayPal (AGENT_RULES
+> §4.7/§4.8), EFT/SWIFT goes straight to the host's bank, and **refunds are
+> issued by the host directly**. Vilo never holds, routes, or controls the money.
+> The **Terms of Use** (+ checkout/host-onboarding consent) MUST state that all
+> payments & refunds are handled directly between host and guest, **outside
+> Vilo's control**, and that Vilo is **not liable** for disputes, non-delivery,
+> chargebacks, or refunds — each party accepts that risk. **Get it legally
+> reviewed** — this is the core liability shield for the direct-payment model.
+> Surface a short "paid directly to the host" line on `/pay/[token]` + checkout.
+> Add a matching pre-launch line to `SECURITY_CHECKLIST.md`.
+
 This file records every significant technical decision made for the Vilo platform — what was chosen, what was considered, and why. When an agent suggests changing something, check here first. If there's an ADR for it, the decision is locked unless explicitly reopened.
 
 **Format:** Each ADR has a status — `Accepted` (locked), `Superseded` (replaced by a later ADR), or `Proposed` (still being decided).
