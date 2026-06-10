@@ -1,16 +1,12 @@
 import type { Metadata } from "next";
 import {
   BadgeCheck,
-  Ban,
-  Clock,
   Flag,
   Info,
   Key,
-  LogOut,
   RotateCcw,
   Shield,
   ShieldCheck,
-  Users,
   Zap,
 } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -18,8 +14,13 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { UtilityBar } from "@/app/_components/home/UtilityBar";
-import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
+import { ThingsToKnow } from "@/components/policy/ThingsToKnow";
 import { getBrandName } from "@/lib/brand";
+import {
+  cancellationNote,
+  getListingPolicySummary,
+  type ListingPolicySummary,
+} from "@/lib/policy/listing-summary";
 import { type SeasonalRule } from "@/lib/pricing";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
 import { createServerClient } from "@/lib/supabase/server";
@@ -102,12 +103,6 @@ type RawListing = {
     payout_verified: boolean;
     created_at: string;
   };
-};
-
-const CANCELLATION_BLURB: Record<RawListing["cancellation_policy"], string> = {
-  flexible: "Full refund up to 24 hours before check-in.",
-  moderate: "Full refund up to 5 days before check-in.",
-  strict: "50% refund up to 7 days before. No refund after.",
 };
 
 const ACC_LABEL: Record<string, string> = {
@@ -454,6 +449,12 @@ export default async function ListingDetailPage({
   const reviewsNode =
     reviews.count > 0 ? <ReviewsSection data={reviews} /> : null;
 
+  // The listing's effective policies (resolve → listing-wide → host default)
+  // are the single source of truth for the refund note shown in the reserve
+  // panel and the cancellation highlight, and they drive <ThingsToKnow/>.
+  const policySummary = await getListingPolicySummary(listing.id);
+  const refundNote = cancellationNote(policySummary);
+
   const locationNode =
     (listing.latitude != null && listing.longitude != null) ||
     pois.length > 0 ? (
@@ -529,6 +530,8 @@ export default async function ListingDetailPage({
 
         <ListingBody
           listing={listing}
+          policySummary={policySummary}
+          refundNote={refundNote}
           amenities={amenities}
           showRoomsGrid={rooms.length > 0}
           roomsNode={
@@ -569,7 +572,7 @@ export default async function ListingDetailPage({
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
               instantBooking={listing.instant_booking}
-              refundNote={CANCELLATION_BLURB[listing.cancellation_policy]}
+              refundNote={refundNote?.note ?? "See the cancellation policy."}
               quoteButton={
                 <RequestQuoteButton
                   listingId={listing.id}
@@ -628,6 +631,8 @@ export default async function ListingDetailPage({
 
 async function ListingBody({
   listing,
+  policySummary,
+  refundNote,
   amenities,
   showRoomsGrid,
   roomsNode,
@@ -639,6 +644,8 @@ async function ListingBody({
   quoteButton,
 }: {
   listing: RawListing;
+  policySummary: ListingPolicySummary;
+  refundNote: { title: string; note: string } | null;
   amenities: string[];
   showRoomsGrid: boolean;
   roomsNode: React.ReactNode;
@@ -750,10 +757,10 @@ async function ListingBody({
             />
             <Highlight
               icon={<RotateCcw className="h-5 w-5" />}
-              title={`${listing.cancellation_policy[0].toUpperCase()}${listing.cancellation_policy.slice(1)} cancellation`}
+              title={refundNote?.title ?? "Cancellation policy"}
               body={
                 <>
-                  {CANCELLATION_BLURB[listing.cancellation_policy]}{" "}
+                  {refundNote?.note ?? "See the host's cancellation terms."}{" "}
                   <a
                     href="#sec-policies"
                     className="text-brand-primary underline underline-offset-2"
@@ -888,76 +895,20 @@ async function ListingBody({
                 }}
               />
             </div>
-            <div className="mt-6 grid gap-6 md:grid-cols-3">
-              <div>
-                <div className="font-display font-semibold text-brand-ink">
-                  House rules
-                </div>
-                <ul className="mt-3 space-y-2 text-sm text-brand-ink/85">
-                  <li className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-brand-mute" /> Check-in after{" "}
-                    {listing.check_in_time?.slice(0, 5) ?? "—"}
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <LogOut className="h-4 w-4 text-brand-mute" /> Check-out by{" "}
-                    {listing.check_out_time?.slice(0, 5) ?? "—"}
-                  </li>
-                  {listing.max_guests != null ? (
-                    <li className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-brand-mute" />{" "}
-                      {listing.max_guests} guests maximum
-                    </li>
-                  ) : null}
-                  {listing.min_nights != null ? (
-                    <li className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-brand-mute" />{" "}
-                      {listing.min_nights} night
-                      {listing.min_nights === 1 ? "" : "s"} minimum
-                    </li>
-                  ) : null}
-                </ul>
-                {listing.house_rules ? (
-                  <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                    {listing.house_rules}
-                  </p>
-                ) : null}
-              </div>
-              <div>
-                <div className="font-display font-semibold text-brand-ink">
-                  Safety &amp; property
-                </div>
-                <ul className="mt-3 space-y-2 text-sm text-brand-ink/85">
-                  <li className="flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 text-brand-mute" />{" "}
-                    {brandName}
-                    holds payments until check-in
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <BadgeCheck className="h-4 w-4 text-brand-mute" /> Host
-                    identity verified
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Ban className="h-4 w-4 text-brand-mute" /> No parties or
-                    events
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-display font-semibold text-brand-ink">
-                  Cancellation
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-brand-dark">
-                  <span className="font-medium capitalize">
-                    {listing.cancellation_policy}.
-                  </span>{" "}
-                  {CANCELLATION_BLURB[listing.cancellation_policy]}
-                </p>
-              </div>
-            </div>
-
-            {/* Assigned policies with read-the-full-text popups. Renders nothing
-                when none are assigned, leaving the legacy summary above. */}
-            <ListingPolicyBlock listingId={listing.id} className="mt-6" />
+            {/* Single source of truth: the listing's effective policies drive
+                the refund schedule, check-in/out and house rules (no legacy
+                cancellation_policy enum). Booking terms + privacy are platform
+                docs, linked at the foot. */}
+            <ThingsToKnow
+              listingId={listing.id}
+              summary={policySummary}
+              brandName={brandName}
+              checkInTimeFallback={listing.check_in_time}
+              checkOutTimeFallback={listing.check_out_time}
+              maxGuests={listing.max_guests}
+              minNights={listing.min_nights}
+              houseRulesText={listing.house_rules}
+            />
 
             <button
               type="button"

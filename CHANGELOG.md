@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 4/6) — public listing page SSOT cutover — branch `main`
+
+### Changed
+- The listing page's **Things to know** section is now driven entirely by the listing's effective policies (resolve: room → listing-wide → host default), not legacy columns:
+  - **Cancellation** shows the real refund schedule inline (e.g. `5+ days → 100%`, `<24h → 0%`) with a non-refundable badge, plus "Read full policy".
+  - **Check-in / out** times come from the `check_in_out` policy (falling back to the listing's own times only when no policy resolves).
+  - **House rules** render as chips from the `house_rules` policy flags (pets/smoking/children/parties + quiet hours), with the host's prose and a "Read full" popup.
+  - Booking terms + privacy are linked at the foot (platform-wide docs).
+- Removed the hardcoded `CANCELLATION_BLURB` and the `listing.cancellation_policy` enum display path. The reserve panel's refund note and the cancellation highlight now derive from the resolved policy via `cancellationNote()`.
+
+### Built
+- `components/policy/ThingsToKnow.tsx` — the single inline renderer for the section.
+- `lib/policy/listing-summary.ts` — shared `getListingPolicySummary()` + `cancellationNote()` so the page fetches once and feeds both the refund note and `ThingsToKnow` (no double RPC).
+
+### Notes
+- `tsc --noEmit` clean (0 errors), lint clean. Verified the summary RPC returns all three host types with real data for the demo listing.
+- `ListingPolicyBlock` is now used only by the checkout page — handled in Phase 5.
+
+---
+
 ## 2026-06-10 — Calendar — select a range on the grid + inline quick-book — branch `main`
 
 ### Built
