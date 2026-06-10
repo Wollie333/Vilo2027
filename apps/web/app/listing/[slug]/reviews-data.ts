@@ -1,3 +1,4 @@
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type TripType =
@@ -18,6 +19,7 @@ export type PublicReview = {
   helpfulCount: number;
   nights: number | null;
   hostResponse: string | null;
+  photos: string[];
 };
 
 export type ReviewCategory = { key: string; label: string; avg: number };
@@ -73,6 +75,7 @@ type RawReview = {
   host_response: string | null;
   guest: { full_name: string | null } | null;
   booking: { nights: number | null } | null;
+  photos: { storage_path: string; sort_order: number }[] | null;
 };
 
 function firstNameLastInitial(name: string | null): string {
@@ -100,7 +103,8 @@ export async function loadListingReviews(
          rating_cleanliness, rating_communication, rating_checkin,
          rating_accuracy, rating_location, rating_value,
          guest:user_profiles!reviews_guest_id_fkey ( full_name ),
-         booking:bookings ( nights )`,
+         booking:bookings ( nights ),
+         photos:review_photos ( storage_path, sort_order )`,
       )
       .eq("listing_id", listingId)
       .eq("is_published", true)
@@ -124,6 +128,10 @@ export async function loadListingReviews(
     helpfulCount: r.helpful_count ?? 0,
     nights: r.booking?.nights ?? null,
     hostResponse: r.host_response ?? null,
+    photos: (r.photos ?? [])
+      .slice()
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((p) => reviewPhotoUrl(p.storage_path)),
   }));
 
   const count = reviews.length;

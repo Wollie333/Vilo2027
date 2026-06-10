@@ -1,13 +1,22 @@
 "use client";
 
-import { Loader2, Star } from "lucide-react";
+import { ImagePlus, Loader2, Star, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { submitReviewAction } from "./actions";
+import {
+  ACCEPTED_REVIEW_PHOTO_TYPES,
+  MAX_REVIEW_PHOTOS,
+  MAX_REVIEW_PHOTO_BYTES,
+} from "@/lib/reviews/photos";
+import { createClient } from "@/lib/supabase/client";
+
+import { createReviewPhotoUploadUrl, submitReviewAction } from "./actions";
 
 const MAX = 2000;
+
+type UploadedPhoto = { path: string; previewUrl: string };
 
 const RATING_LABELS: Record<number, string> = {
   1: "Disappointing",
@@ -107,13 +116,79 @@ export function ReviewSubmissionForm({
     rating_value: 0,
   });
   const [tripType, setTripType] = useState<TripTypeKey | null>(null);
+  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
   const display = hover || rating;
   const remaining = MAX - body.length;
+  const busy = pending || uploading;
+
+  async function handleFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    const room = MAX_REVIEW_PHOTOS - photos.length;
+    if (room <= 0) {
+      toast.error(`You can add up to ${MAX_REVIEW_PHOTOS} photos.`);
+      return;
+    }
+    const files = Array.from(fileList).slice(0, room);
+    const supabase = createClient();
+    setUploading(true);
+    try {
+      for (const file of files) {
+        if (
+          !ACCEPTED_REVIEW_PHOTO_TYPES.includes(
+            file.type as (typeof ACCEPTED_REVIEW_PHOTO_TYPES)[number],
+          )
+        ) {
+          toast.error(`${file.name}: use a JPEG, PNG or WebP image.`);
+          continue;
+        }
+        if (file.size > MAX_REVIEW_PHOTO_BYTES) {
+          toast.error(`${file.name}: photo must be under 8 MB.`);
+          continue;
+        }
+        const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+        const ticket = await createReviewPhotoUploadUrl(bookingId, token, ext);
+        if (!ticket.ok) {
+          toast.error(ticket.error);
+          continue;
+        }
+        const { error } = await supabase.storage
+          .from("review-photos")
+          .uploadToSignedUrl(ticket.path, ticket.token, file, {
+            contentType: file.type || "image/jpeg",
+          });
+        if (error) {
+          toast.error(`${file.name}: ${error.message || "upload failed"}`);
+          continue;
+        }
+        setPhotos((prev) => [
+          ...prev,
+          { path: ticket.path, previewUrl: URL.createObjectURL(file) },
+        ]);
+      }
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  function removePhoto(path: string) {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.path === path);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((p) => p.path !== path);
+    });
+  }
 
   function submit() {
     if (rating < 1) {
       toast.error("Please pick a star rating.");
+      return;
+    }
+    if (uploading) {
+      toast.error("Hang on — your photos are still uploading.");
       return;
     }
     start(async () => {
@@ -127,6 +202,7 @@ export function ReviewSubmissionForm({
         rating_location: categories.rating_location || null,
         rating_value: categories.rating_value || null,
         trip_type: tripType,
+        photo_paths: photos.map((p) => p.path),
       });
       if (result.ok) {
         toast.success("Thanks — your review has been submitted.");
@@ -248,9 +324,68 @@ export function ReviewSubmissionForm({
         </div>
       </div>
 
+      {/* Photos (optional) */}
+      <fieldset>
+        <legend className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+          Add photos (optional)
+        </legend>
+        <div className="mt-2 flex flex-wrap gap-2.5">
+          {photos.map((p) => (
+            <div
+              key={p.path}
+              className="group relative h-20 w-20 overflow-hidden rounded-card border border-brand-line bg-brand-light"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.previewUrl}
+                alt="Review upload preview"
+                className="h-full w-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => removePhoto(p.path)}
+                disabled={busy}
+                aria-label="Remove photo"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-ink/70 text-white transition hover:bg-brand-ink"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          {photos.length < MAX_REVIEW_PHOTOS ? (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={busy}
+              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-card border border-dashed border-brand-line bg-white text-brand-mute transition hover:border-brand-primary hover:text-brand-primary disabled:opacity-60"
+            >
+              {uploading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <ImagePlus className="h-5 w-5" />
+              )}
+              <span className="text-[10px] font-semibold">
+                {uploading ? "Uploading" : "Add"}
+              </span>
+            </button>
+          ) : null}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_REVIEW_PHOTO_TYPES.join(",")}
+          multiple
+          className="hidden"
+          onChange={(e) => void handleFiles(e.target.files)}
+        />
+        <p className="mt-1.5 text-[11px] text-brand-mute">
+          Up to {MAX_REVIEW_PHOTOS} photos · JPEG, PNG or WebP · max 8 MB each.
+        </p>
+      </fieldset>
+
       <button
         type="submit"
-        disabled={pending || rating < 1}
+        disabled={busy || rating < 1}
         className="inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-secondary disabled:opacity-60"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

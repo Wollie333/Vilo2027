@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { ArrowRight, Star, StarHalf } from "lucide-react";
 import Link from "next/link";
 
+import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
+import { buildReviewPath } from "@/lib/review-token";
 import { createServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -44,7 +47,9 @@ export default async function PortalReviewsPage() {
   // Reviews the guest has already submitted (used to filter out done ones).
   const { data: writtenRows } = await supabase
     .from("reviews")
-    .select("booking_id, rating, body, created_at, host_response")
+    .select(
+      "booking_id, rating, body, created_at, host_response, photos:review_photos ( storage_path, sort_order )",
+    )
     .eq("guest_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -63,6 +68,7 @@ export default async function PortalReviewsPage() {
     body: string | null;
     created_at: string;
     host_response: string | null;
+    photos: { storage_path: string; sort_order: number }[] | null;
   };
 
   const completed = (completedRows as CompletedRow[] | null) ?? [];
@@ -115,7 +121,7 @@ export default async function PortalReviewsPage() {
                       </div>
                     </div>
                     <Link
-                      href={`/review/${b.id}`}
+                      href={buildReviewPath(b.id)}
                       className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary"
                     >
                       Write review <ArrowRight className="h-3.5 w-3.5" />
@@ -162,6 +168,17 @@ export default async function PortalReviewsPage() {
                   <p className="mt-2 text-sm leading-relaxed text-brand-dark">
                     {r.body}
                   </p>
+                ) : null}
+                {r.photos && r.photos.length > 0 ? (
+                  <div className="mt-3">
+                    <ReviewPhotoGrid
+                      urls={r.photos
+                        .slice()
+                        .sort((a, b) => a.sort_order - b.sort_order)
+                        .map((p) => reviewPhotoUrl(p.storage_path))}
+                      size="sm"
+                    />
+                  </div>
                 ) : null}
                 {r.host_response ? (
                   <div className="mt-3 rounded-[10px] border border-brand-line bg-brand-light/50 p-3">

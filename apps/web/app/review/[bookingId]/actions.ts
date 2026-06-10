@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { dispatchEvent } from "@/lib/notifications/dispatch";
+import { MAX_REVIEW_PHOTOS } from "@/lib/reviews/photos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
@@ -23,6 +24,8 @@ const submitSchema = z.object({
     .enum(["couples", "family", "solo", "friends", "business", "other"])
     .nullable()
     .optional(),
+  // Storage paths of photos the browser already uploaded via a signed URL.
+  photo_paths: z.array(z.string()).max(MAX_REVIEW_PHOTOS).optional(),
 });
 
 type ActionResult =
@@ -59,6 +62,7 @@ export async function submitReviewAction(
       | "business"
       | "other"
       | null;
+    photo_paths?: string[];
   },
 ): Promise<ActionResult> {
   const parsed = submitSchema.safeParse(input);
@@ -140,6 +144,22 @@ export async function submitReviewAction(
     };
   }
 
+  // Attach uploaded photos. Each path must live under this booking's folder
+  // (the signed-upload action mints exactly those). Best-effort: a photo
+  // insert failure must not lose the review itself.
+  const photoPaths = (parsed.data.photo_paths ?? [])
+    .filter((p) => p.startsWith(`${bookingId}/`))
+    .slice(0, 6);
+  if (photoPaths.length > 0) {
+    await admin.from("review_photos").insert(
+      photoPaths.map((path, i) => ({
+        review_id: inserted.id,
+        storage_path: path,
+        sort_order: i,
+      })),
+    );
+  }
+
   // Mark the queue row as processed if one exists. No-op if not.
   await admin
     .from("review_request_queue")
@@ -170,4 +190,57 @@ export async function submitReviewAction(
 
   revalidatePath(`/review/${bookingId}`);
   return { ok: true, reviewId: inserted.id };
+}
+
+/**
+ * Issue a one-time signed upload URL so the (account-less) guest's browser can
+ * upload a review photo straight to the public review-photos bucket — no file
+ * through the action (Vercel body cap) and no session needed (the signed token
+ * authorises the write). Token-gated and scoped to the booking's folder; the
+ * booking must still be a completed stay with no review yet.
+ */
+export async function createReviewPhotoUploadUrl(
+  bookingId: string,
+  token: string,
+  ext: string,
+): Promise<
+  { ok: true; path: string; token: string } | { ok: false; error: string }
+> {
+  if (!verifyReviewToken(bookingId, token)) {
+    return { ok: false, error: "This review link is invalid or has expired." };
+  }
+
+  const admin = createAdminClient();
+  const { data: booking } = await admin
+    .from("bookings")
+    .select("id, status, checked_out_at, deleted_at")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!booking || booking.deleted_at) {
+    return { ok: false, error: "Booking not found." };
+  }
+  if (booking.status !== "completed" || !booking.checked_out_at) {
+    return { ok: false, error: "Photos can only be added after checkout." };
+  }
+
+  const { data: existing } = await admin
+    .from("reviews")
+    .select("id")
+    .eq("booking_id", bookingId)
+    .maybeSingle();
+  if (existing) {
+    return { ok: false, error: "A review has already been submitted." };
+  }
+
+  const safeExt =
+    (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${bookingId}/${crypto.randomUUID()}.${safeExt}`;
+
+  const { data, error } = await admin.storage
+    .from("review-photos")
+    .createSignedUploadUrl(path);
+  if (error || !data) {
+    return { ok: false, error: "Could not start the upload. Try again." };
+  }
+  return { ok: true, path, token: data.token };
 }

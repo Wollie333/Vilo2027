@@ -3,6 +3,7 @@
 import { Flag, Hourglass } from "lucide-react";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 
 import { ReplyComposer } from "./ReplyComposer";
 import { StarRow } from "./StarRow";
@@ -64,6 +65,7 @@ export type ReviewCardProps = {
   listingName: string;
   nights: number | null;
   stayMonth: string | null; // pre-formatted "Sept 2025"
+  photos: string[];
 };
 
 export function ReviewCard(props: ReviewCardProps) {
@@ -112,6 +114,12 @@ export function ReviewCard(props: ReviewCardProps) {
               Rating only — no written review.
             </p>
           )}
+
+          {props.photos.length > 0 ? (
+            <div className="mt-3">
+              <ReviewPhotoGrid urls={props.photos} size="sm" />
+            </div>
+          ) : null}
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             {props.flagged ? (

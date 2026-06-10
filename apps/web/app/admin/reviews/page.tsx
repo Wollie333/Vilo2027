@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Flag, Star } from "lucide-react";
 
+import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/admin";
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 
 import { ModerateButtons } from "./ModerateButtons";
 
@@ -30,7 +32,8 @@ function base(service: ReturnType<typeof createAdminClient>) {
       created_at, publish_at,
       listing:listings ( name ),
       host:hosts ( handle, display_name ),
-      guest:user_profiles!reviews_guest_id_fkey ( full_name, email )
+      guest:user_profiles!reviews_guest_id_fkey ( full_name, email ),
+      photos:review_photos ( storage_path, sort_order )
     `,
       { count: "exact" },
     )
@@ -90,6 +93,7 @@ export default async function AdminReviewsPage({
       | { full_name: string | null; email: string | null }
       | { full_name: string | null; email: string | null }[]
       | null;
+    photos: { storage_path: string; sort_order: number }[] | null;
   };
 
   const list = (rows as Row[] | null) ?? [];
@@ -207,6 +211,18 @@ export default async function AdminReviewsPage({
                     Rating only — no written review.
                   </p>
                 )}
+
+                {r.photos && r.photos.length > 0 ? (
+                  <div className="mt-3">
+                    <ReviewPhotoGrid
+                      urls={r.photos
+                        .slice()
+                        .sort((a, b) => a.sort_order - b.sort_order)
+                        .map((p) => reviewPhotoUrl(p.storage_path))}
+                      size="sm"
+                    />
+                  </div>
+                ) : null}
 
                 {r.flagged_reason ? (
                   <div className="mt-3 rounded border border-status-cancelled/30 bg-status-cancelled/5 px-3 py-2 text-[12.5px] text-brand-dark">

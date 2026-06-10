@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle2, Star } from "lucide-react";
 
+import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { getBrandName } from "@/lib/brand";
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReviewToken } from "@/lib/review-token";
 
@@ -110,9 +112,18 @@ export default async function ReviewSubmissionPage({
 
   const { data: existing } = await admin
     .from("reviews")
-    .select("id, rating, body, created_at")
+    .select(
+      "id, rating, body, created_at, photos:review_photos ( storage_path, sort_order )",
+    )
     .eq("booking_id", params.bookingId)
     .maybeSingle();
+
+  const existingPhotos = (
+    (existing?.photos as { storage_path: string; sort_order: number }[]) ?? []
+  )
+    .slice()
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((p) => reviewPhotoUrl(p.storage_path));
 
   if (existing) {
     return (
@@ -143,6 +154,11 @@ export default async function ReviewSubmissionPage({
             <p className="mt-3 text-sm leading-relaxed text-brand-ink">
               &ldquo;{existing.body}&rdquo;
             </p>
+          ) : null}
+          {existingPhotos.length > 0 ? (
+            <div className="mt-4 flex justify-center">
+              <ReviewPhotoGrid urls={existingPhotos} size="sm" />
+            </div>
           ) : null}
         </div>
       </ReviewShell>

@@ -22,6 +22,7 @@ import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 
 import type { ReviewsData, TripType } from "./reviews-data";
 import { voteReviewHelpfulAction } from "./reviews-actions";
@@ -253,6 +254,11 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
           <p className="mt-5 max-w-3xl text-balance font-display text-xl leading-[1.35] tracking-tight text-brand-ink lg:text-[26px]">
             “{data.featured.body}”
           </p>
+          {data.featured.photos.length > 0 ? (
+            <div className="mt-5">
+              <ReviewPhotoGrid urls={data.featured.photos} />
+            </div>
+          ) : null}
           <div className="mt-6 flex items-center gap-3 border-t border-brand-primary/20 pt-5">
             <Avatar name={data.featured.guestName} />
             <div className="min-w-0 flex-1">
@@ -317,6 +323,11 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
                   <p className="mt-3 text-[14.5px] leading-[1.65] text-brand-ink/85">
                     {r.body}
                   </p>
+                ) : null}
+                {r.photos.length > 0 ? (
+                  <div className="mt-3">
+                    <ReviewPhotoGrid urls={r.photos} />
+                  </div>
                 ) : null}
                 {r.hostResponse ? (
                   <div className="mt-3 rounded-[10px] border border-brand-line bg-brand-light/50 p-3">

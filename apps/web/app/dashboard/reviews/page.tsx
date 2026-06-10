@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { FilterTabs } from "./FilterTabs";
@@ -166,7 +167,8 @@ export default async function ReviewsPage({
       id, rating, body, host_response, host_responded_at, flagged, created_at,
       listing:listings ( id, name ),
       booking:bookings ( id, check_in, check_out, nights, guest_name ),
-      guest:user_profiles!reviews_guest_id_fkey ( full_name )
+      guest:user_profiles!reviews_guest_id_fkey ( full_name ),
+      photos:review_photos ( storage_path, sort_order )
     `,
     )
     .eq("host_id", host.id)
@@ -212,6 +214,7 @@ export default async function ReviewsPage({
         }[]
       | null;
     guest: { full_name: string | null } | { full_name: string | null }[] | null;
+    photos: { storage_path: string; sort_order: number }[] | null;
   };
 
   const reviews: ReviewCardProps[] = ((feedRaw as Row[] | null) ?? []).map(
@@ -231,6 +234,10 @@ export default async function ReviewsPage({
         listingName: listing?.name ?? "Listing",
         nights: booking?.nights ?? null,
         stayMonth: monthLabel(booking?.check_in ?? null),
+        photos: (r.photos ?? [])
+          .slice()
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((p) => reviewPhotoUrl(p.storage_path)),
       };
     },
   );
