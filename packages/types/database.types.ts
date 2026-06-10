@@ -6867,6 +6867,7 @@ export type Database = {
         Returns: Json
       }
       fetch_host_guests_summary: { Args: { p_host_id: string }; Returns: Json }
+      fetch_platform_commission_saved: { Args: never; Returns: number }
       fetch_popular_rooms: {
         Args: {
           p_end_date: string

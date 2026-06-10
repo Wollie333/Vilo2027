@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Marketing — live platform commission-saved hero stat — branch `main`
+
+### Built
+- `fetch_platform_commission_saved()` RPC (SECURITY DEFINER, scalar) — sums
+  `total_amount * 0.15` over all direct confirmed/checked_in/completed bookings
+  across every host, all-time. Granted to `anon, authenticated`. Mirrors the
+  per-host calc in `fetch_secondary_metrics`; only the host filter is dropped.
+- `CommissionSavedStat` client component — count-up animation (easeOutExpo,
+  IntersectionObserver, fires once on scroll-in) + soft card pulse + shimmering
+  bar to draw attention. Honours `prefers-reduced-motion`.
+
+### Changed
+- `/booking-management` Hero "Commission saved" card was a hardcoded
+  `R 11 240 · vs. Airbnb 18% · this month`. Now shows the real platform-wide
+  total. Copy updated to `vs. OTA 15% · across every host` to match the actual
+  rate used. Decorative progress bar (fake 78%) replaced with the shimmer.
+- `booking-management/page.tsx` now `export const dynamic = "force-dynamic"`
+  so the live Supabase read isn't frozen into the Data Cache at build time.
+
+### Notes
+- Pre-launch the DB has no real bookings, so the value reads ~R0 until direct
+  bookings flow in (chosen behaviour: show the true number always).
+
 ## 2026-06-10 — Reviews — activity log, featured review, star fix — branch `main`
 
 ### Built
