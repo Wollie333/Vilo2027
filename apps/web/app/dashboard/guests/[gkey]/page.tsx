@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
+import { gkeyFor } from "@/lib/guests/gkey";
 import {
   fetchRequestableReviews,
   type RequestableReview,
@@ -17,6 +18,7 @@ import {
   type MessageItem,
   type NoteItem,
   type QuoteItem,
+  type RelationshipItem,
   type ReviewItem,
   type TemplateItem,
 } from "./GuestRecord";
@@ -391,6 +393,87 @@ export default async function GuestRecordPage({
   // An accepted-but-not-converted quote drives the pulsing "Quote accepted" pill.
   const acceptedQ = quotes.find((q) => q.status === "accepted") ?? null;
 
+  // ── Relationships ───────────────────────────────────────────────────────
+  // Other guests this person travelled with, materialised from booking party
+  // manifests (lead booker ↔ each named guest). Resolve this guest's contact
+  // row, then its links. Two plain queries (no PostgREST embed) — the relation
+  // has two FKs to host_contacts, which would make an embed ambiguous.
+  let relationships: RelationshipItem[] = [];
+  {
+    let contactId: string | null = null;
+    if (email) {
+      const { data: c } = await supabase
+        .from("host_contacts")
+        .select("id")
+        .eq("host_id", host.id)
+        .ilike("email", email)
+        .maybeSingle();
+      contactId = c?.id ?? null;
+    }
+    if (!contactId && guestId) {
+      const { data: c } = await supabase
+        .from("host_contacts")
+        .select("id")
+        .eq("host_id", host.id)
+        .eq("guest_id", guestId)
+        .maybeSingle();
+      contactId = c?.id ?? null;
+    }
+    if (contactId) {
+      const { data: rels } = await supabase
+        .from("guest_relationships")
+        .select("id, related_contact_id, source_booking_id, created_at")
+        .eq("host_id", host.id)
+        .eq("contact_id", contactId)
+        .order("created_at", { ascending: false });
+      const relRows = rels ?? [];
+      if (relRows.length > 0) {
+        const relIds = [...new Set(relRows.map((r) => r.related_contact_id))];
+        const bkIds = [
+          ...new Set(
+            relRows
+              .map((r) => r.source_booking_id)
+              .filter((x): x is string => Boolean(x)),
+          ),
+        ];
+        const [{ data: relContacts }, { data: relBookings }] =
+          await Promise.all([
+            supabase
+              .from("host_contacts")
+              .select("id, name, email, guest_id")
+              .eq("host_id", host.id)
+              .in("id", relIds),
+            bkIds.length > 0
+              ? supabase
+                  .from("bookings")
+                  .select("id, reference")
+                  .eq("host_id", host.id)
+                  .in("id", bkIds)
+              : Promise.resolve({
+                  data: [] as { id: string; reference: string }[],
+                }),
+          ]);
+        const cMap = new Map((relContacts ?? []).map((c) => [c.id, c]));
+        const bMap = new Map(
+          (relBookings ?? []).map((b) => [b.id, b.reference]),
+        );
+        relationships = relRows.map((rr) => {
+          const c = cMap.get(rr.related_contact_id);
+          return {
+            id: rr.id,
+            name: c?.name ?? "Guest",
+            email: c?.email ?? null,
+            gkey: c ? gkeyFor(c.guest_id, c.email) : null,
+            bookingId: rr.source_booking_id,
+            bookingRef: rr.source_booking_id
+              ? (bMap.get(rr.source_booking_id) ?? null)
+              : null,
+          };
+        });
+      }
+    }
+  }
+
   return (
     <GuestRecord
       record={record}
@@ -414,6 +497,7 @@ export default async function GuestRecordPage({
       messages={messages}
       conversationId={conversationId}
       templates={templates}
+      relationships={relationships}
       prevGkey={prevGkey}
       nextGkey={nextGkey}
       balance={{

@@ -23,6 +23,7 @@ import {
   Star,
   Tag as TagIcon,
   Trash2,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -173,11 +174,22 @@ export type QuoteItem = {
   date: string;
 };
 
+// Another guest this person travelled with, from a booking's party manifest.
+export type RelationshipItem = {
+  id: string;
+  name: string;
+  email: string | null;
+  gkey: string | null;
+  bookingId: string | null;
+  bookingRef: string | null;
+};
+
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "finances", label: "Finances" },
   { key: "messages", label: "Messages" },
   { key: "reviews", label: "Reviews" },
+  { key: "relationships", label: "Relationships" },
   { key: "notes", label: "Notes" },
 ] as const;
 
@@ -249,6 +261,7 @@ export function GuestRecord({
   messages,
   conversationId,
   templates,
+  relationships,
   prevGkey,
   nextGkey,
   balance,
@@ -266,6 +279,7 @@ export function GuestRecord({
   messages: MessageItem[];
   conversationId: string | null;
   templates: TemplateItem[];
+  relationships: RelationshipItem[];
   prevGkey: string | null;
   nextGkey: string | null;
   balance: { net: number; outstanding: number; storeCredit: number };
@@ -545,9 +559,11 @@ export function GuestRecord({
                 ? messages.length
                 : t.key === "reviews"
                   ? reviews.length
-                  : t.key === "notes"
-                    ? notes.length
-                    : undefined,
+                  : t.key === "relationships"
+                    ? relationships.length || undefined
+                    : t.key === "notes"
+                      ? notes.length
+                      : undefined,
         }))}
       />
 
@@ -570,6 +586,11 @@ export function GuestRecord({
           />
         ) : tab === "notes" ? (
           <NotesPanel gkey={r.gkey} notes={notes} />
+        ) : tab === "relationships" ? (
+          <RelationshipsPanel
+            relationships={relationships}
+            guestName={r.name ?? "This guest"}
+          />
         ) : tab === "reviews" ? (
           <ReviewsPanel
             reviews={reviews}
@@ -1106,6 +1127,82 @@ function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
         </FinanceSection>
       ) : null}
     </div>
+  );
+}
+
+// ── Relationships panel ─────────────────────────────────────────────────
+// Other guests this person travelled with, materialised from booking party
+// manifests (lead booker ↔ each named guest). Each links to that guest's own
+// record and back to the booking they share.
+function RelationshipsPanel({
+  relationships,
+  guestName,
+}: {
+  relationships: RelationshipItem[];
+  guestName: string;
+}) {
+  if (relationships.length === 0) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
+        <Users className="mx-auto h-6 w-6 text-brand-line" />
+        <p className="mt-3 text-[13px] text-brand-mute">
+          No connections yet. When {guestName} books with other named guests —
+          or is added to someone&rsquo;s booking — those people show up here.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+        <Users className="h-4 w-4 text-brand-mute" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          Travelled with
+        </span>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {relationships.length}
+        </span>
+      </div>
+      <div>
+        {relationships.map((rel) => {
+          const body = (
+            <>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-secondary font-display text-[12px] font-bold text-white">
+                {initials(rel.name)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-semibold text-brand-ink">
+                  {rel.name}
+                </div>
+                <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                  {rel.email ?? "No email"}
+                  {rel.bookingRef ? ` · Booking ${rel.bookingRef}` : ""}
+                </div>
+              </div>
+              {rel.gkey ? (
+                <ArrowRight className="h-4 w-4 shrink-0 text-brand-mute" />
+              ) : null}
+            </>
+          );
+          return rel.gkey ? (
+            <Link
+              key={rel.id}
+              href={`/dashboard/guests/${rel.gkey}`}
+              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0 hover:bg-brand-light/50"
+            >
+              {body}
+            </Link>
+          ) : (
+            <div
+              key={rel.id}
+              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+            >
+              {body}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
