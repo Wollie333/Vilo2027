@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — UI fix — Policies cards: stop title/subtitle overflowing the card — branch `main`
+
+### Changed
+- `apps/web/app/dashboard/policies/PolicyLibrary.tsx` — the policy card header's flex wrapper was missing `min-w-0`, so the `truncate` on the title (`h3`) and subtitle never engaged and long names/summaries spilled past the card edge. Added `min-w-0` to the header row and `shrink-0` to the status pill so the text side truncates cleanly while the pill keeps its size.
+
+### Fixed
+- Removed a duplicate **Delete** button that rendered twice on every non-locked policy card (one inside the edit/duplicate/delete group plus a second standalone one).
+
+### Notes
+- CSS/markup only — no schema, no behaviour change. `pnpm lint` clean for the file. `pnpm build` not run to completion locally: it fails before compilation on a Google Fonts fetch (`UNABLE_TO_VERIFY_LEAF_SIGNATURE`, network/TLS in this environment), unrelated to this change.
+
+---
+
 ## 2026-06-10 — Strategy — foundational business principles + guest-identity ownership — branch `main`
 
 ### Built

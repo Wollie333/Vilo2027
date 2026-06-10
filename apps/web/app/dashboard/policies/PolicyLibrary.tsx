@@ -518,11 +518,11 @@ function CreateMenu({
 
 function StatusPill({ active }: { active: boolean }) {
   return active ? (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-[10.5px] font-semibold text-brand-secondary">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-primary/10 px-2.5 py-1 text-[10.5px] font-semibold text-brand-secondary">
       <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" /> Active
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-draft/15 px-2.5 py-1 text-[10.5px] font-semibold text-brand-mute">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-status-draft/15 px-2.5 py-1 text-[10.5px] font-semibold text-brand-mute">
       <span className="h-1.5 w-1.5 rounded-full bg-status-draft" /> Draft
     </span>
   );
@@ -641,7 +641,7 @@ function PolicyGridCard({
     >
       {/* header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] ${
               active
@@ -817,11 +817,6 @@ function PolicyGridCard({
               </IconBtn>
             </>
           )}
-          {!p.locked ? (
-            <IconBtn label="Delete" onClick={remove} disabled={pending}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </IconBtn>
-          ) : null}
         </div>
       </div>
     </article>
