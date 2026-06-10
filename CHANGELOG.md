@@ -53,6 +53,14 @@ Copy this template and fill it in at the end of every session:
   thread. Deep links (`?c=`, `?f=enquiries`) and the full-bleed shell are intact.
 - **Guest inbox** refactored onto the shared components (visually unchanged — it
   was the canonical design).
+- **WhatsApp-exact read receipts.** Sent ticks stay grey (delivered) and only
+  turn WhatsApp-blue (`#53BDEB`) once the other party has actually opened the
+  thread (`read_by_host`/`read_by_guest`). The receipt now also renders on the
+  outgoing **thread cards** — the guest's **quote-request** card, the host's
+  **issued-quote** card, the guest's **accepted** card, and **access details** —
+  not just plain bubbles. (A `pending` clock state is wired for future optimistic
+  sends; "delivered vs sent" single-tick isn't separately tracked — no delivery
+  column yet.)
 
 ### Migrations
 - `20260610160000_help_inbox_redesign.sql` — new `using-your-inbox` host article;

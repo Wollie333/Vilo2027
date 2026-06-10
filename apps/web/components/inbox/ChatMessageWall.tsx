@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCheck, KeyRound, Paperclip } from "lucide-react";
+import { CheckCheck, Clock, KeyRound, Paperclip } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 import { ThreadQuoteCard } from "./ThreadQuoteCard";
@@ -25,7 +25,13 @@ export type ChatMessage = {
   createdAt: string;
   attachmentUrl?: string | null;
   attachmentFilename?: string | null;
+  // Optimistic, client-only: the message hasn't been confirmed by the server
+  // yet. Renders the WhatsApp "sending" clock instead of a tick.
+  pending?: boolean;
 };
+
+// WhatsApp's read-receipt blue.
+const READ_BLUE = "#53BDEB";
 
 function fmtClock(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-ZA", {
@@ -58,6 +64,53 @@ function fmtAccessTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Is this message one *I* sent (so it should carry a delivery/read receipt)?
+// Plain replies use the sender id; quote-lifecycle + access cards are system
+// messages, so we infer the sender from the event + who's looking.
+function isOutgoing(
+  m: ChatMessage,
+  viewer: "host" | "guest",
+  selfId: string,
+): boolean {
+  if (!m.isSystem) return m.senderId === selfId;
+  const kind = quoteCardKind(m.systemEvent);
+  if (kind === "request") return viewer === "guest"; // the guest asked
+  if (kind === "issued") return viewer === "host"; // the host sent the quote
+  if (kind === "accepted") return viewer === "guest"; // the guest accepted
+  if (m.systemEvent === "access_details") return viewer === "host";
+  return false;
+}
+
+// WhatsApp delivery/read state for one of my outgoing messages:
+//   pending   → single clock (not yet confirmed by the server)
+//   delivered → double grey ticks (sent + on the other side, not read)
+//   read      → double blue ticks (the other person opened it)
+function ReadTicks({
+  read,
+  pending,
+  className = "",
+}: {
+  read: boolean;
+  pending?: boolean;
+  className?: string;
+}) {
+  if (pending) {
+    return (
+      <Clock
+        aria-label="Sending"
+        className={`h-[13px] w-[13px] text-[#86A99A] ${className}`}
+      />
+    );
+  }
+  return (
+    <CheckCheck
+      aria-label={read ? "Read" : "Delivered"}
+      style={read ? { color: READ_BLUE } : undefined}
+      className={`h-[14px] w-[14px] ${read ? "" : "text-[#86A99A]"} ${className}`}
+    />
+  );
 }
 
 export function ChatMessageWall({
@@ -103,6 +156,11 @@ export function ChatMessageWall({
               </div>
             ) : null;
 
+            // Has the *other* party read this message? (drives the blue ticks)
+            const readByOther =
+              viewer === "host" ? m.readByGuest : m.readByHost;
+            const mine = isOutgoing(m, viewer, selfId);
+
             // Quote lifecycle card.
             const kind =
               m.quoteId && quotesById[m.quoteId]
@@ -132,6 +190,12 @@ export function ChatMessageWall({
                       }
                       viewer={viewer}
                     />
+                    {mine ? (
+                      <div className="mx-auto mt-0.5 flex max-w-[420px] items-center justify-end gap-1 pr-1 font-mono text-[10px] text-[#6B8B7F]">
+                        {fmtClock(m.createdAt)}
+                        <ReadTicks read={readByOther} pending={m.pending} />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -156,8 +220,11 @@ export function ChatMessageWall({
                     <pre className="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed text-brand-ink">
                       {m.body}
                     </pre>
-                    <div className="mt-1 font-mono text-[10.5px] text-brand-mute">
+                    <div className="mt-1 flex items-center gap-1 font-mono text-[10.5px] text-brand-mute">
                       {fmtAccessTime(m.createdAt)}
+                      {mine ? (
+                        <ReadTicks read={readByOther} pending={m.pending} />
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -178,10 +245,6 @@ export function ChatMessageWall({
               );
             }
 
-            const mine = m.senderId === selfId;
-            // The sent tick turns blue once the OTHER party has read it.
-            const readByOther =
-              viewer === "host" ? m.readByGuest : m.readByHost;
             return (
               <div key={m.id}>
                 {dayPill}
@@ -210,12 +273,7 @@ export function ChatMessageWall({
                     <span className="float-right ml-2.5 mt-2 inline-flex items-center gap-1 font-mono text-[10px] leading-none text-[#6B8B7F]">
                       {fmtClock(m.createdAt)}
                       {mine ? (
-                        <CheckCheck
-                          aria-label={readByOther ? "Read" : "Delivered"}
-                          className={`h-[14px] w-[14px] ${
-                            readByOther ? "text-sky-400" : "text-[#86A99A]"
-                          }`}
-                        />
+                        <ReadTicks read={readByOther} pending={m.pending} />
                       ) : null}
                     </span>
                   </div>
