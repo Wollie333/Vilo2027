@@ -19,6 +19,8 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
 export default async function NewBookingPage({
   searchParams,
 }: {
@@ -26,6 +28,9 @@ export default async function NewBookingPage({
     guestName?: string;
     guestEmail?: string;
     guestPhone?: string;
+    listing?: string;
+    checkIn?: string;
+    checkOut?: string;
   };
 }) {
   const supabase = createServerClient();
@@ -244,6 +249,24 @@ export default async function NewBookingPage({
         }
       : null;
 
+  // Calendar deep-links can pre-pick the listing and dates. Only honour a
+  // listing the host actually owns, and well-formed ISO dates with co > ci.
+  const initialListingId =
+    searchParams.listing && listings.some((l) => l.id === searchParams.listing)
+      ? searchParams.listing
+      : null;
+  const initialCheckIn =
+    searchParams.checkIn && ISO_DATE.test(searchParams.checkIn)
+      ? searchParams.checkIn
+      : null;
+  const initialCheckOut =
+    searchParams.checkOut &&
+    ISO_DATE.test(searchParams.checkOut) &&
+    initialCheckIn &&
+    searchParams.checkOut > initialCheckIn
+      ? searchParams.checkOut
+      : null;
+
   return (
     <ManualBookingForm
       listings={listings}
@@ -252,6 +275,9 @@ export default async function NewBookingPage({
       blocked={blocked}
       pastGuests={pastGuests}
       initialGuest={initialGuest}
+      initialListingId={initialListingId}
+      initialCheckIn={initialCheckIn}
+      initialCheckOut={initialCheckOut}
     />
   );
 }

@@ -160,6 +160,9 @@ export function ManualBookingForm({
   blocked,
   pastGuests,
   initialGuest,
+  initialListingId,
+  initialCheckIn,
+  initialCheckOut,
 }: {
   listings: BookingListing[];
   rooms: BookingRoom[];
@@ -167,17 +170,25 @@ export function ManualBookingForm({
   blocked: BookingBlocked[];
   pastGuests: PastGuest[];
   initialGuest?: { name?: string; email?: string; phone?: string } | null;
+  /** Calendar deep-link: pre-pick a listing. Validated server-side. */
+  initialListingId?: string | null;
+  /** Calendar deep-link: pre-fill check-in (YYYY-MM-DD). */
+  initialCheckIn?: string | null;
+  /** Calendar deep-link: pre-fill check-out (YYYY-MM-DD). */
+  initialCheckOut?: string | null;
 }) {
   const router = useRouter();
   const brandName = useBrandName();
   const [pending, start] = useTransition();
   const todayStr = ymd(new Date());
 
-  const [listingId, setListingId] = useState(listings[0]?.id ?? "");
+  const [listingId, setListingId] = useState(
+    initialListingId ?? listings[0]?.id ?? "",
+  );
   const [roomId, setRoomId] = useState<string | null>(null);
   const [wholeListing, setWholeListing] = useState(false);
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [checkIn, setCheckIn] = useState(initialCheckIn ?? "");
+  const [checkOut, setCheckOut] = useState(initialCheckOut ?? "");
   const [adults, setAdults] = useState(2);
   const [children, setChildren] = useState(0);
 
@@ -200,7 +211,7 @@ export function ManualBookingForm({
   const [internalNote, setInternalNote] = useState("");
 
   const [viewStart, setViewStart] = useState(() => {
-    const d = new Date();
+    const d = initialCheckIn ? parseYmd(initialCheckIn) : new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
   });
 
