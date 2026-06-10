@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";
+import { createServerClient } from "@/lib/supabase/server";
 
+import { CommissionSavedStat } from "./CommissionSavedStat";
 import { VLogo } from "./VLogo";
 
 const HERO_BOOKINGS = [
@@ -77,6 +79,15 @@ const INBOX = [
 
 export async function Hero() {
   const brandName = await getBrandName();
+
+  // Real, platform-wide commission saved across every host (all-time).
+  // Single scalar from a SECURITY DEFINER RPC — no per-host data exposed.
+  const supabase = createServerClient();
+  const { data: commissionSaved } = await supabase.rpc(
+    "fetch_platform_commission_saved",
+  );
+  const commissionSavedAmount = Number(commissionSaved ?? 0);
+
   return (
     <section className="relative overflow-hidden border-b border-brand-line">
       <div aria-hidden className="dotgrid absolute inset-0 opacity-50" />
@@ -378,24 +389,8 @@ export async function Hero() {
             </div>
           </div>
 
-          {/* Floating mini stat */}
-          <div className="absolute -right-3 -top-4 hidden w-[180px] rounded-card border border-brand-line bg-white p-3 shadow-lift sm:block md:-right-6">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              Commission saved
-            </div>
-            <div className="num-display mt-0.5 font-display text-2xl font-bold text-brand-primary">
-              R 11 240
-            </div>
-            <div className="mt-0.5 text-[10px] text-brand-mute">
-              vs. Airbnb 18% · this month
-            </div>
-            <div className="mt-2 h-1 overflow-hidden rounded-pill bg-brand-line">
-              <div
-                className="h-full bg-brand-secondary"
-                style={{ width: "78%" }}
-              />
-            </div>
-          </div>
+          {/* Floating mini stat — real platform-wide commission saved */}
+          <CommissionSavedStat amount={commissionSavedAmount} />
         </div>
       </div>
     </section>

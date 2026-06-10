@@ -81,8 +81,6 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
   >({});
   const [, startTransition] = useTransition();
 
-  const maxStar = Math.max(1, ...data.distribution.map((d) => d.count));
-
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return data.reviews.filter((r) => {
@@ -158,11 +156,15 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
                   <Star className="h-3 w-3 fill-brand-ink stroke-brand-ink" />
                   {d.star}
                 </span>
-                <div className="h-1 flex-1 overflow-hidden rounded-pill bg-brand-line">
-                  <div
-                    className="h-full bg-brand-ink"
-                    style={{ width: `${(d.count / maxStar) * 100}%` }}
-                  />
+                <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-brand-line/40">
+                  {d.count > 0 ? (
+                    <div
+                      className="h-full rounded-pill bg-amber-400"
+                      style={{
+                        width: `${Math.max(6, (d.count / Math.max(1, data.count)) * 100)}%`,
+                      }}
+                    />
+                  ) : null}
                 </div>
                 <span className="w-10 text-right font-mono text-brand-mute">
                   {d.count}

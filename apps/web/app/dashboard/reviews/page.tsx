@@ -36,13 +36,6 @@ type SearchParams = {
 };
 
 const PAGE_SIZE = 50;
-const STAR_BAR_COLOURS: Record<number, string> = {
-  5: "bg-brand-primary",
-  4: "bg-emerald-300",
-  3: "bg-status-pending",
-  2: "bg-status-cancelled",
-  1: "bg-status-cancelled",
-};
 
 function monthLabel(iso: string | null): string | null {
   if (!iso) return null;
@@ -163,7 +156,6 @@ export default async function ReviewsPage({
   for (const r of ratings) {
     if (r >= 1 && r <= 5) breakdown[r] += 1;
   }
-  const breakdownMax = Math.max(1, ...Object.values(breakdown));
 
   // Response rate (across all reviews) and avg reply time in hours
   const replied = (allRatings ?? []).filter(
@@ -347,8 +339,8 @@ export default async function ReviewsPage({
                 {[5, 4, 3, 2, 1].map((star) => {
                   const count = breakdown[star];
                   const pct =
-                    totalReviews > 0
-                      ? Math.max(2, Math.round((count / breakdownMax) * 100))
+                    count > 0
+                      ? Math.max(6, Math.round((count / totalReviews) * 100))
                       : 0;
                   return (
                     <div
@@ -362,10 +354,10 @@ export default async function ReviewsPage({
                         className="h-3 w-3 fill-amber-400 text-amber-400"
                         aria-hidden
                       />
-                      <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-brand-light">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-brand-line/40">
                         {count > 0 ? (
                           <div
-                            className={`h-full rounded-pill ${STAR_BAR_COLOURS[star]}`}
+                            className="h-full rounded-pill bg-amber-400"
                             style={{ width: `${pct}%` }}
                           />
                         ) : null}

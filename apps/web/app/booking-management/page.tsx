@@ -15,6 +15,10 @@ import { Testimonials } from "./_components/Testimonials";
 import { TrustMarquee } from "./_components/TrustMarquee";
 import { ValueProp } from "./_components/ValueProp";
 
+// Hero reads the live platform-wide commission-saved total from Supabase;
+// without this the value would be frozen into the Data Cache at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Direct booking management for hosts",
   description:
