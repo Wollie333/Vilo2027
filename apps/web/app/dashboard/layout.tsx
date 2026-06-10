@@ -11,6 +11,7 @@ import { EntitySearch } from "./_components/EntitySearch";
 import { MobileBottomNav } from "./_components/MobileBottomNav";
 import { NotificationBell } from "./_components/notifications/NotificationBell";
 import { QuickNavProvider } from "./_components/QuickNavPalette";
+import { SavingsBadge } from "./_components/SavingsBadge";
 import { Sidebar } from "./_components/Sidebar";
 
 // Full-bleed routes (Inbox) come from the shared rule in
@@ -125,6 +126,7 @@ export default async function DashboardLayout({
             search={<EntitySearch />}
             actions={
               <>
+                <SavingsBadge />
                 {host?.handle ? (
                   <a
                     href={`/book/${host.handle}`}

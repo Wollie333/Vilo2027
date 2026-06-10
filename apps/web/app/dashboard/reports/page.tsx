@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PiggyBank } from "lucide-react";
 
 import { createServerClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -467,13 +469,22 @@ export default async function ReportsPage({
     <>
       {/* Header */}
       <header className="border-b border-brand-line bg-white">
-        <div className="px-5 py-6 lg:px-8 lg:py-7">
-          <div className="text-[11px] font-medium text-brand-mute">
-            Tools · Analytics
+        <div className="flex flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8 lg:py-7">
+          <div>
+            <div className="text-[11px] font-medium text-brand-mute">
+              Tools · Analytics
+            </div>
+            <h1 className="mt-0.5 font-display text-xl font-bold leading-none text-brand-ink lg:text-2xl">
+              Analytics & Reports
+            </h1>
           </div>
-          <h1 className="mt-0.5 font-display text-xl font-bold leading-none text-brand-ink lg:text-2xl">
-            Analytics & Reports
-          </h1>
+          <Link
+            href="/dashboard/reports/savings"
+            className="inline-flex shrink-0 items-center gap-2 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
+          >
+            <PiggyBank className="h-4 w-4 text-brand-primary" />
+            Your savings vs OTAs
+          </Link>
         </div>
 
         {/* Filter Bar */}

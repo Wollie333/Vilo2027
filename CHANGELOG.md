@@ -31,6 +31,48 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reports — host savings vs OTAs (header "$" badge + Savings page) — branch `main`
+
+### Built
+- `fetch_host_savings(p_host_id)` RPC (SECURITY DEFINER, JSONB) — per-host sibling
+  of `fetch_platform_commission_saved`. Returns the raw direct-booking revenue
+  **base** (plus booking count, first-booking date, currency and a monthly trend)
+  so the web app can apply each OTA's rate. Same revenue set:
+  confirmed/checked_in/completed direct bookings, not soft-deleted. Authorises by
+  host ownership; granted to `authenticated` only.
+- `lib/savings/ota-competitors.ts` — single source of truth for the feature:
+  `HEADLINE_OTA_RATE` (15%, matches the platform stat), the SA-focused
+  `OTA_COMPETITORS` table (Booking.com 15, Airbnb 14, Expedia 16, LekkeSlaap 12,
+  SafariNow 12, Vrbo 8) and a pure `computeSavings()` that turns revenue into the
+  headline + per-OTA "what you'd have paid" rows.
+- `lib/savings/getHostSavings.ts` (server) + `dashboard/_actions/savings.ts`
+  (`fetchMySavingsSummary` server action).
+- Header **"$" badge** (`SavingsBadge`) left of the booking-link icon → canonical
+  `Modal` reading "Vilo has saved you R X so far" (lazy-fetched on click).
+- **Reports → Your savings vs OTAs** sub-page (`/dashboard/reports/savings`):
+  dark hero with total saved + a comparison table (Vilo at 0% vs each OTA).
+- Help Centre article `savings-vs-otas` (category `payments`).
+
+### Changed
+- `dashboard/layout.tsx` — added `<SavingsBadge />` to the header actions slot.
+- `dashboard/reports/page.tsx` — header now carries a "Your savings vs OTAs" link.
+
+### Migrations
+- `20260610130000_host_savings_rpc.sql`
+- `20260610130001_help_savings_vs_otas.sql`
+
+### Notes
+- OTA rates are reference figures (typical SA host-side commission) and live in
+  one constants file — adjust there, not in SQL. The host's revenue base is
+  always pulled live from the DB.
+- Pre-existing `<img>` lint warnings remain in two untouched reports components
+  (`PerformanceTableClient`, `PopularRooms`) — out of scope here.
+
+### Commit
+- `feat(reports): host savings vs OTAs — header $ badge + savings comparison page`
+
+---
+
 ## 2026-06-10 — Marketing — live platform commission-saved hero stat — branch `main`
 
 ### Built
