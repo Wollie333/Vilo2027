@@ -28,6 +28,26 @@ function nightsBetween(checkIn: string, checkOut: string): number {
   return Math.round((t - f) / 86_400_000);
 }
 
+// A host can't quote themselves — the guest is, by definition, someone else.
+// Email is the canonical guest identity (BUSINESS_PRINCIPLES #1), so compare
+// the quote's guest email to the signed-in host's own account email.
+async function quotingSelf(
+  userId: string,
+  guestEmail: string,
+): Promise<boolean> {
+  const email = guestEmail.trim().toLowerCase();
+  if (!email) return false;
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("email")
+    .eq("id", userId)
+    .maybeSingle();
+  return Boolean(data?.email) && data!.email!.toLowerCase() === email;
+}
+const QUOTE_SELF_ERROR =
+  "You can't send a quote to your own email — enter the guest's email address.";
+
 async function assertOwnership(
   quoteId: string,
 ): Promise<
@@ -188,6 +208,10 @@ export async function createQuoteAction(
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
   }
 
+  if (await quotingSelf(host.userId, parsed.data.guest_email)) {
+    return { ok: false, error: QUOTE_SELF_ERROR };
+  }
+
   const supabase = createServerClient();
 
   // Verify the listing belongs to this host (RLS will also enforce).
@@ -318,6 +342,10 @@ export async function updateQuoteAction(
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+
+  if (await quotingSelf(own.userId, parsed.data.guest_email)) {
+    return { ok: false, error: QUOTE_SELF_ERROR };
   }
 
   const supabase = createServerClient();
