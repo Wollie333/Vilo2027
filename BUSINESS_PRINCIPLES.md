@@ -87,38 +87,47 @@ made **universal** across all entry points via the identity-spine roadmap — se
 
 ---
 
-## Principle #2 — Direct booking, no success fee
+## Principle #2 — We never take a success fee. You own your own profits.
 
 **Date:** 2026-06-10
 **Status:** Active
 **Technical ADR:** `DECISIONS.md` → ADR-003, ADR-020
 
-> _Draft from documented strategy — founder to confirm/refine wording._
-
 ### The principle
 
-Vilo is a **direct-booking platform, not a marketplace.** Guests discover and
-book hosts directly. Vilo **never takes a per-booking commission or success
-fee** — hosts keep 100% of what their guests pay. Vilo earns from **host
-subscriptions**, not from skimming bookings.
+**Vilo never, ever takes a success fee.** We will never dive into a host's
+booking fees. When a guest pays, the host keeps 100% of it — **you own your own
+profits.**
+
+Vilo may charge for **additional services or subscriptions**, but always
+**transparently and up front** about the price. No skimming, no surprise cuts, no
+fee buried in a booking total. The host always knows exactly what Vilo costs and
+exactly what they keep.
 
 ### Why this matters
 
-The "no success fee" promise is Vilo's core wedge against OTAs (Airbnb,
-Booking.com) and the reason a host switches. It only holds if the platform is
-**financially exact** — every cent a guest is charged is the host's, computed
-correctly. A pricing defect or a hidden fee breaks the entire value proposition.
+This is Vilo's core wedge against OTAs (Airbnb, Booking.com) and the single
+biggest reason a host switches: they keep their money. The promise only holds if
+the platform is **financially exact and transparent** — every cent a guest is
+charged is the host's, computed correctly, with Vilo's own pricing always shown
+openly and never entangled with booking money. A hidden fee or a pricing defect
+breaks the entire value proposition.
 
 ### The rules (what must always be true)
 
-1. **No commission, ever.** Booking totals contain no Vilo cut. The pricing stack
-   ends at "total — no success fee" (see ADR-020). Never reintroduce a
-   platform-fee line into a guest-facing total.
-2. **Provably correct money.** Preview === checkout === invoice, computed by the
+1. **No success fee, no booking-fee cut — ever.** Booking totals contain zero
+   Vilo cut. The pricing stack ends at "total — no success fee" (see ADR-020).
+   Never reintroduce a platform-fee line into a guest-facing or host-facing
+   booking total.
+2. **Charge only for services and subscriptions, always transparently.** Any Vilo
+   charge (a subscription, a paid add-on service) is stated up front, in the open,
+   separate from booking money. No dark patterns, no surprise billing.
+3. **Provably correct money.** Preview === checkout === invoice, computed by the
    one canonical pricing engine (`apps/web/lib/pricing` → `priceStay`). Never fork
    the pricing maths into a component or action.
-3. **Monetise via subscriptions, not bookings.** Revenue comes from host plans.
-   Feature gating belongs to the subscription tier, never to a booking-value cut.
+4. **Monetise via subscriptions/services, not bookings.** Revenue comes from host
+   plans and optional paid services — never from a slice of booking value. Feature
+   gating belongs to the subscription tier, never to a booking-value cut.
 
 ---
 
