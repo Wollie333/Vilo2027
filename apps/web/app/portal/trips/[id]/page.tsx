@@ -26,6 +26,7 @@ import {
   RotateCcw,
   Snowflake,
   Sparkles,
+  Star,
   Tv,
   Users,
   Utensils,
@@ -174,6 +175,8 @@ type ListingEmbed = {
   max_guests: number | null;
   accommodation_type: string | null;
   listing_type: string | null;
+  avg_rating: number | null;
+  total_reviews: number | null;
   photos: { url: string | null; sort_order: number }[] | null;
   amenities: { amenity_key: string; amenity_label: string | null }[] | null;
   local_picks:
@@ -225,6 +228,7 @@ export default async function PortalTripDetailPage({
         id, name, slug, city, province, address_line1, address_line2,
         postal_code, latitude, longitude, check_in_time, check_out_time,
         house_rules, max_guests, accommodation_type, listing_type,
+        avg_rating, total_reviews,
         photos:listing_photos ( url, sort_order ),
         amenities:listing_amenities ( amenity_key, amenity_label ),
         local_picks:listing_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
@@ -643,33 +647,35 @@ export default async function PortalTripDetailPage({
             </span>
           </div>
         </div>
-        {host ? (
-          <div className="flex shrink-0 items-center gap-2.5">
-            <span className="h-10 w-10 overflow-hidden rounded-pill shadow-card ring-2 ring-white">
-              {host.avatar_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={host.avatar_url}
-                  alt={host.display_name}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center bg-brand-gradient text-sm font-bold text-white">
-                  {host.display_name.slice(0, 1)}
-                </span>
-              )}
-            </span>
+        {/* Listing rating card (replaces the host chip — the trip page is about
+            the stay; the host lives in the right rail). */}
+        <div className="flex shrink-0 items-center gap-3 rounded-card border border-brand-line bg-white px-4 py-2.5 shadow-card">
+          <div className="flex h-11 w-11 items-center justify-center rounded-pill bg-amber-50">
+            <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+          </div>
+          {listing?.avg_rating != null && (listing?.total_reviews ?? 0) > 0 ? (
             <div className="leading-tight">
-              <div className="text-[11px] text-brand-mute">Hosted by</div>
-              <div className="inline-flex items-center gap-1 text-[13.5px] font-semibold text-brand-ink">
-                {hostFirstName}
-                {host.is_superhost ? (
-                  <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
-                ) : null}
+              <div className="font-display text-[18px] font-extrabold text-brand-ink">
+                {Number(listing.avg_rating).toFixed(1)}
+                <span className="text-[12px] font-medium text-brand-mute">
+                  {" "}
+                  / 5
+                </span>
+              </div>
+              <div className="text-[11px] text-brand-mute">
+                {listing.total_reviews} review
+                {listing.total_reviews === 1 ? "" : "s"}
               </div>
             </div>
-          </div>
-        ) : null}
+          ) : (
+            <div className="leading-tight">
+              <div className="font-display text-[15px] font-bold text-brand-ink">
+                New listing
+              </div>
+              <div className="text-[11px] text-brand-mute">No reviews yet</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ===== GALLERY BENTO ===== */}
