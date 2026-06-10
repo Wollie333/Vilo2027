@@ -100,6 +100,12 @@ export type BookingDetailData = {
   guestLifetime: number;
   guestRating: number | null;
   returning: boolean;
+  // Optional party manifest captured at checkout — guests beyond the lead booker.
+  additionalGuests: {
+    name: string;
+    email: string | null;
+    phone: string | null;
+  }[];
 
   listingName: string;
   listingSlug: string | null;
@@ -1243,6 +1249,50 @@ function GuestPanel({ d }: { d: BookingDetailData }) {
             </span>
           )}
         </div>
+
+        {d.additionalGuests.length > 0 ? (
+          <div className="mt-5 border-t border-brand-line pt-4">
+            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+              <Users className="h-3.5 w-3.5" />
+              Additional guests in the party · {d.additionalGuests.length}
+            </div>
+            <ul className="mt-3 space-y-2">
+              {d.additionalGuests.map((g, i) => (
+                <li
+                  key={i}
+                  className="flex flex-col gap-1 rounded-[10px] bg-brand-light px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
+                    <UserRound className="h-4 w-4 shrink-0 text-brand-mute" />
+                    {g.name}
+                  </span>
+                  {g.email || g.phone ? (
+                    <span className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-6 text-[12px] text-brand-mute sm:pl-0">
+                      {g.email ? (
+                        <a
+                          href={`mailto:${g.email}`}
+                          className="inline-flex items-center gap-1.5 hover:text-brand-primary"
+                        >
+                          <MailCheck className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{g.email}</span>
+                        </a>
+                      ) : null}
+                      {g.phone ? (
+                        <a
+                          href={`tel:${g.phone}`}
+                          className="inline-flex items-center gap-1.5 hover:text-brand-primary"
+                        >
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          {g.phone}
+                        </a>
+                      ) : null}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </Card>
   );

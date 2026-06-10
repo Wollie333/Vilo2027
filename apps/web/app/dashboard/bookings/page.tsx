@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { getMyHostId } from "@/lib/host/current";
+import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { BookingsBoard, type BookingRow, type Kpis } from "./BookingsBoard";
@@ -90,16 +91,19 @@ export default async function BookingsListPage() {
     listingCount = count ?? 0;
   }
 
-  const { data } = myHostId
-    ? await supabase
-        .from("bookings")
-        .select(
-          "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
-        )
-        .eq("host_id", myHostId)
-        .order("created_at", { ascending: false })
-        .limit(400)
-    : { data: [] };
+  const data = myHostId
+    ? await throwOnError(
+        supabase
+          .from("bookings")
+          .select(
+            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+          )
+          .eq("host_id", myHostId)
+          .order("created_at", { ascending: false })
+          .limit(400),
+        "dashboard/bookings",
+      )
+    : [];
 
   const raw = (data ?? []) as unknown as RawBooking[];
 
