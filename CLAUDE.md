@@ -11,10 +11,11 @@ At the start of every session, read in this order:
 1. `CURRENT_TASK.md` — what this session builds (scope contract — do not work outside it)
 2. `RULES.md` — general good practice rules for every session
 3. `AGENT_RULES.md` — non-negotiable platform-specific guardrails
-4. `CONVENTIONS.md` — how code is written
-5. `ARCHITECTURE.md` — folder structure and data flow
-6. `DEVSTACK.md` — locked versions and dev environment setup
-7. `ENV_VARS.md` — every environment variable and where to get it
+4. `BUSINESS_PRINCIPLES.md` — foundational strategic rules (what Vilo is; always true)
+5. `CONVENTIONS.md` — how code is written
+6. `ARCHITECTURE.md` — folder structure and data flow
+7. `DEVSTACK.md` — locked versions and dev environment setup
+8. `ENV_VARS.md` — every environment variable and where to get it
 
 Read these for their specific domain:
 - `BOOKING_SYNC.md` — iCal calendar sync spec (import/export, DB schema, Edge Functions)

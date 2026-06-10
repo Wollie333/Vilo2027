@@ -627,4 +627,68 @@ entry for 2026-06-01; `feedback — ship over block` (the documented deviation).
 
 ---
 
+## ADR-021 — Vilo-owned guest identity: passwordless mint at every entry point
+**Status:** Accepted
+**Date:** 2026-06-10
+
+**Business principle:** This ADR is the technical implementation of
+`BUSINESS_PRINCIPLES.md` → **Principle #1 — Vilo owns all guest identity**. Read
+that first for the strategic *why*; this ADR covers the *how*.
+
+**Decision:**
+
+Every guest entry point mints (or reuses) a single global Vilo guest account,
+keyed on email, via **one canonical server helper** —
+`apps/web/lib/identity/ensureViloGuestIdentity.ts`:
+
+- Normalise email (`trim().toLowerCase()` — matches the `lower(email)` convention
+  used by `gkey` and `host_contacts`).
+- Find an existing `user_profiles` by email; else
+  `admin.auth.admin.createUser({ email, email_confirm: true })` and set the
+  profile (`role:'guest'`, `is_lead:true`, name/phone). Idempotent.
+- This is the **single source of truth** for minting identity — the inlined
+  logic in `apps/web/lib/enquiry/create-enquiry.ts` (L184-217) is refactored to
+  call it, and it is wired into manual booking creation, added/party-guest
+  materialisation, and public checkout.
+
+**Rules locked by this ADR:**
+
+- **Email is mandatory to add any guest** — no name-only path. Enforced in the
+  Zod schema and server-side at every add-guest surface (including the public
+  checkout `additional_guests` array, which previously allowed email-optional).
+- **Accounts mint passwordless** (`is_lead = true`); the guest claims later by
+  setting a password. Signup/login must **detect an existing passwordless
+  account** by email and route to the claim/set-password flow
+  (`/claim` → `claimGuestAccountAction`) rather than dead-ending with "email
+  already registered."
+- `bookings.guest_id` and `host_contacts.guest_id` both point at the one global
+  account, so the existing `gkey` / `fetch_host_guests` / portal scoping
+  unifies a guest's history across hosts with no new aggregation.
+
+**Why this approach (not alternatives):**
+
+- **Reuse, don't fork:** the passwordless-lead pattern, `gkey`, the `/claim`
+  flow, and portal `guest_id` scoping already exist. We make the existing
+  pattern universal instead of building a parallel identity system.
+- **Mint immediately, not on-contact:** maximal platform ownership of the guest
+  graph (the strategic moat) and zero gaps — chosen over a lighter "mint only
+  when emailed" footprint. Minting is internal ownership, **not** marketing, so
+  POPIA marketing-consent gates are unchanged.
+
+**Constraint:**
+
+- Never create guest identity by any path other than `ensureViloGuestIdentity`.
+- Account minting needs the auth admin API, so it lives in the **TS action
+  layer**, not in SQL triggers. The `_materialize_booking_party` trigger keeps
+  materialising `host_contacts` / `guest_relationships`; the action mints the
+  Vilo accounts around it.
+- Never let signup dead-end a returning passwordless guest.
+
+Related: `BUSINESS_PRINCIPLES.md` Principle #1; plan
+`ok-here-now-lies-greedy-sunbeam.md` (phased identity-spine roadmap);
+`apps/web/lib/enquiry/create-enquiry.ts`; `apps/web/app/(auth)/actions.ts`;
+`apps/web/app/claim/actions.ts`.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

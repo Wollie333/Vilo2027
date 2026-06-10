@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Strategy — foundational business principles + guest-identity ownership — branch `main`
+
+### Built
+- `BUSINESS_PRINCIPLES.md` (repo root) — new canonical home for Vilo's foundational *business/strategy* principles, distinct from technical ADRs. Wired into `CLAUDE.md` → "Read These First" (as #4, after `AGENT_RULES.md`) so it loads every session.
+- **Principle #1 — Vilo owns all guest identity**: every guest entry point (direct signup, booking, added/party guest, quote request) mints a free, global, passwordless Vilo guest account keyed on email; email is mandatory (no name-only guests); returning guests claim by setting a password; history follows them across all hosts in one portal; shared-not-gatekept with hosts; minting ≠ marketing consent.
+- `DECISIONS.md` → **ADR-021** — the technical counterpart: one canonical `ensureViloGuestIdentity` helper, mint passwordless at every entry, email required server-side, signup/login claim-detection. Cross-linked to Principle #1.
+
+### Changed
+- `CLAUDE.md` read-order list renumbered to insert `BUSINESS_PRINCIPLES.md`.
+
+### Notes
+- This session is **doc + roadmap only**. The identity-spine implementation (extract `ensureViloGuestIdentity`, wire into manual booking / added-guest / checkout, signup claim-detection, make email required everywhere) is captured as a phased roadmap in plan `ok-here-now-lies-greedy-sunbeam.md` and ADR-021 — to be built in later chunked commits.
+- ~70% of the machinery already exists (the passwordless-lead pattern in `create-enquiry.ts:184-217`, `is_lead`, `gkey`, `/claim`). The work is making it universal, not net-new.
+- Founder-directed architecture; not a violation of the pre-MVP feature freeze.
+
 ## 2026-06-10 — Perf — instant navigation via loading.tsx skeletons — branch `main`
 
 ### Built
