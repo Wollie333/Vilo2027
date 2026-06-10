@@ -1157,6 +1157,8 @@ function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
 // Every booking for this guest — current and historical — newest first. The
 // merge rule (page.tsx) already includes same-email manual bookings, so this is
 // the guest's full reservation history with this host.
+type BookingSort = "newest" | "oldest";
+
 function BookingsPanel({
   bookings,
   currency,
@@ -1164,6 +1166,8 @@ function BookingsPanel({
   bookings: BookingItem[];
   currency: string;
 }) {
+  const [sort, setSort] = useState<BookingSort>("newest");
+
   if (bookings.length === 0) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
@@ -1174,9 +1178,14 @@ function BookingsPanel({
       </div>
     );
   }
-  const sorted = [...bookings].sort((a, b) =>
-    (a.checkIn ?? a.createdAt) < (b.checkIn ?? b.createdAt) ? 1 : -1,
-  );
+  // Sort by stay date (check-in), falling back to when the booking was made.
+  const sorted = [...bookings].sort((a, b) => {
+    const ka = a.checkIn ?? a.createdAt;
+    const kb = b.checkIn ?? b.createdAt;
+    if (ka === kb) return 0;
+    const newestFirst = ka < kb ? 1 : -1;
+    return sort === "newest" ? newestFirst : -newestFirst;
+  });
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
@@ -1187,6 +1196,18 @@ function BookingsPanel({
         <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
           {bookings.length}
         </span>
+        <label className="ml-auto flex items-center gap-1.5 text-[11.5px] text-brand-mute">
+          <span className="hidden sm:inline">Sort</span>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as BookingSort)}
+            aria-label="Sort bookings by date"
+            className="h-7 rounded-pill border border-brand-line bg-white px-2.5 text-[11.5px] font-semibold text-brand-ink outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
+        </label>
       </div>
       <div>
         {sorted.map((b) => {
