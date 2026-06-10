@@ -14,7 +14,11 @@
 -- Read-only change to ONE function — heals existing duplicates immediately, no
 -- data backfill. Email is the canonical guest identity (BUSINESS_PRINCIPLES #1).
 
-CREATE OR REPLACE FUNCTION _host_guest_rows(p_host_id uuid)
+-- Return-type changes need a DROP first (CREATE OR REPLACE can't reshape OUT
+-- params). Preserve the is_added_guest column + its addedrel CTE from
+-- 20260610150003 — the email-merge below layers on top of it.
+DROP FUNCTION IF EXISTS _host_guest_rows(uuid);
+CREATE FUNCTION _host_guest_rows(p_host_id uuid)
 RETURNS TABLE (
   gkey text, guest_id uuid, name text, email text, phone text, avatar_url text, country text,
   guest_since timestamptz, channel text, last_status text,
@@ -25,7 +29,7 @@ RETURNS TABLE (
   is_vip boolean, is_returning boolean, is_new boolean, is_ota boolean, is_inhouse boolean,
   is_lapsed boolean, is_all_direct boolean, is_verified boolean, is_blocked boolean,
   has_email boolean, has_phone boolean, tags text[],
-  listing_ids uuid[], channels text[]
+  listing_ids uuid[], channels text[], is_added_guest boolean
 )
 LANGUAGE sql STABLE SECURITY DEFINER AS $$
 -- One registered account per lowercased email (DISTINCT ON guards against the
@@ -95,10 +99,14 @@ hc AS (
     END AS gkey,
     COALESCE(h.guest_id, ph.id) AS hc_guest_id,
     h.name AS hc_name, h.email AS hc_email, h.phone AS hc_phone,
-    h.country AS hc_country, h.tags, h.blocked, h.created_at AS hc_created
+    h.country AS hc_country, h.tags, h.blocked, h.created_at AS hc_created,
+    h.id AS hc_id
   FROM host_contacts h
   LEFT JOIN prof ph ON ph.lemail = lower(h.email)
   WHERE h.host_id = p_host_id
+),
+addedrel AS (
+  SELECT DISTINCT contact_id FROM guest_relationships WHERE host_id = p_host_id
 ),
 rv AS (
   SELECT guest_id, avg(rating)::numeric(3,2) AS avg_rating, count(*)::int AS review_count
@@ -142,10 +150,13 @@ SELECT
   (length(trim(COALESCE(up.phone, h.hc_phone, lt.guest_phone,''))) > 0) AS has_phone,
   COALESCE(h.tags, '{}')                                 AS tags,
   COALESCE(a.listing_ids, '{}')                          AS listing_ids,
-  COALESCE(a.channels, '{}')                             AS channels
+  COALESCE(a.channels, '{}')                             AS channels,
+  (h.hc_id IS NOT NULL AND ar.contact_id IS NOT NULL
+     AND COALESCE(a.total_bookings,0) = 0)               AS is_added_guest
 FROM keys k
 LEFT JOIN agg a      ON a.gkey = k.gkey
 LEFT JOIN hc h       ON h.gkey = k.gkey
+LEFT JOIN addedrel ar ON ar.contact_id = h.hc_id
 LEFT JOIN latest lt  ON lt.gkey = k.gkey
 LEFT JOIN nextstay ns ON ns.gkey = k.gkey
 LEFT JOIN user_profiles up ON up.id = COALESCE(h.hc_guest_id,
@@ -153,6 +164,8 @@ LEFT JOIN user_profiles up ON up.id = COALESCE(h.hc_guest_id,
 LEFT JOIN rv ON rv.guest_id = COALESCE(h.hc_guest_id,
     CASE WHEN k.gkey LIKE 'u\_%' THEN substring(k.gkey FROM 3)::uuid END);
 $$;
+
+REVOKE ALL ON FUNCTION _host_guest_rows(uuid) FROM PUBLIC;
 
 COMMENT ON FUNCTION _host_guest_rows IS
   'Internal: one aggregated directory row per guest for a host (bookings ⋃ host_contacts), deduped by a canonical gkey that resolves any email matching a registered account to that account (u_<id>). SECURITY DEFINER; not client-callable — use fetch_host_guests / fetch_host_guests_summary / fetch_guest_record.';

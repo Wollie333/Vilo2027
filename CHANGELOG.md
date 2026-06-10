@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Fix — unblock the migration queue (guest dedup migration) — branch `main`
+
+### Fixed
+- 🔴 **Migration `20260610180008` (guest directory email-merge) couldn't apply and blocked the whole queue** (and any `supabase db push` / deploy), including the trailing policy + help migrations. Root cause: it changed the `RETURNS TABLE` shape of `_host_guest_rows` with `CREATE OR REPLACE` (Postgres `42P13: cannot change return type` — needs `DROP FUNCTION` first), and in doing so dropped the `is_added_guest` column + its `addedrel` CTE that `20260610150003` added (which the reader RPCs `fetch_host_guests*` depend on), and the `REVOKE … FROM PUBLIC` on a SECURITY DEFINER function.
+- Fixed forward (kept the dedup feature): added `DROP FUNCTION IF EXISTS _host_guest_rows(uuid)`, restored the `is_added_guest` column / `addedrel` CTE / `hc_id` join and the `REVOKE`, with the email-merge logic layered on top. An added guest whose email resolves to an account that has bookings simply stops counting as "added" — the two compose correctly.
+
+### Notes
+- All pending migrations now apply: `180008`, `180009`, `180010` are live on the remote; `migration list` is fully in sync. Types regenerated (no diff — `_host_guest_rows` is internal/REVOKEd).
+- Verified: `tsc` clean, policy resolver verifier green (4/4), and `fetch_host_guests` + `fetch_host_guests_summary` (which read `is_added_guest`) both return without error.
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 6/6) — graceful retirement — branch `main`
 
 ### Built
