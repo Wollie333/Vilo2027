@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { recordBookingPayment } from "@/lib/payments/ledger";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { computeAddonSubtotal, type PricingModel } from "../../addons/schemas";
@@ -200,6 +202,10 @@ export async function createManualBookingAction(
       total_amount: total,
       currency,
       payment_status: paymentStatus,
+      // Owed from the start: a paid booking owes nothing; unpaid/pay-link owe
+      // the full total until a payment lands. Keeps balance_due correct on
+      // creation (the recompute SSOT only runs once a payment is recorded).
+      balance_due: paymentStatus === "completed" ? 0 : total,
       host_payment_note:
         data.payment_state === "paid" ? data.payment_note || null : null,
       special_requests: data.notes || null,
@@ -289,6 +295,21 @@ export async function createManualBookingAction(
     p_booking_id: booking.id,
     p_listing_id: data.listing_id,
   });
+
+  // Marked fully paid → record the payment through the ledger SSOT so the
+  // Finances ledger has the cash entry that offsets the (paid) invoice the
+  // confirm trigger just issued. Without this the guest reads as owing the
+  // full total. Best-effort: the booking already exists if this hiccups.
+  if (data.payment_state === "paid" && total > 0) {
+    await recordBookingPayment(createAdminClient(), {
+      bookingId: booking.id,
+      amount: total,
+      kind: "payment",
+      method: "eft",
+      note: data.payment_note || null,
+      recordedBy: user.id,
+    });
+  }
 
   revalidatePath("/dashboard/bookings");
   revalidatePath("/dashboard/invoices");
