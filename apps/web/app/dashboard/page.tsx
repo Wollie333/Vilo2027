@@ -11,6 +11,7 @@ import {
   type MainDashboardData,
 } from "./_components/MainDashboard";
 import { OnboardingDashboard } from "./_components/OnboardingDashboard";
+import { OnboardingFreshness } from "./_components/OnboardingFreshness";
 import { FirstListingTeaser } from "./_components/FirstListingTeaser";
 import { buildSetupSteps } from "./_components/setupSteps";
 import { WelcomeToast } from "./WelcomeToast";
@@ -134,6 +135,7 @@ export default async function DashboardPage({
     const hasFirstListing = (anyListing ?? []).length > 0;
     return (
       <div className="space-y-6">
+        <OnboardingFreshness />
         {justOnboarded ? <WelcomeToast /> : null}
         <OnboardingDashboard
           brandName={brandName}
