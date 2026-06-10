@@ -829,6 +829,21 @@ export async function convertQuoteAction(
       : Number(quote.deposit_amount ?? 0);
   const balanceDue = Math.round((convTotal - depositDue) * 100) / 100;
 
+  // Link the booking to the guest's account when one exists for this email
+  // (email = canonical guest identity, BUSINESS_PRINCIPLES #1) so the converted
+  // booking is visible in their portal / trips. A quote carries only an email
+  // (no guest_id), so without this the booking lands with guest_id NULL and the
+  // RLS-scoped /portal/trips page 404s for the guest who accepted it.
+  let convGuestId = (quote.guest_id as string | null) ?? null;
+  if (!convGuestId && quote.guest_email) {
+    const { data: acct } = await createAdminClient()
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", quote.guest_email)
+      .maybeSingle();
+    convGuestId = acct?.id ?? null;
+  }
+
   // Insert the booking as PENDING first. The calendar-block + invoice triggers
   // are AFTER UPDATE OF status — they don't fire on an insert that's already
   // 'confirmed'. So we insert pending, attach rooms/add-ons, snapshot policies,
@@ -840,7 +855,7 @@ export async function convertQuoteAction(
     .insert({
       host_id: quote.host_id,
       listing_id: quote.listing_id,
-      guest_id: quote.guest_id,
+      guest_id: convGuestId,
       guest_name: quote.guest_name,
       guest_email: quote.guest_email,
       guest_phone: quote.guest_phone,

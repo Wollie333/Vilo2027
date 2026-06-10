@@ -58,6 +58,19 @@ export async function acceptAndConvertQuote(
       .order("sort_order"),
   ]);
 
+  // Link to the guest's account by email when one exists (email = canonical
+  // guest identity) so the booking shows in their portal / trips — a quote
+  // carries only an email, so guest_id is usually NULL here.
+  let acceptGuestId = (quote.guest_id as string | null) ?? null;
+  if (!acceptGuestId && quote.guest_email) {
+    const { data: acct } = await admin
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", quote.guest_email)
+      .maybeSingle();
+    acceptGuestId = acct?.id ?? null;
+  }
+
   // Booking stays PENDING + unpaid — the guest pays from the thread/pay page,
   // and the payment confirmation path confirms it (firing the calendar block +
   // invoice + the quote→converted trigger).
@@ -66,7 +79,7 @@ export async function acceptAndConvertQuote(
     .insert({
       host_id: quote.host_id,
       listing_id: quote.listing_id,
-      guest_id: quote.guest_id,
+      guest_id: acceptGuestId,
       guest_name: quote.guest_name,
       guest_email: quote.guest_email,
       guest_phone: quote.guest_phone,
