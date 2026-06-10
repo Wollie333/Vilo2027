@@ -93,7 +93,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, listing:listings!inner ( id, host_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
+      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:listings!inner ( id, host_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -350,6 +350,19 @@ export default async function BookingSuccessPage({
       email: user.email ?? "",
       phone: profile?.phone ?? null,
     },
+    partyGuests: (
+      (booking.additional_guests ?? []) as Array<{
+        name?: string | null;
+        email?: string | null;
+        phone?: string | null;
+      }>
+    )
+      .filter((g) => (g?.name ?? "").trim().length > 0)
+      .map((g) => ({
+        name: (g.name ?? "").trim(),
+        email: g.email?.trim() ? g.email.trim() : null,
+        phone: g.phone?.trim() ? g.phone.trim() : null,
+      })),
     listing: {
       name: listing.name,
       slug: listing.slug,

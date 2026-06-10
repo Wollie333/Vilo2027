@@ -42,6 +42,8 @@ export type ConfirmationData = {
   reference: string;
   guestFirstName: string;
   guest: { name: string; email: string; phone: string | null };
+  /** Other named party members captured at checkout (beyond the lead booker). */
+  partyGuests: { name: string; email: string | null; phone: string | null }[];
   listing: {
     name: string;
     slug: string | null;
@@ -718,6 +720,37 @@ function GuestCard({ data }: { data: ConfirmationData }) {
           </div>
         ))}
       </div>
+      {data.partyGuests.length > 0 ? (
+        <div className="px-5 pb-5">
+          <div className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-brand-mute">
+            <Users className="h-3.5 w-3.5 text-brand-primary" /> Also in your
+            party
+          </div>
+          <ul className="space-y-2">
+            {data.partyGuests.map((g, i) => (
+              <li
+                key={i}
+                className="flex flex-col gap-0.5 rounded border border-brand-line bg-brand-light/40 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span className="text-sm font-medium text-brand-ink">
+                  {g.name}
+                </span>
+                {g.email || g.phone ? (
+                  <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] text-brand-mute">
+                    {g.email ? (
+                      <span className="break-all">{g.email}</span>
+                    ) : null}
+                    {g.email && g.phone ? (
+                      <span className="text-brand-line">·</span>
+                    ) : null}
+                    {g.phone ? <span>{g.phone}</span> : null}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {data.specialRequests ? (
         <div className="px-5 pb-5">
           <div className="rounded border border-brand-line bg-brand-light/40 p-3.5">

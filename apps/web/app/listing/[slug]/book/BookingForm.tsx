@@ -803,6 +803,17 @@ export function BookingForm({
       toast.error("Please add the name we should put on the booking.");
       return false;
     }
+    // Party manifest is optional, but a started row must have a name AND a valid
+    // email so each added guest becomes their own contactable record.
+    const partial = party.some((g) => {
+      const hasName = g.name.trim().length > 0;
+      const hasEmail = /\S+@\S+\.\S+/.test(g.email.trim());
+      return (hasName || g.email.trim().length > 0) && !(hasName && hasEmail);
+    });
+    if (partial) {
+      toast.error("Each added guest needs a name and a valid email.");
+      return false;
+    }
     return true;
   }
 
@@ -882,13 +893,15 @@ export function BookingForm({
         guest_email: guestEmailOut,
         guest_phone: guestPhoneOut,
         special_requests: messageOut,
+        // Each named party member needs a name AND email (so they get their own
+        // guest record). Drop fully-empty rows; only complete rows are sent.
         additional_guests: party
           .map((g) => ({
             name: g.name.trim(),
             email: g.email.trim(),
             phone: g.phone.trim(),
           }))
-          .filter((g) => g.name.length > 0),
+          .filter((g) => g.name.length > 0 || g.email.length > 0),
       });
       if (result && !result.ok) {
         toast.error(result.error);
@@ -1738,9 +1751,9 @@ export function BookingForm({
                 </span>
               </div>
               <div className="mt-0.5 text-xs text-brand-mute">
-                Add names &amp; contact for the rest of your party — up to{" "}
-                {effectiveGuests - 1} other guest
-                {effectiveGuests - 1 === 1 ? "" : "s"}.
+                Add the rest of your party — up to {effectiveGuests - 1} other
+                guest{effectiveGuests - 1 === 1 ? "" : "s"}. Each needs a name
+                &amp; email so your host can reach them.
               </div>
             </div>
             <button
@@ -1794,7 +1807,7 @@ export function BookingForm({
                         updateGuest(i, { email: e.target.value })
                       }
                       type="email"
-                      placeholder="Email (optional)"
+                      placeholder="Email"
                       maxLength={160}
                       className="w-full rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-4 focus:ring-brand-primary/15"
                     />
