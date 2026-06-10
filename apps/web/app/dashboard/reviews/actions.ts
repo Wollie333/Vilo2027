@@ -3,9 +3,84 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { sendReviewRequest } from "@/lib/reviews/request";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Host-initiated review request for one or more of their own COMPLETED + PAID
+ * bookings that haven't been reviewed yet. Reuses the SSOT sendReviewRequest
+ * (email + in-app + thread card) and stamps review_request_queue.sent_at so the
+ * 5-minute auto-send can't double-fire and the "last requested" badge updates.
+ * sendReviewRequest re-validates eligibility, so an already-reviewed booking is
+ * silently skipped even if one slipped into the request.
+ */
+export async function requestReviewsAction(
+  bookingIds: string[],
+): Promise<
+  { ok: true; sent: number; skipped: number } | { ok: false; error: string }
+> {
+  if (!Array.isArray(bookingIds) || bookingIds.length === 0) {
+    return { ok: false, error: "Pick at least one guest." };
+  }
+  if (bookingIds.length > 100) {
+    return { ok: false, error: "Too many at once — select up to 100." };
+  }
+
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Sign in first." };
+
+  const { data: host } = await supabase
+    .from("hosts")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!host) return { ok: false, error: "No host profile." };
+
+  // Only act on bookings this host owns (RLS-scoped read + explicit host_id).
+  const { data: owned } = await supabase
+    .from("bookings")
+    .select("id, guest_id")
+    .in("id", bookingIds)
+    .eq("host_id", host.id);
+  const ownedGuest = new Map(
+    (owned ?? []).map((b) => [b.id, b.guest_id as string | null]),
+  );
+
+  const admin = createAdminClient();
+  let sent = 0;
+  let skipped = 0;
+  for (const id of bookingIds) {
+    if (!ownedGuest.has(id)) {
+      skipped += 1;
+      continue;
+    }
+    const result = await sendReviewRequest(id);
+    if (result.ok && !result.skipped) {
+      sent += 1;
+      const guestId = ownedGuest.get(id);
+      if (guestId) {
+        const now = new Date().toISOString();
+        await admin
+          .from("review_request_queue")
+          .upsert(
+            { booking_id: id, guest_id: guestId, send_at: now, sent_at: now },
+            { onConflict: "booking_id" },
+          );
+      }
+    } else {
+      skipped += 1;
+    }
+  }
+
+  revalidatePath("/dashboard/reviews");
+  return { ok: true, sent, skipped };
+}
 
 const replySchema = z.object({
   body: z

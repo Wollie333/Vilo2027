@@ -29,8 +29,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { AcceptedQuotePill } from "@/app/dashboard/_components/AcceptedQuotePill";
+import { RequestReviewButton } from "@/app/dashboard/reviews/RequestReviewButton";
 import { ReviewCard } from "@/app/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
+import type { RequestableReview } from "@/lib/reviews/eligible";
 import {
   GuestMessagesPanel,
   type MessageItem,
@@ -236,6 +238,7 @@ export function GuestRecord({
   record,
   bookings,
   reviews,
+  requestableReviews,
   txns,
   quotes,
   marketingState,
@@ -252,6 +255,7 @@ export function GuestRecord({
   record: GuestRecordData;
   bookings: BookingItem[];
   reviews: ReviewItem[];
+  requestableReviews: RequestableReview[];
   txns: Txn[];
   quotes: QuoteItem[];
   marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
@@ -582,7 +586,11 @@ export function GuestRecord({
         ) : tab === "notes" ? (
           <NotesPanel gkey={r.gkey} notes={notes} />
         ) : tab === "reviews" ? (
-          <ReviewsPanel reviews={reviews} guestName={r.name ?? "Guest"} />
+          <ReviewsPanel
+            reviews={reviews}
+            guestName={r.name ?? "Guest"}
+            requestable={requestableReviews}
+          />
         ) : (
           <FinancesPanel txns={txns} quotes={quotes} />
         )}
@@ -956,19 +964,36 @@ function MarketingConsent({
 function ReviewsPanel({
   reviews,
   guestName,
+  requestable,
 }: {
   reviews: ReviewItem[];
   guestName: string;
+  requestable: RequestableReview[];
 }) {
+  const requestBtn =
+    requestable.length > 0 ? (
+      <RequestReviewButton
+        bookings={requestable}
+        label="Request a review"
+        variant="ghost"
+      />
+    ) : null;
+
   if (reviews.length === 0) {
     return (
-      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-16 text-center text-[13px] text-brand-mute">
-        This guest hasn&rsquo;t left any reviews yet.
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
+        <p className="text-[13px] text-brand-mute">
+          This guest hasn&rsquo;t left any reviews yet.
+        </p>
+        {requestBtn ? (
+          <div className="mt-4 flex justify-center">{requestBtn}</div>
+        ) : null}
       </div>
     );
   }
   return (
     <div className="space-y-4">
+      {requestBtn ? <div className="flex justify-end">{requestBtn}</div> : null}
       {reviews.map((rev) => (
         <ReviewCard key={rev.id} guestName={guestName} {...rev} />
       ))}

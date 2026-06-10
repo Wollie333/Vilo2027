@@ -9,10 +9,12 @@ import {
   Send,
   Star,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
+import { requestReviewsAction } from "@/app/dashboard/reviews/actions";
 
 /**
  * Host-facing "Send review link" surface on a completed booking. The link is
@@ -39,8 +41,26 @@ export function ReviewLinkCard({
   guestEmail: string | null;
   guestPhone: string | null;
 }) {
+  const router = useRouter();
   const [copied, setCopied] = useState(false);
   const [sending, startSending] = useTransition();
+  const [requesting, startRequesting] = useTransition();
+
+  // Fire the full review request (email + in-app + thread card) — the same flow
+  // the automatic 5-min-after-checkout send uses, and the bulk modal elsewhere.
+  function sendRequest() {
+    startRequesting(async () => {
+      const r = await requestReviewsAction([bookingId]);
+      if (!r.ok) {
+        toast.error(r.error);
+      } else if (r.sent > 0) {
+        toast.success("Review request sent.");
+        router.refresh();
+      } else {
+        toast.error("Couldn't send — this stay may not qualify.");
+      }
+    });
+  }
 
   function sendToChat() {
     startSending(async () => {
@@ -92,6 +112,26 @@ export function ReviewLinkCard({
           booking and works without a {listingName} account — guests can rate,
           write a review and add photos.
         </p>
+
+        <button
+          type="button"
+          onClick={sendRequest}
+          disabled={requesting}
+          className="inline-flex w-full items-center justify-center gap-1.5 rounded bg-brand-primary px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+        >
+          {requesting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Star className="h-4 w-4" />
+          )}
+          Send review request
+        </button>
+
+        <div className="relative py-1 text-center">
+          <span className="bg-brand-light/30 px-2 text-[10.5px] uppercase tracking-wider text-brand-mute">
+            or share the link
+          </span>
+        </div>
 
         <div className="flex items-center gap-2">
           <input

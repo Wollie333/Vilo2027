@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
+import {
+  fetchRequestableReviews,
+  type RequestableReview,
+} from "@/lib/reviews/eligible";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -181,6 +185,12 @@ export default async function GuestRecordPage({
       };
     });
   }
+
+  // Qualifying stays this guest can still be asked to review (none for an
+  // email-only contact — reviews need an account).
+  const requestableReviews: RequestableReview[] = guestId
+    ? await fetchRequestableReviews(supabase, { hostId: host.id, guestId })
+    : [];
 
   // Finances — every money event for this guest, normalised from the ONE
   // transaction source so the Finances tab, the account-wide Ledger and the
@@ -373,6 +383,7 @@ export default async function GuestRecordPage({
       record={record}
       bookings={bookings}
       reviews={reviews}
+      requestableReviews={requestableReviews}
       txns={txns}
       quotes={quotes}
       acceptedQuote={

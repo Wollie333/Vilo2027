@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { fetchRequestableReviews } from "@/lib/reviews/eligible";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { FilterTabs } from "./FilterTabs";
+import { RequestReviewButton } from "./RequestReviewButton";
 import { ReviewCard, type ReviewCardProps } from "./ReviewCard";
 import { StarRow } from "./StarRow";
 
@@ -91,6 +93,10 @@ export default async function ReviewsPage({
       />
     );
   }
+
+  const requestable = await fetchRequestableReviews(supabase, {
+    hostId: host.id,
+  });
 
   const tab = (searchParams?.tab ?? "all").trim();
   const listingFilter = (searchParams?.listing ?? "").trim();
@@ -262,9 +268,12 @@ export default async function ReviewsPage({
             </span>
           ) : null}
         </div>
-        <p className="text-sm text-brand-mute">
-          Verified-stay reviews from guests across all your listings.
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="hidden text-sm text-brand-mute sm:block">
+            Verified-stay reviews from guests across all your listings.
+          </p>
+          <RequestReviewButton bookings={requestable} />
+        </div>
       </header>
 
       {/* ─── Summary row ────────────────────────────────────────── */}

@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Reviews — request flow + record tabs — branch `main`
+
+### Built
+- **"Request reviews" modal** (`RequestReviewButton`) — lists only qualifying
+  stays (completed + paid + **no review yet**, so already-reviewed guests can
+  never be nagged), with bulk select + send (email + in-app + thread via the
+  SSOT `sendReviewRequest`), per-row Copy / WhatsApp link, and a "requested Xd
+  ago" status. On the Reviews manager header + the guest record Reviews tab
+  (filtered to that guest).
+- **Booking Review tab** — a primary "Send review request" button on the
+  `ReviewLinkCard` (same flow), above the share options.
+- `requestReviewsAction(bookingIds[])` — host-scoped; reuses `sendReviewRequest`
+  and stamps `review_request_queue.sent_at` so the 5-min auto-send can't
+  double-fire and "last requested" stays accurate.
+- `lib/reviews/eligible.ts → fetchRequestableReviews()` — SSOT for "who can be
+  asked": completed + paid + registered guest + no review yet.
+
+### Decisions
+- **Verified stays only** — no ungated/anonymous review path. A genuine off-platform
+  guest is added as a manual booking (which qualifies them); the per-stay token
+  link is what gets WhatsApp'd, so every review still maps to a real stay.
+
+### Commit
+- `feat(reviews): …` — see `git log`
+
+---
+
 ## 2026-06-10 — Reviews — MVP hardening, delayed request, photos — branch `main`
 
 ### Built
