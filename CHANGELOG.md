@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Policy system refinement (Phase 6/6) — graceful retirement — branch `main`
+
+### Built
+- **Impact-aware "Remove policy" flow.** The card's delete action now opens a modal (`RetirePolicyModal`) that first shows where the policy is used (listings + room overrides) and how many live bookings rely on it, then lets the host **reassign those listings to a replacement** (or fall back to their default) before the policy is **archived**.
+- `getPolicyRetirementInfoAction` (impact summary) + `retirePolicyAction` (reassign → archive → keep a default covered). Existing bookings are never touched — they keep their immutable snapshot, so refunds are unaffected; the modal states this explicitly. Locked presets remain non-removable.
+- After archiving, `ensure_host_default_policies` runs so a default always remains for the type (and a replacement is promoted if the retired one was the default).
+- Help article `removing-a-policy` (RULES §9).
+
+### Notes
+- Archived policies were already excluded from the library query, the resolver (`status = 'active'`), and pickers — so no extra filtering was needed.
+- `tsc --noEmit` clean, lint clean.
+- The help-article migration `20260610180010` is committed but its `supabase db push` is currently **blocked by a concurrent session's pending migration (`20260610180008`/`009`, guest dedup) which errors** — so the article was applied directly to the linked DB (idempotent upsert, identical to the migration). The migration will apply once the concurrent one is fixed.
+
+---
+
 ## 2026-06-10 — Policy system refinement (Phase 5/6) — checkout shows + records acceptance — branch `main`
 
 ### Fixed

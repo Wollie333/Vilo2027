@@ -44,15 +44,14 @@ import {
   PolicyDialog,
   type PolicyDialogData,
 } from "@/components/policy/PolicyDialog";
-import { modal } from "@/components/ui/modal-host";
 
 import {
-  deletePolicyAction,
   duplicatePolicyAction,
   setDefaultPolicyAction,
   togglePolicyStatusAction,
 } from "./actions";
 import { PolicyEditorSheet } from "./PolicyEditorSheet";
+import { RetirePolicyModal } from "./RetirePolicyModal";
 import {
   CHECK_IN_METHOD_LABEL,
   POLICY_TYPES,
@@ -581,6 +580,7 @@ function PolicyGridCard({
   onChanged: () => void;
 }) {
   const [pending, start] = useTransition();
+  const [retireOpen, setRetireOpen] = useState(false);
   const meta = TYPE_META[p.type];
   const Icon = meta.icon;
   const PillIcon = meta.pillIcon;
@@ -616,22 +616,6 @@ function PolicyGridCard({
       } else toast.error(r.error);
     });
   }
-  async function remove() {
-    const ok = await modal.destructive({
-      title: `Delete "${p.name}"?`,
-      description: "This can't be undone.",
-      confirmLabel: "Delete",
-    });
-    if (!ok) return;
-    start(async () => {
-      const r = await deletePolicyAction(p.id);
-      if (r.ok) {
-        toast.success("Deleted");
-        onChanged();
-      } else toast.error(r.error);
-    });
-  }
-
   return (
     <article
       className={`group flex flex-col rounded-card border bg-white p-5 shadow-card transition hover:shadow-lift ${
@@ -809,8 +793,8 @@ function PolicyGridCard({
                 <Copy className="h-3.5 w-3.5" />
               </IconBtn>
               <IconBtn
-                label="Delete"
-                onClick={remove}
+                label="Remove"
+                onClick={() => setRetireOpen(true)}
                 disabled={pending}
                 danger
               >
@@ -820,6 +804,14 @@ function PolicyGridCard({
           )}
         </div>
       </div>
+
+      <RetirePolicyModal
+        open={retireOpen}
+        onOpenChange={setRetireOpen}
+        policyId={p.id}
+        policyName={p.name}
+        onDone={onChanged}
+      />
     </article>
   );
 }

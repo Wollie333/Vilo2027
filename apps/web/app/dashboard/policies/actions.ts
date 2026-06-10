@@ -334,6 +334,197 @@ export async function deletePolicyAction(
   return { ok: true };
 }
 
+// ── Retirement (archive + reassign) ──────────────────────────────
+// Active booking statuses that still matter for a "policy in use" warning. A
+// booking's refund always reads its own immutable snapshot, so archiving never
+// affects existing bookings — but the host should know how many are live.
+const ACTIVE_BOOKING_STATUSES = [
+  "pending",
+  "pending_eft",
+  "confirmed",
+  "checked_in",
+];
+
+export type PolicyRetirementInfo = {
+  policyName: string;
+  isDefault: boolean;
+  isPreset: boolean;
+  assignments: {
+    listingId: string;
+    listingName: string;
+    roomScoped: boolean;
+  }[];
+  activeBookings: number;
+  replacements: { id: string; name: string; isDefault: boolean }[];
+};
+
+/** Impact summary for retiring a policy: where it's used + what can replace it. */
+export async function getPolicyRetirementInfoAction(
+  policyId: string,
+): Promise<ActionResult<PolicyRetirementInfo>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  if (!policy) return { ok: false, error: "Not your policy." };
+
+  const supabase = createServerClient();
+
+  const { data: full } = await supabase
+    .from("policies")
+    .select("name, is_default")
+    .eq("id", policyId)
+    .single();
+
+  // Listing assignments (listing-wide + per-room) with listing names.
+  const { data: lpRows } = await supabase
+    .from("listing_policies")
+    .select("listing_id, room_id, listings!inner(name)")
+    .eq("policy_id", policyId);
+
+  const assignments = (
+    (lpRows ?? []) as unknown as {
+      listing_id: string;
+      room_id: string | null;
+      listings: { name: string } | { name: string }[];
+    }[]
+  ).map((r) => ({
+    listingId: r.listing_id,
+    listingName: Array.isArray(r.listings)
+      ? (r.listings[0]?.name ?? "Listing")
+      : (r.listings?.name ?? "Listing"),
+    roomScoped: r.room_id !== null,
+  }));
+
+  // Active bookings that snapshotted this policy.
+  let activeBookings = 0;
+  const { data: snapRows } = await supabase
+    .from("policy_snapshots")
+    .select("booking_id")
+    .eq("policy_id", policyId);
+  const bookingIds = (snapRows ?? []).map((s) => s.booking_id);
+  if (bookingIds.length > 0) {
+    const { count } = await supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .in("id", bookingIds)
+      .in("status", ACTIVE_BOOKING_STATUSES);
+    activeBookings = count ?? 0;
+  }
+
+  // Replacement candidates: other active policies of the same type.
+  const { data: repRows } = await supabase
+    .from("policies")
+    .select("id, name, is_default")
+    .eq("host_id", host.hostId)
+    .eq("type", policy.type)
+    .eq("status", "active")
+    .is("deleted_at", null)
+    .neq("id", policyId)
+    .order("is_default", { ascending: false })
+    .order("name", { ascending: true });
+
+  return {
+    ok: true,
+    data: {
+      policyName: full?.name ?? "This policy",
+      isDefault: full?.is_default ?? false,
+      isPreset: isLockedPreset(policy.preset),
+      assignments,
+      activeBookings,
+      replacements: (repRows ?? []).map((r) => ({
+        id: r.id,
+        name: r.name,
+        isDefault: r.is_default,
+      })),
+    },
+  };
+}
+
+/**
+ * Retire a policy gracefully: reassign its listings to a replacement (or, when
+ * none is given, drop the assignment so listings fall back to the host default),
+ * keep the default covered, then ARCHIVE it (never hard-delete — existing
+ * bookings keep their immutable snapshots, so refunds are unaffected).
+ */
+export async function retirePolicyAction(
+  policyId: string,
+  replacementId: string | null,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  if (!policy) return { ok: false, error: "Not your policy." };
+  if (isLockedPreset(policy.preset)) {
+    return { ok: false, error: "Preset policies can't be removed." };
+  }
+
+  const supabase = createServerClient();
+
+  let replacement: PolicyRow | null = null;
+  if (replacementId) {
+    if (replacementId === policyId) {
+      return { ok: false, error: "Pick a different replacement policy." };
+    }
+    replacement = await fetchOwnedPolicy(replacementId, host.hostId);
+    if (!replacement || replacement.type !== policy.type) {
+      return { ok: false, error: "That replacement isn't valid." };
+    }
+  }
+
+  // 1. Reassign or clear the listing assignments.
+  if (replacement) {
+    const { error } = await supabase
+      .from("listing_policies")
+      .update({ policy_id: replacement.id })
+      .eq("policy_id", policyId);
+    if (error) return { ok: false, error: "Could not reassign listings." };
+  } else {
+    await supabase.from("listing_policies").delete().eq("policy_id", policyId);
+  }
+
+  // 2. Clear the default flag on the retiring policy; promote the replacement
+  //    if it should take over as default.
+  const wasDefault = await supabase
+    .from("policies")
+    .select("is_default")
+    .eq("id", policyId)
+    .single();
+
+  // 3. Archive (keeps snapshots' FK intact; refunds read the snapshot).
+  const { error: archiveErr } = await supabase
+    .from("policies")
+    .update({
+      status: "archived",
+      is_default: false,
+      deleted_at: new Date().toISOString(),
+    })
+    .eq("id", policyId);
+  if (archiveErr) return { ok: false, error: "Could not archive policy." };
+
+  // 4. Keep a default for this type. If the retired one was the default and we
+  //    have a replacement, make it the default; otherwise let the DB pick one.
+  if (wasDefault.data?.is_default && replacement) {
+    await supabase
+      .from("policies")
+      .update({ is_default: false })
+      .eq("host_id", host.hostId)
+      .eq("type", policy.type)
+      .eq("is_default", true);
+    await supabase
+      .from("policies")
+      .update({ is_default: true, status: "active" })
+      .eq("id", replacement.id);
+  }
+  await supabase.rpc("ensure_host_default_policies", {
+    p_host_id: host.hostId,
+  });
+
+  revalidatePath("/dashboard/policies");
+  return { ok: true };
+}
+
 export async function duplicatePolicyAction(
   policyId: string,
 ): Promise<ActionResult<{ id: string }>> {
