@@ -47,10 +47,6 @@ export function ListingLocationForm({
   onSaved?: (patch: Partial<LocationListing>) => void;
 }) {
   const [pending, start] = useTransition();
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-  // The placeholder in .env.example is "pk." — only show the picker when a
-  // real token is configured.
-  const hasMapbox = mapboxToken.length > 3 && mapboxToken.startsWith("pk.");
 
   const {
     register,
@@ -101,23 +97,21 @@ export function ListingLocationForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-      {hasMapbox ? (
-        <LocationPicker
-          latitude={pickerLat}
-          longitude={pickerLng}
-          token={mapboxToken}
-          onSelect={(sel) => {
+      <LocationPicker
+        latitude={pickerLat}
+        longitude={pickerLng}
+        onSelect={(sel) => {
+          setValue("latitude", String(sel.latitude), { shouldDirty: true });
+          setValue("longitude", String(sel.longitude), { shouldDirty: true });
+          if (sel.address_line1)
             setValue("address_line1", sel.address_line1, { shouldDirty: true });
-            if (sel.city) setValue("city", sel.city, { shouldDirty: true });
-            if (sel.province)
-              setValue("province", sel.province, { shouldDirty: true });
-            if (sel.postal_code)
-              setValue("postal_code", sel.postal_code, { shouldDirty: true });
-            setValue("latitude", String(sel.latitude), { shouldDirty: true });
-            setValue("longitude", String(sel.longitude), { shouldDirty: true });
-          }}
-        />
-      ) : null}
+          if (sel.city) setValue("city", sel.city, { shouldDirty: true });
+          if (sel.province)
+            setValue("province", sel.province, { shouldDirty: true });
+          if (sel.postal_code)
+            setValue("postal_code", sel.postal_code, { shouldDirty: true });
+        }}
+      />
 
       <Field
         label="Street address"
