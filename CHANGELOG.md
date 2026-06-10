@@ -31,6 +31,48 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-10 — Inbox — one chat design across host + guest (single source of truth) — branch `main`
+
+### Built
+- **Shared inbox components** (`components/inbox/`) consumed by BOTH the host
+  inbox and the guest portal, so the message-centre design lives in one place:
+  `ConversationList`/`ConversationRow` (the left list + rows), `ChatMessageWall`
+  (WhatsApp-style green/white bubbles, day pills, system + access-detail cards,
+  inline quote cards), `ChatComposer` (rounded send box + optional quick-reply
+  chips), `ChatThreadHeader`, and `InboxAvatar`.
+
+### Changed
+- **Host inbox redesigned to match the guest inbox** — the Gmail-style folder
+  rail, deal **pipeline** section, tabs strip, server-side pagination, assignee
+  picker, follow-up/snooze and internal notes are **gone**. It's now the same
+  two-pane chat: a conversation list (search + **All / Unread / Enquiries /
+  Archived** filters + a per-listing menu) on the left, the thread on the right.
+- **Kept for hosts:** quick-reply templates, a slim **Booking/Details** slide-out
+  (listing, stay details, totals, open-booking link, guest contact + WhatsApp),
+  **archive/un-archive**, and **pin to top**. Quotes still render as cards in the
+  thread. Deep links (`?c=`, `?f=enquiries`) and the full-bleed shell are intact.
+- **Guest inbox** refactored onto the shared components (visually unchanged — it
+  was the canonical design).
+
+### Migrations
+- `20260610160000_help_inbox_redesign.sql` — new `using-your-inbox` host article;
+  re-seeds the stale `enquiry-pipeline-inbox` article (no more pipeline rail).
+
+### Notes
+- Dropped `PipelineControl.tsx` + `ConversationNotes.tsx` and the now-unused
+  actions (`setPipelineStageAction`, `assignConversationAction`,
+  `setFollowUpAction`, `addConversationNoteAction`). The `pipeline_stage` column
+  + the guest-reply auto-advance are left in the DB (harmless; quote flow + any
+  analytics keep working) — only the host-facing pipeline UI was removed.
+- `tsc --noEmit` + `pnpm lint` are green. Full `pnpm build` not re-run to
+  completion here: clearing `.next` dropped the cached Google Fonts and the local
+  TLS proxy blocks refetching them — environmental, unrelated to these changes.
+
+### Commit
+- `refactor(inbox): one shared chat design across host + guest`
+
+---
+
 ## 2026-06-10 — Guests — party follow-ups: materialise on create, Bookings tab, start-thread — branch `main`
 
 ### Built

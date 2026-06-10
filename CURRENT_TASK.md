@@ -5,6 +5,20 @@
 **Active focus:** **Harden each feature to 100% for MVP.** This session:
 the **Reviews** feature, end-to-end.
 
+## ✅ Done this session (2026-06-10) — Inbox: one chat design (host = guest)
+- **Single source of truth for the inbox.** Extracted shared components in
+  `components/inbox/` (`ConversationList`/`ConversationRow`, `ChatMessageWall`,
+  `ChatComposer`, `ChatThreadHeader`, `InboxAvatar`) used by BOTH the host inbox
+  and the guest portal.
+- **Host inbox reworked to the guest's two-pane WhatsApp layout.** Removed the
+  folder rail, deal **pipeline**, tabs, pagination, assignee, follow-up/snooze and
+  internal notes. Kept: quick-reply templates, a slim Booking/Details slide-out,
+  archive/un-archive, pin. Deep links (`?c=`, `?f=enquiries`) + full-bleed intact.
+- Deleted `PipelineControl.tsx`/`ConversationNotes.tsx` + 4 dead actions. DB
+  `pipeline_stage` column + guest auto-advance left in place (harmless).
+- Help: `20260610160000_help_inbox_redesign.sql` (new `using-your-inbox`; corrected
+  `enquiry-pipeline-inbox`) — **pushed to remote**. `tsc` + `lint` green.
+
 ## ✅ Done this session (2026-06-10) — Party guests → guest records + relationships
 - **Party members become guest records.** Each named person on a booking's
   `additional_guests` is materialised into `host_contacts` (deduped by email) so
