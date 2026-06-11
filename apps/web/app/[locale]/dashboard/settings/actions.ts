@@ -82,7 +82,13 @@ export async function saveProfileAction(
     })
     .eq("id", user.id);
   if (profileErr) {
-    return { ok: false, error: "Could not save your profile." };
+    // Surface the real cause (pre-MVP diagnostic — revert to a generic message
+    // before launch). Every other handler here logs; this one used to swallow it.
+    console.error("[settings:saveProfile] profile update failed", profileErr);
+    return {
+      ok: false,
+      error: `Could not save your profile: ${profileErr.message}`,
+    };
   }
 
   // If a hosts row exists, mirror display_name / bio / website / avatar onto it.
