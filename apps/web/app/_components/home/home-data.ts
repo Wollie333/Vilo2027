@@ -83,19 +83,16 @@ function heroPhoto(photos: PhotoRow[] | null): string | null {
   );
 }
 
-/** Lowest bookable price for a listing — shared by cards and category rollup. */
+/** Lowest bookable price for a listing — shared by cards and category rollup.
+ *  listing.base_price is kept as the effective "from" price (cheapest active
+ *  room, including per-person rates) by recomputeListingFromRooms, so we read it
+ *  directly — deriving min(room.base_price) here missed per-person rooms whose
+ *  rate lives in price_per_person (base_price 0). */
 function listingAmount(l: {
   booking_mode: string | null;
   base_price: number | null;
   listing_rooms: RoomRow[] | null;
 }): number | null {
-  if (l.booking_mode === "rooms_only") {
-    const prices = (l.listing_rooms ?? [])
-      .filter((r) => r.is_active !== false && r.deleted_at == null)
-      .map((r) => Number(r.base_price))
-      .filter((p) => p > 0);
-    return prices.length > 0 ? Math.min(...prices) : null;
-  }
   return l.base_price != null ? Number(l.base_price) : null;
 }
 

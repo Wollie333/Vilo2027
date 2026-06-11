@@ -36,13 +36,9 @@ function heroPhoto(photos: Row["photos"]): string | null {
 }
 
 function amount(l: Row): number | null {
-  if (l.booking_mode === "rooms_only") {
-    const prices = (l.listing_rooms ?? [])
-      .filter((r) => r.is_active !== false && r.deleted_at == null)
-      .map((r) => Number(r.base_price))
-      .filter((p) => p > 0);
-    return prices.length > 0 ? Math.min(...prices) : null;
-  }
+  // listing.base_price is the effective "from" price (cheapest active room incl.
+  // per-person rates), maintained by recomputeListingFromRooms — use it so
+  // per-person rooms (base_price 0, rate in price_per_person) still show.
   return l.base_price != null ? Number(l.base_price) : null;
 }
 

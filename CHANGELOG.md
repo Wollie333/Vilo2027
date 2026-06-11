@@ -31,6 +31,17 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Fix — per-person "from" prices on discovery cards — branch `main`
+
+### Fixed
+- Follow-up to the listing-page fix: explore (`BrowseResults`), category (`c/[slug]`), homepage featured (`home-data`), similar-stays (`SimilarListings`), and host-profile (`[handle]`) cards derived the "from" price as `min(room.base_price)`, which is 0 for per-person rooms → no price on the card. All now read `listing.base_price`, which `recomputeListingFromRooms` already maintains as the effective cheapest rate (per-person aware). `fromLabel` still keys off `rooms_only`.
+
+### Notes
+- `tsc` + `lint` clean.
+
+### Commit
+- `fix(cards): use listing.base_price for per-person "from" prices`
+
 ## 2026-06-11 — Fix — per-person room prices missing on listing page — branch `main`
 
 ### Fixed

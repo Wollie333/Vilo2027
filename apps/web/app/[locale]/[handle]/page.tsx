@@ -103,17 +103,12 @@ function priceForListing(
   amount: number | null;
   fromLabel: boolean;
 } {
-  if (l.booking_mode === "rooms_only") {
-    const prices = (l.listing_rooms ?? [])
-      .filter((r) => r.is_active !== false && r.deleted_at == null)
-      .map((r) => Number(r.base_price))
-      .filter((p) => p > 0);
-    if (prices.length === 0) return { amount: null, fromLabel: true };
-    return { amount: Math.min(...prices), fromLabel: true };
-  }
+  // listing.base_price = effective "from" price (cheapest active room incl.
+  // per-person rates), maintained by recomputeListingFromRooms — use it so
+  // per-person rooms (base_price 0, rate in price_per_person) still show.
   return {
     amount: l.base_price != null ? Number(l.base_price) : null,
-    fromLabel: false,
+    fromLabel: l.booking_mode === "rooms_only",
   };
 }
 

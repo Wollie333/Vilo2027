@@ -142,22 +142,12 @@ export function BrowseResults({
                     </div>
                   </div>
                   {(() => {
-                    const rooms = l.listing_rooms ?? [];
-                    let amount: number | null = null;
-                    let fromLabel = false;
+                    // listing.base_price = effective "from" (per-person aware),
+                    // maintained by recomputeListingFromRooms.
+                    const amount =
+                      l.base_price != null ? Number(l.base_price) : null;
+                    const fromLabel = l.booking_mode === "rooms_only";
                     const perLabel = "/ night";
-                    if (l.booking_mode === "rooms_only") {
-                      const prices = rooms
-                        .filter(
-                          (r) => r.is_active !== false && r.deleted_at == null,
-                        )
-                        .map((r) => Number(r.base_price))
-                        .filter((p) => p > 0);
-                      amount = prices.length > 0 ? Math.min(...prices) : null;
-                      fromLabel = true;
-                    } else if (l.base_price != null) {
-                      amount = Number(l.base_price);
-                    }
                     if (amount == null) return null;
                     return (
                       <div className="mt-2 flex items-baseline gap-1.5">
