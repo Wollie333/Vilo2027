@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
@@ -57,6 +58,8 @@ type RawBooking = {
   channel: string | null;
   created_at: string;
   special_requests: string | null;
+  pay_token: string | null;
+  payment_status: string | null;
   listing: RawListing | null;
 };
 
@@ -94,7 +97,7 @@ export default async function GuestRecordPage({
   let bookingQuery = supabase
     .from("bookings")
     .select(
-      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, listing:listings ( name, listing_photos ( url, sort_order ) )",
+      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:listings ( name, listing_photos ( url, sort_order ) )",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -120,12 +123,35 @@ export default async function GuestRecordPage({
   const { data: rawBookings } = await bookingQuery;
   const bookingsRaw = (rawBookings ?? []) as unknown as RawBooking[];
 
+  // Absolute origin for the shareable /pay/[token] link — mirrors the booking
+  // record (x-forwarded-* first, NEXT_PUBLIC_SITE_URL fallback) so the link is
+  // copy/send-ready and passes the http(s) check.
+  const hdrs = headers();
+  const proto = hdrs.get("x-forwarded-proto") ?? "https";
+  const fwdHost = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "";
+  const origin = fwdHost
+    ? `${proto}://${fwdHost}`
+    : (process.env.NEXT_PUBLIC_SITE_URL ?? "");
+  const CANCELLED_STATUSES = new Set([
+    "cancelled_by_host",
+    "cancelled_by_guest",
+    "declined",
+    "expired",
+    "no_show",
+  ]);
+
   const bookings: BookingItem[] = bookingsRaw.map((b) => {
     const photos = b.listing?.listing_photos ?? [];
     const thumb =
       photos.length > 0
         ? [...photos].sort((a, c) => a.sort_order - c.sort_order)[0].url
         : null;
+    const balanceDue = Number(b.balance_due ?? 0);
+    const payable =
+      !CANCELLED_STATUSES.has(b.status) &&
+      b.payment_status !== "completed" &&
+      balanceDue > 0.005 &&
+      Boolean(b.pay_token);
     return {
       id: b.id,
       reference: b.reference,
@@ -135,15 +161,31 @@ export default async function GuestRecordPage({
       nights: b.nights,
       guestsCount: b.guests_count,
       totalAmount: Number(b.total_amount),
-      balanceDue: Number(b.balance_due ?? 0),
+      balanceDue,
       currency: b.currency,
       channel: b.channel,
       createdAt: b.created_at,
       specialRequests: b.special_requests,
       listingName: b.listing?.name ?? "Listing",
       listingThumb: thumb,
+      payUrl: payable && origin ? `${origin}/pay/${b.pay_token}` : null,
     };
   });
+
+  // Host's add-on catalog (active first) for the Finances "Add add-on" modal —
+  // same source the booking record's AddonManager uses.
+  const { data: catalogRows } = await supabase
+    .from("addons")
+    .select("id, name, unit_price, is_active")
+    .eq("host_id", host.id)
+    .order("is_active", { ascending: false })
+    .order("sort_order");
+  const addonCatalog = (catalogRows ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    unitPrice: Number(c.unit_price),
+    active: c.is_active,
+  }));
 
   // Listing id → name map (for reviews + quotes that reference a listing directly).
   const { data: listingRows } = await supabase
@@ -515,6 +557,7 @@ export default async function GuestRecordPage({
       requestableReviews={requestableReviews}
       txns={txns}
       quotes={quotes}
+      addonCatalog={addonCatalog}
       nextAction={nextAction}
       marketingState={marketingState}
       notes={notes}

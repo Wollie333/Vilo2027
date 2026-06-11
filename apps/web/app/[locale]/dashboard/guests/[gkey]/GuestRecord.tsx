@@ -11,7 +11,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
+  CreditCard,
   Download,
+  FileMinus,
   FileText,
   MailCheck,
   MapPin,
@@ -21,7 +23,9 @@ import {
   Pin,
   PinOff,
   Plus,
+  RotateCcw,
   ShieldCheck,
+  Sparkles,
   Star,
   Tag as TagIcon,
   Trash2,
@@ -37,6 +41,11 @@ import { ReviewCard } from "@/app/[locale]/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
 import type { NextAction } from "@/lib/guests/next-action";
 import type { RequestableReview } from "@/lib/reviews/eligible";
+import {
+  GuestFinanceModals,
+  type FinanceAction,
+  type FinanceRequest,
+} from "./GuestFinanceModals";
 import { WhatToDoBanner } from "./WhatToDoBanner";
 import {
   GuestMessagesPanel,
@@ -124,6 +133,15 @@ export type BookingItem = {
   specialRequests: string | null;
   listingName: string;
   listingThumb: string | null;
+  /** Absolute /pay/[token] link when the booking is payable; null otherwise. */
+  payUrl: string | null;
+};
+
+export type AddonCatalogItem = {
+  id: string;
+  name: string;
+  unitPrice: number;
+  active: boolean;
 };
 
 export type PaymentItem = {
@@ -260,6 +278,7 @@ export function GuestRecord({
   requestableReviews,
   txns,
   quotes,
+  addonCatalog,
   marketingState,
   notes,
   pinnedNote,
@@ -278,6 +297,7 @@ export function GuestRecord({
   requestableReviews: RequestableReview[];
   txns: Txn[];
   quotes: QuoteItem[];
+  addonCatalog: AddonCatalogItem[];
   marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
   notes: NoteItem[];
   pinnedNote: NoteItem | null;
@@ -301,6 +321,14 @@ export function GuestRecord({
     else next.set("tab", t);
     router.push(`${pathname}?${next.toString()}`);
   };
+
+  // Open-state for the finance action modals (record payment / refund / credit
+  // note / add-on). Set from the Finances tab buttons and the What-to-do banner.
+  const [financeReq, setFinanceReq] = useState<FinanceRequest | null>(null);
+  const openFinance = (
+    action: FinanceAction,
+    bookingId: string | null = null,
+  ) => setFinanceReq({ action, bookingId });
 
   const r = record;
   const segLabel = r.is_vip
@@ -620,10 +648,22 @@ export function GuestRecord({
             requestable={requestableReviews}
           />
         ) : (
-          <FinancesPanel txns={txns} quotes={quotes} />
+          <FinancesPanel
+            txns={txns}
+            quotes={quotes}
+            hasBookings={bookings.length > 0}
+            onAction={openFinance}
+          />
         )}
       </div>
       <div className="h-6" />
+
+      <GuestFinanceModals
+        request={financeReq}
+        bookings={bookings}
+        addonCatalog={addonCatalog}
+        onClose={() => setFinanceReq(null)}
+      />
     </div>
   );
 }
@@ -1111,9 +1151,50 @@ function FinanceRow({
 // the account-wide Ledger and the booking Payments tab — so the rows, signs and
 // running balances are identical everywhere. Pending quotes (pre-booking, not
 // yet a transaction) sit below. Per-booking controls live on the booking record.
-function FinancesPanel({ txns, quotes }: { txns: Txn[]; quotes: QuoteItem[] }) {
+function FinancesPanel({
+  txns,
+  quotes,
+  hasBookings,
+  onAction,
+}: {
+  txns: Txn[];
+  quotes: QuoteItem[];
+  hasBookings: boolean;
+  onAction: (action: FinanceAction) => void;
+}) {
+  const actions: {
+    key: FinanceAction;
+    label: string;
+    icon: typeof FileText;
+  }[] = [
+    { key: "payment", label: "Record payment", icon: CreditCard },
+    { key: "refund", label: "Issue refund", icon: RotateCcw },
+    { key: "credit", label: "Credit note", icon: FileMinus },
+    { key: "addon", label: "Add add-on", icon: Sparkles },
+  ];
   return (
     <div className="space-y-6">
+      {hasBookings ? (
+        <div className="flex flex-wrap gap-2.5">
+          {actions.map((a) => (
+            <button
+              key={a.key}
+              type="button"
+              onClick={() => onAction(a.key)}
+              className={`inline-flex items-center gap-1.5 rounded-pill px-4 py-2 text-[13px] font-semibold transition ${
+                a.key === "payment"
+                  ? "bg-brand-primary text-white hover:bg-brand-secondary"
+                  : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+              }`}
+            >
+              <a.icon
+                className={`h-4 w-4 ${a.key === "payment" ? "" : "text-brand-mute"}`}
+              />
+              {a.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <LedgerList
         entries={txns}
         showGuest={false}
