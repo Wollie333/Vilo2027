@@ -493,7 +493,9 @@ export function GuestRecord({
                 ) : null}
                 <RecordActions r={r} />
               </div>
-              <BalanceLine balance={balance} currency={r.currency} />
+              <div className="mt-1.5">
+                <BalanceLine balance={balance} currency={r.currency} />
+              </div>
             </div>
           </div>
 
