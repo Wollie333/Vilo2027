@@ -148,5 +148,33 @@
     "requestQuote": "Request a quote",
     "quoteShort": "Quote",
     "cancellationFallback": "See the cancellation policy."
+  },
+  "thingsToKnow": {
+    "hrTitle": "House rules",
+    "checkInAfter": "Check-in after {time}",
+    "checkOutBy": "Check-out by {time}",
+    "maxGuests": "{count, plural, one {# guest maximum} other {# guests maximum}}",
+    "minNights": "{count, plural, one {# night minimum} other {# nights minimum}}",
+    "safetyTitle": "Safety & property",
+    "holdsPayments": "{brand} holds payments until check-in",
+    "hostVerified": "Host identity verified",
+    "partiesAllowed": "Parties or events allowed",
+    "noParties": "No parties or events",
+    "quietHours": "Quiet hours {start}–{end}",
+    "cancelTitle": "Cancellation",
+    "nonRefundable": "Non-refundable — no refund at any time.",
+    "ruleLessThan24": "Less than 24 hours before",
+    "ruleDaysBefore": "{count, plural, one {#+ day before check-in} other {#+ days before check-in}}",
+    "contactHost": "Contact the host for cancellation terms.",
+    "checkInOutDetails": "Check-in & out details",
+    "legal": "By booking you agree to the <terms>booking terms</terms> and <privacy>privacy notice</privacy>.",
+    "chipPetsOk": "Pets OK",
+    "chipNoPets": "No pets",
+    "chipSmokingOk": "Smoking OK",
+    "chipNoSmoking": "No smoking",
+    "chipChildrenWelcome": "Children welcome",
+    "chipNoChildren": "No children",
+    "chipPartiesOk": "Parties OK",
+    "chipNoParties": "No parties"
   }
 }

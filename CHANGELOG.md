@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Listing — redesign "Things to know" + i18n — branch `main`
+
+### Changed
+- **Reworked the "Things to know" block** (`components/policy/ThingsToKnow.tsx`) per founder feedback — it was too compact/confusing (three bare columns of tiny text). Now three clean, on-brand **cards** (House rules / Safety & property / Cancellation) with an icon-badge header and roomier rows; the platform legal line moved to a full-width footer. Same data + policy dialogs, clearer hierarchy.
+- Wired all its strings through i18n (en + Afrikaans) into a new `thingsToKnow` namespace, including ICU plurals (guests/nights/refund-rule days) and a `t.rich` legal line with terms/privacy links — per `RULES.md §10`.
+
+### Notes
+- `tsc` + `lint` clean. `PolicyDialog`'s own "Read full policy" trigger is shared and still English — translate in a later policy slice.
+
+### Commit
+- `refactor(listing): cleaner Things-to-know cards + i18n (en+af)`
+
 ## 2026-06-11 — Language (L-C·5) — listing page (slice 1: reserve panel) — branch `main`
 
 ### Built

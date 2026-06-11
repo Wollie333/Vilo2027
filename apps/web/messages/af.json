@@ -138,5 +138,33 @@
     "requestQuote": "Versoek 'n kwotasie",
     "quoteShort": "Kwotasie",
     "cancellationFallback": "Sien die kansellasiebeleid."
+  },
+  "thingsToKnow": {
+    "hrTitle": "Huisreëls",
+    "checkInAfter": "Inklok na {time}",
+    "checkOutBy": "Uitklok teen {time}",
+    "maxGuests": "{count, plural, one {# gas maksimum} other {# gaste maksimum}}",
+    "minNights": "{count, plural, one {# nag minimum} other {# nagte minimum}}",
+    "safetyTitle": "Veiligheid & eiendom",
+    "holdsPayments": "{brand} hou betalings tot inklok",
+    "hostVerified": "Gasheer-identiteit geverifieer",
+    "partiesAllowed": "Partytjies of geleenthede toegelaat",
+    "noParties": "Geen partytjies of geleenthede nie",
+    "quietHours": "Stil-ure {start}–{end}",
+    "cancelTitle": "Kansellasie",
+    "nonRefundable": "Nie-terugbetaalbaar — geen terugbetaling te eniger tyd nie.",
+    "ruleLessThan24": "Minder as 24 uur voor",
+    "ruleDaysBefore": "{count, plural, one {#+ dag voor inklok} other {#+ dae voor inklok}}",
+    "contactHost": "Kontak die gasheer vir kansellasievoorwaardes.",
+    "checkInOutDetails": "In- en uitklok-besonderhede",
+    "legal": "Deur te bespreek stem jy in tot die <terms>besprekingsvoorwaardes</terms> en <privacy>privaatheidskennisgewing</privacy>.",
+    "chipPetsOk": "Troeteldiere OK",
+    "chipNoPets": "Geen troeteldiere",
+    "chipSmokingOk": "Rook OK",
+    "chipNoSmoking": "Geen rook",
+    "chipChildrenWelcome": "Kinders welkom",
+    "chipNoChildren": "Geen kinders",
+    "chipPartiesOk": "Partytjies OK",
+    "chipNoParties": "Geen partytjies"
   }
 }
