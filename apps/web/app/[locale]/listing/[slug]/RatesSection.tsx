@@ -2,7 +2,7 @@ import { BadgePercent, CalendarClock, Home, Info } from "lucide-react";
 
 import { Money } from "@/components/currency/Money";
 
-import type { PublicRoom } from "./roomDisplay";
+import { roomFromNightly, type PublicRoom } from "./roomDisplay";
 
 export type SeasonRow = {
   id: string;
@@ -246,10 +246,16 @@ export function RatesSection({
                       </div>
                       <div className="text-[11px] text-brand-mute">
                         sleeps {room.max_guests}
+                        {room.pricing_mode === "per_person"
+                          ? " · priced per person"
+                          : ""}
                       </div>
                     </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                      <Money amount={room.base_price} currency={currency} />
+                      <Money
+                        amount={roomFromNightly(room)}
+                        currency={currency}
+                      />
                     </td>
                     {groups.map((g) => {
                       const p = priceForRoom(g, room.id);
@@ -259,7 +265,7 @@ export function RatesSection({
                           className="px-4 py-3.5 font-mono text-amber-800"
                         >
                           <Money
-                            amount={p != null ? p : room.base_price}
+                            amount={p != null ? p : roomFromNightly(room)}
                             currency={currency}
                           />
                         </td>

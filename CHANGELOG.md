@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Fix — per-person room prices missing on listing page — branch `main`
+
+### Fixed
+- **Room prices didn't show on the listing page for `per_person` rooms** (and showed "R 0" in the rate card). Root cause: `RoomsInfoGrid` + `RatesSection` read `room.base_price` only, but a per-person room keeps its rate in `price_per_person` (base_price is 0). Confirmed via live DB (room "Kanarie Main": per_person, base_price 0, price_per_person 699). Both now use the canonical `roomFromNightly(room)` helper (per_person → price_per_person, else base_price), so the real "from" price shows. Room cards label it "/ person · night" and the rate card tags the row "priced per person". Pre-existing gap — not the C2 currency swap.
+
+### Notes
+- Same underlying gap likely affects the **discovery "from" prices** (explore/similar/featured/`[handle]` cards) for per-person `rooms_only` listings, which still min() over `room.base_price`. Can fix next (use `listing.base_price`, which the room-recompute already sets correctly, or extend those selects).
+- `tsc` + `lint` clean.
+
+### Commit
+- `fix(listing): show per-person room prices via roomFromNightly`
+
 ## 2026-06-11 — Language (L-B fix) — locale-aware links + switchers in top bar — branch `main`
 
 ### Fixed
