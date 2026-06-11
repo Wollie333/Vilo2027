@@ -495,8 +495,8 @@ export function GuestRecord({
           {/* net balance banner */}
           <BalanceBanner balance={balance} currency={r.currency} />
 
-          {/* lifetime stat band */}
-          <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-[14px] border border-brand-line bg-brand-line sm:grid-cols-3 lg:grid-cols-5">
+          {/* lifetime essentials band (v2: light white cells, thin dividers) */}
+          <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-brand-line overflow-hidden rounded-[12px] border border-brand-line sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-5">
             <StatTile
               label="Total stays"
               value={String(r.total_stays)}
@@ -638,7 +638,7 @@ function StatTile({
   valueIcon?: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#FAFCFB] p-4">
+    <div className="bg-white p-4">
       <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
         {label}
       </div>
