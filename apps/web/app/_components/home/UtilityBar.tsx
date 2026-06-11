@@ -1,4 +1,4 @@
-import { ChevronDown, Globe, KeyRound, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 export function UtilityBar() {
@@ -10,16 +10,8 @@ export function UtilityBar() {
           Direct bookings · zero commission to guests
         </span>
         <div className="ml-auto flex items-center gap-5">
-          {/* Language picker becomes real in L-B (i18n). Currency switching lives
-              in SiteHeader's CurrencySwitcher — the single canonical control. */}
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 hover:text-white"
-          >
-            <Globe className="h-3.5 w-3.5" />
-            English (SA)
-            <ChevronDown className="h-3 w-3" />
-          </button>
+          {/* Language + currency switching live in SiteHeader (the single
+              canonical controls, present on every page). */}
           <Link
             href="/booking-management"
             className="inline-flex items-center gap-1 hover:text-white"

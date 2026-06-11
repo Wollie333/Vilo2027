@@ -15,6 +15,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { createClient } from "@/lib/supabase/client";
 
 import { VLogo } from "./VLogo";
@@ -168,6 +169,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 lg:ml-0">
+          <LanguageSwitcher className="hidden md:inline-flex" />
           <CurrencySwitcher className="hidden sm:inline-flex" />
           {session ? (
             <UserMenu

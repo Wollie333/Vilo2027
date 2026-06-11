@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-B) — language switcher — branch `main`
+
+### Built
+- **`LanguageSwitcher`** (`components/i18n/LanguageSwitcher.tsx`) — compact picker (English/Afrikaans/Français/Deutsch/Português) that navigates to the same page in the chosen locale via next-intl's locale-aware router and persists the `NEXT_LOCALE` cookie. Added to `SiteHeader` beside the currency switcher (the single canonical controls, site-wide).
+
+### Changed
+- Removed the dead "English (SA)" placeholder button from `UtilityBar` — language + currency now live only in `SiteHeader`, consistent with the currency decision.
+
+### Notes
+- **Deferred: sitemap `hreflang` alternates.** Advertising `/af`, `/fr`, … while they still serve English fallback content would create duplicate-content signals. hreflang lands per-locale as real translations ship.
+- `tsc` + `lint` clean. Next: translate surface-by-surface (L-C onward), starting with the marketing shell.
+
+### Commit
+- `feat(i18n): language switcher in the header (L-B)`
+
 ## 2026-06-11 — Language (L-A) — next-intl infra + [locale] restructure — branch `main`
 
 ### Built
