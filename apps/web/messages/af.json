@@ -1,1 +1,18 @@
-{}
+{
+  "nav": {
+    "tagline": "Direkte besprekings · geen kommissie vir gaste",
+    "listProperty": "Lys jou eiendom",
+    "help": "Hulp",
+    "destinations": "Bestemmings",
+    "propertyTypes": "Eiendomstipes",
+    "deals": "Aanbiedinge",
+    "forHosts": "Vir gashere",
+    "brandTagline": "Direkte verblyf. Direkte gashere.",
+    "searchAnywhere": "Enige plek",
+    "searchAnyWeek": "Enige week",
+    "searchGuests": "Gaste",
+    "saved": "Gestoor",
+    "signIn": "Meld aan",
+    "join": "Sluit aan by {brand}"
+  }
+}

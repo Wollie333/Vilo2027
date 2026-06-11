@@ -54,6 +54,19 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): show per-person room prices via roomFromNightly`
 
+## 2026-06-11 — Language (L-C·1) — translate global chrome (top bar + header) — branch `main`
+
+### Built
+- **First translated surface.** Added a `nav` namespace to all five catalogs (`messages/{en,af,fr,de,pt}.json`) and wired `useTranslations("nav")` into `UtilityBar` (tagline, "List your property", "Help") and `SiteHeader` (nav links, search pills, "Sign in", "Join {brand}", tagline). Switching the language now visibly translates the chrome on every public page. `"Join {brand}"` uses ICU interpolation off the dynamic brand name.
+
+### Notes
+- Non-English copy is a **solid draft — flag for native-speaker review before launch** (Afrikaans/French/German/Portuguese). I'm not passing these off as final professional translations.
+- Catalogs use complete namespaces per locale (request.ts shallow-merges over English); switch to deep-merge before shipping partial namespaces.
+- Logged-in `UserMenu` strings + footer/hero/home sections come in the next L-C slices. `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): translate global chrome — nav namespace (L-C·1)`
+
 ## 2026-06-11 — Language (L-B fix) — locale-aware links + switchers in top bar — branch `main`
 
 ### Fixed

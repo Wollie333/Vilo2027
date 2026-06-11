@@ -1,1 +1,18 @@
-{}
+{
+  "nav": {
+    "tagline": "Réservations directes · zéro commission pour les voyageurs",
+    "listProperty": "Publier votre logement",
+    "help": "Aide",
+    "destinations": "Destinations",
+    "propertyTypes": "Types de logement",
+    "deals": "Offres",
+    "forHosts": "Pour les hôtes",
+    "brandTagline": "Séjours directs. Hôtes directs.",
+    "searchAnywhere": "N'importe où",
+    "searchAnyWeek": "N'importe quand",
+    "searchGuests": "Voyageurs",
+    "saved": "Enregistrés",
+    "signIn": "Se connecter",
+    "join": "Rejoindre {brand}"
+  }
+}

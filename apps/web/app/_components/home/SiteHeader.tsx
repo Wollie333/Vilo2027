@@ -9,8 +9,10 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { forwardRef, useEffect, useRef, useState } from "react";
+
+import { Link } from "@/i18n/navigation";
 
 import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
@@ -20,10 +22,10 @@ import { UtilityBar } from "./UtilityBar";
 import { VLogo } from "./VLogo";
 
 const NAV = [
-  { href: "#destinations", label: "Destinations" },
-  { href: "#types", label: "Property types" },
-  { href: "#deals", label: "Deals" },
-  { href: "/booking-management", label: "For hosts" },
+  { href: "#destinations", key: "destinations" },
+  { href: "#types", key: "propertyTypes" },
+  { href: "#deals", key: "deals" },
+  { href: "/booking-management", key: "forHosts" },
 ] as const;
 
 type Session = {
@@ -35,6 +37,7 @@ type Session = {
 
 export function SiteHeader() {
   const brand = useBrandName();
+  const t = useTranslations("nav");
   const [elevated, setElevated] = useState(false);
   const [session, setSession] = useState<Session>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -135,7 +138,7 @@ export function SiteHeader() {
                 <BrandName />
               </div>
               <div className="mt-0.5 hidden text-[10px] text-brand-mute sm:block">
-                Direct stays. Direct hosts.
+                {t("brandTagline")}
               </div>
             </div>
           </Link>
@@ -147,11 +150,13 @@ export function SiteHeader() {
               elevated ? "opacity-100" : "pointer-events-none opacity-0"
             }`}
           >
-            <span className="font-medium text-brand-ink">Anywhere</span>
+            <span className="font-medium text-brand-ink">
+              {t("searchAnywhere")}
+            </span>
             <span className="h-4 w-px bg-brand-line" />
-            <span>Any week</span>
+            <span>{t("searchAnyWeek")}</span>
             <span className="h-4 w-px bg-brand-line" />
-            <span>Guests</span>
+            <span>{t("searchGuests")}</span>
             <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
               <Search className="h-4 w-4" />
             </span>
@@ -164,7 +169,7 @@ export function SiteHeader() {
                 href={item.href}
                 className="hover:text-brand-ink"
               >
-                {item.label}
+                {t(item.key)}
               </Link>
             ))}
           </nav>
@@ -184,19 +189,19 @@ export function SiteHeader() {
                   className="hidden items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
                 >
                   <Heart className="h-4 w-4" />
-                  Saved
+                  {t("saved")}
                 </button>
                 <Link
                   href="/login"
                   className="hidden rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
                 >
-                  Sign in
+                  {t("signIn")}
                 </Link>
                 <Link
                   href="/signup"
                   className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
                 >
-                  Join {brand}
+                  {t("join", { brand })}
                 </Link>
               </>
             )}

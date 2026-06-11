@@ -1,1 +1,18 @@
-{}
+{
+  "nav": {
+    "tagline": "Direktbuchungen · keine Provision für Gäste",
+    "listProperty": "Unterkunft inserieren",
+    "help": "Hilfe",
+    "destinations": "Reiseziele",
+    "propertyTypes": "Unterkunftsarten",
+    "deals": "Angebote",
+    "forHosts": "Für Gastgeber",
+    "brandTagline": "Direkt buchen. Direkt beim Gastgeber.",
+    "searchAnywhere": "Überall",
+    "searchAnyWeek": "Jede Woche",
+    "searchGuests": "Gäste",
+    "saved": "Gespeichert",
+    "signIn": "Anmelden",
+    "join": "{brand} beitreten"
+  }
+}

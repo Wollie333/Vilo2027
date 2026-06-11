@@ -8,5 +8,21 @@
     "next": "Next",
     "perNight": "/ night",
     "from": "from"
+  },
+  "nav": {
+    "tagline": "Direct bookings · zero commission to guests",
+    "listProperty": "List your property",
+    "help": "Help",
+    "destinations": "Destinations",
+    "propertyTypes": "Property types",
+    "deals": "Deals",
+    "forHosts": "For hosts",
+    "brandTagline": "Direct stays. Direct hosts.",
+    "searchAnywhere": "Anywhere",
+    "searchAnyWeek": "Any week",
+    "searchGuests": "Guests",
+    "saved": "Saved",
+    "signIn": "Sign in",
+    "join": "Join {brand}"
   }
 }

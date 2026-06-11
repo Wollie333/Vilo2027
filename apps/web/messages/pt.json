@@ -1,1 +1,18 @@
-{}
+{
+  "nav": {
+    "tagline": "Reservas diretas · sem comissão para hóspedes",
+    "listProperty": "Anuncie o seu imóvel",
+    "help": "Ajuda",
+    "destinations": "Destinos",
+    "propertyTypes": "Tipos de imóvel",
+    "deals": "Ofertas",
+    "forHosts": "Para anfitriões",
+    "brandTagline": "Estadias diretas. Anfitriões diretos.",
+    "searchAnywhere": "Qualquer lugar",
+    "searchAnyWeek": "Qualquer semana",
+    "searchGuests": "Hóspedes",
+    "saved": "Guardados",
+    "signIn": "Entrar",
+    "join": "Junte-se à {brand}"
+  }
+}
