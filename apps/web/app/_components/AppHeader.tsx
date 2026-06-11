@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { VLogo } from "@/app/dashboard/_components/VLogo";
+import { VLogo } from "@/app/[locale]/dashboard/_components/VLogo";
 import { BrandName } from "@/components/brand/BrandProvider";
 
 import { HeaderMenuToggle } from "./SidebarToggle";

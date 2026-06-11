@@ -5,12 +5,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
-import { Field, TextInput } from "@/app/dashboard/setup/_atoms";
-import { saveListingPatchAction } from "@/app/dashboard/listings/[id]/edit/actions";
+import { Field, TextInput } from "@/app/[locale]/dashboard/setup/_atoms";
+import { saveListingPatchAction } from "@/app/[locale]/dashboard/listings/[id]/edit/actions";
 import {
   basicSchema,
   type BasicInput,
-} from "@/app/dashboard/listings/[id]/edit/schemas";
+} from "@/app/[locale]/dashboard/listings/[id]/edit/schemas";
 import {
   CategoryPicker,
   type CategoryPickerLeaf,

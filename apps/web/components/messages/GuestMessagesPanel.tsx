@@ -8,7 +8,7 @@ import { useState } from "react";
 import {
   sendMessageAction,
   startGuestConversationAction,
-} from "@/app/dashboard/inbox/actions";
+} from "@/app/[locale]/dashboard/inbox/actions";
 import { modal } from "@/components/ui/modal-host";
 
 /**

@@ -22,11 +22,11 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
-import { markPaymentReceivedAction } from "@/app/dashboard/bookings/[id]/payment-actions";
+import { markPaymentReceivedAction } from "@/app/[locale]/dashboard/bookings/[id]/payment-actions";
 import {
   emailDocumentToGuestAction,
   sendDocumentLinkAction,
-} from "@/app/dashboard/documents-actions";
+} from "@/app/[locale]/dashboard/documents-actions";
 import {
   TxnActionModal,
   type TxnActionMode,

@@ -12,7 +12,7 @@ import {
 import Link from "next/link";
 import { forwardRef, useEffect, useRef, useState } from "react";
 
-import { signOutAction } from "@/app/(auth)/actions";
+import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
 import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
 import { createClient } from "@/lib/supabase/client";

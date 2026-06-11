@@ -18,16 +18,21 @@ import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { combineName, splitName } from "@/lib/profile/name";
-import { LANGUAGE_OPTIONS } from "@/app/signup/host/schemas";
+import { LANGUAGE_OPTIONS } from "@/app/[locale]/signup/host/schemas";
 import {
   saveProfileAction,
   uploadAvatarAction,
-} from "@/app/dashboard/settings/actions";
+} from "@/app/[locale]/dashboard/settings/actions";
 import {
   profileSchema,
   type ProfileInput,
-} from "@/app/dashboard/settings/schemas";
-import { Chip, Field, TextArea, TextInput } from "@/app/dashboard/setup/_atoms";
+} from "@/app/[locale]/dashboard/settings/schemas";
+import {
+  Chip,
+  Field,
+  TextArea,
+  TextInput,
+} from "@/app/[locale]/dashboard/setup/_atoms";
 
 // Single source of truth for the host profile form. Rendered by both
 // /dashboard/settings (sidebar) and the onboarding setup card. RHF + Zod

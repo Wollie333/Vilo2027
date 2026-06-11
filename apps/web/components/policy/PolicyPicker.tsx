@@ -4,10 +4,10 @@ import { Check, Eye, Lock, Pencil, Plus } from "lucide-react";
 import { forwardRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { setListingPolicyAction } from "@/app/dashboard/policies/actions";
-import { PolicyEditorSheet } from "@/app/dashboard/policies/PolicyEditorSheet";
-import type { PolicyCard } from "@/app/dashboard/policies/PolicyManager";
-import type { PolicyType } from "@/app/dashboard/policies/schemas";
+import { setListingPolicyAction } from "@/app/[locale]/dashboard/policies/actions";
+import { PolicyEditorSheet } from "@/app/[locale]/dashboard/policies/PolicyEditorSheet";
+import type { PolicyCard } from "@/app/[locale]/dashboard/policies/PolicyManager";
+import type { PolicyType } from "@/app/[locale]/dashboard/policies/schemas";
 import {
   PolicyDialog,
   type PolicyDialogData,

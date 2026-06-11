@@ -18,7 +18,7 @@
 import {
   computeAddonSubtotal,
   type PricingModel,
-} from "@/app/dashboard/addons/schemas";
+} from "@/app/[locale]/dashboard/addons/schemas";
 import { round2 } from "@/lib/format";
 
 import { applyStayDiscounts, type StayDiscount } from "./discounts";

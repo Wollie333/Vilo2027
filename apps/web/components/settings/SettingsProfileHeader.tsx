@@ -1,7 +1,7 @@
 import { BadgeCheck, ExternalLink, Mail, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
-import { findPlan } from "@/app/dashboard/settings/subscription/plans";
+import { findPlan } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { createServerClient } from "@/lib/supabase/server";
 
 // White profile header + stat band shown above every Settings tab (matches the

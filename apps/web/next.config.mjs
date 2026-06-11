@@ -1,3 +1,8 @@
+import createNextIntlPlugin from "next-intl/plugin";
+
+// Points the plugin at the request-scoped i18n config (messages per locale).
+const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -15,4 +20,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

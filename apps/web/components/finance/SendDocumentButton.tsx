@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
 
-import { sendDocumentLinkAction } from "@/app/dashboard/documents-actions";
+import { sendDocumentLinkAction } from "@/app/[locale]/dashboard/documents-actions";
 
 // Send a document's public link to the guest's inbox thread. Builds the absolute
 // URL from the current origin + the public token path, so the guest can open and

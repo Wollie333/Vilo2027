@@ -1,0 +1,12 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "perNight": "/ night",
+    "from": "from"
+  }
+}

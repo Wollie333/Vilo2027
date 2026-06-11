@@ -8,9 +8,9 @@ import {
   addBookingAddonAction,
   issueBookingCreditNoteAction,
   recordBookingPaymentAction,
-} from "@/app/dashboard/bookings/[id]/payment-actions";
-import { voidTransactionAction } from "@/app/dashboard/ledger/actions";
-import { hostInitiatedRefundAction } from "@/app/dashboard/refunds/actions";
+} from "@/app/[locale]/dashboard/bookings/[id]/payment-actions";
+import { voidTransactionAction } from "@/app/[locale]/dashboard/ledger/actions";
+import { hostInitiatedRefundAction } from "@/app/[locale]/dashboard/refunds/actions";
 import {
   FormModal,
   FormModalCancel,

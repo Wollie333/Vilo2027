@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-A) — next-intl infra + [locale] restructure — branch `main`
+
+### Built
+- **next-intl 3.26 wired** (URL-based routing, `localePrefix: "as-needed"` → English keeps its current URLs, others get `/af /fr /de /pt`). Config in `i18n/{routing,request,navigation}.ts`; `next.config.mjs` wrapped with the plugin. Message catalogs in `messages/{en,af,fr,de,pt}.json` (en is the source; non-en fall back to en).
+- **App tree moved under `app/[locale]/`** (529 files) — every UI route. Route handlers stay flat: `api/`, `auth/confirm`, `ical/`, `unsubscribe/`, `quote/*/pdf`. Root layout → `app/[locale]/layout.tsx`: dynamic `<html lang>`, `setRequestLocale`, `generateStaticParams`, `NextIntlClientProvider` wrapping the existing Brand/Currency providers. Added `app/[locale]/not-found.tsx`.
+- **Middleware composed**: next-intl runs first for UI routes (honouring its locale redirects), then Supabase `updateSession` attaches refreshed auth cookies to the same response; functional routes get Supabase only (no regression). `updateSession` strips the locale prefix before auth-gate matching so `/af/dashboard` gates like `/dashboard`.
+- Reserved the locale codes in `[handle]` so a host vanity handle can't be shadowed by the `[locale]` segment.
+
+### Changed
+- Mechanical import rewrites for the move: `@/app/{dashboard,(auth),signup,help,explore}` → `@/app/[locale]/…`; relative top-level `_components/{home,legal,browse}` imports → absolute `@/app/_components/…`.
+
+### Notes
+- **No visible change intended** (en-only passthrough; no strings translated yet). `tsc --noEmit` + `next lint` clean. **`pnpm build` NOT verifiable in this environment** (Avast HTTPS-scanning blocks the Google-Fonts fetch the build needs) — must be built + smoke-tested locally. Watch for next-intl static-rendering opt-outs and the `x-pathname` header propagating through the i18n rewrite (dashboard inbox full-bleed). Next: L-B (hreflang + sitemap + language switcher), then translate surface-by-surface.
+
+### Commit
+- `feat(i18n): next-intl infra + [locale] restructure (L-A)`
+
 ## 2026-06-11 — Currency (C3) — convert discovery cards + estimate note — branch `main`
 
 ### Built
