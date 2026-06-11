@@ -16,7 +16,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 const FX_API = "https://open.er-api.com/v6/latest/ZAR";
-const STALE_MS = 24 * 60 * 60 * 1000; // refresh at most daily
+const STALE_MS = 60 * 60 * 1000; // refresh at most hourly (display estimates)
 // Conservative fallback (~0.053 USD per ZAR) used only if there is no cached
 // row AND the API is unreachable — keeps checkout functional.
 const FALLBACK_ZAR_USD = 0.053;

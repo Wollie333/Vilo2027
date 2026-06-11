@@ -10,19 +10,14 @@ export function UtilityBar() {
           Direct bookings · zero commission to guests
         </span>
         <div className="ml-auto flex items-center gap-5">
+          {/* Language picker becomes real in L-B (i18n). Currency switching lives
+              in SiteHeader's CurrencySwitcher — the single canonical control. */}
           <button
             type="button"
             className="inline-flex items-center gap-1 hover:text-white"
           >
             <Globe className="h-3.5 w-3.5" />
             English (SA)
-            <ChevronDown className="h-3 w-3" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 font-mono hover:text-white"
-          >
-            ZAR · R
             <ChevronDown className="h-3 w-3" />
           </button>
           <Link

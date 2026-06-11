@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { cookies } from "next/headers";
 
 import { BrandProvider } from "@/components/brand/BrandProvider";
+import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
 import { ModalHost } from "@/components/ui/modal-host";
 import { Toaster } from "@/components/ui/sonner";
 import { getBranding, getBrandName } from "@/lib/brand";
+import { getDisplayRates } from "@/lib/fx";
 
 import { CookieBanner } from "./_components/CookieBanner";
 import "./globals.css";
@@ -41,7 +44,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const branding = await getBranding();
+  const [branding, rates] = await Promise.all([
+    getBranding(),
+    getDisplayRates(),
+  ]);
+  const displayCurrency = cookies().get("vilo_display_ccy")?.value ?? null;
   return (
     <html
       lang="en"
@@ -49,10 +56,12 @@ export default async function RootLayout({
     >
       <body className="font-sans antialiased">
         <BrandProvider value={branding}>
-          {children}
-          <CookieBanner />
-          <Toaster richColors position="top-center" />
-          <ModalHost />
+          <CurrencyProvider initialCurrency={displayCurrency} rates={rates}>
+            {children}
+            <CookieBanner />
+            <Toaster richColors position="top-center" />
+            <ModalHost />
+          </CurrencyProvider>
         </BrandProvider>
       </body>
     </html>

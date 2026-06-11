@@ -31,7 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
-## 2026-06-10 — Fix — unblock the migration queue (guest dedup migration) — branch `main`
+## 2026-06-11 — Currency (Phase 1b) — `<Money>` + activate the display switcher — branch `main`
+
+### Built
+- **`<Money amountZar={…}>`** (`components/currency/Money.tsx`) — the missing render piece from phase 1a. Wraps `useCurrency()`, converts a base-ZAR amount into the viewer's selected display currency, and prefixes non-ZAR with "≈" to signal it's a browsing estimate. Reuses the context's `convert`/`format` — no forked money maths.
+
+### Changed
+- Committed the dangling phase-1a wiring: `CurrencyProvider`/`CurrencySwitcher` (was untracked), root `layout.tsx` (injects `getDisplayRates()` + reads the `vilo_display_ccy` cookie), and `SiteHeader` (the canonical `CurrencySwitcher`).
+- Removed the redundant dead "ZAR · R" placeholder button from `UtilityBar` — `SiteHeader`'s switcher is the single canonical currency control (it has site-wide reach; `UtilityBar` only renders on home + listing). The language placeholder stays until L-B.
+- `lib/fx.ts`: FX cache refresh cadence daily → **hourly** (`STALE_MS`), still cached (never per-view), source unchanged (`open.er-api.com`), admin override intact.
+
+### Notes
+- Display conversion is browsing-only; transactional/host amounts stay in settlement currency via `formatMoney`. Next: C2 — wire `<Money>` into listing/room/`[handle]` browsing prices.
+- `tsc --noEmit` clean, `next lint` clean. `pnpm build` not run here — sandbox blocks Google Fonts fetch (TLS); unaffected by these changes (builds on Vercel/normal network).
+- Full roadmap: see the multi-currency + multi-language plan.
+
+### Commit
+- `feat(currency): phase 1b — <Money> + activate display switcher, hourly FX`
 
 ### Fixed
 - 🔴 **Migration `20260610180008` (guest directory email-merge) couldn't apply and blocked the whole queue** (and any `supabase db push` / deploy), including the trailing policy + help migrations. Root cause: it changed the `RETURNS TABLE` shape of `_host_guest_rows` with `CREATE OR REPLACE` (Postgres `42P13: cannot change return type` — needs `DROP FUNCTION` first), and in doing so dropped the `is_added_guest` column + its `addedrel` CTE that `20260610150003` added (which the reader RPCs `fetch_host_guests*` depend on), and the `REVOKE … FROM PUBLIC` on a SECURITY DEFINER function.
