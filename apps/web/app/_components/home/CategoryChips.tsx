@@ -21,6 +21,8 @@ import {
   Utensils,
   type LucideIcon,
 } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+
 import { Link } from "@/i18n/navigation";
 
 import type { HomeChip } from "./home-data";
@@ -46,9 +48,10 @@ const ICONS: Record<string, LucideIcon> = {
   accessibility: Accessibility,
 };
 
-export function CategoryChips({ chips }: { chips: HomeChip[] }) {
+export async function CategoryChips({ chips }: { chips: HomeChip[] }) {
   // Always show at least "All stays"; hide the strip only if nothing at all.
   if (chips.length <= 1) return null;
+  const t = await getTranslations("home");
 
   return (
     <section className="sticky top-16 z-30 border-b border-brand-line bg-white">
@@ -73,7 +76,7 @@ export function CategoryChips({ chips }: { chips: HomeChip[] }) {
             className="ml-auto inline-flex shrink-0 items-center gap-2 rounded border border-brand-line px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
           >
             <SlidersHorizontal className="h-4 w-4" />
-            Filters
+            {t("chipsFilters")}
           </Link>
         </div>
       </div>

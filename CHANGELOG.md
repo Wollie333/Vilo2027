@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-C·3+4) — full homepage — branch `main`
+
+### Built
+- Translated the entire public homepage into the `home` namespace via `getTranslations("home")`: **Hero** (badge, headline, search bar labels/placeholder/guest options/aria, popular cities, trust row — subtitle is an ICU plural on the verified-property count) and **all sections** — `CategoryChips`, `TrendingDestinations`, `RecentReviews`, `BrowseByType`, `DealsBanner`, `TrustPillars`, `HostCTA`, `AppNewsletter`, `FeaturedListings`. Brand-dependent copy uses `{brand}` ICU values.
+
+### Notes
+- Several home sections became `async` server components to call `getTranslations`. English source only; other locales fall back until the admin portal bulk-import. Per `RULES.md §10`.
+- `tsc` + `lint` clean. Next batch: listing + booking flow.
+
+### Commit
+- `feat(i18n): translate rest of homepage sections (L-C·4)`
+
 ## 2026-06-11 — Fix — per-person "from" prices on discovery cards — branch `main`
 
 ### Fixed

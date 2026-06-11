@@ -1,9 +1,11 @@
 import { Star } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import type { HomeReview } from "./home-data";
 
-export function RecentReviews({ reviews }: { reviews: HomeReview[] }) {
+export async function RecentReviews({ reviews }: { reviews: HomeReview[] }) {
   if (reviews.length === 0) return null;
+  const t = await getTranslations("home");
 
   return (
     <section className="border-b border-brand-line bg-white">
@@ -11,10 +13,10 @@ export function RecentReviews({ reviews }: { reviews: HomeReview[] }) {
         <div className="mb-10 flex items-end justify-between gap-6">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-              From the guests
+              {t("reviewsEyebrow")}
             </div>
             <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
-              Real stays. Real reviews.
+              {t("reviewsTitle")}
             </h2>
           </div>
         </div>

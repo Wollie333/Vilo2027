@@ -1,23 +1,25 @@
 import { Check, Smartphone } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { getBrandName } from "@/lib/brand";
 
 export async function AppNewsletter() {
-  const brandName = await getBrandName();
+  const [brandName, t] = await Promise.all([
+    getBrandName(),
+    getTranslations("home"),
+  ]);
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 lg:grid-cols-12 lg:px-8 lg:py-20">
         <div className="lg:col-span-7">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            The {brandName} Weekly
+            {t("newsEyebrow", { brand: brandName })}
           </div>
           <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
-            New stays in your inbox every Friday.
+            {t("newsTitle")}
           </h2>
           <p className="mt-4 max-w-lg leading-relaxed text-brand-mute">
-            Six hand-picked stays a week. Honest reviews from real guests. Zero
-            spam, one-click unsubscribe — and no, we won&rsquo;t sell your email
-            to anyone.
+            {t("newsBody")}
           </p>
 
           <form
@@ -28,30 +30,30 @@ export async function AppNewsletter() {
             <input
               type="email"
               name="email"
-              placeholder="you@email.com"
-              aria-label="Email"
+              placeholder={t("newsPlaceholder")}
+              aria-label={t("newsEmailAria")}
               className="min-w-0 flex-1 bg-transparent px-3 text-sm text-brand-ink outline-none placeholder:text-brand-mute/60"
             />
             <button
               type="submit"
               className="rounded bg-brand-primary px-5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
             >
-              Subscribe
+              {t("newsSubscribe")}
             </button>
           </form>
 
           <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-brand-mute">
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-brand-primary" /> 18 240
-              subscribers
+              <Check className="h-3.5 w-3.5 text-brand-primary" />{" "}
+              {t("newsStat1")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-brand-primary" /> One email per
-              week
+              <Check className="h-3.5 w-3.5 text-brand-primary" />{" "}
+              {t("newsStat2")}
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-brand-primary" /> Unsubscribe
-              in one click
+              <Check className="h-3.5 w-3.5 text-brand-primary" />{" "}
+              {t("newsStat3")}
             </span>
           </div>
         </div>
@@ -59,14 +61,13 @@ export async function AppNewsletter() {
         <div className="lg:col-span-5">
           <div className="rounded-card border border-brand-line bg-white p-6">
             <div className="text-xs font-semibold uppercase tracking-wider text-brand-mute">
-              Get the app
+              {t("appEyebrow")}
             </div>
             <div className="mt-1 font-display text-lg font-semibold text-brand-ink">
-              Book on the way to the airport.
+              {t("appTitle")}
             </div>
             <p className="mt-2 text-sm leading-relaxed text-brand-mute">
-              Native iOS and Android apps. Save listings, message hosts, manage
-              your bookings — all in your pocket.
+              {t("appBody")}
             </p>
             <div className="mt-5 grid grid-cols-2 gap-2">
               <a
@@ -76,10 +77,10 @@ export async function AppNewsletter() {
                 <Smartphone className="h-5 w-5" />
                 <div className="text-left">
                   <div className="text-[9px] uppercase tracking-wider opacity-70">
-                    Download on
+                    {t("appStoreOn")}
                   </div>
                   <div className="text-sm font-semibold leading-tight">
-                    App Store
+                    {t("appStore")}
                   </div>
                 </div>
               </a>
@@ -90,10 +91,10 @@ export async function AppNewsletter() {
                 <Smartphone className="h-5 w-5" />
                 <div className="text-left">
                   <div className="text-[9px] uppercase tracking-wider opacity-70">
-                    Get it on
+                    {t("appPlayOn")}
                   </div>
                   <div className="text-sm font-semibold leading-tight">
-                    Google Play
+                    {t("appPlay")}
                   </div>
                 </div>
               </a>

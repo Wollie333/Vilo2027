@@ -1,12 +1,13 @@
 import { ArrowLeft, ArrowRight, MapPin, Star, Zap } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
 
 import { HeartButton } from "./HeartButton";
 import type { HomeListingCard } from "./home-data";
+import { Link } from "@/i18n/navigation";
 
-export function FeaturedListings({
+export async function FeaturedListings({
   listings,
   totalStays,
 }: {
@@ -15,6 +16,7 @@ export function FeaturedListings({
 }) {
   if (listings.length === 0) return null;
 
+  const t = await getTranslations("home");
   const totalLabel = totalStays.toLocaleString("en-ZA").replace(/,/g, " ");
 
   return (
@@ -23,27 +25,26 @@ export function FeaturedListings({
         <div className="mb-8 flex items-end justify-between gap-6">
           <div className="max-w-xl">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-              Featured stays
+              {t("featuredEyebrow")}
             </div>
             <h2 className="mt-2 font-display text-2xl font-bold leading-tight tracking-tight text-brand-ink md:text-3xl lg:text-4xl">
-              Hand-picked, host-verified.
+              {t("featuredTitle")}
             </h2>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-brand-mute md:text-base">
-              The places we&rsquo;d send our own friends. Real photos, fair
-              pricing, and a host you can actually message.
+              {t("featuredBody")}
             </p>
           </div>
           <div className="hidden shrink-0 items-center gap-2 md:flex">
             <button
               type="button"
-              aria-label="Previous"
+              aria-label={t("featuredPrev")}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-line text-brand-ink hover:bg-brand-accent"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              aria-label="Next"
+              aria-label={t("featuredNext")}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-brand-line text-brand-ink hover:bg-brand-accent"
             >
               <ArrowRight className="h-4 w-4" />
@@ -140,7 +141,7 @@ export function FeaturedListings({
             href="/explore"
             className="inline-flex items-center gap-2 rounded border border-brand-line bg-white px-5 py-3 font-medium text-brand-ink transition-colors hover:bg-brand-accent"
           >
-            Show all {totalLabel} stays
+            {t("featuredShowAll", { count: totalLabel })}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

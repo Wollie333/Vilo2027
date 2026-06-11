@@ -1,6 +1,8 @@
 import { ArrowRight, Sun, Users } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-export function DealsBanner() {
+export async function DealsBanner() {
+  const t = await getTranslations("home");
   return (
     <section className="border-b border-brand-line">
       <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
@@ -16,20 +18,19 @@ export function DealsBanner() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
             <div className="relative max-w-lg p-8 text-white lg:p-10">
               <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
-                <Sun className="h-3 w-3" /> Summer deal
+                <Sun className="h-3 w-3" /> {t("dealsBadge")}
               </span>
               <h3 className="mt-4 font-display text-2xl font-bold leading-tight md:text-3xl">
-                December at the coast — save up to 25%
+                {t("dealsTitle")}
               </h3>
               <p className="mt-3 text-sm leading-relaxed text-white/85">
-                Selected Garden Route and Whale Coast stays, booked direct with
-                the host. No code needed.
+                {t("dealsBody")}
               </p>
               <a
                 href="/explore"
                 className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
               >
-                Browse summer deals <ArrowRight className="h-4 w-4" />
+                {t("dealsCta")} <ArrowRight className="h-4 w-4" />
               </a>
             </div>
           </div>
@@ -46,20 +47,19 @@ export function DealsBanner() {
             />
             <div className="relative">
               <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/20 backdrop-blur">
-                <Users className="h-3 w-3" /> Group stays
+                <Users className="h-3 w-3" /> {t("groupBadge")}
               </span>
               <h3 className="mt-4 font-display text-2xl font-bold leading-tight md:text-3xl">
-                Going as a crew?
+                {t("groupTitle")}
               </h3>
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/90">
-                Hand-picked stays that sleep 8+. Game lodges, beach houses,
-                working farms — book the whole thing, no per-head haggling.
+                {t("groupBody")}
               </p>
               <a
                 href="/explore?guests=8"
                 className="mt-5 inline-flex items-center gap-1.5 rounded bg-white px-4 py-2.5 text-sm font-medium text-brand-secondary transition-colors hover:bg-brand-accent"
               >
-                See group stays <ArrowRight className="h-4 w-4" />
+                {t("groupCta")} <ArrowRight className="h-4 w-4" />
               </a>
             </div>
           </div>
