@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { XCircle } from "lucide-react";
-import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
+import { Link } from "@/i18n/navigation";
 import { createServerClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Payment failed",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("booking");
+  return { title: t("metaPaymentFailed") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,8 @@ export default async function BookingFailedPage({
     slug: string | null;
   };
 
+  const t = await getTranslations("booking");
+
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -50,22 +54,21 @@ export default async function BookingFailedPage({
           </div>
 
           <h1 className="mt-5 text-center font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-            Payment didn&rsquo;t go through.
+            {t("failedTitle")}
           </h1>
           <p className="mt-2 text-center text-sm text-brand-mute">
-            No worries — your card wasn&rsquo;t charged. You can try again with
-            a different card, or contact the host directly.
+            {t("failedBody")}
           </p>
 
           <dl className="mt-6 space-y-3 rounded-card border border-brand-line bg-brand-light/60 p-4 text-sm">
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-brand-mute">Booking reference</dt>
+              <dt className="text-brand-mute">{t("reference")}</dt>
               <dd className="font-mono font-medium text-brand-ink">
                 {booking.reference}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <dt className="text-brand-mute">Listing</dt>
+              <dt className="text-brand-mute">{t("listing")}</dt>
               <dd className="font-medium text-brand-ink">{listing.name}</dd>
             </div>
           </dl>
@@ -75,13 +78,13 @@ export default async function BookingFailedPage({
               href={listing.slug ? `/listing/${listing.slug}` : "/"}
               className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
             >
-              Try again
+              {t("tryAgain")}
             </Link>
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2.5 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
             >
-              Back to home
+              {t("backHome")}
             </Link>
           </div>
         </div>

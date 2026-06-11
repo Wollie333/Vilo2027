@@ -275,5 +275,14 @@
   },
   "policy": {
     "readFullPolicy": "Lees volledige beleid"
+  },
+  "booking": {
+    "metaPaymentFailed": "Betaling het misluk",
+    "failedTitle": "Betaling het nie deurgegaan nie.",
+    "failedBody": "Geen probleem nie — jou kaart is nie gehef nie. Jy kan weer met 'n ander kaart probeer, of die gasheer direk kontak.",
+    "reference": "Besprekingsverwysing",
+    "listing": "Eiendom",
+    "tryAgain": "Probeer weer",
+    "backHome": "Terug tuis"
   }
 }

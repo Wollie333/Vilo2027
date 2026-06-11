@@ -47,6 +47,17 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): pets/children single source of truth (policy) + suitability i18n`
 
+## 2026-06-11 — Language (L-D·1) — booking failed page — branch `main`
+
+### Built
+- New `booking` namespace (en + af); wired the booking **failed** page (`booking/[id]/failed`) — title/body, reference + listing labels, try-again / back-home, and a `generateMetadata` title.
+
+### Notes
+- Booking flow's big piece, `BookingForm.tsx` (~2,600-line checkout) + the success/confirmation page, are large multi-slice jobs — best tackled with fresh context. `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): booking failed page, en+af (L-D·1)`
+
 ## 2026-06-11 — Language (L-C·9) — listing hero, trust card, host card — branch `main`
 
 ### Built

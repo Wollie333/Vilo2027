@@ -285,5 +285,14 @@
   },
   "policy": {
     "readFullPolicy": "Read full policy"
+  },
+  "booking": {
+    "metaPaymentFailed": "Payment failed",
+    "failedTitle": "Payment didn't go through.",
+    "failedBody": "No worries — your card wasn't charged. You can try again with a different card, or contact the host directly.",
+    "reference": "Booking reference",
+    "listing": "Listing",
+    "tryAgain": "Try again",
+    "backHome": "Back to home"
   }
 }
