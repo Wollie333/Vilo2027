@@ -56,5 +56,29 @@
     "bottomPopia": "POPIA",
     "bottomCookies": "Cookies",
     "systemsOperational": "All systems operational"
+  },
+  "home": {
+    "heroBadge": "Direct booking platform · South Africa",
+    "heroTitlePre": "Exceptional stays,",
+    "heroTitleHighlight": "booked direct.",
+    "heroSubtitle": "{count, plural, =0 {Book straight with the host — secure payment, zero booking fees, no middle-man.} =1 {Browse {formatted} verified property and book straight with the host — secure payment, zero booking fees, no middle-man.} other {Browse {formatted} verified properties and book straight with the host — secure payment, zero booking fees, no middle-man.}}",
+    "searchWhere": "Where",
+    "searchWherePlaceholder": "Anywhere in SA",
+    "searchWhereAria": "Search destinations, regions or towns",
+    "searchWhen": "When",
+    "searchAnyWeek": "Any week",
+    "searchGuests": "Guests",
+    "guestsAria": "Number of guests",
+    "guestsAny": "Any guests",
+    "guests1": "1 guest",
+    "guests2": "2 guests",
+    "guests4": "4 guests",
+    "guests6": "6 guests",
+    "guests8plus": "8+ guests",
+    "searchAria": "Search",
+    "popular": "Popular:",
+    "trustPayments": "Secure Paystack & PayPal",
+    "trustVerified": "ID-verified hosts",
+    "trustNoFees": "0% guest booking fees"
   }
 }

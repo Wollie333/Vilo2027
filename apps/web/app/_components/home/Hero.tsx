@@ -1,4 +1,6 @@
 import { BadgeCheck, Lock, Percent, Search, ShieldCheck } from "lucide-react";
+import { getTranslations } from "next-intl/server";
+
 import { Link } from "@/i18n/navigation";
 
 import type { HomeStats } from "./home-data";
@@ -7,13 +9,14 @@ function fmtNum(n: number): string {
   return n.toLocaleString("en-ZA").replace(/,/g, " ");
 }
 
-export function Hero({
+export async function Hero({
   stats,
   popularCities,
 }: {
   stats: HomeStats;
   popularCities: string[];
 }) {
+  const t = await getTranslations("home");
   return (
     <section
       className="relative overflow-hidden border-b border-brand-line text-white"
@@ -45,29 +48,20 @@ export function Hero({
       <div className="relative mx-auto flex max-w-3xl flex-col items-center px-5 pb-16 pt-16 text-center lg:pb-24 lg:pt-24">
         <span className="inline-flex items-center gap-2 rounded-pill border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium text-white backdrop-blur">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
-          Direct booking platform &middot; South Africa
+          {t("heroBadge")}
         </span>
 
         <h1 className="mt-6 font-display text-[42px] font-extrabold leading-[1.02] tracking-tight text-white md:text-6xl lg:text-[64px]">
-          Exceptional stays,
+          {t("heroTitlePre")}
           <br />
-          <span className="text-emerald-300">booked direct.</span>
+          <span className="text-emerald-300">{t("heroTitleHighlight")}</span>
         </h1>
 
         <p className="mt-6 max-w-xl text-base leading-relaxed text-white/80 md:text-lg">
-          {stats.properties > 0 ? (
-            <>
-              Browse {fmtNum(stats.properties)} verified{" "}
-              {stats.properties === 1 ? "property" : "properties"} and book
-              straight with the host &mdash; secure payment, zero booking fees,
-              no middle-man.
-            </>
-          ) : (
-            <>
-              Book straight with the host &mdash; secure payment, zero booking
-              fees, no middle-man.
-            </>
-          )}
+          {t("heroSubtitle", {
+            count: stats.properties,
+            formatted: fmtNum(stats.properties),
+          })}
         </p>
 
         {/* COMPACT search bar — native GET form, works without JS */}
@@ -79,13 +73,13 @@ export function Hero({
           >
             <label className="min-w-0 flex-[1.4] cursor-text rounded-pill px-4 py-2 text-left transition-colors hover:bg-brand-light">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                Where
+                {t("searchWhere")}
               </div>
               <input
                 type="text"
                 name="where"
-                placeholder="Anywhere in SA"
-                aria-label="Search destinations, regions or towns"
+                placeholder={t("searchWherePlaceholder")}
+                aria-label={t("searchWhereAria")}
                 className="w-full truncate bg-transparent text-sm font-medium text-brand-ink outline-none placeholder:text-brand-mute/70"
               />
             </label>
@@ -94,10 +88,10 @@ export function Hero({
 
             <div className="hidden min-w-0 flex-1 px-4 py-2 text-left sm:block">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                When
+                {t("searchWhen")}
               </div>
               <div className="truncate text-sm font-medium text-brand-ink">
-                Any week
+                {t("searchAnyWeek")}
               </div>
             </div>
 
@@ -105,26 +99,26 @@ export function Hero({
 
             <label className="min-w-0 flex-1 px-4 py-2 text-left">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                Guests
+                {t("searchGuests")}
               </div>
               <select
                 name="guests"
                 defaultValue=""
-                aria-label="Number of guests"
+                aria-label={t("guestsAria")}
                 className="w-full truncate bg-transparent text-sm font-medium text-brand-ink outline-none"
               >
-                <option value="">Any guests</option>
-                <option value="1">1 guest</option>
-                <option value="2">2 guests</option>
-                <option value="4">4 guests</option>
-                <option value="6">6 guests</option>
-                <option value="8">8+ guests</option>
+                <option value="">{t("guestsAny")}</option>
+                <option value="1">{t("guests1")}</option>
+                <option value="2">{t("guests2")}</option>
+                <option value="4">{t("guests4")}</option>
+                <option value="6">{t("guests6")}</option>
+                <option value="8">{t("guests8plus")}</option>
               </select>
             </label>
 
             <button
               type="submit"
-              aria-label="Search"
+              aria-label={t("searchAria")}
               className="ml-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary text-white transition-colors hover:bg-brand-secondary"
             >
               <Search className="h-5 w-5" />
@@ -133,7 +127,7 @@ export function Hero({
 
           {popularCities.length > 0 ? (
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-white/60">
-              <span className="font-medium">Popular:</span>
+              <span className="font-medium">{t("popular")}</span>
               {popularCities.slice(0, 4).map((c, i) => (
                 <span key={c} className="inline-flex items-center gap-2">
                   {i > 0 ? (
@@ -155,17 +149,15 @@ export function Hero({
         <div className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
           <div className="flex items-center gap-2">
             <Lock className="h-4 w-4 text-emerald-300" />
-            <span className="text-xs text-white/70">
-              Secure Paystack &amp; PayPal
-            </span>
+            <span className="text-xs text-white/70">{t("trustPayments")}</span>
           </div>
           <div className="flex items-center gap-2">
             <BadgeCheck className="h-4 w-4 text-emerald-300" />
-            <span className="text-xs text-white/70">ID-verified hosts</span>
+            <span className="text-xs text-white/70">{t("trustVerified")}</span>
           </div>
           <div className="flex items-center gap-2">
             <Percent className="h-4 w-4 text-emerald-300" />
-            <span className="text-xs text-white/70">0% guest booking fees</span>
+            <span className="text-xs text-white/70">{t("trustNoFees")}</span>
           </div>
         </div>
       </div>
