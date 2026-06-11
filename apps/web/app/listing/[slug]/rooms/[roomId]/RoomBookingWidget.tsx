@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
-import { formatMoney } from "@/lib/format";
+import { useCurrency } from "@/components/currency/CurrencyProvider";
 import { priceStay, type SeasonalRule } from "@/lib/pricing";
 
 import {
@@ -61,6 +61,7 @@ export function RoomBookingWidget({
   monthlyDiscountPct,
 }: Props) {
   const brandName = useBrandName();
+  const { formatFrom } = useCurrency();
   const cap = Math.max(1, maxGuests);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -79,7 +80,7 @@ export function RoomBookingWidget({
   const fromNightly = useMemo(() => roomFromNightly(pricing), [pricing]);
 
   // Headline (one-guest baseline) — never NaN.
-  const headlineAmount = formatMoney(fromNightly, currency);
+  const headlineAmount = formatFrom(fromNightly, currency);
   const headlineSuffix =
     pricing.pricing_mode === "per_person" ? "/ person / night" : "/ night";
 
@@ -120,10 +121,10 @@ export function RoomBookingWidget({
   // Breakdown line for the accommodation row.
   const perNightLabel =
     pricing.pricing_mode === "per_person"
-      ? `${formatMoney(pricing.price_per_person ?? 0, currency)} × ${guests} guest${
+      ? `${formatFrom(pricing.price_per_person ?? 0, currency)} × ${guests} guest${
           guests === 1 ? "" : "s"
         }`
-      : formatMoney(nightlyBase, currency);
+      : formatFrom(nightlyBase, currency);
   const labelNights = nights > 0 ? nights : 1;
   const accommodationLabel = `${perNightLabel} × ${labelNights} night${
     labelNights === 1 ? "" : "s"
@@ -144,7 +145,7 @@ export function RoomBookingWidget({
 
   const reserveLabel = isWhole
     ? "See the full listing"
-    : `Reserve · ${formatMoney(total, currency)}`;
+    : `Reserve · ${formatFrom(total, currency)}`;
 
   return (
     <>
@@ -167,7 +168,7 @@ export function RoomBookingWidget({
         <div className="mt-1 text-xs text-brand-mute">
           Sleeps up to {cap}
           {cleaningFee > 0
-            ? ` · ${formatMoney(cleaningFee, currency)} cleaning fee`
+            ? ` · ${formatFrom(cleaningFee, currency)} cleaning fee`
             : ""}
         </div>
 
@@ -241,14 +242,14 @@ export function RoomBookingWidget({
               <div className="flex items-center justify-between text-brand-dark">
                 <dt className="text-brand-mute">{accommodationLabel}</dt>
                 <dd className="num tabular-nums">
-                  {formatMoney(accommodation, currency)}
+                  {formatFrom(accommodation, currency)}
                 </dd>
               </div>
               {cleaningFee > 0 ? (
                 <div className="flex items-center justify-between text-brand-dark">
                   <dt className="text-brand-mute">Cleaning fee</dt>
                   <dd className="num tabular-nums">
-                    {nights > 0 ? formatMoney(cleaningFee, currency) : "—"}
+                    {nights > 0 ? formatFrom(cleaningFee, currency) : "—"}
                   </dd>
                 </div>
               ) : null}
@@ -259,7 +260,7 @@ export function RoomBookingWidget({
               <div className="mt-1 flex items-center justify-between border-t border-brand-line pt-3 font-display text-base font-bold text-brand-ink">
                 <dt>Total</dt>
                 <dd className="num tabular-nums">
-                  {formatMoney(total, currency)}
+                  {formatFrom(total, currency)}
                 </dd>
               </div>
               <div className="text-right text-[11px] text-brand-mute">
@@ -297,7 +298,7 @@ export function RoomBookingWidget({
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-brand-line bg-white px-5 py-3 shadow-lift lg:hidden">
           <div className="min-w-0">
             <div className="num truncate font-display text-base font-bold tabular-nums text-brand-ink">
-              {formatMoney(total, currency)}
+              {formatFrom(total, currency)}
             </div>
             <div className="truncate text-[11px] text-brand-mute">
               {nights > 0

@@ -6,6 +6,8 @@
 // No "server-only" — imported by both the client switcher/provider and server
 // loaders. Rate fetching lives in lib/fx.ts (server-only, DB + FX API).
 
+import { formatMoney } from "@/lib/format";
+
 export const DISPLAY_CURRENCIES = ["ZAR", "USD", "EUR", "GBP"] as const;
 export type DisplayCurrency = (typeof DISPLAY_CURRENCIES)[number];
 
@@ -55,4 +57,27 @@ export function formatCurrency(
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+/**
+ * Display an `amount` held in `sourceCurrency` in the viewer's `display`
+ * currency. We only hold ZAR-base rates, so ONLY ZAR sources convert; any other
+ * source renders natively (via formatMoney) — never a false cross-conversion.
+ * `converted` is true only when a ZAR amount was actually converted to a
+ * different currency, so callers can add an "≈" estimate marker. This is the
+ * single place the source→display rule lives (used by <Money> and formatFrom).
+ */
+export function displayAmount(
+  amount: number,
+  sourceCurrency: string,
+  display: DisplayCurrency,
+  rates: RateMap,
+): { text: string; converted: boolean } {
+  if (sourceCurrency !== "ZAR") {
+    return { text: formatMoney(amount, sourceCurrency), converted: false };
+  }
+  return {
+    text: formatCurrency(convertFromZar(amount, display, rates), display),
+    converted: display !== "ZAR",
+  };
 }

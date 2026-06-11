@@ -4,11 +4,13 @@ import { createContext, useCallback, useContext, useState } from "react";
 
 import {
   convertFromZar,
+  displayAmount,
   formatCurrency,
   isDisplayCurrency,
   type DisplayCurrency,
   type RateMap,
 } from "@/lib/currency";
+import { formatMoney } from "@/lib/format";
 
 // Viewer-selected DISPLAY currency, available to all client components. The
 // rate map is resolved server-side (lib/fx.ts) and injected once at the root
@@ -25,6 +27,12 @@ type CurrencyCtx = {
   convert: (amountZar: number) => number;
   /** Convert + format a base-ZAR amount in the selected display currency. */
   format: (amountZar: number) => string;
+  /**
+   * Source-aware string formatter for labels/template literals (where a <Money>
+   * JSX node can't go). `amount` is held in `sourceCurrency` (default ZAR); only
+   * ZAR converts, and a converted estimate is prefixed "≈". Mirrors <Money>.
+   */
+  formatFrom: (amount: number, sourceCurrency?: string) => string;
 };
 
 const COOKIE = "vilo_display_ccy";
@@ -58,10 +66,22 @@ export function CurrencyProvider({
       formatCurrency(convertFromZar(amountZar, currency, rates), currency),
     [currency, rates],
   );
+  const formatFrom = useCallback(
+    (amount: number, sourceCurrency = "ZAR") => {
+      const { text, converted } = displayAmount(
+        amount,
+        sourceCurrency,
+        currency,
+        rates,
+      );
+      return converted ? `≈ ${text}` : text;
+    },
+    [currency, rates],
+  );
 
   return (
     <CurrencyContext.Provider
-      value={{ currency, rates, setCurrency, convert, format }}
+      value={{ currency, rates, setCurrency, convert, format, formatFrom }}
     >
       {children}
     </CurrencyContext.Provider>
@@ -79,6 +99,8 @@ export function useCurrency(): CurrencyCtx {
     setCurrency: () => {},
     convert: (z) => z,
     format: (z) => formatCurrency(z, "ZAR"),
+    formatFrom: (amount, sourceCurrency = "ZAR") =>
+      formatMoney(amount, sourceCurrency),
   };
 }
 

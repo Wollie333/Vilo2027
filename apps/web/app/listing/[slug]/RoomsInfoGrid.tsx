@@ -1,6 +1,6 @@
 import { BedDouble, Users } from "lucide-react";
 
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 
 import { bedSummary, roomFlagPills, type PublicRoom } from "./roomDisplay";
 
@@ -53,7 +53,7 @@ export function RoomsInfoGrid({
                     from
                   </div>
                   <div className="num font-display text-sm font-bold text-brand-ink">
-                    {formatMoney(room.base_price, currency)}
+                    <Money amount={room.base_price} currency={currency} />
                   </div>
                   <div className="text-[10px] text-brand-mute">/ night</div>
                 </div>

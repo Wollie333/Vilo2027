@@ -31,6 +31,22 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Currency (C2) — convert listing/room browsing prices — branch `main`
+
+### Built
+- **Source-aware conversion core.** `displayAmount(amount, sourceCurrency, display, rates)` in `lib/currency.ts` is the single rule: only **ZAR** amounts convert (we hold ZAR-base rates only); any non-ZAR settlement amount renders **natively** via `formatMoney` — never a false cross-conversion. `<Money>` API changed `amountZar` → `amount` + `currency` (no external callers yet). Added `formatFrom(amount, sourceCurrency?)` to the currency context for labels/template literals where a `<Money>` JSX node can't go (used by client widgets).
+
+### Changed
+- Wired browsing-price conversion into the listing area: `RatesSection` (rate card, cleaning fee, weekend, extras), `ReservePanel` (From … /night), `SimilarListings` cards, `RoomsInfoGrid` cards, `RoomBookingWidget` (headline + live breakdown + Reserve label), and `[handle]` host-profile listing cards. Converted values carry an "≈" estimate marker.
+
+### Notes
+- **`BookingForm` (the `/book` flow) deliberately left in settlement currency** — it's transactional (what's charged). Conversion is browsing-only.
+- Known follow-up: a few server-rendered **prose** prices stay ZAR for now (`SuitabilityChips` chip text, `rooms/[roomId]/page.tsx` `pricingLine`, the unused `roomPriceLabel`) — converting them needs a server→client refactor; the prominent interactive/card/rate prices all convert.
+- `tsc --noEmit` clean, `next lint` clean. Next: C3 — explore/browse/featured/category cards.
+
+### Commit
+- `feat(currency): C2 — convert listing/room browsing prices via <Money>`
+
 ## 2026-06-11 — Currency (Phase 1b) — `<Money>` + activate the display switcher — branch `main`
 
 ### Built

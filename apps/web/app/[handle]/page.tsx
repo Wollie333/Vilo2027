@@ -22,7 +22,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getBrandName } from "@/lib/brand";
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -590,7 +590,10 @@ export default async function HostProfilePage({
                                   <span className="text-brand-mute">from </span>
                                 ) : null}
                                 <span className="num font-semibold">
-                                  {formatMoney(price.amount, l.currency)}
+                                  <Money
+                                    amount={price.amount}
+                                    currency={l.currency}
+                                  />
                                 </span>{" "}
                                 <span className="text-brand-mute">/ night</span>
                               </span>

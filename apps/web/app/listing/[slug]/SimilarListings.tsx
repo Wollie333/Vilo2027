@@ -1,7 +1,7 @@
 import { ArrowRight, MapPin, Star, Zap } from "lucide-react";
 import Link from "next/link";
 
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 import { HeartButton } from "@/app/_components/home/HeartButton";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -164,7 +164,7 @@ export async function SimilarListings({
               {amt != null ? (
                 <div className="mt-1 text-sm text-brand-ink">
                   <span className="font-display font-bold">
-                    {formatMoney(amt, l.currency)}
+                    <Money amount={amt} currency={l.currency} />
                   </span>{" "}
                   <span className="text-xs text-brand-mute">/ night</span>
                 </div>

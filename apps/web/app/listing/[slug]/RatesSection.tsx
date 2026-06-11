@@ -1,6 +1,6 @@
 import { BadgePercent, CalendarClock, Home, Info } from "lucide-react";
 
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 
 import type { PublicRoom } from "./roomDisplay";
 
@@ -204,7 +204,8 @@ export function RatesSection({
           {cleaningFee && cleaningFee > 0 ? (
             <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
               <Info className="h-3 w-3" />
-              Cleaning fee ({formatMoney(cleaningFee, currency)}) and any
+              Cleaning fee (
+              <Money amount={cleaningFee} currency={currency} />) and any
               add-ons are separate
             </div>
           ) : null}
@@ -248,7 +249,7 @@ export function RatesSection({
                       </div>
                     </td>
                     <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                      {formatMoney(room.base_price, currency)}
+                      <Money amount={room.base_price} currency={currency} />
                     </td>
                     {groups.map((g) => {
                       const p = priceForRoom(g, room.id);
@@ -257,9 +258,10 @@ export function RatesSection({
                           key={g.label}
                           className="px-4 py-3.5 font-mono text-amber-800"
                         >
-                          {p != null
-                            ? formatMoney(p, currency)
-                            : formatMoney(room.base_price, currency)}
+                          <Money
+                            amount={p != null ? p : room.base_price}
+                            currency={currency}
+                          />
                         </td>
                       );
                     })}
@@ -274,12 +276,13 @@ export function RatesSection({
                     </div>
                     {weekendPrice != null ? (
                       <div className="text-[11px] text-brand-mute">
-                        Weekends {formatMoney(weekendPrice, currency)}
+                        Weekends{" "}
+                        <Money amount={weekendPrice} currency={currency} />
                       </div>
                     ) : null}
                   </td>
                   <td className="px-4 py-3.5 font-mono font-medium text-brand-ink">
-                    {basePrice != null ? formatMoney(basePrice, currency) : "—"}
+                    <Money amount={basePrice} currency={currency} />
                   </td>
                   {groups.map((g) => {
                     const p = priceForWhole(g);
@@ -288,11 +291,10 @@ export function RatesSection({
                         key={g.label}
                         className="px-4 py-3.5 font-mono text-amber-800"
                       >
-                        {p != null
-                          ? formatMoney(p, currency)
-                          : basePrice != null
-                            ? formatMoney(basePrice, currency)
-                            : "—"}
+                        <Money
+                          amount={p != null ? p : basePrice}
+                          currency={currency}
+                        />
                       </td>
                     );
                   })}
@@ -304,14 +306,19 @@ export function RatesSection({
         {childPrice > 0 || petFee > 0 ? (
           <div className="border-t border-brand-line bg-brand-light/30 px-5 py-3 text-[11px] text-brand-mute">
             <span className="font-medium text-brand-ink">Extras</span> —{" "}
-            {[
-              childPrice > 0
-                ? `children ${formatMoney(childPrice, currency)}/night`
-                : null,
-              petFee > 0 ? `pets ${formatMoney(petFee, currency)}/night` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            {childPrice > 0 ? (
+              <>
+                children <Money amount={childPrice} currency={currency} />
+                /night
+              </>
+            ) : null}
+            {childPrice > 0 && petFee > 0 ? " · " : null}
+            {petFee > 0 ? (
+              <>
+                pets <Money amount={petFee} currency={currency} />
+                /night
+              </>
+            ) : null}
             , charged per night on top of the rate.
           </div>
         ) : null}

@@ -1,6 +1,6 @@
 import { ArrowRight, ShieldCheck, Star, Zap } from "lucide-react";
 
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 
 // Display-only booking panel. The listing page no longer lets guests pick
 // rooms/dates/guests inline — they either Reserve (→ self-contained booking
@@ -59,7 +59,7 @@ export function ReservePanel({
                   From{" "}
                 </span>
                 <span className="num font-display text-3xl font-bold tracking-tight text-brand-ink">
-                  {formatMoney(basePrice, currency)}
+                  <Money amount={basePrice} currency={currency} />
                 </span>
                 <span className="ml-1 text-sm text-brand-mute">/ night</span>
               </>
@@ -110,7 +110,9 @@ export function ReservePanel({
           <div className="min-w-0 flex-1">
             {basePrice != null ? (
               <div className="font-display font-bold text-brand-ink">
-                <span className="num">{formatMoney(basePrice, currency)}</span>
+                <span className="num">
+                  <Money amount={basePrice} currency={currency} />
+                </span>
                 <span className="text-xs font-normal text-brand-mute">
                   {" "}
                   / night
