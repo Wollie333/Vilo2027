@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
+import { resolveGuestNextAction } from "@/lib/guests/next-action";
 import {
   fetchRequestableReviews,
   type RequestableReview,
@@ -309,6 +310,7 @@ export default async function GuestRecordPage({
   // guest record must surface that thread too, not just registered guests.
   let conversationId: string | null = null;
   let messages: MessageItem[] = [];
+  let unreadFromGuest = 0;
 
   const guestUserIds = new Set<string>();
   if (guestId) guestUserIds.add(guestId);
@@ -323,7 +325,7 @@ export default async function GuestRecordPage({
   if (guestUserIds.size > 0) {
     const { data: conv } = await supabase
       .from("conversations")
-      .select("id")
+      .select("id, unread_host")
       .eq("host_id", host.id)
       .in("guest_id", [...guestUserIds])
       .order("last_message_at", { ascending: false, nullsFirst: false })
@@ -331,6 +333,7 @@ export default async function GuestRecordPage({
       .maybeSingle();
     if (conv) {
       conversationId = conv.id;
+      unreadFromGuest = Number(conv.unread_host ?? 0);
       const { data: msgs } = await supabase
         .from("messages")
         .select("id, body, sender_id, created_at, is_system_message")
@@ -395,8 +398,33 @@ export default async function GuestRecordPage({
   const outstanding = Math.max(0, Math.round(ledgerNet * 100) / 100);
   const netBalance = Math.round((storeCredit - outstanding) * 100) / 100;
 
-  // An accepted-but-not-converted quote drives the pulsing "Quote accepted" pill.
-  const acceptedQ = quotes.find((q) => q.status === "accepted") ?? null;
+  // ── What to do (single source of truth) ────────────────────────────────
+  // The canonical resolver decides the one most-important next move for this
+  // guest from data already loaded above (bookings, quotes, ledger-derived
+  // balance, unread count, review eligibility). It never recomputes money.
+  const newBookingHref = `/dashboard/bookings/new?${new URLSearchParams({
+    ...(record.name ? { guestName: record.name } : {}),
+    ...(record.email ? { guestEmail: record.email } : {}),
+    ...(record.phone ? { guestPhone: record.phone } : {}),
+  }).toString()}`;
+  const nextAction = resolveGuestNextAction({
+    firstName: (record.name ?? "Guest").split(/\s+/)[0],
+    bookings: bookings.map((b) => ({
+      id: b.id,
+      status: b.status,
+      checkIn: b.checkIn,
+      balanceDue: b.balanceDue,
+      listingName: b.listingName,
+    })),
+    quotes: quotes.map((q) => ({ id: q.id, status: q.status })),
+    unreadFromGuest,
+    requestableCount: requestableReviews.length,
+    isInhouse: record.is_inhouse,
+    nextStay: record.next_stay,
+    nextStayInDays: record.next_stay_in_days,
+    lastStay: record.last_stay,
+    newBookingHref,
+  });
 
   // ── Relationships ───────────────────────────────────────────────────────
   // Other guests this person travelled with, materialised from booking party
@@ -487,15 +515,7 @@ export default async function GuestRecordPage({
       requestableReviews={requestableReviews}
       txns={txns}
       quotes={quotes}
-      acceptedQuote={
-        acceptedQ
-          ? {
-              id: acceptedQ.id,
-              amount: acceptedQ.total,
-              currency: acceptedQ.currency,
-            }
-          : null
-      }
+      nextAction={nextAction}
       marketingState={marketingState}
       notes={notes}
       pinnedNote={pinnedNote}

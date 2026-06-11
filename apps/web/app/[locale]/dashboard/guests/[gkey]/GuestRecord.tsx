@@ -29,12 +29,13 @@ import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { AcceptedQuotePill } from "@/app/[locale]/dashboard/_components/AcceptedQuotePill";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import { RequestReviewButton } from "@/app/[locale]/dashboard/reviews/RequestReviewButton";
 import { ReviewCard } from "@/app/[locale]/dashboard/reviews/ReviewCard";
 import { LedgerList } from "@/components/finance/LedgerList";
+import type { NextAction } from "@/lib/guests/next-action";
 import type { RequestableReview } from "@/lib/reviews/eligible";
+import { WhatToDoBanner } from "./WhatToDoBanner";
 import {
   GuestMessagesPanel,
   type MessageItem,
@@ -267,7 +268,7 @@ export function GuestRecord({
   prevGkey,
   nextGkey,
   balance,
-  acceptedQuote,
+  nextAction,
 }: {
   record: GuestRecordData;
   bookings: BookingItem[];
@@ -285,7 +286,7 @@ export function GuestRecord({
   prevGkey: string | null;
   nextGkey: string | null;
   balance: { net: number; outstanding: number; storeCredit: number };
-  acceptedQuote: { id: string; amount: number; currency: string } | null;
+  nextAction: NextAction;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -408,15 +409,6 @@ export function GuestRecord({
                     ) : null}
                     {segLabel}
                   </span>
-                  {acceptedQuote ? (
-                    <AcceptedQuotePill
-                      quoteId={acceptedQuote.id}
-                      guestFirstName={(r.name ?? "Guest").split(/\s+/)[0]}
-                      amount={acceptedQuote.amount}
-                      currency={acceptedQuote.currency}
-                      autoOpen
-                    />
-                  ) : null}
                   {r.is_blocked ? (
                     <span className="rounded-pill bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
                       Blocked
@@ -562,6 +554,9 @@ export function GuestRecord({
           </div>
         </div>
       </section>
+
+      {/* ── What to do (the single next-best action) ── */}
+      <WhatToDoBanner action={nextAction} onTab={setTab} />
 
       {/* ── Tabs ── */}
       <RecordTabs
