@@ -1,4 +1,5 @@
 import { BedDouble, Users } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
 
@@ -12,7 +13,7 @@ import {
 // Display-only room cards. Rooms are descriptive on the listing now — guests
 // pick rooms inside the booking flow, not here. Shows a "from / night" price
 // for context when a currency is provided.
-export function RoomsInfoGrid({
+export async function RoomsInfoGrid({
   rooms,
   currency,
 }: {
@@ -20,6 +21,7 @@ export function RoomsInfoGrid({
   currency?: string;
 }) {
   if (rooms.length === 0) return null;
+  const t = await getTranslations("listing");
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -60,30 +62,31 @@ export function RoomsInfoGrid({
                 {currency && fromPrice > 0 ? (
                   <div className="shrink-0 text-right">
                     <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-                      from
+                      {t("roomFrom")}
                     </div>
                     <div className="num font-display text-sm font-bold text-brand-ink">
                       <Money amount={fromPrice} currency={currency} />
                     </div>
                     <div className="text-[10px] text-brand-mute">
-                      {perPerson ? "/ person · night" : "/ night"}
+                      {perPerson ? t("roomPerPersonNight") : t("perNight")}
                     </div>
                   </div>
                 ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-brand-mute">
                 <span className="inline-flex items-center gap-1">
-                  <Users className="h-3 w-3" /> Sleeps {room.max_guests}
+                  <Users className="h-3 w-3" />{" "}
+                  {t("roomSleeps", { count: room.max_guests })}
                 </span>
                 {room.bathrooms != null ? (
-                  <span>
-                    {room.bathrooms} bath{room.bathrooms === 1 ? "" : "s"}
-                  </span>
+                  <span>{t("roomBaths", { count: room.bathrooms })}</span>
                 ) : null}
                 {room.room_size_sqm != null ? (
                   <span>{room.room_size_sqm}m²</span>
                 ) : null}
-                {room.view_type ? <span>{room.view_type} view</span> : null}
+                {room.view_type ? (
+                  <span>{t("roomView", { view: room.view_type })}</span>
+                ) : null}
               </div>
               {room.beds && room.beds.length > 0 ? (
                 <div className="text-[11px] text-brand-dark">

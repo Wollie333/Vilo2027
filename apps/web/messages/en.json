@@ -147,7 +147,12 @@
     "availabilityBody": "Dates the host has blocked or that are already booked.",
     "requestQuote": "Request a quote",
     "quoteShort": "Quote",
-    "cancellationFallback": "See the cancellation policy."
+    "cancellationFallback": "See the cancellation policy.",
+    "roomFrom": "from",
+    "roomPerPersonNight": "/ person · night",
+    "roomSleeps": "Sleeps {count}",
+    "roomBaths": "{count, plural, one {# bath} other {# baths}}",
+    "roomView": "{view} view"
   },
   "thingsToKnow": {
     "hrTitle": "House rules",

@@ -137,7 +137,12 @@
     "availabilityBody": "Datums wat die gasheer geblokkeer het of wat reeds bespreek is.",
     "requestQuote": "Versoek 'n kwotasie",
     "quoteShort": "Kwotasie",
-    "cancellationFallback": "Sien die kansellasiebeleid."
+    "cancellationFallback": "Sien die kansellasiebeleid.",
+    "roomFrom": "vanaf",
+    "roomPerPersonNight": "/ persoon · nag",
+    "roomSleeps": "Slaap {count}",
+    "roomBaths": "{count, plural, one {# badkamer} other {# badkamers}}",
+    "roomView": "{view} uitsig"
   },
   "thingsToKnow": {
     "hrTitle": "Huisreëls",

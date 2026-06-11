@@ -31,6 +31,17 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-C·6) — listing room cards — branch `main`
+
+### Built
+- Wired `RoomsInfoGrid` (made `async`, `getTranslations`) into the `listing` namespace (en + af): "from", per-night / per-person-night, "Sleeps {n}", baths (ICU plural), "{view} view". `bedSummary`/`roomFlagPills` (shared roomDisplay helpers) still English — a later slice.
+
+### Notes
+- `tsc` + `lint` clean. Listing page still to do: `ListingBody` section headings, `RatesSection`, `SuitabilityChips`, `HostCard`/`TrustCard`, `ListingHero`, then the booking flow.
+
+### Commit
+- `feat(i18n): listing room cards, en+af (L-C·6)`
+
 ## 2026-06-11 — Listing — redesign "Things to know" + i18n — branch `main`
 
 ### Changed
