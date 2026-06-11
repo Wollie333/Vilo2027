@@ -7,8 +7,10 @@ import {
   BadgeCheck,
   Calendar,
   Ban,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Download,
   FileText,
   MailCheck,
@@ -472,28 +474,28 @@ export function GuestRecord({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setTab("messages")}
-                className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
-              >
-                <MessageSquare className="h-4 w-4" /> Message
-              </button>
-              {r.phone ? (
-                <a
-                  href={`tel:${r.phone}`}
-                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTab("messages")}
+                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
                 >
-                  <Phone className="h-4 w-4 text-brand-mute" /> Call
-                </a>
-              ) : null}
-              <RecordActions r={r} />
+                  <MessageSquare className="h-4 w-4" /> Message
+                </button>
+                {r.phone ? (
+                  <a
+                    href={`tel:${r.phone}`}
+                    className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                  >
+                    <Phone className="h-4 w-4 text-brand-mute" /> Call
+                  </a>
+                ) : null}
+                <RecordActions r={r} />
+              </div>
+              <BalanceLine balance={balance} currency={r.currency} />
             </div>
           </div>
-
-          {/* net balance banner */}
-          <BalanceBanner balance={balance} currency={r.currency} />
 
           {/* lifetime essentials band (v2: light white cells, thin dividers) */}
           <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-brand-line overflow-hidden rounded-[12px] border border-brand-line sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-5">
@@ -676,125 +678,121 @@ function Overview({
   )?.specialRequests;
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="min-w-0 space-y-6">
-        {nextBooking ? (
-          <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
-              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-                Next stay
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11.5px] font-semibold text-emerald-700">
-                {statusTag(nextBooking.status).label}
-              </span>
-            </div>
-            <div className="p-5">
-              <div className="flex items-center gap-4">
-                {nextBooking.listingThumb ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={nextBooking.listingThumb}
-                    alt=""
-                    className="h-16 w-20 shrink-0 rounded-[12px] object-cover"
-                  />
-                ) : (
-                  <div className="h-16 w-20 shrink-0 rounded-[12px] bg-brand-light" />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="font-display text-[15px] font-bold text-brand-ink">
-                    {nextBooking.listingName}
-                  </div>
-                  <div className="mt-0.5 text-[12.5px] text-brand-mute">
-                    {fmtShort(nextBooking.checkIn)} →{" "}
-                    {fmtShort(nextBooking.checkOut)} · {nextBooking.nights}{" "}
-                    nights · {nextBooking.guestsCount} guests
-                  </div>
-                  <div className="mt-0.5 font-mono text-[11px] text-brand-mute">
-                    {nextBooking.reference}
-                  </div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="font-display text-[16px] font-bold text-brand-ink">
-                    {formatMoney(nextBooking.totalAmount, nextBooking.currency)}
-                  </div>
-                </div>
-              </div>
-              <Link
-                href={`/dashboard/bookings/${nextBooking.id}`}
-                className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-pill border border-brand-line px-3 py-2.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
-              >
-                Open booking <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </section>
-        ) : null}
-
+    <div className="flex flex-col gap-6">
+      {nextBooking ? (
         <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-          <div className="border-b border-brand-line px-5 py-3.5">
-            <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-              Recent activity
+          <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+            <div className="font-display text-[15px] font-bold text-brand-ink">
+              Next stay
             </div>
+            <span className="inline-flex items-center gap-1.5 rounded-pill border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11.5px] font-semibold text-emerald-700">
+              {statusTag(nextBooking.status).label}
+            </span>
           </div>
           <div className="p-5">
-            {activity.length === 0 ? (
-              <div className="text-[13px] text-brand-mute">
-                No activity yet.
+            <div className="flex items-center gap-4">
+              {nextBooking.listingThumb ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={nextBooking.listingThumb}
+                  alt=""
+                  className="h-16 w-20 shrink-0 rounded-[12px] object-cover"
+                />
+              ) : (
+                <div className="h-16 w-20 shrink-0 rounded-[12px] bg-brand-light" />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="font-display text-[15px] font-bold text-brand-ink">
+                  {nextBooking.listingName}
+                </div>
+                <div className="mt-0.5 text-[12.5px] text-brand-mute">
+                  {fmtShort(nextBooking.checkIn)} →{" "}
+                  {fmtShort(nextBooking.checkOut)} · {nextBooking.nights} nights
+                  · {nextBooking.guestsCount} guests
+                </div>
+                <div className="mt-0.5 font-mono text-[11px] text-brand-mute">
+                  {nextBooking.reference}
+                </div>
               </div>
-            ) : (
-              <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
-                {activity.map((b) => (
-                  <li key={b.id}>
-                    <span
-                      className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${realized.has(b.status) ? "bg-brand-primary" : "bg-brand-mute"}`}
-                    />
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-[13px] font-semibold text-brand-ink">
-                        Booked {b.listingName}
-                      </div>
-                      <div className="text-[11px] text-brand-mute">
-                        {fmtShort(b.createdAt.slice(0, 10))}
-                      </div>
-                    </div>
-                    <div className="text-[12px] text-brand-mute">
-                      {b.channel && b.channel !== "direct"
-                        ? `${b.channel} · `
-                        : "Direct · "}
-                      {formatMoney(b.totalAmount, b.currency)} ·{" "}
-                      {statusTag(b.status).label}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
+              <div className="shrink-0 text-right">
+                <div className="font-display text-[16px] font-bold text-brand-ink">
+                  {formatMoney(nextBooking.totalAmount, nextBooking.currency)}
+                </div>
+              </div>
+            </div>
+            <Link
+              href={`/dashboard/bookings/${nextBooking.id}`}
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-pill border border-brand-line px-3 py-2.5 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light"
+            >
+              Open booking <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </section>
-      </div>
+      ) : null}
 
-      <div className="space-y-6">
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+        <div className="border-b border-brand-line px-5 py-3.5">
+          <div className="font-display text-[15px] font-bold text-brand-ink">
+            Recent activity
+          </div>
+        </div>
+        <div className="p-5">
+          {activity.length === 0 ? (
+            <div className="text-[13px] text-brand-mute">No activity yet.</div>
+          ) : (
+            <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
+              {activity.map((b) => (
+                <li key={b.id}>
+                  <span
+                    className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${realized.has(b.status) ? "bg-brand-primary" : "bg-brand-mute"}`}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-[13px] font-semibold text-brand-ink">
+                      Booked {b.listingName}
+                    </div>
+                    <div className="text-[11px] text-brand-mute">
+                      {fmtShort(b.createdAt.slice(0, 10))}
+                    </div>
+                  </div>
+                  <div className="text-[12px] text-brand-mute">
+                    {b.channel && b.channel !== "direct"
+                      ? `${b.channel} · `
+                      : "Direct · "}
+                    {formatMoney(b.totalAmount, b.currency)} ·{" "}
+                    {statusTag(b.status).label}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
           <div className="border-b border-brand-line px-5 py-3.5">
-            <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-              Insights
+            <div className="font-display text-[15px] font-bold text-brand-ink">
+              Preferences
             </div>
           </div>
-          <ul className="divide-y divide-brand-line text-[12.5px]">
+          <div className="px-5 py-1 text-[12.5px]">
             {r.preferred_listing ? (
-              <li className="flex items-center justify-between gap-3 px-5 py-3">
+              <div className="flex items-center justify-between gap-3 border-b border-brand-line py-3 last:border-0">
                 <span className="text-brand-mute">Usual listing</span>
                 <span className="truncate font-semibold text-brand-ink">
                   {r.preferred_listing}
                 </span>
-              </li>
+              </div>
             ) : null}
             {r.avg_lead_days !== null ? (
-              <li className="flex items-center justify-between px-5 py-3">
+              <div className="flex items-center justify-between border-b border-brand-line py-3 last:border-0">
                 <span className="text-brand-mute">Books ahead</span>
                 <span className="font-semibold text-brand-ink">
                   ~{r.avg_lead_days} days
                 </span>
-              </li>
+              </div>
             ) : null}
-            <li className="flex items-center justify-between px-5 py-3">
+            <div className="flex items-center justify-between border-b border-brand-line py-3 last:border-0">
               <span className="text-brand-mute">Channel</span>
               <span className="font-semibold text-brand-ink">
                 {r.is_all_direct && r.total_stays > 0
@@ -803,42 +801,56 @@ function Overview({
                     ? "Via OTA"
                     : "Direct"}
               </span>
-            </li>
+            </div>
             {latestRequest ? (
-              <li className="px-5 py-3">
+              <div className="border-b border-brand-line py-3 last:border-0">
                 <div className="text-brand-mute">Needs</div>
                 <div className="mt-0.5 font-medium text-brand-ink">
                   {latestRequest}
                 </div>
-              </li>
+              </div>
             ) : null}
-          </ul>
+          </div>
         </section>
 
-        {pinnedNote ? (
-          <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-            <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
-              <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
-                Pinned note
-              </div>
-              <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand-mute">
-                Host-only
-              </span>
+        <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+          <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
+            <div className="font-display text-[15px] font-bold text-brand-ink">
+              Pinned note
             </div>
-            <div className="p-4">
-              <div className="rounded-[12px] rounded-tl-sm bg-brand-light px-3 py-2 text-[12.5px] leading-relaxed text-brand-ink">
-                {pinnedNote.body}
+            <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand-mute">
+              <Pin className="h-3 w-3" /> Host-only
+            </span>
+          </div>
+          <div className="p-4">
+            {pinnedNote ? (
+              <div className="flex gap-2.5">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-brand-secondary text-[10px] font-bold text-white">
+                  {initials(pinnedNote.authorName)}
+                </div>
+                <div className="rounded-[12px] rounded-tl-sm bg-brand-light px-3 py-2 text-[12.5px] leading-relaxed text-brand-ink">
+                  {pinnedNote.body}
+                </div>
               </div>
-            </div>
-          </section>
-        ) : null}
+            ) : (
+              <div className="py-4 text-center text-[12.5px] text-brand-mute">
+                No pinned note yet. Pin one from the{" "}
+                <span className="font-semibold text-brand-ink">Notes</span> tab
+                to keep it front and centre.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );
 }
 
-// ── Net balance banner ──────────────────────────────────────────────────
-function BalanceBanner({
+// ── Balance line (v2: compact, sits under the hero action buttons) ──────
+// The net guest balance, condensed to one line per the mock. Full breakdown
+// (outstanding vs store credit) lives in the Finances tab — this is just the
+// at-a-glance headline, derived from the same ledger-backed `balance`.
+function BalanceLine({
   balance,
   currency,
 }: {
@@ -846,53 +858,36 @@ function BalanceBanner({
   currency: string;
 }) {
   const owes = balance.net < -0.001; // guest owes the host
-  const credit = balance.net > 0.001; // host owes the guest
-  const tone = owes
-    ? "border-red-200 bg-red-50"
+  const credit = balance.net > 0.001; // host holds credit for the guest
+  const col = owes ? "#B45309" : credit ? "#047857" : "#4A7C6A";
+  const Icon = owes ? Clock : CheckCircle2;
+  const amount = formatMoney(
+    Math.abs(owes ? balance.net : credit ? balance.net : 0),
+    currency,
+  );
+  const label = owes
+    ? "Owed to you"
     : credit
-      ? "border-emerald-200 bg-emerald-50"
-      : "border-brand-line bg-brand-light";
-  const numTone = owes
-    ? "text-red-600"
-    : credit
-      ? "text-emerald-700"
-      : "text-brand-ink";
+      ? "Store credit you hold"
+      : "Paid in full";
   return (
-    <div
-      className={`mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[14px] border px-5 py-4 ${tone}`}
-    >
-      <div>
-        <div className="text-[10.5px] font-semibold uppercase tracking-wider text-brand-mute">
-          Guest balance
-        </div>
-        <div
-          className={`mt-1 font-display text-[26px] font-extrabold leading-none ${numTone}`}
+    <div className="flex items-center gap-1.5 whitespace-nowrap text-[11.5px]">
+      <Icon className="h-3.5 w-3.5" style={{ color: col }} />
+      <span className="text-brand-mute">
+        {owes ? "Balance due" : credit ? "Credit" : ""}
+      </span>
+      {owes || credit ? (
+        <span
+          className="num font-display text-[12.5px] font-bold"
+          style={{ color: col }}
         >
-          {owes ? "– " : credit ? "+ " : ""}
-          {formatMoney(Math.abs(balance.net), currency)}
-        </div>
-        <div className="mt-1.5 text-[12px] text-brand-mute">
-          {owes
-            ? "Owed to you by this guest"
-            : credit
-              ? "Store credit you owe this guest"
-              : "All settled"}
-        </div>
-      </div>
-      <div className="text-right text-[12px] text-brand-mute">
-        <div>
-          Outstanding{" "}
-          <span className="font-semibold text-brand-ink">
-            {formatMoney(balance.outstanding, currency)}
-          </span>
-        </div>
-        <div className="mt-1">
-          Store credit{" "}
-          <span className="font-semibold text-emerald-700">
-            {formatMoney(balance.storeCredit, currency)}
-          </span>
-        </div>
-      </div>
+          {amount}
+        </span>
+      ) : null}
+      <span className="text-brand-mute">
+        {owes || credit ? "· " : ""}
+        {label}
+      </span>
     </div>
   );
 }
@@ -1052,7 +1047,7 @@ function FinanceSection({
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
         <Icon className="h-4 w-4 text-brand-mute" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        <span className="font-display text-[15px] font-bold text-brand-ink">
           {title}
         </span>
         <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
@@ -1185,7 +1180,7 @@ function BookingsPanel({
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
         <Calendar className="h-4 w-4 text-brand-mute" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        <span className="font-display text-[15px] font-bold text-brand-ink">
           All bookings
         </span>
         <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
@@ -1287,7 +1282,7 @@ function RelationshipsPanel({
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
         <Users className="h-4 w-4 text-brand-mute" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        <span className="font-display text-[15px] font-bold text-brand-ink">
           Travelled with
         </span>
         <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
@@ -1540,7 +1535,7 @@ function NotesPanel({ gkey, notes }: { gkey: string; notes: NoteItem[] }) {
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center justify-between border-b border-brand-line px-5 py-3.5">
-        <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+        <div className="font-display text-[15px] font-bold text-brand-ink">
           Internal notes
         </div>
         <span className="rounded-pill bg-brand-light px-2 py-0.5 text-[10px] font-semibold text-brand-mute">
