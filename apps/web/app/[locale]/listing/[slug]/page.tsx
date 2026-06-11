@@ -10,6 +10,7 @@ import {
   Zap,
 } from "lucide-react";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
@@ -490,6 +491,8 @@ export default async function ListingDetailPage({
     (listing.avg_rating ?? 0) >= 4.8 &&
     (listing.total_reviews ?? 0) >= 10;
 
+  const t = await getTranslations("listing");
+
   return (
     <div className="bg-white text-brand-ink">
       <SiteHeader />
@@ -545,10 +548,10 @@ export default async function ListingDetailPage({
                 className="border-b border-brand-line py-7"
               >
                 <h3 className="font-display text-xl font-bold text-brand-ink">
-                  Availability
+                  {t("availabilityTitle")}
                 </h3>
                 <p className="mt-1 text-sm text-brand-mute">
-                  Dates the host has blocked or that are already booked.
+                  {t("availabilityBody")}
                 </p>
                 <div className="mt-5">
                   <AvailabilityCalendar
@@ -570,7 +573,7 @@ export default async function ListingDetailPage({
               rating={listing.avg_rating}
               reviewCount={listing.total_reviews}
               instantBooking={listing.instant_booking}
-              refundNote={refundNote?.note ?? "See the cancellation policy."}
+              refundNote={refundNote?.note ?? t("cancellationFallback")}
               quoteButton={
                 <RequestQuoteButton
                   listingId={listing.id}
@@ -581,7 +584,7 @@ export default async function ListingDetailPage({
                   prefillName={guest.name}
                   prefillEmail={guest.email}
                   prefillPhone={guest.phone}
-                  triggerLabel="Request a quote"
+                  triggerLabel={t("requestQuote")}
                   triggerClassName="inline-flex w-full items-center justify-center gap-1.5 rounded border border-white/20 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/[0.12]"
                 />
               }
@@ -595,7 +598,7 @@ export default async function ListingDetailPage({
                   prefillName={guest.name}
                   prefillEmail={guest.email}
                   prefillPhone={guest.phone}
-                  triggerLabel="Quote"
+                  triggerLabel={t("quoteShort")}
                   triggerClassName="inline-flex shrink-0 items-center gap-1.5 rounded border border-brand-line px-3 py-3 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
                 />
               }

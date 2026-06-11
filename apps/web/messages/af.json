@@ -123,5 +123,20 @@
     "featuredPrev": "Vorige",
     "featuredNext": "Volgende",
     "featuredShowAll": "Wys al {count} verblywe"
+  },
+  "listing": {
+    "reserveFrom": "Vanaf",
+    "perNight": "/ nag",
+    "priceOnRequest": "Prys op aanvraag",
+    "instantBook": "Onmiddellike bespreking",
+    "reserve": "Bespreek",
+    "notChargedYet": "Jy word nog nie gehef nie · kies volgende jou datums en kamers.",
+    "notChargedYetShort": "Jy word nog nie gehef nie",
+    "heldSecurely": "Veilig gehou totdat jou reis bevestig is.",
+    "availabilityTitle": "Beskikbaarheid",
+    "availabilityBody": "Datums wat die gasheer geblokkeer het of wat reeds bespreek is.",
+    "requestQuote": "Versoek 'n kwotasie",
+    "quoteShort": "Kwotasie",
+    "cancellationFallback": "Sien die kansellasiebeleid."
   }
 }

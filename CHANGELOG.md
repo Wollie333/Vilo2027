@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-C·5) — listing page (slice 1: reserve panel) — branch `main`
+
+### Built
+- Started the `listing` namespace (en + **Afrikaans**, per "fill Afrikaans as we go"): `ReservePanel` (From / per-night / price-on-request / instant book / reserve / not-charged-yet / held-securely) made `async` with `getTranslations`, plus the listing page's inline strings (Availability heading + body, the quote-button trigger labels, the cancellation-note fallback).
+
+### Notes
+- Listing page is large — remaining slices: `ListingBody` section headings, `RatesSection`, `SuitabilityChips`, `HostCard`/`TrustCard`, `ListingHero`, `RoomsInfoGrid` labels, `RequestQuoteButton` modal; then the booking flow.
+- `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): listing page reserve panel + page strings, en+af (L-C·5)`
+
 ## 2026-06-11 — Language (L-C) — Afrikaans copy for the public landing + per-key fallback — branch `main`
 
 ### Built

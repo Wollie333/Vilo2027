@@ -133,5 +133,20 @@
     "featuredPrev": "Previous",
     "featuredNext": "Next",
     "featuredShowAll": "Show all {count} stays"
+  },
+  "listing": {
+    "reserveFrom": "From",
+    "perNight": "/ night",
+    "priceOnRequest": "Price on request",
+    "instantBook": "Instant book",
+    "reserve": "Reserve",
+    "notChargedYet": "You won't be charged yet · choose your dates & rooms next.",
+    "notChargedYetShort": "You won't be charged yet",
+    "heldSecurely": "Held securely until your trip is confirmed.",
+    "availabilityTitle": "Availability",
+    "availabilityBody": "Dates the host has blocked or that are already booked.",
+    "requestQuote": "Request a quote",
+    "quoteShort": "Quote",
+    "cancellationFallback": "See the cancellation policy."
   }
 }

@@ -1,4 +1,5 @@
 import { ArrowRight, ShieldCheck, Star, Zap } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { FxEstimateNote } from "@/components/currency/FxEstimateNote";
 import { Money } from "@/components/currency/Money";
@@ -7,7 +8,7 @@ import { Money } from "@/components/currency/Money";
 // rooms/dates/guests inline — they either Reserve (→ self-contained booking
 // flow where all selection happens) or Request a quote (→ existing modal).
 // Renders both the sticky desktop card and the mobile sticky bottom bar.
-export function ReservePanel({
+export async function ReservePanel({
   slug,
   basePrice,
   currency,
@@ -28,6 +29,7 @@ export function ReservePanel({
   quoteButton: React.ReactNode;
   quoteButtonMobile: React.ReactNode;
 }) {
+  const t = await getTranslations("listing");
   const reserveHref = `/listing/${encodeURIComponent(slug)}/book`;
   const hasRating = rating != null && reviewCount != null && reviewCount > 0;
 
@@ -57,15 +59,19 @@ export function ReservePanel({
             {basePrice != null ? (
               <>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                  From{" "}
+                  {t("reserveFrom")}{" "}
                 </span>
                 <span className="num font-display text-3xl font-bold tracking-tight text-brand-ink">
                   <Money amount={basePrice} currency={currency} />
                 </span>
-                <span className="ml-1 text-sm text-brand-mute">/ night</span>
+                <span className="ml-1 text-sm text-brand-mute">
+                  {t("perNight")}
+                </span>
               </>
             ) : (
-              <span className="text-sm text-brand-mute">Price on request</span>
+              <span className="text-sm text-brand-mute">
+                {t("priceOnRequest")}
+              </span>
             )}
           </div>
           {hasRating ? (
@@ -80,7 +86,7 @@ export function ReservePanel({
 
         {instantBooking ? (
           <div className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-accent px-2 py-0.5 text-[10px] font-bold">
-            <Zap className="h-3 w-3" /> Instant book
+            <Zap className="h-3 w-3" /> {t("instantBook")}
           </div>
         ) : null}
 
@@ -88,13 +94,13 @@ export function ReservePanel({
           href={reserveHref}
           className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded bg-brand-primary px-5 py-3.5 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
         >
-          Reserve <ArrowRight className="h-4 w-4" />
+          {t("reserve")} <ArrowRight className="h-4 w-4" />
         </a>
 
         <div className="mt-3">{quoteButton}</div>
 
         <div className="mt-3 text-center text-[11px] text-brand-mute">
-          You won&rsquo;t be charged yet · choose your dates &amp; rooms next.
+          {t("notChargedYet")}
         </div>
 
         <FxEstimateNote
@@ -105,7 +111,7 @@ export function ReservePanel({
         <div className="mt-5 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light p-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
           <div className="text-[11px] leading-relaxed text-brand-mute">
-            {refundNote} Held securely until your trip is confirmed.
+            {refundNote} {t("heldSecurely")}
           </div>
         </div>
       </div>
@@ -126,11 +132,11 @@ export function ReservePanel({
               </div>
             ) : (
               <div className="font-display text-sm font-semibold text-brand-ink">
-                Price on request
+                {t("priceOnRequest")}
               </div>
             )}
             <div className="truncate text-[11px] text-brand-mute">
-              You won&rsquo;t be charged yet
+              {t("notChargedYetShort")}
             </div>
           </div>
           {quoteButtonMobile}
@@ -138,7 +144,7 @@ export function ReservePanel({
             href={reserveHref}
             className="inline-flex shrink-0 items-center gap-1.5 rounded bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition-colors hover:bg-brand-secondary"
           >
-            Reserve <ArrowRight className="h-4 w-4" />
+            {t("reserve")} <ArrowRight className="h-4 w-4" />
           </a>
         </div>
       </div>
