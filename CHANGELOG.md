@@ -54,6 +54,18 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): show per-person room prices via roomFromNightly`
 
+## 2026-06-11 — Language (L-C·2) — translate site footer — branch `main`
+
+### Built
+- Added a `footer` namespace to `en.json` and wired `getTranslations("footer")` into `SiteFooter` (server component): tagline, all four column titles + links (Explore/Guests/Hosts/Company), and the bottom legal row. "How {brand} works" uses ICU interpolation off the dynamic brand name.
+
+### Notes
+- **English-only extraction going forward** (decided): non-English values fall back to English until the planned admin Translations portal + bulk JSON import fills them (export keys → AI-translate → upload → native-speaker review). The `nav` namespace remains the 5-language sample.
+- `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): translate site footer — footer namespace (L-C·2)`
+
 ## 2026-06-11 — Language (L-C·1) — translate global chrome (top bar + header) — branch `main`
 
 ### Built

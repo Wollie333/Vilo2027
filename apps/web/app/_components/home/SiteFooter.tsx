@@ -1,52 +1,59 @@
-import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
 import {
   getBrandName,
   getCompanyLegalName,
   getCompanyLocation,
 } from "@/lib/brand";
+import { Link } from "@/i18n/navigation";
 
 import { VLogo } from "./VLogo";
 
 const EXPLORE = [
-  { href: "#destinations", label: "Destinations" },
-  { href: "#types", label: "Property types" },
-  { href: "#deals", label: "Deals" },
-  { href: "#", label: "Group stays" },
-  { href: "#", label: "Gift cards" },
+  { href: "#destinations", key: "exploreDestinations" },
+  { href: "#types", key: "explorePropertyTypes" },
+  { href: "#deals", key: "exploreDeals" },
+  { href: "#", key: "exploreGroupStays" },
+  { href: "#", key: "exploreGiftCards" },
 ] as const;
 
 const GUESTS = [
-  { href: "/login", label: "Sign in" },
-  { href: "/my-trips", label: "My trips" },
-  { href: "/help", label: "Help centre" },
-  { href: "/terms", label: "Refund policy" },
-  { href: "/help", label: "Cancel a booking" },
+  { href: "/login", key: "guestsSignIn" },
+  { href: "/my-trips", key: "guestsMyTrips" },
+  { href: "/help", key: "guestsHelpCentre" },
+  { href: "/terms", key: "guestsRefundPolicy" },
+  { href: "/help", key: "guestsCancelBooking" },
 ] as const;
 
 const HOSTS = [
-  { href: "/booking-management", label: "List your property" },
-  { href: "/booking-management#how", label: "How Vilo works" },
-  { href: "/booking-management#pricing", label: "Pricing" },
-  { href: "/help", label: "Host academy" },
-  { href: "/help", label: "Migration guide" },
+  { href: "/booking-management", key: "hostsList" },
+  { href: "/booking-management#how", key: "hostsHowItWorks" },
+  { href: "/booking-management#pricing", key: "hostsPricing" },
+  { href: "/help", key: "hostsAcademy" },
+  { href: "/help", key: "hostsMigration" },
 ] as const;
 
 const COMPANY = [
-  { href: "/about", label: "About" },
-  { href: "/change-log", label: "Changelog" },
-  { href: "/contact", label: "Contact" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
+  { href: "/about", key: "companyAbout" },
+  { href: "/change-log", key: "companyChangelog" },
+  { href: "/contact", key: "companyContact" },
+  { href: "/privacy", key: "companyPrivacy" },
+  { href: "/terms", key: "companyTerms" },
 ] as const;
 
 export async function SiteFooter() {
-  const [brand, companyName, companyLocation] = await Promise.all([
+  const [brand, companyName, companyLocation, t] = await Promise.all([
     getBrandName(),
     getCompanyLegalName(),
     getCompanyLocation(),
+    getTranslations("footer"),
   ]);
   const year = new Date().getFullYear();
+  // Translate a column's links (brand passed for keys like "How {brand} works").
+  const toLinks = (
+    arr: ReadonlyArray<{ href: string; key: string }>,
+  ): Array<{ href: string; label: string }> =>
+    arr.map((l) => ({ href: l.href, label: t(l.key, { brand }) }));
   return (
     <footer className="bg-brand-dark text-brand-accent/80">
       <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -59,8 +66,7 @@ export async function SiteFooter() {
               </span>
             </div>
             <p className="mt-5 max-w-xs text-sm leading-relaxed">
-              South Africa&rsquo;s direct-stay platform. Book directly with the
-              host. Pay the price you see.
+              {t("tagline")}
             </p>
             <div className="mt-6 flex items-center gap-3">
               <a
@@ -111,16 +117,10 @@ export async function SiteFooter() {
             </div>
           </div>
 
-          <FooterColumn title="Explore" links={EXPLORE} />
-          <FooterColumn title="Guests" links={GUESTS} />
-          <FooterColumn
-            title="Hosts"
-            links={HOSTS.map((l) => ({
-              ...l,
-              label: l.label.replace("Vilo", brand),
-            }))}
-          />
-          <FooterColumn title="Company" links={COMPANY} />
+          <FooterColumn title={t("colExplore")} links={toLinks(EXPLORE)} />
+          <FooterColumn title={t("colGuests")} links={toLinks(GUESTS)} />
+          <FooterColumn title={t("colHosts")} links={toLinks(HOSTS)} />
+          <FooterColumn title={t("colCompany")} links={toLinks(COMPANY)} />
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs md:flex-row md:items-center">
@@ -129,23 +129,23 @@ export async function SiteFooter() {
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:ml-auto">
             <Link href="/terms" className="hover:text-white">
-              Terms
+              {t("bottomTerms")}
             </Link>
             <Link href="/privacy" className="hover:text-white">
-              Privacy
+              {t("bottomPrivacy")}
             </Link>
             <Link href="/dashboard/settings/data" className="hover:text-white">
-              POPIA
+              {t("bottomPopia")}
             </Link>
             <Link href="/cookies" className="hover:text-white">
-              Cookies
+              {t("bottomCookies")}
             </Link>
             <Link
               href="/change-log"
               className="inline-flex items-center gap-1.5 font-mono hover:text-white"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-              All systems operational
+              {t("systemsOperational")}
             </Link>
           </div>
         </div>
