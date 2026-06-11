@@ -204,6 +204,7 @@ Run through this checklist every time:
 - [ ] `CURRENT_TASK.md` session notes updated
 - [ ] `CHANGELOG.md` updated with what was built
 - [ ] **Help Centre article created or updated** for the feature touched (see §9)
+- [ ] **All user-facing strings wired through i18n** — no hardcoded English in new/changed UI (see §10)
 
 ---
 
@@ -246,6 +247,47 @@ step, not a nice-to-have.
   numbers a host reads are the numbers they'll be charged.
 
 > The article is part of "done". If the feature shipped and the article didn't,
+> the task isn't finished.
+
+---
+
+## 10. Every User-Facing String Goes Through i18n
+
+**Whenever you add or change a feature, design, or UI element, wire its text
+through the translation system in the same session — never hardcode user-facing
+strings.** The app is multilingual (next-intl; English is the source). A
+hardcoded string can't be translated, so it silently breaks the experience for
+every non-English user AND never appears in the admin Translations portal for a
+native speaker to translate. This is a required step, not a nice-to-have — the
+counterpart to §9 for language.
+
+### What to do
+- **Extract, don't hardcode.** Any visible text — labels, headings, buttons,
+  placeholders, empty/error/toast messages, `aria-label`s, option labels — goes
+  in a `messages/en.json` namespace and renders via translation:
+  - Client components → `const t = useTranslations("namespace")` then `t("key")`.
+  - Server components → `const t = await getTranslations("namespace")`.
+- **Namespace by surface** (`nav`, `footer`, `listing`, `booking`, `dashboard`,
+  `admin`, `email`, …). Add keys to the existing namespace for that surface;
+  create a new namespace only for a genuinely new surface.
+- **Dynamic values via ICU**, never string concatenation:
+  `t("greeting", { name })` with `"Hi {name}"`. Feed the brand in as a value
+  (`{brand}`) — never hardcode "Vilo" (see the dynamic-brand rule).
+- **English is the source of truth.** Only `en.json` must be complete; other
+  locales fall back to English and are filled later through the admin
+  Translations portal (export keys → AI-translate the JSON → import → native
+  speaker reviews). Don't hand-translate every surface yourself.
+- **NOT money / IDs / dates.** Don't route amounts, identifiers, or dates
+  through i18n — format money via `formatMoney` / the currency layer.
+
+### Why
+- The admin Translations portal expands **automatically** from the keys in
+  `en.json`: every string you extract becomes translatable; every string you
+  hardcode is invisible to it. Wiring i18n as you build is how the portal stays
+  a complete, single source of truth for copy — the same discipline §3 applies
+  to logic and §9 to docs.
+
+> i18n wiring is part of "done". If the feature shipped with hardcoded English,
 > the task isn't finished.
 
 ---
