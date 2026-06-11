@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Currency (C3) — convert discovery cards + estimate note — branch `main`
+
+### Built
+- **`FxEstimateNote`** (`components/currency/FxEstimateNote.tsx`) — shows "Prices shown in X are estimates — you'll be charged in ZAR" **only** when the displayed price actually differs from the charge (settlement is ZAR **and** a non-ZAR display is selected). Non-ZAR-settled listings render natively, so no note. Placed at the booking entry point (`ReservePanel`).
+
+### Changed
+- Converted discovery-card prices: `BrowseResults` (explore + category results), `c/[slug]` category page, and homepage `FeaturedListings`. For the home cards, `home-data.ts` now carries raw `priceAmount`/`priceCurrency`/`fromLabel` on `HomeListingCard` (instead of a prebuilt string) so the card can convert via `<Money>`.
+
+### Notes
+- Region/destination teaser "from R X" stats (`home-data.ts` line ~334) intentionally left in ZAR for now (aggregate teaser, not a per-listing price).
+- `tsc --noEmit` clean, `next lint` clean. Currency display layer (C1–C3) complete for guest browsing. Next: Part 2 — language (next-intl), starting L-A infra.
+
+### Commit
+- `feat(currency): convert discovery cards + add fx estimate note (C3)`
+
 ## 2026-06-11 — Currency (C2) — convert listing/room browsing prices — branch `main`
 
 ### Built

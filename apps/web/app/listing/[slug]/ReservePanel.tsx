@@ -1,5 +1,6 @@
 import { ArrowRight, ShieldCheck, Star, Zap } from "lucide-react";
 
+import { FxEstimateNote } from "@/components/currency/FxEstimateNote";
 import { Money } from "@/components/currency/Money";
 
 // Display-only booking panel. The listing page no longer lets guests pick
@@ -95,6 +96,11 @@ export function ReservePanel({
         <div className="mt-3 text-center text-[11px] text-brand-mute">
           You won&rsquo;t be charged yet · choose your dates &amp; rooms next.
         </div>
+
+        <FxEstimateNote
+          settlementCurrency={currency}
+          className="mt-2 text-center text-[11px] text-brand-mute"
+        />
 
         <div className="mt-5 flex items-start gap-2.5 rounded border border-brand-line bg-brand-light p-3">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />

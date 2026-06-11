@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 
 import { BROWSE_TYPE_LABEL, type BrowseResult } from "./searchListings";
 
@@ -163,7 +163,7 @@ export function BrowseResults({
                       <div className="mt-2 flex items-baseline gap-1.5">
                         <span className="num font-display font-bold text-brand-ink">
                           {fromLabel ? "from " : ""}
-                          {formatMoney(amount, l.currency)}
+                          <Money amount={amount} currency={l.currency} />
                         </span>
                         <span className="text-xs text-brand-mute">
                           {perLabel}

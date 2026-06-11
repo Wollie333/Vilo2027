@@ -14,7 +14,11 @@ export type HomeListingCard = {
   rating: string | null;
   reviews: string | null;
   detail: string;
-  price: string | null;
+  /** Raw base price + its settlement currency, so the card can convert for
+   *  display (the <Money> component handles ZAR→display + the "≈" marker). */
+  priceAmount: number | null;
+  priceCurrency: string;
+  fromLabel: boolean;
   perLabel: string;
   badge: { label: string; tone: "instant" | "featured" } | null;
 };
@@ -148,10 +152,9 @@ function toListingCard(l: ListingCardRow): HomeListingCard {
     rating: hasRating ? Number(l.avg_rating).toFixed(1) : null,
     reviews: hasRating ? `(${l.total_reviews})` : null,
     detail: detailBits.join(" · "),
-    price:
-      amount != null
-        ? `${fromLabel ? "from " : ""}${formatMoney(amount, l.currency)}`
-        : null,
+    priceAmount: amount,
+    priceCurrency: l.currency,
+    fromLabel,
     perLabel,
     badge,
   };

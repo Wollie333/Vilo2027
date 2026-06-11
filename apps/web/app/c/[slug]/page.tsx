@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getBrandName } from "@/lib/brand";
-import { formatMoney } from "@/lib/format";
+import { Money } from "@/components/currency/Money";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { createServerClient } from "@/lib/supabase/server";
@@ -271,7 +271,7 @@ export default async function CategoryLandingPage({
                       <div className="mt-2 flex items-baseline gap-1.5">
                         <span className="num font-display font-bold text-brand-ink">
                           {fromLabel ? "from " : ""}
-                          {formatMoney(amount, l.currency)}
+                          <Money amount={amount} currency={l.currency} />
                         </span>
                         <span className="text-xs text-brand-mute">
                           {perLabel}

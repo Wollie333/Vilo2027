@@ -1,6 +1,8 @@
 import { ArrowLeft, ArrowRight, MapPin, Star, Zap } from "lucide-react";
 import Link from "next/link";
 
+import { Money } from "@/components/currency/Money";
+
 import { HeartButton } from "./HeartButton";
 import type { HomeListingCard } from "./home-data";
 
@@ -114,10 +116,14 @@ export function FeaturedListings({
                 {l.detail ? (
                   <div className="mt-1 text-xs text-brand-mute">{l.detail}</div>
                 ) : null}
-                {l.price ? (
+                {l.priceAmount != null ? (
                   <div className="mt-2 flex items-baseline gap-1.5">
                     <span className="num font-display font-bold text-brand-ink">
-                      {l.price}
+                      {l.fromLabel ? "from " : ""}
+                      <Money
+                        amount={l.priceAmount}
+                        currency={l.priceCurrency}
+                      />
                     </span>
                     <span className="text-xs text-brand-mute">
                       {l.perLabel}
