@@ -26,7 +26,6 @@ import {
   RotateCcw,
   ShieldCheck,
   Sparkles,
-  Star,
   Tag as TagIcon,
   Trash2,
   Users,
@@ -350,9 +349,11 @@ export function GuestRecord({
           (b.status === "confirmed" || b.status === "checked_in"),
       )
     : undefined;
+  const latestRequest =
+    bookings.find((b) => b.specialRequests)?.specialRequests ?? null;
 
   return (
-    <div className="mx-auto max-w-[1040px] px-4 py-5 lg:px-6">
+    <div className="mx-auto max-w-[1320px] px-4 py-5 lg:px-6">
       {/* ── Sub-header ── */}
       <div className="mb-5 flex items-center gap-3">
         <Link
@@ -393,268 +394,92 @@ export function GuestRecord({
         </div>
       </div>
 
-      {/* ── Identity header ── */}
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="p-6 lg:p-7">
-          <div className="flex flex-wrap items-start justify-between gap-5">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="relative shrink-0">
-                {r.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={r.avatar_url}
-                    alt=""
-                    className="h-16 w-16 rounded-pill object-cover ring-2 ring-brand-accent"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-secondary font-display text-xl font-bold text-white ring-2 ring-brand-accent">
-                    {initials(r.name)}
-                  </div>
-                )}
-                {r.is_verified ? (
-                  <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
-                    <BadgeCheck className="h-3.5 w-3.5" />
-                  </span>
-                ) : null}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-display text-[24px] font-extrabold leading-tight text-brand-ink">
-                    {r.name ?? "Guest"}
-                  </h1>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-[11.5px] font-semibold ${
-                      r.is_added_guest
-                        ? "border-violet-200 bg-violet-50 text-violet-700"
-                        : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                    }`}
-                    title={
-                      r.is_added_guest
-                        ? "Came from a booking as an additional guest"
-                        : undefined
-                    }
-                  >
-                    {r.is_added_guest ? (
-                      <Users className="h-3.5 w-3.5" />
-                    ) : null}
-                    {segLabel}
-                  </span>
-                  {r.is_blocked ? (
-                    <span className="rounded-pill bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
-                      Blocked
-                    </span>
-                  ) : null}
-                  {r.tags
-                    .filter((t) => t !== "VIP")
-                    .map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                </div>
-                <div className="mt-1.5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[13px]">
-                  {r.email ? (
-                    <a
-                      href={`mailto:${r.email}`}
-                      className="inline-flex items-center gap-2 text-brand-ink hover:text-brand-primary"
-                    >
-                      <MailCheck className="h-4 w-4 text-brand-mute" />{" "}
-                      {r.email}
-                    </a>
-                  ) : null}
-                  {r.phone ? (
-                    <a
-                      href={`tel:${r.phone}`}
-                      className="inline-flex items-center gap-2 text-brand-ink hover:text-brand-primary"
-                    >
-                      <Phone className="h-4 w-4 text-brand-mute" /> {r.phone}
-                    </a>
-                  ) : null}
-                  {r.country ? (
-                    <span className="inline-flex items-center gap-2 text-brand-mute">
-                      <MapPin className="h-4 w-4" /> {r.country}
-                    </span>
-                  ) : null}
-                  {r.guest_since ? (
-                    <span className="inline-flex items-center gap-2 text-brand-mute">
-                      <Calendar className="h-4 w-4" /> Guest since{" "}
-                      {new Date(r.guest_since).getFullYear()}
-                    </span>
-                  ) : null}
-                </div>
-                {/* One aligned status row — verification, channel and marketing
-                    consent share a single line so the hero reads cleanly. */}
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {r.is_verified ? (
-                    <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11px] font-semibold text-status-confirmed">
-                      <MailCheck className="h-3 w-3" /> Email confirmed
-                    </span>
-                  ) : null}
-                  {r.is_verified && r.is_all_direct && r.total_stays > 0 ? (
-                    <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-primary">
-                      All direct
-                    </span>
-                  ) : null}
-                  <MarketingConsent gkey={r.gkey} state={marketingState} />
-                </div>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setTab("messages")}
-                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
-                >
-                  <MessageSquare className="h-4 w-4" /> Message
-                </button>
-                {r.phone ? (
-                  <a
-                    href={`tel:${r.phone}`}
-                    className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-                  >
-                    <Phone className="h-4 w-4 text-brand-mute" /> Call
-                  </a>
-                ) : null}
-                <RecordActions r={r} />
-              </div>
-              <div className="mt-1.5">
-                <BalanceLine balance={balance} currency={r.currency} />
-              </div>
-            </div>
-          </div>
+      {/* ── Two-column CRM layout: sticky dossier + working column ── */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+        <aside className="lg:sticky lg:top-6">
+          <Dossier
+            r={r}
+            segLabel={segLabel}
+            balance={balance}
+            marketingState={marketingState}
+            latestRequest={latestRequest}
+            onMessage={() => setTab("messages")}
+          />
+        </aside>
 
-          {/* lifetime essentials band (v2: light white cells, thin dividers) */}
-          <div className="mt-4 grid grid-cols-2 divide-x divide-y divide-brand-line overflow-hidden rounded-[12px] border border-brand-line sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-5">
-            <StatTile
-              label="Total stays"
-              value={String(r.total_stays)}
-              sub={`${r.total_nights} nights`}
-            />
-            <StatTile
-              label="Lifetime value"
-              value={formatMoney(r.lifetime_value, r.currency)}
-              sub={`avg ${formatMoney(r.avg_ltv_per_stay, r.currency)} / stay`}
-              subTone="good"
-            />
-            <StatTile
-              label="Avg rating left"
-              value={r.avg_rating ? `${r.avg_rating}` : "—"}
-              valueIcon={
-                r.avg_rating ? (
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                ) : undefined
-              }
-              sub={`from ${r.review_count} review${r.review_count === 1 ? "" : "s"}`}
-            />
-            <StatTile
-              label="Cancellations"
-              value={String(r.guest_cancellations)}
-              sub={
-                r.reliability_pct !== null
-                  ? `${r.reliability_pct}% reliable`
-                  : "—"
-              }
-            />
-            <div className="col-span-2 bg-brand-secondary p-4 sm:col-span-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
-                Next stay
-              </div>
-              {r.next_stay ? (
-                <>
-                  <div className="mt-1.5 font-display text-[18px] font-bold leading-none text-white">
-                    {r.next_stay_in_days === 0
-                      ? "Today"
-                      : r.next_stay_in_days === 1
-                        ? "Tomorrow"
-                        : `In ${r.next_stay_in_days} days`}
-                  </div>
-                  <div className="mt-1 text-[11px] text-brand-accent">
-                    {fmtShort(r.next_stay)}
-                    {r.next_listing ? ` · ${r.next_listing}` : ""}
-                  </div>
-                </>
-              ) : (
-                <div className="mt-1.5 font-display text-[16px] font-bold leading-none text-white">
-                  None scheduled
-                </div>
-              )}
-            </div>
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* ── What to do (the single next-best action) ── */}
+          <WhatToDoBanner
+            action={nextAction}
+            onTab={setTab}
+            onPayment={(bookingId) => openFinance("payment", bookingId)}
+          />
+
+          {/* ── Tabs ── */}
+          <RecordTabs
+            active={tab}
+            onSelect={setTab}
+            tabs={TABS.map((t) => ({
+              key: t.key,
+              label: t.label,
+              count:
+                t.key === "bookings"
+                  ? bookings.length || undefined
+                  : t.key === "finances"
+                    ? txns.length
+                    : t.key === "messages"
+                      ? messages.length
+                      : t.key === "reviews"
+                        ? reviews.length
+                        : t.key === "relationships"
+                          ? relationships.length || undefined
+                          : t.key === "notes"
+                            ? notes.length
+                            : undefined,
+            }))}
+          />
+
+          <div>
+            {tab === "overview" ? (
+              <Overview
+                bookings={bookings}
+                nextBooking={nextBooking}
+                pinnedNote={pinnedNote}
+              />
+            ) : tab === "bookings" ? (
+              <BookingsPanel bookings={bookings} currency={r.currency} />
+            ) : tab === "messages" ? (
+              <GuestMessagesPanel
+                firstName={(r.name ?? "guest").split(/\s+/)[0]}
+                messages={messages}
+                conversationId={conversationId}
+                templates={templates}
+                isRegistered={r.is_verified}
+                guestId={r.guest_id}
+              />
+            ) : tab === "notes" ? (
+              <NotesPanel gkey={r.gkey} notes={notes} />
+            ) : tab === "relationships" ? (
+              <RelationshipsPanel
+                relationships={relationships}
+                guestName={r.name ?? "This guest"}
+              />
+            ) : tab === "reviews" ? (
+              <ReviewsPanel
+                reviews={reviews}
+                guestName={r.name ?? "Guest"}
+                requestable={requestableReviews}
+              />
+            ) : (
+              <FinancesPanel
+                txns={txns}
+                quotes={quotes}
+                hasBookings={bookings.length > 0}
+                onAction={openFinance}
+              />
+            )}
           </div>
         </div>
-      </section>
-
-      {/* ── What to do (the single next-best action) ── */}
-      <WhatToDoBanner action={nextAction} onTab={setTab} />
-
-      {/* ── Tabs ── */}
-      <RecordTabs
-        className="mt-6"
-        active={tab}
-        onSelect={setTab}
-        tabs={TABS.map((t) => ({
-          key: t.key,
-          label: t.label,
-          count:
-            t.key === "bookings"
-              ? bookings.length || undefined
-              : t.key === "finances"
-                ? txns.length
-                : t.key === "messages"
-                  ? messages.length
-                  : t.key === "reviews"
-                    ? reviews.length
-                    : t.key === "relationships"
-                      ? relationships.length || undefined
-                      : t.key === "notes"
-                        ? notes.length
-                        : undefined,
-        }))}
-      />
-
-      <div className="mt-6">
-        {tab === "overview" ? (
-          <Overview
-            r={r}
-            bookings={bookings}
-            nextBooking={nextBooking}
-            pinnedNote={pinnedNote}
-          />
-        ) : tab === "bookings" ? (
-          <BookingsPanel bookings={bookings} currency={r.currency} />
-        ) : tab === "messages" ? (
-          <GuestMessagesPanel
-            firstName={(r.name ?? "guest").split(/\s+/)[0]}
-            messages={messages}
-            conversationId={conversationId}
-            templates={templates}
-            isRegistered={r.is_verified}
-            guestId={r.guest_id}
-          />
-        ) : tab === "notes" ? (
-          <NotesPanel gkey={r.gkey} notes={notes} />
-        ) : tab === "relationships" ? (
-          <RelationshipsPanel
-            relationships={relationships}
-            guestName={r.name ?? "This guest"}
-          />
-        ) : tab === "reviews" ? (
-          <ReviewsPanel
-            reviews={reviews}
-            guestName={r.name ?? "Guest"}
-            requestable={requestableReviews}
-          />
-        ) : (
-          <FinancesPanel
-            txns={txns}
-            quotes={quotes}
-            hasBookings={bookings.length > 0}
-            onAction={openFinance}
-          />
-        )}
       </div>
       <div className="h-6" />
 
@@ -668,30 +493,258 @@ export function GuestRecord({
   );
 }
 
-function StatTile({
+// ── Dossier (v3: the sticky left CRM card) ──────────────────────────────
+// Identity, quick actions, balance, contact, verification, lifetime stats and
+// preferences — everything "about the guest" lives here so the working column
+// on the right is free for the action banner, tabs and panels.
+function Dossier({
+  r,
+  segLabel,
+  balance,
+  marketingState,
+  latestRequest,
+  onMessage,
+}: {
+  r: GuestRecordData;
+  segLabel: string;
+  balance: { net: number; outstanding: number; storeCredit: number };
+  marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
+  latestRequest: string | null;
+  onMessage: () => void;
+}) {
+  const sep = <div className="h-px bg-brand-line" />;
+  const eyebrow =
+    "text-[10.5px] font-bold uppercase tracking-[0.1em] text-brand-mute";
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="relative flex flex-col gap-5 p-6">
+        <div className="absolute right-4 top-4">
+          <RecordActions r={r} />
+        </div>
+
+        {/* identity */}
+        <div className="flex items-start gap-3.5 pr-9">
+          <div className="relative shrink-0">
+            {r.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={r.avatar_url}
+                alt=""
+                className="h-16 w-16 rounded-pill object-cover ring-2 ring-brand-accent"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-pill bg-brand-secondary font-display text-xl font-bold text-white ring-2 ring-brand-accent">
+                {initials(r.name)}
+              </div>
+            )}
+            {r.is_verified ? (
+              <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-brand-primary text-white">
+                <BadgeCheck className="h-3 w-3" />
+              </span>
+            ) : null}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display text-[20px] font-extrabold leading-tight text-brand-ink">
+              {r.name ?? "Guest"}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-0.5 text-[11.5px] font-semibold ${
+                  r.is_added_guest
+                    ? "border-violet-200 bg-violet-50 text-violet-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {r.is_added_guest ? <Users className="h-3.5 w-3.5" /> : null}
+                {segLabel}
+              </span>
+              {r.is_blocked ? (
+                <span className="rounded-pill bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                  Blocked
+                </span>
+              ) : null}
+              {r.tags
+                .filter((t) => t !== "VIP")
+                .map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold text-brand-mute"
+                  >
+                    {t}
+                  </span>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* quick actions */}
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <button
+            type="button"
+            onClick={onMessage}
+            className="inline-flex items-center justify-center gap-1.5 rounded-pill bg-brand-primary px-3.5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            <MessageSquare className="h-4 w-4" /> Message
+          </button>
+          {r.phone ? (
+            <a
+              href={`tel:${r.phone}`}
+              className="inline-flex items-center justify-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+            >
+              <Phone className="h-4 w-4 text-brand-primary" /> Call
+            </a>
+          ) : null}
+        </div>
+
+        {/* balance */}
+        <div className="rounded-[10px] bg-brand-light px-3 py-2.5">
+          <BalanceLine balance={balance} currency={r.currency} />
+        </div>
+
+        {sep}
+
+        {/* contact */}
+        <div>
+          <div className={`${eyebrow} mb-2.5`}>Contact</div>
+          <div className="flex flex-col gap-2.5 text-[12.5px]">
+            {r.email ? (
+              <a
+                href={`mailto:${r.email}`}
+                className="flex items-center gap-2.5 text-brand-ink hover:text-brand-primary"
+              >
+                <MailCheck className="h-4 w-4 shrink-0 text-brand-mute" />
+                <span className="truncate">{r.email}</span>
+              </a>
+            ) : null}
+            {r.phone ? (
+              <a
+                href={`tel:${r.phone}`}
+                className="flex items-center gap-2.5 text-brand-ink hover:text-brand-primary"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-brand-mute" />
+                <span className="truncate">{r.phone}</span>
+              </a>
+            ) : null}
+            {r.country ? (
+              <div className="flex items-center gap-2.5 text-brand-mute">
+                <MapPin className="h-4 w-4 shrink-0" />
+                <span className="truncate">{r.country}</span>
+              </div>
+            ) : null}
+            {r.guest_since ? (
+              <div className="flex items-center gap-2.5 text-brand-mute">
+                <Calendar className="h-4 w-4 shrink-0" />
+                <span>Guest since {new Date(r.guest_since).getFullYear()}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {sep}
+
+        {/* verified + marketing consent */}
+        <div>
+          <div className={`${eyebrow} mb-2.5`}>Verified</div>
+          <div className="flex flex-wrap gap-1.5">
+            {r.is_verified ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11px] font-semibold text-status-confirmed">
+                <MailCheck className="h-3 w-3" /> Email
+              </span>
+            ) : null}
+            {r.is_verified && r.is_all_direct && r.total_stays > 0 ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold text-brand-primary">
+                All direct
+              </span>
+            ) : null}
+          </div>
+          <div className="mt-2">
+            <MarketingConsent gkey={r.gkey} state={marketingState} />
+          </div>
+        </div>
+
+        {sep}
+
+        {/* lifetime stats */}
+        <div>
+          <div className={`${eyebrow} mb-3`}>Lifetime with you</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+            <DStat
+              label="Stays"
+              value={String(r.total_stays)}
+              sub={`${r.total_nights} nights`}
+            />
+            <DStat
+              label="Lifetime"
+              value={formatMoney(r.lifetime_value, r.currency)}
+              sub={`avg ${formatMoney(r.avg_ltv_per_stay, r.currency)}`}
+              subTone="good"
+            />
+            <DStat
+              label="Rating left"
+              value={r.avg_rating ? `${r.avg_rating} ★` : "—"}
+              sub={`${r.review_count} review${r.review_count === 1 ? "" : "s"}`}
+            />
+            <DStat
+              label="Reliability"
+              value={r.reliability_pct !== null ? `${r.reliability_pct}%` : "—"}
+              sub={`${r.guest_cancellations} cancellation${r.guest_cancellations === 1 ? "" : "s"}`}
+              subTone="good"
+            />
+          </div>
+        </div>
+
+        {/* preferences */}
+        {r.preferred_listing || r.avg_lead_days !== null || latestRequest ? (
+          <>
+            {sep}
+            <div>
+              <div className={`${eyebrow} mb-1`}>Preferences</div>
+              {r.preferred_listing ? (
+                <DFact k="Usual listing" v={r.preferred_listing} />
+              ) : null}
+              {r.avg_lead_days !== null ? (
+                <DFact k="Books ahead" v={`~${r.avg_lead_days} days`} />
+              ) : null}
+              <DFact
+                k="Channel"
+                v={
+                  r.is_all_direct && r.total_stays > 0
+                    ? "All direct"
+                    : r.is_ota
+                      ? "Via OTA"
+                      : "Direct"
+                }
+              />
+              {latestRequest ? <DFact k="Needs" v={latestRequest} /> : null}
+            </div>
+          </>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function DStat({
   label,
   value,
   sub,
   subTone,
-  valueIcon,
 }: {
   label: string;
   value: string;
   sub: string;
   subTone?: "good";
-  valueIcon?: React.ReactNode;
 }) {
   return (
-    <div className="bg-white p-4">
+    <div>
       <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
         {label}
       </div>
-      <div className="mt-1.5 inline-flex items-center gap-1 font-display text-[22px] font-bold leading-none text-brand-ink">
+      <div className="num mt-1 font-display text-[19px] font-bold leading-none text-brand-ink">
         {value}
-        {valueIcon}
       </div>
       <div
-        className={`mt-1 text-[11px] ${subTone === "good" ? "font-medium text-status-confirmed" : "text-brand-mute"}`}
+        className={`mt-1 text-[10.5px] ${subTone === "good" ? "font-medium text-status-confirmed" : "text-brand-mute"}`}
       >
         {sub}
       </div>
@@ -699,14 +752,25 @@ function StatTile({
   );
 }
 
+function DFact({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-brand-line py-2.5 last:border-0">
+      <span className="text-[12.5px] text-brand-mute">{k}</span>
+      <span className="text-right text-[12.5px] font-semibold text-brand-ink">
+        {v}
+      </span>
+    </div>
+  );
+}
+
 // ── Overview ────────────────────────────────────────────────────────────
+// Identity + preferences live in the dossier now, so the overview is the
+// "what's happening" column: the next stay, recent activity and the pinned note.
 function Overview({
-  r,
   bookings,
   nextBooking,
   pinnedNote,
 }: {
-  r: GuestRecordData;
   bookings: BookingItem[];
   nextBooking: BookingItem | undefined;
   pinnedNote: NoteItem | null;
@@ -715,9 +779,6 @@ function Overview({
   const activity = [...bookings]
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     .slice(0, 5);
-  const latestRequest = bookings.find(
-    (b) => b.specialRequests,
-  )?.specialRequests;
 
   return (
     <div className="flex flex-col gap-6">
@@ -772,86 +833,44 @@ function Overview({
         </section>
       ) : null}
 
-      <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        <div className="border-b border-brand-line px-5 py-3.5">
-          <div className="font-display text-[15px] font-bold text-brand-ink">
-            Recent activity
-          </div>
-        </div>
-        <div className="p-5">
-          {activity.length === 0 ? (
-            <div className="text-[13px] text-brand-mute">No activity yet.</div>
-          ) : (
-            <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
-              {activity.map((b) => (
-                <li key={b.id}>
-                  <span
-                    className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${realized.has(b.status) ? "bg-brand-primary" : "bg-brand-mute"}`}
-                  />
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-[13px] font-semibold text-brand-ink">
-                      Booked {b.listingName}
-                    </div>
-                    <div className="text-[11px] text-brand-mute">
-                      {fmtShort(b.createdAt.slice(0, 10))}
-                    </div>
-                  </div>
-                  <div className="text-[12px] text-brand-mute">
-                    {b.channel && b.channel !== "direct"
-                      ? `${b.channel} · `
-                      : "Direct · "}
-                    {formatMoney(b.totalAmount, b.currency)} ·{" "}
-                    {statusTag(b.status).label}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 xl:items-start">
         <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
           <div className="border-b border-brand-line px-5 py-3.5">
             <div className="font-display text-[15px] font-bold text-brand-ink">
-              Preferences
+              Recent activity
             </div>
           </div>
-          <div className="px-5 py-1 text-[12.5px]">
-            {r.preferred_listing ? (
-              <div className="flex items-center justify-between gap-3 border-b border-brand-line py-3 last:border-0">
-                <span className="text-brand-mute">Usual listing</span>
-                <span className="truncate font-semibold text-brand-ink">
-                  {r.preferred_listing}
-                </span>
+          <div className="p-5">
+            {activity.length === 0 ? (
+              <div className="text-[13px] text-brand-mute">
+                No activity yet.
               </div>
-            ) : null}
-            {r.avg_lead_days !== null ? (
-              <div className="flex items-center justify-between border-b border-brand-line py-3 last:border-0">
-                <span className="text-brand-mute">Books ahead</span>
-                <span className="font-semibold text-brand-ink">
-                  ~{r.avg_lead_days} days
-                </span>
-              </div>
-            ) : null}
-            <div className="flex items-center justify-between border-b border-brand-line py-3 last:border-0">
-              <span className="text-brand-mute">Channel</span>
-              <span className="font-semibold text-brand-ink">
-                {r.is_all_direct && r.total_stays > 0
-                  ? "All direct"
-                  : r.is_ota
-                    ? "Via OTA"
-                    : "Direct"}
-              </span>
-            </div>
-            {latestRequest ? (
-              <div className="border-b border-brand-line py-3 last:border-0">
-                <div className="text-brand-mute">Needs</div>
-                <div className="mt-0.5 font-medium text-brand-ink">
-                  {latestRequest}
-                </div>
-              </div>
-            ) : null}
+            ) : (
+              <ol className="relative space-y-4 border-l-2 border-brand-line pl-5">
+                {activity.map((b) => (
+                  <li key={b.id}>
+                    <span
+                      className={`absolute -left-[7px] mt-0.5 h-3 w-3 rounded-full border-2 border-white ${realized.has(b.status) ? "bg-brand-primary" : "bg-brand-mute"}`}
+                    />
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[13px] font-semibold text-brand-ink">
+                        Booked {b.listingName}
+                      </div>
+                      <div className="text-[11px] text-brand-mute">
+                        {fmtShort(b.createdAt.slice(0, 10))}
+                      </div>
+                    </div>
+                    <div className="text-[12px] text-brand-mute">
+                      {b.channel && b.channel !== "direct"
+                        ? `${b.channel} · `
+                        : "Direct · "}
+                      {formatMoney(b.totalAmount, b.currency)} ·{" "}
+                      {statusTag(b.status).label}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </div>
         </section>
 

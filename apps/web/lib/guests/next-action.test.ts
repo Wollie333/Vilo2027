@@ -70,8 +70,9 @@ describe("resolveGuestNextAction", () => {
     });
     expect(a.key).toBe("payment_due");
     expect(a.cta).toMatchObject({
-      kind: "route",
-      href: "/dashboard/bookings/b-soon",
+      kind: "modal",
+      modal: "payment",
+      bookingId: "b-soon",
     });
   });
 

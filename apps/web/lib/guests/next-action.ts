@@ -22,7 +22,16 @@ export type NextActionTone = "green" | "sky" | "amber" | "neutral";
 
 export type NextActionCta =
   | { kind: "route"; href: string; label: string; icon: NextActionIcon }
-  | { kind: "tab"; tab: string; label: string; icon: NextActionIcon };
+  | { kind: "tab"; tab: string; label: string; icon: NextActionIcon }
+  // Opens a finance action modal on the record (fast in-place action) targeting
+  // a specific booking — currently used for "send payment request".
+  | {
+      kind: "modal";
+      modal: "payment";
+      bookingId: string;
+      label: string;
+      icon: NextActionIcon;
+    };
 
 /** Curated icon keys the banner knows how to render (lucide-backed). */
 export type NextActionIcon =
@@ -169,10 +178,11 @@ export function resolveGuestNextAction(
       tone: "amber",
       icon: "credit-card",
       headline: `${name}'s booking isn't paid yet`,
-      body: `${unpaid.listingName} still has a balance owing. Send the payment card so ${name} can settle it.`,
+      body: `${unpaid.listingName} still has a balance owing. Send the pay link or record a payment.`,
       cta: {
-        kind: "route",
-        href: `/dashboard/bookings/${unpaid.id}`,
+        kind: "modal",
+        modal: "payment",
+        bookingId: unpaid.id,
         label: "Send payment request",
         icon: "arrow-right",
       },

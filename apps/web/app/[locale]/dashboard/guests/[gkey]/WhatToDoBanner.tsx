@@ -84,9 +84,12 @@ const TONES: Record<
 export function WhatToDoBanner({
   action,
   onTab,
+  onPayment,
 }: {
   action: NextAction;
   onTab: (tab: string) => void;
+  /** Open the finance payment modal for a booking (fast in-place action). */
+  onPayment: (bookingId: string) => void;
 }) {
   const t = TONES[action.tone];
   const HeadIcon = ICONS[action.icon];
@@ -150,7 +153,9 @@ export function WhatToDoBanner({
           ) : (
             <button
               type="button"
-              onClick={() => onTab(cta.tab)}
+              onClick={() =>
+                cta.kind === "modal" ? onPayment(cta.bookingId) : onTab(cta.tab)
+              }
               className={ctaClass}
               style={{ background: t.btn }}
             >
