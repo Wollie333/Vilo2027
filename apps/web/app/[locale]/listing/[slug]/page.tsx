@@ -13,7 +13,6 @@ import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
-import { UtilityBar } from "@/app/_components/home/UtilityBar";
 import { ThingsToKnow } from "@/components/policy/ThingsToKnow";
 import { getBrandName } from "@/lib/brand";
 import {
@@ -493,7 +492,6 @@ export default async function ListingDetailPage({
 
   return (
     <div className="bg-white text-brand-ink">
-      <UtilityBar />
       <SiteHeader />
 
       <ListingHero

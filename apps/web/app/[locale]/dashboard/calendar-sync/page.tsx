@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ExternalLink, RotateCw } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";

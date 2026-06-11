@@ -14,7 +14,7 @@ import {
   Star,
   Upload,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 

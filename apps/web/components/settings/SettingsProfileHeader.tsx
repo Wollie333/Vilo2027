@@ -1,5 +1,5 @@
 import { BadgeCheck, ExternalLink, Mail, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { findPlan } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { createServerClient } from "@/lib/supabase/server";

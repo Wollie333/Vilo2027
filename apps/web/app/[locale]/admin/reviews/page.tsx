@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Flag, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";

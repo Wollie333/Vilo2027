@@ -12,7 +12,6 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { TrendingDestinations } from "@/app/_components/home/TrendingDestinations";
 import { TrustPillars } from "@/app/_components/home/TrustPillars";
-import { UtilityBar } from "@/app/_components/home/UtilityBar";
 import { getHomeData } from "@/app/_components/home/home-data";
 
 export const metadata: Metadata = {
@@ -28,7 +27,6 @@ export default async function HomePage() {
 
   return (
     <div className="bg-brand-light text-brand-ink">
-      <UtilityBar />
       <SiteHeader />
       <Hero stats={data.stats} popularCities={data.popularCities} />
       <CategoryChips chips={data.chips} />

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Calendar as CalendarIcon } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 

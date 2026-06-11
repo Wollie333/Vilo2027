@@ -23,7 +23,7 @@ import {
   Utensils,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Input } from "@/components/ui/input";

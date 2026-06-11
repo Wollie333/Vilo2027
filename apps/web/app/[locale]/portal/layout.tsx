@@ -1,5 +1,5 @@
 import { Bell, Search } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 
 import { AppHeader } from "@/app/_components/AppHeader";

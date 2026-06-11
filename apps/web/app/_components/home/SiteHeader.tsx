@@ -9,15 +9,14 @@ import {
   Settings,
   User,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { forwardRef, useEffect, useRef, useState } from "react";
 
 import { signOutAction } from "@/app/[locale]/(auth)/actions";
 import { BrandName, useBrandName } from "@/components/brand/BrandProvider";
-import { CurrencySwitcher } from "@/components/currency/CurrencySwitcher";
-import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
 import { createClient } from "@/lib/supabase/client";
 
+import { UtilityBar } from "./UtilityBar";
 import { VLogo } from "./VLogo";
 
 const NAV = [
@@ -116,94 +115,95 @@ export function SiteHeader() {
   }, [menuOpen]);
 
   return (
-    <header
-      ref={headerRef}
-      className={`sticky top-0 z-40 border-b border-brand-line bg-white/90 backdrop-blur transition-shadow ${
-        elevated ? "nav-elevated" : ""
-      }`}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 lg:px-8">
-        <Link
-          href="/"
-          aria-label={`${brand} home`}
-          className="flex shrink-0 items-center gap-2.5"
-        >
-          <VLogo size={36} gradientId="home-nav-logo" />
-          <div className="leading-none">
-            <div className="font-display text-[18px] font-bold tracking-tight text-brand-ink">
-              <BrandName />
+    <>
+      <UtilityBar />
+      <header
+        ref={headerRef}
+        className={`sticky top-0 z-40 border-b border-brand-line bg-white/90 backdrop-blur transition-shadow ${
+          elevated ? "nav-elevated" : ""
+        }`}
+      >
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-5 lg:px-8">
+          <Link
+            href="/"
+            aria-label={`${brand} home`}
+            className="flex shrink-0 items-center gap-2.5"
+          >
+            <VLogo size={36} gradientId="home-nav-logo" />
+            <div className="leading-none">
+              <div className="font-display text-[18px] font-bold tracking-tight text-brand-ink">
+                <BrandName />
+              </div>
+              <div className="mt-0.5 hidden text-[10px] text-brand-mute sm:block">
+                Direct stays. Direct hosts.
+              </div>
             </div>
-            <div className="mt-0.5 hidden text-[10px] text-brand-mute sm:block">
-              Direct stays. Direct hosts.
-            </div>
+          </Link>
+
+          <button
+            type="button"
+            aria-label="Search stays"
+            className={`hidden items-center gap-2 rounded-pill border border-brand-line bg-white py-1.5 pl-4 pr-1.5 text-sm text-brand-mute transition-shadow hover:shadow-card md:flex ${
+              elevated ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          >
+            <span className="font-medium text-brand-ink">Anywhere</span>
+            <span className="h-4 w-px bg-brand-line" />
+            <span>Any week</span>
+            <span className="h-4 w-px bg-brand-line" />
+            <span>Guests</span>
+            <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
+              <Search className="h-4 w-4" />
+            </span>
+          </button>
+
+          <nav className="ml-auto hidden items-center gap-6 text-sm text-brand-mute lg:flex">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="hover:text-brand-ink"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            {session ? (
+              <UserMenu
+                session={session}
+                open={menuOpen}
+                setOpen={setMenuOpen}
+                ref={menuRef}
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="hidden items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
+                >
+                  <Heart className="h-4 w-4" />
+                  Saved
+                </button>
+                <Link
+                  href="/login"
+                  className="hidden rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
+                >
+                  Join {brand}
+                </Link>
+              </>
+            )}
           </div>
-        </Link>
-
-        <button
-          type="button"
-          aria-label="Search stays"
-          className={`hidden items-center gap-2 rounded-pill border border-brand-line bg-white py-1.5 pl-4 pr-1.5 text-sm text-brand-mute transition-shadow hover:shadow-card md:flex ${
-            elevated ? "opacity-100" : "pointer-events-none opacity-0"
-          }`}
-        >
-          <span className="font-medium text-brand-ink">Anywhere</span>
-          <span className="h-4 w-px bg-brand-line" />
-          <span>Any week</span>
-          <span className="h-4 w-px bg-brand-line" />
-          <span>Guests</span>
-          <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary text-white">
-            <Search className="h-4 w-4" />
-          </span>
-        </button>
-
-        <nav className="ml-auto hidden items-center gap-6 text-sm text-brand-mute lg:flex">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="hover:text-brand-ink"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="ml-auto flex items-center gap-2 lg:ml-0">
-          <LanguageSwitcher className="hidden md:inline-flex" />
-          <CurrencySwitcher className="hidden sm:inline-flex" />
-          {session ? (
-            <UserMenu
-              session={session}
-              open={menuOpen}
-              setOpen={setMenuOpen}
-              ref={menuRef}
-            />
-          ) : (
-            <>
-              <button
-                type="button"
-                className="hidden items-center gap-1.5 rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
-              >
-                <Heart className="h-4 w-4" />
-                Saved
-              </button>
-              <Link
-                href="/login"
-                className="hidden rounded px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-accent md:inline-flex"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
-              >
-                Join {brand}
-              </Link>
-            </>
-          )}
         </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 

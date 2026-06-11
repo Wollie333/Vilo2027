@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
 
 // Dark gradient hero shell for the settings areas. Mirrors the look of the

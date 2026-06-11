@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, FileText } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";

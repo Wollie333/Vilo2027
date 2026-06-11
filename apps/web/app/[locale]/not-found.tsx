@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 // Locale-scoped 404 boundary. Renders inside [locale]/layout (which provides
 // <html>/<body> + providers), so it's the not-found target for notFound() calls

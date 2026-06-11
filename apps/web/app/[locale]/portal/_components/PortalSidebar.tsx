@@ -12,7 +12,7 @@ import {
   Settings,
   Star,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTransition } from "react";
 
 import { signOutAction } from "@/app/[locale]/(auth)/actions";

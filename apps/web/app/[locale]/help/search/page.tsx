@@ -5,7 +5,7 @@ import {
   Search as SearchIcon,
 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { searchHelpArticles } from "@/lib/help/queries";
 import type { HelpAudience } from "@/lib/help/types";

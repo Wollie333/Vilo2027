@@ -7,7 +7,7 @@ import {
   Video,
 } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 
 import { resolveHelpIcon } from "@/lib/help/icon-map";

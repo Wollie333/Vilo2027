@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight, Calendar, ClockIcon, Tag } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 
 import { resolveHelpIcon } from "@/lib/help/icon-map";

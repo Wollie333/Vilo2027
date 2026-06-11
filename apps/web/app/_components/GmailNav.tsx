@@ -2,7 +2,7 @@
 
 import type { LucideIcon } from "lucide-react";
 import { Plus } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
 
 import { useSidebarToggle } from "./SidebarToggle";

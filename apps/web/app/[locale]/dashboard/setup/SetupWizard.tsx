@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";

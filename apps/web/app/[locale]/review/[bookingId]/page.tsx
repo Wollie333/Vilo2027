@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { CheckCircle2, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";

@@ -9,7 +9,7 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { fetchReviewActivity } from "@/lib/reviews/activity";
 import { fetchRequestableReviews } from "@/lib/reviews/eligible";

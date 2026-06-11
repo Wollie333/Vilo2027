@@ -1,7 +1,7 @@
 "use client";
 
 import { Loader2, SendHorizontal } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRef, useState, useTransition } from "react";
 
 export type QuickReply = { id: string; title: string; body: string };

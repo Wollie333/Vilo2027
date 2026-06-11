@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { PageFooter } from "../booking-management/_components/PageFooter";
 import { SiteHeader } from "../booking-management/_components/SiteHeader";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, Star, StarHalf } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";

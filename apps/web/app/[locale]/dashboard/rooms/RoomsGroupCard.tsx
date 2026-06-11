@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 
 import type { EditorRoom } from "../listings/[id]/edit/Editor";

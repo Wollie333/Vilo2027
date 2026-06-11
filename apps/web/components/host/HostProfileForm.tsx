@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowRight, Bookmark, ClockIcon, ThumbsUp, Video } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 
 import type { HelpArticleListItem } from "@/lib/help/types";

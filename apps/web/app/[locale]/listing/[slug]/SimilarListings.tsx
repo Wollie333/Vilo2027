@@ -1,5 +1,5 @@
 import { ArrowRight, MapPin, Star, Zap } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { Money } from "@/components/currency/Money";
 import { HeartButton } from "@/app/_components/home/HeartButton";

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, Download, Printer, ShieldCheck } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 
 // The canonical record-page "paper" for EVERY financial document — invoice,

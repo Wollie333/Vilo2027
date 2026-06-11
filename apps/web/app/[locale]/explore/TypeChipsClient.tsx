@@ -22,7 +22,7 @@ import {
   Utensils,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 
 const ICONS: Record<string, LucideIcon> = {

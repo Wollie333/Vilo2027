@@ -25,7 +25,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 

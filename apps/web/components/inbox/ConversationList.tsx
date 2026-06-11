@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCheck, MessageSquare, Search } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { InboxAvatar } from "./InboxAvatar";
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { XCircle } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound, redirect } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";

@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect } from "react";
 
 // Route-level error boundary for /dashboard/*. Renders inside the dashboard

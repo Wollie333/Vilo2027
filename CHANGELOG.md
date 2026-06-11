@@ -31,6 +31,22 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-B fix) — locale-aware links + switchers in top bar — branch `main`
+
+### Fixed
+- **Internal links dropped the locale** (clicking the logo or nav links on `/af/…` went back to the unprefixed English URL). Swept all 172 `import Link from "next/link"` → `import { Link } from "@/i18n/navigation"` across `app/` + `components/`, so every internal link preserves the active locale (en stays unprefixed under `as-needed`).
+
+### Changed
+- **Switchers moved to the top utility bar** (above the main header), per design. `UtilityBar` now hosts the language + currency switchers (new `variant="dark"` on both, styled for the dark strip) and is rendered by `SiteHeader`, so it appears on every public/guest page. Removed the switchers from the main nav row and the now-duplicate standalone `<UtilityBar/>` from the home + listing pages.
+
+### Notes
+- Verified by founder: the [locale] restructure **builds and runs on Vercel**; `/af/dashboard` auth-gate redirect works (`/af/login?next=/af/dashboard`).
+- Not yet migrated: programmatic navigation (`useRouter().push`, server-action `redirect()`, `next/navigation` `usePathname`) still uses the non-locale APIs — fine for now; migrate per-flow if a specific redirect is seen dropping the locale. `booking-management`/`change-log` use a separate header and don't show the top bar yet.
+- `tsc` + `lint` clean.
+
+### Commit
+- `fix(i18n): locale-aware internal links + switchers in top utility bar`
+
 ## 2026-06-11 — Language (L-B) — language switcher — branch `main`
 
 ### Built

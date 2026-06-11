@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { VLogo } from "@/app/_components/home/VLogo";
 import { getBrandName } from "@/lib/brand";

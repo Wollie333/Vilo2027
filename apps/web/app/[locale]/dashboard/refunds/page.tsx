@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight, Hourglass, RotateCcw, Wallet } from "lucide-react";
 
 import { formatMoney } from "@/lib/format";

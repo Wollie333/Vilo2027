@@ -7,7 +7,7 @@ import {
   ThumbsDown,
   ThumbsUp,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";

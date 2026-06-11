@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, ClipboardList, ExternalLink, Sparkles, X } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 
 const LS_CHECKLIST = "vilo:dash:show-checklist";

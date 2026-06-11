@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Search, Star } from "lucide-react";
 
 import { createAdminClient } from "@/lib/supabase/admin";

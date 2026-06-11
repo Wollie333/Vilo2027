@@ -1,7 +1,7 @@
 "use client";
 
 import { Cookie, X } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useEffect, useState } from "react";
 
 import { BrandName } from "@/components/brand/BrandProvider";

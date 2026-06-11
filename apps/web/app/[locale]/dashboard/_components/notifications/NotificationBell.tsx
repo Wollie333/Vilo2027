@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell, CheckCheck } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 

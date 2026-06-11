@@ -7,7 +7,7 @@ import {
   MessageSquare,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 // Read-only context card shown at the top of the quote form when a quote
 // originated from a guest's public "Request a quote" enquiry. It snapshots what

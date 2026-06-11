@@ -29,7 +29,7 @@ import {
   Users,
   Wifi,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";

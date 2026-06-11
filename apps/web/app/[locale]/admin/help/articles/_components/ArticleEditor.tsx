@@ -10,7 +10,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 

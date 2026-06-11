@@ -13,7 +13,7 @@ import {
   Star,
   Users,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 
 export type TripStatus = "confirmed" | "pending" | "completed" | "cancelled";

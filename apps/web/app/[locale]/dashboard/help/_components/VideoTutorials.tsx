@@ -1,5 +1,5 @@
 import { ArrowRight } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 import { buildThumbnailUrl, formatDuration } from "@/lib/help/embed";
 import type { HelpVideoRow } from "@/lib/help/types";

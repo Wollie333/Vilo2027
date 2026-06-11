@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
