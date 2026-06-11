@@ -47,6 +47,18 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): pets/children single source of truth (policy) + suitability i18n`
 
+## 2026-06-11 — Language (L-C·9) — listing hero, trust card, host card — branch `main`
+
+### Built
+- Wired `ListingHero`, `TrustCard` (made async), and `HostCard` into the `listing` namespace (en + af): hero pills (superhost/guest-favourite/instant-book), rating/reviews (ICU plural), rooms + sleeps, verified host, breadcrumb aria, share/save, country label; trust-card verified badge + replies-in/years-hosting (ICU) + see-reviews aria; host-card stats, response rate, replies window, languages, identity-verified, rating-from-stays, view-profile. Inlined the reply/years helpers using `t` (removed the English-only helper fns).
+
+### Notes
+- **Listing page now fully translated** except `PolicyDialog` modal *content* and the shared `roomDisplay` `bedSummary`/`roomFlagPills` (used across 6 files — a coordinated change). Next: booking flow, then host dashboard + guest portal. Admin stays English-only.
+- `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): listing hero/trust card/host card, en+af (L-C·9)`
+
 ## 2026-06-11 — Language (L-C·8) — listing rates section — branch `main`
 
 ### Built

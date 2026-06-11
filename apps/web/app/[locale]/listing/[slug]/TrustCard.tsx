@@ -1,10 +1,11 @@
 import { BadgeCheck, Check, Star } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 /**
  * Standard "Verified host" trust card shown above Share/Save in the title row.
  * Fixed layout (no host customisation) — fed entirely by live host data.
  */
-export function TrustCard({
+export async function TrustCard({
   hostName,
   avatarUrl,
   isVerified,
@@ -21,8 +22,25 @@ export function TrustCard({
   rating: number | null;
   reviewCount: number | null;
 }) {
-  const replyLine = responseLine(avgResponseHours);
-  const yearsLine = hostingYears(hostingSince);
+  const t = await getTranslations("listing");
+  const replyLine =
+    avgResponseHours == null
+      ? null
+      : avgResponseHours <= 1
+        ? t("trustRepliesHour1")
+        : avgResponseHours < 24
+          ? t("trustRepliesHours", { hours: Math.round(avgResponseHours) })
+          : t("trustRepliesDays", { count: Math.round(avgResponseHours / 24) });
+  const startYear = hostingSince ? new Date(hostingSince).getFullYear() : NaN;
+  const years = Number.isNaN(startYear)
+    ? null
+    : new Date().getFullYear() - startYear;
+  const yearsLine =
+    years == null
+      ? null
+      : years <= 0
+        ? t("trustNewHost")
+        : t("trustYearsHosting", { count: years });
   const sub = [replyLine, yearsLine].filter(Boolean).join(" · ");
   const hasReviews = rating != null && (reviewCount ?? 0) > 0;
 
@@ -55,7 +73,7 @@ export function TrustCard({
           </div>
           {isVerified ? (
             <span className="inline-flex shrink-0 items-center gap-0.5 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-brand-secondary">
-              <BadgeCheck className="h-2.5 w-2.5" /> Verified
+              <BadgeCheck className="h-2.5 w-2.5" /> {t("trustcardVerified")}
             </span>
           ) : null}
         </div>
@@ -75,7 +93,7 @@ export function TrustCard({
             </span>
           </div>
           <div className="mt-1 text-[10px] text-brand-mute">
-            {reviewCount} review{reviewCount === 1 ? "" : "s"}
+            {t("reviewsCount", { count: reviewCount ?? 0 })}
           </div>
         </div>
       ) : null}
@@ -90,7 +108,7 @@ export function TrustCard({
     return (
       <a
         href="#sec-reviews"
-        aria-label="See all reviews"
+        aria-label={t("trustSeeReviews")}
         className={`${cardClass} cursor-pointer transition hover:border-brand-primary/40 hover:shadow-lift focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40`}
       >
         {inner}
@@ -99,21 +117,4 @@ export function TrustCard({
   }
 
   return <div className={cardClass}>{inner}</div>;
-}
-
-function responseLine(hours: number | null): string | null {
-  if (hours == null) return null;
-  if (hours <= 1) return "Replies in ~1h";
-  if (hours < 24) return `Replies in ~${Math.round(hours)}h`;
-  const days = Math.round(hours / 24);
-  return `Replies in ~${days} day${days === 1 ? "" : "s"}`;
-}
-
-function hostingYears(since: string | null): string | null {
-  if (!since) return null;
-  const start = new Date(since).getFullYear();
-  if (Number.isNaN(start)) return null;
-  const years = new Date().getFullYear() - start;
-  if (years <= 0) return "New host";
-  return `${years} yr${years === 1 ? "" : "s"} hosting`;
 }

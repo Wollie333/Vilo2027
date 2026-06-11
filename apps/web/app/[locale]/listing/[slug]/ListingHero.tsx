@@ -10,9 +10,10 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { getBrandName } from "@/lib/brand";
+import { Link } from "@/i18n/navigation";
 
 /**
  * Full-bleed dark night-gradient hero for the public listing page
@@ -54,8 +55,12 @@ export async function ListingHero({
   maxGuests: number | null;
   trustCard: React.ReactNode;
 }) {
-  const brandName = await getBrandName();
-  const countryLabel = country === "ZA" ? "South Africa" : (country ?? null);
+  const [brandName, t] = await Promise.all([
+    getBrandName(),
+    getTranslations("listing"),
+  ]);
+  const countryLabel =
+    country === "ZA" ? t("countrySouthAfrica") : (country ?? null);
   const crumbs = [countryLabel, province, city].filter(Boolean) as string[];
   const hasReviews = rating != null && reviewCount != null && reviewCount > 0;
 
@@ -83,7 +88,7 @@ export async function ListingHero({
       <div className="relative mx-auto max-w-7xl px-5 pb-[150px] pt-5 sm:pb-[176px] lg:px-8">
         {/* Breadcrumb */}
         <nav
-          aria-label="Breadcrumb"
+          aria-label={t("heroBreadcrumbAria")}
           className="hscroll flex items-center gap-1.5 overflow-x-auto text-[12px] text-white/60"
         >
           <Link href="/" className="shrink-0 hover:text-white">
@@ -104,17 +109,17 @@ export async function ListingHero({
             <div className="mb-3 flex flex-wrap items-center gap-2">
               {isSuperhost ? (
                 <span className="pill pill-success">
-                  <Award className="h-3 w-3" /> Superhost
+                  <Award className="h-3 w-3" /> {t("heroSuperhost")}
                 </span>
               ) : null}
               {isFavourite ? (
                 <span className="inline-flex items-center gap-1 rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                  <Sparkles className="h-3 w-3" /> Guest favourite
+                  <Sparkles className="h-3 w-3" /> {t("heroGuestFavourite")}
                 </span>
               ) : null}
               {instantBooking ? (
                 <span className="inline-flex items-center gap-1 rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                  <Zap className="h-3 w-3" /> Instant book
+                  <Zap className="h-3 w-3" /> {t("instantBook")}
                 </span>
               ) : null}
             </div>
@@ -135,7 +140,7 @@ export async function ListingHero({
                     href="#sec-reviews"
                     className="num underline underline-offset-2"
                   >
-                    {reviewCount} review{reviewCount === 1 ? "" : "s"}
+                    {t("reviewsCount", { count: reviewCount ?? 0 })}
                   </a>
                 </span>
               ) : null}
@@ -154,20 +159,22 @@ export async function ListingHero({
                 <span className="inline-flex items-center gap-1.5">
                   <BedDouble className="h-4 w-4" />
                   <span>
-                    {roomCount} room{roomCount === 1 ? "" : "s"}
-                    {maxGuests != null ? ` · sleeps up to ${maxGuests}` : ""}
+                    {t("heroRooms", { count: roomCount })}
+                    {maxGuests != null
+                      ? ` · ${t("sleepsUpTo", { count: maxGuests })}`
+                      : ""}
                   </span>
                 </span>
               ) : maxGuests != null ? (
                 <span className="inline-flex items-center gap-1.5">
                   <BedDouble className="h-4 w-4" />
-                  <span>Sleeps up to {maxGuests}</span>
+                  <span>{t("heroSleepsUpTo", { count: maxGuests })}</span>
                 </span>
               ) : null}
               {isVerified ? (
                 <span className="text-white/72 inline-flex items-center gap-1.5">
-                  <BadgeCheck className="h-4 w-4 text-brand-primary" /> Verified
-                  host
+                  <BadgeCheck className="h-4 w-4 text-brand-primary" />{" "}
+                  {t("hlVerifiedTitle")}
                 </span>
               ) : null}
             </div>
@@ -180,13 +187,13 @@ export async function ListingHero({
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.07] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/[0.14]"
               >
-                <Share2 className="h-4 w-4" /> Share
+                <Share2 className="h-4 w-4" /> {t("heroShare")}
               </button>
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.07] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/[0.14]"
               >
-                <Heart className="h-4 w-4" /> Save
+                <Heart className="h-4 w-4" /> {t("heroSave")}
               </button>
             </div>
           </div>
