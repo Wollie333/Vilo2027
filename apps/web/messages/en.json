@@ -294,5 +294,23 @@
     "listing": "Listing",
     "tryAgain": "Try again",
     "backHome": "Back to home"
+  },
+  "book": {
+    "stepRooms": "Rooms",
+    "stepDetails": "Details",
+    "stepPayment": "Payment",
+    "stepOf": "Step {n} of 3",
+    "step1Title": "Choose your rooms & dates",
+    "step1Sub": "Pick when you're coming and the rooms you'd like — book one, a few, or the whole place.",
+    "step2Title": "Your details & extras",
+    "step2Sub": "Tell your host who's coming and add anything to make the stay special.",
+    "step3Title": "Choose how you'll pay",
+    "step3Sub": "All payments are processed securely. {brand} never charges a booking fee.",
+    "secureCheckout": "Secure checkout",
+    "back": "Back",
+    "completeFromSummary": "Complete payment from your summary",
+    "continueFromSummary": "Continue from your summary",
+    "continueDetails": "Continue to details",
+    "continuePayment": "Continue to payment"
   }
 }

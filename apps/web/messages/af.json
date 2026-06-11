@@ -284,5 +284,23 @@
     "listing": "Eiendom",
     "tryAgain": "Probeer weer",
     "backHome": "Terug tuis"
+  },
+  "book": {
+    "stepRooms": "Kamers",
+    "stepDetails": "Besonderhede",
+    "stepPayment": "Betaling",
+    "stepOf": "Stap {n} van 3",
+    "step1Title": "Kies jou kamers & datums",
+    "step1Sub": "Kies wanneer jy kom en die kamers wat jy wil hê — bespreek een, 'n paar, of die hele plek.",
+    "step2Title": "Jou besonderhede & ekstras",
+    "step2Sub": "Vertel jou gasheer wie kom en voeg enigiets by om die verblyf spesiaal te maak.",
+    "step3Title": "Kies hoe jy gaan betaal",
+    "step3Sub": "Alle betalings word veilig verwerk. {brand} hef nooit 'n besprekingsfooi nie.",
+    "secureCheckout": "Veilige betaling",
+    "back": "Terug",
+    "completeFromSummary": "Voltooi betaling vanaf jou opsomming",
+    "continueFromSummary": "Gaan voort vanaf jou opsomming",
+    "continueDetails": "Gaan voort na besonderhede",
+    "continuePayment": "Gaan voort na betaling"
   }
 }

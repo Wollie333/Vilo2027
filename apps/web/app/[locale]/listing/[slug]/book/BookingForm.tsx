@@ -25,6 +25,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -172,7 +173,7 @@ const CANCELLATION_BULLETS: Record<
   ],
 };
 
-const STEPS = ["Rooms", "Details", "Payment"];
+const STEP_KEYS = ["stepRooms", "stepDetails", "stepPayment"] as const;
 
 export function BookingForm({
   listingId,
@@ -273,6 +274,7 @@ export function BookingForm({
   const brandName = useBrandName();
   const [isPending, start] = useTransition();
   const [loggingOut, startLogout] = useTransition();
+  const t = useTranslations("book");
 
   // ── Wizard step ───────────────────────────────────────────────
   // 0 = Rooms (dates/guests/room selection), 1 = Details (contact/add-ons),
@@ -982,15 +984,12 @@ export function BookingForm({
     <div className="ck-step space-y-7">
       <header>
         <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-          Step 1 of 3
+          {t("stepOf", { n: 1 })}
         </div>
         <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
-          Choose your rooms &amp; dates
+          {t("step1Title")}
         </h2>
-        <p className="mt-1.5 text-sm text-brand-mute">
-          Pick when you&rsquo;re coming and the rooms you&rsquo;d like — book
-          one, a few, or the whole place.
-        </p>
+        <p className="mt-1.5 text-sm text-brand-mute">{t("step1Sub")}</p>
       </header>
 
       {/* Rooms / whole-place selection */}
@@ -1447,15 +1446,12 @@ export function BookingForm({
     <div className="ck-step space-y-7">
       <header>
         <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-          Step 2 of 3
+          {t("stepOf", { n: 2 })}
         </div>
         <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
-          Your details &amp; extras
+          {t("step2Title")}
         </h2>
-        <p className="mt-1.5 text-sm text-brand-mute">
-          Tell your host who&rsquo;s coming and add anything to make the stay
-          special.
-        </p>
+        <p className="mt-1.5 text-sm text-brand-mute">{t("step2Sub")}</p>
       </header>
 
       {/* Add-ons */}
@@ -1988,14 +1984,13 @@ export function BookingForm({
     <div className="ck-step space-y-7">
       <header>
         <div className="text-[11px] font-medium uppercase tracking-wider text-brand-mute">
-          Step 3 of 3
+          {t("stepOf", { n: 3 })}
         </div>
         <h2 className="mt-1.5 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-[28px]">
-          Choose how you&rsquo;ll pay
+          {t("step3Title")}
         </h2>
         <p className="mt-1.5 text-sm text-brand-mute">
-          All payments are processed securely. {brandName} never charges a
-          booking fee.
+          {t("step3Sub", { brand: brandName })}
         </p>
       </header>
 
@@ -2176,7 +2171,7 @@ export function BookingForm({
     </div>
   );
 
-  const progressPct = (step / (STEPS.length - 1)) * 100;
+  const progressPct = (step / (STEP_KEYS.length - 1)) * 100;
 
   return (
     <div className="space-y-5">
@@ -2204,14 +2199,14 @@ export function BookingForm({
         <div className="hide-sb flex items-center gap-3 px-4 py-3 md:px-5">
           <span className="hidden shrink-0 font-mono text-[10px] text-brand-mute sm:inline">
             {String(step + 1).padStart(2, "0")}/
-            {String(STEPS.length).padStart(2, "0")}
+            {String(STEP_KEYS.length).padStart(2, "0")}
           </span>
           <div className="hide-sb flex flex-1 items-center gap-2 overflow-x-auto md:gap-2.5">
-            {STEPS.map((label, i) => {
+            {STEP_KEYS.map((key, i) => {
               const done = i < step;
               const active = i === step;
               return (
-                <div key={label} className="flex items-center gap-2 md:gap-2.5">
+                <div key={key} className="flex items-center gap-2 md:gap-2.5">
                   <div className="flex shrink-0 items-center gap-2">
                     <div
                       className={`flex h-7 w-7 items-center justify-center rounded-pill text-xs font-semibold ${
@@ -2233,10 +2228,10 @@ export function BookingForm({
                             : "text-brand-mute"
                       } ${!active ? "hidden sm:inline" : ""}`}
                     >
-                      {label}
+                      {t(key)}
                     </div>
                   </div>
-                  {i < STEPS.length - 1 ? (
+                  {i < STEP_KEYS.length - 1 ? (
                     <div
                       className={`h-px w-6 min-w-6 md:w-10 ${
                         i < step ? "bg-brand-primary" : "bg-brand-line"
@@ -2248,7 +2243,8 @@ export function BookingForm({
             })}
           </div>
           <span className="ml-auto hidden shrink-0 items-center gap-1.5 text-[11px] text-brand-mute md:inline-flex">
-            <Lock className="h-3.5 w-3.5 text-brand-primary" /> Secure checkout
+            <Lock className="h-3.5 w-3.5 text-brand-primary" />{" "}
+            {t("secureCheckout")}
           </span>
         </div>
       </section>
@@ -2275,12 +2271,10 @@ export function BookingForm({
               disabled={step === 0}
               className="inline-flex items-center gap-1.5 text-sm text-brand-mute transition-colors hover:text-brand-ink disabled:opacity-40"
             >
-              <ArrowLeft className="h-4 w-4" /> Back
+              <ArrowLeft className="h-4 w-4" /> {t("back")}
             </button>
             <div className="hidden items-center gap-1.5 text-[11px] text-brand-mute lg:flex">
-              {step === 2
-                ? "Complete payment from your summary"
-                : "Continue from your summary"}
+              {step === 2 ? t("completeFromSummary") : t("continueFromSummary")}
               <ArrowRight className="h-3.5 w-3.5" />
             </div>
           </div>
@@ -2623,7 +2617,7 @@ export function BookingForm({
                   disabled={step === 0 && step0Blocked}
                   className="mt-4 hidden w-full items-center justify-center gap-2 rounded bg-brand-primary py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:inline-flex"
                 >
-                  {step === 0 ? "Continue to details" : "Continue to payment"}{" "}
+                  {step === 0 ? t("continueDetails") : t("continuePayment")}{" "}
                   <ArrowRight className="h-4 w-4" />
                 </button>
               )}

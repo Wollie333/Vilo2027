@@ -47,6 +47,17 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): pets/children single source of truth (policy) + suitability i18n`
 
+## 2026-06-11 — Language (L-D·2) — booking-form scaffolding + translation PAUSE — branch `main`
+
+### Built
+- New `book` namespace (en + af); wired `BookingForm`'s navigational backbone: the 3 step labels (Rooms/Details/Payment), "Step n of 3", the three step titles + subtitles, progress nav, secure-checkout badge, Back, summary footer hints, and the Continue-to-details/payment CTAs. (`STEPS` → `STEP_KEYS` so the nav renders translated labels.)
+
+### Notes
+- **⏸ Translation work paused here** (founder shifting focus to MVP hardening). Clean save point — everything builds (`tsc` + `lint` green). **Resume points:** the rest of `BookingForm` body (room/date/guest pickers, add-ons, coupons, payment options, summary line items — money stays settlement-currency), booking **success** page, then host **dashboard** + guest **portal**, then **emails**. Admin stays English-only. New work must still wire i18n per `RULES.md §10`.
+
+### Commit
+- `feat(i18n): booking-form step scaffolding, en+af (L-D·2) — pause translation`
+
 ## 2026-06-11 — Language (L-D·1) — booking failed page — branch `main`
 
 ### Built
