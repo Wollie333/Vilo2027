@@ -1,4 +1,5 @@
 import { BadgePercent, CalendarClock, Home, Info } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
 
@@ -82,7 +83,7 @@ function priceForWhole(group: SeasonGroup): number | null {
  * Columns are the host's own season labels (not fixed Off/Std/Peak); the
  * "Standard" column is the room/listing base price. Server component.
  */
-export function RatesSection({
+export async function RatesSection({
   rooms,
   seasons,
   basePrice,
@@ -103,6 +104,7 @@ export function RatesSection({
   childPrice?: number;
   petFee?: number;
 }) {
+  const t = await getTranslations("listing");
   const groups = groupSeasons(seasons);
   const hasRooms = rooms.length > 0;
   const current = groups.find((g) => g.isCurrent) ?? null;
@@ -112,14 +114,15 @@ export function RatesSection({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-primary">
-            Pricing
+            {t("ratesEyebrow")}
           </div>
           <h3 className="mt-1 font-display text-2xl font-bold tracking-tight text-brand-ink lg:text-3xl">
-            Rates &amp; seasonal pricing
+            {t("ratesTitle")}
           </h3>
           <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-brand-mute">
-            Prices below are per {hasRooms ? "room, " : ""}per night, in{" "}
-            {currency}. The host sets seasonal tiers across the year.
+            {hasRooms
+              ? t("ratesIntroRooms", { currency })
+              : t("ratesIntro", { currency })}
           </p>
         </div>
       </div>
@@ -133,16 +136,19 @@ export function RatesSection({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <div className="font-display font-bold text-brand-ink">
-                Today falls in{" "}
-                <span className="text-amber-700">{current.label}</span>
+                {t.rich("ratesTodayFalls", {
+                  label: current.label,
+                  hl: (chunks) => (
+                    <span className="text-amber-700">{chunks}</span>
+                  ),
+                })}
               </div>
               <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
                 {fmtDay(current.start)} – {fmtDay(current.end)}
               </span>
             </div>
             <div className="mt-1 text-[13px] leading-relaxed text-brand-mute">
-              Pick your dates in the calendar to see the exact nightly price for
-              your stay.
+              {t("ratesPickDates")}
             </div>
           </div>
         </div>
@@ -156,15 +162,15 @@ export function RatesSection({
               <div className="inline-flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-brand-primary" />
                 <div className="font-display text-sm font-semibold text-brand-ink">
-                  Standard
+                  {t("ratesStandard")}
                 </div>
               </div>
               <span className="rounded-pill border border-brand-line bg-brand-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-brand-secondary">
-                Baseline
+                {t("ratesBaseline")}
               </span>
             </div>
             <div className="mt-2 text-xs leading-relaxed text-brand-mute">
-              Applies on any date outside the seasons below.
+              {t("ratesStandardDesc")}
             </div>
           </div>
           {groups.map((g) => (
@@ -178,7 +184,7 @@ export function RatesSection({
             >
               {g.isCurrent ? (
                 <span className="absolute -top-2 right-3 inline-flex items-center rounded-pill border border-amber-600 bg-amber-500 px-2 py-0.5 text-[9px] font-semibold text-white">
-                  Current
+                  {t("ratesCurrent")}
                 </span>
               ) : null}
               <div className="inline-flex items-center gap-2">
@@ -199,14 +205,14 @@ export function RatesSection({
       <div className="mt-6 overflow-hidden rounded-card border border-brand-line bg-white">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-brand-line bg-brand-light px-5 py-3.5">
           <div className="font-display text-sm font-semibold text-brand-ink">
-            Rate card · per {hasRooms ? "room / " : ""}night
+            {hasRooms ? t("ratesCardRooms") : t("ratesCard")}
           </div>
           {cleaningFee && cleaningFee > 0 ? (
             <div className="inline-flex items-center gap-1.5 text-[11px] text-brand-mute">
               <Info className="h-3 w-3" />
-              Cleaning fee (
-              <Money amount={cleaningFee} currency={currency} />) and any
-              add-ons are separate
+              {t.rich("ratesCleaningNote", {
+                fee: () => <Money amount={cleaningFee} currency={currency} />,
+              })}
             </div>
           ) : null}
         </div>
@@ -215,12 +221,12 @@ export function RatesSection({
             <thead>
               <tr className="border-b border-brand-line text-left text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
                 <th className="px-5 py-3 font-semibold">
-                  {hasRooms ? "Room" : "Stay"}
+                  {hasRooms ? t("ratesColRoom") : t("ratesColStay")}
                 </th>
                 <th className="px-4 py-3 font-semibold">
                   <span className="inline-flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-brand-primary" />
-                    Standard
+                    {t("ratesStandard")}
                   </span>
                 </th>
                 {groups.map((g) => (
@@ -245,9 +251,9 @@ export function RatesSection({
                         {room.name}
                       </div>
                       <div className="text-[11px] text-brand-mute">
-                        sleeps {room.max_guests}
+                        {t("ratesSleeps", { count: room.max_guests })}
                         {room.pricing_mode === "per_person"
-                          ? " · priced per person"
+                          ? ` · ${t("ratesPricedPerPerson")}`
                           : ""}
                       </div>
                     </td>
@@ -277,12 +283,12 @@ export function RatesSection({
                 <tr className="transition-colors hover:bg-brand-light/40">
                   <td className="px-5 py-3.5">
                     <div className="inline-flex items-center gap-2 font-display font-semibold text-brand-ink">
-                      <Home className="h-4 w-4 text-brand-primary" /> Whole
-                      place
+                      <Home className="h-4 w-4 text-brand-primary" />{" "}
+                      {t("ratesWholePlace")}
                     </div>
                     {weekendPrice != null ? (
                       <div className="text-[11px] text-brand-mute">
-                        Weekends{" "}
+                        {t("ratesWeekends")}{" "}
                         <Money amount={weekendPrice} currency={currency} />
                       </div>
                     ) : null}
@@ -311,21 +317,26 @@ export function RatesSection({
         </div>
         {childPrice > 0 || petFee > 0 ? (
           <div className="border-t border-brand-line bg-brand-light/30 px-5 py-3 text-[11px] text-brand-mute">
-            <span className="font-medium text-brand-ink">Extras</span> —{" "}
+            <span className="font-medium text-brand-ink">
+              {t("ratesExtras")}
+            </span>{" "}
+            —{" "}
             {childPrice > 0 ? (
               <>
-                children <Money amount={childPrice} currency={currency} />
-                /night
+                {t("ratesExtrasChildren")}{" "}
+                <Money amount={childPrice} currency={currency} />
+                {t("ratesNightSuffix")}
               </>
             ) : null}
             {childPrice > 0 && petFee > 0 ? " · " : null}
             {petFee > 0 ? (
               <>
-                pets <Money amount={petFee} currency={currency} />
-                /night
+                {t("ratesExtrasPets")}{" "}
+                <Money amount={petFee} currency={currency} />
+                {t("ratesNightSuffix")}
               </>
             ) : null}
-            , charged per night on top of the rate.
+            {t("ratesExtrasSuffix")}
           </div>
         ) : null}
         {weeklyDiscountPct && weeklyDiscountPct > 0 ? (
@@ -334,10 +345,9 @@ export function RatesSection({
               <BadgePercent className="mt-0.5 h-3.5 w-3.5 text-brand-primary" />
               <span>
                 <span className="font-medium text-brand-ink">
-                  Weekly stay discount
+                  {t("ratesWeeklyTitle")}
                 </span>{" "}
-                — {weeklyDiscountPct}% off when you stay 7+ nights, applied
-                automatically at checkout.
+                — {t("ratesWeeklyBody", { pct: weeklyDiscountPct })}
               </span>
             </div>
           </div>

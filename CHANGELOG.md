@@ -47,6 +47,18 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): pets/children single source of truth (policy) + suitability i18n`
 
+## 2026-06-11 — Language (L-C·8) — listing rates section — branch `main`
+
+### Built
+- Wired `RatesSection` (made `async`, `getTranslations`) into the `listing` namespace (en + af): eyebrow/title, intro, current-season callout (`t.rich` highlighted label), season legend (Standard/Baseline/Current), rate-card header + cleaning note (`t.rich` with inline `<Money>`), table headers, sleeps + per-person, whole-place/weekends, extras line, and the weekly-discount note.
+
+### Notes
+- **Scope update:** super-admin (`app/[locale]/admin`) stays **English-only** — not translating it. Remaining to translate: rest of listing (`HostCard`/`TrustCard`/`ListingHero`, `PolicyDialog` modal, `roomDisplay` helpers), booking flow, host dashboard, guest portal, emails.
+- `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): listing rates section, en+af (L-C·8)`
+
 ## 2026-06-11 — Language (L-C·7) — listing body (headings, host strip, highlights) — branch `main`
 
 ### Built
