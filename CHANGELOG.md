@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Language (L-C) — Afrikaans copy for the public landing + per-key fallback — branch `main`
+
+### Built
+- **Afrikaans translations** for the `footer` + `home` namespaces (draft — native review pending), so switching to Afrikaans now visibly translates the entire public landing (chrome + footer + full homepage), not just the header. French/German/Portuguese still fall back to English until filled.
+- **request.ts now deep-merges** the locale catalog over English (was a shallow spread). This makes per-key English fallback actually work — a locale can translate *some* keys in a namespace and the rest render in English. Essential for partial translations / the portal bulk-import and for new English keys added later (Rule §10).
+
+### Notes
+- `tsc` + `lint` clean; `af.json` validated.
+
+### Commit
+- `feat(i18n): Afrikaans copy for public landing + per-key deep-merge fallback`
+
 ## 2026-06-11 — Language (L-C·3+4) — full homepage — branch `main`
 
 ### Built
