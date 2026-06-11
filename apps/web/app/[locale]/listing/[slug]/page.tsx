@@ -657,7 +657,10 @@ async function ListingBody({
   sidebarNode: React.ReactNode;
   quoteButton?: React.ReactNode;
 }) {
-  const brandName = await getBrandName();
+  const [brandName, t] = await Promise.all([
+    getBrandName(),
+    getTranslations("listing"),
+  ]);
   const sectionLinks = [
     { id: "sec-overview", label: "Overview" },
     { id: "sec-amenities", label: "Amenities" },
@@ -876,17 +879,28 @@ async function ListingBody({
           {/* THINGS TO KNOW */}
           <section id="sec-policies" className="py-7">
             <h3 className="font-display text-xl font-bold text-brand-ink">
-              Things to know
+              {t("thingsToKnowHeading")}
             </h3>
             <div className="mt-5">
               <div className="mb-2 text-[13px] font-semibold text-brand-ink">
-                Who it suits
+                {t("whoItSuits")}
               </div>
               <SuitabilityChips
                 s={{
-                  allowChildren: listing.allow_children ?? true,
+                  // Single source of truth: pets/children "allowed" come from the
+                  // resolved house-rules POLICY (same data ThingsToKnow uses), not
+                  // the legacy listings.allow_* columns — so "Who it suits" can
+                  // never disagree with the House rules card. The listing columns
+                  // only supply pricing + age bands + infants (no policy field).
+                  allowChildren:
+                    policySummary.house_rules?.children_welcome ??
+                    listing.allow_children ??
+                    true,
                   allowInfants: listing.allow_infants ?? true,
-                  allowPets: listing.allow_pets ?? true,
+                  allowPets:
+                    policySummary.house_rules?.pets_allowed ??
+                    listing.allow_pets ??
+                    true,
                   childPrice: Number(listing.child_price ?? 0),
                   infantPrice: Number(listing.infant_price ?? 0),
                   petFee: Number(listing.pet_fee ?? 0),

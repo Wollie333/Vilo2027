@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { useCurrency } from "./CurrencyProvider";
 
 // Inline clarifier shown ONLY when the displayed price actually differs from
@@ -15,11 +17,11 @@ export function FxEstimateNote({
   className?: string;
 }) {
   const { currency } = useCurrency();
+  const t = useTranslations("currency");
   if (settlementCurrency !== "ZAR" || currency === "ZAR") return null;
   return (
     <p className={className}>
-      Prices shown in {currency} are estimates — you&rsquo;ll be charged in{" "}
-      {settlementCurrency}.
+      {t("estimateNote", { display: currency, settlement: settlementCurrency })}
     </p>
   );
 }

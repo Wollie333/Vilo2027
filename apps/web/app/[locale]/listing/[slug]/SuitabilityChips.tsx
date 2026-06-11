@@ -1,4 +1,5 @@
 import { Baby, Check, Dog, Users, X } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { formatMoney } from "@/lib/format";
 
@@ -46,22 +47,37 @@ function Chip({
   );
 }
 
-export function SuitabilityChips({ s }: { s: Suitability }) {
+export async function SuitabilityChips({ s }: { s: Suitability }) {
+  const t = await getTranslations("listing");
   const childLabel = s.allowChildren
     ? s.childPrice > 0
-      ? `Children welcome — ${formatMoney(s.childPrice, s.currency)}/night`
-      : "Children welcome"
-    : "Adults only";
+      ? t("suitChildrenPriced", {
+          price: formatMoney(s.childPrice, s.currency),
+        })
+      : t("suitChildren")
+    : t("suitAdultsOnly");
   const infantLabel = s.allowInfants
     ? s.infantPrice > 0
-      ? `Infants — ${formatMoney(s.infantPrice, s.currency)}/night`
-      : "Infants free"
-    : "No infants";
+      ? t("suitInfantsPriced", {
+          price: formatMoney(s.infantPrice, s.currency),
+        })
+      : t("suitInfantsFree")
+    : t("suitNoInfants");
   const petLabel = s.allowPets
     ? s.petFee > 0
-      ? `Pets welcome — ${formatMoney(s.petFee, s.currency)}/night`
-      : "Pets welcome"
-    : "No pets";
+      ? t("suitPetsPriced", { price: formatMoney(s.petFee, s.currency) })
+      : t("suitPets")
+    : t("suitNoPets");
+
+  // Age bands, built from the parts that apply (adults always shown).
+  const ageParts: string[] = [];
+  if (s.allowInfants)
+    ageParts.push(t("suitAgesInfants", { max: s.infantMaxAge }));
+  if (s.allowChildren)
+    ageParts.push(
+      t("suitAgesChildren", { min: s.infantMaxAge + 1, max: s.childMaxAge }),
+    );
+  ageParts.push(t("suitAgesAdults", { min: s.childMaxAge + 1 }));
 
   return (
     <div>
@@ -78,12 +94,7 @@ export function SuitabilityChips({ s }: { s: Suitability }) {
       </div>
       {s.allowChildren || s.allowInfants ? (
         <p className="mt-2 text-[12px] text-brand-mute">
-          {s.allowInfants ? `Infants 0–${s.infantMaxAge}` : ""}
-          {s.allowInfants && s.allowChildren ? " · " : ""}
-          {s.allowChildren
-            ? `Children ${s.infantMaxAge + 1}–${s.childMaxAge}`
-            : ""}{" "}
-          · adults {s.childMaxAge + 1}+.
+          {ageParts.join(" · ")}.
         </p>
       ) : null}
     </div>

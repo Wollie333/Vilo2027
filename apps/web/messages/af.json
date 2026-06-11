@@ -142,7 +142,21 @@
     "roomPerPersonNight": "/ persoon · nag",
     "roomSleeps": "Slaap {count}",
     "roomBaths": "{count, plural, one {# badkamer} other {# badkamers}}",
-    "roomView": "{view} uitsig"
+    "roomView": "{view} uitsig",
+    "thingsToKnowHeading": "Dinge om te weet",
+    "whoItSuits": "Vir wie dit geskik is",
+    "suitChildrenPriced": "Kinders welkom — {price}/nag",
+    "suitChildren": "Kinders welkom",
+    "suitAdultsOnly": "Slegs volwassenes",
+    "suitInfantsPriced": "Babas — {price}/nag",
+    "suitInfantsFree": "Babas gratis",
+    "suitNoInfants": "Geen babas",
+    "suitPetsPriced": "Troeteldiere welkom — {price}/nag",
+    "suitPets": "Troeteldiere welkom",
+    "suitNoPets": "Geen troeteldiere",
+    "suitAgesInfants": "Babas 0–{max}",
+    "suitAgesChildren": "Kinders {min}–{max}",
+    "suitAgesAdults": "volwassenes {min}+"
   },
   "thingsToKnow": {
     "hrTitle": "Huisreëls",
@@ -171,5 +185,11 @@
     "chipNoChildren": "Geen kinders",
     "chipPartiesOk": "Partytjies OK",
     "chipNoParties": "Geen partytjies"
+  },
+  "currency": {
+    "estimateNote": "Pryse in {display} is skattings — jy sal in {settlement} gehef word."
+  },
+  "policy": {
+    "readFullPolicy": "Lees volledige beleid"
   }
 }

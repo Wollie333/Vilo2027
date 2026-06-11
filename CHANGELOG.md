@@ -31,6 +31,22 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-11 — Fix — pets/children SSOT on listing + finish suitability i18n — branch `main`
+
+### Fixed
+- 🔴 **"Who it suits" showed "Pets welcome" while the host had disabled pets.** Root cause: a dual source of truth — the chip read the legacy `listings.allow_pets`/`allow_children` columns, while the House-rules card reads the resolved **house-rules policy** (`pets_allowed`/`children_welcome`). They disagreed (verified live: `allow_pets=true` but policy `pets_allowed=false`). The listing page now derives the pets/children booleans for `SuitabilityChips` from the **policy** (the canonical, more complete source — it also has smoking/parties/quiet-hours), falling back to the listing columns only when the policy is silent. The listing columns still supply pricing + age bands + infants (no policy equivalent). "Who it suits" can no longer disagree with the House rules card.
+
+### Changed
+- Finished the leftover translations in those areas (en + af): `SuitabilityChips` (made async), the "Things to know"/"Who it suits" headings, the reserve-panel `FxEstimateNote` estimate line, and the `PolicyDialog` "Read full policy" trigger. New `currency` + `policy` namespaces.
+
+### Notes
+- **Editor-side SSOT still open:** the listing editor's `allow_pets`/`allow_children` toggles no longer drive display (policy does) — to fully consolidate, those toggles should be removed/redirected so a host sets pets/children only in the house-rules policy. Flagged for confirmation.
+- Still English (later slices): `PolicyDialog` modal content, `roomDisplay` bed/flag helpers (shared across 6 files), `ListingBody` section headings.
+- `tsc` + `lint` clean.
+
+### Commit
+- `fix(listing): pets/children single source of truth (policy) + suitability i18n`
+
 ## 2026-06-11 — Language (L-C·6) — listing room cards — branch `main`
 
 ### Built

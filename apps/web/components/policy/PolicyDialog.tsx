@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { cloneElement, isValidElement, useState } from "react";
 
 import { FormModal } from "@/components/ui/form-modal";
@@ -81,6 +82,7 @@ export function PolicyDialog({
   trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useTranslations("policy");
 
   const triggerNode =
     trigger && isValidElement(trigger) ? (
@@ -93,7 +95,7 @@ export function PolicyDialog({
         onClick={() => setOpen(true)}
         className="text-sm font-medium text-brand-primary underline underline-offset-4 hover:text-brand-secondary"
       >
-        Read full policy
+        {t("readFullPolicy")}
       </button>
     );
 

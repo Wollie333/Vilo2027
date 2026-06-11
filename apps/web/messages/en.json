@@ -152,7 +152,21 @@
     "roomPerPersonNight": "/ person · night",
     "roomSleeps": "Sleeps {count}",
     "roomBaths": "{count, plural, one {# bath} other {# baths}}",
-    "roomView": "{view} view"
+    "roomView": "{view} view",
+    "thingsToKnowHeading": "Things to know",
+    "whoItSuits": "Who it suits",
+    "suitChildrenPriced": "Children welcome — {price}/night",
+    "suitChildren": "Children welcome",
+    "suitAdultsOnly": "Adults only",
+    "suitInfantsPriced": "Infants — {price}/night",
+    "suitInfantsFree": "Infants free",
+    "suitNoInfants": "No infants",
+    "suitPetsPriced": "Pets welcome — {price}/night",
+    "suitPets": "Pets welcome",
+    "suitNoPets": "No pets",
+    "suitAgesInfants": "Infants 0–{max}",
+    "suitAgesChildren": "Children {min}–{max}",
+    "suitAgesAdults": "adults {min}+"
   },
   "thingsToKnow": {
     "hrTitle": "House rules",
@@ -181,5 +195,11 @@
     "chipNoChildren": "No children",
     "chipPartiesOk": "Parties OK",
     "chipNoParties": "No parties"
+  },
+  "currency": {
+    "estimateNote": "Prices shown in {display} are estimates — you'll be charged in {settlement}."
+  },
+  "policy": {
+    "readFullPolicy": "Read full policy"
   }
 }
