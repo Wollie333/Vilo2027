@@ -662,15 +662,15 @@ async function ListingBody({
     getTranslations("listing"),
   ]);
   const sectionLinks = [
-    { id: "sec-overview", label: "Overview" },
-    { id: "sec-amenities", label: "Amenities" },
-    ...(showRoomsGrid ? [{ id: "sec-rooms", label: "Rooms" }] : []),
-    ...(ratesNode ? [{ id: "sec-rates", label: "Rates" }] : []),
-    ...(calendarNode ? [{ id: "sec-calendar", label: "Calendar" }] : []),
-    ...(reviewsNode ? [{ id: "sec-reviews", label: "Reviews" }] : []),
-    ...(locationNode ? [{ id: "sec-location", label: "Location" }] : []),
-    { id: "sec-host", label: "Host" },
-    { id: "sec-policies", label: "Things to know" },
+    { id: "sec-overview", label: t("navOverview") },
+    { id: "sec-amenities", label: t("navAmenities") },
+    ...(showRoomsGrid ? [{ id: "sec-rooms", label: t("navRooms") }] : []),
+    ...(ratesNode ? [{ id: "sec-rates", label: t("navRates") }] : []),
+    ...(calendarNode ? [{ id: "sec-calendar", label: t("navCalendar") }] : []),
+    ...(reviewsNode ? [{ id: "sec-reviews", label: t("navReviews") }] : []),
+    ...(locationNode ? [{ id: "sec-location", label: t("navLocation") }] : []),
+    { id: "sec-host", label: t("navHost") },
+    { id: "sec-policies", label: t("thingsToKnowHeading") },
   ];
 
   return (
@@ -706,35 +706,36 @@ async function ListingBody({
               </div>
               <div className="min-w-0">
                 <h2 className="font-display text-xl font-bold leading-tight text-brand-ink">
-                  {typeLabel(listing)} hosted by {listing.host.display_name}
+                  {t("hostedBy", {
+                    type: typeLabel(listing),
+                    host: listing.host.display_name,
+                  })}
                 </h2>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-mute">
                   {listing.bedrooms != null ? (
-                    <span>
-                      {listing.bedrooms} bedroom
-                      {listing.bedrooms === 1 ? "" : "s"}
-                    </span>
+                    <span>{t("bedrooms", { count: listing.bedrooms })}</span>
                   ) : null}
                   {listing.bathrooms != null ? (
                     <>
                       <span>·</span>
                       <span>
-                        {listing.bathrooms} bathroom
-                        {listing.bathrooms === 1 ? "" : "s"}
+                        {t("bathrooms", { count: listing.bathrooms })}
                       </span>
                     </>
                   ) : null}
                   {listing.max_guests != null ? (
                     <>
                       <span>·</span>
-                      <span>sleeps up to {listing.max_guests}</span>
+                      <span>
+                        {t("sleepsUpTo", { count: listing.max_guests })}
+                      </span>
                     </>
                   ) : null}
                 </div>
                 {listing.host.is_verified ? (
                   <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-brand-mute">
                     <BadgeCheck className="h-3.5 w-3.5 text-brand-primary" />
-                    Identity verified
+                    {t("identityVerified")}
                   </div>
                 ) : null}
               </div>
@@ -746,30 +747,32 @@ async function ListingBody({
             {listing.instant_booking ? (
               <Highlight
                 icon={<Zap className="h-5 w-5" />}
-                title="Instant book"
-                body="Confirm your stay immediately — no waiting on the host."
+                title={t("hlInstantTitle")}
+                body={t("hlInstantBody")}
               />
             ) : null}
             <Highlight
               icon={<Key className="h-5 w-5" />}
-              title="Smooth check-in"
+              title={t("hlCheckinTitle")}
               body={
                 listing.check_in_time
-                  ? `Check-in from ${listing.check_in_time.slice(0, 5)} — the host shares full directions ahead of arrival.`
-                  : "The host shares full directions ahead of arrival."
+                  ? t("hlCheckinBodyTime", {
+                      time: listing.check_in_time.slice(0, 5),
+                    })
+                  : t("hlCheckinBody")
               }
             />
             <Highlight
               icon={<RotateCcw className="h-5 w-5" />}
-              title={refundNote?.title ?? "Cancellation policy"}
+              title={refundNote?.title ?? t("hlCancelTitleFallback")}
               body={
                 <>
-                  {refundNote?.note ?? "See the host's cancellation terms."}{" "}
+                  {refundNote?.note ?? t("hlCancelBodyFallback")}{" "}
                   <a
                     href="#sec-policies"
                     className="text-brand-primary underline underline-offset-2"
                   >
-                    See policy
+                    {t("seePolicy")}
                   </a>
                   .
                 </>
@@ -778,8 +781,8 @@ async function ListingBody({
             {listing.host.is_verified ? (
               <Highlight
                 icon={<ShieldCheck className="h-5 w-5" />}
-                title="Verified host"
-                body={`Identity and payment details verified by ${brandName}.`}
+                title={t("hlVerifiedTitle")}
+                body={t("hlVerifiedBody", { brand: brandName })}
               />
             ) : null}
           </section>
@@ -789,7 +792,7 @@ async function ListingBody({
           {listing.description ? (
             <section className="border-b border-brand-line py-7">
               <h3 className="font-display text-xl font-bold text-brand-ink">
-                About this place
+                {t("aboutTitle")}
               </h3>
               <AboutCollapsible
                 html={sanitiseListingHtml(listing.description)}
@@ -803,7 +806,7 @@ async function ListingBody({
             className="border-b border-brand-line py-7"
           >
             <h3 className="font-display text-xl font-bold text-brand-ink">
-              What this place offers
+              {t("offersTitle")}
             </h3>
             <div className="mt-5">
               <AmenitiesList keys={amenities} />
@@ -816,12 +819,11 @@ async function ListingBody({
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h3 className="font-display text-xl font-bold text-brand-ink">
-                    The rooms
+                    {t("roomsTitle")}
                   </h3>
                   {listing.booking_mode !== "whole_listing" ? (
                     <p className="mt-1 text-sm text-brand-mute">
-                      Book one room, a few, or the whole place — you&rsquo;ll
-                      choose when you reserve.
+                      {t("roomsSubtitle")}
                     </p>
                   ) : null}
                 </div>
@@ -830,9 +832,13 @@ async function ListingBody({
               {listing.booking_mode !== "whole_listing" ? (
                 <p className="mt-4 inline-flex items-start gap-1.5 text-[11.5px] leading-relaxed text-brand-mute">
                   <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  Tap{" "}
-                  <span className="font-medium text-brand-ink">Reserve</span> to
-                  pick your dates and rooms.
+                  {t.rich("roomsTapReserve", {
+                    b: (chunks) => (
+                      <span className="font-medium text-brand-ink">
+                        {chunks}
+                      </span>
+                    ),
+                  })}
                 </p>
               ) : null}
             </section>
@@ -853,7 +859,7 @@ async function ListingBody({
           {/* HOST */}
           <section id="sec-host" className="border-b border-brand-line py-7">
             <h3 className="mb-4 font-display text-xl font-bold text-brand-ink">
-              Meet your host
+              {t("meetHost")}
             </h3>
             <HostCard
               displayName={listing.host.display_name}
@@ -872,7 +878,7 @@ async function ListingBody({
             />
             <p className="mt-5 rounded border border-brand-line bg-brand-light/50 p-3 text-[12px] leading-relaxed text-brand-mute">
               <Shield className="mr-1 inline-block h-3.5 w-3.5 align-text-bottom text-brand-mute" />
-              For your safety, never transfer money or chat outside {brandName}.
+              {t("safetyNote", { brand: brandName })}
             </p>
           </section>
 

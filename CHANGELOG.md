@@ -47,6 +47,18 @@ Copy this template and fill it in at the end of every session:
 ### Commit
 - `fix(listing): pets/children single source of truth (policy) + suitability i18n`
 
+## 2026-06-11 — Language (L-C·7) — listing body (headings, host strip, highlights) — branch `main`
+
+### Built
+- Wired `ListingBody` into the `listing` namespace (en + af): section sub-nav labels, host strip ("{type} hosted by {host}", bedrooms/bathrooms ICU plurals, sleeps-up-to, identity verified), the four highlights (instant book / smooth check-in / cancellation / verified host), section headings (About this place, What this place offers, The rooms + subtitle + `t.rich` "Tap Reserve…"), Meet your host, and the safety note. Brand/time/count via ICU values.
+
+### Notes
+- Listing page now largely translated. Remaining (later slices): `RatesSection` copy, `HostCard`/`TrustCard`, `ListingHero`, `PolicyDialog` modal content, `roomDisplay` bed/flag helpers (shared). Then booking flow → dashboard → admin → emails.
+- `tsc` + `lint` clean.
+
+### Commit
+- `feat(i18n): listing body headings/host strip/highlights, en+af (L-C·7)`
+
 ## 2026-06-11 — Language (L-C·6) — listing room cards — branch `main`
 
 ### Built
