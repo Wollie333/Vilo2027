@@ -31,6 +31,16 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Fix — Finish-setup seeds business details from the default business — branch `main`
+
+### Fixed
+- The finish-setup flow read/wrote business details on the deprecated `host_business_details`, so the name + address captured at signup (now seeded onto the `businesses` default) showed blank, and edits there didn't reach documents. The setup page now **reads** the default business (aliased to the form's `billing_*` shape) and `saveBusinessDetailsAction` **writes** the default business — read + write consistent with the rest of the app.
+
+### Commit
+- `fix(setup): seed + save business details from the default business`
+
+---
+
 ## 2026-06-12 — UX — App-wide required-field validation highlight — branch `main`
 
 ### Built

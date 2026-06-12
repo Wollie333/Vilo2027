@@ -325,29 +325,37 @@ export async function saveBusinessDetailsAction(
   const supabase = createServerClient();
   const toNullable = (v: string | undefined) => (v && v.length > 0 ? v : null);
 
-  const { error } = await supabase.from("host_business_details").upsert(
-    {
-      host_id: host.hostId,
+  // Write to the host's DEFAULT business (the single source of truth that drives
+  // documents) rather than the deprecated host_business_details. Map the form's
+  // billing_* fields onto the businesses columns. (This form now only renders in
+  // the finish-setup flow.)
+  const bizId = await getDefaultBusinessId(supabase, host.hostId);
+  if (!bizId) {
+    return { ok: false, error: "No business to save these details to." };
+  }
+  const { error } = await supabase
+    .from("businesses")
+    .update({
       legal_name: toNullable(parsed.data.legal_name),
       trading_name: toNullable(parsed.data.trading_name),
       vat_number: toNullable(parsed.data.vat_number),
       company_registration_number: toNullable(
         parsed.data.company_registration_number,
       ),
-      billing_address_line1: toNullable(parsed.data.billing_address_line1),
-      billing_address_line2: toNullable(parsed.data.billing_address_line2),
-      billing_city: toNullable(parsed.data.billing_city),
-      billing_postcode: toNullable(parsed.data.billing_postcode),
-      billing_country: parsed.data.billing_country.toUpperCase(),
-    },
-    { onConflict: "host_id" },
-  );
+      address_line1: toNullable(parsed.data.billing_address_line1),
+      address_line2: toNullable(parsed.data.billing_address_line2),
+      city: toNullable(parsed.data.billing_city),
+      postal_code: toNullable(parsed.data.billing_postcode),
+      country: parsed.data.billing_country.toUpperCase(),
+    })
+    .eq("id", bizId)
+    .eq("host_id", host.hostId);
   if (error) {
     return { ok: false, error: "Could not save the business details." };
   }
 
-  revalidatePath("/dashboard/settings/banking");
-  revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard/setup");
+  revalidatePath("/dashboard/settings/businesses");
   return { ok: true };
 }
 

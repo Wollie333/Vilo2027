@@ -85,12 +85,16 @@ export default async function SetupPage({
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: true });
 
+  // Business details come from the host's DEFAULT business (seeded at signup);
+  // alias the businesses columns to the billing_* shape the form expects.
   const { data: businessDetails } = await supabase
-    .from("host_business_details")
+    .from("businesses")
     .select(
-      "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
+      "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1:address_line1, billing_address_line2:address_line2, billing_city:city, billing_postcode:postal_code, billing_country:country",
     )
     .eq("host_id", host.id)
+    .eq("is_default", true)
+    .eq("is_archived", false)
     .maybeSingle();
 
   const { data: photos } = await supabase
