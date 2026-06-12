@@ -12,6 +12,10 @@ import {
   createPaystackPaymentLink,
   validatePaystackSecret,
 } from "@/lib/paystack";
+import {
+  assertBusinessOwnership,
+  getDefaultBusinessId,
+} from "@/lib/business/resolveBusiness";
 import { requireHost as resolveHost } from "@/lib/host/current";
 import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { validatePayPalCredentials } from "@/lib/paypal";
@@ -65,17 +69,32 @@ async function assertAccountOwnership(
   return !!data;
 }
 
-async function clearExistingDefault(hostId: string): Promise<void> {
+// Default is now scoped per business (the partial unique index is per
+// business_id). Clear the current default within the SAME business before
+// promoting a new one, or the unique index rejects the write.
+async function clearExistingDefault(businessId: string): Promise<void> {
   const supabase = createServerClient();
   await supabase
     .from("eft_banking_details")
     .update({ is_default: false })
-    .eq("host_id", hostId)
+    .eq("business_id", businessId)
     .eq("is_default", true);
+}
+
+// Resolve the business an account belongs to (banking is per-business).
+async function accountBusinessId(accountId: string): Promise<string | null> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("eft_banking_details")
+    .select("business_id")
+    .eq("id", accountId)
+    .maybeSingle();
+  return data?.business_id ?? null;
 }
 
 export async function createBankAccountAction(
   input: BankAccountInput,
+  businessId?: string,
 ): Promise<ActionResult> {
   const parsed = bankAccountSchema.safeParse(input);
   if (!parsed.success) {
@@ -99,17 +118,29 @@ export async function createBankAccountAction(
 
   const supabase = createServerClient();
 
+  // Banking is per-business. Use the caller-supplied business (verified owned)
+  // or fall back to the host's default business so the legacy single-business
+  // banking UI keeps working unchanged.
+  const targetBusinessId =
+    businessId &&
+    (await assertBusinessOwnership(supabase, businessId, host.hostId))
+      ? businessId
+      : await getDefaultBusinessId(supabase, host.hostId);
+  if (!targetBusinessId) {
+    return { ok: false, error: "No business to attach this account to." };
+  }
+
   // If the user wants this account to be the default, clear the existing
   // default first — the partial unique index will reject the INSERT otherwise.
-  // Also: if the host has no accounts yet, make this one the default.
+  // Also: if this business has no accounts yet, make this one the default.
   const { count } = await supabase
     .from("eft_banking_details")
     .select("id", { count: "exact", head: true })
-    .eq("host_id", host.hostId)
+    .eq("business_id", targetBusinessId)
     .eq("is_archived", false);
 
   const shouldBeDefault = parsed.data.is_default || (count ?? 0) === 0;
-  if (shouldBeDefault) await clearExistingDefault(host.hostId);
+  if (shouldBeDefault) await clearExistingDefault(targetBusinessId);
 
   // encryptAccountNumber returns the value encrypted with v1.… if
   // BANKING_CIPHER_KEY is set, otherwise the plain digits. Either way the
@@ -118,6 +149,7 @@ export async function createBankAccountAction(
 
   const { error } = await supabase.from("eft_banking_details").insert({
     host_id: host.hostId,
+    business_id: targetBusinessId,
     label: parsed.data.label,
     bank_name: resolveBankName(parsed.data),
     account_holder: parsed.data.account_holder,
@@ -162,7 +194,8 @@ export async function updateBankAccountAction(
   }
 
   if (parsed.data.is_default) {
-    await clearExistingDefault(host.hostId);
+    const bizId = await accountBusinessId(accountId);
+    if (bizId) await clearExistingDefault(bizId);
   }
 
   const update: Record<string, unknown> = {
@@ -210,7 +243,8 @@ export async function setDefaultBankAccountAction(
     return { ok: false, error: "Account not found." };
   }
 
-  await clearExistingDefault(host.hostId);
+  const bizId = await accountBusinessId(accountId);
+  if (bizId) await clearExistingDefault(bizId);
 
   const supabase = createServerClient();
   const { error } = await supabase
