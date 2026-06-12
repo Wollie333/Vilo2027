@@ -369,7 +369,8 @@ export function PhotosManager({
             )}
           </div>
           <div className="text-[10px] text-brand-mute/80">
-            Multiple files OK · up to 8 MB each
+            Landscape works best — at least 1600×1200px (4:3). JPG, PNG or WebP
+            · up to 8 MB each. The first photo is your cover.
           </div>
         </div>
       </div>

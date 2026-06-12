@@ -87,8 +87,9 @@ export function BusinessLogoUploader({
       </div>
       <div className="min-w-0">
         <p className="text-xs text-brand-mute">
-          Shown on this business&apos;s quotes, invoices &amp; credit notes. PNG
-          with transparency works best. Auto-resized.
+          Shown on this business&apos;s quotes, invoices &amp; credit notes.
+          Square — at least 512×512px. PNG with transparency works best.
+          Auto-resized.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           <button

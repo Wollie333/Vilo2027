@@ -176,6 +176,9 @@ export function HostProfileForm({
                 ? "Replace photo"
                 : "Add photo"}
           </button>
+          <p className="mt-1.5 text-[11px] text-brand-mute">
+            Square — at least 400×400px. JPG, PNG or WebP, under 4 MB.
+          </p>
           <input
             ref={fileRef}
             type="file"

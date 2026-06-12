@@ -85,8 +85,8 @@ export function LogoUploader({ initialUrl }: { initialUrl: string | null }) {
           Logo on your documents
         </div>
         <p className="mt-0.5 text-xs text-brand-mute">
-          Shown on quotes, invoices &amp; credit notes. PNG with transparency
-          works best. Auto-resized.
+          Shown on quotes, invoices &amp; credit notes. Square — at least
+          512×512px. PNG with transparency works best. Auto-resized.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
           <button
