@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Fix — Generate-quote: explicit "pull in an existing guest" + search the Guests directory — branch `main`
+
+### Fixed
+- The quote form's returning-guest search only looked at **past bookings**, so guests added to the Guests directory (host_contacts) with no booking yet never appeared. `searchGuestsAction` now searches **both** bookings and `host_contacts`, merged by email.
+
+### Added
+- An explicit **"Pull in an existing guest"** search field at the top of the Guest section on the quote form — picking a result fills name/email/phone. (The name-field autocomplete still works too.)
+
+### Commit
+- `fix(quotes): explicit existing-guest picker + search Guests directory`
+
+---
+
 ## 2026-06-12 — Phase 3a + Phase 4 (Multi-business) — docs resolve from business; listing→business assignment — branch `main`
 
 ### Built (Phase 4)

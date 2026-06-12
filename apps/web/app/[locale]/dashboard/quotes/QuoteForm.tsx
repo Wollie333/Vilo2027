@@ -12,6 +12,7 @@ import {
   Lock,
   Pencil,
   Plus,
+  Search,
   Send,
   Tag,
   Trash2,
@@ -946,7 +947,14 @@ export function QuoteForm({
             <div className="text-[11px] font-bold uppercase tracking-[0.06em] text-brand-mute">
               Guest
             </div>
-            <div className="mt-2 grid gap-4 sm:grid-cols-2">
+
+            {/* Pull in an existing guest — searches past bookers + your Guests
+                directory and fills the fields below on pick. */}
+            <div className="mt-2">
+              <ExistingGuestPicker onPick={pickGuest} />
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="relative">
                 <FieldLabel>Full name *</FieldLabel>
                 <Input
@@ -2255,6 +2263,102 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <label className="mb-1.5 block text-[11px] font-semibold text-brand-mute">
       {children}
     </label>
+  );
+}
+
+type GuestHit = {
+  name: string;
+  email: string;
+  phone: string | null;
+  stays: number;
+};
+
+// Explicit "pull in an existing guest" search at the top of the Guest section.
+// Searches past bookers + the Guests directory and fills name/email/phone on
+// pick. Self-contained so it doesn't tangle with the name-field autocomplete.
+function ExistingGuestPicker({
+  onPick,
+}: {
+  onPick: (g: { name: string; email: string; phone: string | null }) => void;
+}) {
+  const [q, setQ] = useState("");
+  const [results, setResults] = useState<GuestHit[]>([]);
+  const [open, setOpen] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function onChange(v: string) {
+    setQ(v);
+    if (timer.current) clearTimeout(timer.current);
+    if (v.trim().length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    setSearching(true);
+    timer.current = setTimeout(async () => {
+      const r = await searchGuestsAction(v);
+      setSearching(false);
+      if (r.ok && r.data) {
+        setResults(r.data);
+        setOpen(true);
+      }
+    }, 250);
+  }
+
+  return (
+    <div className="relative">
+      <FieldLabel>Pull in an existing guest</FieldLabel>
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+        <Input
+          value={q}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => results.length && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          placeholder="Search past guests by name or email…"
+          className="pl-9"
+        />
+      </div>
+      {open && results.length > 0 ? (
+        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-[10px] border border-brand-line bg-white shadow-lift">
+          {results.map((g) => (
+            <button
+              key={g.email}
+              type="button"
+              onMouseDown={() => {
+                onPick(g);
+                setQ("");
+                setResults([]);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-brand-accent/40"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-[11px] font-bold text-white">
+                {(g.name || g.email)[0]?.toUpperCase()}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-brand-ink">
+                  {g.name || g.email}
+                </span>
+                <span className="block truncate text-xs text-brand-mute">
+                  {g.email}
+                </span>
+              </span>
+              {g.stays > 0 ? (
+                <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                  {g.stays} stay{g.stays === 1 ? "" : "s"}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : q.trim().length >= 2 && !searching && results.length === 0 ? (
+        <p className="mt-1.5 text-[11px] text-brand-mute">
+          No match — type the guest&rsquo;s details below to add them.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

@@ -1010,13 +1010,25 @@ export async function searchGuestsAction(
   if (q.length < 2) return { ok: true, data: [] };
 
   const supabase = createServerClient();
-  const { data: rows } = await supabase
-    .from("bookings")
-    .select("guest_name, guest_email, guest_phone, status")
-    .eq("host_id", host.hostId)
-    .or(`guest_name.ilike.%${q}%,guest_email.ilike.%${q}%`)
-    .not("guest_email", "is", null)
-    .limit(100);
+  // Search both past bookers AND the Guests CRM (host_contacts), so any guest
+  // the host knows can be pulled in — not just ones who already have a booking.
+  const safe = q.replace(/[%,()]/g, " ");
+  const [{ data: rows }, { data: contacts }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("guest_name, guest_email, guest_phone, status")
+      .eq("host_id", host.hostId)
+      .or(`guest_name.ilike.%${safe}%,guest_email.ilike.%${safe}%`)
+      .not("guest_email", "is", null)
+      .limit(100),
+    supabase
+      .from("host_contacts")
+      .select("name, email, phone")
+      .eq("host_id", host.hostId)
+      .or(`name.ilike.%${safe}%,email.ilike.%${safe}%`)
+      .not("email", "is", null)
+      .limit(100),
+  ]);
 
   // Collapse to one entry per guest email, counting non-cancelled stays.
   const byEmail = new Map<
@@ -1040,9 +1052,26 @@ export async function searchGuestsAction(
       });
     }
   }
+  // Merge CRM contacts (no stay count of their own; fill gaps if already seen).
+  for (const c of contacts ?? []) {
+    const email = (c.email ?? "").toLowerCase();
+    if (!email) continue;
+    const existing = byEmail.get(email);
+    if (existing) {
+      if (!existing.name && c.name) existing.name = c.name;
+      if (!existing.phone && c.phone) existing.phone = c.phone;
+    } else {
+      byEmail.set(email, {
+        name: c.name ?? "",
+        email: c.email ?? "",
+        phone: c.phone ?? null,
+        stays: 0,
+      });
+    }
+  }
   return {
     ok: true,
-    data: [...byEmail.values()].sort((a, b) => b.stays - a.stays).slice(0, 6),
+    data: [...byEmail.values()].sort((a, b) => b.stays - a.stays).slice(0, 8),
   };
 }
 
