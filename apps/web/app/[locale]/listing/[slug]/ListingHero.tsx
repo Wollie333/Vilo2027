@@ -69,10 +69,11 @@ export async function ListingHero({
   return (
     <section className="relative isolate overflow-hidden bg-white text-brand-ink">
       <div className="relative mx-auto max-w-7xl px-5 pb-[150px] pt-5 sm:pb-[176px] lg:px-8">
-        {/* Breadcrumb — dark trail, green active page. */}
+        {/* Breadcrumb — its own strip with a bottom divider (content-width,
+            no side borders), dark trail + green active page. */}
         <nav
           aria-label={t("heroBreadcrumbAria")}
-          className="hscroll flex items-center gap-1.5 overflow-x-auto text-[12px] text-brand-mute"
+          className="hscroll flex items-center gap-1.5 overflow-x-auto border-b border-brand-line pb-3 text-[12px] text-brand-mute"
         >
           <Link href="/" className="shrink-0 hover:text-brand-ink">
             {brandName}
