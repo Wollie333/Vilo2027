@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Fix/polish — Businesses card: set-default refresh, banking pill, logo — branch `main`
+
+### Fixed
+- **"Set as default" didn't update the UI** — `BusinessesList` is a client component holding the list as props; the action updated the DB but the card never re-fetched, so the Default badge didn't move. Added `router.refresh()` after set-default and archive.
+
+### Added
+- **Banking indicator pill** on each business card — green "Bank account" when the business has a non-archived EFT account, amber "No bank account" otherwise.
+- **Business logo on the card** — the card avatar shows the business logo when one is uploaded, falling back to the building icon.
+
+### Commit
+- `fix(business): refresh card on set-default; show banking pill + logo`
+
+---
+
 ## 2026-06-12 — Fix — LocationPicker town vs. municipality + English default + dropdown z-index — branch `main`
 
 ### Fixed

@@ -1,6 +1,12 @@
 "use client";
 
-import { Building2, MoreVertical, Plus, ShieldCheck } from "lucide-react";
+import {
+  Building2,
+  Landmark,
+  MoreVertical,
+  Plus,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -15,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Modal } from "@/components/ui/modal";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 
 import { archiveBusinessAction, setDefaultBusinessAction } from "../actions";
 import { BUSINESS_LOCALE_LABELS, type BusinessLocale } from "../schemas";
@@ -32,6 +38,8 @@ export type BusinessListItem = {
   default_language: string;
   is_default: boolean;
   listing_count: number;
+  has_banking: boolean;
+  logo_url: string | null;
 };
 
 function displayName(b: BusinessListItem): string {
@@ -48,6 +56,7 @@ export function BusinessesList({
   businesses: BusinessListItem[];
 }) {
   const t = useTranslations("businesses");
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [confirmArchive, setConfirmArchive] = useState<BusinessListItem | null>(
     null,
@@ -56,8 +65,11 @@ export function BusinessesList({
   function handleSetDefault(id: string) {
     start(async () => {
       const res = await setDefaultBusinessAction(id);
-      if (res.ok) toast.success(t("defaultSet"));
-      else toast.error(res.error);
+      if (res.ok) {
+        toast.success(t("defaultSet"));
+        // Re-fetch the server component so the Default badge moves immediately.
+        router.refresh();
+      } else toast.error(res.error);
     });
   }
 
@@ -67,6 +79,7 @@ export function BusinessesList({
       if (res.ok) {
         toast.success(t("archived"));
         setConfirmArchive(null);
+        router.refresh();
       } else {
         toast.error(res.error);
       }
@@ -104,8 +117,17 @@ export function BusinessesList({
                   className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-card bg-brand-accent text-brand-secondary">
-                      <Building2 className="h-5 w-5" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-card bg-brand-accent text-brand-secondary">
+                      {b.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={b.logo_url}
+                          alt=""
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <Building2 className="h-5 w-5" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -118,6 +140,16 @@ export function BusinessesList({
                             {t("defaultBadge")}
                           </Badge>
                         ) : null}
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-medium ${
+                            b.has_banking
+                              ? "bg-green-100 text-green-700"
+                              : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          <Landmark className="h-3 w-3" />
+                          {b.has_banking ? t("bankingLoaded") : t("noBanking")}
+                        </span>
                       </div>
                       {addr ? (
                         <p className="mt-0.5 text-sm text-brand-ink">{addr}</p>

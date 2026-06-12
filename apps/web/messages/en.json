@@ -328,6 +328,8 @@
     "empty": "No businesses yet.",
     "defaultBadge": "Default",
     "archivedBadge": "Archived",
+    "bankingLoaded": "Bank account",
+    "noBanking": "No bank account",
     "listingsCount": "{count, plural, =0 {No listings} =1 {1 listing} other {# listings}}",
     "edit": "Edit",
     "setDefault": "Set as default",

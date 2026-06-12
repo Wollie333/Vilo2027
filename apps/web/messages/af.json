@@ -318,6 +318,8 @@
     "empty": "Nog geen besighede nie.",
     "defaultBadge": "Verstek",
     "archivedBadge": "Geargiveer",
+    "bankingLoaded": "Bankrekening",
+    "noBanking": "Geen bankrekening",
     "listingsCount": "{count, plural, =0 {Geen lysadvertensies} =1 {1 lysadvertensie} other {# lysadvertensies}}",
     "edit": "Wysig",
     "setDefault": "Stel as verstek",

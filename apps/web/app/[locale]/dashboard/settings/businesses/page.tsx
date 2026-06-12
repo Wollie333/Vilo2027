@@ -34,35 +34,49 @@ export default async function BusinessesSettingsPage() {
 
   const t = await getTranslations("businesses");
 
-  const [{ data: bizRows }, { data: listingRows }, { data: personal }] =
-    await Promise.all([
-      supabase
-        .from("businesses")
-        .select(
-          "id, trading_name, legal_name, vat_number, city, province, country, default_currency, default_language, is_default",
-        )
-        .eq("host_id", host.id)
-        .eq("is_archived", false)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("listings")
-        .select("business_id")
-        .eq("host_id", host.id)
-        .is("deleted_at", null),
-      supabase
-        .from("host_personal_details")
-        .select(
-          "address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude",
-        )
-        .eq("host_id", host.id)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: bizRows },
+    { data: listingRows },
+    { data: bankRows },
+    { data: personal },
+  ] = await Promise.all([
+    supabase
+      .from("businesses")
+      .select(
+        "id, trading_name, legal_name, vat_number, city, province, country, default_currency, default_language, is_default, logo_path",
+      )
+      .eq("host_id", host.id)
+      .eq("is_archived", false)
+      .order("is_default", { ascending: false })
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("listings")
+      .select("business_id")
+      .eq("host_id", host.id)
+      .is("deleted_at", null),
+    supabase
+      .from("eft_banking_details")
+      .select("business_id")
+      .eq("host_id", host.id)
+      .eq("is_archived", false),
+    supabase
+      .from("host_personal_details")
+      .select(
+        "address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude",
+      )
+      .eq("host_id", host.id)
+      .maybeSingle(),
+  ]);
 
   const counts = new Map<string, number>();
   for (const l of listingRows ?? []) {
     if (l.business_id)
       counts.set(l.business_id, (counts.get(l.business_id) ?? 0) + 1);
+  }
+
+  const withBanking = new Set<string>();
+  for (const a of bankRows ?? []) {
+    if (a.business_id) withBanking.add(a.business_id);
   }
 
   const businesses: BusinessListItem[] = (bizRows ?? []).map((b) => ({
@@ -77,6 +91,11 @@ export default async function BusinessesSettingsPage() {
     default_language: b.default_language,
     is_default: b.is_default,
     listing_count: counts.get(b.id) ?? 0,
+    has_banking: withBanking.has(b.id),
+    logo_url: b.logo_path
+      ? supabase.storage.from("host-logos").getPublicUrl(b.logo_path).data
+          .publicUrl
+      : null,
   }));
 
   const personalAddress: AddressValue = personal
