@@ -8,20 +8,36 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 export async function hostLogoDataUri(
   hostId: string | null | undefined,
+  // The business whose logo to embed (resolve from the document's listing).
+  // Omit to use the host's default business logo.
+  businessId?: string | null,
 ): Promise<string | null> {
-  if (!hostId) return null;
+  if (!hostId && !businessId) return null;
   try {
     const admin = createAdminClient();
-    const { data } = await admin
-      .from("host_business_details")
-      .select("logo_path")
-      .eq("host_id", hostId)
-      .maybeSingle();
-    if (!data?.logo_path) return null;
+    let logoPath: string | null = null;
+    if (businessId) {
+      const { data } = await admin
+        .from("businesses")
+        .select("logo_path")
+        .eq("id", businessId)
+        .maybeSingle();
+      logoPath = data?.logo_path ?? null;
+    } else if (hostId) {
+      const { data } = await admin
+        .from("businesses")
+        .select("logo_path")
+        .eq("host_id", hostId)
+        .eq("is_default", true)
+        .eq("is_archived", false)
+        .maybeSingle();
+      logoPath = data?.logo_path ?? null;
+    }
+    if (!logoPath) return null;
 
     const { data: pub } = admin.storage
       .from("host-logos")
-      .getPublicUrl(data.logo_path);
+      .getPublicUrl(logoPath);
     const res = await fetch(pub.publicUrl);
     if (!res.ok) return null;
     const buf = Buffer.from(await res.arrayBuffer());

@@ -36,33 +36,56 @@ export async function getHostParty(
    * VAT number to print, overriding the business one. Pass the booking's
    * listing VAT number so a tax invoice shows the VAT identity that actually
    * charged the VAT (each listing owns its VAT). Pass `undefined` to fall back
-   * to the host's business VAT number; pass null/'' to show no VAT line.
+   * to the business VAT number; pass null/'' to show no VAT line.
    */
   listingVatNumber?: string | null,
+  /**
+   * The business whose identity + banking to print (resolve it from the
+   * document's listing). Omit to use the host's default business.
+   */
+  businessId?: string | null,
 ): Promise<DocHostParty> {
-  const [{ data: host }, { data: biz }, { data: bank }] = await Promise.all([
-    admin
-      .from("hosts")
-      .select("display_name, handle, user_id")
-      .eq("id", hostId)
-      .maybeSingle(),
-    admin
-      .from("host_business_details")
-      .select(
-        "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
-      )
+  const { data: host } = await admin
+    .from("hosts")
+    .select("display_name, handle, user_id")
+    .eq("id", hostId)
+    .maybeSingle();
+
+  // Resolve the business: the one supplied, else the host's default.
+  let bizId = businessId ?? null;
+  if (!bizId) {
+    const { data: def } = await admin
+      .from("businesses")
+      .select("id")
       .eq("host_id", hostId)
-      .maybeSingle(),
-    admin
-      .from("eft_banking_details")
-      .select(
-        "bank_name, account_holder, account_number, account_type, branch_code, swift_code, reference_format, is_default, is_archived",
-      )
-      .eq("host_id", hostId)
+      .eq("is_default", true)
       .eq("is_archived", false)
-      .order("is_default", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .maybeSingle();
+    bizId = def?.id ?? null;
+  }
+
+  const [{ data: biz }, { data: bank }] = await Promise.all([
+    bizId
+      ? admin
+          .from("businesses")
+          .select(
+            "legal_name, trading_name, vat_number, company_registration_number, address_line1, address_line2, city, postal_code, country",
+          )
+          .eq("id", bizId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    bizId
+      ? admin
+          .from("eft_banking_details")
+          .select(
+            "bank_name, account_holder, account_number, account_type, branch_code, swift_code, reference_format, is_default, is_archived",
+          )
+          .eq("business_id", bizId)
+          .eq("is_archived", false)
+          .order("is_default", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   // Host contact lives on the linked user_profiles row (hosts has no contact_*).
@@ -85,12 +108,10 @@ export async function getHostParty(
   if (biz?.legal_name && biz.legal_name !== name) lines.push(biz.legal_name);
   if (host?.handle) lines.push(`@${host.handle}`);
   const addr = [
-    biz?.billing_address_line1,
-    biz?.billing_address_line2,
-    [biz?.billing_city, biz?.billing_postcode].filter(Boolean).join(" "),
-    biz?.billing_country && biz.billing_country !== "ZA"
-      ? biz.billing_country
-      : null,
+    biz?.address_line1,
+    biz?.address_line2,
+    [biz?.city, biz?.postal_code].filter(Boolean).join(" "),
+    biz?.country && biz.country !== "ZA" ? biz.country : null,
   ].filter((l): l is string => !!l && l.trim().length > 0);
   lines.push(...addr);
   if (email) lines.push(email);
