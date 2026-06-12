@@ -19,6 +19,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { LocationPicker } from "@/components/location/LocationPicker";
 import { combineName, splitName } from "@/lib/profile/name";
 
 import {
@@ -75,11 +76,14 @@ type WizardData = {
   // picker writes it so the listings INSERT keeps the old column
   // populated for backwards-compatible reads.
   accommodationType: string;
+  businessName: string;
   addressLine1: string;
   addressLine2: string;
   city: string;
   region: string;
   postalCode: string;
+  latitude: number | null;
+  longitude: number | null;
   // plan
   plan: "free" | "basic" | "pro" | "business";
   billingCycle: "monthly" | "annual";
@@ -117,11 +121,14 @@ function initialData(prefilled: Prefilled): WizardData {
     listingKind: "accommodation",
     categoryId: null,
     accommodationType: "",
+    businessName: "",
     addressLine1: "",
     addressLine2: "",
     city: "",
     region: "Western Cape",
     postalCode: "",
+    latitude: null,
+    longitude: null,
     plan: "free",
     billingCycle: "monthly",
   };
@@ -331,11 +338,14 @@ export function Wizard({
       listing_kind: data.listingKind,
       category_id: data.categoryId,
       accommodation_type: data.accommodationType || undefined,
+      business_name: data.businessName,
       address_line1: data.addressLine1,
       address_line2: data.addressLine2,
       city: data.city,
       region: data.region,
       postal_code: data.postalCode,
+      latitude: data.latitude,
+      longitude: data.longitude,
     });
     if (!parsed.success) {
       setErrors(zodIssuesToFieldErrors(parsed.error.issues));
@@ -362,11 +372,14 @@ export function Wizard({
         listing_kind: data.listingKind,
         category_id: data.categoryId,
         accommodation_type: data.accommodationType || undefined,
+        business_name: data.businessName,
         address_line1: data.addressLine1,
         address_line2: data.addressLine2,
         city: data.city,
         region: data.region,
         postal_code: data.postalCode,
+        latitude: data.latitude,
+        longitude: data.longitude,
         plan: data.plan,
         billing_cycle: data.billingCycle,
       });
@@ -1165,11 +1178,39 @@ function StepListing({
           </FormField>
         </div>
 
+        <FormField
+          label="Business name"
+          error={errors.business_name}
+          hint="Your trading name for invoices & quotes. Leave blank to use your own name — you can add more businesses later in Settings."
+        >
+          <TextInput
+            value={data.businessName}
+            onChange={(e) => patch({ businessName: e.target.value })}
+            placeholder="Cape Town Boutique Stays"
+          />
+        </FormField>
+
         {/* Address block */}
         <div className="space-y-3 rounded-card border border-brand-line bg-white p-4">
           <div className="text-xs font-semibold uppercase tracking-wide text-brand-mute">
             Property address
           </div>
+
+          <LocationPicker
+            latitude={data.latitude}
+            longitude={data.longitude}
+            onSelect={(s) => {
+              const p: Partial<WizardData> = {
+                latitude: s.latitude,
+                longitude: s.longitude,
+              };
+              if (s.address_line1) p.addressLine1 = s.address_line1;
+              if (s.city) p.city = s.city;
+              if (s.province) p.region = s.province;
+              if (s.postal_code) p.postalCode = s.postal_code;
+              patch(p);
+            }}
+          />
 
           <FormField label="Street address" error={errors.addressLine1}>
             <TextInput

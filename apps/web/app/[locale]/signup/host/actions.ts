@@ -235,6 +235,29 @@ export async function finalizeOnboardingAction(
   //    If this fails we KEEP the host row (the user is still a host, they
   //    can create a listing from the dashboard) — avoids the stuck state
   //    where the cleanup deletes the host and leaves the user homeless.
+  // Enrich the auto-created default business (made by the
+  // on_host_created_default_business trigger when the host row was inserted)
+  // with the captured business name + this listing's address, so the host's
+  // first business — and every document for this listing — is properly named.
+  await admin
+    .from("businesses")
+    .update({
+      trading_name:
+        d.business_name && d.business_name.length > 0
+          ? d.business_name
+          : d.full_name,
+      address_line1: d.address_line1,
+      address_line2:
+        d.address_line2 && d.address_line2.length > 0 ? d.address_line2 : null,
+      city: d.city,
+      province: d.region,
+      postal_code: d.postal_code,
+      latitude: d.latitude ?? null,
+      longitude: d.longitude ?? null,
+    })
+    .eq("host_id", host.id)
+    .eq("is_default", true);
+
   const { error: listingErr } = await admin.from("listings").insert({
     host_id: host.id,
     listing_type: "accommodation",
@@ -247,7 +270,10 @@ export async function finalizeOnboardingAction(
     city: d.city,
     province: d.region,
     postal_code: d.postal_code,
-    // country defaults to 'ZA' at DB level.
+    latitude: d.latitude ?? null,
+    longitude: d.longitude ?? null,
+    // country defaults to 'ZA'; business_id is filled by the
+    // set_listing_default_business trigger (the host's default business).
   });
   if (listingErr) {
     // Non-blocking — host can create their first listing from the editor.

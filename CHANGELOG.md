@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Phase 5 (Multi-business) — Signup step 3: LocationPicker + seed the first business — branch `main`
+
+### Built
+- Signup **step 3** now uses the **LocationPicker** (map + search, same UX as the listing editor) for the property address, capturing latitude/longitude and auto-filling city/province/postal on pick.
+- New **Business name** field on step 3. `finalizeOnboardingAction` enriches the auto-created default business (from the host-insert trigger) with that name + the listing's address + lat/lng, and the first listing now stores lat/lng. Blank business name falls back to the host's display name.
+
+### Notes
+- The default business is still created by the `on_host_created_default_business` trigger; finalize just enriches it. The first listing's `business_id` is set by the `set_listing_default_business` trigger.
+
+### Commit
+- `feat(business): phase 5 — signup step 3 LocationPicker + seed default business`
+
+---
+
 ## 2026-06-12 — Fix — Generate-quote: explicit "pull in an existing guest" + search the Guests directory — branch `main`
 
 ### Fixed

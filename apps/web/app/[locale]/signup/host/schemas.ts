@@ -155,6 +155,9 @@ export const listingSchema = z
     category_id: z.string().uuid().nullable().optional(),
     // Legacy text column — mirrored from the chosen category slug.
     accommodation_type: z.string().optional(),
+    // The host's first business (seeds the auto-created default business). Blank
+    // falls back to the host's display name.
+    business_name: z.string().trim().max(160).optional().or(z.literal("")),
     address_line1: z
       .string()
       .trim()
@@ -164,6 +167,8 @@ export const listingSchema = z
     city: z.string().trim().min(2, "Which city?").max(120),
     region: z.string().trim().min(2).max(80),
     postal_code: z.string().trim().min(3, "Postal code is required.").max(20),
+    latitude: z.number().min(-90).max(90).nullable().optional(),
+    longitude: z.number().min(-180).max(180).nullable().optional(),
   })
   .refine((d) => !!d.category_id, {
     path: ["category_id"],
@@ -204,11 +209,14 @@ export const finalizeOnboardingSchema = z
     listing_kind: z.literal("accommodation"),
     category_id: z.string().uuid().nullable().optional(),
     accommodation_type: z.string().optional(),
+    business_name: z.string().trim().max(160).optional().or(z.literal("")),
     address_line1: z.string().trim().min(3).max(200),
     address_line2: z.string().trim().max(200).optional().or(z.literal("")),
     city: z.string().trim().min(2).max(120),
     region: z.string().trim().min(2).max(80),
     postal_code: z.string().trim().min(3).max(20),
+    latitude: z.number().min(-90).max(90).nullable().optional(),
+    longitude: z.number().min(-180).max(180).nullable().optional(),
 
     // Plan — accepted but always forced to "free" server-side for now
     // (payment wiring lands later). Surfaced for visibility only.
