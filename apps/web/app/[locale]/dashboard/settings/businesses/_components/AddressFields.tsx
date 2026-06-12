@@ -12,6 +12,7 @@ export type AddressValue = {
   address_line1: string;
   address_line2: string;
   city: string;
+  municipality: string;
   province: string;
   postal_code: string;
   country: string;
@@ -23,6 +24,7 @@ export const EMPTY_ADDRESS: AddressValue = {
   address_line1: "",
   address_line2: "",
   city: "",
+  municipality: "",
   province: "",
   postal_code: "",
   country: "ZA",
@@ -51,6 +53,7 @@ export function AddressFields({
     };
     if (s.address_line1) patch.address_line1 = s.address_line1;
     if (s.city) patch.city = s.city;
+    if (s.municipality) patch.municipality = s.municipality;
     if (s.province) patch.province = s.province;
     if (s.postal_code) patch.postal_code = s.postal_code;
     onChange(patch);
@@ -95,6 +98,14 @@ export function AddressFields({
           />
         </Field>
       </div>
+
+      <Field label={t("addrMunicipality")} optional>
+        <TextInput
+          value={value.municipality}
+          onChange={(e) => onChange({ municipality: e.target.value })}
+          placeholder="Thaba Chweu Local Municipality"
+        />
+      </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("addrPostal")} optional>

@@ -23,6 +23,7 @@ export type LocationSelection = {
   longitude: number;
   address_line1?: string;
   city?: string;
+  municipality?: string;
   province?: string;
   postal_code?: string;
 };
@@ -32,11 +33,13 @@ type PhotonProps = {
   housenumber?: string;
   street?: string;
   city?: string;
+  locality?: string;
   district?: string;
   county?: string;
   state?: string;
   postcode?: string;
   countrycode?: string;
+  osm_key?: string;
   osm_id?: number;
   osm_type?: string;
 };
@@ -63,23 +66,54 @@ const PHOTON = "https://photon.komoot.io";
 // local so half-typed queries surface SA places, not lookalikes abroad.
 const SA_BBOX = "16.3,-35.0,33.1,-22.0";
 
-function cityOf(p: PhotonProps): string | undefined {
-  return p.city || p.district || p.county || undefined;
+// In South Africa, OSM/Photon routinely returns the administrative area in the
+// `city` slot — e.g. searching "Sabie" yields city="Thaba Chweu Local
+// Municipality", county="…District Municipality" — while the real town sits in
+// `name` (for a place node). Nobody searches by municipality, so we keep the
+// municipality out of the town field and expose it separately.
+function isMunicipality(s?: string | null): boolean {
+  return !!s && /municipalit|metropolitan/i.test(s);
+}
+
+// The town/city to show. For a place node (osm_key="place") the settlement name
+// is in `name`; for an address the real town is usually `city`. We skip any
+// municipality string and the ward-style `district` ("…Ward 10").
+function townOf(p: PhotonProps): string | undefined {
+  const isPlace = p.osm_key === "place";
+  const candidates = [
+    isPlace ? p.name : undefined,
+    p.city,
+    p.locality,
+    p.county,
+  ];
+  return candidates.find((c) => !!c && !isMunicipality(c)) ?? undefined;
+}
+
+function municipalityOf(p: PhotonProps): string | undefined {
+  return (
+    [p.city, p.county, p.district].find((x) => isMunicipality(x)) ?? undefined
+  );
 }
 
 function flatten(f: PhotonFeature): LocationSelection {
   const p = f.properties;
   const [lng, lat] = f.geometry.coordinates;
+  const isPlace = p.osm_key === "place";
   const street = [p.housenumber, p.street].filter(Boolean).join(" ").trim();
-  const city = cityOf(p);
+  const city = townOf(p);
+  const municipality = municipalityOf(p);
   const province = p.state && SA_PROVINCES.has(p.state) ? p.state : undefined;
-  // A named POI with no street (e.g. a guesthouse) → use its name as line 1.
-  const line1 = street || (p.name && p.name !== city ? p.name : undefined);
+  // Street line = the actual street only. For a place node (a town/suburb pick)
+  // there's no street, and the `name` IS the town — never push that into line 1.
+  // A non-place POI with no street (e.g. a guesthouse) still uses its name.
+  const line1 =
+    street || (!isPlace && p.name && p.name !== city ? p.name : undefined);
   return {
     latitude: lat,
     longitude: lng,
     address_line1: line1,
     city,
+    municipality,
     province,
     postal_code: p.postcode || undefined,
   };
@@ -88,7 +122,7 @@ function flatten(f: PhotonFeature): LocationSelection {
 // Two-line label, Google-style: a bold primary line + a muted secondary line.
 function label(p: PhotonProps): { main: string; secondary: string } {
   const street = [p.housenumber, p.street].filter(Boolean).join(" ").trim();
-  const city = cityOf(p) ?? "";
+  const city = townOf(p) ?? "";
   const main = p.name || street || city || p.state || "Location";
   const seen = new Set([main]);
   const secondary = [street, city, p.state, p.postcode]

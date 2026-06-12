@@ -1026,6 +1026,7 @@ export type Database = {
           legal_name: string | null
           logo_path: string | null
           longitude: number | null
+          municipality: string | null
           postal_code: string | null
           province: string | null
           trading_name: string | null
@@ -1049,6 +1050,7 @@ export type Database = {
           legal_name?: string | null
           logo_path?: string | null
           longitude?: number | null
+          municipality?: string | null
           postal_code?: string | null
           province?: string | null
           trading_name?: string | null
@@ -1072,6 +1074,7 @@ export type Database = {
           legal_name?: string | null
           logo_path?: string | null
           longitude?: number | null
+          municipality?: string | null
           postal_code?: string | null
           province?: string | null
           trading_name?: string | null
@@ -2824,6 +2827,7 @@ export type Database = {
           host_id: string
           latitude: number | null
           longitude: number | null
+          municipality: string | null
           postal_code: string | null
           province: string | null
           updated_at: string
@@ -2837,6 +2841,7 @@ export type Database = {
           host_id: string
           latitude?: number | null
           longitude?: number | null
+          municipality?: string | null
           postal_code?: string | null
           province?: string | null
           updated_at?: string
@@ -2850,6 +2855,7 @@ export type Database = {
           host_id?: string
           latitude?: number | null
           longitude?: number | null
+          municipality?: string | null
           postal_code?: string | null
           province?: string | null
           updated_at?: string

@@ -197,6 +197,7 @@ export function BusinessForm({
             address_line1: v.address_line1,
             address_line2: v.address_line2,
             city: v.city,
+            municipality: v.municipality,
             province: v.province,
             postal_code: v.postal_code,
             country: v.country,

@@ -53,7 +53,7 @@ export default async function BusinessDetailPage({
   const { data: biz } = await supabase
     .from("businesses")
     .select(
-      "id, trading_name, legal_name, vat_number, company_registration_number, address_line1, address_line2, city, province, postal_code, country, latitude, longitude, logo_path, default_currency, default_language",
+      "id, trading_name, legal_name, vat_number, company_registration_number, address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude, logo_path, default_currency, default_language",
     )
     .eq("id", params.id)
     .eq("host_id", host.id)
@@ -100,6 +100,7 @@ export default async function BusinessDetailPage({
     address_line1: biz.address_line1 ?? "",
     address_line2: biz.address_line2 ?? "",
     city: biz.city ?? "",
+    municipality: biz.municipality ?? "",
     province: biz.province ?? "",
     postal_code: biz.postal_code ?? "",
     country: biz.country ?? "ZA",

@@ -53,7 +53,7 @@ export default async function BusinessesSettingsPage() {
       supabase
         .from("host_personal_details")
         .select(
-          "address_line1, address_line2, city, province, postal_code, country, latitude, longitude",
+          "address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude",
         )
         .eq("host_id", host.id)
         .maybeSingle(),
@@ -84,6 +84,7 @@ export default async function BusinessesSettingsPage() {
         address_line1: personal.address_line1 ?? "",
         address_line2: personal.address_line2 ?? "",
         city: personal.city ?? "",
+        municipality: personal.municipality ?? "",
         province: personal.province ?? "",
         postal_code: personal.postal_code ?? "",
         country: personal.country ?? "ZA",

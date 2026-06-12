@@ -31,6 +31,24 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Fix — LocationPicker town vs. municipality + English default + dropdown z-index — branch `main`
+
+### Fixed
+- 🔴 **Address picker filled the town with the local municipality** (and pushed the town name into the street line). In SA, OSM/Photon returns the municipality in the `city` slot (e.g. "Sabie" → city="Thaba Chweu Local Municipality", name="Sabie"). `LocationPicker` now extracts the real settlement (the `name` for a place node, else a non-municipality `city`/`locality`/`county`), keeps the municipality out of the town field, and no longer dumps a town/suburb name into the street address.
+- **Autocomplete suggestions hidden behind the map** — the Photon dropdown was at `z-10`, below Leaflet's panes/controls; raised to `z-[1100]`.
+- **App defaulted to Afrikaans** — `localeDetection: false` in the next-intl routing so an unprefixed URL stays English (no Accept-Language / stale-cookie auto-redirect); manual switching still works.
+
+### Added
+- Optional **Local municipality** field on the business + personal address forms (the picker now captures it separately). New `businesses.municipality` / `host_personal_details.municipality` columns.
+
+### Migrations
+- `20260612000003_business_municipality.sql`
+
+### Commit
+- `fix(location): extract real town, capture municipality separately`
+
+---
+
 ## 2026-06-12 — Phase 2 (Multi-business) — Businesses management centre — branch `main`
 
 ### Built

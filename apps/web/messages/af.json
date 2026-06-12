@@ -357,6 +357,7 @@
     "addrLine2": "Suite / eenheid / gebou",
     "addrCity": "Stad / dorp",
     "addrProvince": "Provinsie",
+    "addrMunicipality": "Plaaslike munisipaliteit",
     "addrPostal": "Poskode",
     "addrCountry": "Land",
     "optional": "opsioneel"

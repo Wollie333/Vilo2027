@@ -367,6 +367,7 @@
     "addrLine2": "Suite / unit / building",
     "addrCity": "City / town",
     "addrProvince": "Province",
+    "addrMunicipality": "Local municipality",
     "addrPostal": "Postal code",
     "addrCountry": "Country",
     "optional": "optional"
