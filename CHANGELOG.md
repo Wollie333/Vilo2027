@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Phase 2 (Multi-business) — Businesses management centre — branch `main`
+
+### Built
+- **New "Businesses" settings tab** (`/dashboard/settings/businesses`) — lists each business as a saved-data card (default badge, address, currency · language, listing count) with Edit, Set-as-default, and Archive (confirm via the canonical Modal). "Add business" → full-page form.
+- **Business add/edit form** — identity (name, legal name, VAT, company reg), the **LocationPicker** address UX (keyless OSM/Photon map + search, reused from the listing editor), default currency (from `DISPLAY_CURRENCIES`) and default language (next-intl `en/af/fr/de/pt`) selects, and a per-business logo uploader.
+- **Per-business banking** — each business's `eft_banking_details` are managed on its detail page; the default account prints on that business's documents. `BankAccountList`/`BankAccountDialog` now take an optional `businessId`.
+- **Private personal-address card** — writes `host_personal_details` via the LocationPicker; clearly labelled "never shown to guests".
+- New `businesses` settings server layer (create/update/archive/set-default, per-business logo, personal address) + `lib/business/resolveBusiness.ts`.
+
+### Changed
+- EFT banking actions are now **business-scoped**: new accounts attach to a chosen business (or the host's default); the per-business default index is honoured.
+- The old "Banking & business" tab is now **"Card payments"** — pared down to the account-wide card gateways (Paystack/PayPal). Business identity + EFT banking moved to the Businesses tab (single source of truth per business).
+- New `settings` + `businesses` i18n namespaces (en + af); SettingsTabs labels wired through next-intl.
+
+### Migrations
+- `20260612000002_help_businesses.sql` (Help Centre article "Managing multiple businesses")
+
+### Notes
+- **Interim window:** financial documents still read the frozen `host_business_details` snapshot until Phase 3 switches them to resolve from the listing's business. Editing a business here updates `businesses`; documents catch up in Phase 3 (which also drops `host_business_details`). No real users, so this window is safe.
+- `BusinessDetailsForm`/`LogoUploader` and the host-level `saveBusinessDetailsAction`/`uploadHostLogoAction` are now unused — removed in Phase 3.
+- `pnpm lint` + `pnpm build` green; the three new routes compile.
+
+### Commit
+- `feat(business): phase 2 — businesses management centre (settings)`
+
+---
+
 ## 2026-06-12 — Phase 1 (Multi-business) — Data foundation — branch `main`
 
 ### Built

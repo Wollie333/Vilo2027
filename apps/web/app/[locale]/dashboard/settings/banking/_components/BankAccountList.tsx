@@ -38,9 +38,12 @@ export type Account = {
 export function BankAccountList({
   accounts,
   onChanged,
+  businessId,
 }: {
   accounts: Account[];
   onChanged?: () => void;
+  /** Attach new accounts to this business. Omit to use the host's default. */
+  businessId?: string;
 }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EditingAccount | null>(null);
@@ -201,6 +204,7 @@ export function BankAccountList({
         editing={editing}
         hasExistingAccounts={accounts.length > 0}
         onChanged={onChanged}
+        businessId={businessId}
       />
     </>
   );

@@ -1,40 +1,47 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 
 type Tab = {
   href: string;
-  label: string;
+  labelKey: string;
   match: "exact" | "prefix";
 };
 
 const TABS: Tab[] = [
-  { href: "/dashboard/settings", label: "Profile", match: "exact" },
+  { href: "/dashboard/settings", labelKey: "tabProfile", match: "exact" },
+  {
+    href: "/dashboard/settings/businesses",
+    labelKey: "tabBusinesses",
+    match: "prefix",
+  },
   {
     href: "/dashboard/settings/banking",
-    label: "Banking & business",
+    labelKey: "tabCardPayments",
     match: "prefix",
   },
   {
     href: "/dashboard/settings/subscription",
-    label: "Subscription",
+    labelKey: "tabSubscription",
     match: "prefix",
   },
   {
     href: "/dashboard/settings/notifications",
-    label: "Notifications",
+    labelKey: "tabNotifications",
     match: "prefix",
   },
   {
     href: "/dashboard/settings/data",
-    label: "Data & privacy",
+    labelKey: "tabData",
     match: "prefix",
   },
 ];
 
 export function SettingsTabs() {
   const pathname = usePathname();
+  const t = useTranslations("settings");
 
   return (
     <nav className="border-b border-brand-line">
@@ -62,7 +69,7 @@ export function SettingsTabs() {
                     : "text-brand-mute hover:text-brand-ink"
                 }`}
               >
-                {tab.label}
+                {t(tab.labelKey)}
                 {isActive ? (
                   <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
                 ) : null}

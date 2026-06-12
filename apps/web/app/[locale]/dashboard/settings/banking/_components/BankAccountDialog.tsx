@@ -59,6 +59,8 @@ type Props = {
   /** Called after a successful create/update (e.g. to refresh a parent that
    *  holds its own copy of the accounts, like the setup wizard). */
   onChanged?: () => void;
+  /** Attach new accounts to this business. Omit to use the host's default. */
+  businessId?: string;
 };
 
 const EMPTY_DEFAULTS: BankAccountInput = {
@@ -80,6 +82,7 @@ export function BankAccountDialog({
   editing,
   hasExistingAccounts,
   onChanged,
+  businessId,
 }: Props) {
   const [pending, start] = useTransition();
   const form = useForm<BankAccountInput>({
@@ -121,7 +124,7 @@ export function BankAccountDialog({
     start(async () => {
       const result = editing
         ? await updateBankAccountAction(editing.id, values)
-        : await createBankAccountAction(values);
+        : await createBankAccountAction(values, businessId);
       if (result.ok) {
         toast.success(editing ? "Bank account updated" : "Bank account added");
         onOpenChange(false);
