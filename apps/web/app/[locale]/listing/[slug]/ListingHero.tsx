@@ -65,43 +65,26 @@ export async function ListingHero({
   const hasReviews = rating != null && reviewCount != null && reviewCount > 0;
 
   return (
-    <section
-      className="relative isolate overflow-hidden text-white"
-      style={{
-        background:
-          "linear-gradient(150deg,#11201A 0%,#0A1410 55%,#06100C 100%)",
-      }}
-    >
-      <div
-        aria-hidden
-        className="dotgrid pointer-events-none absolute inset-0 opacity-[0.16]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 -top-28 h-[26rem] w-[26rem] rounded-full bg-brand-primary/20 blur-[120px]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-brand-secondary/40 blur-[120px]"
-      />
-
+    <section className="relative isolate overflow-hidden bg-white text-brand-ink">
       <div className="relative mx-auto max-w-7xl px-5 pb-[150px] pt-5 sm:pb-[176px] lg:px-8">
-        {/* Breadcrumb */}
+        {/* Breadcrumb — dark trail, green active page. */}
         <nav
           aria-label={t("heroBreadcrumbAria")}
-          className="hscroll flex items-center gap-1.5 overflow-x-auto text-[12px] text-white/60"
+          className="hscroll flex items-center gap-1.5 overflow-x-auto text-[12px] text-brand-mute"
         >
-          <Link href="/" className="shrink-0 hover:text-white">
+          <Link href="/" className="shrink-0 hover:text-brand-ink">
             {brandName}
           </Link>
           {crumbs.map((c) => (
             <span key={c} className="flex shrink-0 items-center gap-1.5">
-              <ChevronRight className="h-3 w-3 opacity-50" />
-              <span className="hover:text-white">{c}</span>
+              <ChevronRight className="h-3 w-3 opacity-60" />
+              <span className="hover:text-brand-ink">{c}</span>
             </span>
           ))}
-          <ChevronRight className="h-3 w-3 shrink-0 opacity-50" />
-          <span className="truncate font-medium text-white">{name}</span>
+          <ChevronRight className="h-3 w-3 shrink-0 opacity-60" />
+          <span className="truncate font-semibold text-brand-primary">
+            {name}
+          </span>
         </nav>
 
         <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-end">
@@ -113,25 +96,25 @@ export async function ListingHero({
                 </span>
               ) : null}
               {isFavourite ? (
-                <span className="inline-flex items-center gap-1 rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
                   <Sparkles className="h-3 w-3" /> {t("heroGuestFavourite")}
                 </span>
               ) : null}
               {instantBooking ? (
-                <span className="inline-flex items-center gap-1 rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white">
+                <span className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-brand-light px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
                   <Zap className="h-3 w-3" /> {t("instantBook")}
                 </span>
               ) : null}
             </div>
 
-            <h1 className="max-w-2xl text-balance font-display text-[30px] font-extrabold leading-[1.03] tracking-tight sm:text-[38px] lg:text-[46px]">
+            <h1 className="max-w-2xl text-balance font-display text-[30px] font-extrabold leading-[1.03] tracking-tight text-brand-ink sm:text-[38px] lg:text-[46px]">
               {name}
             </h1>
 
-            <div className="text-white/72 mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm">
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-brand-mute">
               {hasReviews ? (
-                <span className="inline-flex items-center gap-1.5 text-white">
-                  <Star className="h-4 w-4 fill-white stroke-white" />
+                <span className="inline-flex items-center gap-1.5 text-brand-ink">
+                  <Star className="h-4 w-4 fill-amber-400 stroke-amber-400" />
                   <span className="num font-semibold">
                     {(rating ?? 0).toFixed(2)}
                   </span>
@@ -149,7 +132,7 @@ export async function ListingHero({
                   <MapPin className="h-4 w-4" />
                   <a
                     href="#sec-location"
-                    className="text-white underline underline-offset-2"
+                    className="text-brand-ink underline underline-offset-2"
                   >
                     {locationLabel}
                   </a>
@@ -172,7 +155,7 @@ export async function ListingHero({
                 </span>
               ) : null}
               {isVerified ? (
-                <span className="text-white/72 inline-flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1.5 text-brand-mute">
                   <BadgeCheck className="h-4 w-4 text-brand-primary" />{" "}
                   {t("hlVerifiedTitle")}
                 </span>
@@ -185,13 +168,13 @@ export async function ListingHero({
             <div className="flex items-center gap-2 md:self-end">
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.07] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/[0.14]"
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
               >
                 <Share2 className="h-4 w-4" /> {t("heroShare")}
               </button>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded border border-white/20 bg-white/[0.07] px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/[0.14]"
+                className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-3.5 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-light"
               >
                 <Heart className="h-4 w-4" /> {t("heroSave")}
               </button>
