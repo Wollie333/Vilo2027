@@ -31,6 +31,31 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Phase 1 (Multi-business) — Data foundation — branch `main`
+
+### Built
+- **`businesses` table** — promotes "business" from the 1:1 `host_business_details` extension to a first-class entity (1 host → many businesses). Holds legal/trading name, VAT, company reg, a listing-style address (incl. lat/lng for the LocationPicker), logo, `default_currency`, `default_language`, plus `is_default`/`is_archived`. Partial unique index = one default per host; owner-only RLS.
+- **`host_personal_details`** — private 1:1 table for the account holder's physical address. Internal use only; owner-only RLS, never selected by guest/public paths.
+- **`guest_business_links`** — M:N join (host_contact ↔ business). Keeps one canonical guest record per host while tagging which businesses each guest has engaged.
+
+### Changed
+- `listings.business_id` and `eft_banking_details.business_id` added, NOT NULL, backfilled to each host's default business. Banking's default index moved from per-host to **per-business**.
+- Two invariant triggers: `on_host_created_default_business` (AFTER INSERT ON hosts) and `set_listing_default_business` (BEFORE INSERT ON listings) guarantee every host has a default business and every listing has a `business_id` on all code paths.
+- Backfilled one default business per existing host (mapping `billing_*` → `address_*`), assigned all listings/banking to it, and linked guests to businesses from existing bookings.
+
+### Migrations
+- `20260612000001_multi_business_foundation.sql`
+
+### Notes
+- `host_business_details` is intentionally **kept** as the live read/write source until Phase 3 (documents switch to resolve from the listing's business, then it's dropped).
+- `businesses.default_currency` is the **settlement/listing** default (inherited into `listings.currency`); it does **not** touch the viewer display layer (`vilo_display_ccy` / `displayAmount()`). `default_language` is the per-business locale (next-intl `en/af/fr/de/pt`) for future guest-facing doc/email localization — stored now, wiring owned by the currency/i18n effort.
+- Types regenerated; `pnpm lint` + `pnpm build` green.
+
+### Commit
+- `feat(business): phase 1 — businesses table + listing/banking/guest links + invariant triggers`
+
+---
+
 ## 2026-06-11 — Fix — pets/children SSOT on listing + finish suitability i18n — branch `main`
 
 ### Fixed

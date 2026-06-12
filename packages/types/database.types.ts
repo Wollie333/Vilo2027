@@ -1008,6 +1008,86 @@ export type Database = {
           },
         ]
       }
+      businesses: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          company_registration_number: string | null
+          country: string
+          created_at: string
+          default_currency: string
+          default_language: string
+          host_id: string
+          id: string
+          is_archived: boolean
+          is_default: boolean
+          latitude: number | null
+          legal_name: string | null
+          logo_path: string | null
+          longitude: number | null
+          postal_code: string | null
+          province: string | null
+          trading_name: string | null
+          updated_at: string
+          vat_number: string | null
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_registration_number?: string | null
+          country?: string
+          created_at?: string
+          default_currency?: string
+          default_language?: string
+          host_id: string
+          id?: string
+          is_archived?: boolean
+          is_default?: boolean
+          latitude?: number | null
+          legal_name?: string | null
+          logo_path?: string | null
+          longitude?: number | null
+          postal_code?: string | null
+          province?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_registration_number?: string | null
+          country?: string
+          created_at?: string
+          default_currency?: string
+          default_language?: string
+          host_id?: string
+          id?: string
+          is_archived?: boolean
+          is_default?: boolean
+          latitude?: number | null
+          legal_name?: string | null
+          logo_path?: string | null
+          longitude?: number | null
+          postal_code?: string | null
+          province?: string | null
+          trading_name?: string | null
+          updated_at?: string
+          vat_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "businesses_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_notes: {
         Row: {
           author_id: string | null
@@ -1534,6 +1614,7 @@ export type Database = {
           account_type: string
           bank_name: string
           branch_code: string
+          business_id: string
           created_at: string
           host_id: string
           id: string
@@ -1550,6 +1631,7 @@ export type Database = {
           account_type?: string
           bank_name: string
           branch_code: string
+          business_id: string
           created_at?: string
           host_id: string
           id?: string
@@ -1566,6 +1648,7 @@ export type Database = {
           account_type?: string
           bank_name?: string
           branch_code?: string
+          business_id?: string
           created_at?: string
           host_id?: string
           id?: string
@@ -1577,6 +1660,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "eft_banking_details_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "eft_banking_details_host_id_fkey"
             columns: ["host_id"]
@@ -1778,6 +1868,62 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_business_links: {
+        Row: {
+          business_id: string
+          contact_id: string
+          first_linked_at: string
+          host_id: string
+          id: string
+          source_booking_id: string | null
+        }
+        Insert: {
+          business_id: string
+          contact_id: string
+          first_linked_at?: string
+          host_id: string
+          id?: string
+          source_booking_id?: string | null
+        }
+        Update: {
+          business_id?: string
+          contact_id?: string
+          first_linked_at?: string
+          host_id?: string
+          id?: string
+          source_booking_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_business_links_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_business_links_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "host_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_business_links_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_business_links_source_booking_id_fkey"
+            columns: ["source_booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
@@ -2663,6 +2809,56 @@ export type Database = {
             foreignKeyName: "host_payment_gateways_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      host_personal_details: {
+        Row: {
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          country: string
+          created_at: string
+          host_id: string
+          latitude: number | null
+          longitude: number | null
+          postal_code: string | null
+          province: string | null
+          updated_at: string
+        }
+        Insert: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          host_id: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          country?: string
+          created_at?: string
+          host_id?: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          province?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_personal_details_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: true
             referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
@@ -3868,6 +4064,7 @@ export type Database = {
           bathrooms: number | null
           bedrooms: number | null
           booking_mode: string
+          business_id: string
           cancellation_policy: string
           cancellation_policy_label: string | null
           category_id: string | null
@@ -3941,6 +4138,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           booking_mode?: string
+          business_id: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
           category_id?: string | null
@@ -4014,6 +4212,7 @@ export type Database = {
           bathrooms?: number | null
           bedrooms?: number | null
           booking_mode?: string
+          business_id?: string
           cancellation_policy?: string
           cancellation_policy_label?: string | null
           category_id?: string | null
@@ -4073,6 +4272,13 @@ export type Database = {
           whole_listing_discount_pct?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "listings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "listings_category_id_fkey"
             columns: ["category_id"]
@@ -6884,6 +7090,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      ensure_booking_invoice: {
+        Args: { p_booking_id: string }
+        Returns: undefined
       }
       ensure_host_default_policies: {
         Args: { p_host_id: string }
