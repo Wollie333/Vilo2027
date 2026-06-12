@@ -11,6 +11,12 @@ export const routing = defineRouting({
   locales: ["en", "af", "fr", "de", "pt"],
   defaultLocale: "en",
   localePrefix: "as-needed",
+  // Keep English as the firm default. Without this, next-intl auto-redirects
+  // an unprefixed URL to another locale based on the browser's Accept-Language
+  // header or a stale NEXT_LOCALE cookie (which is why the app was landing on
+  // Afrikaans). Switching language is still explicit — the switcher / a /af URL
+  // loads Afrikaans; we just never auto-detect it.
+  localeDetection: false,
 });
 
 export type Locale = (typeof routing.locales)[number];

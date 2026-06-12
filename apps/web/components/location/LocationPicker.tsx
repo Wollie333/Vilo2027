@@ -348,7 +348,9 @@ export function LocationPicker({
           <ul
             id={`${mapId}-listbox`}
             role="listbox"
-            className="absolute left-0 right-0 top-full z-10 mt-1 max-h-72 overflow-y-auto rounded border border-brand-line bg-white py-1 shadow-lift"
+            // z above Leaflet's panes/controls (which go up to z-index 1000),
+            // or the autocomplete suggestions render hidden behind the map.
+            className="absolute left-0 right-0 top-full z-[1100] mt-1 max-h-72 overflow-y-auto rounded border border-brand-line bg-white py-1 shadow-lift"
           >
             {results.map((f, i) => {
               const { main, secondary } = label(f.properties);
