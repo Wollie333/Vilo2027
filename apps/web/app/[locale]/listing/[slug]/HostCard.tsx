@@ -145,7 +145,7 @@ export async function HostCard({
           ) : null}
           {hasRating ? (
             <div className="flex items-center gap-3">
-              <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+              <Star className="h-4 w-4 fill-amber-400 stroke-amber-400" />
               {t("hostRatingFrom", {
                 rating: (rating ?? 0).toFixed(2),
                 count: reviewCount ?? 0,

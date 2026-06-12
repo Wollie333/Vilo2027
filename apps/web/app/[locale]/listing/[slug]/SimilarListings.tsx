@@ -152,7 +152,7 @@ export async function SimilarListings({
                 </div>
                 {hasRating ? (
                   <div className="inline-flex shrink-0 items-center gap-0.5 text-xs text-brand-ink">
-                    <Star className="h-3.5 w-3.5 fill-brand-ink stroke-brand-ink" />
+                    <Star className="h-3.5 w-3.5 fill-amber-400 stroke-amber-400" />
                     {Number(l.avg_rating).toFixed(2)}
                   </div>
                 ) : null}

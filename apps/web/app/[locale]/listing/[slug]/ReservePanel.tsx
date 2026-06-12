@@ -76,7 +76,7 @@ export async function ReservePanel({
           </div>
           {hasRating ? (
             <div className="flex items-center gap-1 text-sm text-brand-ink">
-              <Star className="h-4 w-4 fill-brand-ink stroke-brand-ink" />
+              <Star className="h-4 w-4 fill-amber-400 stroke-amber-400" />
               <span className="num font-semibold">{rating!.toFixed(2)}</span>
               <span className="text-brand-mute">·</span>
               <span className="num text-brand-mute">{reviewCount}</span>

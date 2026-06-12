@@ -56,7 +56,7 @@ function Stars({
           key={i}
           className={`${className} ${
             i <= filled
-              ? "fill-brand-ink stroke-brand-ink"
+              ? "fill-amber-400 stroke-amber-400"
               : "fill-none stroke-brand-mute/40"
           }`}
         />
@@ -153,7 +153,7 @@ export function ReviewsSection({ data }: { data: ReviewsData }) {
             {data.distribution.map((d) => (
               <div key={d.star} className="flex items-center gap-3 text-xs">
                 <span className="inline-flex w-6 items-center gap-0.5 font-medium text-brand-ink">
-                  <Star className="h-3 w-3 fill-brand-ink stroke-brand-ink" />
+                  <Star className="h-3 w-3 fill-amber-400 stroke-amber-400" />
                   {d.star}
                 </span>
                 <div className="h-1.5 flex-1 overflow-hidden rounded-pill bg-brand-line/40">

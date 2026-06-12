@@ -606,7 +606,7 @@ export default async function HostProfilePage({
                             l.total_reviews != null &&
                             l.total_reviews > 0 ? (
                               <span className="inline-flex items-center gap-1 text-xs text-brand-ink">
-                                <Star className="h-3.5 w-3.5 fill-brand-ink stroke-brand-ink" />
+                                <Star className="h-3.5 w-3.5 fill-amber-400 stroke-amber-400" />
                                 <span className="num font-semibold">
                                   {Number(l.avg_rating).toFixed(2)}
                                 </span>
@@ -628,7 +628,7 @@ export default async function HostProfilePage({
             {reviews.length > 0 ? (
               <section id="reviews" className="scroll-mt-32 pt-10">
                 <div className="mb-1 flex items-center gap-2">
-                  <Star className="h-5 w-5 fill-brand-ink stroke-brand-ink" />
+                  <Star className="h-5 w-5 fill-amber-400 stroke-amber-400" />
                   <h2 className="font-display text-xl font-bold text-brand-ink">
                     {host.avg_rating != null
                       ? `${Number(host.avg_rating).toFixed(2)} · `
@@ -701,7 +701,7 @@ export default async function HostProfilePage({
                               key={i}
                               className={
                                 i < filled
-                                  ? "h-3.5 w-3.5 fill-brand-ink stroke-brand-ink"
+                                  ? "h-3.5 w-3.5 fill-amber-400 stroke-amber-400"
                                   : "h-3.5 w-3.5 fill-brand-line stroke-brand-line"
                               }
                             />
