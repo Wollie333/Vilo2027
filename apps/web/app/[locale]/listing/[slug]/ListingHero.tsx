@@ -29,6 +29,7 @@ export async function ListingHero({
   province,
   city,
   name,
+  typeLabel,
   locationLabel,
   rating,
   reviewCount,
@@ -44,6 +45,7 @@ export async function ListingHero({
   province?: string | null;
   city?: string | null;
   name: string;
+  typeLabel?: string | null;
   locationLabel: string;
   rating: number | null;
   reviewCount: number | null;
@@ -90,6 +92,11 @@ export async function ListingHero({
         <div className="mt-6 flex flex-col gap-6 md:flex-row md:items-end">
           <div className="min-w-0">
             <div className="mb-3 flex flex-wrap items-center gap-2">
+              {typeLabel ? (
+                <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-secondary">
+                  <BedDouble className="h-3 w-3" /> {typeLabel}
+                </span>
+              ) : null}
               {isSuperhost ? (
                 <span className="pill pill-success">
                   <Award className="h-3 w-3" /> {t("heroSuperhost")}

@@ -502,6 +502,7 @@ export default async function ListingDetailPage({
         province={listing.province}
         city={listing.city}
         name={listing.name}
+        typeLabel={typeLabel(listing)}
         locationLabel={locationLabel(listing)}
         rating={listing.avg_rating}
         reviewCount={listing.total_reviews}
