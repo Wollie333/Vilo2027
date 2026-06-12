@@ -27,8 +27,9 @@ export function StepPolicies({
   onChanged,
   onContinue,
 }: Props) {
-  // A refund policy is the one thing we require before publishing.
-  const canContinue = assignments.cancellation != null;
+  // A refund policy AND house rules are both required before continuing.
+  const canContinue =
+    assignments.cancellation != null && assignments.house_rules != null;
 
   return (
     <div className="space-y-8">
@@ -66,7 +67,7 @@ export function StepPolicies({
       <PolicySection
         icon={<ScrollText className="h-4 w-4" />}
         title="House rules"
-        blurb="What guests agree to when they book. Optional, but recommended."
+        blurb="What guests agree to when they book. Required — pick a preset or create your own."
       >
         <PolicyPicker
           listingId={listing.id}
@@ -81,8 +82,8 @@ export function StepPolicies({
       <div className="flex items-center justify-between border-t border-brand-line pt-5">
         <span className="text-xs text-brand-mute">
           {canContinue
-            ? "Refund terms set — you can fine-tune anytime from Policies."
-            : "Pick or create refund terms to continue."}
+            ? "Refund terms + house rules set — fine-tune anytime from Policies."
+            : "Attach refund terms and house rules to continue."}
         </span>
         <button
           type="button"

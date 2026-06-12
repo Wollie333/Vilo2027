@@ -169,6 +169,7 @@ export function SetupWizard(props: Props) {
         photoCount: photos.length,
         roomCount: rooms.filter((r) => r.is_active).length,
         hasCancellationPolicy: policyAssignments.cancellation != null,
+        hasHouseRules: policyAssignments.house_rules != null,
       }),
     [host, bankAccounts, listing, photos, rooms, policyAssignments],
   );

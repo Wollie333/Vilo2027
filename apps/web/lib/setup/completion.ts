@@ -43,6 +43,8 @@ export type SetupCompletionInput = {
    * is only synced for the locked presets — custom policies wouldn't set it.
    */
   hasCancellationPolicy?: boolean;
+  /** A house-rules policy is assigned to the setup listing (listing-wide). */
+  hasHouseRules?: boolean;
 };
 
 export type SetupCompletion = Record<SetupSectionKey, boolean>;
@@ -73,10 +75,12 @@ export function computeSetupCompletion(
   // Policies = a refund policy is set for the listing. With the Policy Manager,
   // refund terms are reusable policies assigned via listing_policies; the
   // legacy enum is only a fallback (synced for presets, not custom policies).
+  // Both a refund policy AND house rules must be attached before publishing.
   const policies = Boolean(
     listing &&
     (input.hasCancellationPolicy === true ||
-      hasText(listing.cancellation_policy)),
+      hasText(listing.cancellation_policy)) &&
+    input.hasHouseRules === true,
   );
 
   const review = Boolean(listing?.is_published);
