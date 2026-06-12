@@ -53,7 +53,6 @@ export async function ThingsToKnow({
   checkOutTimeFallback,
   maxGuests,
   minNights,
-  houseRulesText,
   summary: summaryProp,
 }: {
   listingId: string;
@@ -62,7 +61,6 @@ export async function ThingsToKnow({
   checkOutTimeFallback: string | null;
   maxGuests: number | null;
   minNights: number | null;
-  houseRulesText: string | null;
   summary?: ListingPolicySummary;
 }) {
   const [summary, t] = await Promise.all([
@@ -157,12 +155,6 @@ export async function ThingsToKnow({
                 );
               })}
             </div>
-          ) : null}
-
-          {houseRulesText ? (
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-              {houseRulesText}
-            </p>
           ) : null}
 
           {hrDialog ? (

@@ -929,7 +929,6 @@ async function ListingBody({
               checkOutTimeFallback={listing.check_out_time}
               maxGuests={listing.max_guests}
               minNights={listing.min_nights}
-              houseRulesText={listing.house_rules}
             />
 
             <button

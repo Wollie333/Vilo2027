@@ -160,7 +160,11 @@ export async function HostCard({
           >
             {t("hostViewProfile")}
           </Link>
-          {quoteButton ? <div>{quoteButton}</div> : null}
+          {quoteButton ? (
+            <div className="[&>*]:w-full [&>*]:justify-center">
+              {quoteButton}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
