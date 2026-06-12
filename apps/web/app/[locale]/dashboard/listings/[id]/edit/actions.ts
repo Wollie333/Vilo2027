@@ -94,6 +94,45 @@ export async function saveListingPatchAction(
   return { ok: true };
 }
 
+// Assign the listing to one of the host's businesses. Validated separately from
+// the generic patch so we can enforce that the chosen business belongs to the
+// listing's host (the business drives the listing's invoices/quotes identity).
+export async function assignListingBusinessAction(
+  listingId: string,
+  businessId: string,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data: listing } = await supabase
+    .from("listings")
+    .select("host_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return { ok: false, error: "Listing not found." };
+
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", businessId)
+    .eq("host_id", listing.host_id)
+    .eq("is_archived", false)
+    .maybeSingle();
+  if (!biz) return { ok: false, error: "That business isn't available." };
+
+  const { error } = await supabase
+    .from("listings")
+    .update({ business_id: businessId })
+    .eq("id", listingId);
+  if (error) return { ok: false, error: "Could not assign the business." };
+
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/listings");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
 // ─── Guest access + local picks (Trip Details page) ──────────────
 
 const cleanStr = (v: string | undefined): string | null =>

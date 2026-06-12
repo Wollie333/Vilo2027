@@ -43,6 +43,7 @@ export default async function EditListingPage({
       [
         "id",
         "host_id",
+        "business_id",
         "listing_type",
         "accommodation_type",
         "category_id",
@@ -260,10 +261,22 @@ export default async function EditListingPage({
     distance_label: r.distance_label ?? "",
   }));
 
-  const [categoryLeavesAll, amenityGroups] = await Promise.all([
-    getCategoriesForKind(listing.listing_type),
-    getAmenityCatalog(),
-  ]);
+  const [categoryLeavesAll, amenityGroups, { data: businessRows }] =
+    await Promise.all([
+      getCategoriesForKind(listing.listing_type),
+      getAmenityCatalog(),
+      supabase
+        .from("businesses")
+        .select("id, trading_name, legal_name")
+        .eq("host_id", listing.host_id)
+        .eq("is_archived", false)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: true }),
+    ]);
+  const businesses = (businessRows ?? []).map((b) => ({
+    id: b.id,
+    name: b.trading_name || b.legal_name || "Untitled business",
+  }));
   // Picker only renders leaves (skip the Accommodation root).
   const categoryLeaves = categoryLeavesAll
     .filter((c) => c.parent_id !== null)
@@ -287,6 +300,7 @@ export default async function EditListingPage({
       assignedPolicies={assignedPolicies}
       categoryLeaves={categoryLeaves}
       amenityGroups={amenityGroups}
+      businesses={businesses}
       access={access}
       localPicks={localPicks}
       initialTab={searchParams?.tab}

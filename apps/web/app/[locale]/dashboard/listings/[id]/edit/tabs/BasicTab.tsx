@@ -15,16 +15,18 @@ import {
 import { ListingBasicsForm } from "@/components/listing/ListingBasicsForm";
 import { type CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 
-import { setBookingModeAction } from "../actions";
+import { assignListingBusinessAction, setBookingModeAction } from "../actions";
 import type { EditorListing } from "../Editor";
 import { BOOKING_MODES } from "../schemas";
 
 export function BasicTab({
   listing,
   categoryLeaves,
+  businesses,
 }: {
   listing: EditorListing;
   categoryLeaves: CategoryPickerLeaf[];
+  businesses: { id: string; name: string }[];
 }) {
   return (
     <div className="space-y-6">
@@ -52,8 +54,87 @@ export function BasicTab({
         </CardContent>
       </Card>
 
+      <BusinessCard listing={listing} businesses={businesses} />
       <BookingModeCard listing={listing} />
     </div>
+  );
+}
+
+function BusinessCard({
+  listing,
+  businesses,
+}: {
+  listing: EditorListing;
+  businesses: { id: string; name: string }[];
+}) {
+  const [businessId, setBusinessId] = useState<string>(
+    listing.business_id ?? "",
+  );
+  const [pending, start] = useTransition();
+
+  function save() {
+    start(async () => {
+      const result = await assignListingBusinessAction(listing.id, businessId);
+      if (result.ok) {
+        toast.success("Business updated");
+      } else {
+        toast.error(result.error);
+        setBusinessId(listing.business_id ?? "");
+      }
+    });
+  }
+
+  const dirty = businessId !== (listing.business_id ?? "");
+
+  return (
+    <Card className="rounded-card border-brand-line shadow-card">
+      <CardHeader>
+        <CardTitle className="font-display text-xl font-bold text-brand-dark">
+          Business
+        </CardTitle>
+        <CardDescription className="text-brand-mute">
+          Which of your businesses owns this listing. Its name, VAT, address,
+          banking and currency appear on this listing&rsquo;s quotes and
+          invoices.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="mb-1.5 block text-sm font-medium text-brand-ink">
+              Owning business
+            </label>
+            <select
+              value={businessId}
+              onChange={(e) => setBusinessId(e.target.value)}
+              disabled={pending}
+              className="focus-ring w-full appearance-none rounded border border-brand-line bg-white px-3.5 py-2.5 text-sm text-brand-ink transition"
+            >
+              {businesses.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button
+            type="button"
+            onClick={save}
+            disabled={!dirty || pending}
+            className="gap-1.5"
+          >
+            <Save className="h-4 w-4" />
+            {pending ? "Saving…" : "Save business"}
+          </Button>
+        </div>
+        {businesses.length <= 1 ? (
+          <p className="mt-2 text-xs text-brand-mute">
+            Add more businesses under Settings → Businesses to assign listings
+            to different companies.
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
   );
 }
 

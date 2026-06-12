@@ -49,6 +49,7 @@ import type { LocalPickInput } from "./schemas";
 export type EditorListing = {
   id: string;
   host_id: string;
+  business_id: string | null;
   listing_type: "accommodation";
   accommodation_type: string | null;
   category_id: string | null;
@@ -182,6 +183,7 @@ export function Editor({
   assignedPolicies,
   categoryLeaves,
   amenityGroups,
+  businesses,
   access,
   localPicks,
   initialTab,
@@ -197,6 +199,7 @@ export function Editor({
   assignedPolicies: AssignedPolicy[];
   categoryLeaves: CategoryPickerLeaf[];
   amenityGroups: AmenityGroupWithItems[];
+  businesses: { id: string; name: string }[];
   access: AccessInitial | null;
   localPicks: LocalPickInput[];
   /** Deep-link the editor to a tab (e.g. ?tab=rooms). Falls back to Basic info. */
@@ -532,7 +535,11 @@ export function Editor({
       {/* ============ ACTIVE TAB CONTENT ============ */}
       <div>
         {active === "basic" ? (
-          <BasicTab listing={listing} categoryLeaves={categoryLeaves} />
+          <BasicTab
+            listing={listing}
+            categoryLeaves={categoryLeaves}
+            businesses={businesses}
+          />
         ) : null}
         {active === "photos" ? (
           <PhotosTab

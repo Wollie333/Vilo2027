@@ -31,6 +31,27 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — Phase 3a + Phase 4 (Multi-business) — docs resolve from business; listing→business assignment — branch `main`
+
+### Built (Phase 4)
+- **Business selector in the listing editor** (Basic info tab) — assign a listing to any of the host's businesses. New `assignListingBusinessAction` validates the chosen business belongs to the listing's host. The owning business's identity/banking/currency then drive that listing's quotes + invoices.
+
+### Built (Phase 3a — documents resolve from the listing's business)
+- `ensure_booking_invoice` (`20260612000004`) snapshots the booking's listing → business identity + that business's default banking (same `host_snapshot` keys → PDF templates untouched).
+- `getHostParty` + `hostLogoDataUri` now read the `businesses` table (+ business banking/logo) with a default-business fallback and accept a `businessId`.
+- Invoice, credit-note, quote, pay and receipt pages — plus both quote PDF routes — pin the document's listing business, so a guest sees the right company, banking and logo.
+
+### Migrations
+- `20260612000004_invoice_business_source.sql`
+
+### Notes
+- Deferred to 3b (cosmetic/cleanup): per-business document numbering, addon-invoice business snapshot, dropping the now-dead `host_business_details`.
+
+### Commit
+- `feat(business): phase 4 — assign listings to a business`
+
+---
+
 ## 2026-06-12 — Fix/polish — Businesses card: set-default refresh, banking pill, logo — branch `main`
 
 ### Fixed
