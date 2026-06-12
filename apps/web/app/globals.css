@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Required-field validation, app-wide. Any form control marked
+   aria-invalid="true" gets a red border + red focus ring. shadcn's FormControl
+   sets aria-invalid automatically on RHF errors; the Field / FormField wrappers
+   (signup + dashboard) set it on a failed submit. Unlayered so it reliably
+   beats the inputs' own Tailwind border utilities. */
+input[aria-invalid="true"]:not([type="checkbox"]):not([type="radio"]),
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #dc2626 !important;
+}
+input[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 4px rgb(220 38 38 / 0.18) !important;
+  outline: none;
+}
+
 /* Thin, subtle scrollbar for the sidebar and internal scroll areas. */
 .thin-scroll {
   scrollbar-width: thin;

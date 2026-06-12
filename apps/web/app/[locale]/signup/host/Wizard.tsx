@@ -15,7 +15,14 @@ import {
   Upload,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
@@ -1142,7 +1149,7 @@ function StepListing({
 
       <div className="mt-7 space-y-6">
         <div className="grid gap-4 md:grid-cols-2">
-          <FormField label="Listing name" error={errors.listingName}>
+          <FormField label="Listing name" required error={errors.listingName}>
             <TextInput
               value={data.listingName}
               onChange={(e) => patch({ listingName: e.target.value })}
@@ -1150,7 +1157,7 @@ function StepListing({
             />
           </FormField>
 
-          <FormField label="Property type" error={errors.category_id}>
+          <FormField label="Property type" required error={errors.category_id}>
             <SelectInput
               value={data.categoryId ?? ""}
               onChange={(e) => {
@@ -1212,7 +1219,11 @@ function StepListing({
             }}
           />
 
-          <FormField label="Street address" error={errors.addressLine1}>
+          <FormField
+            label="Street address"
+            required
+            error={errors.addressLine1}
+          >
             <TextInput
               value={data.addressLine1}
               onChange={(e) => patch({ addressLine1: e.target.value })}
@@ -1232,7 +1243,7 @@ function StepListing({
           </FormField>
 
           <div className="grid gap-3 md:grid-cols-2">
-            <FormField label="City / town" error={errors.city}>
+            <FormField label="City / town" required error={errors.city}>
               <TextInput
                 value={data.city}
                 onChange={(e) => patch({ city: e.target.value })}
@@ -1253,7 +1264,7 @@ function StepListing({
               </SelectInput>
             </FormField>
 
-            <FormField label="Postal code" error={errors.postalCode}>
+            <FormField label="Postal code" required error={errors.postalCode}>
               <TextInput
                 value={data.postalCode}
                 onChange={(e) => patch({ postalCode: e.target.value })}
@@ -1632,24 +1643,37 @@ function FormField({
   label,
   hint,
   optional,
+  required,
   error,
   children,
 }: {
   label: string;
   hint?: string;
   optional?: boolean;
+  required?: boolean;
   error?: string;
   children: React.ReactNode;
 }) {
+  // On a failed submit, mark the control invalid so it gets the red border
+  // (styled app-wide via the [aria-invalid] rule in globals.css).
+  const control =
+    error && isValidElement(children)
+      ? cloneElement(children as React.ReactElement, { "aria-invalid": true })
+      : children;
   return (
     <div>
       <label className="mb-1.5 block text-sm font-medium text-brand-ink">
         {label}
+        {required ? (
+          <span className="ml-0.5 text-red-600" aria-hidden>
+            *
+          </span>
+        ) : null}
         {optional ? (
           <span className="ml-1 font-normal text-brand-mute">(optional)</span>
         ) : null}
       </label>
-      {children}
+      {control}
       {error ? (
         <div className="mt-1.5 text-xs text-red-600">{error}</div>
       ) : hint ? (

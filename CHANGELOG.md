@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — UX — App-wide required-field validation highlight — branch `main`
+
+### Built
+- **Red border on invalid fields, app-wide.** A global `[aria-invalid="true"]` CSS rule in `globals.css` styles any invalid form control. shadcn's `FormControl` already sets `aria-invalid` on RHF errors, so all dialog/RHF forms get it automatically; the signup `FormField` and dashboard `Field` wrappers now inject `aria-invalid` on the child control when a submit fails.
+- **Required-field star.** `FormField`/`Field` show a red `*` when `required`. Marked the required signup step-3 fields (listing name, property type, street, city, postal).
+
+### Notes
+- Mechanism is now app-wide; individual forms should pass `required` to mark their required fields (the star) — the red-border-on-submit works wherever a field error is surfaced.
+
+### Commit
+- `feat(ux): app-wide required-field star + red invalid border`
+
+---
+
 ## 2026-06-12 — Phase 5 (Multi-business) — Signup step 3: LocationPicker + seed the first business — branch `main`
 
 ### Built

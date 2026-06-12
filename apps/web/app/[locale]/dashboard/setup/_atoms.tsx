@@ -5,7 +5,7 @@
 // "Setup Flow" design (focus-ring inputs, brand pick-cards).
 
 import { Check, ChevronDown, Minus, Pencil, Plus } from "lucide-react";
-import { forwardRef } from "react";
+import { cloneElement, forwardRef, isValidElement } from "react";
 
 export function Field({
   label,
@@ -37,7 +37,11 @@ export function Field({
           ) : null}
         </label>
       ) : null}
-      {children}
+      {/* On error, mark the control invalid so it gets the app-wide red border
+          (styled via the [aria-invalid] rule in globals.css). */}
+      {error && isValidElement(children)
+        ? cloneElement(children as React.ReactElement, { "aria-invalid": true })
+        : children}
       {hint && !error ? (
         <div className="mt-1.5 text-xs text-brand-mute">{hint}</div>
       ) : null}
