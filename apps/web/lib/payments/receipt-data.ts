@@ -66,7 +66,7 @@ export async function getReceiptByToken(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, host_id, reference, balance_due, check_in, check_out, guest_id, guest_name, guest_email, guest_phone, listing:listings ( name )",
+      "id, host_id, reference, balance_due, check_in, check_out, guest_id, guest_name, guest_email, guest_phone, listing:listings ( name, business_id )",
     )
     .eq("id", p.booking_id)
     .maybeSingle();
@@ -111,11 +111,18 @@ export async function getReceiptByToken(
     phone: b.guest_phone ?? undefined,
   };
 
-  const listingName = Array.isArray(b.listing)
-    ? (b.listing[0] as { name?: string } | undefined)?.name
-    : (b.listing as { name?: string } | null)?.name;
+  const bListing = Array.isArray(b.listing) ? b.listing[0] : b.listing;
+  const listingName = (bListing as { name?: string } | null)?.name;
+  const bBusinessId =
+    (bListing as { business_id?: string | null } | null)?.business_id ?? null;
 
-  const party = await getHostParty(admin, b.host_id, b.reference ?? null);
+  const party = await getHostParty(
+    admin,
+    b.host_id,
+    b.reference ?? null,
+    undefined,
+    bBusinessId,
+  );
 
   return {
     party,

@@ -44,6 +44,7 @@ function fmtDate(iso: string | null): string {
 type ListingSnap = {
   name: string;
   host_id: string;
+  business_id: string | null;
   city: string | null;
   province: string | null;
   listing_photos: { url: string; sort_order: number }[] | null;
@@ -62,7 +63,7 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, city, province, listing_photos ( url, sort_order ) )",
+      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, business_id, city, province, listing_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -130,7 +131,13 @@ export default async function PayPage({
   const hostPaystack = payable ? await getHostPaystack(listing.host_id) : null;
   const hasCard = !!hostPaystack;
   const party = payable
-    ? await getHostParty(admin, listing.host_id, booking.reference)
+    ? await getHostParty(
+        admin,
+        listing.host_id,
+        booking.reference,
+        undefined,
+        listing.business_id,
+      )
     : null;
 
   // EFT only appears when the HOST chose EFT for this booking — otherwise this

@@ -68,7 +68,7 @@ export default async function PublicQuotePage({
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until,
-      listing:listings ( name )
+      listing:listings ( name, business_id )
     `,
     )
     .eq("id", params.id)
@@ -89,11 +89,21 @@ export default async function PublicQuotePage({
     .eq("quote_id", params.id)
     .order("sort_order");
 
-  const listingName = Array.isArray(quote.listing)
-    ? quote.listing[0]?.name
-    : (quote.listing as { name?: string } | null)?.name;
+  const quoteListing = Array.isArray(quote.listing)
+    ? quote.listing[0]
+    : quote.listing;
+  const listingName = (quoteListing as { name?: string } | null)?.name;
+  const quoteBusinessId =
+    (quoteListing as { business_id?: string | null } | null)?.business_id ??
+    null;
 
-  const party = await getHostParty(supabase, quote.host_id);
+  const party = await getHostParty(
+    supabase,
+    quote.host_id,
+    null,
+    undefined,
+    quoteBusinessId,
+  );
   const c = quote.currency;
 
   const expired =

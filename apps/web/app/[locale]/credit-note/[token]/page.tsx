@@ -39,12 +39,19 @@ export default async function PublicCreditNotePage({
   const { data: cn } = await admin
     .from("credit_notes")
     .select(
-      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number )",
+      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number ), booking:bookings ( listing:listings ( business_id ) )",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();
 
   if (!cn) notFound();
+
+  const cnBooking = Array.isArray(cn.booking) ? cn.booking[0] : cn.booking;
+  const cnListing = Array.isArray(cnBooking?.listing)
+    ? cnBooking?.listing[0]
+    : cnBooking?.listing;
+  const cnBusinessId =
+    (cnListing as { business_id?: string | null } | null)?.business_id ?? null;
 
   const guest = cn.guest_snapshot as GuestSnap;
   const lines = (cn.line_items as CnLine[]) ?? [];
@@ -54,7 +61,7 @@ export default async function PublicCreditNotePage({
     (cn.invoice as unknown as { invoice_number?: string } | null)
       ?.invoice_number ?? null;
   const [party, brandName] = await Promise.all([
-    getHostParty(admin, cn.host_id),
+    getHostParty(admin, cn.host_id, null, undefined, cnBusinessId),
     getBrandName(),
   ]);
 

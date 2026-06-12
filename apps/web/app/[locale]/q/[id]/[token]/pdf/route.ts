@@ -67,7 +67,7 @@ export async function GET(
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason, notes, host_id,
-      listing:listings ( name ),
+      listing:listings ( name, business_id ),
       host:hosts ( id, display_name, handle, user_id )
     `,
     )
@@ -81,7 +81,9 @@ export async function GET(
 
   const listingObj = Array.isArray(quote.listing)
     ? quote.listing[0]
-    : (quote.listing as { name?: string } | null);
+    : (quote.listing as { name?: string; business_id?: string | null } | null);
+  const businessId =
+    (listingObj as { business_id?: string | null } | null)?.business_id ?? null;
   const hostObj = Array.isArray(quote.host)
     ? quote.host[0]
     : (quote.host as {
@@ -107,23 +109,24 @@ export async function GET(
 
   let banking: QuoteBanking | null = null;
   let business: QuoteBusiness | null = null;
-  if (quote.host_id) {
+  if (businessId) {
     const [{ data: bank }, { data: biz }] = await Promise.all([
       admin
         .from("eft_banking_details")
         .select(
           "bank_name, account_holder, account_number, account_type, branch_code, swift_code",
         )
-        .eq("host_id", quote.host_id)
+        .eq("business_id", businessId)
         .eq("is_default", true)
         .eq("is_archived", false)
         .maybeSingle(),
+      // Alias the businesses columns to the billing_* keys shapeBusiness expects.
       admin
-        .from("host_business_details")
+        .from("businesses")
         .select(
-          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
+          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1:address_line1, billing_address_line2:address_line2, billing_city:city, billing_postcode:postal_code, billing_country:country",
         )
-        .eq("host_id", quote.host_id)
+        .eq("id", businessId)
         .maybeSingle(),
     ]);
     if (bank?.account_number) {
@@ -239,7 +242,9 @@ export async function GET(
     total: quote.total_amount,
     currency: quote.currency,
     notes: quote.notes,
-    logoUrl: quote.host_id ? await hostLogoDataUri(quote.host_id) : null,
+    logoUrl: quote.host_id
+      ? await hostLogoDataUri(quote.host_id, businessId)
+      : null,
     brandName: await getBrandName(),
   });
 

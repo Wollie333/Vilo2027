@@ -75,7 +75,7 @@ export async function GET(
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason,
       notes,
-      listing:listings ( name ),
+      listing:listings ( name, business_id ),
       host:hosts!inner ( id, display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
     `,
     )
@@ -89,7 +89,9 @@ export async function GET(
   // object or an array depending on hint resolution; normalise both shapes).
   const listingObj = Array.isArray(quote.listing)
     ? quote.listing[0]
-    : (quote.listing as { name?: string } | null);
+    : (quote.listing as { name?: string; business_id?: string | null } | null);
+  const businessId =
+    (listingObj as { business_id?: string | null } | null)?.business_id ?? null;
   const hostObj = Array.isArray(quote.host)
     ? quote.host[0]
     : (quote.host as {
@@ -182,23 +184,24 @@ export async function GET(
   // ownership of the quote above.
   let banking: QuoteBanking | null = null;
   let business: QuoteBusiness | null = null;
-  if (hostObj.id) {
+  if (businessId) {
     const [{ data: bank }, { data: biz }] = await Promise.all([
       supabase
         .from("eft_banking_details")
         .select(
           "bank_name, account_holder, account_number, account_type, branch_code, swift_code",
         )
-        .eq("host_id", hostObj.id)
+        .eq("business_id", businessId)
         .eq("is_default", true)
         .eq("is_archived", false)
         .maybeSingle(),
+      // Alias the businesses columns to the billing_* keys shapeBusiness expects.
       supabase
-        .from("host_business_details")
+        .from("businesses")
         .select(
-          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1, billing_address_line2, billing_city, billing_postcode, billing_country",
+          "legal_name, trading_name, vat_number, company_registration_number, billing_address_line1:address_line1, billing_address_line2:address_line2, billing_city:city, billing_postcode:postal_code, billing_country:country",
         )
-        .eq("host_id", hostObj.id)
+        .eq("id", businessId)
         .maybeSingle(),
     ]);
 
@@ -314,7 +317,7 @@ export async function GET(
     total: doc.total,
     currency: doc.currency,
     notes: doc.notes,
-    logoUrl: await hostLogoDataUri(hostObj.id),
+    logoUrl: await hostLogoDataUri(hostObj.id, businessId),
     brandName: await getBrandName(),
   });
 

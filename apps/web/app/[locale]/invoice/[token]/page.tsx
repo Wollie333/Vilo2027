@@ -86,22 +86,27 @@ export default async function PublicInvoicePage({
   let bookingRef: string | null = null;
   let bookingVatRate = 0;
   let listingVatNumber: string | null | undefined = undefined;
+  let businessId: string | null = null;
   if (invoice.booking_id) {
     const { data: b } = await admin
       .from("bookings")
-      .select("reference, vat_rate, listing:listings ( vat_number )")
+      .select(
+        "reference, vat_rate, listing:listings ( vat_number, business_id )",
+      )
       .eq("id", invoice.booking_id)
       .maybeSingle();
     bookingRef = b?.reference ?? null;
     bookingVatRate = Number(b?.vat_rate ?? 0);
     const lst = Array.isArray(b?.listing) ? b?.listing[0] : b?.listing;
     listingVatNumber = (lst as { vat_number?: string | null })?.vat_number;
+    businessId = (lst as { business_id?: string | null })?.business_id ?? null;
   }
   const party = await getHostParty(
     admin,
     invoice.host_id,
     bookingRef,
     listingVatNumber,
+    businessId,
   );
 
   // Line items.
