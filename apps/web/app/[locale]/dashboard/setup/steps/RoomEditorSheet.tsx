@@ -1,10 +1,21 @@
 "use client";
 
-import { ImageIcon, Settings, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  ImageIcon,
+  Settings,
+  Sparkles,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 
 import { fetchRoomEditorDataAction } from "../../listings/[id]/edit/actions";
 import type { RoomEditorRoom } from "../../listings/[id]/edit/rooms/[roomId]/RoomEditor";
@@ -12,12 +23,12 @@ import { RoomAmenitiesSection } from "../../listings/[id]/edit/rooms/[roomId]/se
 import { RoomDetailsForm } from "../../listings/[id]/edit/rooms/[roomId]/sections/RoomDetailsForm";
 import { RoomPhotosSection } from "../../listings/[id]/edit/rooms/[roomId]/sections/RoomPhotosSection";
 
-type TabId = "details" | "photos" | "amenities";
+type StepId = 1 | 2 | 3;
 
-const TABS: { id: TabId; label: string; icon: typeof Settings }[] = [
-  { id: "details", label: "Details", icon: Settings },
-  { id: "photos", label: "Photos", icon: ImageIcon },
-  { id: "amenities", label: "Amenities", icon: Sparkles },
+const STEPS: { id: StepId; label: string; icon: typeof Settings }[] = [
+  { id: 1, label: "Details", icon: Settings },
+  { id: 2, label: "Photos", icon: ImageIcon },
+  { id: 3, label: "Amenities", icon: Sparkles },
 ];
 
 // Blank room used to seed RoomDetailsForm in create mode.
@@ -73,7 +84,7 @@ export function RoomEditorSheet({
   const [room, setRoom] = useState<RoomEditorRoom | null>(null);
   const [photos, setPhotos] = useState<{ id: string; url: string }[]>([]);
   const [amenityKeys, setAmenityKeys] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<TabId>("details");
+  const [step, setStep] = useState<StepId>(1);
   const [loading, setLoading] = useState(false);
 
   function loadRoom(id: string) {
@@ -90,10 +101,10 @@ export function RoomEditorSheet({
     });
   }
 
-  // Load (edit) or reset (create) whenever the sheet opens / target changes.
+  // Load (edit) or reset (create) whenever the modal opens / target changes.
   useEffect(() => {
     if (!open) return;
-    setActiveTab("details");
+    setStep(1);
     if (roomId) {
       loadRoom(roomId);
     } else {
@@ -110,137 +121,131 @@ export function RoomEditorSheet({
     onOpenChange(false);
   }
 
-  const tabCounts: Record<TabId, string | null> = {
-    details: null,
-    photos: String(photos.length),
-    amenities: String(amenityKeys.length),
-  };
+  const stepLabel = STEPS.find((s) => s.id === step)?.label ?? "";
 
   return (
-    <Sheet
+    <FormModal
       open={open}
       onOpenChange={(next) => {
         if (!next) onChanged();
         onOpenChange(next);
       }}
+      title={room ? room.name || "Edit room" : "Add a room"}
+      description={`Step ${step} of 3 · ${stepLabel}`}
+      size="lg"
     >
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto bg-brand-light p-0 sm:max-w-2xl"
-      >
-        <div className="border-b border-brand-line bg-white px-6 py-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-            {room ? "Edit room" : "Add a room"}
-          </div>
-          <h2 className="mt-0.5 font-display text-xl font-bold text-brand-ink">
-            {room ? room.name || "Room" : "New room"}
-          </h2>
-          <p className="mt-0.5 text-xs text-brand-mute">
-            Set it up exactly like the rooms page — details, photos and per-room
-            amenities. Create the room first, then add a featured photo and
-            gallery.
-          </p>
-        </div>
-
-        <div className="space-y-5 p-5">
-          {loading ? (
-            <div className="py-16 text-center text-sm text-brand-mute">
-              Loading room…
+      {/* Stepper — three steps; 2 & 3 unlock once the room exists. */}
+      <div className="mb-5 flex items-center gap-1">
+        {STEPS.map((s, i) => {
+          const reachable = !!room || s.id === 1;
+          const isCurrent = s.id === step;
+          const isDone = !!room && s.id < step;
+          const Icon = s.icon;
+          return (
+            <div key={s.id} className="flex flex-1 items-center gap-1">
+              <button
+                type="button"
+                disabled={!reachable}
+                onClick={() => reachable && setStep(s.id)}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-card border px-2 py-2 text-[12px] font-semibold transition ${
+                  isCurrent
+                    ? "border-brand-primary bg-brand-accent text-brand-secondary"
+                    : isDone
+                      ? "border-brand-primary/40 bg-white text-brand-secondary"
+                      : "border-brand-line bg-white text-brand-mute"
+                } ${reachable ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+              >
+                {isDone ? (
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                ) : (
+                  <Icon className="h-3.5 w-3.5" />
+                )}
+                {s.id}. {s.label}
+              </button>
+              {i < STEPS.length - 1 ? (
+                <span className="h-px w-2 shrink-0 bg-brand-line" />
+              ) : null}
             </div>
-          ) : !room ? (
-            // Create the room with the SAME form used to edit it. Photos /
-            // amenities unlock once the room exists (they attach to a room id).
-            <RoomDetailsForm
-              listingId={listingId}
-              mode="create"
-              room={BLANK_ROOM}
-              onCreated={(id) => {
-                loadRoom(id);
-                onChanged();
-              }}
-            />
-          ) : (
-            <>
-              {/* Tab bar */}
-              <div className="flex items-center gap-0.5 overflow-x-auto rounded-card border border-brand-line bg-white p-1.5 shadow-card">
-                {TABS.map((tab) => {
-                  const Icon = tab.icon;
-                  const active = activeTab === tab.id;
-                  const count = tabCounts[tab.id];
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] transition-colors ${
-                        active
-                          ? "bg-brand-accent font-semibold text-brand-secondary"
-                          : "font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-                      }`}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {tab.label}
-                      {count !== null ? (
-                        <span
-                          className={`rounded-pill px-1.5 py-0.5 text-[9.5px] font-bold ${
-                            active
-                              ? "bg-white/80 text-brand-secondary"
-                              : "bg-brand-line text-brand-mute"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
+          );
+        })}
+      </div>
 
-              {activeTab === "details" ? (
-                <RoomDetailsForm
-                  listingId={listingId}
-                  room={room}
-                  onSaved={(patch) =>
-                    setRoom((r) => (r ? { ...r, ...patch } : r))
-                  }
-                />
-              ) : null}
-
-              {activeTab === "photos" ? (
-                <RoomPhotosSection
-                  listingId={listingId}
-                  roomId={room.id}
-                  featuredPhotoId={room.featured_photo_id}
-                  photos={photos}
-                  onPhotosChange={setPhotos}
-                  onFeaturedChange={(id) =>
-                    setRoom((r) => (r ? { ...r, featured_photo_id: id } : r))
-                  }
-                />
-              ) : null}
-
-              {activeTab === "amenities" ? (
-                <RoomAmenitiesSection
-                  listingId={listingId}
-                  roomId={room.id}
-                  amenityKeys={amenityKeys}
-                  onChange={setAmenityKeys}
-                />
-              ) : null}
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={close}
-                  className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
-                >
-                  Done
-                </button>
-              </div>
-            </>
-          )}
+      {loading ? (
+        <div className="py-16 text-center text-sm text-brand-mute">
+          Loading room…
         </div>
-      </SheetContent>
-    </Sheet>
+      ) : !room ? (
+        // Step 1, create: same form used to edit. Creating the room unlocks
+        // photos + amenities (they attach to a room id) and advances to step 2.
+        <RoomDetailsForm
+          listingId={listingId}
+          mode="create"
+          room={BLANK_ROOM}
+          onCreated={(id) => {
+            loadRoom(id);
+            onChanged();
+            setStep(2);
+          }}
+        />
+      ) : step === 1 ? (
+        <RoomDetailsForm
+          listingId={listingId}
+          room={room}
+          onSaved={(patch) => setRoom((r) => (r ? { ...r, ...patch } : r))}
+        />
+      ) : step === 2 ? (
+        <RoomPhotosSection
+          listingId={listingId}
+          roomId={room.id}
+          featuredPhotoId={room.featured_photo_id}
+          photos={photos}
+          onPhotosChange={setPhotos}
+          onFeaturedChange={(id) =>
+            setRoom((r) => (r ? { ...r, featured_photo_id: id } : r))
+          }
+        />
+      ) : (
+        <RoomAmenitiesSection
+          listingId={listingId}
+          roomId={room.id}
+          amenityKeys={amenityKeys}
+          onChange={setAmenityKeys}
+        />
+      )}
+
+      <FormModalFooter>
+        {room && step > 1 ? (
+          <button
+            type="button"
+            onClick={() => setStep((s) => (s > 1 ? ((s - 1) as StepId) : s))}
+            className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-light"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+        ) : (
+          <FormModalCancel>Cancel</FormModalCancel>
+        )}
+
+        {room ? (
+          step < 3 ? (
+            <button
+              type="button"
+              onClick={() => setStep((s) => (s < 3 ? ((s + 1) as StepId) : s))}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              Next <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={close}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              <Check className="h-4 w-4" /> Save room
+            </button>
+          )
+        ) : null}
+      </FormModalFooter>
+    </FormModal>
   );
 }
