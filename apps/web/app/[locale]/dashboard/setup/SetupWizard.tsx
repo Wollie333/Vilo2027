@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ArrowRight,
   BedDouble,
   Check,
   CreditCard,
@@ -21,6 +20,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { computeSetupCompletion } from "@/lib/setup/completion";
 
 import type { Account } from "@/app/[locale]/dashboard/settings/banking/_components/BankAccountList";
@@ -150,6 +150,16 @@ export function SetupWizard(props: Props) {
   const [showConfetti, setShowConfetti] = useState(false);
   const [publishing, startPublish] = useTransition();
 
+  // Route every step's post-save refresh through a transition so a full-screen
+  // "Saving…" overlay stays up until the refreshed UI actually commits — no
+  // more "did it work?" dead time after a save.
+  const [refreshing, startRefresh] = useTransition();
+  const [busyLabel, setBusyLabel] = useState("Saving…");
+  function refreshWith(label: string) {
+    setBusyLabel(label);
+    startRefresh(() => router.refresh());
+  }
+
   const done = useMemo(
     () =>
       computeSetupCompletion({
@@ -180,7 +190,6 @@ export function SetupWizard(props: Props) {
   const [maxReached, setMaxReached] = useState(startIndex);
   const cur = SECTIONS[current];
   const isReview = cur.key === "review";
-  const canContinue = !cur.required || done[cur.key];
 
   function goTo(i: number) {
     if (i < 0 || i >= SECTIONS.length || i > maxReached) return;
@@ -346,7 +355,7 @@ export function SetupWizard(props: Props) {
               <StepBanking
                 accounts={bankAccounts}
                 businessDefaults={businessDefaults}
-                onChanged={() => router.refresh()}
+                onChanged={() => refreshWith("Saving your details…")}
                 onContinue={next}
               />
             ) : null}
@@ -369,7 +378,7 @@ export function SetupWizard(props: Props) {
               <StepRooms
                 listingId={listing.id}
                 rooms={rooms}
-                onChanged={() => router.refresh()}
+                onChanged={() => refreshWith("Saving your room…")}
                 onContinue={next}
               />
             ) : null}
@@ -378,7 +387,7 @@ export function SetupWizard(props: Props) {
                 listing={listing}
                 policies={policies}
                 assignments={policyAssignments}
-                onChanged={() => router.refresh()}
+                onChanged={() => refreshWith("Saving your policy…")}
                 onContinue={next}
               />
             ) : null}
@@ -386,7 +395,8 @@ export function SetupWizard(props: Props) {
         </section>
       )}
 
-      {/* footer nav */}
+      {/* footer nav — a single global Back (each step owns its own forward
+          "Continue"/"Save & continue" button); the review step adds Publish. */}
       <div className="mt-6 flex items-center gap-3">
         <button
           type="button"
@@ -396,43 +406,28 @@ export function SetupWizard(props: Props) {
         >
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <div className="ml-auto flex items-center gap-3">
-          {!canContinue && !isReview ? (
-            <span className="hidden text-[12px] font-medium text-status-pending sm:inline">
-              Complete this step to continue
-            </span>
-          ) : null}
-          {isReview ? (
-            <button
-              type="button"
-              onClick={publish}
-              disabled={publishing}
-              className={`inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
-                ready
-                  ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
-                  : "cursor-not-allowed bg-brand-mute/60"
-              }`}
-            >
-              <Rocket className="h-4 w-4" />
-              {publishing
-                ? "Publishing…"
-                : ready
-                  ? "Publish listing"
-                  : "Finish required steps"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={next}
-              disabled={!canContinue}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] transition hover:bg-brand-secondary disabled:cursor-not-allowed disabled:bg-brand-mute/50 disabled:shadow-none"
-            >
-              Save &amp; continue <ArrowRight className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        {isReview ? (
+          <button
+            type="button"
+            onClick={publish}
+            disabled={publishing}
+            className={`ml-auto inline-flex items-center gap-1.5 rounded-pill px-5 py-2.5 text-[14px] font-semibold text-white transition ${
+              ready
+                ? "bg-brand-primary shadow-[0_10px_24px_-10px_rgba(16,185,129,.7)] hover:bg-brand-secondary"
+                : "cursor-not-allowed bg-brand-mute/60"
+            }`}
+          >
+            <Rocket className="h-4 w-4" />
+            {publishing
+              ? "Publishing…"
+              : ready
+                ? "Publish listing"
+                : "Finish required steps"}
+          </button>
+        ) : null}
       </div>
 
+      <BusyOverlay show={refreshing} label={busyLabel} />
       {showConfetti ? <Confetti /> : null}
       {published ? (
         <PublishedModal

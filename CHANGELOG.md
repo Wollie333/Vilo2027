@@ -31,6 +31,18 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-12 — UX — Finish-setup: single nav + instant "Saving…" feedback — branch `main`
+
+### Fixed
+- **Duplicate Continue/Back buttons** in the finish-setup flow — the wizard footer now shows a single global **Back** (+ Publish on the review step); each step keeps its own contextual Continue/Save.
+- **Stuck-feeling saves.** New reusable `BusyOverlay`; step saves route their refresh through a transition so a "Saving your details/room/policy…" overlay stays up until the refreshed UI commits.
+- **Bank accounts now refresh immediately** on the per-business detail page (previously needed a reload) — `BankAccountList` self-refreshes when no parent `onChanged` is supplied, and shows the overlay. Businesses list set-default/archive show it too.
+
+### Commit
+- `feat(ux): single setup nav + BusyOverlay for instant save feedback`
+
+---
+
 ## 2026-06-12 — Fix — Finish-setup seeds business details from the default business — branch `main`
 
 ### Fixed

@@ -12,6 +12,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -227,6 +228,8 @@ export function BusinessesList({
           },
         ]}
       />
+
+      <BusyOverlay show={pending} label="Updating…" />
     </>
   );
 }

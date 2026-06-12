@@ -1,10 +1,12 @@
 "use client";
 
 import { Landmark, MoreVertical, Plus, ShieldCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { BusyOverlay } from "@/components/ui/BusyOverlay";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,9 +47,18 @@ export function BankAccountList({
   /** Attach new accounts to this business. Omit to use the host's default. */
   businessId?: string;
 }) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EditingAccount | null>(null);
   const [pending, start] = useTransition();
+
+  // When a parent passes onChanged it owns the refresh (+ its own overlay);
+  // otherwise (e.g. the per-business detail page) we refresh ourselves so the
+  // list updates immediately instead of needing a reload.
+  function afterChange() {
+    if (onChanged) onChanged();
+    else start(() => router.refresh());
+  }
 
   function openAdd() {
     setEditing(null);
@@ -64,7 +75,7 @@ export function BankAccountList({
       const result = await setDefaultBankAccountAction(id);
       if (result.ok) {
         toast.success("Default account updated");
-        onChanged?.();
+        afterChange();
       } else toast.error(result.error);
     });
   }
@@ -74,7 +85,7 @@ export function BankAccountList({
       const result = await archiveBankAccountAction(id);
       if (result.ok) {
         toast.success("Account archived");
-        onChanged?.();
+        afterChange();
       } else toast.error(result.error);
     });
   }
@@ -203,9 +214,11 @@ export function BankAccountList({
         onOpenChange={setDialogOpen}
         editing={editing}
         hasExistingAccounts={accounts.length > 0}
-        onChanged={onChanged}
+        onChanged={afterChange}
         businessId={businessId}
       />
+
+      <BusyOverlay show={pending && !onChanged} label="Saving account…" />
     </>
   );
 }
