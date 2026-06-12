@@ -146,7 +146,11 @@ export async function ThingsToKnow({
                 return (
                   <span
                     key={c.key}
-                    className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2.5 py-1 text-[11px] text-brand-secondary"
+                    className={`inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] ${
+                      c.positive
+                        ? "bg-brand-accent text-brand-secondary"
+                        : "bg-red-100 text-red-700"
+                    }`}
                   >
                     <Icon className="h-3 w-3" /> {t(c.key)}
                   </span>
@@ -326,26 +330,30 @@ function Row({
 }
 
 function houseRuleChips(hr: Content) {
-  const chips: { icon: LucideIcon; key: string }[] = [];
+  const chips: { icon: LucideIcon; key: string; positive: boolean }[] = [];
   if (hr.pets_allowed != null)
     chips.push({
       icon: hr.pets_allowed ? PawPrint : X,
       key: hr.pets_allowed ? "chipPetsOk" : "chipNoPets",
+      positive: hr.pets_allowed,
     });
   if (hr.smoking_allowed != null)
     chips.push({
       icon: hr.smoking_allowed ? Cigarette : CigaretteOff,
       key: hr.smoking_allowed ? "chipSmokingOk" : "chipNoSmoking",
+      positive: hr.smoking_allowed,
     });
   if (hr.children_welcome != null)
     chips.push({
       icon: hr.children_welcome ? Baby : X,
       key: hr.children_welcome ? "chipChildrenWelcome" : "chipNoChildren",
+      positive: hr.children_welcome,
     });
   if (hr.parties_allowed != null)
     chips.push({
       icon: hr.parties_allowed ? Check : Ban,
       key: hr.parties_allowed ? "chipPartiesOk" : "chipNoParties",
+      positive: hr.parties_allowed,
     });
   return chips;
 }
