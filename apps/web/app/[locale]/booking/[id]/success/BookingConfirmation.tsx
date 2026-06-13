@@ -5,6 +5,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
+  Banknote,
   BedDouble,
   CalendarClock,
   CalendarPlus,
@@ -94,6 +95,19 @@ export type ConfirmationData = {
   totalAmount: number;
   currency: string;
   paymentMethodLabel: string | null;
+  /** How the guest can still pay (only acted on while `due`). */
+  payment: {
+    due: boolean;
+    payUrl: string;
+    cardAvailable: boolean;
+    eft: {
+      bankName: string | null;
+      accountHolder: string | null;
+      accountNumber: string | null;
+      accountType: string | null;
+      branchCode: string | null;
+    } | null;
+  };
   specialRequests: string | null;
   daysToGo: number | null;
   cancellationDeadlineLabel: string | null;
@@ -960,6 +974,120 @@ function PriceCard({ data }: { data: ConfirmationData }) {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Payment details (how to pay — shown while the booking is unpaid)            */
+/* -------------------------------------------------------------------------- */
+function PaymentDetailsCard({ data }: { data: ConfirmationData }) {
+  const { payment } = data;
+  // Nothing owed, or no way to pay surfaced → don't render.
+  if (!payment.due) return null;
+  if (!payment.eft && !payment.cardAvailable) return null;
+
+  return (
+    <SectionCard>
+      <div className="flex items-center justify-between border-b border-brand-line px-5 py-4">
+        <div className="font-display font-semibold text-brand-ink">
+          Complete your payment
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-pill bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700">
+          <Clock className="h-3 w-3" /> Due
+        </span>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-brand-mute">Amount due</span>
+          <span className="font-display text-xl font-bold text-brand-ink">
+            {formatMoney(data.totalAmount, data.currency)}
+          </span>
+        </div>
+
+        {payment.cardAvailable ? (
+          <Link
+            href={payment.payUrl}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[10px] bg-brand-primary px-5 py-3 text-sm font-semibold text-white shadow-glow transition hover:bg-brand-secondary"
+          >
+            <CreditCard className="h-4 w-4" /> Pay by card now
+          </Link>
+        ) : null}
+
+        {payment.eft ? (
+          <div className="rounded-[12px] border border-brand-line bg-brand-light/40 p-4">
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-brand-ink">
+              <Banknote className="h-4 w-4 text-brand-primary" />
+              Pay by EFT / bank transfer
+            </div>
+            <dl className="mt-3 space-y-2 text-[13px]">
+              <BankRow label="Bank" value={payment.eft.bankName} />
+              <BankRow label="Account name" value={payment.eft.accountHolder} />
+              <BankRow
+                label="Account number"
+                value={payment.eft.accountNumber}
+                copy
+              />
+              <BankRow
+                label="Account type"
+                value={
+                  payment.eft.accountType
+                    ? payment.eft.accountType.charAt(0).toUpperCase() +
+                      payment.eft.accountType.slice(1)
+                    : null
+                }
+              />
+              <BankRow
+                label="Branch code"
+                value={payment.eft.branchCode}
+                copy
+              />
+              <BankRow label="Reference" value={data.reference} copy strong />
+            </dl>
+            <div className="mt-3 flex items-start gap-2 rounded-[8px] bg-white/70 p-2.5 text-[11.5px] leading-relaxed text-brand-mute">
+              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+              <span>
+                Use{" "}
+                <span className="font-mono font-semibold text-brand-ink">
+                  {data.reference}
+                </span>{" "}
+                as your payment reference so the host can match your transfer.
+                Your booking is confirmed once they receive it.
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </SectionCard>
+  );
+}
+
+function BankRow({
+  label,
+  value,
+  copy,
+  strong,
+}: {
+  label: string;
+  value: string | null;
+  copy?: boolean;
+  strong?: boolean;
+}) {
+  if (!value) return null;
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-brand-mute">{label}</dt>
+      <dd
+        className={`flex items-center gap-1 text-right ${
+          strong
+            ? "font-mono font-semibold text-brand-ink"
+            : "font-medium text-brand-ink"
+        }`}
+      >
+        <span className="break-all">{value}</span>
+        {copy ? <CopyButton value={value} /> : null}
+      </dd>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Host                                                                       */
 /* -------------------------------------------------------------------------- */
 function HostCard({ data }: { data: ConfirmationData }) {
@@ -1121,6 +1249,7 @@ export function BookingConfirmation({ data }: { data: ConfirmationData }) {
             style={{ animationDelay: ".3s" }}
           >
             <PriceCard data={data} />
+            <PaymentDetailsCard data={data} />
             <HostCard data={data} />
             <EssentialsCard data={data} />
           </div>

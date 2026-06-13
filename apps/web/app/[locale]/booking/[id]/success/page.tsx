@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
+import { getHostPaystack } from "@/lib/payments/host-paystack";
 import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -93,7 +94,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:listings!inner ( id, host_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
+      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:listings!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -136,6 +137,7 @@ export default async function BookingSuccessPage({
   const listing = booking.listing as unknown as {
     id: string;
     host_id: string;
+    business_id: string | null;
     name: string;
     slug: string | null;
     city: string | null;
@@ -289,6 +291,58 @@ export default async function BookingSuccessPage({
     }
   }
 
+  // ── Payment rails the guest can still use (only meaningful while unpaid) ──
+  // EFT banking resolves from the listing's business (Phase 3a), with the
+  // host's default account as the fallback. Card is offered only when the host
+  // has a connected Paystack account. PayPal is not yet a guest checkout rail,
+  // so it is intentionally not surfaced here.
+  const BANK_COLS =
+    "bank_name, account_holder, account_number, account_type, branch_code";
+  const [bankBiz, bankHost, hostPaystack] = await Promise.all([
+    listing.business_id
+      ? admin
+          .from("eft_banking_details")
+          .select(BANK_COLS)
+          .eq("business_id", listing.business_id)
+          .eq("is_archived", false)
+          .order("is_default", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    admin
+      .from("eft_banking_details")
+      .select(BANK_COLS)
+      .eq("host_id", listing.host_id)
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .limit(1)
+      .maybeSingle(),
+    getHostPaystack(listing.host_id),
+  ]);
+
+  const bankRow = (bankBiz.data ?? bankHost.data) as {
+    bank_name: string | null;
+    account_holder: string | null;
+    account_number: string | null;
+    account_type: string | null;
+    branch_code: string | null;
+  } | null;
+
+  const payment: ConfirmationData["payment"] = {
+    due: !isConfirmed,
+    payUrl: `/booking/${booking.id}/pay`,
+    cardAvailable: !!hostPaystack,
+    eft: bankRow
+      ? {
+          bankName: bankRow.bank_name,
+          accountHolder: bankRow.account_holder,
+          accountNumber: bankRow.account_number,
+          accountType: bankRow.account_type,
+          branchCode: bankRow.branch_code,
+        }
+      : null,
+  };
+
   const fullName = profile?.full_name?.trim() || "";
   const guestFirstName = fullName ? fullName.split(/\s+/)[0] : "there";
 
@@ -404,6 +458,7 @@ export default async function BookingSuccessPage({
         booking.payment_method.toUpperCase())
       : null,
     specialRequests: booking.special_requests,
+    payment,
     daysToGo: daysFromToday(booking.check_in),
     cancellationDeadlineLabel: null,
     calendarUrl,
