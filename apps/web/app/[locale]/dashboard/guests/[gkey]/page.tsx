@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
 import { gkeyFor } from "@/lib/guests/gkey";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { resolveGuestNextAction } from "@/lib/guests/next-action";
 import {
   fetchRequestableReviews,
@@ -140,13 +141,45 @@ export default async function GuestRecordPage({
     "no_show",
   ]);
 
+  // Derive each booking's outstanding from its COMPLETED payments — the same
+  // canonical maths as lib/payments/ledger.ts — rather than trusting the stored
+  // bookings.balance_due column (which can drift, e.g. a pending EFT that
+  // pre-zeroed it). This keeps the per-booking "due" and the headline balance
+  // self-consistent and correct even if the column is stale.
+  const admin = createAdminClient();
+  const bookingIds = bookingsRaw.map((b) => b.id);
+  const paidByBooking = new Map<string, number>();
+  if (bookingIds.length > 0) {
+    const { data: payRows } = await admin
+      .from("payments")
+      .select("booking_id, amount, kind, status, voided_at")
+      .in("booking_id", bookingIds);
+    const byBooking = new Map<
+      string,
+      { amount: number; kind: string | null; status: string | null }[]
+    >();
+    for (const p of payRows ?? []) {
+      const arr = byBooking.get(p.booking_id) ?? [];
+      arr.push({ amount: Number(p.amount), kind: p.kind, status: p.status });
+      byBooking.set(p.booking_id, arr);
+    }
+    for (const [id, rows] of byBooking) {
+      paidByBooking.set(id, sumPaidFromRows(rows));
+    }
+  }
+
   const bookings: BookingItem[] = bookingsRaw.map((b) => {
     const photos = b.listing?.listing_photos ?? [];
     const thumb =
       photos.length > 0
         ? [...photos].sort((a, c) => a.sort_order - c.sort_order)[0].url
         : null;
-    const balanceDue = Number(b.balance_due ?? 0);
+    // Dead bookings owe nothing; otherwise total − completed paid.
+    const total = Number(b.total_amount);
+    const paid = paidByBooking.get(b.id) ?? 0;
+    const balanceDue = CANCELLED_STATUSES.has(b.status)
+      ? 0
+      : Math.round(Math.max(0, total - paid) * 100) / 100;
     const payable =
       !CANCELLED_STATUSES.has(b.status) &&
       b.payment_status !== "completed" &&
@@ -253,7 +286,6 @@ export default async function GuestRecordPage({
   // Finances — every money event for this guest, normalised from the ONE
   // transaction source so the Finances tab, the account-wide Ledger and the
   // booking Payments tab always agree. Host-scoped admin read filtered by gkey.
-  const admin = createAdminClient();
   const txns: Txn[] = await fetchHostTransactions(admin, {
     hostId: host.id,
     gkey,
@@ -430,14 +462,13 @@ export default async function GuestRecordPage({
     (s, c) => s + Number(c.amount),
     0,
   );
-  // Outstanding is derived from the ONE canonical ledger (txns) — the same
-  // source the Finances tab + account-wide Ledger render — so the headline
-  // balance always matches them and automatically accounts for refunds, credit
-  // notes and overpayments. (Summing bookings.balance_due here drifted from the
-  // ledger: it counted pending/uninvoiced bookings the ledger has no charge for,
-  // and ignored credit notes / refunds.)
-  const ledgerNet = txns.reduce((s, t) => s + t.owedEffect * t.amount, 0);
-  const outstanding = Math.max(0, Math.round(ledgerNet * 100) / 100);
+  // Outstanding = the sum of every non-cancelled booking's own due (each derived
+  // above from its COMPLETED payments). This makes the headline balance match
+  // the per-booking "due" lines exactly, and counts confirmed AND pending
+  // bookings the guest still owes for — which a documents-only ledger sum misses
+  // until an invoice exists. Store credit (below) is netted separately.
+  const outstanding =
+    Math.round(bookings.reduce((s, b) => s + b.balanceDue, 0) * 100) / 100;
   const netBalance = Math.round((storeCredit - outstanding) * 100) / 100;
 
   // ── What to do (single source of truth) ────────────────────────────────

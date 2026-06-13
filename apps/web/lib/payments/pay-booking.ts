@@ -100,11 +100,15 @@ export async function startBookingPayment(opts: {
   if (payNow <= 0) {
     return { ok: false, error: "This booking is already paid." };
   }
-  const balanceDue = round2(Math.max(0, total - (paid + payNow)));
 
+  // balance_due must reflect COMPLETED money only. payNow is about to become a
+  // *pending* row (EFT not yet received / card not yet captured), so it must NOT
+  // reduce the balance here — doing so zeroed balance_due on full-amount EFT
+  // bookings before the transfer arrived. The ledger flips it on completion
+  // (recordBookingPayment / confirmHostCardPaymentByReference).
   await admin
     .from("bookings")
-    .update({ payment_method: method, balance_due: balanceDue })
+    .update({ payment_method: method, balance_due: outstanding })
     .eq("id", booking.id);
 
   // Clear any stale pending rows from a prior attempt, then create a fresh one.
