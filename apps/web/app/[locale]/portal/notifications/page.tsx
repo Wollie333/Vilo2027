@@ -31,6 +31,7 @@ export default async function PortalNotificationsPage() {
     .select(
       "id, kind, title, body, link, read_at, created_at, category_id, severity, payload",
     )
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
