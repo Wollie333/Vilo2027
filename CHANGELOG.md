@@ -31,6 +31,32 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-13 — Finance — Ledger ↔ multi-business: per-business filter (Phase 1 + Ledger) — branch `main`
+
+### Built
+- **Ledger is now business-aware.** Each `Txn` carries a derived `businessId`
+  (from `booking → listing → business_id`, one batched lookup — business is never
+  stored on transaction rows; the listing stays the single source of truth).
+  `fetchHostTransactions` gains a `businessId` filter; running balances are
+  computed within the filtered scope.
+- **"All businesses / Business…" selector on the Ledger** (`/dashboard/ledger`),
+  shown only when the host has more than one business. It's a server-side scope
+  (drives `?business=`, re-fetches) so per-business KPIs and running balances are
+  correct, not just row-hiding. Header subtitle reflects the active business.
+
+### Notes
+- Plan saved at `LEDGER_MULTIBUSINESS_PLAN.md`. Confirmed all finance *documents*
+  already render the listing's business (no work needed there). Decisions locked:
+  derive business via listing (no new columns); store credit will be per-business.
+- **Still to do (next chunks):** the same business filter on the **Guest Record**
+  Finances tab (headline balance stays all-businesses), and `business_id` on
+  `guest_credit_ledger` (per-business store credit).
+
+### Commit
+- `feat(finance): per-business ledger filter (Txn.businessId + Ledger selector)`
+
+---
+
 ## 2026-06-13 — Reviews — Guest Reputation: hosts rate guests (cross-host) — branch `main`
 
 ### Built

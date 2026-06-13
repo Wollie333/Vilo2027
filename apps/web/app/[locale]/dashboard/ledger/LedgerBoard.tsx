@@ -1,6 +1,7 @@
 "use client";
 
 import { ScrollText, Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { LedgerList } from "@/components/finance/LedgerList";
@@ -57,16 +58,34 @@ export function LedgerBoard({
   guests,
   currency,
   closedMonths,
+  businesses,
+  selectedBusiness,
 }: {
   entries: Txn[];
   stats: TxnStats;
   guests: { key: string; name: string }[];
   currency: string;
   closedMonths: string[];
+  businesses: { id: string; name: string }[];
+  selectedBusiness: string | null;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = useState("all");
   const [guest, setGuest] = useState("all");
   const [search, setSearch] = useState("");
+
+  // Business is a server-side scope (it changes per-business running balances),
+  // so switching it navigates with ?business=… and the page re-fetches. Reset
+  // the guest filter, whose options depend on the business in view.
+  const onBusinessChange = (id: string) => {
+    setGuest("all");
+    const params = new URLSearchParams(searchParams.toString());
+    if (id === "all") params.delete("business");
+    else params.set("business", id);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // Live (active) vs voided — voided are an audit view, hidden unless asked.
   const live = useMemo(() => entries.filter((e) => !e.voided), [entries]);
@@ -106,7 +125,9 @@ export function LedgerBoard({
             Ledger
           </h1>
           <p className="text-[12.5px] text-brand-mute">
-            Every transaction across your whole account
+            {selectedBusiness
+              ? `Transactions for ${businesses.find((b) => b.id === selectedBusiness)?.name ?? "this business"}`
+              : "Every transaction across your whole account"}
           </p>
         </div>
         <div className="ml-auto">
@@ -182,10 +203,25 @@ export function LedgerBoard({
             </button>
           ) : null}
         </div>
+        {businesses.length > 1 ? (
+          <select
+            value={selectedBusiness ?? "all"}
+            onChange={(e) => onBusinessChange(e.target.value)}
+            className="ml-auto rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink focus:border-brand-primary focus:outline-none"
+            title="Filter by business"
+          >
+            <option value="all">All businesses</option>
+            {businesses.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        ) : null}
         <select
           value={guest}
           onChange={(e) => setGuest(e.target.value)}
-          className="ml-auto rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none"
+          className={`${businesses.length > 1 ? "" : "ml-auto"}rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] text-brand-ink focus:border-brand-primary focus:outline-none`}
         >
           <option value="all">All guests</option>
           {guests.map((g) => (

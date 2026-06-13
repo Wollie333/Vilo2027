@@ -68,6 +68,10 @@ export type Txn = {
   /** Voided (kept for audit, hidden from the live ledger; zero effect). */
   voided?: boolean;
   voidReason?: string | null;
+  /** The business this transaction belongs to, derived from its booking's
+   * listing (booking → listing → business_id). Lets the Ledger + Guest Record
+   * filter by business; null when the booking/listing has no business. */
+  businessId?: string | null;
 };
 
 export type TxnStats = {
@@ -116,6 +120,10 @@ type Filter = {
    * flagged `voided` and carry zero balance/cash effect, so the audit view never
    * affects live totals. Excluded by default. */
   includeVoided?: boolean;
+  /** Scope to one business (the host owns several). Each transaction's business
+   * is derived from its booking's listing; the running balance is then computed
+   * within the filtered scope. Omit for all businesses. */
+  businessId?: string | null;
 };
 
 /** Fetch + normalise every transaction for a host (optionally one guest/booking). */
@@ -461,11 +469,42 @@ export async function fetchHostTransactions(
     });
   }
 
-  // Filter to one guest/booking if requested.
+  // ── Derive each transaction's business (booking → listing → business_id) ──
+  // The listing's business is the single source of truth — business is never
+  // stored on the transaction rows. One batched lookup over the referenced
+  // bookings. Lets the Ledger + Guest Record filter by business while the
+  // guest's headline balance still sums across all businesses.
+  const txnBookingIds = [
+    ...new Set(
+      entries.map((e) => e.bookingId).filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  if (txnBookingIds.length > 0) {
+    const businessByBooking = new Map<string, string | null>();
+    const { data: bkBiz } = await admin
+      .from("bookings")
+      .select("id, listing:listings ( business_id )")
+      .in("id", txnBookingIds);
+    for (const row of bkBiz ?? []) {
+      const l = one((row as { listing?: unknown }).listing) as {
+        business_id?: string | null;
+      } | null;
+      businessByBooking.set(row.id as string, l?.business_id ?? null);
+    }
+    for (const e of entries) {
+      e.businessId = e.bookingId
+        ? (businessByBooking.get(e.bookingId) ?? null)
+        : null;
+    }
+  }
+
+  // Filter to one guest/booking/business if requested.
   let list = entries;
   if (filter.gkey) list = list.filter((e) => e.guestKey === filter.gkey);
   if (filter.bookingId)
     list = list.filter((e) => e.bookingId === filter.bookingId);
+  if (filter.businessId)
+    list = list.filter((e) => e.businessId === filter.businessId);
 
   // Running per-guest balance (oldest → newest).
   const asc = [...list].sort((a, b) => a.date.localeCompare(b.date));

@@ -15,17 +15,40 @@ import { LedgerBoard } from "./LedgerBoard";
 export const metadata: Metadata = { title: "Ledger" };
 export const dynamic = "force-dynamic";
 
-export default async function LedgerPage() {
+export default async function LedgerPage({
+  searchParams,
+}: {
+  searchParams: { business?: string };
+}) {
   const supabase = createServerClient();
   const hostId = await getMyHostId(supabase);
   if (!hostId) notFound();
 
   const admin = createAdminClient();
+
+  // The host's businesses — drives the per-business filter. Only shown when
+  // there's more than one. Default business first.
+  const { data: bizRows } = await admin
+    .from("businesses")
+    .select("id, trading_name, legal_name")
+    .eq("host_id", hostId)
+    .eq("is_archived", false)
+    .order("is_default", { ascending: false });
+  const businesses = (bizRows ?? []).map((b) => ({
+    id: b.id as string,
+    name: (b.trading_name || b.legal_name || "Business") as string,
+  }));
+  // Validate the requested business belongs to this host; else treat as "all".
+  const selectedBusiness =
+    businesses.find((b) => b.id === searchParams.business)?.id ?? null;
+
   // Include voided so the board can offer a "Voided" filter (audit view); they
-  // carry zero effect, so KPIs and balances are unaffected.
+  // carry zero effect, so KPIs and balances are unaffected. When a business is
+  // selected, transactions (and their running balances) are scoped to it.
   const entries = await fetchHostTransactions(admin, {
     hostId,
     includeVoided: true,
+    businessId: selectedBusiness,
   });
   const stats = txnStats(entries);
 
@@ -58,6 +81,8 @@ export default async function LedgerPage() {
       guests={guests}
       currency={currency}
       closedMonths={closedMonths}
+      businesses={businesses}
+      selectedBusiness={selectedBusiness}
     />
   );
 }
