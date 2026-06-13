@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/editor/RichTextEditor";
 
 import {
   createRoomAction,
@@ -380,14 +380,12 @@ export const RoomDetailsForm = forwardRef<
 
           <Field
             label="Description"
-            hint="One short paragraph guests read first."
+            hint="A short, formatted description guests read first."
           >
-            <Textarea
-              rows={3}
+            <RichTextEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={pending}
-              maxLength={2000}
+              onChange={setDescription}
+              placeholder="What makes this room special…"
             />
           </Field>
         </CardContent>

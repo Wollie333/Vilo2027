@@ -2,6 +2,7 @@ import { BedDouble, Users } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
+import { stripHtml } from "@/lib/sanitiseHtml";
 
 import {
   bedSummary,
@@ -55,7 +56,7 @@ export async function RoomsInfoGrid({
                   </h3>
                   {room.description ? (
                     <p className="mt-1 line-clamp-2 text-xs text-brand-mute">
-                      {room.description}
+                      {stripHtml(room.description)}
                     </p>
                   ) : null}
                 </div>

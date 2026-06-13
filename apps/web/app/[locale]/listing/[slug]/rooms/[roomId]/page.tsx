@@ -18,6 +18,7 @@ import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
 import { createServerClient } from "@/lib/supabase/server";
+import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 
 import { AmenitiesList } from "../../AmenitiesList";
 import { PhotoGallery, type GalleryPhoto } from "../../PhotoGallery";
@@ -337,9 +338,12 @@ export default async function PublicRoomPage({
                 <h2 className="font-display text-lg font-bold text-brand-ink">
                   About this room
                 </h2>
-                <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
-                  {room.description}
-                </p>
+                <div
+                  className="mt-2 space-y-3 text-sm leading-relaxed text-brand-dark [&_h2]:mt-3 [&_h2]:font-display [&_h2]:text-base [&_h2]:font-bold [&_h3]:mt-2 [&_h3]:font-display [&_h3]:font-semibold [&_li]:my-0.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-1.5 [&_strong]:font-semibold [&_ul]:list-disc [&_ul]:pl-5"
+                  dangerouslySetInnerHTML={{
+                    __html: sanitiseListingHtml(room.description),
+                  }}
+                />
               </section>
             ) : null}
 
