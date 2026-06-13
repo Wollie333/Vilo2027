@@ -171,6 +171,55 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
 
+// v3 panel headers — the big section title + one-line intro shown above each
+// panel's content.
+const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
+  basic: {
+    title: "Listing basics",
+    desc: "Name, category, the owning business and the description guests read first.",
+  },
+  photos: {
+    title: "Photos",
+    desc: "Your first photo is the cover. Drag to reorder.",
+  },
+  location: {
+    title: "Location",
+    desc: "Where guests will find you — keep the map pin accurate.",
+  },
+  rooms: {
+    title: "Rooms & capacity",
+    desc: "The rooms guests can book and their nightly pricing.",
+  },
+  amenities: {
+    title: "Amenities",
+    desc: "The features and perks guests filter by.",
+  },
+  addons: {
+    title: "Add-ons",
+    desc: "Optional extras guests can add to their booking.",
+  },
+  pricing: {
+    title: "Pricing",
+    desc: "Your nightly rate, fees and length-of-stay discounts.",
+  },
+  policies: {
+    title: "Policies",
+    desc: "Cancellation terms, check-in times and house rules.",
+  },
+  access: {
+    title: "Guest access",
+    desc: "Arrival details and local tips shared after a booking.",
+  },
+  settings: {
+    title: "Booking settings",
+    desc: "How guests can reserve this place.",
+  },
+  danger: {
+    title: "Danger zone",
+    desc: "Unpublish or archive this listing.",
+  },
+};
+
 export function Editor({
   listing,
   amenities,
@@ -412,6 +461,36 @@ export function Editor({
 
         {/* ============ ACTIVE PANEL ============ */}
         <div className="min-w-0">
+          {(() => {
+            const meta = PANEL_META[active];
+            const ActiveIcon = TABS.find((t) => t.key === active)?.icon ?? Home;
+            const danger = active === "danger";
+            return (
+              <div className="mb-5 flex items-start gap-3.5">
+                <span
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] ${
+                    danger
+                      ? "bg-status-cancelled/10 text-status-cancelled"
+                      : "bg-brand-accent text-brand-secondary"
+                  }`}
+                >
+                  <ActiveIcon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2
+                    className={`font-display text-[22px] font-extrabold leading-tight ${
+                      danger ? "text-status-cancelled" : "text-brand-ink"
+                    }`}
+                  >
+                    {meta.title}
+                  </h2>
+                  <p className="mt-0.5 text-[13.5px] text-brand-mute">
+                    {meta.desc}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           {active === "basic" ? (
             <BasicTab
               listing={listing}
