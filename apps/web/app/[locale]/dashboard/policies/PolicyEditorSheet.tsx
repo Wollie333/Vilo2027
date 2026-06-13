@@ -7,12 +7,10 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  FormModal,
+  FormModalCancel,
+  FormModalFooter,
+} from "@/components/ui/form-modal";
 import { Field, TextInput } from "@/app/[locale]/dashboard/setup/_atoms";
 
 import { createPolicyAction, updatePolicyAction } from "./actions";
@@ -37,6 +35,16 @@ const boolToTri = (v: boolean | null | undefined): TriState =>
 
 const HOUSE_RULES_STARTER =
   "<h2>House rules</h2><ul><li>No smoking indoors.</li><li>No parties or events.</li><li>Quiet hours after 22:00.</li><li>Please treat the property with respect.</li></ul>";
+
+// A sensible, balanced refund schedule hosts can drop in and tweak.
+const CANCELLATION_STARTER: RuleRow[] = [
+  { days_before: "14", refund_percent: "100", label: "Full refund" },
+  { days_before: "7", refund_percent: "50", label: "Half refund" },
+  { days_before: "0", refund_percent: "0", label: "No refund" },
+];
+
+const CHECK_IN_STARTER =
+  "<p>Check-in is from 15:00; check-out by 10:00. We'll send access details the day before arrival. Arriving late? Message us so we can arrange access. Free on-site parking is available.</p>";
 
 export function PolicyEditorSheet({
   open,
@@ -193,152 +201,149 @@ export function PolicyEditorSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle className="font-display text-brand-ink">
-            {isEdit ? "Edit" : "New"} {typeLabel.toLowerCase()}
-          </SheetTitle>
-          <SheetDescription>
-            {type === "cancellation"
-              ? "Set how much guests get back when they cancel."
-              : type === "check_in_out"
-                ? "Set the check-in and check-out times for this policy."
-                : type === "house_rules"
-                  ? "Write the house rules guests agree to when booking."
-                  : type === "booking_terms"
-                    ? "The agreement guests accept at checkout."
-                    : "How guest data is collected, stored and used."}
-          </SheetDescription>
-        </SheetHeader>
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title={`${isEdit ? "Edit" : "New"} ${typeLabel.toLowerCase()}`}
+      description={
+        type === "cancellation"
+          ? "Set how much guests get back when they cancel."
+          : type === "check_in_out"
+            ? "Set the check-in and check-out times for this policy."
+            : type === "house_rules"
+              ? "Write the house rules guests agree to when booking."
+              : type === "booking_terms"
+                ? "The agreement guests accept at checkout."
+                : "How guest data is collected, stored and used."
+      }
+      size="lg"
+    >
+      <div className="space-y-5">
+        <Field label="Name" required>
+          <TextInput
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={pending}
+            placeholder={
+              type === "cancellation"
+                ? "e.g. Standard refund terms"
+                : type === "check_in_out"
+                  ? "e.g. Standard check-in"
+                  : type === "house_rules"
+                    ? "e.g. House rules"
+                    : type === "booking_terms"
+                      ? "e.g. Booking terms & conditions"
+                      : "e.g. Guest privacy (POPIA)"
+            }
+          />
+        </Field>
 
-        <div className="mt-6 space-y-5">
-          <Field label="Name" required>
-            <TextInput
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={pending}
-              placeholder={
-                type === "cancellation"
-                  ? "e.g. Standard refund terms"
-                  : type === "check_in_out"
-                    ? "e.g. Standard check-in"
-                    : type === "house_rules"
-                      ? "e.g. House rules"
-                      : type === "booking_terms"
-                        ? "e.g. Booking terms & conditions"
-                        : "e.g. Guest privacy (POPIA)"
-              }
-            />
-          </Field>
+        <Field
+          label="Summary"
+          hint="One short line guests see on cards & checkout."
+        >
+          <TextInput
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            disabled={pending}
+            placeholder="Shown before guests open the full policy."
+          />
+        </Field>
 
-          <Field
-            label="Summary"
-            hint="One short line guests see on cards & checkout."
-          >
-            <TextInput
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              disabled={pending}
-              placeholder="Shown before guests open the full policy."
-            />
-          </Field>
+        {type === "cancellation" ? (
+          <>
+            <label className="flex items-center gap-2 text-sm text-brand-ink">
+              <input
+                type="checkbox"
+                checked={isNonRefundable}
+                onChange={(e) => setIsNonRefundable(e.target.checked)}
+                disabled={pending}
+                className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+              />
+              Non-refundable (no refund at any time)
+            </label>
 
-          {type === "cancellation" ? (
-            <>
-              <label className="flex items-center gap-2 text-sm text-brand-ink">
-                <input
-                  type="checkbox"
-                  checked={isNonRefundable}
-                  onChange={(e) => setIsNonRefundable(e.target.checked)}
-                  disabled={pending}
-                  className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-                />
-                Non-refundable (no refund at any time)
-              </label>
-
-              {!isNonRefundable ? (
-                <div className="space-y-2.5">
-                  <div className="text-sm font-medium text-brand-ink">
-                    Refund rules
-                    <span className="ml-0.5 text-status-cancelled" aria-hidden>
-                      *
-                    </span>
-                  </div>
-                  <p className="text-xs text-brand-mute">
-                    The rule with the largest matching “days before check-in”
-                    wins. Add a 0-day rule for after check-in.
-                  </p>
-                  {rules.map((r, i) => (
-                    <div key={i} className="flex items-end gap-2">
-                      <div className="w-24">
-                        <Field label="Days before">
-                          <TextInput
-                            type="number"
-                            min={0}
-                            value={r.days_before}
-                            onChange={(e) =>
-                              setRules(
-                                rules.map((x, j) =>
-                                  j === i
-                                    ? { ...x, days_before: e.target.value }
-                                    : x,
-                                ),
-                              )
-                            }
-                            disabled={pending}
-                          />
-                        </Field>
-                      </div>
-                      <div className="w-24">
-                        <Field label="Refund %">
-                          <TextInput
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={r.refund_percent}
-                            onChange={(e) =>
-                              setRules(
-                                rules.map((x, j) =>
-                                  j === i
-                                    ? { ...x, refund_percent: e.target.value }
-                                    : x,
-                                ),
-                              )
-                            }
-                            disabled={pending}
-                          />
-                        </Field>
-                      </div>
-                      <div className="flex-1">
-                        <Field label="Label">
-                          <TextInput
-                            value={r.label}
-                            onChange={(e) =>
-                              setRules(
-                                rules.map((x, j) =>
-                                  j === i ? { ...x, label: e.target.value } : x,
-                                ),
-                              )
-                            }
-                            disabled={pending}
-                            placeholder="e.g. Full refund"
-                          />
-                        </Field>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setRules(rules.filter((_, j) => j !== i))
-                        }
-                        disabled={pending}
-                        aria-label="Remove rule"
-                        className="mb-1 flex h-10 w-10 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+            {!isNonRefundable ? (
+              <div className="space-y-2.5">
+                <div className="text-sm font-medium text-brand-ink">
+                  Refund rules
+                  <span className="ml-0.5 text-status-cancelled" aria-hidden>
+                    *
+                  </span>
+                </div>
+                <p className="text-xs text-brand-mute">
+                  The rule with the largest matching “days before check-in”
+                  wins. Add a 0-day rule for after check-in.
+                </p>
+                {rules.map((r, i) => (
+                  <div key={i} className="flex items-end gap-2">
+                    <div className="w-24">
+                      <Field label="Days before">
+                        <TextInput
+                          type="number"
+                          min={0}
+                          value={r.days_before}
+                          onChange={(e) =>
+                            setRules(
+                              rules.map((x, j) =>
+                                j === i
+                                  ? { ...x, days_before: e.target.value }
+                                  : x,
+                              ),
+                            )
+                          }
+                          disabled={pending}
+                        />
+                      </Field>
                     </div>
-                  ))}
+                    <div className="w-24">
+                      <Field label="Refund %">
+                        <TextInput
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={r.refund_percent}
+                          onChange={(e) =>
+                            setRules(
+                              rules.map((x, j) =>
+                                j === i
+                                  ? { ...x, refund_percent: e.target.value }
+                                  : x,
+                              ),
+                            )
+                          }
+                          disabled={pending}
+                        />
+                      </Field>
+                    </div>
+                    <div className="flex-1">
+                      <Field label="Label">
+                        <TextInput
+                          value={r.label}
+                          onChange={(e) =>
+                            setRules(
+                              rules.map((x, j) =>
+                                j === i ? { ...x, label: e.target.value } : x,
+                              ),
+                            )
+                          }
+                          disabled={pending}
+                          placeholder="e.g. Full refund"
+                        />
+                      </Field>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRules(rules.filter((_, j) => j !== i))}
+                      disabled={pending}
+                      aria-label="Remove rule"
+                      className="mb-1 flex h-10 w-10 items-center justify-center rounded text-brand-mute hover:bg-red-50 hover:text-status-cancelled"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -349,196 +354,213 @@ export function PolicyEditorSheet({
                   >
                     <Plus className="h-4 w-4" /> Add rule
                   </Button>
+                  {rules.length === 0 ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setRules(CANCELLATION_STARTER)}
+                      disabled={pending}
+                    >
+                      Insert starter rules
+                    </Button>
+                  ) : null}
                 </div>
-              ) : null}
+              </div>
+            ) : null}
 
-              <Field label="Full policy text" optional>
-                <RichTextEditor
-                  value={bodyHtml}
-                  onChange={setBodyHtml}
+            <Field label="Full policy text" optional>
+              <RichTextEditor
+                value={bodyHtml}
+                onChange={setBodyHtml}
+                disabled={pending}
+                placeholder="Explain your refund terms in full — guests can read this at checkout."
+              />
+            </Field>
+          </>
+        ) : null}
+
+        {type === "check_in_out" ? (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Check-in time" required>
+                <TextInput
+                  type="time"
+                  value={checkIn}
+                  onChange={(e) => setCheckIn(e.target.value)}
                   disabled={pending}
-                  placeholder="Explain your refund terms in full — guests can read this at checkout."
                 />
               </Field>
-            </>
-          ) : null}
-
-          {type === "check_in_out" ? (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Check-in time" required>
-                  <TextInput
-                    type="time"
-                    value={checkIn}
-                    onChange={(e) => setCheckIn(e.target.value)}
-                    disabled={pending}
-                  />
-                </Field>
-                <Field label="Check-out time" required>
-                  <TextInput
-                    type="time"
-                    value={checkOut}
-                    onChange={(e) => setCheckOut(e.target.value)}
-                    disabled={pending}
-                  />
-                </Field>
-              </div>
-              <Field
-                label="Check-in method"
-                hint="Shown as a pill on the policy card."
-              >
-                <select
-                  value={checkInMethod}
-                  onChange={(e) =>
-                    setCheckInMethod(e.target.value as CheckInMethod | "")
-                  }
+              <Field label="Check-out time" required>
+                <TextInput
+                  type="time"
+                  value={checkOut}
+                  onChange={(e) => setCheckOut(e.target.value)}
                   disabled={pending}
-                  className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary disabled:opacity-60"
-                >
-                  <option value="">Not specified</option>
-                  {CHECK_IN_METHODS.map((m) => (
-                    <option key={m} value={m}>
-                      {CHECK_IN_METHOD_LABEL[m]}
-                    </option>
-                  ))}
-                </select>
+                />
               </Field>
-              <Field label="Arrival notes" optional>
+            </div>
+            <Field
+              label="Check-in method"
+              hint="Shown as a pill on the policy card."
+            >
+              <select
+                value={checkInMethod}
+                onChange={(e) =>
+                  setCheckInMethod(e.target.value as CheckInMethod | "")
+                }
+                disabled={pending}
+                className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary disabled:opacity-60"
+              >
+                <option value="">Not specified</option>
+                {CHECK_IN_METHODS.map((m) => (
+                  <option key={m} value={m}>
+                    {CHECK_IN_METHOD_LABEL[m]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Arrival notes" optional>
+              <div className="space-y-2">
+                {!bodyHtml ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBodyHtml(CHECK_IN_STARTER)}
+                    disabled={pending}
+                  >
+                    Insert starter notes
+                  </Button>
+                ) : null}
                 <RichTextEditor
                   value={bodyHtml}
                   onChange={setBodyHtml}
                   disabled={pending}
                   placeholder="Key collection, parking, late arrival — anything guests should know."
                 />
-              </Field>
-            </>
-          ) : null}
-
-          {type === "house_rules" ? (
-            <>
-              <div className="space-y-2.5">
-                <div className="text-sm font-medium text-brand-ink">
-                  Quick rules
-                </div>
-                <p className="text-xs text-brand-mute">
-                  These show as chips on the policy card. Leave any “Not set” to
-                  hide it.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <FlagSelect
-                    label="Pets"
-                    value={pets}
-                    onChange={setPets}
-                    yes="Pets OK"
-                    no="No pets"
-                    disabled={pending}
-                  />
-                  <FlagSelect
-                    label="Smoking"
-                    value={smoking}
-                    onChange={setSmoking}
-                    yes="Smoking OK"
-                    no="No smoking"
-                    disabled={pending}
-                  />
-                  <FlagSelect
-                    label="Parties"
-                    value={parties}
-                    onChange={setParties}
-                    yes="Parties OK"
-                    no="No parties"
-                    disabled={pending}
-                  />
-                  <FlagSelect
-                    label="Children"
-                    value={children}
-                    onChange={setChildren}
-                    yes="Children welcome"
-                    no="No children"
-                    disabled={pending}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Quiet hours from" optional>
-                    <TextInput
-                      type="time"
-                      value={quietStart}
-                      onChange={(e) => setQuietStart(e.target.value)}
-                      disabled={pending}
-                    />
-                  </Field>
-                  <Field label="Quiet hours until" optional>
-                    <TextInput
-                      type="time"
-                      value={quietEnd}
-                      onChange={(e) => setQuietEnd(e.target.value)}
-                      disabled={pending}
-                    />
-                  </Field>
-                </div>
               </div>
-
-              <Field label="House rules" required>
-                <div className="space-y-2">
-                  {!bodyHtml ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setBodyHtml(HOUSE_RULES_STARTER)}
-                      disabled={pending}
-                    >
-                      Insert starter rules
-                    </Button>
-                  ) : null}
-                  <RichTextEditor
-                    value={bodyHtml}
-                    onChange={setBodyHtml}
-                    disabled={pending}
-                    placeholder="Quiet hours, smoking, pets, parties…"
-                  />
-                </div>
-              </Field>
-            </>
-          ) : null}
-
-          {type === "booking_terms" || type === "privacy" ? (
-            <Field label="Document text" required>
-              <RichTextEditor
-                value={bodyHtml}
-                onChange={setBodyHtml}
-                disabled={pending}
-                placeholder={
-                  type === "booking_terms"
-                    ? "Deposit, damages, liability — the terms guests accept at checkout."
-                    : "What you collect, how it's used, and guests' POPIA rights."
-                }
-              />
             </Field>
-          ) : null}
+          </>
+        ) : null}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
+        {type === "house_rules" ? (
+          <>
+            <div className="space-y-2.5">
+              <div className="text-sm font-medium text-brand-ink">
+                Quick rules
+              </div>
+              <p className="text-xs text-brand-mute">
+                These show as chips on the policy card. Leave any “Not set” to
+                hide it.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <FlagSelect
+                  label="Pets"
+                  value={pets}
+                  onChange={setPets}
+                  yes="Pets OK"
+                  no="No pets"
+                  disabled={pending}
+                />
+                <FlagSelect
+                  label="Smoking"
+                  value={smoking}
+                  onChange={setSmoking}
+                  yes="Smoking OK"
+                  no="No smoking"
+                  disabled={pending}
+                />
+                <FlagSelect
+                  label="Parties"
+                  value={parties}
+                  onChange={setParties}
+                  yes="Parties OK"
+                  no="No parties"
+                  disabled={pending}
+                />
+                <FlagSelect
+                  label="Children"
+                  value={children}
+                  onChange={setChildren}
+                  yes="Children welcome"
+                  no="No children"
+                  disabled={pending}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Quiet hours from" optional>
+                  <TextInput
+                    type="time"
+                    value={quietStart}
+                    onChange={(e) => setQuietStart(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+                <Field label="Quiet hours until" optional>
+                  <TextInput
+                    type="time"
+                    value={quietEnd}
+                    onChange={(e) => setQuietEnd(e.target.value)}
+                    disabled={pending}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            <Field label="House rules" required>
+              <div className="space-y-2">
+                {!bodyHtml ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setBodyHtml(HOUSE_RULES_STARTER)}
+                    disabled={pending}
+                  >
+                    Insert starter rules
+                  </Button>
+                ) : null}
+                <RichTextEditor
+                  value={bodyHtml}
+                  onChange={setBodyHtml}
+                  disabled={pending}
+                  placeholder="Quiet hours, smoking, pets, parties…"
+                />
+              </div>
+            </Field>
+          </>
+        ) : null}
+
+        {type === "booking_terms" || type === "privacy" ? (
+          <Field label="Document text" required>
+            <RichTextEditor
+              value={bodyHtml}
+              onChange={setBodyHtml}
               disabled={pending}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={submit}
-              disabled={pending}
-              className="gap-1.5"
-            >
-              <Save className="h-4 w-4" />
-              {pending ? "Saving…" : isEdit ? "Save changes" : "Create policy"}
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+              placeholder={
+                type === "booking_terms"
+                  ? "Deposit, damages, liability — the terms guests accept at checkout."
+                  : "What you collect, how it's used, and guests' POPIA rights."
+              }
+            />
+          </Field>
+        ) : null}
+      </div>
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Cancel</FormModalCancel>
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={pending}
+          className="gap-1.5"
+        >
+          <Save className="h-4 w-4" />
+          {pending ? "Saving…" : isEdit ? "Save changes" : "Create policy"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
