@@ -46,6 +46,7 @@ export const metadata: Metadata = {
 
 type RawListing = {
   name: string;
+  business_id: string | null;
   listing_photos: { url: string; sort_order: number }[] | null;
 };
 type RawBooking = {
@@ -69,8 +70,10 @@ type RawBooking = {
 
 export default async function GuestRecordPage({
   params,
+  searchParams,
 }: {
   params: { gkey: string };
+  searchParams: { business?: string };
 }) {
   const gkey = decodeURIComponent(params.gkey);
   const supabase = createServerClient();
@@ -101,7 +104,7 @@ export default async function GuestRecordPage({
   let bookingQuery = supabase
     .from("bookings")
     .select(
-      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:listings ( name, listing_photos ( url, sort_order ) )",
+      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:listings ( name, business_id, listing_photos ( url, sort_order ) )",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -286,12 +289,39 @@ export default async function GuestRecordPage({
         })
       : [];
 
+  // Businesses this guest has engaged (from their bookings' listings) — drives
+  // the Finances-tab business filter. Only meaningful when there's more than one.
+  const guestBusinessIds = [
+    ...new Set(
+      bookingsRaw
+        .map((b) => b.listing?.business_id ?? null)
+        .filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  let guestBusinesses: { id: string; name: string }[] = [];
+  if (guestBusinessIds.length > 0) {
+    const { data: bizRows } = await supabase
+      .from("businesses")
+      .select("id, trading_name, legal_name")
+      .in("id", guestBusinessIds);
+    guestBusinesses = (bizRows ?? []).map((b) => ({
+      id: b.id as string,
+      name: (b.trading_name || b.legal_name || "Business") as string,
+    }));
+  }
+  // Validate the requested business is one this guest engaged; else "all".
+  const selectedBusiness =
+    guestBusinesses.find((b) => b.id === searchParams.business)?.id ?? null;
+
   // Finances — every money event for this guest, normalised from the ONE
   // transaction source so the Finances tab, the account-wide Ledger and the
   // booking Payments tab always agree. Host-scoped admin read filtered by gkey.
+  // The business filter scopes the rows + their running balance; the headline
+  // net balance below stays all-businesses on purpose.
   const txns: Txn[] = await fetchHostTransactions(admin, {
     hostId: host.id,
     gkey,
+    businessId: selectedBusiness,
   });
 
   // Quotes (pre-booking, not yet a transaction) stay a separate section.
@@ -693,6 +723,8 @@ export default async function GuestRecordPage({
       reputation={reputation}
       requestableReviews={requestableReviews}
       txns={txns}
+      businesses={guestBusinesses}
+      selectedBusiness={selectedBusiness}
       quotes={quotes}
       addonCatalog={addonCatalog}
       nextAction={nextAction}

@@ -48,12 +48,20 @@ Copy this template and fill it in at the end of every session:
 - Plan saved at `LEDGER_MULTIBUSINESS_PLAN.md`. Confirmed all finance *documents*
   already render the listing's business (no work needed there). Decisions locked:
   derive business via listing (no new columns); store credit will be per-business.
-- **Still to do (next chunks):** the same business filter on the **Guest Record**
-  Finances tab (headline balance stays all-businesses), and `business_id` on
-  `guest_credit_ledger` (per-business store credit).
+
+### Also built (Phase 2b — Guest Record filter)
+- The same **business filter on the Guest Record Finances tab** — a selector
+  (shown only when this guest engaged >1 business) scopes the transaction rows +
+  their running balance via `?business=`. The guest's **headline net balance
+  stays all-businesses** by design (with an on-screen note when a filter is
+  active). Business options derive from the guest's bookings' listings.
+
+### Still to do (next chunk)
+- `business_id` on `guest_credit_ledger` (per-business store credit) — Phase 3.
 
 ### Commit
 - `feat(finance): per-business ledger filter (Txn.businessId + Ledger selector)`
+- `feat(finance): per-business filter on the Guest Record Finances tab`
 
 ---
 

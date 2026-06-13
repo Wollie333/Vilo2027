@@ -321,6 +321,8 @@ export function GuestRecord({
   requestableReviews,
   reputation,
   txns,
+  businesses,
+  selectedBusiness,
   quotes,
   addonCatalog,
   marketingState,
@@ -341,6 +343,8 @@ export function GuestRecord({
   requestableReviews: RequestableReview[];
   reputation: ReputationData;
   txns: Txn[];
+  businesses: { id: string; name: string }[];
+  selectedBusiness: string | null;
   quotes: QuoteItem[];
   addonCatalog: AddonCatalogItem[];
   marketingState: "subscribed" | "unsubscribed" | "needs_consent" | "no_email";
@@ -364,6 +368,17 @@ export function GuestRecord({
     const next = new URLSearchParams(params.toString());
     if (t === "overview") next.delete("tab");
     else next.set("tab", t);
+    router.push(`${pathname}?${next.toString()}`);
+  };
+
+  // Business is a server-side scope (it changes the Finances rows + their
+  // running balance), so it navigates with ?business=… and the page re-fetches.
+  // Stay on the Finances tab.
+  const setBusiness = (id: string) => {
+    const next = new URLSearchParams(params.toString());
+    if (id === "all") next.delete("business");
+    else next.set("business", id);
+    next.set("tab", "finances");
     router.push(`${pathname}?${next.toString()}`);
   };
 
@@ -530,6 +545,9 @@ export function GuestRecord({
                 quotes={quotes}
                 hasBookings={bookings.length > 0}
                 onAction={openFinance}
+                businesses={businesses}
+                selectedBusiness={selectedBusiness}
+                onBusiness={setBusiness}
               />
             )}
           </div>
@@ -1229,11 +1247,17 @@ function FinancesPanel({
   quotes,
   hasBookings,
   onAction,
+  businesses,
+  selectedBusiness,
+  onBusiness,
 }: {
   txns: Txn[];
   quotes: QuoteItem[];
   hasBookings: boolean;
   onAction: (action: FinanceAction) => void;
+  businesses: { id: string; name: string }[];
+  selectedBusiness: string | null;
+  onBusiness: (id: string) => void;
 }) {
   const actions: {
     key: FinanceAction;
@@ -1247,6 +1271,31 @@ function FinancesPanel({
   ];
   return (
     <div className="space-y-6">
+      {businesses.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[12px] font-semibold text-brand-mute">
+            Business
+          </span>
+          <select
+            value={selectedBusiness ?? "all"}
+            onChange={(e) => onBusiness(e.target.value)}
+            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink focus:border-brand-primary focus:outline-none"
+            title="Filter transactions by business"
+          >
+            <option value="all">All businesses</option>
+            {businesses.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+          {selectedBusiness ? (
+            <span className="text-[11.5px] text-brand-mute">
+              Headline balance still reflects all businesses.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {hasBookings ? (
         <div className="flex flex-wrap gap-2.5">
           {actions.map((a) => (
