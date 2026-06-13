@@ -4,15 +4,14 @@ import {
   AlertTriangle,
   CalendarClock,
   Camera,
-  ExternalLink,
+  ChevronRight,
+  Eye,
   Home,
   Image as ImageIcon,
   KeyRound,
   ListChecks,
-  Link2,
   MapPin,
   PackagePlus,
-  Play,
   Receipt,
   Settings as SettingsIcon,
   type LucideIcon,
@@ -239,361 +238,241 @@ export function Editor({
     .filter(Boolean)
     .join(", ");
 
-  const heroPhotos = photos.slice(0, 5);
-  const remainingPhotoCount = Math.max(0, photos.length - 5);
+  const cover = photos[0]?.url ?? null;
+
+  // Short context line under each section title in the rail.
+  function railSub(key: TabKey): string | null {
+    switch (key) {
+      case "basic":
+        return typeLabel;
+      case "photos":
+        return `${photos.length} photo${photos.length === 1 ? "" : "s"}`;
+      case "location":
+        return locationLabel || "Set the pin";
+      case "rooms":
+        return `${rooms.length} room${rooms.length === 1 ? "" : "s"}`;
+      case "danger":
+        return "Unpublish · archive";
+      default:
+        return null;
+    }
+  }
 
   return (
-    <div className="space-y-6 lg:space-y-7">
-      {/* ============ DARK HERO ============ */}
-      <section className="relative overflow-hidden rounded-card border border-brand-line shadow-card">
-        <div className="grid gap-0 md:grid-cols-[1.45fr_1fr]">
-          {/* Left: identity + actions */}
-          <div className="relative bg-brand-gradient-dark p-7 text-white md:p-8">
-            <div aria-hidden className="dotgrid absolute inset-0 opacity-30" />
-            <div
-              aria-hidden
-              className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-primary/30 blur-3xl"
-            />
-            <div
-              aria-hidden
-              className="absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-brand-secondary/40 blur-3xl"
-            />
+    <div className="space-y-5">
+      {/* ============ IDENTITY BAR ============ */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
+        <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cover} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-brand-mute">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
+            <Link href="/dashboard/listings" className="hover:text-brand-ink">
+              Listings
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-brand-ink">Editing</span>
+          </nav>
+          <div className="mt-0.5 flex items-center gap-2.5">
+            <h1 className="truncate font-display text-[19px] font-extrabold leading-none text-brand-ink">
+              {listing.name}
+            </h1>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${
+                isPublished
+                  ? "border-brand-primary/30 bg-brand-accent text-brand-secondary"
+                  : "border-brand-line bg-brand-light text-brand-mute"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isPublished ? "bg-brand-primary" : "bg-brand-mute"
+                }`}
+              />
+              {isPublished ? "Published" : "Draft"}
+            </span>
+          </div>
+        </div>
 
-            <div className="relative">
-              {/* Top row: eyebrow + status */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
-                  Listing editor
-                </div>
-                <div
-                  className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider backdrop-blur ${
-                    isPublished
-                      ? "bg-brand-primary/15 text-brand-primary"
-                      : "bg-white/10 text-brand-accent/80"
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-pill border border-brand-line bg-brand-light/60 px-3 py-1.5 lg:flex">
+            <span className="text-[12px] font-semibold text-brand-ink">
+              {publishPending ? "Saving…" : isPublished ? "Published" : "Draft"}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPublished}
+              aria-label="Toggle published"
+              onClick={togglePublish}
+              disabled={publishPending}
+              className={`relative h-5 w-9 rounded-pill transition-colors disabled:opacity-50 ${
+                isPublished ? "bg-brand-primary" : "bg-brand-line"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                  isPublished ? "left-4" : "left-0.5"
+                }`}
+              />
+            </button>
+          </div>
+          {isPublished && listing.slug ? (
+            <Link
+              href={`/listing/${listing.slug}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+            >
+              <Eye className="h-4 w-4 text-brand-mute" /> Preview
+            </Link>
+          ) : null}
+          <Link
+            href="/dashboard/listings"
+            className="inline-flex items-center rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+          >
+            Done
+          </Link>
+        </div>
+      </div>
+
+      {/* ============ SPLIT: section rail + panel ============ */}
+      <div className="grid gap-6 lg:grid-cols-[262px_1fr]">
+        {/* section navigator */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Sections
+          </div>
+          <div className="space-y-1">
+            {TABS.map(({ key, label, icon: Icon }) => {
+              const isActive = active === key;
+              const isDanger = key === "danger";
+              const sub = railSub(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActive(key)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
+                    isActive
+                      ? isDanger
+                        ? "border-status-cancelled/30 bg-status-cancelled/5"
+                        : "border-brand-line bg-white shadow-card"
+                      : "border-transparent hover:bg-white"
                   }`}
                 >
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      isPublished
-                        ? "pulse-soft bg-brand-primary"
-                        : "bg-brand-accent/60"
-                    }`}
-                  />
-                  {isPublished ? "Published · live" : "Draft · not live"}
-                </div>
-              </div>
-
-              {/* Title */}
-              <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-                {listing.name}
-              </h2>
-
-              {/* Type + slug */}
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-brand-accent/80">
-                <span className="inline-flex items-center gap-1.5">
-                  <Home className="h-3.5 w-3.5" />
-                  {typeLabel}
-                  {locationLabel ? ` · ${locationLabel}` : null}
-                </span>
-                {listing.slug ? (
-                  <>
-                    <span className="text-brand-accent/40">·</span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <Link2 className="h-3.5 w-3.5" />
-                      <span className="font-mono text-brand-accent/70">
-                        viloplatform.com/listing/
-                      </span>
-                      <span className="font-mono font-semibold text-white">
-                        {listing.slug}
-                      </span>
-                    </span>
-                  </>
-                ) : null}
-              </div>
-
-              {/* Performance ribbon */}
-              <div className="mt-6 grid max-w-md grid-cols-4 gap-3">
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Lifetime
-                  </div>
-                  <div className="num mt-1 font-display text-xl font-bold text-white">
-                    —
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    bookings
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Occupancy
-                  </div>
-                  <div className="num mt-1 font-display text-xl font-bold text-white">
-                    —
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    coming soon
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Rating
-                  </div>
-                  <div className="num mt-1 flex items-baseline gap-0.5 font-display text-xl font-bold text-white">
-                    —
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    no reviews
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-                    Page views
-                  </div>
-                  <div className="num mt-1 font-display text-xl font-bold text-white">
-                    —
-                  </div>
-                  <div className="text-[10px] text-brand-accent/60">
-                    coming soon
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                {isPublished && listing.slug ? (
-                  <Link
-                    href={`/listing/${listing.slug}`}
-                    target="_blank"
-                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow hover:bg-brand-accent"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View public page
-                  </Link>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/10 px-4 py-2.5 text-sm font-medium text-white/60">
-                    <ExternalLink className="h-4 w-4" />
-                    View public page
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setActive("photos")}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
-                >
-                  <Play className="h-4 w-4" />
-                  Preview booking flow
-                </button>
-
-                {/* Publish toggle pill */}
-                <div className="ml-auto flex items-center gap-2 rounded-pill border border-white/15 bg-black/30 px-2.5 py-1.5 backdrop-blur">
-                  <span className="text-[11.5px] font-medium text-white/90">
-                    {publishPending
-                      ? "Publishing…"
-                      : isPublished
-                        ? "Published"
-                        : "Draft"}
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={isPublished}
-                    aria-label="Toggle published"
-                    onClick={togglePublish}
-                    disabled={publishPending}
-                    className={`relative h-5 w-9 rounded-pill transition-colors disabled:opacity-50 ${
-                      isPublished ? "bg-brand-primary" : "bg-white/20"
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition ${
+                      isActive
+                        ? isDanger
+                          ? "bg-status-cancelled text-white"
+                          : "bg-brand-primary text-white"
+                        : isDanger
+                          ? "bg-status-cancelled/10 text-status-cancelled"
+                          : "bg-brand-accent/70 text-brand-secondary"
                     }`}
                   >
+                    <Icon className="h-[18px] w-[18px]" />
+                  </span>
+                  <span className="min-w-0 flex-1">
                     <span
-                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${
-                        isPublished ? "left-4" : "left-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: photo grid */}
-          <div className="relative bg-brand-dark">
-            <div className="grid h-full min-h-[300px] grid-cols-3 grid-rows-3 gap-1 p-2">
-              {heroPhotos.length === 0 ? (
-                <>
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`overflow-hidden rounded-[10px] bg-brand-accent/20 ${
-                        i === 0 ? "col-span-2 row-span-2" : ""
-                      }`}
-                    />
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setActive("photos")}
-                    className="col-span-3 mt-1 rounded-[10px] bg-brand-accent/10 py-2 text-[11px] font-semibold text-brand-accent hover:bg-brand-accent/20"
-                  >
-                    Add photos →
-                  </button>
-                </>
-              ) : (
-                <>
-                  {heroPhotos.map((p, i) => (
-                    <div
-                      key={p.id}
-                      className={`overflow-hidden rounded-[10px] ${
-                        i === 0 ? "col-span-2 row-span-2" : ""
+                      className={`block text-[13.5px] font-semibold leading-tight ${
+                        isDanger
+                          ? "text-status-cancelled"
+                          : isActive
+                            ? "text-brand-ink"
+                            : "text-brand-ink/80"
                       }`}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={p.url}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                  {/* 6th cell: "view all" overlay or fill placeholder */}
-                  {photos.length > 5 ? (
-                    <div className="relative overflow-hidden rounded-[10px]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={photos[5].url}
-                        alt=""
-                        loading="lazy"
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setActive("photos")}
-                        className="absolute inset-0 flex items-center justify-center bg-brand-dark/70 text-[11px] font-semibold text-white hover:bg-brand-dark/85"
-                      >
-                        +{remainingPhotoCount} more
-                      </button>
-                    </div>
-                  ) : (
-                    // Fewer than 6 photos — fill remaining cells then show "View all"
-                    Array.from({
-                      length: Math.max(0, 5 - heroPhotos.length),
-                    }).map((_, i) => (
-                      <button
-                        key={`empty-${i}`}
-                        type="button"
-                        onClick={() => setActive("photos")}
-                        className="overflow-hidden rounded-[10px] bg-brand-accent/10 text-[10px] font-semibold text-brand-accent hover:bg-brand-accent/20"
-                      >
-                        +
-                      </button>
-                    ))
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============ STICKY TAB BAR ============ */}
-      <section className="sticky top-16 z-10 rounded-card border border-brand-line bg-white shadow-card">
-        <div className="hscroll flex items-center gap-0.5 overflow-x-auto px-2 py-1.5">
-          {TABS.map(({ key, label, icon: Icon }) => {
-            const isActive = active === key;
-            const isDanger = key === "danger";
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActive(key)}
-                aria-current={isActive ? "page" : undefined}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[12.5px] transition-colors ${
-                  isDanger ? "ml-auto" : ""
-                } ${
-                  isActive
-                    ? isDanger
-                      ? "bg-status-cancelled/10 font-semibold text-status-cancelled"
-                      : "bg-brand-accent font-semibold text-brand-secondary"
-                    : isDanger
-                      ? "font-medium text-status-cancelled hover:bg-status-cancelled/5"
-                      : "font-medium text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-                {key === "photos" && photos.length > 0 ? (
-                  <span className="num rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
-                    {photos.length}
+                      {label}
+                    </span>
+                    {sub ? (
+                      <span className="mt-0.5 block truncate text-[11px] text-brand-mute">
+                        {sub}
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                  {key === "photos" && photos.length > 0 ? (
+                    <span className="num shrink-0 rounded-pill bg-brand-line px-1.5 py-0.5 text-[9.5px] font-bold text-brand-mute">
+                      {photos.length}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
 
-      {/* ============ ACTIVE TAB CONTENT ============ */}
-      <div>
-        {active === "basic" ? (
-          <BasicTab
-            listing={listing}
-            categoryLeaves={categoryLeaves}
-            businesses={businesses}
-          />
-        ) : null}
-        {active === "photos" ? (
-          <PhotosTab
-            listingId={listing.id}
-            photos={photos}
-            rooms={rooms}
-            onChange={setPhotos}
-          />
-        ) : null}
-        {active === "location" ? <LocationTab listing={listing} /> : null}
-        {active === "rooms" ? (
-          <RoomsTab
-            listing={listing}
-            rooms={rooms}
-            onRoomsChange={setRooms}
-            autoCreate={autoCreateRoom}
-          />
-        ) : null}
-        {active === "amenities" ? (
-          <AmenitiesTab
-            listingId={listing.id}
-            initial={amenities}
-            rooms={rooms}
-            groups={amenityGroups}
-          />
-        ) : null}
-        {active === "addons" ? (
-          <AddonsTab
-            listingId={listing.id}
-            available={availableAddons}
-            rooms={rooms}
-            initialAssigned={assignedAddons}
-          />
-        ) : null}
-        {active === "pricing" ? <PricingTab listing={listing} /> : null}
-        {active === "policies" ? (
-          <PoliciesTab
-            listingId={listing.id}
-            rooms={rooms}
-            available={availablePolicies}
-            assigned={assignedPolicies}
-          />
-        ) : null}
-        {active === "access" ? (
-          <GuestAccessTab
-            listingId={listing.id}
-            access={access}
-            picks={localPicks}
-          />
-        ) : null}
-        {active === "settings" ? <SettingsTab listing={listing} /> : null}
-        {active === "danger" ? (
-          <DangerTab listingId={listing.id} listingName={listing.name} />
-        ) : null}
+        {/* ============ ACTIVE PANEL ============ */}
+        <div className="min-w-0">
+          {active === "basic" ? (
+            <BasicTab
+              listing={listing}
+              categoryLeaves={categoryLeaves}
+              businesses={businesses}
+            />
+          ) : null}
+          {active === "photos" ? (
+            <PhotosTab
+              listingId={listing.id}
+              photos={photos}
+              rooms={rooms}
+              onChange={setPhotos}
+            />
+          ) : null}
+          {active === "location" ? <LocationTab listing={listing} /> : null}
+          {active === "rooms" ? (
+            <RoomsTab
+              listing={listing}
+              rooms={rooms}
+              onRoomsChange={setRooms}
+              autoCreate={autoCreateRoom}
+            />
+          ) : null}
+          {active === "amenities" ? (
+            <AmenitiesTab
+              listingId={listing.id}
+              initial={amenities}
+              rooms={rooms}
+              groups={amenityGroups}
+            />
+          ) : null}
+          {active === "addons" ? (
+            <AddonsTab
+              listingId={listing.id}
+              available={availableAddons}
+              rooms={rooms}
+              initialAssigned={assignedAddons}
+            />
+          ) : null}
+          {active === "pricing" ? <PricingTab listing={listing} /> : null}
+          {active === "policies" ? (
+            <PoliciesTab
+              listingId={listing.id}
+              rooms={rooms}
+              available={availablePolicies}
+              assigned={assignedPolicies}
+            />
+          ) : null}
+          {active === "access" ? (
+            <GuestAccessTab
+              listingId={listing.id}
+              access={access}
+              picks={localPicks}
+            />
+          ) : null}
+          {active === "settings" ? <SettingsTab listing={listing} /> : null}
+          {active === "danger" ? (
+            <DangerTab listingId={listing.id} listingName={listing.name} />
+          ) : null}
+        </div>
       </div>
     </div>
   );
