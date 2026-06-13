@@ -137,7 +137,7 @@ export async function createEnquiry(
   const { data: listing } = await admin
     .from("listings")
     .select(
-      "id, host_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
+      "id, host_id, business_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
     )
     .eq("id", d.listing_id)
     .maybeSingle();
@@ -320,9 +320,13 @@ export async function createEnquiry(
     ? priced.data.currency
     : (listing.currency ?? "ZAR");
 
-  const { data: qnum } = await admin.rpc("next_quote_number", {
-    p_host_id: listing.host_id,
-  });
+  // Per-business quote number (listings always carry a business_id post-Phase 1;
+  // guard anyway — a null number is tolerated below).
+  const { data: qnum } = listing.business_id
+    ? await admin.rpc("next_quote_number", {
+        p_business_id: listing.business_id,
+      })
+    : { data: null };
 
   const { data: quote, error: qErr } = await admin
     .from("quotes")

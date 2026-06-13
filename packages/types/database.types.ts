@@ -1008,6 +1008,44 @@ export type Database = {
           },
         ]
       }
+      business_counters: {
+        Row: {
+          business_id: string
+          last_credit_note_number: number
+          last_invoice_number: number
+          last_quote_number: number
+          last_receipt_number: number
+          last_refund_number: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          last_credit_note_number?: number
+          last_invoice_number?: number
+          last_quote_number?: number
+          last_receipt_number?: number
+          last_refund_number?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          last_credit_note_number?: number
+          last_invoice_number?: number
+          last_quote_number?: number
+          last_receipt_number?: number
+          last_refund_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_counters_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           address_line1: string | null
@@ -7009,6 +7047,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      booking_business_id: { Args: { p_booking_id: string }; Returns: string }
       broadcast_audience: {
         Args: { p_audience: string; p_host_id: string }
         Returns: {
@@ -7018,6 +7057,7 @@ export type Database = {
           status: string
         }[]
       }
+      business_doc_code: { Args: { p_business_id: string }; Returns: string }
       calculate_booking_price: {
         Args: {
           p_check_in: string
@@ -7404,11 +7444,14 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: undefined
       }
-      next_credit_note_number: { Args: { p_host_id: string }; Returns: string }
-      next_invoice_number: { Args: { p_host_id: string }; Returns: string }
-      next_quote_number: { Args: { p_host_id: string }; Returns: string }
-      next_receipt_number: { Args: { p_host_id: string }; Returns: string }
-      next_refund_number: { Args: { p_host_id: string }; Returns: string }
+      next_credit_note_number: {
+        Args: { p_business_id: string }
+        Returns: string
+      }
+      next_invoice_number: { Args: { p_business_id: string }; Returns: string }
+      next_quote_number: { Args: { p_business_id: string }; Returns: string }
+      next_receipt_number: { Args: { p_business_id: string }; Returns: string }
+      next_refund_number: { Args: { p_business_id: string }; Returns: string }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

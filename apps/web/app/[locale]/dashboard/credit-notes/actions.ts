@@ -55,10 +55,40 @@ export async function createCreditNoteAction(input: {
     };
   }
 
-  // Per-host credit-note number (SECURITY DEFINER RPC, bumped under row lock).
+  // Per-business credit-note number — resolve the business behind the invoice's
+  // booking (its listing's business), falling back to the host's default.
+  let cnBusinessId: string | null = null;
+  if (invoice.booking_id) {
+    const { data: bk } = await supabase
+      .from("bookings")
+      .select("listing:listings ( business_id )")
+      .eq("id", invoice.booking_id)
+      .maybeSingle();
+    const l = Array.isArray(bk?.listing) ? bk?.listing[0] : bk?.listing;
+    cnBusinessId =
+      (l as { business_id?: string | null } | null)?.business_id ?? null;
+  }
+  if (!cnBusinessId) {
+    const { data: defBiz } = await supabase
+      .from("businesses")
+      .select("id")
+      .eq("host_id", invoice.host_id)
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .maybeSingle();
+    cnBusinessId = defBiz?.id ?? null;
+  }
+  if (!cnBusinessId) {
+    return {
+      ok: false,
+      error: "No business found to number this credit note.",
+    };
+  }
+
+  // SECURITY DEFINER RPC, bumped under row lock.
   const { data: number, error: numErr } = await supabase.rpc(
     "next_credit_note_number",
-    { p_host_id: invoice.host_id },
+    { p_business_id: cnBusinessId },
   );
   if (numErr || !number) {
     return { ok: false, error: "Could not allocate a credit-note number." };

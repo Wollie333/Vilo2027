@@ -38,7 +38,7 @@ export async function createAddonInvoice(
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, host_id, guest_id, guest_name, guest_email, guest_phone, currency, check_in, check_out, listing:listings ( name )",
+      "id, host_id, guest_id, guest_name, guest_email, guest_phone, currency, check_in, check_out, listing:listings ( name, business_id )",
     )
     .eq("id", args.bookingId)
     .maybeSingle();
@@ -82,12 +82,29 @@ export async function createAddonInvoice(
   const vatAmount = Math.round(Number(args.vatAmount ?? 0) * 100) / 100;
   const total = Math.round((subtotal + vatAmount) * 100) / 100;
 
-  const listingName = Array.isArray(booking.listing)
-    ? (booking.listing[0] as { name?: string } | undefined)?.name
-    : (booking.listing as { name?: string } | null)?.name;
+  const listingRow = (
+    Array.isArray(booking.listing) ? booking.listing[0] : booking.listing
+  ) as { name?: string; business_id?: string | null } | null;
+  const listingName = listingRow?.name;
+
+  // Addon invoice numbers from the listing's business (Phase 3b). The DB
+  // booking_business_id() fallback isn't reachable from the RPC, so resolve the
+  // host's default business if the listing somehow has none.
+  let businessId = listingRow?.business_id ?? null;
+  if (!businessId) {
+    const { data: defBiz } = await admin
+      .from("businesses")
+      .select("id")
+      .eq("host_id", booking.host_id)
+      .eq("is_default", true)
+      .eq("is_archived", false)
+      .maybeSingle();
+    businessId = defBiz?.id ?? null;
+  }
+  if (!businessId) return null;
 
   const { data: number } = await admin.rpc("next_invoice_number", {
-    p_host_id: booking.host_id,
+    p_business_id: businessId,
   });
   if (!number) return null;
 

@@ -203,11 +203,16 @@ export async function createQuoteAction(
   // Verify the listing belongs to this host (RLS will also enforce).
   const { data: listing } = await supabase
     .from("listings")
-    .select("id, host_id, cancellation_policy, cancellation_policy_label")
+    .select(
+      "id, host_id, business_id, cancellation_policy, cancellation_policy_label",
+    )
     .eq("id", parsed.data.listing_id)
     .maybeSingle();
   if (!listing || listing.host_id !== host.hostId) {
     return { ok: false, error: "Listing not found." };
+  }
+  if (!listing.business_id) {
+    return { ok: false, error: "Listing has no business assigned." };
   }
 
   // Freeze the cancellation policy onto the quote so the terms the guest agreed
@@ -219,10 +224,10 @@ export async function createQuoteAction(
     captured_at: new Date().toISOString(),
   };
 
-  // Per-host quote number via SECURITY DEFINER RPC.
+  // Per-business quote number via SECURITY DEFINER RPC.
   const { data: numberResult, error: numberErr } = await supabase.rpc(
     "next_quote_number",
-    { p_host_id: host.hostId },
+    { p_business_id: listing.business_id },
   );
   if (numberErr || !numberResult) {
     return { ok: false, error: "Could not assign a quote number." };
