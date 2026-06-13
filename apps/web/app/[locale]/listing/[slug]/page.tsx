@@ -664,6 +664,7 @@ async function ListingBody({
   ]);
   const sectionLinks = [
     { id: "sec-overview", label: t("navOverview") },
+    ...(listing.description ? [{ id: "sec-about", label: t("navAbout") }] : []),
     { id: "sec-amenities", label: t("navAmenities") },
     ...(showRoomsGrid ? [{ id: "sec-rooms", label: t("navRooms") }] : []),
     ...(ratesNode ? [{ id: "sec-rates", label: t("navRates") }] : []),
@@ -743,6 +744,20 @@ async function ListingBody({
             </div>
           </section>
 
+          {/* ABOUT — placed right after the host/overview card and above the
+              highlights. HTML produced by Tiptap in the host editor; always
+              sanitised server-side before render. */}
+          {listing.description ? (
+            <section id="sec-about" className="border-b border-brand-line py-7">
+              <h3 className="font-display text-xl font-bold text-brand-ink">
+                {t("aboutTitle")}
+              </h3>
+              <AboutCollapsible
+                html={sanitiseListingHtml(listing.description)}
+              />
+            </section>
+          ) : null}
+
           {/* HIGHLIGHTS */}
           <section className="space-y-5 border-b border-brand-line py-7">
             {listing.instant_booking ? (
@@ -787,19 +802,6 @@ async function ListingBody({
               />
             ) : null}
           </section>
-
-          {/* ABOUT — HTML produced by Tiptap in the host editor. Always
-              sanitised server-side via sanitiseListingHtml before render. */}
-          {listing.description ? (
-            <section className="border-b border-brand-line py-7">
-              <h3 className="font-display text-xl font-bold text-brand-ink">
-                {t("aboutTitle")}
-              </h3>
-              <AboutCollapsible
-                html={sanitiseListingHtml(listing.description)}
-              />
-            </section>
-          ) : null}
 
           {/* AMENITIES */}
           <section
