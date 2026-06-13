@@ -14,11 +14,17 @@ the **Reviews** feature, end-to-end.
 - Migrations `20260613000020_create_guest_ratings.sql` +
   `20260613000021_help_guest_ratings.sql` pushed; types regenerated. `pnpm
   build` + `pnpm lint` green.
-- **Next up (founder-directed):** (1) plan the **ledger ↔ multi-business** wiring
-  — business details onto every finance doc per the listing's business; a
-  business filter/toggle on Ledger + Guest Record; guest balance still sums all
-  businesses. (2) Guest portal: fix the launch-blocker `in_app_notifications`
-  unscoped query (layout + notifications page) and draft a portal build plan.
+## ✅ Done this session (2026-06-13) — Ledger ↔ multi-business (Phases 1–2)
+- Plan `LEDGER_MULTIBUSINESS_PLAN.md`. Confirmed finance **documents already**
+  render the listing's business (no work). **Txn now business-aware** (derived
+  via booking→listing→business_id; `fetchHostTransactions` businessId filter that
+  scopes rows + running balance). **Business selector on the Ledger** + on the
+  **Guest Record Finances tab** (server-side `?business=`; headline balance stays
+  all-businesses). Also fixed the portal `in_app_notifications` user-scope.
+- **Remaining (Phase 3, next chunk):** `business_id` on `guest_credit_ledger`
+  (per-business store credit) + populate it on credit write-paths; headline still
+  nets all. Then verify (2-business + shared guest) + help + ship.
+- **Still parked:** guest-portal build plan (portal is ~95% built; only QA tracker exists).
 
 ## ✅ Done this session (2026-06-10) — Calendar: select a range on the grid + inline book
 - **Industry-standard range selection on the month grid.** Tap check-in → later
