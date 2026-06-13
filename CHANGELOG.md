@@ -56,8 +56,16 @@ Copy this template and fill it in at the end of every session:
   stays all-businesses** by design (with an on-screen note when a filter is
   active). Business options derive from the guest's bookings' listings.
 
-### Still to do (next chunk)
-- `business_id` on `guest_credit_ledger` (per-business store credit) — Phase 3.
+### Also built (Phase 3 — per-business store credit)
+- `business_id` on `guest_credit_ledger` (`20260613000022`). A BEFORE INSERT
+  trigger auto-attributes each credit row to its booking's business
+  (`booking_business_id()` — listing = SSOT), so the five credit write-paths
+  (overpayment auto-post, apply-credit, manual credit note, credit-note void) are
+  untouched; existing rows backfilled. Store credit is now attributable to a
+  business; the guest's headline balance still sums all businesses.
+
+### Migrations (this strand)
+- `20260613000022_guest_credit_business.sql`
 
 ### Commit
 - `feat(finance): per-business ledger filter (Txn.businessId + Ledger selector)`

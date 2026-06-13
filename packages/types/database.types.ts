@@ -1973,6 +1973,7 @@ export type Database = {
         Row: {
           amount: number
           booking_id: string | null
+          business_id: string | null
           created_at: string
           created_by: string | null
           currency: string
@@ -1987,6 +1988,7 @@ export type Database = {
         Insert: {
           amount: number
           booking_id?: string | null
+          business_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2001,6 +2003,7 @@ export type Database = {
         Update: {
           amount?: number
           booking_id?: string | null
+          business_id?: string | null
           created_at?: string
           created_by?: string | null
           currency?: string
@@ -2018,6 +2021,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_credit_ledger_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
           {
