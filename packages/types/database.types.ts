@@ -2582,62 +2582,6 @@ export type Database = {
           },
         ]
       }
-      host_business_details: {
-        Row: {
-          billing_address_line1: string | null
-          billing_address_line2: string | null
-          billing_city: string | null
-          billing_country: string
-          billing_postcode: string | null
-          company_registration_number: string | null
-          created_at: string
-          host_id: string
-          legal_name: string | null
-          logo_path: string | null
-          trading_name: string | null
-          updated_at: string
-          vat_number: string | null
-        }
-        Insert: {
-          billing_address_line1?: string | null
-          billing_address_line2?: string | null
-          billing_city?: string | null
-          billing_country?: string
-          billing_postcode?: string | null
-          company_registration_number?: string | null
-          created_at?: string
-          host_id: string
-          legal_name?: string | null
-          logo_path?: string | null
-          trading_name?: string | null
-          updated_at?: string
-          vat_number?: string | null
-        }
-        Update: {
-          billing_address_line1?: string | null
-          billing_address_line2?: string | null
-          billing_city?: string | null
-          billing_country?: string
-          billing_postcode?: string | null
-          company_registration_number?: string | null
-          created_at?: string
-          host_id?: string
-          legal_name?: string | null
-          logo_path?: string | null
-          trading_name?: string | null
-          updated_at?: string
-          vat_number?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "host_business_details_host_id_fkey"
-            columns: ["host_id"]
-            isOneToOne: true
-            referencedRelation: "hosts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       host_contacts: {
         Row: {
           blocked: boolean
@@ -2708,44 +2652,6 @@ export type Database = {
             foreignKeyName: "host_contacts_host_id_fkey"
             columns: ["host_id"]
             isOneToOne: false
-            referencedRelation: "hosts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      host_counters: {
-        Row: {
-          host_id: string
-          last_credit_note_number: number
-          last_invoice_number: number
-          last_quote_number: number
-          last_receipt_number: number
-          last_refund_number: number
-          updated_at: string
-        }
-        Insert: {
-          host_id: string
-          last_credit_note_number?: number
-          last_invoice_number?: number
-          last_quote_number?: number
-          last_receipt_number?: number
-          last_refund_number?: number
-          updated_at?: string
-        }
-        Update: {
-          host_id?: string
-          last_credit_note_number?: number
-          last_invoice_number?: number
-          last_quote_number?: number
-          last_receipt_number?: number
-          last_refund_number?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "host_counters_host_id_fkey"
-            columns: ["host_id"]
-            isOneToOne: true
             referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
@@ -7410,7 +7316,6 @@ export type Database = {
       gettransactionid: { Args: never; Returns: unknown }
       guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
-      host_doc_code: { Args: { p_host_id: string }; Returns: string }
       increment_help_article_view: {
         Args: { p_article_id: string }
         Returns: undefined

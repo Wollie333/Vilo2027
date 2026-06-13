@@ -201,23 +201,24 @@ async function main() {
 
   // 2b. Business details — drives the branded document numbering
   // (INV-/Q-/CR-/RF- use the trading name) and the invoice/quote PDF header.
-  await up(
-    "host_business_details",
-    [
-      {
-        host_id: HOST_ID,
+  // The host-insert trigger already created a default `businesses` row; enrich it.
+  {
+    const { error } = await admin
+      .from("businesses")
+      .update({
         legal_name: "Cape Coast Retreats (Pty) Ltd",
         trading_name: "Cape Coast Retreats",
         vat_number: "4123456789",
         company_registration_number: "2021/123456/07",
-        billing_address_line1: "12 Marine Drive",
-        billing_city: "Hermanus",
-        billing_postcode: "7200",
-        billing_country: "ZA",
-      },
-    ],
-    "host_id",
-  );
+        address_line1: "12 Marine Drive",
+        city: "Hermanus",
+        postal_code: "7200",
+        country: "ZA",
+      })
+      .eq("host_id", HOST_ID)
+      .eq("is_default", true);
+    if (error) throw new Error(`update default business: ${error.message}`);
+  }
 
   // 3. Listings
   await up("listings", [

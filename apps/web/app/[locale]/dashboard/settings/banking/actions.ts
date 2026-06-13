@@ -390,6 +390,13 @@ export async function uploadHostLogoAction(
   }
 
   const supabase = createServerClient();
+  // The logo lives on the host's DEFAULT business (documents resolve their logo
+  // from the listing's business → default fallback). This setup-flow uploader
+  // writes the default; per-business logos are managed under Settings → Businesses.
+  const bizId = await getDefaultBusinessId(supabase, host.hostId);
+  if (!bizId) {
+    return { ok: false, error: "No business to attach the logo to." };
+  }
   const ext =
     file.type === "image/png"
       ? "png"
@@ -399,9 +406,9 @@ export async function uploadHostLogoAction(
   const storagePath = `${host.hostId}/logo-${crypto.randomUUID()}.${ext}`;
 
   const { data: existing } = await supabase
-    .from("host_business_details")
+    .from("businesses")
     .select("logo_path")
-    .eq("host_id", host.hostId)
+    .eq("id", bizId)
     .maybeSingle();
 
   const { error: upErr } = await supabase.storage
@@ -414,11 +421,10 @@ export async function uploadHostLogoAction(
   if (upErr) return { ok: false, error: "Upload failed. Try a smaller file." };
 
   const { error: rowErr } = await supabase
-    .from("host_business_details")
-    .upsert(
-      { host_id: host.hostId, logo_path: storagePath },
-      { onConflict: "host_id" },
-    );
+    .from("businesses")
+    .update({ logo_path: storagePath })
+    .eq("id", bizId)
+    .eq("host_id", host.hostId);
   if (rowErr) {
     await supabase.storage.from(LOGO_BUCKET).remove([storagePath]);
     return { ok: false, error: "Upload saved but record failed." };
@@ -439,17 +445,20 @@ export async function removeHostLogoAction(): Promise<ActionResult> {
   const host = await resolveHost();
   if (!host.ok) return host;
   const supabase = createServerClient();
+  const bizId = await getDefaultBusinessId(supabase, host.hostId);
+  if (!bizId) return { ok: true };
   const { data: existing } = await supabase
-    .from("host_business_details")
+    .from("businesses")
     .select("logo_path")
-    .eq("host_id", host.hostId)
+    .eq("id", bizId)
     .maybeSingle();
   if (existing?.logo_path) {
     await supabase.storage.from(LOGO_BUCKET).remove([existing.logo_path]);
   }
   await supabase
-    .from("host_business_details")
+    .from("businesses")
     .update({ logo_path: null })
+    .eq("id", bizId)
     .eq("host_id", host.hostId);
   revalidatePath("/dashboard/settings/banking");
   return { ok: true };
