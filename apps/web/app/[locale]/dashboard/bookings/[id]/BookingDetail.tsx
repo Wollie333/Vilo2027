@@ -7,7 +7,9 @@ import {
   Bath,
   BedDouble,
   Check,
+  CheckCircle2,
   ChevronRight,
+  Clock,
   CreditCard,
   DoorOpen,
   ExternalLink,
@@ -414,75 +416,84 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {d.guestEmail ? (
-                <a
-                  href={`mailto:${d.guestEmail}`}
-                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
-                >
-                  <MessageSquare className="h-4 w-4" /> Message
-                </a>
-              ) : null}
-              {d.guestPhone ? (
-                <a
-                  href={`tel:${d.guestPhone}`}
-                  className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-                >
-                  <Phone className="h-4 w-4 text-brand-mute" /> Call
-                </a>
-              ) : null}
-              <div className="relative">
-                <button
-                  onClick={() => setMoreOpen((v) => !v)}
-                  onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
-                  className="flex h-[42px] w-[42px] items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-                  title="More"
-                >
-                  <MoreHorizontal className="h-5 w-5" />
-                </button>
-                {moreOpen ? (
-                  <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[220px] rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
-                    {d.listingSlug ? (
-                      <a
-                        href={`/listing/${d.listingSlug}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        <ExternalLink className="h-4 w-4 text-brand-mute" />{" "}
-                        View public listing
-                      </a>
-                    ) : null}
-                    {d.paymentRecordId ? (
-                      <Link
-                        href={`/dashboard/payments/${d.paymentRecordId}`}
-                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        <CreditCard className="h-4 w-4 text-brand-mute" />{" "}
-                        Payment record
-                      </Link>
-                    ) : null}
-                    {d.invoice ? (
-                      <Link
-                        href={`/dashboard/invoices/${d.invoice.id}`}
-                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        <Receipt className="h-4 w-4 text-brand-mute" /> Invoice{" "}
-                        {d.invoice.number}
-                      </Link>
-                    ) : null}
-                    {d.guestGkey ? (
-                      <Link
-                        href={`/dashboard/guests/${d.guestGkey}`}
-                        className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        <Users className="h-4 w-4 text-brand-mute" /> Guest
-                        record
-                      </Link>
-                    ) : null}
-                  </div>
+            <div className="flex flex-col items-end gap-2.5">
+              <div className="flex items-center gap-2">
+                {d.guestEmail ? (
+                  <a
+                    href={`mailto:${d.guestEmail}`}
+                    className="inline-flex h-[42px] items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Message
+                  </a>
                 ) : null}
+                {d.guestPhone ? (
+                  <a
+                    href={`tel:${d.guestPhone}`}
+                    className="inline-flex h-[42px] items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                  >
+                    <Phone className="h-4 w-4 text-brand-mute" /> Call
+                  </a>
+                ) : null}
+                <div className="relative">
+                  <button
+                    onClick={() => setMoreOpen((v) => !v)}
+                    onBlur={() => setTimeout(() => setMoreOpen(false), 150)}
+                    className="flex h-[42px] w-[42px] items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
+                    title="More"
+                  >
+                    <MoreHorizontal className="h-5 w-5" />
+                  </button>
+                  {moreOpen ? (
+                    <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[220px] rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+                      {d.listingSlug ? (
+                        <a
+                          href={`/listing/${d.listingSlug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <ExternalLink className="h-4 w-4 text-brand-mute" />{" "}
+                          View public listing
+                        </a>
+                      ) : null}
+                      {d.paymentRecordId ? (
+                        <Link
+                          href={`/dashboard/payments/${d.paymentRecordId}`}
+                          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <CreditCard className="h-4 w-4 text-brand-mute" />{" "}
+                          Payment record
+                        </Link>
+                      ) : null}
+                      {d.invoice ? (
+                        <Link
+                          href={`/dashboard/invoices/${d.invoice.id}`}
+                          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <Receipt className="h-4 w-4 text-brand-mute" />{" "}
+                          Invoice {d.invoice.number}
+                        </Link>
+                      ) : null}
+                      {d.guestGkey ? (
+                        <Link
+                          href={`/dashboard/guests/${d.guestGkey}`}
+                          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <Users className="h-4 w-4 text-brand-mute" /> Guest
+                          record
+                        </Link>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
+              <BookingBalanceLine
+                balanceDue={d.balanceDue}
+                amountPaid={d.amountPaid}
+                refundTotal={d.refundTotal}
+                currency={d.currency}
+                onManage={() => setTab("payments")}
+              />
             </div>
           </div>
 
@@ -929,6 +940,56 @@ function SummaryRow({
       <span className="text-[12.5px] text-brand-mute">{label}</span>
       <span className="text-[13px] font-semibold text-brand-ink">{value}</span>
     </div>
+  );
+}
+
+// ── Balance line (mirrors the guest record's BalanceLine, scoped to THIS
+// booking). Sits under the header action buttons. Derived from the same
+// ledger-backed numbers as the Payments tab (amountPaid / balanceDue).
+function BookingBalanceLine({
+  balanceDue,
+  amountPaid,
+  refundTotal,
+  currency,
+  onManage,
+}: {
+  balanceDue: number;
+  amountPaid: number;
+  refundTotal: number;
+  currency: string;
+  onManage: () => void;
+}) {
+  const owes = balanceDue > 0.005;
+  const settled = !owes && amountPaid > 0.005;
+  // Nothing recorded yet and nothing owed (e.g. R0 booking) → show nothing.
+  if (!owes && !settled) return null;
+
+  const col = owes ? "#B45309" : "#047857";
+  const Icon = owes ? Clock : CheckCircle2;
+  return (
+    <button
+      type="button"
+      onClick={onManage}
+      title="Open payments"
+      className="flex items-center gap-1.5 whitespace-nowrap rounded-pill px-1 text-[11.5px] transition hover:opacity-80"
+    >
+      <Icon className="h-3.5 w-3.5" style={{ color: col }} />
+      <span className="text-brand-mute">{owes ? "Balance due" : ""}</span>
+      {owes ? (
+        <span
+          className="num font-display text-[12.5px] font-bold"
+          style={{ color: col }}
+        >
+          {formatMoney(balanceDue, currency)}
+        </span>
+      ) : null}
+      <span className="text-brand-mute">
+        {owes ? "· Owed to you" : "Paid in full"}
+        {refundTotal > 0.005
+          ? ` · ${formatMoney(refundTotal, currency)} refunded`
+          : ""}
+      </span>
+    </button>
   );
 }
 
