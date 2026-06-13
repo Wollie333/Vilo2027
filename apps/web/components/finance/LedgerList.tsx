@@ -426,7 +426,12 @@ export function LedgerList({
                   </td>
                   {showBalance ? (
                     <td className="num whitespace-nowrap px-2 py-3 text-right">
-                      {Math.abs(e.balance) < 0.5 ? (
+                      {e.pending && !e.voided ? (
+                        // A pending payment hasn't moved the balance yet — never
+                        // imply it's "settled". The running balance shown here
+                        // excludes it by design (owedEffect 0).
+                        <span className="text-brand-mute">awaiting</span>
+                      ) : Math.abs(e.balance) < 0.5 ? (
                         <span className="text-brand-mute">settled</span>
                       ) : e.balance > 0 ? (
                         <span className="font-semibold text-amber-700">

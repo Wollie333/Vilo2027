@@ -754,6 +754,58 @@ function OverviewPanel({
             ) : null}
           </div>
         </Card>
+
+        {d.addons.length > 0 ? (
+          <Card>
+            <CardHead
+              title="Add-ons"
+              right={
+                <button
+                  onClick={() => setTab("payments")}
+                  className="text-[12px] font-semibold text-brand-primary hover:text-brand-secondary"
+                >
+                  Manage
+                </button>
+              }
+            />
+            <div className="divide-y divide-brand-line">
+              {d.addons.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between gap-3 px-5 py-3"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <PlusCircle className="h-4 w-4 shrink-0 text-brand-mute" />
+                    <span className="truncate text-[13px] font-medium text-brand-ink">
+                      {a.label}
+                    </span>
+                    {a.quantity > 1 ? (
+                      <span className="shrink-0 text-[12px] text-brand-mute">
+                        × {a.quantity}
+                      </span>
+                    ) : null}
+                    {a.isRequired ? (
+                      <span className="shrink-0 rounded-pill bg-brand-accent px-1.5 py-0.5 text-[10px] font-semibold text-brand-secondary">
+                        Required
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="shrink-0 text-[13px] font-semibold text-brand-ink">
+                    {formatMoney(a.subtotal, a.currency)}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between px-5 py-3">
+                <span className="text-[12.5px] font-semibold text-brand-ink">
+                  Add-ons total
+                </span>
+                <span className="font-display text-[15px] font-bold text-brand-ink">
+                  {formatMoney(d.addonsSubtotal, d.currency)}
+                </span>
+              </div>
+            </div>
+          </Card>
+        ) : null}
       </div>
 
       <div className="space-y-6">
