@@ -31,6 +31,7 @@ type SearchParams = {
   listing?: string;
   channel?: string;
   rating?: string;
+  business?: string;
 };
 
 export default async function GuestsPage({
@@ -60,10 +61,12 @@ export default async function GuestsPage({
         acceptedQuotes={{}}
         totalCount={0}
         listings={[]}
+        businesses={[]}
         seg="all"
         sort="recent"
         q=""
         listingId=""
+        businessId=""
         channel=""
         rating=""
         page={1}
@@ -78,6 +81,7 @@ export default async function GuestsPage({
     : "recent";
   const q = (searchParams.q ?? "").trim();
   const listingId = (searchParams.listing ?? "").trim();
+  const businessId = (searchParams.business ?? "").trim();
   const channel = (searchParams.channel ?? "").trim();
   const rating = (searchParams.rating ?? "").trim();
   const minRating = rating ? Number.parseFloat(rating) : null;
@@ -85,7 +89,7 @@ export default async function GuestsPage({
 
   // All four reads depend only on host.id (+ filters from the URL), so fetch
   // them in one wave instead of awaiting the accepted-quotes query separately.
-  const [summary, list, listingRows, { data: acceptedRows }] =
+  const [summary, list, listingRows, businessRows, { data: acceptedRows }] =
     await Promise.all([
       throwOnError(
         supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
@@ -102,6 +106,7 @@ export default async function GuestsPage({
           p_sort: sort,
           p_limit: PAGE_SIZE,
           p_offset: (page - 1) * PAGE_SIZE,
+          p_business_id: businessId || null,
         }),
         "dashboard/guests:list",
       ),
@@ -113,6 +118,16 @@ export default async function GuestsPage({
           .is("deleted_at", null)
           .order("name"),
         "dashboard/guests:listings",
+      ),
+      throwOnError(
+        supabase
+          .from("businesses")
+          .select("id, trading_name, legal_name")
+          .eq("host_id", host.id)
+          .eq("is_archived", false)
+          .order("is_default", { ascending: false })
+          .order("created_at", { ascending: true }),
+        "dashboard/guests:businesses",
       ),
       // Accepted-but-not-converted quotes → pulsing "Quote accepted" pill on
       // the matching guest row (keyed by the same gkey scheme the directory
@@ -139,6 +154,17 @@ export default async function GuestsPage({
     }
   }
 
+  const businesses = (
+    (businessRows ?? []) as {
+      id: string;
+      trading_name: string | null;
+      legal_name: string | null;
+    }[]
+  ).map((b) => ({
+    id: b.id,
+    name: b.trading_name || b.legal_name || "Business",
+  }));
+
   return (
     <GuestsBoard
       summary={(summary as GuestSummary | null) ?? null}
@@ -146,10 +172,12 @@ export default async function GuestsPage({
       acceptedQuotes={acceptedQuotes}
       totalCount={listObj.total_count ?? 0}
       listings={(listingRows ?? []) as { id: string; name: string }[]}
+      businesses={businesses}
       seg={seg}
       sort={sort}
       q={q}
       listingId={listingId}
+      businessId={businessId}
       channel={channel}
       rating={rating}
       page={page}

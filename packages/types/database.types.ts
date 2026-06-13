@@ -7147,6 +7147,7 @@ export type Database = {
       }
       fetch_host_guests: {
         Args: {
+          p_business_id?: string
           p_channel?: string
           p_host_id: string
           p_limit?: number

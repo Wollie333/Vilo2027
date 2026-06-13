@@ -7,6 +7,7 @@ import {
   Banknote,
   BedDouble,
   BadgeCheck,
+  Building2,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -239,10 +240,12 @@ export function GuestsBoard({
   acceptedQuotes,
   totalCount,
   listings,
+  businesses,
   seg,
   sort,
   q,
   listingId,
+  businessId,
   channel,
   rating,
   page,
@@ -254,10 +257,12 @@ export function GuestsBoard({
   acceptedQuotes: Record<string, AcceptedQuoteLite>;
   totalCount: number;
   listings: { id: string; name: string }[];
+  businesses: { id: string; name: string }[];
   seg: string;
   sort: string;
   q: string;
   listingId: string;
+  businessId: string;
   channel: string;
   rating: string;
   page: number;
@@ -508,6 +513,21 @@ export function GuestsBoard({
             />
           </div>
 
+          {businesses.length > 1 ? (
+            <FilterMenu
+              icon={Building2}
+              value={
+                businesses.find((b) => b.id === businessId)?.name ??
+                "All businesses"
+              }
+              active={!!businessId}
+              options={[
+                { key: "", label: "All businesses" },
+                ...businesses.map((b) => ({ key: b.id, label: b.name })),
+              ]}
+              onSelect={(k) => navigate({ business: k || null, page: null })}
+            />
+          ) : null}
           <FilterMenu
             icon={HomeIcon}
             value={
