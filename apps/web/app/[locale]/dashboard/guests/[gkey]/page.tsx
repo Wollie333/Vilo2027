@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { fetchHostTransactions, type Txn } from "@/lib/finance/transactions";
+import { hostCanRateGuest } from "@/lib/guests/can-rate";
 import { gkeyFor } from "@/lib/guests/gkey";
 import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { resolveGuestNextAction } from "@/lib/guests/next-action";
@@ -17,11 +18,13 @@ import { createServerClient } from "@/lib/supabase/server";
 import {
   GuestRecord,
   type BookingItem,
+  type GuestRatingRow,
   type GuestRecordData,
   type MessageItem,
   type NoteItem,
   type QuoteItem,
   type RelationshipItem,
+  type ReputationData,
   type ReviewItem,
   type TemplateItem,
 } from "./GuestRecord";
@@ -580,11 +583,114 @@ export default async function GuestRecordPage({
     }
   }
 
+  // ── Reputation (host → guest ratings, cross-host) ───────────────────────
+  // Only registered guests (a Vilo account id) are rateable; email-only/OTA
+  // contacts render a "no account yet" state. RLS lets this host read EVERY
+  // host's rating of the guest (shared reputation), but write only its own.
+  const DIMS = [
+    "payments",
+    "communication",
+    "cleanliness",
+    "house_rules",
+    "integrity",
+  ] as const;
+  let reputation: ReputationData = {
+    hasAccount: Boolean(guestId),
+    canRate: false,
+    myRating: null,
+    otherRatings: [],
+    aggregate: { overall: null, hostCount: 0, dimensions: {} },
+  };
+  if (guestId) {
+    const [{ data: ratingRows }, canRate] = await Promise.all([
+      supabase
+        .from("guest_ratings")
+        .select(
+          `id, host_id, rating, summary,
+           rating_payments, rating_communication, rating_cleanliness,
+           rating_house_rules, rating_integrity,
+           note_payments, note_communication, note_cleanliness,
+           note_house_rules, note_integrity, updated_at`,
+        )
+        .eq("guest_id", guestId)
+        .order("updated_at", { ascending: false }),
+      hostCanRateGuest(supabase, host.id, guestId),
+    ]);
+
+    const rows = (ratingRows ?? []) as Array<{
+      id: string;
+      host_id: string;
+      rating: number;
+      summary: string | null;
+      rating_payments: number | null;
+      rating_communication: number | null;
+      rating_cleanliness: number | null;
+      rating_house_rules: number | null;
+      rating_integrity: number | null;
+      note_payments: string | null;
+      note_communication: string | null;
+      note_cleanliness: string | null;
+      note_house_rules: string | null;
+      note_integrity: string | null;
+      updated_at: string;
+    }>;
+
+    const toRow = (x: (typeof rows)[number]): GuestRatingRow => ({
+      id: x.id,
+      rating: x.rating,
+      summary: x.summary,
+      scores: {
+        payments: x.rating_payments,
+        communication: x.rating_communication,
+        cleanliness: x.rating_cleanliness,
+        house_rules: x.rating_house_rules,
+        integrity: x.rating_integrity,
+      },
+      notes: {
+        payments: x.note_payments,
+        communication: x.note_communication,
+        cleanliness: x.note_cleanliness,
+        house_rules: x.note_house_rules,
+        integrity: x.note_integrity,
+      },
+      updatedAt: x.updated_at,
+      isMine: x.host_id === host.id,
+    });
+
+    const mine = rows.find((x) => x.host_id === host.id);
+    const others = rows.filter((x) => x.host_id !== host.id);
+
+    // Aggregate across ALL hosts (mine included): overall avg + per-dimension avg.
+    const avg = (nums: number[]): number | null =>
+      nums.length === 0
+        ? null
+        : Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+    const overall = avg(rows.map((x) => x.rating));
+    const dimensions: Record<string, number | null> = {};
+    for (const d of DIMS) {
+      const key = `rating_${d}` as keyof (typeof rows)[number];
+      dimensions[d] = avg(
+        rows
+          .map((x) => x[key] as number | null)
+          .filter((n): n is number => typeof n === "number"),
+      );
+    }
+
+    reputation = {
+      hasAccount: true,
+      canRate,
+      myRating: mine ? toRow(mine) : null,
+      otherRatings: others.map(toRow),
+      aggregate: { overall, hostCount: rows.length, dimensions },
+    };
+  }
+
   return (
     <GuestRecord
       record={record}
       bookings={bookings}
       reviews={reviews}
+      reputation={reputation}
       requestableReviews={requestableReviews}
       txns={txns}
       quotes={quotes}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { CategoryStars } from "@/components/reviews/CategoryStars";
 import {
   ACCEPTED_REVIEW_PHOTO_TYPES,
   MAX_REVIEW_PHOTOS,
@@ -48,52 +49,6 @@ const TRIP_TYPES = [
 ] as const;
 
 type TripTypeKey = (typeof TRIP_TYPES)[number]["key"];
-
-/** Compact 1–5 star row for an optional category rating. */
-function CategoryStars({
-  label,
-  value,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: number;
-  onChange: (n: number) => void;
-  disabled?: boolean;
-}) {
-  const [hover, setHover] = useState(0);
-  const display = hover || value;
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-sm text-brand-ink">{label}</span>
-      <div
-        className="inline-flex items-center gap-0.5"
-        onMouseLeave={() => setHover(0)}
-      >
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            disabled={disabled}
-            aria-label={`${label}: ${n} ${n === 1 ? "star" : "stars"}`}
-            onMouseEnter={() => setHover(n)}
-            onFocus={() => setHover(n)}
-            onClick={() => onChange(value === n ? 0 : n)}
-            className="rounded p-0.5 transition-colors hover:bg-brand-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:cursor-not-allowed"
-          >
-            <Star
-              className={`h-5 w-5 transition-colors ${
-                n <= display
-                  ? "fill-amber-400 text-amber-400"
-                  : "text-brand-mute/40"
-              }`}
-            />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function ReviewSubmissionForm({
   bookingId,

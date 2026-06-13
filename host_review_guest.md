@@ -1,6 +1,12 @@
 # Guest Reputation — Hosts Rate Guests (cross-host)
 
-> Saved plan — not yet built. Pick up from here to implement.
+> ✅ **BUILT 2026-06-13.** Shipped per this plan (migrations
+> `20260613000020`/`21`, Reputation tab on the Guest Record, shared
+> `CategoryStars`). Adaptations from the as-written plan: trigger fn is
+> `update_updated_at()` (not `set_updated_at`); help article filed under the
+> `reviews` category; inline English copy (no `guestRating` i18n namespace) to
+> match the rest of the Guest Record; no feature gate (open to all hosts).
+> Remaining: founder two-account RLS verification (see CHANGELOG).
 
 ## Context
 

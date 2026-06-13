@@ -2136,6 +2136,81 @@ export type Database = {
           },
         ]
       }
+      guest_ratings: {
+        Row: {
+          created_at: string
+          guest_id: string
+          host_id: string
+          id: string
+          note_cleanliness: string | null
+          note_communication: string | null
+          note_house_rules: string | null
+          note_integrity: string | null
+          note_payments: string | null
+          rating: number
+          rating_cleanliness: number | null
+          rating_communication: number | null
+          rating_house_rules: number | null
+          rating_integrity: number | null
+          rating_payments: number | null
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          host_id: string
+          id?: string
+          note_cleanliness?: string | null
+          note_communication?: string | null
+          note_house_rules?: string | null
+          note_integrity?: string | null
+          note_payments?: string | null
+          rating: number
+          rating_cleanliness?: number | null
+          rating_communication?: number | null
+          rating_house_rules?: number | null
+          rating_integrity?: number | null
+          rating_payments?: number | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          host_id?: string
+          id?: string
+          note_cleanliness?: string | null
+          note_communication?: string | null
+          note_house_rules?: string | null
+          note_integrity?: string | null
+          note_payments?: string | null
+          rating?: number
+          rating_cleanliness?: number | null
+          rating_communication?: number | null
+          rating_house_rules?: number | null
+          rating_integrity?: number | null
+          rating_payments?: number | null
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_ratings_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_ratings_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_relationships: {
         Row: {
           contact_id: string

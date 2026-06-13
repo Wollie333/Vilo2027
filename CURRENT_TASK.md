@@ -5,6 +5,21 @@
 **Active focus:** **Harden each feature to 100% for MVP.** This session:
 the **Reviews** feature, end-to-end.
 
+## ✅ Done this session (2026-06-13) — Guest Reputation (hosts rate guests, cross-host)
+- Built `host_review_guest.md` end-to-end: `guest_ratings` table (cross-host
+  read RLS, own-row write, one living review per host/guest), `hostCanRateGuest`
+  eligibility (completed/no-show), `upsert/deleteGuestRatingAction`, a new
+  **Reputation** tab on the Guest Record (aggregate + your review + other hosts),
+  and a `FormModal` rate-a-guest flow. Extracted shared `CategoryStars`.
+- Migrations `20260613000020_create_guest_ratings.sql` +
+  `20260613000021_help_guest_ratings.sql` pushed; types regenerated. `pnpm
+  build` + `pnpm lint` green.
+- **Next up (founder-directed):** (1) plan the **ledger ↔ multi-business** wiring
+  — business details onto every finance doc per the listing's business; a
+  business filter/toggle on Ledger + Guest Record; guest balance still sums all
+  businesses. (2) Guest portal: fix the launch-blocker `in_app_notifications`
+  unscoped query (layout + notifications page) and draft a portal build plan.
+
 ## ✅ Done this session (2026-06-10) — Calendar: select a range on the grid + inline book
 - **Industry-standard range selection on the month grid.** Tap check-in → later
   check-out; nights highlight, a **Selected range** card shows (listing picker,

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { hostCanRateGuest } from "@/lib/guests/can-rate";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import {
   emailFromGkey,
@@ -13,6 +14,7 @@ import {
 import { requireHost as getHost } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { guestRatingSchema, type GuestRatingInput } from "./_rating/schemas";
 import type { GuestRow } from "./GuestsBoard";
 
 export type ActionResult<T = undefined> =
@@ -597,6 +599,80 @@ export async function broadcastStatusAction(): Promise<
       recent: (recent ?? []) as BroadcastStatus["recent"],
     },
   };
+}
+
+// ── Guest reputation (host → guest rating, cross-host) ──────────────────
+// Internal, host-only. One living review per host per guest, keyed on the
+// guest's Vilo account id. Eligibility (a completed/no-show stay) is enforced
+// here AND in RLS (own-row write). No notifications — guests never see it.
+export async function upsertGuestRatingAction(
+  guestId: string,
+  input: GuestRatingInput,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const parsed = guestRatingSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Some fields look wrong.",
+    };
+  }
+  const v = parsed.data;
+
+  const supabase = createServerClient();
+  // Eligibility gate — only rate guests you've actually hosted.
+  const eligible = await hostCanRateGuest(supabase, host.hostId, guestId);
+  if (!eligible) {
+    return {
+      ok: false,
+      error: "You can rate this guest after a completed stay.",
+    };
+  }
+
+  const { error } = await supabase.from("guest_ratings").upsert(
+    {
+      host_id: host.hostId,
+      guest_id: guestId,
+      rating: v.rating,
+      summary: v.summary?.trim() || null,
+      rating_payments: v.rating_payments ?? null,
+      rating_communication: v.rating_communication ?? null,
+      rating_cleanliness: v.rating_cleanliness ?? null,
+      rating_house_rules: v.rating_house_rules ?? null,
+      rating_integrity: v.rating_integrity ?? null,
+      note_payments: v.note_payments?.trim() || null,
+      note_communication: v.note_communication?.trim() || null,
+      note_cleanliness: v.note_cleanliness?.trim() || null,
+      note_house_rules: v.note_house_rules?.trim() || null,
+      note_integrity: v.note_integrity?.trim() || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "host_id,guest_id" },
+  );
+  if (error) return { ok: false, error: "Could not save your rating." };
+
+  revalidatePath(`/dashboard/guests/${gkeyForGuest(guestId)}`);
+  return { ok: true };
+}
+
+export async function deleteGuestRatingAction(
+  guestId: string,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("guest_ratings")
+    .delete()
+    .eq("host_id", host.hostId)
+    .eq("guest_id", guestId);
+  if (error) return { ok: false, error: "Could not remove your rating." };
+
+  revalidatePath(`/dashboard/guests/${gkeyForGuest(guestId)}`);
+  return { ok: true };
 }
 
 // ── Per-guest vCard ("your list, yours to keep" — Pillar 3) ─────────────

@@ -31,6 +31,31 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-13 — Reviews — Guest Reputation: hosts rate guests (cross-host) — branch `main`
+
+### Built
+- **Host → guest ratings**, the mirror of guest→listing reviews. A new **Reputation** tab on the Guest Record shows a cross-host aggregate (overall + 5 dimensions: Payments, Communication, Cleanliness, House rules & respect, Integrity), the host's own editable review, and other hosts' reviews (anonymised "A verified host").
+- **`guest_ratings`** table — one living review per host per guest (`UNIQUE(host_id, guest_id)`), keyed on the guest's Vilo account id. **Cross-host RLS:** any active host may READ every host's rating of a guest (shared reputation network); each host may only INSERT/UPDATE/DELETE its own row. **No guest policy** → guests never see it; no notifications.
+- **Rate-a-guest modal** (`FormModal` + `CategoryStars`) — overall star (required) + summary + optional per-dimension scores with short notes. Eligibility gated to a **completed** or **no-show** stay, enforced in `hostCanRateGuest` (shared by page + action) AND in RLS.
+- Help article `how-guest-ratings-work` (audience `host`).
+
+### Changed
+- Extracted the interactive `CategoryStars` star input from `ReviewSubmissionForm` to a shared `components/reviews/CategoryStars.tsx` (single source of truth); the guest review form now imports it.
+
+### Migrations
+- `20260613000020_create_guest_ratings.sql`
+- `20260613000021_help_guest_ratings.sql`
+
+### Notes
+- Email-only / OTA guests (no `u_` account) aren't rateable — the tab shows a "no Vilo account yet" state.
+- **Verify (founder, needs 2 host accounts + 1 shared guest with a completed stay):** host A rates → host B sees it under "Other hosts" and the aggregate reflects both; B can add but not edit A's; a guest token reads **zero** `guest_ratings` rows (RLS).
+- Followed the existing Guest Record convention of inline English copy (the whole record is not yet i18n-wired); a guests-dashboard i18n sweep is a separate task. No feature gate added — it's open to all hosts (pre-MVP "open on free").
+
+### Commit
+- `feat(reviews): host → guest cross-host reputation (guest_ratings + Reputation tab)`
+
+---
+
 ## 2026-06-12 — UX — Finish-setup: single nav + instant "Saving…" feedback — branch `main`
 
 ### Fixed

@@ -19,6 +19,7 @@ import {
   MapPin,
   MessageSquare,
   MoreHorizontal,
+  Pencil,
   Phone,
   Pin,
   PinOff,
@@ -26,13 +27,18 @@ import {
   RotateCcw,
   ShieldCheck,
   Sparkles,
+  Star,
   Tag as TagIcon,
   Trash2,
   Users,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+
+import { StarRow } from "@/app/[locale]/dashboard/reviews/StarRow";
+import { CategoryStars } from "@/components/reviews/CategoryStars";
 
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 import { RequestReviewButton } from "@/app/[locale]/dashboard/reviews/RequestReviewButton";
@@ -65,11 +71,15 @@ import {
   addGuestTagAction,
   blockGuestAction,
   deleteGuestNoteAction,
+  deleteGuestRatingAction,
   exportGuestVcardAction,
   pinGuestNoteAction,
   recordOptOutAction,
   unblockGuestAction,
+  upsertGuestRatingAction,
 } from "../actions";
+
+import type { GuestRatingInput } from "../_rating/schemas";
 
 export type GuestRecordData = {
   gkey: string;
@@ -195,6 +205,39 @@ export type QuoteItem = {
   date: string;
 };
 
+// ── Reputation (host → guest rating, cross-host) ──────────────────────────
+export type RatingDimensionKey =
+  | "payments"
+  | "communication"
+  | "cleanliness"
+  | "house_rules"
+  | "integrity";
+
+export type GuestRatingRow = {
+  id: string;
+  rating: number;
+  summary: string | null;
+  scores: Record<RatingDimensionKey, number | null>;
+  notes: Record<RatingDimensionKey, string | null>;
+  updatedAt: string;
+  /** True for the signed-in host's own review (editable); false for peers'. */
+  isMine: boolean;
+};
+
+export type ReputationData = {
+  /** Guest has a Vilo account id (only then is rating possible). */
+  hasAccount: boolean;
+  /** This host has a completed/no-show stay with the guest. */
+  canRate: boolean;
+  myRating: GuestRatingRow | null;
+  otherRatings: GuestRatingRow[];
+  aggregate: {
+    overall: number | null;
+    hostCount: number;
+    dimensions: Partial<Record<RatingDimensionKey, number | null>>;
+  };
+};
+
 // Another guest this person travelled with, from a booking's party manifest.
 export type RelationshipItem = {
   id: string;
@@ -211,6 +254,7 @@ const TABS = [
   { key: "finances", label: "Finances" },
   { key: "messages", label: "Messages" },
   { key: "reviews", label: "Reviews" },
+  { key: "reputation", label: "Reputation" },
   { key: "relationships", label: "Relationships" },
   { key: "notes", label: "Notes" },
 ] as const;
@@ -275,6 +319,7 @@ export function GuestRecord({
   bookings,
   reviews,
   requestableReviews,
+  reputation,
   txns,
   quotes,
   addonCatalog,
@@ -294,6 +339,7 @@ export function GuestRecord({
   bookings: BookingItem[];
   reviews: ReviewItem[];
   requestableReviews: RequestableReview[];
+  reputation: ReputationData;
   txns: Txn[];
   quotes: QuoteItem[];
   addonCatalog: AddonCatalogItem[];
@@ -431,11 +477,13 @@ export function GuestRecord({
                       ? messages.length
                       : t.key === "reviews"
                         ? reviews.length
-                        : t.key === "relationships"
-                          ? relationships.length || undefined
-                          : t.key === "notes"
-                            ? notes.length
-                            : undefined,
+                        : t.key === "reputation"
+                          ? reputation.aggregate.hostCount || undefined
+                          : t.key === "relationships"
+                            ? relationships.length || undefined
+                            : t.key === "notes"
+                              ? notes.length
+                              : undefined,
             }))}
           />
 
@@ -469,6 +517,12 @@ export function GuestRecord({
                 reviews={reviews}
                 guestName={r.name ?? "Guest"}
                 requestable={requestableReviews}
+              />
+            ) : tab === "reputation" ? (
+              <ReputationPanel
+                guestId={r.guest_id}
+                guestName={r.name ?? "Guest"}
+                reputation={reputation}
               />
             ) : (
               <FinancesPanel
@@ -1726,5 +1780,423 @@ function NotesPanel({ gkey, notes }: { gkey: string; notes: NoteItem[] }) {
         </button>
       </div>
     </section>
+  );
+}
+
+// ── Reputation panel (host → guest rating, cross-host) ───────────────────
+// Internal, host-only. The aggregate (avg across every host) sits on top, then
+// the signed-in host's own editable review, then peers' reviews (anonymised).
+const RATING_DIMS: { key: RatingDimensionKey; label: string }[] = [
+  { key: "payments", label: "Payments" },
+  { key: "communication", label: "Communication" },
+  { key: "cleanliness", label: "Cleanliness" },
+  { key: "house_rules", label: "House rules & respect" },
+  { key: "integrity", label: "Integrity" },
+];
+
+function RatingCard({
+  row,
+  attribution,
+}: {
+  row: GuestRatingRow;
+  attribution: string;
+}) {
+  const dims = RATING_DIMS.filter((d) => typeof row.scores[d.key] === "number");
+  return (
+    <div className="rounded-card border border-brand-line bg-white p-4 shadow-card">
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2">
+          <StarRow rating={row.rating} size="md" />
+          <span className="font-display text-[14px] font-bold tabular-nums text-brand-ink">
+            {row.rating.toFixed(1)}
+          </span>
+        </span>
+        <span className="text-[11.5px] text-brand-mute">{attribution}</span>
+      </div>
+      {row.summary ? (
+        <p className="mt-2 whitespace-pre-wrap text-[13px] leading-relaxed text-brand-ink">
+          {row.summary}
+        </p>
+      ) : null}
+      {dims.length > 0 ? (
+        <div className="mt-3 space-y-1.5 border-t border-brand-line pt-3">
+          {dims.map((d) => (
+            <div key={d.key}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[12.5px] text-brand-mute">{d.label}</span>
+                <StarRow rating={row.scores[d.key] as number} />
+              </div>
+              {row.notes[d.key] ? (
+                <p className="mt-0.5 text-[12px] italic text-brand-mute">
+                  &ldquo;{row.notes[d.key]}&rdquo;
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ReputationPanel({
+  guestId,
+  guestName,
+  reputation,
+}: {
+  guestId: string | null;
+  guestName: string;
+  reputation: ReputationData;
+}) {
+  const router = useRouter();
+  const [rateOpen, setRateOpen] = useState(false);
+  const [pending, start] = useTransition();
+
+  // Only registered guests (a Vilo account) are rateable.
+  if (!reputation.hasAccount || !guestId) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
+        <ShieldCheck className="mx-auto h-6 w-6 text-brand-mute/50" />
+        <p className="mt-2 text-[13px] font-semibold text-brand-ink">
+          No Vilo account yet
+        </p>
+        <p className="mx-auto mt-1 max-w-sm text-[12.5px] text-brand-mute">
+          Guest ratings attach to a guest&rsquo;s Vilo account. This contact
+          booked by email only, so there&rsquo;s nothing to rate yet.
+        </p>
+      </div>
+    );
+  }
+
+  const { myRating, otherRatings, aggregate, canRate } = reputation;
+  const dimAverages = RATING_DIMS.filter(
+    (d) => typeof aggregate.dimensions[d.key] === "number",
+  );
+
+  function removeRating() {
+    if (!guestId) return;
+    void modal
+      .destructive({
+        title: "Remove your rating?",
+        description: `Your review of ${guestName} will be permanently deleted. Other hosts' ratings are unaffected.`,
+        confirmLabel: "Remove rating",
+      })
+      .then((ok) => {
+        if (!ok) return;
+        start(async () => {
+          const res = await deleteGuestRatingAction(guestId);
+          if (res.ok) {
+            toast.success("Your rating was removed.");
+            router.refresh();
+          } else {
+            void modal.error({
+              title: "Couldn't remove",
+              description: res.error,
+            });
+          }
+        });
+      });
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Aggregate header */}
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-pill bg-brand-light">
+              <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+            </div>
+            <div>
+              <div className="font-display text-2xl font-extrabold leading-none text-brand-ink">
+                {aggregate.overall !== null
+                  ? aggregate.overall.toFixed(1)
+                  : "—"}
+              </div>
+              <div className="mt-1 text-[12px] text-brand-mute">
+                {aggregate.hostCount === 0
+                  ? "Not yet rated"
+                  : `Rated by ${aggregate.hostCount} ${
+                      aggregate.hostCount === 1 ? "host" : "hosts"
+                    }`}
+              </div>
+            </div>
+          </div>
+          <p className="max-w-[260px] text-[11.5px] leading-relaxed text-brand-mute">
+            Host-only &amp; shared across Vilo. {guestName} never sees this.
+          </p>
+        </div>
+        {dimAverages.length > 0 ? (
+          <div className="mt-4 grid grid-cols-1 gap-1.5 border-t border-brand-line pt-4 sm:grid-cols-2">
+            {dimAverages.map((d) => (
+              <div
+                key={d.key}
+                className="flex items-center justify-between gap-3"
+              >
+                <span className="text-[12.5px] text-brand-mute">{d.label}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <StarRow rating={aggregate.dimensions[d.key] as number} />
+                  <span className="w-7 text-right text-[12px] tabular-nums text-brand-mute">
+                    {(aggregate.dimensions[d.key] as number).toFixed(1)}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </section>
+
+      {/* Your review */}
+      <section>
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            Your review
+          </h3>
+          {myRating ? (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setRateOpen(true)}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-3 py-1.5 text-[12.5px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+              >
+                <Pencil className="h-3.5 w-3.5 text-brand-mute" /> Edit
+              </button>
+              <button
+                onClick={removeRating}
+                disabled={pending}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line px-3 py-1.5 text-[12.5px] font-semibold text-status-cancelled transition hover:bg-red-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Delete
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {myRating ? (
+          <RatingCard row={myRating} attribution="Your review" />
+        ) : (
+          <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-8 text-center">
+            <p className="text-[13px] text-brand-ink">
+              You haven&rsquo;t rated {guestName} yet.
+            </p>
+            {canRate ? (
+              <button
+                onClick={() => setRateOpen(true)}
+                className="mt-3 inline-flex items-center gap-2 rounded bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+              >
+                <Star className="h-4 w-4" /> Rate this guest
+              </button>
+            ) : (
+              <p className="mt-2 text-[12px] text-brand-mute">
+                Available after a completed stay.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Other hosts */}
+      {otherRatings.length > 0 ? (
+        <section>
+          <h3 className="mb-2 font-display text-[15px] font-bold text-brand-ink">
+            Other hosts ({otherRatings.length})
+          </h3>
+          <div className="space-y-3">
+            {otherRatings.map((row) => (
+              <RatingCard
+                key={row.id}
+                row={row}
+                attribution={`A verified host · ${fmtDate(row.updatedAt)}`}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <RateGuestModal
+        open={rateOpen}
+        onOpenChange={setRateOpen}
+        guestId={guestId}
+        guestName={guestName}
+        initial={myRating}
+      />
+    </div>
+  );
+}
+
+function RateGuestModal({
+  open,
+  onOpenChange,
+  guestId,
+  guestName,
+  initial,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  guestId: string;
+  guestName: string;
+  initial: GuestRatingRow | null;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [rating, setRating] = useState(initial?.rating ?? 0);
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const zero: Record<RatingDimensionKey, number> = {
+    payments: 0,
+    communication: 0,
+    cleanliness: 0,
+    house_rules: 0,
+    integrity: 0,
+  };
+  const empty: Record<RatingDimensionKey, string> = {
+    payments: "",
+    communication: "",
+    cleanliness: "",
+    house_rules: "",
+    integrity: "",
+  };
+  const [scores, setScores] = useState<Record<RatingDimensionKey, number>>(
+    initial
+      ? {
+          payments: initial.scores.payments ?? 0,
+          communication: initial.scores.communication ?? 0,
+          cleanliness: initial.scores.cleanliness ?? 0,
+          house_rules: initial.scores.house_rules ?? 0,
+          integrity: initial.scores.integrity ?? 0,
+        }
+      : zero,
+  );
+  const [notes, setNotes] = useState<Record<RatingDimensionKey, string>>(
+    initial
+      ? {
+          payments: initial.notes.payments ?? "",
+          communication: initial.notes.communication ?? "",
+          cleanliness: initial.notes.cleanliness ?? "",
+          house_rules: initial.notes.house_rules ?? "",
+          integrity: initial.notes.integrity ?? "",
+        }
+      : empty,
+  );
+
+  function submit() {
+    if (rating < 1) {
+      toast.error("Pick an overall rating.");
+      return;
+    }
+    const input: GuestRatingInput = {
+      rating,
+      summary: summary.trim() || null,
+      rating_payments: scores.payments || null,
+      rating_communication: scores.communication || null,
+      rating_cleanliness: scores.cleanliness || null,
+      rating_house_rules: scores.house_rules || null,
+      rating_integrity: scores.integrity || null,
+      note_payments: notes.payments.trim() || null,
+      note_communication: notes.communication.trim() || null,
+      note_cleanliness: notes.cleanliness.trim() || null,
+      note_house_rules: notes.house_rules.trim() || null,
+      note_integrity: notes.integrity.trim() || null,
+    };
+    start(async () => {
+      const res = await upsertGuestRatingAction(guestId, input);
+      if (res.ok) {
+        toast.success("Your rating was saved.");
+        onOpenChange(false);
+        router.refresh();
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={onOpenChange}
+      size="md"
+      title={initial ? "Edit your rating" : `Rate ${guestName}`}
+      description="Host-only and shared with other Vilo hosts. The guest never sees this."
+    >
+      <form
+        id="rate-guest-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+        className="space-y-4"
+      >
+        <div className="rounded-lg border border-brand-line px-4 py-3">
+          <CategoryStars
+            label="Overall rating"
+            value={rating}
+            onChange={setRating}
+            disabled={pending}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="rate-guest-summary"
+            className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-mute"
+          >
+            Summary (optional)
+          </label>
+          <textarea
+            id="rate-guest-summary"
+            rows={3}
+            value={summary}
+            onChange={(e) => setSummary(e.target.value.slice(0, 1500))}
+            placeholder="How was hosting this guest? Be factual and fair — other hosts rely on it."
+            disabled={pending}
+            className="mt-1.5 block w-full rounded-lg border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+          />
+        </div>
+
+        <fieldset className="rounded-lg border border-brand-line px-4 py-3">
+          <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-mute">
+            Rate by area (optional)
+          </legend>
+          <div className="mt-1 space-y-3">
+            {RATING_DIMS.map((d) => (
+              <div key={d.key}>
+                <CategoryStars
+                  label={d.label}
+                  value={scores[d.key]}
+                  disabled={pending}
+                  onChange={(n) =>
+                    setScores((prev) => ({ ...prev, [d.key]: n }))
+                  }
+                />
+                {scores[d.key] > 0 ? (
+                  <input
+                    value={notes[d.key]}
+                    onChange={(e) =>
+                      setNotes((prev) => ({
+                        ...prev,
+                        [d.key]: e.target.value.slice(0, 300),
+                      }))
+                    }
+                    placeholder={`Add a note on ${d.label.toLowerCase()} (optional)`}
+                    disabled={pending}
+                    className="mt-1.5 block w-full rounded-lg border border-brand-line bg-white px-3 py-1.5 text-[12.5px] text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  />
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </fieldset>
+      </form>
+      <FormModalFooter>
+        <FormModalCancel>Cancel</FormModalCancel>
+        <button
+          type="submit"
+          form="rate-guest-form"
+          disabled={pending || rating < 1}
+          className="rounded bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-secondary disabled:opacity-50"
+        >
+          {pending ? "Saving…" : initial ? "Save changes" : "Submit rating"}
+        </button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
