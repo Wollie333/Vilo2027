@@ -1,20 +1,24 @@
 "use client";
 
 import {
+  AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Banknote,
   Check,
+  ChevronRight,
   Clock,
   Image as ImageIcon,
   Layers,
-  Lightbulb,
   Mail,
   Percent,
   Plus,
   ShoppingCart,
   Trash2,
   Type as TypeIcon,
+  type LucideIcon,
 } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -30,7 +34,6 @@ import {
 } from "./actions";
 import {
   ADDON_CATEGORIES,
-  ADDON_CATEGORY_LABEL,
   PRICING_MODELS,
   PRICING_MODEL_META,
   computeAddonSubtotal,
@@ -81,6 +84,51 @@ const LEAD_TIME_OPTIONS = [
   { value: 3, label: "72 hours" },
 ];
 
+// ── Section model (one panel visible at a time) ──────────────────────────
+type SectionKey = "details" | "pricing" | "availability" | "photo" | "danger";
+
+type SectionDef = {
+  key: SectionKey;
+  label: string;
+  icon: LucideIcon;
+  danger?: boolean;
+};
+
+const SECTIONS: SectionDef[] = [
+  { key: "details", label: "Details", icon: TypeIcon },
+  { key: "pricing", label: "Pricing", icon: Banknote },
+  { key: "availability", label: "Availability", icon: Layers },
+  { key: "photo", label: "Photo", icon: ImageIcon },
+  { key: "danger", label: "Danger zone", icon: AlertTriangle, danger: true },
+];
+
+const PANEL_META: Record<
+  SectionKey,
+  { title: string; desc: string; required?: boolean }
+> = {
+  details: {
+    title: "Details",
+    desc: "What guests see in the extras list — name it well and sell it in a sentence.",
+    required: true,
+  },
+  pricing: {
+    title: "Pricing",
+    desc: "How it's charged. Your payout always equals what the guest pays.",
+  },
+  availability: {
+    title: "Availability",
+    desc: "Where it shows up and when guests can add it.",
+  },
+  photo: {
+    title: "Photo",
+    desc: "A good photo makes guests far more likely to add it.",
+  },
+  danger: {
+    title: "Danger zone",
+    desc: "These actions change whether guests can see and book this add-on.",
+  },
+};
+
 function zar(v: number): string {
   return `R ${(Number.isFinite(v) ? v : 0).toLocaleString("en-ZA")}`;
 }
@@ -110,6 +158,10 @@ export function AddonEditor({
   const [deletePending, startDelete] = useTransition();
   const [togglePending, startToggle] = useTransition();
   const [availPending, startAvail] = useTransition();
+
+  const [section, setSection] = useState<SectionKey>("details");
+  const sectionIdx = SECTIONS.findIndex((s) => s.key === section);
+  const isLastSection = sectionIdx === SECTIONS.length - 1;
 
   const [selections, setSelections] = useState<
     Record<string, ListingSelection>
@@ -196,7 +248,8 @@ export function AddonEditor({
   const [dailyCapacity, setDailyCapacity] = useState(
     addon.dailyCapacity == null ? "" : String(addon.dailyCapacity),
   );
-  const [isRequired, setIsRequired] = useState(addon.isRequired);
+  // Preserved as-is on save; the redesigned editor has no "required" toggle.
+  const [isRequired] = useState(addon.isRequired);
   const [isActive, setIsActive] = useState(addon.isActive);
   const [vatIncluded, setVatIncluded] = useState(addon.vatIncluded);
   const [imageUrl, setImageUrl] = useState<string | null>(addon.imageUrl);
@@ -226,6 +279,12 @@ export function AddonEditor({
     isPerNightModel(pricingModel) ? " (both nights)" : ""
   }.`;
 
+  // How many listings currently offer this add-on (drives the rail subtitle).
+  const offeredCount = useMemo(
+    () => Object.values(selections).filter((s) => s.mode !== "off").length,
+    [selections],
+  );
+
   // ---- Ready-to-publish checklist ----
   const checklist = useMemo(() => {
     const items = [
@@ -238,6 +297,39 @@ export function AddonEditor({
     const pct = Math.round((done / items.length) * 100);
     return { items, pct, allDone: done === items.length };
   }, [name, safePrice, category, imageUrl]);
+
+  // Per-section completion → check badge in the rail nav.
+  function sectionDone(key: SectionKey): boolean {
+    switch (key) {
+      case "details":
+        return name.trim().length > 0 && category != null;
+      case "pricing":
+        return safePrice > 0;
+      case "availability":
+        return offeredCount > 0;
+      case "photo":
+        return imageUrl != null;
+      default:
+        return false;
+    }
+  }
+
+  function railSub(key: SectionKey): string {
+    switch (key) {
+      case "details":
+        return "Name, category, copy";
+      case "pricing":
+        return `${zar(safePrice)} ${meta.suffix}`;
+      case "availability":
+        return offeredCount === 0
+          ? "Not offered yet"
+          : `${offeredCount} listing${offeredCount === 1 ? "" : "s"}`;
+      case "photo":
+        return imageUrl ? "1 selected" : "None yet";
+      case "danger":
+        return "Archive · delete";
+    }
+  }
 
   function handleSave() {
     startSave(async () => {
@@ -289,6 +381,8 @@ export function AddonEditor({
       if (!result.ok) {
         setIsActive(!next);
         toast.error(result.error);
+      } else {
+        toast.success(next ? "Add-on is live to guests" : "Moved to drafts");
       }
     });
   }
@@ -313,167 +407,273 @@ export function AddonEditor({
   }
 
   const displayName = name.trim() || "Untitled add-on";
-  const categoryLabel = category ? ADDON_CATEGORY_LABEL[category] : null;
+  const panelMeta = PANEL_META[section];
 
   return (
-    <div className="min-h-screen bg-brand-light pb-28">
-      <div className="mx-auto max-w-[1280px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        {/* ===== Dark hero ===== */}
-        <section
-          className="relative overflow-hidden rounded-card shadow-peek"
-          style={{
-            backgroundImage:
-              "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
-          }}
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-primary/20 blur-3xl"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-brand-secondary/40 blur-3xl"
-          />
-          <div className="relative grid gap-0 lg:grid-cols-[1.5fr_1fr]">
-            {/* info side */}
-            <div className="p-6 md:p-8">
-              <a
-                href="/dashboard/addons"
-                className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-white/55 transition-colors hover:text-white"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to add-ons
-              </a>
+    <div className="space-y-5">
+      {/* ============ IDENTITY BAR ============ */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-card border border-brand-line bg-white px-4 py-3 shadow-card">
+        <div className="h-12 w-16 shrink-0 overflow-hidden rounded-[11px] border border-brand-line bg-brand-light">
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-brand-mute">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0">
+          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
+            <Link href="/dashboard/addons" className="hover:text-brand-ink">
+              Add-ons
+            </Link>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-brand-ink">Editing</span>
+          </nav>
+          <div className="mt-0.5 flex items-center gap-2.5">
+            <h1 className="truncate font-display text-[19px] font-extrabold leading-none text-brand-ink">
+              {displayName}
+            </h1>
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2 py-0.5 text-[11px] font-semibold ${
+                isActive
+                  ? "border-brand-primary/30 bg-brand-accent text-brand-secondary"
+                  : "border-brand-line bg-brand-light text-brand-mute"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  isActive ? "bg-brand-primary" : "bg-brand-mute"
+                }`}
+              />
+              {isActive ? "Active" : "Draft"}
+            </span>
+          </div>
+        </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
-                  Add-on editor
-                </span>
-                {isActive ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                    Active
+        <div className="ml-auto flex items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-pill border border-brand-line bg-brand-light/60 px-3 py-1.5 lg:flex">
+            <span className="text-[12px] font-semibold text-brand-ink">
+              {togglePending ? "Saving…" : isActive ? "Active" : "Draft"}
+            </span>
+            <Toggle
+              checked={isActive}
+              onChange={handleToggleActive}
+              disabled={togglePending}
+              label="Toggle active"
+            />
+          </div>
+          <span
+            className={`mr-1 hidden items-center gap-1.5 text-[12px] md:inline-flex ${
+              dirty ? "text-status-pending" : "text-brand-mute"
+            }`}
+          >
+            {dirty ? (
+              <>
+                <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
+                Unsaved changes
+              </>
+            ) : (
+              <>
+                <Check className="h-3.5 w-3.5 text-brand-primary" /> Saved
+              </>
+            )}
+          </span>
+          <Link
+            href="/dashboard/addons"
+            className="inline-flex items-center rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+          >
+            Cancel
+          </Link>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={savePending}
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary disabled:opacity-60"
+          >
+            <Check className="h-4 w-4" />
+            {savePending ? "Saving…" : "Save add-on"}
+          </button>
+        </div>
+      </div>
+
+      {/* ============ SPLIT: section rail + active panel ============ */}
+      <div className="grid gap-6 lg:grid-cols-[288px_1fr]">
+        {/* section navigator */}
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          {/* health summary */}
+          <div className="mb-3 flex items-center gap-3 rounded-card border border-brand-line bg-white p-3.5 shadow-card">
+            <ProgressRing pct={checklist.pct} />
+            <div className="min-w-0">
+              <div className="font-display text-[14px] font-bold text-brand-ink">
+                {checklist.allDone ? "Ready to publish" : "Almost ready"}
+              </div>
+              <div className="text-[11px] text-brand-mute">
+                {checklist.allDone
+                  ? "Guests can book this"
+                  : "Finish the steps below"}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Sections
+          </div>
+          <div className="space-y-1">
+            {SECTIONS.map(({ key, label, icon: Icon, danger }) => {
+              const isActiveSection = section === key;
+              const sub = railSub(key);
+              const done = sectionDone(key);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSection(key)}
+                  aria-current={isActiveSection ? "page" : undefined}
+                  className={`flex w-full items-center gap-3 rounded-[13px] border px-3 py-2.5 text-left transition ${
+                    isActiveSection
+                      ? danger
+                        ? "border-status-cancelled/30 bg-status-cancelled/5"
+                        : "border-brand-line bg-white shadow-card"
+                      : "border-transparent hover:bg-white"
+                  }`}
+                >
+                  <span
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] transition ${
+                      isActiveSection
+                        ? danger
+                          ? "bg-status-cancelled text-white"
+                          : "bg-brand-primary text-white"
+                        : danger
+                          ? "bg-status-cancelled/10 text-status-cancelled"
+                          : "bg-brand-accent/70 text-brand-secondary"
+                    }`}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-white/70 backdrop-blur">
-                    <span className="h-1.5 w-1.5 rounded-full bg-white/50" />
-                    Draft
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block text-[13.5px] font-semibold leading-tight ${
+                        danger
+                          ? "text-status-cancelled"
+                          : isActiveSection
+                            ? "text-brand-ink"
+                            : "text-brand-ink/80"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[11px] text-brand-mute">
+                      {sub}
+                    </span>
                   </span>
-                )}
-                {categoryLabel ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/80 backdrop-blur">
-                    {categoryLabel}
-                  </span>
-                ) : null}
-                {isRequired ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent/80 backdrop-blur">
+                  {done ? (
+                    <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-brand-primary text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* docked guest preview */}
+          <div className="mt-4">
+            <div className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+              Guest preview · at checkout
+            </div>
+            <div className="rounded-card border border-brand-line bg-white p-3 shadow-card">
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-[11px] bg-brand-accent/40">
+                  {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-brand-mute">
+                      <ImageIcon className="h-5 w-5" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-display text-[13px] font-bold text-brand-ink">
+                    {displayName}
+                  </div>
+                  <div className="mt-0.5 line-clamp-2 text-[10.5px] leading-snug text-brand-mute">
+                    {description.trim() ||
+                      "Add a short description guests will see."}
+                  </div>
+                  <div className="mt-1 flex items-baseline gap-1">
+                    <span className="font-display text-[13.5px] font-bold text-brand-ink">
+                      {zar(safePrice)}
+                    </span>
+                    <span className="text-[10.5px] text-brand-mute">
+                      {meta.suffix}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-primary bg-brand-accent/40 px-4 py-2 text-[12.5px] font-semibold text-brand-secondary">
+                <Plus className="h-3.5 w-3.5" /> Add to booking
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* ============ ACTIVE PANEL ============ */}
+        <div className="min-w-0">
+          {/* panel header */}
+          <div className="mb-5 flex items-start gap-3.5">
+            <span
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] ${
+                section === "danger"
+                  ? "bg-status-cancelled/10 text-status-cancelled"
+                  : "bg-brand-accent text-brand-secondary"
+              }`}
+            >
+              {(() => {
+                const Icon =
+                  SECTIONS.find((s) => s.key === section)?.icon ?? TypeIcon;
+                return <Icon className="h-5 w-5" />;
+              })()}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2.5">
+                <h2
+                  className={`font-display text-[22px] font-extrabold leading-tight ${
+                    section === "danger"
+                      ? "text-status-cancelled"
+                      : "text-brand-ink"
+                  }`}
+                >
+                  {panelMeta.title}
+                </h2>
+                {panelMeta.required ? (
+                  <span className="mt-1 text-[11px] font-medium text-brand-mute">
                     Required
                   </span>
                 ) : null}
               </div>
-
-              <h1 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-tight text-white md:text-[36px]">
-                {displayName}
-              </h1>
-              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-brand-accent/80">
-                <span className="inline-flex items-center gap-1.5">
-                  <Banknote className="h-3.5 w-3.5" /> {meta.label}
-                </span>
-                <span className="text-brand-accent/40">·</span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Layers className="h-3.5 w-3.5" /> {meta.hint}
-                </span>
-              </div>
-
-              {/* stat strip */}
-              <div className="mt-6 grid max-w-md grid-cols-3 gap-3">
-                <HeroFact
-                  label="Price"
-                  value={zar(safePrice)}
-                  sub={meta.suffix}
-                />
-                <HeroFact label="Charge" value={meta.label} sub={meta.hint} />
-                <HeroFact
-                  label="Max / stay"
-                  value={maxQuantity.trim() === "" ? "∞" : maxQuantity}
-                  sub={maxQuantity.trim() === "" ? "no limit" : "units"}
-                />
-              </div>
-
-              <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={savePending}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow transition-colors hover:bg-brand-accent disabled:opacity-60"
-                >
-                  <Check className="h-4 w-4" />
-                  {savePending ? "Saving…" : "Save add-on"}
-                </button>
-                {dirty ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill border border-status-pending/30 bg-status-pending/10 px-3 py-2 text-[11.5px] font-medium text-status-pending">
-                    <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
-                    Unsaved changes
-                  </span>
-                ) : null}
-                <div className="ml-auto flex items-center gap-2 rounded-pill border border-white/15 bg-black/30 px-3 py-1.5 backdrop-blur">
-                  <span className="text-[11.5px] font-medium text-white/90">
-                    Active
-                  </span>
-                  <Toggle
-                    checked={isActive}
-                    onChange={handleToggleActive}
-                    disabled={togglePending}
-                    label="Toggle active"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* image side */}
-            <div className="relative min-h-[220px] bg-brand-dark p-2">
-              <div className="relative h-full min-h-[200px] overflow-hidden rounded-[12px]">
-                {imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imageUrl}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-brand-accent/10 text-white/40">
-                    <ImageIcon className="h-8 w-8" />
-                  </div>
-                )}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-brand-dark/80 to-transparent p-4">
-                  <a
-                    href="#sec-media"
-                    className="inline-flex items-center gap-1.5 rounded-[10px] bg-white/95 px-3 py-2 text-[12px] font-semibold text-brand-secondary shadow-lift backdrop-blur transition hover:bg-white"
-                  >
-                    <ImageIcon className="h-4 w-4" /> Change photo
-                  </a>
-                </div>
-              </div>
+              <p className="mt-0.5 text-[13.5px] text-brand-mute">
+                {panelMeta.desc}
+              </p>
             </div>
           </div>
-        </section>
 
-        {/* ===== Two-column ===== */}
-        <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr]">
-          {/* ----- LEFT: form ----- */}
-          <div className="space-y-6">
-            {/* DETAILS */}
-            <Panel
-              eyebrow="Details"
-              title="Name & description"
-              icon={<TypeIcon className="h-3.5 w-3.5" />}
-            >
-              <div className="space-y-5">
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
+          {/* ----- DETAILS ----- */}
+          {section === "details" ? (
+            <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="divide-y divide-[#EEF4F0]">
+                <div className="p-5">
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
                     Add-on name
                   </label>
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                    What guests see in the extras list at checkout.
+                    Shown in the extras list at checkout.
                   </p>
                   <div className="relative mt-2">
                     <input
@@ -492,8 +692,8 @@ export function AddonEditor({
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
+                <div className="p-5">
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
                     Category
                   </label>
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
@@ -524,15 +724,15 @@ export function AddonEditor({
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
+                <div className="p-5">
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
                     Description
                   </label>
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
                     Sell it in a sentence or two.
                   </p>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={description}
                     maxLength={DESC_MAX}
                     onChange={(e) => {
@@ -541,108 +741,109 @@ export function AddonEditor({
                     }}
                     className="mt-2 w-full resize-none rounded-[10px] border border-brand-line bg-white px-3.5 py-3 text-[13.5px] leading-relaxed text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                   />
-                  <div className="mt-1.5 flex items-center justify-end text-[11px] tabular-nums text-brand-mute">
-                    {description.length} / {DESC_MAX}
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-brand-mute">
+                    <span>Tip: lead with what makes it special.</span>
+                    <span className="tabular-nums">
+                      {description.length} / {DESC_MAX}
+                    </span>
                   </div>
                 </div>
               </div>
-            </Panel>
+            </div>
+          ) : null}
 
-            {/* PRICING */}
-            <Panel
-              eyebrow="Pricing"
-              title="Price & charge model"
-              icon={<Banknote className="h-3.5 w-3.5" />}
-            >
-              <div className="space-y-5">
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
-                    How is it charged?
-                  </label>
-                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {PRICING_MODELS.map((m) => {
-                      const mMeta = PRICING_MODEL_META[m.value];
-                      const selected = pricingModel === m.value;
-                      return (
-                        <button
-                          key={m.value}
-                          type="button"
-                          onClick={() => {
-                            setPricingModel(m.value);
-                            touch();
-                          }}
-                          aria-pressed={selected}
-                          className={`flex flex-col items-start gap-0.5 rounded-[10px] border px-3 py-2.5 text-left transition-all ${
-                            selected
-                              ? "border-brand-primary bg-brand-accent/60 shadow-[inset_0_0_0_1px_#10B981]"
-                              : "border-brand-line bg-white hover:border-brand-primary/40"
-                          }`}
-                        >
-                          <span className="text-[12px] font-semibold text-brand-ink">
-                            {mMeta.label}
-                          </span>
-                          <span className="text-[10.5px] text-brand-mute">
-                            {mMeta.hint}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                  <div>
-                    <label className="text-[12px] font-semibold text-brand-ink">
-                      Price
-                    </label>
-                    <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                      Amount per unit ({addon.currency}).
-                    </p>
-                    <div className="mt-2 flex items-stretch">
-                      <div className="flex items-center rounded-l-[10px] border border-r-0 border-brand-line bg-brand-light/60 px-3 text-[12.5px] font-medium text-brand-mute">
-                        R
-                      </div>
-                      <input
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.01"
-                        value={unitPrice}
-                        onChange={(e) => {
-                          setUnitPrice(e.target.value);
+          {/* ----- PRICING ----- */}
+          {section === "pricing" ? (
+            <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="border-b border-brand-line p-5">
+                <label className="text-[12.5px] font-semibold text-brand-ink">
+                  How is it charged?
+                </label>
+                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {PRICING_MODELS.map((m) => {
+                    const mMeta = PRICING_MODEL_META[m.value];
+                    const selected = pricingModel === m.value;
+                    return (
+                      <button
+                        key={m.value}
+                        type="button"
+                        onClick={() => {
+                          setPricingModel(m.value);
                           touch();
                         }}
-                        className="min-w-0 flex-1 border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
-                      />
-                      <div className="flex items-center rounded-r-[10px] border border-l-0 border-brand-line bg-brand-light/60 px-3 text-[11px] text-brand-mute">
-                        {meta.suffix}
-                      </div>
+                        aria-pressed={selected}
+                        className={`flex flex-col items-start gap-0.5 rounded-[11px] border px-3 py-2.5 text-left transition-all ${
+                          selected
+                            ? "border-brand-primary bg-brand-light shadow-[inset_0_0_0_1px_#10B981]"
+                            : "border-brand-line bg-white hover:border-brand-primary/40 hover:bg-[#F8FCFA]"
+                        }`}
+                      >
+                        <span className="text-[12px] font-semibold text-brand-ink">
+                          {mMeta.label}
+                        </span>
+                        <span className="text-[10.5px] text-brand-mute">
+                          {mMeta.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid gap-5 p-5 sm:grid-cols-2">
+                <div>
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
+                    Price
+                  </label>
+                  <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                    Amount per unit ({addon.currency}).
+                  </p>
+                  <div className="mt-2 flex items-stretch">
+                    <div className="flex items-center rounded-l-[10px] border border-r-0 border-brand-line bg-brand-light/60 px-3 font-mono text-[12.5px] text-brand-mute">
+                      R
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-[12px] font-semibold text-brand-ink">
-                      Stock available
-                    </label>
-                    <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                      Blank = unlimited. Sells out at 0.
-                    </p>
                     <input
                       type="number"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       min={0}
-                      value={stockQuantity}
+                      step="0.01"
+                      value={unitPrice}
                       onChange={(e) => {
-                        setStockQuantity(e.target.value);
+                        setUnitPrice(e.target.value);
                         touch();
                       }}
-                      placeholder="Unlimited"
-                      className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                      className="min-w-0 flex-1 border border-brand-line bg-white px-3 py-2.5 font-mono text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                     />
+                    <div className="flex items-center rounded-r-[10px] border border-l-0 border-brand-line bg-brand-light/60 px-3 font-mono text-[11px] text-brand-mute">
+                      {meta.suffix}
+                    </div>
                   </div>
                 </div>
+                <div>
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
+                    Stock available
+                  </label>
+                  <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                    Blank = unlimited. Sells out at 0.
+                  </p>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={stockQuantity}
+                    onChange={(e) => {
+                      setStockQuantity(e.target.value);
+                      touch();
+                    }}
+                    placeholder="Unlimited"
+                    className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 font-mono text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                  />
+                </div>
+              </div>
 
-                {/* Quantity rules */}
-                <div className="rounded-[10px] border border-brand-line p-3.5">
+              {/* Quantity rules */}
+              <div className="border-t border-brand-line p-5">
+                <div className="rounded-[12px] border border-brand-line p-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="text-[13px] font-medium text-brand-ink">
@@ -669,7 +870,7 @@ export function AddonEditor({
                   {allowCustomQuantity ? (
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="text-[12px] font-semibold text-brand-ink">
+                        <label className="text-[12.5px] font-semibold text-brand-ink">
                           Minimum quantity
                         </label>
                         <p className="mt-0.5 text-[11.5px] text-brand-mute">
@@ -685,11 +886,11 @@ export function AddonEditor({
                             touch();
                           }}
                           placeholder="1"
-                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 font-mono text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                         />
                       </div>
                       <div>
-                        <label className="text-[12px] font-semibold text-brand-ink">
+                        <label className="text-[12.5px] font-semibold text-brand-ink">
                           Maximum quantity
                         </label>
                         <p className="mt-0.5 text-[11.5px] text-brand-mute">
@@ -705,22 +906,21 @@ export function AddonEditor({
                             touch();
                           }}
                           placeholder="No limit"
-                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
+                          className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 font-mono text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                         />
                       </div>
                     </div>
                   ) : null}
 
-                  {/* Live price example */}
                   <div className="mt-3 rounded-[8px] bg-brand-light/60 px-3 py-2 text-[11.5px] text-brand-mute">
                     {pricePreview}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between rounded-[10px] border border-brand-line px-3.5 py-3">
+                <div className="mt-4 flex items-center justify-between rounded-[12px] border border-brand-line px-3.5 py-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-brand-accent text-brand-secondary">
-                      <Percent className="h-3.5 w-3.5" />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary">
+                      <Percent className="h-4 w-4" />
                     </span>
                     <div>
                       <div className="text-[13px] font-medium text-brand-ink">
@@ -740,18 +940,26 @@ export function AddonEditor({
                     label="Toggle VAT included"
                   />
                 </div>
-              </div>
-            </Panel>
 
-            {/* AVAILABILITY */}
-            <Panel
-              eyebrow="Availability"
-              title="Where & when it's offered"
-              icon={<Layers className="h-3.5 w-3.5" />}
-            >
-              <div className="space-y-5">
+                <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-brand-light/60 px-3.5 py-3 text-[12px] text-brand-secondary">
+                  <Check className="h-4 w-4 shrink-0 text-brand-primary" />
+                  <span>
+                    Your payout always equals what the guest pays —{" "}
+                    <span className="font-semibold">
+                      Vilo never charges hosts a fee.
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ----- AVAILABILITY ----- */}
+          {section === "availability" ? (
+            <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="grid gap-5 border-b border-brand-line p-5 sm:grid-cols-2">
                 <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
                     Lead time
                   </label>
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
@@ -781,9 +989,8 @@ export function AddonEditor({
                     })}
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
+                  <label className="text-[12.5px] font-semibold text-brand-ink">
                     Daily capacity
                   </label>
                   <p className="mt-0.5 text-[11.5px] text-brand-mute">
@@ -799,383 +1006,247 @@ export function AddonEditor({
                       touch();
                     }}
                     placeholder="Unlimited"
-                    className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)] sm:max-w-[12rem]"
+                    className="mt-2 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2.5 font-mono text-[14px] font-semibold text-brand-ink outline-none transition-shadow focus:border-brand-primary focus:shadow-[0_0_0_4px_rgba(16,185,129,0.15)]"
                   />
                 </div>
-
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
-                    Applies to rooms
-                  </label>
-                  <p className="mt-0.5 text-[11.5px] text-brand-mute">
-                    Choose which listings &amp; rooms offer this add-on.
-                  </p>
-                  {availability.listings.length === 0 ? (
-                    <div className="mt-2 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3.5 py-3 text-[12px] text-brand-mute">
-                      Add a published listing to offer this add-on.
-                    </div>
-                  ) : (
-                    <div className="mt-2 space-y-2.5">
-                      {availability.listings.map((listing) => {
-                        const sel = selections[listing.id] ?? {
-                          mode: "off" as const,
-                          roomIds: [],
-                        };
-                        const hasRooms = listing.rooms.length > 0;
-                        const modeOptions: {
-                          value: ListingMode;
-                          label: string;
-                        }[] = hasRooms
-                          ? [
-                              { value: "off", label: "Not offered" },
-                              { value: "all", label: "All rooms" },
-                              { value: "rooms", label: "Specific rooms" },
-                            ]
-                          : [
-                              { value: "off", label: "Not offered" },
-                              { value: "all", label: "All rooms" },
-                            ];
-                        return (
-                          <div
-                            key={listing.id}
-                            className="rounded-[12px] border border-brand-line bg-white px-3.5 py-3"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <div className="min-w-0 truncate text-[13px] font-semibold text-brand-ink">
-                                {listing.name}
-                              </div>
-                              <div className="inline-flex rounded-[10px] border border-brand-line bg-brand-light/50 p-0.5">
-                                {modeOptions.map((opt) => {
-                                  const active = sel.mode === opt.value;
-                                  return (
-                                    <button
-                                      key={opt.value}
-                                      type="button"
-                                      disabled={availPending}
-                                      aria-pressed={active}
-                                      onClick={() =>
-                                        setListingMode(listing, opt.value)
-                                      }
-                                      className={`rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-60 ${
-                                        active
-                                          ? "bg-brand-primary text-white shadow-sm"
-                                          : "text-brand-mute hover:text-brand-ink"
-                                      }`}
-                                    >
-                                      {opt.label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                            {sel.mode === "rooms" && hasRooms ? (
-                              <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-brand-line pt-2.5">
-                                {listing.rooms.map((room) => {
-                                  const on = sel.roomIds.includes(room.id);
-                                  return (
-                                    <button
-                                      key={room.id}
-                                      type="button"
-                                      disabled={availPending}
-                                      aria-pressed={on}
-                                      onClick={() =>
-                                        toggleRoom(listing.id, room.id)
-                                      }
-                                      className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60 ${
-                                        on
-                                          ? "border-brand-primary bg-brand-primary text-white"
-                                          : "border-brand-line bg-white text-brand-mute hover:border-brand-primary/40 hover:text-brand-ink"
-                                      }`}
-                                    >
-                                      {on ? (
-                                        <Check className="h-3 w-3" />
-                                      ) : null}
-                                      {room.name}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            ) : null}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-[12px] font-semibold text-brand-ink">
-                    When can guests add it?
-                  </label>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex items-center justify-between rounded-[10px] border border-brand-primary/30 bg-brand-accent/30 px-3.5 py-2.5">
-                      <span className="flex items-center gap-2.5">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-brand-accent text-brand-secondary">
-                          <ShoppingCart className="h-3.5 w-3.5" />
-                        </span>
-                        <span className="text-[13px] font-medium text-brand-ink">
-                          During checkout
-                        </span>
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
-                        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                        Active
-                      </span>
-                    </div>
-                    <ComingSoonChannel
-                      icon={<Mail className="h-3.5 w-3.5" />}
-                      label="Pre-arrival email"
-                    />
-                    <ComingSoonChannel
-                      icon={<Clock className="h-3.5 w-3.5" />}
-                      label="During the stay"
-                    />
-                  </div>
-                </div>
               </div>
-            </Panel>
 
-            {/* PHOTO */}
-            <Panel
-              id="sec-media"
-              eyebrow="Photo"
-              title="Add-on image"
-              icon={<ImageIcon className="h-3.5 w-3.5" />}
-              description="A good photo makes guests far more likely to add it."
-            >
-              <div className="space-y-4">
-                <AddonImageInput
-                  addonId={addon.id}
-                  imageUrl={imageUrl}
-                  onChange={(url) => {
-                    setImageUrl(url);
-                    touch();
-                  }}
-                />
+              <div className="border-b border-brand-line p-5">
+                <label className="text-[12.5px] font-semibold text-brand-ink">
+                  Applies to rooms
+                </label>
+                <p className="mt-0.5 text-[11.5px] text-brand-mute">
+                  Choose which listings &amp; rooms offer this add-on.
+                </p>
+                {availability.listings.length === 0 ? (
+                  <div className="mt-2 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3.5 py-3 text-[12px] text-brand-mute">
+                    Add a published listing to offer this add-on.
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2.5">
+                    {availability.listings.map((listing) => {
+                      const sel = selections[listing.id] ?? {
+                        mode: "off" as const,
+                        roomIds: [],
+                      };
+                      const hasRooms = listing.rooms.length > 0;
+                      const modeOptions: {
+                        value: ListingMode;
+                        label: string;
+                      }[] = hasRooms
+                        ? [
+                            { value: "off", label: "Not offered" },
+                            { value: "all", label: "All rooms" },
+                            { value: "rooms", label: "Specific rooms" },
+                          ]
+                        : [
+                            { value: "off", label: "Not offered" },
+                            { value: "all", label: "All rooms" },
+                          ];
+                      return (
+                        <div
+                          key={listing.id}
+                          className="rounded-[12px] border border-brand-line bg-white px-3.5 py-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="min-w-0 truncate text-[13px] font-semibold text-brand-ink">
+                              {listing.name}
+                            </div>
+                            <div className="inline-flex rounded-[10px] border border-brand-line bg-brand-light/50 p-0.5">
+                              {modeOptions.map((opt) => {
+                                const active = sel.mode === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    type="button"
+                                    disabled={availPending}
+                                    aria-pressed={active}
+                                    onClick={() =>
+                                      setListingMode(listing, opt.value)
+                                    }
+                                    className={`rounded-[8px] px-2.5 py-1 text-[11.5px] font-semibold transition-colors disabled:opacity-60 ${
+                                      active
+                                        ? "bg-brand-primary text-white shadow-sm"
+                                        : "text-brand-mute hover:text-brand-ink"
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {sel.mode === "rooms" && hasRooms ? (
+                            <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-brand-line pt-2.5">
+                              {listing.rooms.map((room) => {
+                                const on = sel.roomIds.includes(room.id);
+                                return (
+                                  <button
+                                    key={room.id}
+                                    type="button"
+                                    disabled={availPending}
+                                    aria-pressed={on}
+                                    onClick={() =>
+                                      toggleRoom(listing.id, room.id)
+                                    }
+                                    className={`inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60 ${
+                                      on
+                                        ? "border-brand-primary bg-brand-primary text-white"
+                                        : "border-brand-line bg-white text-brand-mute hover:border-brand-primary/40 hover:text-brand-ink"
+                                    }`}
+                                  >
+                                    {on ? <Check className="h-3 w-3" /> : null}
+                                    {room.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
-                {/* guest preview */}
-                <div className="rounded-card border border-brand-line">
-                  <div className="flex items-center justify-between border-b border-brand-line px-4 py-2.5">
-                    <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-                      Guest preview
-                    </div>
-                    <span className="text-[10.5px] text-brand-mute">
-                      at checkout
+              <div className="p-5">
+                <label className="text-[12.5px] font-semibold text-brand-ink">
+                  When can guests add it?
+                </label>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center justify-between rounded-[12px] border border-brand-primary/30 bg-brand-accent/30 px-3.5 py-2.5">
+                    <span className="flex items-center gap-2.5">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary">
+                        <ShoppingCart className="h-4 w-4" />
+                      </span>
+                      <span className="text-[13px] font-medium text-brand-ink">
+                        During checkout
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-secondary">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+                      Active
                     </span>
                   </div>
-                  <div className="p-4">
-                    <div className="flex items-center gap-3 rounded-[12px] border border-brand-line p-3">
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[10px] bg-brand-accent/40">
-                        {imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={imageUrl}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-brand-mute">
-                            <ImageIcon className="h-5 w-5" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-display text-[13.5px] font-bold text-brand-ink">
-                          {displayName}
-                        </div>
-                        <div className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-brand-mute">
-                          {description.trim() ||
-                            "Add a short description guests will see."}
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-1">
-                          <span className="font-display text-[13.5px] font-bold text-brand-ink">
-                            {zar(safePrice)}
-                          </span>
-                          <span className="text-[11px] text-brand-mute">
-                            {meta.suffix}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[10px] border border-brand-primary bg-brand-accent/40 px-4 py-2.5 text-[13px] font-semibold text-brand-secondary">
-                      <Plus className="h-4 w-4" /> Add to booking
-                    </div>
-                  </div>
+                  <ComingSoonChannel
+                    icon={<Mail className="h-4 w-4" />}
+                    label="Pre-arrival email"
+                  />
+                  <ComingSoonChannel
+                    icon={<Clock className="h-4 w-4" />}
+                    label="During the stay"
+                  />
                 </div>
               </div>
-            </Panel>
+            </div>
+          ) : null}
 
-            {/* DELETE */}
-            <Panel
-              eyebrow="Danger zone"
-              title="Delete add-on"
-              icon={<Trash2 className="h-3.5 w-3.5" />}
-              description="Removes this add-on from every listing it's attached to. This can't be undone."
-            >
+          {/* ----- PHOTO ----- */}
+          {section === "photo" ? (
+            <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+              <AddonImageInput
+                addonId={addon.id}
+                imageUrl={imageUrl}
+                onChange={(url) => {
+                  setImageUrl(url);
+                  touch();
+                }}
+              />
+              <p className="mt-3 text-[11px] text-brand-mute">
+                JPG or PNG · landscape works best · up to 20 MB.
+              </p>
+            </div>
+          ) : null}
+
+          {/* ----- DANGER ----- */}
+          {section === "danger" ? (
+            <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+              <div className="divide-y divide-brand-line">
+                <div className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div>
+                    <div className="text-[13px] font-semibold text-brand-ink">
+                      {isActive ? "Move to drafts" : "Publish to guests"}
+                    </div>
+                    <div className="text-[11px] text-brand-mute">
+                      {isActive
+                        ? "Hide from guests; keep all settings."
+                        : "Make this add-on bookable again."}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleActive}
+                    disabled={togglePending}
+                    className={`rounded-pill border px-3.5 py-1.5 text-[12px] font-semibold transition disabled:opacity-60 ${
+                      isActive
+                        ? "border-status-pending/30 bg-status-pending/10 text-status-pending hover:bg-status-pending/20"
+                        : "border-brand-primary/30 bg-brand-accent text-brand-secondary hover:bg-brand-accent/70"
+                    }`}
+                  >
+                    {isActive ? "Unpublish" : "Publish"}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div>
+                    <div className="text-[13px] font-semibold text-brand-ink">
+                      Delete add-on
+                    </div>
+                    <div className="text-[11px] text-brand-mute">
+                      Removes it from every listing it&apos;s attached to. This
+                      can&apos;t be undone.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deletePending}
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-status-cancelled/30 bg-status-cancelled/5 px-3.5 py-1.5 text-[12px] font-semibold text-status-cancelled transition hover:bg-status-cancelled/10 disabled:opacity-60"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletePending ? "Deleting…" : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* ----- PANEL FOOTER NAV ----- */}
+          <div className="mt-7 flex items-center justify-between gap-3 border-t border-brand-line pt-5">
+            {sectionIdx > 0 ? (
               <button
                 type="button"
-                onClick={handleDelete}
-                disabled={deletePending}
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-status-cancelled/30 bg-white px-3.5 py-2 text-[12.5px] font-semibold text-status-cancelled transition-colors hover:bg-status-cancelled/5 disabled:opacity-60"
+                onClick={() => setSection(SECTIONS[sectionIdx - 1].key)}
+                className="inline-flex h-10 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
               >
-                <Trash2 className="h-4 w-4" />
-                {deletePending ? "Deleting…" : "Delete add-on"}
+                <ArrowLeft className="h-4 w-4" />{" "}
+                {SECTIONS[sectionIdx - 1].label}
               </button>
-            </Panel>
-          </div>
-
-          {/* ----- RIGHT: sticky rail ----- */}
-          <div className="space-y-5">
-            <div className="space-y-5 lg:sticky lg:top-6">
-              {/* completeness */}
-              <section className="rounded-card border border-brand-line bg-white shadow-card">
-                <div className="flex items-center gap-3 border-b border-brand-line px-5 py-4">
-                  <ProgressRing pct={checklist.pct} />
-                  <div>
-                    <div className="font-display text-[14px] font-bold text-brand-ink">
-                      {checklist.allDone ? "Ready to publish" : "Almost ready"}
-                    </div>
-                    <div className="text-[11.5px] text-brand-mute">
-                      {checklist.allDone
-                        ? "All set — guests can book this"
-                        : "Finish the steps below"}
-                    </div>
-                  </div>
-                </div>
-                <ul className="space-y-1 px-3 py-3 text-[12.5px]">
-                  {checklist.items.map((item) => (
-                    <li
-                      key={item.label}
-                      className="flex items-center gap-2.5 rounded-md px-2 py-1.5"
-                    >
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full ${
-                          item.done
-                            ? "bg-brand-primary text-white"
-                            : "border border-brand-line bg-white text-brand-mute"
-                        }`}
-                      >
-                        {item.done ? <Check className="h-3 w-3" /> : null}
-                      </span>
-                      <span
-                        className={
-                          item.done ? "text-brand-ink" : "text-brand-mute"
-                        }
-                      >
-                        {item.label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              {/* tip */}
-              <section className="rounded-card border border-brand-line bg-brand-accent/40 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] bg-white text-brand-secondary">
-                    <Lightbulb className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <div className="text-[12.5px] font-semibold text-brand-ink">
-                      A photo lifts uptake
-                    </div>
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-brand-mute">
-                      Add-ons with a clear photo and a one-line description are
-                      added far more often at checkout. Keep the name short and
-                      specific.
-                    </p>
-                  </div>
-                </div>
-              </section>
-            </div>
+            ) : (
+              <span />
+            )}
+            <span className="text-[12px] font-medium tabular-nums text-brand-mute">
+              {sectionIdx + 1} / {SECTIONS.length}
+            </span>
+            {!isLastSection ? (
+              <button
+                type="button"
+                onClick={() => setSection(SECTIONS[sectionIdx + 1].key)}
+                className="inline-flex h-10 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary"
+              >
+                Continue · {SECTIONS[sectionIdx + 1].label}{" "}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            ) : (
+              <span />
+            )}
           </div>
         </div>
       </div>
-
-      {/* ===== Sticky save bar (on unsaved changes) ===== */}
-      {dirty ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-line bg-white shadow-lift">
-          <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-display text-[14px] font-bold text-brand-ink">
-                {displayName}
-              </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-status-pending">
-                <span className="h-1.5 w-1.5 rounded-full bg-status-pending" />
-                Unsaved changes
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setDirty(false);
-                setName(addon.name);
-                setDescription(addon.description);
-                setCategory(addon.category);
-                setPricingModel(addon.pricingModel);
-                setUnitPrice(addon.unitPrice ? String(addon.unitPrice) : "0");
-                setMinQuantity(String(Math.max(1, addon.minQuantity)));
-                setMaxQuantity(
-                  addon.maxQuantity == null ? "" : String(addon.maxQuantity),
-                );
-                setAllowCustomQuantity(addon.allowCustomQuantity);
-                setStockQuantity(
-                  addon.stockQuantity == null
-                    ? ""
-                    : String(addon.stockQuantity),
-                );
-                setLeadTimeDays(addon.leadTimeDays);
-                setDailyCapacity(
-                  addon.dailyCapacity == null
-                    ? ""
-                    : String(addon.dailyCapacity),
-                );
-                setIsRequired(addon.isRequired);
-                setVatIncluded(addon.vatIncluded);
-              }}
-              className="inline-flex items-center rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-light/60"
-            >
-              Discard
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={savePending}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-5 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary disabled:opacity-60"
-            >
-              <Check className="h-4 w-4" />
-              {savePending ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
 
 /* ---------- small building blocks ---------- */
-
-function HeroFact({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-}) {
-  return (
-    <div>
-      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
-        {label}
-      </div>
-      <div className="mt-1 truncate font-display text-xl font-bold text-white">
-        {value}
-      </div>
-      <div className="text-[10px] text-brand-accent/60">{sub}</div>
-    </div>
-  );
-}
 
 function Toggle({
   checked,
@@ -1217,9 +1288,9 @@ function ComingSoonChannel({
   label: string;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-[10px] border border-brand-line bg-brand-light/40 px-3.5 py-2.5 opacity-70">
+    <div className="flex items-center justify-between rounded-[12px] border border-brand-line bg-brand-light/40 px-3.5 py-2.5 opacity-70">
       <span className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-[8px] bg-brand-line/40 text-brand-mute">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand-line/40 text-brand-mute">
           {icon}
         </span>
         <span className="text-[13px] font-medium text-brand-mute">{label}</span>
@@ -1235,15 +1306,15 @@ function ProgressRing({ pct }: { pct: number }) {
   const circumference = 2 * Math.PI * 15.5;
   const dash = (pct / 100) * circumference;
   return (
-    <div className="relative h-12 w-12">
-      <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
+    <div className="relative h-11 w-11 shrink-0">
+      <svg viewBox="0 0 36 36" className="h-11 w-11 -rotate-90">
         <circle
           cx="18"
           cy="18"
           r="15.5"
           fill="none"
-          stroke="#DCEAE0"
-          strokeWidth="3.2"
+          stroke="#E4EFE8"
+          strokeWidth="3.4"
         />
         <circle
           cx="18"
@@ -1251,51 +1322,14 @@ function ProgressRing({ pct }: { pct: number }) {
           r="15.5"
           fill="none"
           stroke="#10B981"
-          strokeWidth="3.2"
+          strokeWidth="3.4"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${circumference}`}
         />
       </svg>
-      <div className="absolute inset-0 flex items-center justify-center font-display text-[12px] font-bold tabular-nums text-brand-ink">
+      <div className="absolute inset-0 flex items-center justify-center font-display text-[11.5px] font-bold tabular-nums text-brand-ink">
         {pct}%
       </div>
     </div>
-  );
-}
-
-function Panel({
-  id,
-  eyebrow,
-  title,
-  description,
-  icon,
-  children,
-}: {
-  id?: string;
-  eyebrow: string;
-  title: string;
-  description?: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      id={id}
-      className="scroll-mt-6 rounded-card border border-brand-line bg-white shadow-card"
-    >
-      <header className="border-b border-brand-line px-6 py-4">
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-          {icon}
-          {eyebrow}
-        </div>
-        <h3 className="mt-0.5 font-display text-[16px] font-bold text-brand-ink">
-          {title}
-        </h3>
-        {description ? (
-          <p className="mt-1 text-[11.5px] text-brand-mute">{description}</p>
-        ) : null}
-      </header>
-      <div className="px-6 py-5">{children}</div>
-    </section>
   );
 }

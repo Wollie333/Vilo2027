@@ -72,6 +72,22 @@ export default async function AddonsPage() {
     );
   }
 
+  // How many distinct listings each add-on is offered on → "scope" on the card.
+  const addonIds = (rows ?? []).map((r) => r.id);
+  const { data: laRows } = addonIds.length
+    ? await supabase
+        .from("listing_addons")
+        .select("addon_id, listing_id")
+        .in("addon_id", addonIds)
+    : { data: [] as { addon_id: string; listing_id: string }[] };
+
+  const listingsByAddon = new Map<string, Set<string>>();
+  for (const row of laRows ?? []) {
+    const set = listingsByAddon.get(row.addon_id) ?? new Set<string>();
+    set.add(row.listing_id);
+    listingsByAddon.set(row.addon_id, set);
+  }
+
   const addons: AddonCard[] = (rows ?? []).map((r) => ({
     id: r.id,
     name: r.name,
@@ -91,6 +107,7 @@ export default async function AddonsPage() {
     category: (r.category as AddonCategory | null) ?? null,
     vatIncluded: r.vat_included,
     dailyCapacity: r.daily_capacity,
+    listingCount: listingsByAddon.get(r.id)?.size ?? 0,
   }));
 
   return <AddonsArchive initial={addons} />;
