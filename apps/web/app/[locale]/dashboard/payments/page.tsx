@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { getMyHostId } from "@/lib/host/current";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { throwOnError } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -40,6 +41,8 @@ type RawPayment = {
   currency: string;
   method: string;
   status: string;
+  kind: string | null;
+  voided_at: string | null;
   provider_reference: string | null;
   refunded_amount: number | null;
   captured_at: string | null;
@@ -57,7 +60,7 @@ export default async function PaymentsPage() {
     supabase
       .from("payments")
       .select(
-        "id, amount, currency, method, status, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
+        "id, amount, currency, method, status, kind, voided_at, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
       )
       .eq("booking.host_id", myHostId)
       .order("created_at", { ascending: false })
@@ -100,7 +103,17 @@ export default async function PaymentsPage() {
 
   // ── KPIs ──
   const completed = rows.filter((r) => r.status === "completed");
-  const collected = completed.reduce((acc, r) => acc + r.amount, 0);
+  // Collected = the canonical paid-sum (completed + non-voided + inbound kinds),
+  // not a raw sum of every completed row — so voided / non-inbound payments
+  // never inflate it, matching the ledger everywhere else.
+  const collected = sumPaidFromRows(
+    raw.map((p) => ({
+      amount: Number(p.amount),
+      kind: p.kind,
+      status: p.status,
+      voided_at: p.voided_at,
+    })),
+  );
   // Total refunds = sum of payments.refunded_amount (trigger-maintained as
   // refunds complete), counting how many payments had any refund.
   const refundedTotal = raw.reduce(

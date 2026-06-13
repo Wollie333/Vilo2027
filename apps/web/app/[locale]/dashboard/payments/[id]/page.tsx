@@ -23,6 +23,7 @@ import { notFound, redirect } from "next/navigation";
 import { getBrandName } from "@/lib/brand";
 import { formatMoney } from "@/lib/format";
 import { getMyHostId } from "@/lib/host/current";
+import { sumPaidFromRows } from "@/lib/payments/ledger";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { PaymentManage } from "./PaymentManage";
@@ -170,6 +171,7 @@ export default async function PaymentDetailPage({
     { data: quoteRows },
     { data: creditNoteRows },
     { data: refundRows },
+    { data: bookingPayRows },
   ] = await Promise.all([
     supabase
       .from("booking_addons")
@@ -205,7 +207,29 @@ export default async function PaymentDetailPage({
       )
       .eq("payment_id", payment.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("payments")
+      .select("amount, kind, status, voided_at")
+      .eq("booking_id", booking.id),
   ]);
+
+  // Balance still due — derived from the booking's COMPLETED payments (canonical
+  // sumPaidFromRows), not the stored balance_due column, so it can't show stale.
+  const bookingBalanceDue =
+    Math.round(
+      Math.max(
+        0,
+        Number(booking.total_amount) -
+          sumPaidFromRows(
+            (bookingPayRows ?? []).map((p) => ({
+              amount: Number(p.amount),
+              kind: p.kind,
+              status: p.status,
+              voided_at: p.voided_at,
+            })),
+          ),
+      ) * 100,
+    ) / 100;
 
   const invoiceRow = invoiceRows?.[0] ?? null;
   const ccy = payment.currency;
@@ -429,13 +453,13 @@ export default async function PaymentDetailPage({
                     </span>
                   </li>
                 ) : null}
-                {Number(booking.balance_due ?? 0) > 0 ? (
+                {bookingBalanceDue > 0 ? (
                   <li className="flex items-center justify-between rounded-[10px] bg-status-pending/10 px-3 py-2">
                     <span className="font-semibold text-amber-700">
                       Balance still due
                     </span>
                     <span className="font-semibold text-amber-700">
-                      {formatMoney(Number(booking.balance_due), ccy)}
+                      {formatMoney(bookingBalanceDue, ccy)}
                     </span>
                   </li>
                 ) : null}

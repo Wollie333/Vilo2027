@@ -94,6 +94,16 @@ export type TxnFlows = {
 
 const CASH_KINDS = ["deposit", "balance", "addon", "payment"];
 
+// Dead bookings owe nothing — no synthesised charge (mirrors the guest-record
+// outstanding rule + scripts/verify-guest-ledger.mjs).
+const DEAD_BOOKING_STATUSES = new Set([
+  "cancelled_by_host",
+  "cancelled_by_guest",
+  "declined",
+  "expired",
+  "no_show",
+]);
+
 type Filter = {
   hostId: string;
   gkey?: string;
@@ -148,6 +158,20 @@ export async function fetchHostTransactions(
     .eq("host_id", hostId)
     .in("status", ["approved", "processing", "completed"]);
 
+  // Live bookings — the obligation behind the ledger. A booking that hasn't been
+  // invoiced yet (still pending / pending_eft, before the confirm trigger mints
+  // the invoice) carries no invoice "charge", so the ledger would show nothing
+  // owed while the guest genuinely owes the full amount. We synthesise a
+  // "Booking charge" for every non-cancelled, non-invoiced booking so the
+  // ledger's running balance equals the real outstanding everywhere.
+  const bookingsQ = admin
+    .from("bookings")
+    .select(
+      "id, reference, status, total_amount, currency, created_at, guest_id, guest_name, guest_email",
+    )
+    .eq("host_id", hostId)
+    .is("deleted_at", null);
+
   if (live) {
     invoicesQ = invoicesQ.is("voided_at", null);
     paymentsQ = paymentsQ.is("voided_at", null);
@@ -160,7 +184,14 @@ export async function fetchHostTransactions(
     { data: payments },
     { data: creditNotes },
     { data: refunds },
-  ] = await Promise.all([invoicesQ, paymentsQ, creditNotesQ, refundsQ]);
+    { data: liveBookings },
+  ] = await Promise.all([
+    invoicesQ,
+    paymentsQ,
+    creditNotesQ,
+    refundsQ,
+    bookingsQ,
+  ]);
 
   const one = <T>(v: T | T[] | null | undefined): T | null =>
     Array.isArray(v) ? (v[0] ?? null) : (v ?? null);
@@ -190,6 +221,9 @@ export async function fetchHostTransactions(
   collect(creditNotes ?? [], creditNotes ?? []);
   collect(null, payments ?? []);
   collect(null, refunds ?? []);
+  for (const bk of liveBookings ?? []) {
+    if (bk.guest_email) refEmails.add(bk.guest_email.trim().toLowerCase());
+  }
 
   const acctByEmail = new Map<string, string>();
   if (refEmails.size > 0) {
@@ -254,6 +288,38 @@ export async function fetchHostTransactions(
       category: inv.kind === "addon" ? "addon" : "booking",
       voided,
       voidReason: (inv.void_reason as string) ?? null,
+    });
+  }
+
+  // Synthesised charge for live, non-invoiced bookings (see bookingsQ note).
+  // owedEffect +1 so the running balance reflects the obligation; no doc (there's
+  // no invoice yet) so txnFlows() never counts it as "billed".
+  const invoicedBookingIds = new Set(
+    (invoices ?? []).map((i) => i.booking_id).filter(Boolean),
+  );
+  for (const bk of liveBookings ?? []) {
+    if (invoicedBookingIds.has(bk.id)) continue;
+    if (DEAD_BOOKING_STATUSES.has(bk.status as string)) continue;
+    entries.push({
+      id: `bkchg_${bk.id}`,
+      date: bk.created_at as string,
+      type: "charge",
+      label: "Booking charge",
+      amount: Number(bk.total_amount),
+      currency: bk.currency,
+      guestKey: resolveKey(bk.guest_id, bk.guest_email),
+      guestName: bk.guest_name ?? null,
+      bookingId: bk.id,
+      bookingRef: bk.reference ?? null,
+      method: null,
+      note: "Awaiting invoice",
+      doc: null,
+      balance: 0,
+      owedEffect: 1,
+      cashEffect: 0,
+      category: "booking",
+      voided: false,
+      voidReason: null,
     });
   }
 
@@ -431,7 +497,9 @@ export function txnFlows(entries: Txn[]): TxnFlows {
     if (e.cashEffect > 0) collected += e.amount;
     if (e.type === "refund") refunded += e.amount;
     if (e.type === "credit") credits += e.amount;
-    if (e.type === "charge") charged += e.amount;
+    // "charged" = actually billed → real invoices only, not synthesised
+    // (doc-less) booking charges for not-yet-invoiced bookings.
+    if (e.type === "charge" && e.doc) charged += e.amount;
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;
   return {
