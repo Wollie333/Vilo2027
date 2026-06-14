@@ -159,6 +159,9 @@ export type BookingDetailData = {
   checkInFull: string;
   checkOutFull: string;
   bookedLong: string;
+  /** Actual stay timestamps (set when the host marks check-in/out). */
+  checkedInLabel: string | null;
+  checkedOutLabel: string | null;
 
   arrivalProximity: string | null;
   arrivalBig: string;
@@ -476,6 +479,18 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                   <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold capitalize text-brand-mute">
                     <ShieldCheck className="h-3 w-3" /> {d.cancellationLabel}
                   </span>
+                  {d.checkedInLabel ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-completed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-completed">
+                      <DoorOpen className="h-3 w-3" /> Checked in{" "}
+                      {d.checkedInLabel}
+                    </span>
+                  ) : null}
+                  {d.checkedOutLabel ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-status-completed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-completed">
+                      <DoorClosed className="h-3 w-3" /> Checked out{" "}
+                      {d.checkedOutLabel}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>

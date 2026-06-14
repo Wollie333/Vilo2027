@@ -676,6 +676,24 @@ export default async function BookingDetailPage({
       ? `${checkOutBig}${coTime ? ` · ${coTime}` : ""}`
       : "—",
     bookedLong: fmtLong(booking.created_at),
+    checkedInLabel: booking.checked_in_at
+      ? new Date(booking.checked_in_at).toLocaleString("en-ZA", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Africa/Johannesburg",
+        })
+      : null,
+    checkedOutLabel: booking.checked_out_at
+      ? new Date(booking.checked_out_at).toLocaleString("en-ZA", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Africa/Johannesburg",
+        })
+      : null,
 
     arrivalProximity,
     arrivalBig,
