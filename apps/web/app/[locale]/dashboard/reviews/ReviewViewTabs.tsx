@@ -13,10 +13,12 @@ export function ReviewViewTabs({
   active,
   reviewCount,
   needsResponseCount,
+  guestRatingCount,
 }: {
   active: string;
   reviewCount: number;
   needsResponseCount: number;
+  guestRatingCount: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -24,6 +26,8 @@ export function ReviewViewTabs({
   function setView(key: string) {
     if (key === "activity") {
       router.push(`${pathname}?view=activity`);
+    } else if (key === "guest-ratings") {
+      router.push(`${pathname}?view=guest-ratings`);
     } else {
       router.push(pathname);
     }
@@ -39,6 +43,11 @@ export function ReviewViewTabs({
           key: "activity",
           label: "Activity",
           count: needsResponseCount || undefined,
+        },
+        {
+          key: "guest-ratings",
+          label: "Guest ratings",
+          count: guestRatingCount || undefined,
         },
       ]}
     />

@@ -17,6 +17,7 @@ import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { FilterTabs } from "./FilterTabs";
+import { GuestRatingsHub } from "./GuestRatingsHub";
 import { RequestReviewButton } from "./RequestReviewButton";
 import { ReviewActivityTable } from "./ReviewActivityTable";
 import { ReviewCard, type ReviewCardProps } from "./ReviewCard";
@@ -93,13 +94,60 @@ export default async function ReviewsPage({
   }
 
   const view =
-    searchParams?.view === "activity" ? "activity" : ("reviews" as const);
+    searchParams?.view === "activity"
+      ? "activity"
+      : searchParams?.view === "guest-ratings"
+        ? ("guest-ratings" as const)
+        : ("reviews" as const);
 
   const requestable = await fetchRequestableReviews(supabase, {
     hostId: host.id,
   });
   const activity =
     view === "activity" ? await fetchReviewActivity(supabase, host.id) : [];
+
+  // Host → guest ratings (PRIVATE — guests never see these). Loaded for the
+  // "Guest ratings" view + its tab count. Small table, host-scoped via RLS.
+  const { data: grRows } = await supabase
+    .from("guest_ratings")
+    .select(
+      "id, guest_id, rating, summary, updated_at, guest:user_profiles ( full_name, email, avatar_url )",
+    )
+    .eq("host_id", host.id)
+    .order("updated_at", { ascending: false });
+  const guestRatings = (
+    (grRows ?? []) as Array<{
+      id: string;
+      guest_id: string;
+      rating: number;
+      summary: string | null;
+      updated_at: string;
+      guest:
+        | {
+            full_name: string | null;
+            email: string | null;
+            avatar_url: string | null;
+          }
+        | {
+            full_name: string | null;
+            email: string | null;
+            avatar_url: string | null;
+          }[]
+        | null;
+    }>
+  ).map((r) => {
+    const g = Array.isArray(r.guest) ? r.guest[0] : r.guest;
+    return {
+      id: r.id,
+      gkey: `u_${r.guest_id}`,
+      name: g?.full_name ?? "Guest",
+      email: g?.email ?? null,
+      avatarUrl: g?.avatar_url ?? null,
+      rating: r.rating,
+      summary: r.summary,
+      updatedAt: r.updated_at,
+    };
+  });
 
   const tab = (searchParams?.tab ?? "all").trim();
   const listingFilter = (searchParams?.listing ?? "").trim();
@@ -294,10 +342,13 @@ export default async function ReviewsPage({
         active={view}
         reviewCount={totalReviews}
         needsResponseCount={needsReplyTotal}
+        guestRatingCount={guestRatings.length}
       />
 
       {view === "activity" ? (
         <ReviewActivityTable rows={activity} />
+      ) : view === "guest-ratings" ? (
+        <GuestRatingsHub rows={guestRatings} />
       ) : (
         <div className="space-y-7">
           {/* ─── Summary row ────────────────────────────────────────── */}
