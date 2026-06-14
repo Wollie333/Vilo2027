@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Business reporting dashboard (P4.2) — branch `main`
+
+### Built
+- New `/admin/reporting` (+ Finance sidebar entry): Vilo-as-a-business overview —
+  **Revenue** (MRR, ARR, all-time collected, paying hosts, trials, churned),
+  **Growth** (total users, hosts, guests, new in 30 days), **Platform volume**
+  (GMV processed + revenue-booking count, clearly flagged as host↔guest money Vilo
+  never holds), and live **plan distribution**.
+
+### Notes
+- Computed inline from existing tables + the revenue read model (no new schema).
+  Full platform-analytics RPC suite + CSV/scheduled-report exports (P4.1/P4.3) are
+  the next increment. `tsc` + eslint green.
+
+### Commit
+- `feat(admin): business reporting dashboard (P4.2)`
+
 ## 2026-06-14 — Super-Admin — Vilo User Record + direct-edit (P3.1–P3.3) — branch `main`
 
 ### Built

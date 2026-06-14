@@ -2,6 +2,7 @@
 
 import {
   Activity,
+  BarChart3,
   BookOpen,
   CalendarCheck,
   CreditCard,
@@ -61,6 +62,12 @@ const FINANCE: GmailNavItem[] = [
     href: "/admin/subscriptions",
     label: "Subscriptions",
     icon: Crown,
+    match: "prefix",
+  },
+  {
+    href: "/admin/reporting",
+    label: "Reporting",
+    icon: BarChart3,
     match: "prefix",
   },
 ];
