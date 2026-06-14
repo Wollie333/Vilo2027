@@ -118,12 +118,21 @@ export function CalendarWorkspace(props: Props) {
   const [filter, setFilter] = useState<string>("all");
   const [selDay, setSelDay] = useState<string>(props.today);
   const [blockOpen, setBlockOpen] = useState(false);
+  const [quickBooking, setQuickBooking] = useState<CalBooking | null>(null);
   // Range selection (check-in → check-out) drawn straight on the month grid.
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
   const hasRange = !!(rangeStart && rangeEnd && rangeEnd > rangeStart);
 
   const refresh = () => router.refresh();
+
+  // Clicking a booking opens a quick-view modal (not a full page navigation);
+  // the modal has a button through to the full booking record.
+  const openBooking = (id: string) => {
+    const b = props.bookings.find((x) => x.id === id);
+    if (b) setQuickBooking(b);
+    else router.push(`/dashboard/bookings/${id}`);
+  };
 
   function clearRange() {
     setRangeStart(null);
@@ -355,7 +364,7 @@ export function CalendarWorkspace(props: Props) {
                 priceForDay={priceForDay}
                 listings={props.listings}
                 onSelectDay={pickDay}
-                onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
+                onOpenBooking={openBooking}
               />
             ) : (
               <TimelineView
@@ -369,7 +378,7 @@ export function CalendarWorkspace(props: Props) {
                 }
                 bookings={bookings}
                 ranges={ranges}
-                onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
+                onOpenBooking={openBooking}
               />
             )}
           </section>
@@ -424,7 +433,7 @@ export function CalendarWorkspace(props: Props) {
             selDay={selDay}
             bookings={bookings}
             listings={props.listings}
-            onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
+            onOpenBooking={openBooking}
           />
           {hasRange ? null : (
             <DayAvailability
@@ -434,7 +443,7 @@ export function CalendarWorkspace(props: Props) {
               bookings={bookings}
               blocks={props.blocks}
               onChanged={refresh}
-              onOpenBooking={(id) => router.push(`/dashboard/bookings/${id}`)}
+              onOpenBooking={openBooking}
             />
           )}
           <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -480,7 +489,143 @@ export function CalendarWorkspace(props: Props) {
         today={props.today}
         onChanged={refresh}
       />
+
+      <BookingQuickView
+        booking={quickBooking}
+        listings={props.listings}
+        onOpenChange={(o) => {
+          if (!o) setQuickBooking(null);
+        }}
+        onViewFull={(id) => router.push(`/dashboard/bookings/${id}`)}
+      />
     </div>
+  );
+}
+
+// ── Booking quick view (modal from a calendar click) ────────────────────
+function QuickFact({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[10px] border border-brand-line bg-white px-3 py-2">
+      <div className="flex items-center gap-1.5 text-brand-mute">
+        {icon}
+        <span className="text-[10px] font-bold uppercase tracking-[0.06em]">
+          {label}
+        </span>
+      </div>
+      <div className="mt-0.5 truncate text-[13px] font-semibold text-brand-ink">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function BookingQuickView({
+  booking,
+  listings,
+  onOpenChange,
+  onViewFull,
+}: {
+  booking: CalBooking | null;
+  listings: CalListing[];
+  onOpenChange: (open: boolean) => void;
+  onViewFull: (id: string) => void;
+}) {
+  const listing = booking
+    ? (listings.find((l) => l.id === booking.listingId) ?? null)
+    : null;
+  const nights = booking ? nightsBetween(booking.ci, booking.co) : 0;
+  const meta = booking ? STATUS_META[booking.status] : null;
+
+  return (
+    <FormModal
+      open={Boolean(booking)}
+      onOpenChange={onOpenChange}
+      size="sm"
+      title="Booking"
+      description={listing?.name ?? undefined}
+    >
+      {booking && meta ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              {booking.avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={booking.avatar}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-brand-line"
+                />
+              ) : (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-secondary text-[12px] font-bold text-white">
+                  {booking.guest.slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <span className="truncate font-display text-[15px] font-bold text-brand-ink">
+                {booking.guest}
+              </span>
+            </div>
+            <span
+              className="shrink-0 rounded-pill px-2.5 py-1 text-[11.5px] font-semibold"
+              style={{ background: meta.soft, color: meta.ink }}
+            >
+              {meta.label}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <QuickFact
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              label="Check-in"
+              value={`${fmtShort(booking.ci)}${booking.ciTime ? ` · ${booking.ciTime}` : ""}`}
+            />
+            <QuickFact
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              label="Check-out"
+              value={`${fmtShort(booking.co)}${booking.coTime ? ` · ${booking.coTime}` : ""}`}
+            />
+            <QuickFact
+              icon={<Moon className="h-3.5 w-3.5" />}
+              label="Nights"
+              value={String(nights)}
+            />
+            <QuickFact
+              icon={<BedDouble className="h-3.5 w-3.5" />}
+              label="Guests"
+              value={String(booking.guests)}
+            />
+            <QuickFact
+              icon={<HomeIcon className="h-3.5 w-3.5" />}
+              label="Listing"
+              value={listing?.name ?? "—"}
+            />
+            <QuickFact
+              icon={<Wallet className="h-3.5 w-3.5" />}
+              label="Total"
+              value={vmoney(booking.total)}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <FormModalFooter>
+        <FormModalCancel>Close</FormModalCancel>
+        <button
+          type="button"
+          onClick={() => booking && onViewFull(booking.id)}
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+        >
+          View full booking
+        </button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
@@ -1353,7 +1498,10 @@ function BlockRangeModal({
             <input
               type="date"
               value={from}
-              min={today}
+              // Blocking a past night is pointless, but OPENING (unblocking) past
+              // nights must be allowed — that's the only way to clear a block you
+              // set earlier that has since gone by.
+              min={mode === "open" ? undefined : today}
               onChange={(e) => {
                 setFrom(e.target.value);
                 if (to < e.target.value) setTo(e.target.value);
