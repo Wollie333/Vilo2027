@@ -1,9 +1,10 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Plus } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { useSidebarToggle } from "./SidebarToggle";
 
@@ -24,6 +25,11 @@ export type GmailNavItem = {
 export type GmailNavSection = {
   label?: string;
   items: GmailNavItem[];
+  /** Render the label as a click-to-expand header (needs a label). */
+  collapsible?: boolean;
+  /** Initial open state for a collapsible section. Defaults to open if the
+   *  section contains the active route, else collapsed. */
+  defaultOpen?: boolean;
 };
 
 export type GmailNavCompose = {
@@ -136,6 +142,71 @@ function NavRow({
 }
 
 /**
+ * One nav section. Reproduces the original label/divider behaviour; when
+ * `section.collapsible` (and not in rail mode) the label becomes a click-to-
+ * expand header so long groups can be tucked away.
+ */
+function NavSection({
+  section,
+  index,
+  railCollapsed,
+}: {
+  section: GmailNavSection;
+  index: number;
+  railCollapsed: boolean;
+}) {
+  const pathname = usePathname();
+  const hasActive = section.items.some((it) =>
+    itemActive(pathname, it.href, it.match),
+  );
+  const canCollapse =
+    !!section.collapsible && !!section.label && !railCollapsed;
+  const [open, setOpen] = useState(section.defaultOpen ?? hasActive);
+  const showItems = !canCollapse || open;
+
+  let header: React.ReactNode = null;
+  if (section.label && !railCollapsed) {
+    header = canCollapse ? (
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-6 pb-1 pt-3 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-mute transition-colors hover:text-brand-ink"
+      >
+        <span>{section.label}</span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+      </button>
+    ) : (
+      <div className="px-6 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-mute">
+        {section.label}
+      </div>
+    );
+  } else if (section.label && railCollapsed && index > 0) {
+    header = <div className="mx-auto my-2 h-px w-8 bg-[#E1ECE5]" />;
+  } else if (index > 0 && !section.label && railCollapsed) {
+    header = <div className="mx-auto my-2 h-px w-8 bg-[#E1ECE5]" />;
+  } else if (index > 0 && !section.label) {
+    header = <div className="my-2 mr-3 h-px bg-[#E1ECE5]" />;
+  }
+
+  return (
+    <div>
+      {header}
+      {showItems
+        ? section.items.map((item, ii) => (
+            <NavRow
+              key={item.href ?? `${index}-${ii}`}
+              item={item}
+              collapsed={railCollapsed}
+            />
+          ))
+        : null}
+    </div>
+  );
+}
+
+/**
  * Unified Gmail-style sidebar shared by all three portals (host dashboard,
  * guest portal, super admin). Identical chrome everywhere — only the compose
  * button, the `top`/`bottom` slots and the nav `sections` differ per area.
@@ -218,26 +289,12 @@ export function GmailNav({
 
       <nav className="thin-scroll flex-1 overflow-y-auto pb-3">
         {sections.map((section, si) => (
-          <div key={si}>
-            {section.label && !collapsed ? (
-              <div className="px-6 pb-1 pt-2.5 text-[11px] font-bold uppercase tracking-[0.05em] text-brand-mute">
-                {section.label}
-              </div>
-            ) : section.label && collapsed && si > 0 ? (
-              <div className="mx-auto my-2 h-px w-8 bg-[#E1ECE5]" />
-            ) : si > 0 && !section.label && collapsed ? (
-              <div className="mx-auto my-2 h-px w-8 bg-[#E1ECE5]" />
-            ) : si > 0 && !section.label ? (
-              <div className="my-2 mr-3 h-px bg-[#E1ECE5]" />
-            ) : null}
-            {section.items.map((item, ii) => (
-              <NavRow
-                key={item.href ?? `${si}-${ii}`}
-                item={item}
-                collapsed={collapsed}
-              />
-            ))}
-          </div>
+          <NavSection
+            key={si}
+            section={section}
+            index={si}
+            railCollapsed={collapsed}
+          />
         ))}
       </nav>
 

@@ -192,8 +192,20 @@ export function AdminSidebar({
     { items: OPERATIONS },
     { label: "Finance", items: FINANCE },
     { label: "Moderation", items: MODERATION },
-    { label: "Support", items: SUPPORT },
-    { label: "Platform", items: PLATFORM },
+    // The two long groups collapse by default so the rail isn't overwhelming —
+    // they auto-open when you're inside them.
+    {
+      label: "Help centre",
+      items: SUPPORT,
+      collapsible: true,
+      defaultOpen: false,
+    },
+    {
+      label: "Platform",
+      items: PLATFORM,
+      collapsible: true,
+      defaultOpen: false,
+    },
   ];
 
   const footer: GmailNavItem[] = [
