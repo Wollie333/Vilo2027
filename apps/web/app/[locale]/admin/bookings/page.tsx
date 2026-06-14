@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
@@ -93,6 +95,66 @@ export default async function AdminBookingsPage({
 
   const list = (rows as Row[] | null) ?? [];
 
+  const columns: AdminColumn<Row>[] = [
+    {
+      header: "Reference",
+      cell: (b) => (
+        <span className="font-mono text-[12px] font-semibold text-brand-ink">
+          {b.reference}
+        </span>
+      ),
+    },
+    { header: "Status", cell: (b) => <StatusPill status={b.status} /> },
+    {
+      header: "Property · Guest",
+      cell: (b) => {
+        const listing = Array.isArray(b.listing) ? b.listing[0] : b.listing;
+        const host = Array.isArray(b.host) ? b.host[0] : b.host;
+        const guest = Array.isArray(b.guest) ? b.guest[0] : b.guest;
+        return (
+          <div className="min-w-0">
+            <div className="truncate font-medium text-brand-ink">
+              {listing?.name ?? "—"}
+            </div>
+            <div className="truncate text-[11px] text-brand-mute">
+              {host ? host.display_name : ""}
+              {guest?.full_name ? ` · ${guest.full_name}` : ""}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Dates",
+      cell: (b) => (
+        <span className="text-[12px] text-brand-mute">
+          {b.check_in ? `${b.check_in} → ${b.check_out}` : "—"}
+        </span>
+      ),
+    },
+    {
+      header: "Total",
+      align: "right",
+      cell: (b) => (
+        <span className="num font-medium text-brand-ink">
+          {formatMoney(Number(b.total_amount), b.currency)}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (b) => (
+        <Link
+          href={`/dashboard/bookings/${b.id}`}
+          className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+        >
+          Open
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -154,65 +216,12 @@ export default async function AdminBookingsPage({
         ) : null}
       </form>
 
-      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {list.length > 0 ? (
-          <ul className="divide-y divide-brand-line">
-            {list.map((b) => {
-              const listing = Array.isArray(b.listing)
-                ? b.listing[0]
-                : b.listing;
-              const host = Array.isArray(b.host) ? b.host[0] : b.host;
-              const guest = Array.isArray(b.guest) ? b.guest[0] : b.guest;
-              return (
-                <li
-                  key={b.id}
-                  className="flex flex-wrap items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-light/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-[11px] font-semibold text-brand-ink">
-                        {b.reference}
-                      </span>
-                      <StatusPill status={b.status} />
-                      {b.payment_method ? (
-                        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                          {b.payment_method}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="truncate text-[12px] text-brand-mute">
-                      <span className="font-medium text-brand-ink">
-                        {listing?.name ?? "—"}
-                      </span>
-                      {host ? ` · ${host.display_name}` : ""}
-                      {guest?.full_name ? ` · ${guest.full_name}` : ""}
-                      {b.check_in ? ` · ${b.check_in} → ${b.check_out}` : ""}
-                    </div>
-                  </div>
-                  <div className="hidden text-right text-[12px] text-brand-mute sm:block">
-                    <div className="num font-medium text-brand-ink">
-                      {formatMoney(Number(b.total_amount), b.currency)}
-                    </div>
-                    <div>
-                      {new Date(b.created_at).toLocaleDateString("en-ZA")}
-                    </div>
-                  </div>
-                  <Link
-                    href={`/dashboard/bookings/${b.id}`}
-                    className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-                  >
-                    Open
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No bookings match this search.
-          </p>
-        )}
-      </div>
+      <AdminTable
+        columns={columns}
+        rows={list}
+        getKey={(b) => b.id}
+        empty="No bookings match this search."
+      />
 
       {count != null && count > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">

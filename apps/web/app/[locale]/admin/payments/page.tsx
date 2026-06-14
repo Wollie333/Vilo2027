@@ -7,6 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
@@ -107,6 +109,71 @@ export default async function AdminPaymentsPage({
 
   const list = (rows as Row[] | null) ?? [];
 
+  const columns: AdminColumn<Row>[] = [
+    {
+      header: "Amount",
+      cell: (p) => (
+        <span className="num font-medium text-brand-ink">
+          {formatMoney(Number(p.amount), p.currency)}
+        </span>
+      ),
+    },
+    { header: "Status", cell: (p) => <StatusPill status={p.status} /> },
+    {
+      header: "Method",
+      cell: (p) => (
+        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+          {p.method}
+        </span>
+      ),
+    },
+    {
+      header: "Details",
+      cell: (p) => {
+        const booking = Array.isArray(p.booking) ? p.booking[0] : p.booking;
+        const host = booking
+          ? Array.isArray(booking.host)
+            ? booking.host[0]
+            : booking.host
+          : null;
+        return (
+          <div className="min-w-0">
+            <div className="truncate font-mono text-[11px] text-brand-mute">
+              {p.provider_reference ?? "—"}
+            </div>
+            <div className="truncate text-[11px] text-brand-mute">
+              {booking ? booking.reference : ""}
+              {host ? ` · ${host.display_name}` : ""}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: "Date",
+      cell: (p) => (
+        <span className="text-[12px] text-brand-mute">
+          {new Date(p.captured_at ?? p.created_at).toLocaleDateString("en-ZA")}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (p) => {
+        const booking = Array.isArray(p.booking) ? p.booking[0] : p.booking;
+        return booking ? (
+          <Link
+            href={`/dashboard/bookings/${booking.id}`}
+            className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+          >
+            Booking
+          </Link>
+        ) : null;
+      },
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <header>
@@ -163,62 +230,12 @@ export default async function AdminPaymentsPage({
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {list.length > 0 ? (
-          <ul className="divide-y divide-brand-line">
-            {list.map((p) => {
-              const booking = Array.isArray(p.booking)
-                ? p.booking[0]
-                : p.booking;
-              const host = booking
-                ? Array.isArray(booking.host)
-                  ? booking.host[0]
-                  : booking.host
-                : null;
-              return (
-                <li
-                  key={p.id}
-                  className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm hover:bg-brand-light/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="num font-medium text-brand-ink">
-                        {formatMoney(Number(p.amount), p.currency)}
-                      </span>
-                      <StatusPill status={p.status} />
-                      <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                        {p.method}
-                      </span>
-                    </div>
-                    <div className="truncate font-mono text-[11px] text-brand-mute">
-                      {p.provider_reference ?? "—"}
-                      {booking ? ` · ${booking.reference}` : ""}
-                      {host ? ` · ${host.display_name}` : ""}
-                    </div>
-                  </div>
-                  <div className="hidden text-right text-[11px] text-brand-mute sm:block">
-                    {p.captured_at
-                      ? new Date(p.captured_at).toLocaleDateString("en-ZA")
-                      : new Date(p.created_at).toLocaleDateString("en-ZA")}
-                  </div>
-                  {booking ? (
-                    <Link
-                      href={`/dashboard/bookings/${booking.id}`}
-                      className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-                    >
-                      Booking
-                    </Link>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No payments match this search.
-          </p>
-        )}
-      </div>
+      <AdminTable
+        columns={columns}
+        rows={list}
+        getKey={(p) => p.id}
+        empty="No payments match this search."
+      />
 
       {count != null && count > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">

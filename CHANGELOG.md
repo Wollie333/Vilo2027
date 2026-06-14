@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Control-centre overview + host-style tables — branch `main`
+
+### Built
+- Refined `/admin` into a **Control Centre**: headline KPIs (MRR, paying hosts,
+  total users, platform collected, listings, bookings), a **Needs attention** row
+  (past-due subs, pending refunds, open data requests — only shows non-zero), a
+  users-at-a-glance row, and recent admin activity in the host table style.
+- Converted the remaining admin list tables — **payments, bookings, listings** —
+  to the shared `AdminTable` (host table style), matching users + the app-wide
+  ledger. Every admin list now looks consistent.
+
+### Notes
+- Per the design rule, admin reuses host designs (AdminTable). `next build` clean.
+
+### Commit
+- `feat(admin): control-centre overview + host-style tables`
+
 ## 2026-06-14 — Super-Admin — Two ledgers: app-wide + Vilo revenue (filters) — branch `main`
 
 ### Built

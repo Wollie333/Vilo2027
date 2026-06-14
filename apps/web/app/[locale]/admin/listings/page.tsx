@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
@@ -76,6 +78,81 @@ export default async function AdminListingsPage({
 
   const list = (rows as Row[] | null) ?? [];
 
+  const columns: AdminColumn<Row>[] = [
+    {
+      header: "Listing",
+      cell: (l) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium text-brand-ink">{l.name}</div>
+          <div className="truncate text-[11px] uppercase tracking-wider text-brand-mute">
+            {l.listing_type}
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Host",
+      cell: (l) => {
+        const host = Array.isArray(l.host) ? l.host[0] : l.host;
+        return host ? (
+          <Link
+            href={`/admin/hosts/${host.id}`}
+            className="text-[12px] text-brand-primary hover:underline"
+          >
+            {host.display_name}
+          </Link>
+        ) : (
+          <span className="text-brand-mute">—</span>
+        );
+      },
+    },
+    {
+      header: "Location",
+      cell: (l) => (
+        <span className="text-[12px] text-brand-mute">
+          {[l.city, l.province].filter(Boolean).join(", ") || "—"}
+        </span>
+      ),
+    },
+    {
+      header: "From",
+      align: "right",
+      cell: (l) => (
+        <span className="num font-medium text-brand-ink">
+          R{" "}
+          {Math.round(Number(l.base_price))
+            .toLocaleString("en-ZA")
+            .replace(/,/g, " ")}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (l) =>
+        l.is_featured ? (
+          <Pill tone="primary">Featured</Pill>
+        ) : l.is_published ? (
+          <Pill tone="good">Published</Pill>
+        ) : (
+          <Pill tone="pending">Draft</Pill>
+        ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (l) =>
+        l.slug ? (
+          <Link
+            href={`/listing/${l.slug}`}
+            target="_blank"
+            className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+          >
+            View
+          </Link>
+        ) : null,
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -135,85 +212,12 @@ export default async function AdminListingsPage({
         ) : null}
       </form>
 
-      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {list.length > 0 ? (
-          <ul className="divide-y divide-brand-line">
-            {list.map((l) => {
-              const host = Array.isArray(l.host) ? l.host[0] : l.host;
-              return (
-                <li
-                  key={l.id}
-                  className="flex flex-wrap items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-light/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-medium text-brand-ink">
-                        {l.name}
-                      </span>
-                      <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-                        {l.listing_type}
-                      </span>
-                      {l.is_published ? (
-                        <span className="inline-flex items-center rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10px] font-medium text-status-confirmed">
-                          Published
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-pill bg-status-pending/10 px-2 py-0.5 text-[10px] font-medium text-status-pending">
-                          Draft
-                        </span>
-                      )}
-                      {l.is_featured ? (
-                        <span className="inline-flex items-center rounded-pill bg-brand-primary/10 px-2 py-0.5 text-[10px] font-medium text-brand-primary">
-                          Featured
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="truncate text-[11px] text-brand-mute">
-                      {host ? (
-                        <Link
-                          href={`/admin/hosts/${host.id}`}
-                          className="text-brand-primary underline-offset-2 hover:underline"
-                        >
-                          {host.display_name}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                      {l.city ? ` · ${l.city}` : ""}
-                      {l.province ? `, ${l.province}` : ""}
-                    </div>
-                  </div>
-                  <div className="hidden text-right text-[12px] text-brand-mute sm:block">
-                    From{" "}
-                    <span className="num font-medium text-brand-ink">
-                      R{" "}
-                      {Math.round(Number(l.base_price))
-                        .toLocaleString("en-ZA")
-                        .replace(/,/g, " ")}
-                    </span>{" "}
-                    / night
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {l.slug ? (
-                      <Link
-                        href={`/listing/${l.slug}`}
-                        target="_blank"
-                        className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-                      >
-                        View
-                      </Link>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No listings match this search.
-          </p>
-        )}
-      </div>
+      <AdminTable
+        columns={columns}
+        rows={list}
+        getKey={(l) => l.id}
+        empty="No listings match this search."
+      />
 
       {count != null && count > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">
@@ -221,5 +225,27 @@ export default async function AdminListingsPage({
         </p>
       ) : null}
     </div>
+  );
+}
+
+function Pill({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: "good" | "pending" | "primary";
+}) {
+  const cls =
+    tone === "good"
+      ? "bg-status-confirmed/10 text-status-confirmed"
+      : tone === "primary"
+        ? "bg-brand-primary/10 text-brand-primary"
+        : "bg-status-pending/10 text-status-pending";
+  return (
+    <span
+      className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10px] font-medium ${cls}`}
+    >
+      {children}
+    </span>
   );
 }
