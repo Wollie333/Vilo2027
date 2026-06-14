@@ -162,10 +162,34 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   per-business numbering intact; amounts from canonical stored totals; add-on
   invoices re-price from catalog; INSERT-only invariants respected. Only a benign
   `as unknown as` embed cast (POLISH). **Founder live-check pending.**
-- [⬜] 17. Inbox + templates — `/dashboard/inbox`
-- [⬜] 18. Notifications — `/dashboard/notifications`
-- [⬜] 19. Reviews — `/dashboard/reviews`
-- [⬜] 20. Staff — `/dashboard/staff`
+- [✅] 17. Inbox + templates — `/dashboard/inbox`. Audited CLEAN: Realtime subs
+  cleaned up on unmount; id-space correct (conversations.host_id=hosts.id,
+  messages.sender_id=user_profiles.id); all mutations auth-gated + ownership-checked
+  (assertConversationOwnership/assertTemplateOwnership); embeds FK-pinned; no
+  attachment upload through a Server Action; templates are literal placeholders
+  (no injection). **Founder live-check pending.**
+- [⚠️] 18. Notifications — `/dashboard/notifications`. Audited: page reads correctly
+  `user_id`-scoped (post the portal fix), RLS owner-only, force-dynamic, subs
+  cleaned up. **FIXED:** deleted dead `lib/notifications/enqueue.ts` (zero callers,
+  incomplete — the real path is `dispatchEvent`). **Noted (not fixed):** the two
+  Realtime subscriptions (NotificationsList, useNotifications) don't pass a
+  `filter: user_id=eq.…` — RLS already scopes Realtime so it's not a leak, just an
+  efficiency/clarity POLISH; and mark-read could add `.eq("user_id",…)` for
+  defense-in-depth (RLS already blocks). **Founder live-check pending.**
+- [✅] 19. Reviews — `/dashboard/reviews`. Audited CLEAN: hosts can only respond/
+  flag (`protect_review_content` makes rating/body immutable); **the on_review_published
+  trigger DOES bump hosts/listings avg_rating + total_reviews (resolves the old
+  caveat — fires on publish INSERT and the is_published UPDATE)**; one review per
+  booking (UNIQUE); photo signed-uploads scoped to the booking folder, no
+  Server-Action body upload; RLS public=published-only. **Founder live-check pending.**
+- [⚠️] 20. Staff — `/dashboard/staff`. Audited: all mutations `requireHost()`
+  (OWNER only — staff can't escalate); tokens `gen_random_bytes(32)`, expiring,
+  single-use; accept verifies email match; seat limit via `check_feature_permission`;
+  RLS owner-manages/staff-read-own. **FIXED:** the invite email linked to
+  `/invite/{token}` (404) — corrected to the real `/staff/accept/{token}` route.
+  **Noted (deferred email system, not a code bug):** `inviteStaffAction` doesn't
+  dispatch the email yet (host shares the copyable invite link from the page);
+  wire when the notification/email worker goes live. **Founder live-check pending.**
 - [⬜] 21. Help center — `/dashboard/help/*`
 - [⬜] 22. Settings hub + Data/Privacy + Notification prefs — `/dashboard/settings`
 - [⬜] 23. Dashboard home KPIs — `/dashboard` (last — aggregates everything)
@@ -186,6 +210,18 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-14 (cont.)** — Audited #17–#20 (parallel). #17 Inbox + #19 Reviews
+  CLEAN (Reviews confirmed the avg_rating publish trigger works — old caveat
+  resolved). **Fixes:** deleted dead `lib/notifications/enqueue.ts` (#18); fixed
+  the Staff invite email URL `/invite/{token}` → `/staff/accept/{token}` (#20).
+  Noted (not bugs / deferred): notifications Realtime user_id filter (RLS already
+  secures it), staff invite-email dispatch (deferred email worker). tsc + build
+  green. **NEXT: founder live-checks #17–#20; then #21 Help / #22 Settings hub +
+  Data/Privacy + Notification prefs / #23 Dashboard home KPIs (last).**
+- **2026-06-14 (escalation removal)** — Removed the refund escalation feature
+  end-to-end (cron, status, email/notification/template, UI, copy) — commit
+  `0f40e4d`, migration `20260614000001`. Also set `ICAL_TOKEN_SECRET` on Vercel
+  (all 3 envs) via the REST API; installed Doppler CLI.
 - **2026-06-14 (follow-ups, walked through with founder)** — Fixed the three
   documented items. (1) Refund email resolver now reads `refund_requests` (was a
   non-existent `refunds` table) with requested/approved amount mapping. (2)

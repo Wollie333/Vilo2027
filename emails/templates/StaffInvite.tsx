@@ -35,7 +35,7 @@ export default function StaffInvite({
         bookings, handle guest messages, and keep the calendar up to date.
       </Text>
 
-      <Button href={`${APP_URL}/invite/${inviteToken}`}>
+      <Button href={`${APP_URL}/staff/accept/${inviteToken}`}>
         Accept invitation
       </Button>
 
