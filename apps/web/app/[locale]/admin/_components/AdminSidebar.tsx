@@ -23,6 +23,7 @@ import {
   Star,
   Users,
   Video,
+  Wallet,
 } from "lucide-react";
 
 import {
@@ -52,6 +53,12 @@ const OPERATIONS: GmailNavItem[] = [
 ];
 
 const FINANCE: GmailNavItem[] = [
+  {
+    href: "/admin/ledger",
+    label: "App-wide ledger",
+    icon: Wallet,
+    match: "prefix",
+  },
   {
     href: "/admin/payments",
     label: "Payments",

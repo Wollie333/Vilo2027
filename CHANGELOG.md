@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Two ledgers: app-wide + Vilo revenue (filters) — branch `main`
+
+### Built
+- **App-wide ledger** (`/admin/ledger`, new Finance nav item) — a view-only,
+  continuously-running ledger of every booking transaction across the platform
+  (host ↔ guest money) for owner oversight. KPI band (collected / refunded / net
+  processed) + filters by user email, status, and (deep-linkable) listing. Host
+  table style (AdminTable).
+- **Vilo revenue ledger** now has matching **filters** — by user email, plan,
+  type (charge/refund/credit/adjustment) and status.
+
+### Notes
+- Two distinct ledgers, as intended: **Vilo ledger** = Vilo's own revenue
+  (subscriptions/services); **App-wide ledger** = all user/booking money Vilo
+  never holds. Embeds verified live; full `next build` compiles clean.
+
+### Commit
+- `feat(admin): app-wide ledger + vilo ledger filters`
+
 ## 2026-06-14 — Super-Admin — Unified Users hub + Guest-Record-style user record — branch `main`
 
 ### Built

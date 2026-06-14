@@ -4,10 +4,15 @@ import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 
+import { Link } from "@/i18n/navigation";
+
 import { SubsTabs } from "../_SubsTabs";
 import { ManualEntryForm } from "./ManualEntryForm";
 
 export const dynamic = "force-dynamic";
+
+const STATUSES = ["all", "completed", "pending", "failed"] as const;
+const TYPES = ["all", "charge", "refund", "credit", "adjustment"] as const;
 
 const TYPE_TONE: Record<string, string> = {
   charge:
@@ -26,12 +31,51 @@ function fmtDate(iso: string): string {
   });
 }
 
-export default async function AdminRevenuePage() {
+export default async function AdminRevenuePage({
+  searchParams,
+}: {
+  searchParams?: {
+    user?: string;
+    plan?: string;
+    status?: string;
+    type?: string;
+  };
+}) {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
+  const planFilter = (searchParams?.plan ?? "").trim();
+  const userEmail = (searchParams?.user ?? "").trim();
+  const statusFilter = STATUSES.includes(
+    (searchParams?.status ?? "") as (typeof STATUSES)[number],
+  )
+    ? (searchParams!.status as (typeof STATUSES)[number])
+    : "all";
+  const typeFilter = TYPES.includes(
+    (searchParams?.type ?? "") as (typeof TYPES)[number],
+  )
+    ? (searchParams!.type as (typeof TYPES)[number])
+    : "all";
+
+  // Resolve a user email → id for the user filter.
+  let userId: string | undefined;
+  if (userEmail) {
+    const { data: u } = await service
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", userEmail)
+      .maybeSingle();
+    userId = u?.id ?? "00000000-0000-0000-0000-000000000000";
+  }
+
   const [rows, plans, { data: subs }] = await Promise.all([
-    fetchViloLedger(service, { limit: 1000 }),
+    fetchViloLedger(service, {
+      limit: 1000,
+      userId,
+      plan: planFilter || undefined,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      type: typeFilter === "all" ? undefined : typeFilter,
+    }),
     getAllPlans(),
     service.from("subscriptions").select("plan, billing_cycle, status"),
   ]);
@@ -88,6 +132,72 @@ export default async function AdminRevenuePage() {
         </p>
         <ManualEntryForm />
       </section>
+
+      {/* Filters */}
+      <form
+        action="/admin/subscriptions/revenue"
+        method="get"
+        className="flex flex-wrap items-center gap-2"
+      >
+        <input
+          type="text"
+          name="user"
+          defaultValue={userEmail}
+          placeholder="Filter by user email"
+          className="min-w-[14rem] flex-1 rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none"
+        />
+        <select
+          name="plan"
+          defaultValue={planFilter}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          <option value="">All plans</option>
+          {plans.map((p) => (
+            <option key={p.key} value={p.key}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          name="type"
+          defaultValue={typeFilter}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          {TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t === "all" ? "All types" : t}
+            </option>
+          ))}
+        </select>
+        <select
+          name="status"
+          defaultValue={statusFilter}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          {STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s === "all" ? "All statuses" : s}
+            </option>
+          ))}
+        </select>
+        <button
+          type="submit"
+          className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
+        >
+          Filter
+        </button>
+        {userEmail ||
+        planFilter ||
+        typeFilter !== "all" ||
+        statusFilter !== "all" ? (
+          <Link
+            href="/admin/subscriptions/revenue"
+            className="text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
+          >
+            Clear
+          </Link>
+        ) : null}
+      </form>
 
       {/* Ledger list */}
       <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
