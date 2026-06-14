@@ -9,14 +9,13 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * rotating `ICAL_TOKEN_SECRET`. Per-listing rotation lands with the
  * `ical_feeds` migration in Phase 3.
  *
- * Falls back to `SUPABASE_SERVICE_ROLE_KEY` if `ICAL_TOKEN_SECRET` is
- * missing — both are server-side-only so the URL is still unguessable
- * without leaked env vars.
+ * Requires a dedicated `ICAL_TOKEN_SECRET` (see ENV_VARS.md). We deliberately
+ * do NOT fall back to `SUPABASE_SERVICE_ROLE_KEY` — the platform's most
+ * powerful secret must never be used to derive public feed tokens.
+ * `signListingToken` throws a clear error when it's unset.
  */
 function secret(): string {
-  return (
-    process.env.ICAL_TOKEN_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-  );
+  return process.env.ICAL_TOKEN_SECRET || "";
 }
 
 export function signListingToken(listingId: string): string {

@@ -30,6 +30,7 @@ This file documents every environment variable used across the platform, what it
 | `NEXT_PUBLIC_POSTHOG_KEY` | ✅ | ✅ | — | Staging/Prod |
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `PAYMENT_CIPHER_KEY` | Server only | — | ✅ | ✅ |
+| `ICAL_TOKEN_SECRET` | Server only | — | — | ✅ |
 
 ---
 
@@ -181,6 +182,18 @@ This file documents every environment variable used across the platform, what it
 - **Used in:** Next.js server runtime (Server Actions). The decrypted secret is used only to call the host's gateway and is NEVER returned to a client.
 - **Environments:** All
 - ⚠️ **Server-side only. If unset, secrets are stored as plain text (round-trips transparently) — fine for local dev, set it everywhere else. Rotating requires re-encrypting via the `v1.` prefix scheme in `apps/web/lib/crypto/payments.ts`.**
+
+---
+
+## 5b. iCal calendar sync
+
+### `ICAL_TOKEN_SECRET`
+- **What:** HMAC-SHA256 secret used to derive each listing's unguessable iCal export feed token (the `/ical/[listing_id]/[token].ics` URL). One secret → all per-listing tokens; rotating it invalidates every already-distributed feed URL.
+- **Format:** 32+ random bytes, hex — `openssl rand -hex 32`
+- **Where to get:** Generate once per environment; store in Doppler (`dev`/`stg`/`prd`).
+- **Used in:** Next.js server runtime only — `apps/web/lib/ical.ts` (`signListingToken` / `verifyListingToken`) and the export route handler.
+- **Environments:** All
+- ⚠️ **Server-side only and REQUIRED for iCal export. There is deliberately NO fallback to `SUPABASE_SERVICE_ROLE_KEY` — the platform's most powerful secret must never derive public feed tokens. If unset, `signListingToken` throws and iCal export is unavailable.**
 
 ---
 
