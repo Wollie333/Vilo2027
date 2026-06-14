@@ -38,3 +38,16 @@ export function isFullBleedRoute(pathname: string | null): boolean {
   if (pathname.startsWith("/portal/inbox/")) return true;
   return FULL_BLEED_ROUTES.has(pathname);
 }
+
+/**
+ * WIDE routes keep the standard scrolling shell but drop the `max-w-[1280px]`
+ * cap and use a roomy 50px inset on all sides, so a dense record page never
+ * forces a horizontal scroll. Currently: the guest record (its 8 tabs need the
+ * room). Matched by substring so the locale prefix (e.g. /af/…) is ignored; the
+ * trailing slash limits it to the record detail page, not the /dashboard/guests
+ * list. Add a route here ONLY when it genuinely needs the full content width.
+ */
+export function isWideRoute(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return pathname.includes("/dashboard/guests/");
+}

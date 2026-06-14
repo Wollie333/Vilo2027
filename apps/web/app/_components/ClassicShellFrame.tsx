@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
-import { isFullBleedRoute } from "@/lib/layout/fullBleed";
+import { isFullBleedRoute, isWideRoute } from "@/lib/layout/fullBleed";
 
 import { SidebarToggleProvider } from "./SidebarToggle";
 
@@ -34,7 +34,9 @@ export function ClassicShellFrame({
   bottomNav?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const fullBleed = isFullBleedRoute(usePathname());
+  const pathname = usePathname();
+  const fullBleed = isFullBleedRoute(pathname);
+  const wide = isWideRoute(pathname);
 
   return (
     <SidebarToggleProvider>
@@ -47,6 +49,11 @@ export function ClassicShellFrame({
             {fullBleed ? (
               <div className="flex min-h-0 flex-1 flex-col pb-16 lg:pb-0">
                 {children}
+              </div>
+            ) : wide ? (
+              // Wide: full content width, 50px inset on all sides, no max-w cap.
+              <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#fbfbfb] pb-20 lg:pb-0">
+                <div className="p-[50px]">{children}</div>
               </div>
             ) : (
               <div className="thin-scroll min-h-0 flex-1 overflow-y-auto bg-[#fbfbfb] pb-20 lg:pb-0">

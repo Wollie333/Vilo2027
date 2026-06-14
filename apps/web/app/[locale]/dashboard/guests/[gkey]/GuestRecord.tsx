@@ -414,7 +414,7 @@ export function GuestRecord({
     bookings.find((b) => b.specialRequests)?.specialRequests ?? null;
 
   return (
-    <div className="mx-auto max-w-[1320px] px-4 py-5 lg:px-6">
+    <div className="w-full">
       {/* ── Sub-header ── */}
       <div className="mb-5 flex items-center gap-3">
         <Link
@@ -1269,53 +1269,57 @@ function FinancesPanel({
     { key: "credit", label: "Credit note", icon: FileMinus },
     { key: "addon", label: "Add add-on", icon: Sparkles },
   ];
+  const selectedName = businesses.find((b) => b.id === selectedBusiness)?.name;
   return (
     <div className="space-y-6">
-      {businesses.length > 1 ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[12px] font-semibold text-brand-mute">
-            Business
-          </span>
-          <select
-            value={selectedBusiness ?? "all"}
-            onChange={(e) => onBusiness(e.target.value)}
-            className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink focus:border-brand-primary focus:outline-none"
-            title="Filter transactions by business"
-          >
-            <option value="all">All businesses</option>
-            {businesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-          {selectedBusiness ? (
-            <span className="text-[11.5px] text-brand-mute">
-              Headline balance still reflects all businesses.
-            </span>
+      {hasBookings || businesses.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-2.5">
+          {hasBookings
+            ? actions.map((a) => (
+                <button
+                  key={a.key}
+                  type="button"
+                  onClick={() => onAction(a.key)}
+                  className={`inline-flex items-center gap-1.5 rounded-pill px-4 py-2 text-[13px] font-semibold transition ${
+                    a.key === "payment"
+                      ? "bg-brand-primary text-white hover:bg-brand-secondary"
+                      : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
+                  }`}
+                >
+                  <a.icon
+                    className={`h-4 w-4 ${a.key === "payment" ? "" : "text-brand-mute"}`}
+                  />
+                  {a.label}
+                </button>
+              ))
+            : null}
+          {businesses.length > 1 ? (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-[12px] font-semibold text-brand-mute">
+                Business
+              </span>
+              <select
+                value={selectedBusiness ?? "all"}
+                onChange={(e) => onBusiness(e.target.value)}
+                className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-[12.5px] font-semibold text-brand-ink focus:border-brand-primary focus:outline-none"
+                title="Filter this guest's transactions by business"
+              >
+                <option value="all">All businesses</option>
+                {businesses.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           ) : null}
         </div>
       ) : null}
-      {hasBookings ? (
-        <div className="flex flex-wrap gap-2.5">
-          {actions.map((a) => (
-            <button
-              key={a.key}
-              type="button"
-              onClick={() => onAction(a.key)}
-              className={`inline-flex items-center gap-1.5 rounded-pill px-4 py-2 text-[13px] font-semibold transition ${
-                a.key === "payment"
-                  ? "bg-brand-primary text-white hover:bg-brand-secondary"
-                  : "border border-brand-line bg-white text-brand-ink hover:bg-brand-light"
-              }`}
-            >
-              <a.icon
-                className={`h-4 w-4 ${a.key === "payment" ? "" : "text-brand-mute"}`}
-              />
-              {a.label}
-            </button>
-          ))}
-        </div>
+      {selectedBusiness ? (
+        <p className="-mt-3 text-[11.5px] text-brand-mute">
+          Showing {selectedName ?? "this business"}&rsquo;s transactions with
+          this guest. The headline balance still reflects all businesses.
+        </p>
       ) : null}
       <LedgerList
         entries={txns}
