@@ -42,11 +42,12 @@ export default async function CardPaymentsSettingsPage() {
   const { data: gatewayRows } = await supabase
     .from("host_payment_gateways")
     .select(
-      "gateway, environment, public_identifier, secret_last4, statement_descriptor, is_enabled, last_validated_at",
+      "business_id, gateway, environment, public_identifier, secret_last4, statement_descriptor, is_enabled, last_validated_at",
     )
     .eq("host_id", host.id);
 
   const gateways: GatewayView[] = (gatewayRows ?? []).map((row) => ({
+    business_id: row.business_id as string,
     gateway: row.gateway as PaymentGateway,
     environment: row.environment as "test" | "live",
     public_identifier: row.public_identifier,
@@ -54,6 +55,18 @@ export default async function CardPaymentsSettingsPage() {
     statement_descriptor: row.statement_descriptor,
     is_enabled: row.is_enabled,
     last_validated_at: row.last_validated_at,
+  }));
+
+  // The host's businesses — gateways are connected per business.
+  const { data: bizRows } = await supabase
+    .from("businesses")
+    .select("id, trading_name, legal_name")
+    .eq("host_id", host.id)
+    .eq("is_archived", false)
+    .order("is_default", { ascending: false });
+  const businesses = (bizRows ?? []).map((b) => ({
+    id: b.id as string,
+    name: (b.trading_name || b.legal_name || "Business") as string,
   }));
   const defaultCurrency = (host.default_currency ?? "ZAR") as Currency;
 
@@ -70,12 +83,14 @@ export default async function CardPaymentsSettingsPage() {
       </div>
       <p className="-mt-2 text-sm text-brand-mute">
         Connect your own Paystack or PayPal so card payments settle directly
-        into your account — Vilo never touches the money. These apply across all
-        your businesses. EFT banking is set per business on the Businesses tab.
+        into your account — Vilo never touches the money. Gateways are set{" "}
+        <strong>per business</strong> (like EFT banking) — a booking charges the
+        gateway of its listing&rsquo;s business.
       </p>
 
       <PaymentGatewaysSection
         gateways={gateways}
+        businesses={businesses}
         defaultCurrency={defaultCurrency}
       />
     </div>

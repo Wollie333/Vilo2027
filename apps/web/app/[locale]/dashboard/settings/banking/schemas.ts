@@ -151,6 +151,8 @@ const DESCRIPTOR_RE = /^[A-Za-z0-9 .,&'-]*$/;
 
 export const paymentGatewaySchema = z
   .object({
+    // The business this gateway belongs to (gateways are per-business).
+    business_id: z.string().uuid("Pick a business."),
     gateway: z.enum(PAYMENT_GATEWAYS),
     environment: z.enum(["test", "live"]),
     // Paystack public key (pk_…) / PayPal client id. Not secret.

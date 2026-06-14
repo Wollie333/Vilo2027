@@ -60,9 +60,11 @@ const GATEWAY_ICON: Record<PaymentGateway, typeof CreditCard> = {
 
 export function PaymentGatewaysSection({
   gateways,
+  businesses,
   defaultCurrency,
 }: {
   gateways: GatewayView[];
+  businesses: { id: string; name: string }[];
   defaultCurrency: Currency;
 }) {
   const brandName = useBrandName();
@@ -72,6 +74,8 @@ export function PaymentGatewaysSection({
   const [editing, setEditing] = useState<GatewayView | null>(null);
   const [linkOpen, setLinkOpen] = useState(false);
   const [pending, start] = useTransition();
+  // Gateways are per-business; the selector scopes the rows + every action.
+  const [businessId, setBusinessId] = useState(businesses[0]?.id ?? "");
   // Per-gateway live connection-test result.
   const [testState, setTestState] = useState<
     Record<string, "loading" | "ok" | "fail" | undefined>
@@ -80,7 +84,7 @@ export function PaymentGatewaysSection({
   function handleTest(g: PaymentGateway) {
     setTestState((s) => ({ ...s, [g]: "loading" }));
     start(async () => {
-      const r = await testPaymentGatewayAction(g);
+      const r = await testPaymentGatewayAction(businessId, g);
       if (r.ok) {
         setTestState((s) => ({ ...s, [g]: "ok" }));
         toast.success(
@@ -94,7 +98,9 @@ export function PaymentGatewaysSection({
   }
 
   const byKind = (g: PaymentGateway) =>
-    gateways.find((row) => row.gateway === g) ?? null;
+    gateways.find(
+      (row) => row.gateway === g && row.business_id === businessId,
+    ) ?? null;
 
   function openConnect(g: PaymentGateway) {
     setDialogGateway(g);
@@ -110,7 +116,7 @@ export function PaymentGatewaysSection({
 
   function handleToggle(g: PaymentGateway, enabled: boolean) {
     start(async () => {
-      const result = await togglePaymentGatewayAction(g, enabled);
+      const result = await togglePaymentGatewayAction(businessId, g, enabled);
       if (result.ok)
         toast.success(enabled ? "Gateway enabled" : "Gateway disabled");
       else toast.error(result.error);
@@ -119,7 +125,7 @@ export function PaymentGatewaysSection({
 
   function handleRemove(g: PaymentGateway) {
     start(async () => {
-      const result = await deletePaymentGatewayAction(g);
+      const result = await deletePaymentGatewayAction(businessId, g);
       if (result.ok) toast.success("Gateway removed");
       else toast.error(result.error);
     });
@@ -167,6 +173,29 @@ export function PaymentGatewaysSection({
             </Select>
           </div>
         </div>
+
+        {businesses.length > 1 ? (
+          <div className="flex items-center gap-2 border-b border-brand-line bg-brand-light/30 px-5 py-3">
+            <span className="text-xs font-semibold text-brand-mute">
+              Business
+            </span>
+            <Select value={businessId} onValueChange={setBusinessId}>
+              <SelectTrigger className="h-9 w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {businesses.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-[11px] text-brand-mute">
+              Each business has its own gateways.
+            </span>
+          </div>
+        ) : null}
 
         <ul className="divide-y divide-brand-line">
           {PAYMENT_GATEWAYS.map((g) => {
@@ -340,9 +369,14 @@ export function PaymentGatewaysSection({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         gateway={dialogGateway}
+        businessId={businessId}
         editing={editing}
       />
-      <PaymentLinkDialog open={linkOpen} onOpenChange={setLinkOpen} />
+      <PaymentLinkDialog
+        open={linkOpen}
+        onOpenChange={setLinkOpen}
+        businessId={businessId}
+      />
     </>
   );
 }

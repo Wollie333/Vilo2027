@@ -31,6 +31,42 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Payments — Per-business payment gateways (Phases 4–5) — branch `main`
+
+### Built
+- **Payment gateways are now connected per business**, not per host account —
+  mirroring how EFT banking already works. A booking charges the Paystack/PayPal
+  of the business that owns its listing, so funds land in the right account.
+- Banking settings → Payment gateways: a **Business selector** (shown only when
+  the host has >1 business) scopes the connect/test/disable/remove actions and the
+  "Request payment" link to the chosen business.
+
+### Changed
+- `savePaymentGatewayAction` validates the target `business_id` is owned and
+  scopes the existing-row lookup by business; `toggle`/`test`/`delete` actions
+  now take `(businessId, gateway, …)` and filter on `business_id`.
+- `createPaymentLinkAction(input, businessId?)` charges the selected business's
+  Paystack (`getHostPaystackForBusiness`), falling back to the default business.
+- `paymentGatewaySchema` gains a required `business_id`; `GatewayView` carries it;
+  `PaymentGatewayDialog` / `PaymentLinkDialog` thread the selected business.
+- Earlier phases (already shipped): schema `business_id` + per-business unique
+  index (`20260614000010`), `getHostPaystackForBusiness`, business-aware lookups
+  in `pay-booking.ts`, `/pay/[token]`, and the listing book page.
+
+### Migrations
+- `20260614000011_help_gateways_per_business.sql` — Help Centre article updated
+  with the "one set of gateways per business" section (idempotent re-publish).
+
+### Notes
+- 0 gateway rows existed pre-change, so the backfill in `20260614000010` was a
+  no-op. PayPal gets the same per-business treatment via the shared lookup.
+- `pnpm build` not run locally (sandbox font TLS); `tsc --noEmit` + `eslint` clean.
+
+### Commit
+- `feat(payments): per-business payment gateways — UI + actions (Phase 4–5)`
+
+---
+
 ## 2026-06-14 — Refunds — Remove refund escalation (direct-payment model) — branch `main`
 
 ### Removed

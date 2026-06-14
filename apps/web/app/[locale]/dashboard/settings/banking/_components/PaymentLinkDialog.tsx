@@ -28,9 +28,10 @@ import { paymentLinkSchema, type PaymentLinkInput } from "../schemas";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  businessId: string;
 };
 
-export function PaymentLinkDialog({ open, onOpenChange }: Props) {
+export function PaymentLinkDialog({ open, onOpenChange, businessId }: Props) {
   const [pending, start] = useTransition();
   const [link, setLink] = useState<{ url: string; reference: string } | null>(
     null,
@@ -52,7 +53,7 @@ export function PaymentLinkDialog({ open, onOpenChange }: Props) {
 
   function onSubmit(values: PaymentLinkInput) {
     start(async () => {
-      const result = await createPaymentLinkAction(values);
+      const result = await createPaymentLinkAction(values, businessId);
       if (result.ok) {
         setLink({ url: result.url, reference: result.reference });
         toast.success("Payment link created");

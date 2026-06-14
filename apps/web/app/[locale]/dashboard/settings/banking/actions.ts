@@ -17,7 +17,10 @@ import {
   getDefaultBusinessId,
 } from "@/lib/business/resolveBusiness";
 import { requireHost as resolveHost } from "@/lib/host/current";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import {
+  getHostPaystack,
+  getHostPaystackForBusiness,
+} from "@/lib/payments/host-paystack";
 import { validatePayPalCredentials } from "@/lib/paypal";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -491,10 +494,19 @@ export async function savePaymentGatewayAction(
   }
 
   const supabase = createServerClient();
+  // Gateways are per-business — verify the target business belongs to this host.
+  const { data: biz } = await supabase
+    .from("businesses")
+    .select("id")
+    .eq("id", parsed.data.business_id)
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+  if (!biz) return { ok: false, error: "That business isn't yours." };
+
   const { data: existing } = await supabase
     .from("host_payment_gateways")
     .select("id")
-    .eq("host_id", host.hostId)
+    .eq("business_id", parsed.data.business_id)
     .eq("gateway", parsed.data.gateway)
     .maybeSingle();
 
@@ -546,6 +558,7 @@ export async function savePaymentGatewayAction(
 
   const base = {
     host_id: host.hostId,
+    business_id: parsed.data.business_id,
     gateway: parsed.data.gateway,
     environment,
     public_identifier: parsed.data.public_identifier,
@@ -581,6 +594,7 @@ export async function savePaymentGatewayAction(
 }
 
 export async function togglePaymentGatewayAction(
+  businessId: string,
   gateway: PaymentGateway,
   enabled: boolean,
 ): Promise<ActionResult> {
@@ -591,6 +605,7 @@ export async function togglePaymentGatewayAction(
     .from("host_payment_gateways")
     .update({ is_enabled: enabled })
     .eq("host_id", host.hostId)
+    .eq("business_id", businessId)
     .eq("gateway", gateway);
   if (error) return { ok: false, error: "Could not update the gateway." };
   revalidatePath("/dashboard/settings/banking");
@@ -603,6 +618,7 @@ export async function togglePaymentGatewayAction(
  * mode it's in) without re-entering the key.
  */
 export async function testPaymentGatewayAction(
+  businessId: string,
   gateway: PaymentGateway,
 ): Promise<{ ok: true; mode: "test" | "live" } | { ok: false; error: string }> {
   const host = await resolveHost();
@@ -612,6 +628,7 @@ export async function testPaymentGatewayAction(
     .from("host_payment_gateways")
     .select("id, secret_cipher, public_identifier, environment")
     .eq("host_id", host.hostId)
+    .eq("business_id", businessId)
     .eq("gateway", gateway)
     .maybeSingle();
   if (!row?.secret_cipher) {
@@ -653,6 +670,7 @@ export async function testPaymentGatewayAction(
 }
 
 export async function deletePaymentGatewayAction(
+  businessId: string,
   gateway: PaymentGateway,
 ): Promise<ActionResult> {
   const host = await resolveHost();
@@ -662,6 +680,7 @@ export async function deletePaymentGatewayAction(
     .from("host_payment_gateways")
     .delete()
     .eq("host_id", host.hostId)
+    .eq("business_id", businessId)
     .eq("gateway", gateway);
   if (error) return { ok: false, error: "Could not remove the gateway." };
   revalidatePath("/dashboard/settings/banking");
@@ -698,6 +717,7 @@ export type PaymentLinkResult =
  */
 export async function createPaymentLinkAction(
   input: PaymentLinkInput,
+  businessId?: string,
 ): Promise<PaymentLinkResult> {
   const parsed = paymentLinkSchema.safeParse(input);
   if (!parsed.success) {
@@ -708,7 +728,18 @@ export async function createPaymentLinkAction(
   if (!host.ok) return host;
 
   // One source of truth for the host's connected, enabled Paystack secret.
-  const hostPaystack = await getHostPaystack(host.hostId);
+  // Gateways are per-business: charge the selected business's Paystack when one
+  // is supplied (verified owned), else fall back to the host's default business.
+  const ownsBusiness =
+    businessId &&
+    (await assertBusinessOwnership(
+      createServerClient(),
+      businessId,
+      host.hostId,
+    ));
+  const hostPaystack = ownsBusiness
+    ? await getHostPaystackForBusiness(businessId!)
+    : await getHostPaystack(host.hostId);
   if (!hostPaystack) {
     return {
       ok: false,

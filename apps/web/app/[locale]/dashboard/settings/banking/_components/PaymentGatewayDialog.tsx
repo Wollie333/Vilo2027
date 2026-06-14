@@ -39,6 +39,7 @@ import {
 } from "../schemas";
 
 export type GatewayView = {
+  business_id: string;
   gateway: PaymentGateway;
   environment: "test" | "live";
   public_identifier: string;
@@ -52,6 +53,7 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   gateway: PaymentGateway;
+  businessId: string;
   editing: GatewayView | null;
 };
 
@@ -75,6 +77,7 @@ export function PaymentGatewayDialog({
   open,
   onOpenChange,
   gateway,
+  businessId,
   editing,
 }: Props) {
   const brandName = useBrandName();
@@ -84,6 +87,7 @@ export function PaymentGatewayDialog({
   const form = useForm<PaymentGatewayInput>({
     resolver: zodResolver(paymentGatewaySchema),
     defaultValues: {
+      business_id: businessId,
       gateway,
       environment: "live",
       public_identifier: "",
@@ -96,6 +100,7 @@ export function PaymentGatewayDialog({
   useEffect(() => {
     if (!open) return;
     form.reset({
+      business_id: editing?.business_id ?? businessId,
       gateway,
       environment: editing?.environment ?? "live",
       public_identifier: editing?.public_identifier ?? "",
@@ -103,11 +108,15 @@ export function PaymentGatewayDialog({
       statement_descriptor: editing?.statement_descriptor ?? "",
       is_enabled: editing?.is_enabled ?? true,
     });
-  }, [open, editing, gateway, form]);
+  }, [open, editing, gateway, businessId, form]);
 
   function onSubmit(values: PaymentGatewayInput) {
     start(async () => {
-      const result = await savePaymentGatewayAction({ ...values, gateway });
+      const result = await savePaymentGatewayAction({
+        ...values,
+        gateway,
+        business_id: editing?.business_id ?? businessId,
+      });
       if (result.ok) {
         toast.success(
           editing
