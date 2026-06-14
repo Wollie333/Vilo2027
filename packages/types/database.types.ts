@@ -2795,6 +2795,7 @@ export type Database = {
       }
       host_payment_gateways: {
         Row: {
+          business_id: string
           created_at: string
           environment: string
           gateway: string
@@ -2809,6 +2810,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_id: string
           created_at?: string
           environment?: string
           gateway: string
@@ -2823,6 +2825,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_id?: string
           created_at?: string
           environment?: string
           gateway?: string
@@ -2837,6 +2840,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "host_payment_gateways_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "host_payment_gateways_host_id_fkey"
             columns: ["host_id"]
