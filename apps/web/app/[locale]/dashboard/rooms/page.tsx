@@ -242,7 +242,9 @@ export default async function RoomsPage({
             r.extra_guest_price == null ? null : Number(r.extra_guest_price),
           featured_photo_id: (r.featured_photo_id as string | null) ?? null,
           beds,
-          featuredPhotoUrl: fp?.url ?? null,
+          // Thumbnail = the room's featured photo; if none is set explicitly,
+          // fall back to its first photo so the thumbnail still shows an image.
+          featuredPhotoUrl: fp?.url ?? photos[0]?.url ?? null,
           featuredPhotoId: (r.featured_photo_id as string | null) ?? null,
           photos,
           amenityKeys,
