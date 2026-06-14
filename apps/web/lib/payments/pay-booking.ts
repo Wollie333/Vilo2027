@@ -3,7 +3,10 @@ import "server-only";
 import { round2 } from "@/lib/format";
 import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { hostHasValidEft } from "@/lib/payments/eft";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import {
+  getHostPaystack,
+  getHostPaystackForBusiness,
+} from "@/lib/payments/host-paystack";
 import {
   recomputeBookingPaymentState,
   sumCompletedPaid,
@@ -143,8 +146,12 @@ export async function startBookingPayment(opts: {
     return { ok: true, redirectTo: returnTo };
   }
 
-  // Card — initialise on the host's own Paystack account.
-  const hostPaystack = await getHostPaystack(booking.host_id);
+  // Card — initialise on the BUSINESS's own Paystack account (the business that
+  // owns the booking's listing). Falls back to the host's default business.
+  const businessId = await bookingBusinessId(admin, booking.id);
+  const hostPaystack = businessId
+    ? await getHostPaystackForBusiness(businessId)
+    : await getHostPaystack(booking.host_id);
   try {
     if (!hostPaystack) throw new Error("Host has no connected Paystack.");
     const init = await initializeTransaction({
@@ -194,6 +201,19 @@ export async function startBookingPayment(opts: {
   }
 }
 
+// The business that owns a booking (via its listing), for resolving the
+// per-business payment gateway. The SQL helper falls back to the host's default
+// business, so this is non-null for any real booking.
+async function bookingBusinessId(
+  admin: ReturnType<typeof createAdminClient>,
+  bookingId: string,
+): Promise<string | null> {
+  const { data } = await admin.rpc("booking_business_id", {
+    p_booking_id: bookingId,
+  });
+  return (data as string | null) ?? null;
+}
+
 /**
  * Confirm a host-account card payment when the payer returns from Paystack
  * (the success page + the /pay/[token] page both call this). Verifies the
@@ -210,14 +230,19 @@ export async function confirmHostCardPaymentByReference(opts: {
   hostId: string;
   bookingId: string;
 }): Promise<boolean> {
-  const hostPaystack = await getHostPaystack(opts.hostId);
+  const admin = createAdminClient();
+  // Verify with the BUSINESS's key (the one the charge was initialised on),
+  // falling back to the host's default business.
+  const businessId = await bookingBusinessId(admin, opts.bookingId);
+  const hostPaystack = businessId
+    ? await getHostPaystackForBusiness(businessId)
+    : await getHostPaystack(opts.hostId);
   const verification = await verifyTransaction(
     opts.reference,
     hostPaystack?.secretKey,
   );
   if (!verification || verification.status !== "success") return false;
 
-  const admin = createAdminClient();
   // Flip the existing pending row (created at init) — never insert a duplicate.
   await admin
     .from("payments")

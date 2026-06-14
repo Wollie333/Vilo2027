@@ -4,7 +4,10 @@ import { notFound } from "next/navigation";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { ListingPolicyBlock } from "@/components/policy/ListingPolicyBlock";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import {
+  getHostPaystack,
+  getHostPaystackForBusiness,
+} from "@/lib/payments/host-paystack";
 import {
   cancellationNote,
   getListingPolicySummary,
@@ -97,7 +100,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("listings")
     .select(
-      "id, host_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -261,7 +264,9 @@ export default async function BookingPage({
   // Whether the host can take card right now (their own connected Paystack).
   // Card is only offered when true; otherwise the guest pays by EFT. The
   // booking action enforces the same predicate server-side.
-  const hasPaystack = !!(await getHostPaystack(listing.host_id));
+  const hasPaystack = !!(listing.business_id
+    ? await getHostPaystackForBusiness(listing.business_id)
+    : await getHostPaystack(listing.host_id));
 
   // Host identity for the "You're booking with …" attribution in the summary.
   const { data: hostRow } = await supabase

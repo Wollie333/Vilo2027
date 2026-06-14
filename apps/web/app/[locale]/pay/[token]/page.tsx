@@ -15,7 +15,10 @@ import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { getBrandName } from "@/lib/brand";
 import { getHostParty } from "@/lib/finance/doc-party";
 import { formatMoney, round2 } from "@/lib/format";
-import { getHostPaystack } from "@/lib/payments/host-paystack";
+import {
+  getHostPaystack,
+  getHostPaystackForBusiness,
+} from "@/lib/payments/host-paystack";
 import { sumCompletedPaid } from "@/lib/payments/ledger";
 import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -127,8 +130,13 @@ export default async function PayPage({
   ].includes(booking.status);
   const payable = !isPaid && !cancelledLike;
 
-  // Card rail (host's own Paystack) + EFT banking — load only when payable.
-  const hostPaystack = payable ? await getHostPaystack(listing.host_id) : null;
+  // Card rail (the listing's BUSINESS's Paystack) + EFT banking — load only when
+  // payable. Falls back to the host's default business if business_id is unset.
+  const hostPaystack = payable
+    ? listing.business_id
+      ? await getHostPaystackForBusiness(listing.business_id)
+      : await getHostPaystack(listing.host_id)
+    : null;
   const hasCard = !!hostPaystack;
   const party = payable
     ? await getHostParty(
