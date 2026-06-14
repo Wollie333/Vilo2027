@@ -63,6 +63,8 @@ type Props = {
 };
 
 type BlockRange = { listingId: string; ci: string; co: string; label: string };
+// A blocked span the host clicked — drives the unblock/create-booking modal.
+type BlockPick = { listingId: string; ci: string; co: string; label: string };
 
 // Coalesce per-day blocked dates (non-booking) into contiguous ranges per listing.
 function buildBlockRanges(blocks: CalBlock[]): BlockRange[] {
@@ -106,6 +108,7 @@ type WeekEvent = {
   lane: number;
   booking?: CalBooking;
   label?: string;
+  listingId?: string;
 };
 
 const MAXLANE = 3;
@@ -119,6 +122,7 @@ export function CalendarWorkspace(props: Props) {
   const [selDay, setSelDay] = useState<string>(props.today);
   const [blockOpen, setBlockOpen] = useState(false);
   const [quickBooking, setQuickBooking] = useState<CalBooking | null>(null);
+  const [quickBlock, setQuickBlock] = useState<BlockPick | null>(null);
   // Range selection (check-in → check-out) drawn straight on the month grid.
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
@@ -365,6 +369,7 @@ export function CalendarWorkspace(props: Props) {
                 listings={props.listings}
                 onSelectDay={pickDay}
                 onOpenBooking={openBooking}
+                onOpenBlock={setQuickBlock}
               />
             ) : (
               <TimelineView
@@ -498,6 +503,20 @@ export function CalendarWorkspace(props: Props) {
         }}
         onViewFull={(id) => router.push(`/dashboard/bookings/${id}`)}
       />
+
+      <BlockedRangeModal
+        block={quickBlock}
+        listings={props.listings}
+        onOpenChange={(o) => {
+          if (!o) setQuickBlock(null);
+        }}
+        onChanged={refresh}
+        onCreateBooking={(b) =>
+          router.push(
+            `/dashboard/bookings/new?listing=${b.listingId}&checkIn=${b.ci}&checkOut=${b.co}`,
+          )
+        }
+      />
     </div>
   );
 }
@@ -629,6 +648,97 @@ function BookingQuickView({
   );
 }
 
+// ── Blocked range (click a block bar → unblock or book) ─────────────────
+function BlockedRangeModal({
+  block,
+  listings,
+  onOpenChange,
+  onChanged,
+  onCreateBooking,
+}: {
+  block: BlockPick | null;
+  listings: CalListing[];
+  onOpenChange: (open: boolean) => void;
+  onChanged: () => void;
+  onCreateBooking: (b: BlockPick) => void;
+}) {
+  const [pending, start] = useTransition();
+  const listing = block
+    ? (listings.find((l) => l.id === block.listingId) ?? null)
+    : null;
+  const nights = block ? nightsBetween(block.ci, block.co) : 0;
+
+  function unblock() {
+    if (!block) return;
+    start(async () => {
+      const list = datesInclusive(block.ci, addDays(block.co, -1));
+      const res = await setManualBlocksAction(block.listingId, list, false);
+      if (res.ok) {
+        toast.success("Those nights are open again.");
+        onChanged();
+        onOpenChange(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  return (
+    <FormModal
+      open={Boolean(block)}
+      onOpenChange={onOpenChange}
+      size="sm"
+      title="Blocked dates"
+      description={listing?.name ?? undefined}
+    >
+      {block ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 rounded-[12px] border border-brand-line bg-brand-light/50 px-4 py-3">
+            <Lock className="h-4 w-4 shrink-0 text-brand-mute" />
+            <div className="min-w-0">
+              <div className="text-[13.5px] font-semibold text-brand-ink">
+                {fmtShort(block.ci)} → {fmtShort(block.co)}
+              </div>
+              <div className="text-[12px] text-brand-mute">
+                {nights} night{nights === 1 ? "" : "s"} · {block.label}
+              </div>
+            </div>
+          </div>
+          <p className="text-[12.5px] text-brand-mute">
+            Open these nights back up, or create a booking on them. Booked and
+            quote-held nights are never touched.
+          </p>
+        </div>
+      ) : null}
+
+      <FormModalFooter>
+        <FormModalCancel disabled={pending}>Close</FormModalCancel>
+        <button
+          type="button"
+          onClick={unblock}
+          disabled={pending}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+        >
+          {pending ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
+          )}
+          Unblock
+        </button>
+        <button
+          type="button"
+          onClick={() => block && onCreateBooking(block)}
+          disabled={pending}
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+        >
+          <CalendarPlus className="h-3.5 w-3.5" /> Create booking
+        </button>
+      </FormModalFooter>
+    </FormModal>
+  );
+}
+
 // ── Month view ──────────────────────────────────────────────────────────
 function MonthView({
   year,
@@ -644,6 +754,7 @@ function MonthView({
   listings,
   onSelectDay,
   onOpenBooking,
+  onOpenBlock,
 }: {
   year: number;
   month: number;
@@ -658,6 +769,7 @@ function MonthView({
   listings: CalListing[];
   onSelectDay: (k: string) => void;
   onOpenBooking: (id: string) => void;
+  onOpenBlock: (b: BlockPick) => void;
 }) {
   const matrix = monthMatrix(year, month);
   const singleBase =
@@ -702,6 +814,7 @@ function MonthView({
               ci: r.ci,
               co: r.co,
               label: r.label,
+              listingId: r.listingId,
               s: 0,
               e: 0,
               startsHere: false,
@@ -815,17 +928,27 @@ function MonthView({
                         style={{ gridColumn: `${e.s + 1} / ${e.e + 2}` }}
                       >
                         {e.type === "blk" ? (
-                          <div
-                            className={`pointer-events-auto mx-0.5 flex h-[21px] items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-md px-1.5 text-[11px] font-semibold text-white ${e.startsHere ? "" : "rounded-l-none"} ${e.endsHere ? "" : "rounded-r-none"}`}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              e.listingId &&
+                              onOpenBlock({
+                                listingId: e.listingId,
+                                ci: e.ci,
+                                co: e.co,
+                                label: e.label ?? "Blocked",
+                              })
+                            }
+                            className={`pointer-events-auto mx-0.5 flex h-[21px] w-[calc(100%-4px)] items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-md px-1.5 text-[11px] font-semibold text-white transition hover:brightness-110 ${e.startsHere ? "" : "rounded-l-none"} ${e.endsHere ? "" : "rounded-r-none"}`}
                             style={{
                               background:
                                 "repeating-linear-gradient(45deg,#9CA3AF,#9CA3AF 5px,#aeb5bd 5px,#aeb5bd 10px)",
                             }}
-                            title={e.label}
+                            title={`${e.label} — click to unblock or book`}
                           >
                             <Lock className="h-3 w-3 shrink-0" />
                             <span className="truncate">{e.label}</span>
-                          </div>
+                          </button>
                         ) : (
                           <button
                             onClick={() => onOpenBooking(e.booking!.id)}
