@@ -31,6 +31,35 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Vilo User Record + direct-edit (P3.1–P3.3) — branch `main`
+
+### Built
+- Redesigned `/admin/users/[id]` into a role-adaptive **Vilo User Record** (mirrors
+  the host Guest Record): identity header + badges (role, suspended, deleted,
+  passwordless), stat band, and tabs — **Overview, Activity, Finances,
+  Subscription** (hosts), **Notes, Audit**.
+- **Finances tab**: a host's booking ledger KPIs (reusing `fetchHostTransactions`
+  + `txnStats`, not forked) **and** their Vilo account (what they've paid Vilo,
+  from `platform_ledger`).
+- **Direct-edit powers** (all audited): edit profile, change role, suspend/
+  reinstate, **soft-delete** (never hard-delete), and internal admin notes —
+  via canonical `FormModal` dialogs.
+- New `admin_user_notes` table (admin-only) + new permission keys `users.role` /
+  `users.delete` seeded + granted to super_admin.
+
+### Changed
+- Removed the standalone `SuspendDialog` (folded into the record toolbar).
+
+### Migrations
+- `20260614000040_admin_user_notes.sql`
+
+### Notes
+- Guest cross-host ledger + write "act as" are the next P3 increments. Embeds +
+  permission seed verified against the live DB. `tsc` + eslint green.
+
+### Commit
+- `feat(admin): vilo user record + direct-edit (P3.1-P3.3)`
+
 ## 2026-06-14 — Super-Admin — Live host billing on Vilo's platform Paystack (P1.5) — branch `main`
 
 ### Built

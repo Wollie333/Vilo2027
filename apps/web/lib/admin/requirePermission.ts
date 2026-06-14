@@ -12,6 +12,8 @@ import { type AdminContext, requireAdmin } from "./requireAdmin";
 export type PermissionKey =
   | "users.view"
   | "users.edit"
+  | "users.role"
+  | "users.delete"
   | "users.suspend"
   | "users.impersonate"
   | "hosts.verify"
