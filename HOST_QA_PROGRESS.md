@@ -126,10 +126,42 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   entered nightly/cleaning amounts — for a HOST booking their OWN listing this is
   correct (comps/discounts), not the guest-checkout "never trust client price"
   case. **Founder live-check pending.**
-- [⬜] 13. Quotes — `/dashboard/quotes`
-- [⬜] 14. Payments — `/dashboard/payments`
-- [⬜] 15. Refunds — `/dashboard/refunds`
-- [⬜] 16. Invoices — `/dashboard/invoices`
+- [⚠️] 13. Quotes — `/dashboard/quotes`. Audited CLEAN: all host mutations
+  ownership-checked (`assertOwnership`), public accept/decline token-gated +
+  status-rechecked; totals computed server-side (host-entered custom prices are
+  by-design); convert reuses the canonical pending→confirmed trigger path;
+  per-business numbering + PDF/public business resolution intact; no `any`/logs;
+  RHF+Zod. **Hardening note (not fixed — low real risk):** public token pages
+  compare `accept_token` with `!==` rather than a constant-time compare; the
+  better pattern (used by invoices) is to query BY token. Revisit if tightening.
+  **Founder live-check pending.**
+- [⚠️] 14. Payments — `/dashboard/payments`. Audited CLEAN on the criticals:
+  card charges use the HOST's own Paystack (`getHostPaystack`), never the platform
+  key; webhook is HMAC-verified + idempotent on `provider_reference`; ledger maths
+  all via `lib/payments/ledger.ts` (balance = COMPLETED inbound only); service-role
+  server-only. **FIXED:** deleted a leftover `/debug-analytics` page that printed
+  env-var presence + the service-role key's length + RPC output to ANY logged-in
+  user (auth-gated, not admin-gated). POLISH (Deno edge fn, left): the Paystack
+  webhook re-declares INBOUND + rounds without `round2`'s EPSILON — minor drift
+  risk vs the TS ledger. **Founder live-check pending.**
+- [⚠️] 15. Refunds — `/dashboard/refunds`. Audited: host actions ownership-checked,
+  amounts clamped server-side (≤ requested / ≤ total), status history append-only,
+  voided refunds excluded from the live ledger, force-dynamic, no `any`/logs.
+  **FIXED:** `actioned_by` was never set on approve/decline/host-initiated → the
+  status-history trail lost the actor; now set to `host.userId`. **Documented
+  follow-ups (need a migration / not yet reachable — deliberately not rushed):**
+  (a) `approveRefundAction`/`declineRefundAction` accept `status='escalated'` but
+  RLS `host_action_refunds` only permits pending/failed updates — reconcile when
+  escalation is built; (b) `lib/email/resolvers/refund.ts` queries a deprecated
+  `refunds` table (latent — email worker not live; needs column remap to
+  `refund_requests`); (c) voiding a completed refund doesn't reverse
+  `payments.refunded_amount`. **Founder live-check pending.**
+- [✅] 16. Invoices — `/dashboard/invoices`. Audited CLEAN, no changes: generation
+  is trigger/server-only; public page + PDF token-gated (`hosted_token`) +
+  force-dynamic, no cross-host leak; per-business snapshot (identity + banking) +
+  per-business numbering intact; amounts from canonical stored totals; add-on
+  invoices re-price from catalog; INSERT-only invariants respected. Only a benign
+  `as unknown as` embed cast (POLISH). **Founder live-check pending.**
 - [⬜] 17. Inbox + templates — `/dashboard/inbox`
 - [⬜] 18. Notifications — `/dashboard/notifications`
 - [⬜] 19. Reviews — `/dashboard/reviews`
@@ -154,6 +186,15 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-14 (cont.)** — Audited the finance batch #13–#16 (parallel). #16 Invoices
+  CLEAN; #13 Quotes clean (timing-safe-token noted, not a real-world risk). **Fixes:**
+  deleted the leftover `/debug-analytics` page (#14 — leaked service-role key length
+  to any logged-in user); set refund `actioned_by` on approve/decline/host-initiated
+  (#15). Documented (not rushed): refund escalated-vs-RLS mismatch, the email
+  resolver's deprecated `refunds`-table query, and voided-refund refunded_amount
+  reversal — all need a migration or aren't yet reachable. Clean `pnpm build` +
+  tsc + eslint. **NEXT: founder live-checks #9–#16, then audit #17 Inbox / #18
+  Notifications / #19 Reviews / #20 Staff.**
 - **2026-06-14** — Audited #9–#12 (parallel read-only audits). #11 Bookings CLEAN.
   #9 Calendar clean (verified the suspected `nightsBetween` timezone bug is a
   false alarm — UTC-consistent). #12 Manual booking clean (host-entered prices are

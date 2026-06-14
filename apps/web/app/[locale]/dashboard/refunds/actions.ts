@@ -119,6 +119,7 @@ export async function approveRefundAction(input: {
       approved_amount: parsed.data.amount,
       refund_method: parsed.data.method,
       host_note: parsed.data.note?.trim() || null,
+      actioned_by: host.userId,
       actioned_at: new Date().toISOString(),
     })
     .eq("id", refund.id);
@@ -170,6 +171,7 @@ export async function declineRefundAction(input: {
       status: "declined",
       decline_reason: parsed.data.reason,
       host_note: parsed.data.note?.trim() || null,
+      actioned_by: host.userId,
       actioned_at: new Date().toISOString(),
     })
     .eq("id", refund.id);
@@ -267,6 +269,7 @@ export async function hostInitiatedRefundAction(input: {
       reason_detail: parsed.data.reasonDetail?.trim() || null,
       initiated_by: "host",
       status: "approved",
+      actioned_by: host.userId,
       actioned_at: new Date().toISOString(),
     })
     .select("id")
