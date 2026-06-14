@@ -93,10 +93,39 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   `any`/logs, Zod. Fixed: add-on image upload had no client guard + 8MB server limit (Vercel
   body-cap footgun) → added client type+4MB guard, server capped to 4MB (`43b471f`). (3rd
   instance of this upload pattern — see avatar #2, listing-photo #5.) **Founder live-check pending.**
-- [⬜] 9. Availability calendar — `/dashboard/calendar`
-- [⬜] 10. iCal calendar-sync — `/dashboard/calendar-sync`
-- [⬜] 11. Bookings board + detail — `/dashboard/bookings`
-- [⬜] 12. Manual booking — `/dashboard/bookings/new`
+- [⚠️] 9. Availability calendar — `/dashboard/calendar`. Audited: mutations are
+  auth-gated Server Actions (`assertListingOwnership`), reads host-scoped, guest
+  embed FK-pinned, no `any`/logs, no uploads. `nightsBetween` (bookings/new) is
+  UTC-consistent — NOT the off-by-one an audit suspected (verified). Minor POLISH
+  (not fixed): `calendar/actions.ts:29` casts the embedded `host` via `unknown`
+  (RLS-mitigated); RangeActionCard est-total uses the check-in night's rate only
+  (UI estimate; server pricing is correct). **Founder live-check pending.**
+- [⚠️] 10. iCal calendar-sync — `/dashboard/calendar-sync`. **Fixed a real BLOCKER:**
+  `removeIcalFeedAction` admin-deleted `blocked_dates` by a client-supplied
+  `feedId` BEFORE any ownership check → a host could wipe another host's imported
+  blocks. Now verifies ownership via the RLS client first (mirrors
+  `syncIcalFeedAction`). Rest clean: token export is timing-safe + token-gated,
+  parser defensive (can't clobber confirmed bookings — scoped to `source='ical'`),
+  30s fetch timeout, errors surface to `last_error`. **Caveats for founder (ops/
+  spec, not code bugs):** (a) `ICAL_TOKEN_SECRET` undocumented in ENV_VARS.md and
+  falls back to `SUPABASE_SERVICE_ROLE_KEY` for HMAC — document the dedicated var
+  + drop the fallback before launch; (b) impl derives feed tokens from secret+
+  listing_id rather than a per-listing `ical_export_token` column (AGENT_RULES
+  §2.6) — reconcile spec vs impl (per-feed rotation isn't possible today).
+- [✅] 11. Bookings board + detail — `/dashboard/bookings`. Audited CLEAN, no
+  changes: status transitions are auth-gated + ownership-checked Server Actions
+  using the AFTER-UPDATE-OF-status pattern (triggers fire), optimistic-concurrency
+  guard on status; reads host-scoped + guest embed FK-pinned; balance derived from
+  COMPLETED payments (`sumPaidFromRows`), never the stale column; no `any`/logs;
+  keydown listener cleaned up. **Founder live-check pending.**
+- [⚠️] 12. Manual booking — `/dashboard/bookings/new`. Audited: `createManualBooking`
+  is auth-gated + listing-ownership-checked; availability enforced server-side via
+  RPC; add-ons re-priced from catalog; status UPDATE fires triggers (confirmed
+  writes blocks directly since INSERT won't); prefill params validated; no `any`/
+  logs; Zod both sides. **Deliberately NOT changed:** the server trusts the host's
+  entered nightly/cleaning amounts — for a HOST booking their OWN listing this is
+  correct (comps/discounts), not the guest-checkout "never trust client price"
+  case. **Founder live-check pending.**
 - [⬜] 13. Quotes — `/dashboard/quotes`
 - [⬜] 14. Payments — `/dashboard/payments`
 - [⬜] 15. Refunds — `/dashboard/refunds`
@@ -125,6 +154,16 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-14** — Audited #9–#12 (parallel read-only audits). #11 Bookings CLEAN.
+  #9 Calendar clean (verified the suspected `nightsBetween` timezone bug is a
+  false alarm — UTC-consistent). #12 Manual booking clean (host-entered prices are
+  by-design, not the guest-checkout vuln). **Fixed one real BLOCKER in #10 iCal:**
+  `removeIcalFeedAction` now checks feed ownership (RLS client) BEFORE the admin
+  `blocked_dates` delete — previously a host could wipe another host's ical blocks
+  by passing their feedId. Static gate green (tsc + eslint). Logged iCal ops/spec
+  caveats (ICAL_TOKEN_SECRET doc/fallback; ical_export_token spec gap) for founder.
+  **NEXT: founder live-checks #9–#12, then I audit #13 Quotes / #14 Payments / #16
+  Invoices (finance batch I now know well from the ledger work).**
 - **2026-06-04** — Feature #1 wrap-up: the `feat/setup-wizard-rework` branch was already
   fully merged into `main` (0 commits ahead), so the stale remote branch was deleted — no
   merge needed, nothing reverted. Audited feature #2 (Host profile, at `/dashboard/settings`):

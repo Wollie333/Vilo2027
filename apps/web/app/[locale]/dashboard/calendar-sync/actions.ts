@@ -83,7 +83,17 @@ export async function removeIcalFeedAction(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  // Wipe imported blocks first (per AGENT_RULES.md §2.5 only the
+  // Verify ownership FIRST via the RLS-scoped client — the admin delete below
+  // bypasses RLS, so an unowned feedId must never reach it (it would wipe another
+  // host's ical-sourced blocks). Mirrors syncIcalFeedAction's ownership gate.
+  const { data: feed } = await supabase
+    .from("ical_feeds")
+    .select("id")
+    .eq("id", parsed.data.feedId)
+    .maybeSingle();
+  if (!feed) return { ok: false, error: "Feed not found." };
+
+  // Now safe: wipe this feed's imported blocks (per AGENT_RULES.md §2.5, only the
   // ical-sourced rows for this exact feed).
   const admin = createAdminClient();
   await admin
