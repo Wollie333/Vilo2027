@@ -100,7 +100,10 @@ export async function approveRefundAction(input: {
   if (!refund || refund.host_id !== host.hostId) {
     return { ok: false, error: "Refund not found." };
   }
-  if (refund.status !== "pending" && refund.status !== "escalated") {
+  // Vilo never holds funds — refunds are host→guest directly, so there's no
+  // platform "escalated" state to act on. Allow pending + failed (a prior
+  // attempt to retry), matching the host_action_refunds RLS policy.
+  if (refund.status !== "pending" && refund.status !== "failed") {
     return { ok: false, error: `Cannot approve a ${refund.status} refund.` };
   }
   if (parsed.data.amount > Number(refund.requested_amount)) {
@@ -161,7 +164,8 @@ export async function declineRefundAction(input: {
   if (!refund || refund.host_id !== host.hostId) {
     return { ok: false, error: "Refund not found." };
   }
-  if (refund.status !== "pending" && refund.status !== "escalated") {
+  // Pending + failed only (see approveRefundAction) — no platform "escalated".
+  if (refund.status !== "pending" && refund.status !== "failed") {
     return { ok: false, error: `Cannot decline a ${refund.status} refund.` };
   }
 
