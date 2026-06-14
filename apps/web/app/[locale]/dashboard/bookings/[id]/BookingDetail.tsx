@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Bath,
   BedDouble,
+  CalendarRange,
   Check,
   CheckCircle2,
   ChevronRight,
@@ -63,6 +64,7 @@ import {
   previewCancelRefundAction,
 } from "../actions";
 import { BookingActions } from "./BookingActions";
+import { ChangeDatesModal } from "./ChangeDatesModal";
 import { PaymentLinkCard } from "./PaymentLinkCard";
 import { addBookingGuestAction } from "./guest-actions";
 import { InternalNotes } from "./InternalNotes";
@@ -164,6 +166,9 @@ export type BookingDetailData = {
   /** Actual stay timestamps (set when the host marks check-in/out). */
   checkedInLabel: string | null;
   checkedOutLabel: string | null;
+  /** Raw YYYY-MM-DD dates for the change-dates editor. */
+  checkInISO: string | null;
+  checkOutISO: string | null;
 
   arrivalProximity: string | null;
   arrivalBig: string;
@@ -310,7 +315,14 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
   const [, startStatus] = useTransition();
+  const canEditDates = [
+    "pending",
+    "confirmed",
+    "pending_eft",
+    "pending_eft_review",
+  ].includes(d.status);
 
   // Lifecycle actions, also surfaced in the ⋮ menu. They call the SAME server
   // actions as the main BookingActions buttons (one applyTransition / status
@@ -576,6 +588,18 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                           ) : null}
                         </>
                       ) : null}
+                      {canEditDates ? (
+                        <button
+                          onMouseDown={() => {
+                            setMoreOpen(false);
+                            setDatesOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <CalendarRange className="h-4 w-4 text-brand-mute" />{" "}
+                          Change dates
+                        </button>
+                      ) : null}
                       {d.payLink ? (
                         <button
                           onMouseDown={() => {
@@ -588,7 +612,7 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                           payment link
                         </button>
                       ) : null}
-                      {ACTIONABLE.has(d.status) || d.payLink ? (
+                      {ACTIONABLE.has(d.status) || d.payLink || canEditDates ? (
                         <div className="my-1 h-px bg-brand-line" />
                       ) : null}
                       {d.listingSlug ? (
@@ -661,6 +685,16 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                     guestPhone={d.payLink.guestPhone}
                   />
                 </FormModal>
+              ) : null}
+              {canEditDates && d.checkInISO && d.checkOutISO ? (
+                <ChangeDatesModal
+                  open={datesOpen}
+                  onOpenChange={setDatesOpen}
+                  bookingId={d.id}
+                  initialCheckIn={d.checkInISO}
+                  initialCheckOut={d.checkOutISO}
+                  currency={d.currency}
+                />
               ) : null}
               <BookingBalanceLine
                 balanceDue={d.balanceDue}

@@ -694,6 +694,8 @@ export default async function BookingDetailPage({
           timeZone: "Africa/Johannesburg",
         })
       : null,
+    checkInISO: booking.check_in,
+    checkOutISO: booking.check_out,
 
     arrivalProximity,
     arrivalBig,
