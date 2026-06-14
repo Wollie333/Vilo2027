@@ -41,14 +41,27 @@ async function loadRefundBundle(
   supabase: AdminClient,
   refundId: string,
 ): Promise<RefundBundle | null> {
-  const { data: refund, error } = await supabase
-    .from("refunds")
+  // The canonical table is refund_requests (there is no `refunds` table). It has
+  // no single `amount` column — use the approved figure once decided, else the
+  // requested figure.
+  const { data: row, error } = await supabase
+    .from("refund_requests")
     .select(
-      "id, amount, currency, booking_id, reason, is_manual, manual_note, status",
+      "id, requested_amount, approved_amount, currency, booking_id, reason, is_manual, manual_note, status",
     )
     .eq("id", refundId)
     .maybeSingle();
-  if (error || !refund) return null;
+  if (error || !row) return null;
+  const refund = {
+    id: row.id,
+    amount: Number(row.approved_amount ?? row.requested_amount),
+    currency: row.currency,
+    booking_id: row.booking_id,
+    reason: row.reason,
+    is_manual: row.is_manual,
+    manual_note: row.manual_note,
+    status: row.status,
+  };
 
   const { data: booking } = await supabase
     .from("bookings")
