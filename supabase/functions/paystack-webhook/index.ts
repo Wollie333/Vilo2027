@@ -89,6 +89,17 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
 
   const supabase = adminClient();
 
+  // ─── Vilo subscription billing branch ──────────────────────────────
+  // Vilo's own revenue (host pays for a plan on the PLATFORM key) is keyed by
+  // platform_ledger.provider_reference, NOT payments. Discriminate on the
+  // metadata purpose so the booking path below stays byte-identical.
+  const purpose = (event.data?.metadata as { purpose?: string } | null)
+    ?.purpose;
+  if (purpose === "subscription" || purpose === "service") {
+    await processSubscriptionEvent(event, supabase);
+    return;
+  }
+
   // Locate the payment row. provider_reference is UNIQUE so this is a
   // single-row lookup.
   const { data: payment } = await supabase
@@ -214,6 +225,134 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
       .from("bookings")
       .update({ payment_status: "failed" })
       .eq("id", payment.booking_id);
+    return;
+  }
+}
+
+// ─── Vilo subscription billing handler ────────────────────────────────
+// Writes the Vilo revenue ledger + activates the host's subscription. Idempotent
+// on platform_ledger.provider_reference (UNIQUE). Handles both the first checkout
+// (a pending ledger row exists) and auto-renewals (no row yet → insert one).
+function addMonths(d: Date, n: number): string {
+  const x = new Date(d);
+  x.setUTCMonth(x.getUTCMonth() + n);
+  return x.toISOString();
+}
+
+// deno-lint-ignore no-explicit-any
+async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
+  const ref = event.data.reference;
+  const meta = (event.data.metadata ?? {}) as Record<string, string>;
+  const hostId = meta.host_id ?? null;
+  const userId = meta.user_id ?? null;
+  const plan = meta.plan ?? null;
+  const cycle = meta.cycle === "annual" ? "annual" : "monthly";
+  const amount = Number(event.data.amount ?? 0) / 100;
+  const currency = event.data.currency ?? "ZAR";
+  const now = new Date();
+
+  // Existing ledger row (first checkout) if any.
+  const { data: row } = await supabase
+    .from("platform_ledger")
+    .select("id, status")
+    .eq("provider_reference", ref)
+    .maybeSingle();
+
+  // The host's subscription (host_id is UNIQUE).
+  const { data: sub } = hostId
+    ? await supabase
+        .from("subscriptions")
+        .select("id, failed_payment_count")
+        .eq("host_id", hostId)
+        .maybeSingle()
+    : { data: null };
+
+  if (event.event === "charge.success") {
+    // Idempotency: already completed → nothing to do.
+    if (row && row.status === "completed") return;
+
+    if (row) {
+      await supabase
+        .from("platform_ledger")
+        .update({
+          status: "completed",
+          paid_at: now.toISOString(),
+          period_start: now.toISOString(),
+          period_end: addMonths(now, cycle === "annual" ? 12 : 1),
+        })
+        .eq("id", row.id);
+    } else {
+      // Auto-renewal (no pre-created row) — record it.
+      await supabase.from("platform_ledger").insert({
+        user_id: userId,
+        host_id: hostId,
+        subscription_id: sub?.id ?? null,
+        plan,
+        billing_cycle: cycle,
+        type: "charge",
+        status: "completed",
+        amount,
+        currency,
+        provider: "paystack",
+        provider_reference: ref,
+        paid_at: now.toISOString(),
+        period_start: now.toISOString(),
+        period_end: addMonths(now, cycle === "annual" ? 12 : 1),
+        reason: "Subscription renewal",
+      });
+    }
+
+    if (sub) {
+      await supabase
+        .from("subscriptions")
+        .update({
+          plan: plan ?? undefined,
+          billing_cycle: cycle,
+          status: "active",
+          current_period_start: now.toISOString(),
+          current_period_end: addMonths(now, cycle === "annual" ? 12 : 1),
+          failed_payment_count: 0,
+          grace_period_ends_at: null,
+          cancel_at_period_end: false,
+          cancelled_at: null,
+          cancellation_reason: null,
+        })
+        .eq("id", sub.id);
+
+      await supabase.from("subscription_history").insert({
+        subscription_id: sub.id,
+        host_id: hostId,
+        event: "subscription_charged",
+        to_plan: plan,
+        to_status: "active",
+        amount_charged: amount,
+        currency,
+        notes: "Paystack charge",
+      });
+    }
+    return;
+  }
+
+  if (event.event === "charge.failed") {
+    if (row && row.status === "pending") {
+      await supabase
+        .from("platform_ledger")
+        .update({ status: "failed" })
+        .eq("id", row.id);
+    }
+    if (sub) {
+      const fails = Number(sub.failed_payment_count ?? 0) + 1;
+      // 5-day grace before the account is restricted (see subscriptions schema).
+      const graceEnds = new Date(now.getTime() + 5 * 86_400_000).toISOString();
+      await supabase
+        .from("subscriptions")
+        .update({
+          status: "past_due",
+          failed_payment_count: fails,
+          grace_period_ends_at: graceEnds,
+        })
+        .eq("id", sub.id);
+    }
     return;
   }
 }

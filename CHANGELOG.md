@@ -31,6 +31,34 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Live host billing on Vilo's platform Paystack (P1.5) — branch `main`
+
+### Built
+- `lib/billing/platform-billing.ts` — `startSubscriptionCheckout` charges a host
+  for a paid plan on **Vilo's platform Paystack key** (never the host's own key;
+  booking rails untouched). Inserts a pending `platform_ledger` row keyed by the
+  reference (idempotency) and returns the Paystack URL.
+- `startPlanCheckoutAction` — decides server-side: first trial → start trial (no
+  charge); charge due → Paystack checkout; **billing not configured → state-only**
+  (pre-MVP smoke-testing preserved). PlanPicker redirects paid switches to Paystack.
+- Post-checkout **return page** (`…/subscription/billing/return`) verifies the
+  transaction (defence-in-depth) and shows success/pending/failed.
+- **paystack-webhook subscription branch** — discriminates on `metadata.purpose`
+  (booking path byte-identical). On `charge.success`: completes the ledger row (or
+  inserts one for renewals), activates the subscription for the period, writes
+  `subscription_history` with the amount. On `charge.failed`: marks the row failed,
+  sets `past_due` + 5-day grace.
+- Host **Billing history** section on the subscription page (own-row RLS).
+
+### Notes
+- **Capability-gated on the platform `PAYSTACK_SECRET_KEY`** — everything is built
+  and inert until the founder adds the key (then it goes live with no code change).
+- Deferred: Vilo→host VAT invoice generation (P1.6) + native Paystack recurring
+  Subscriptions/dunning cron (next increment). `tsc` + eslint green.
+
+### Commit
+- `feat(admin): live host subscription billing (P1.5)`
+
 ## 2026-06-14 — Super-Admin — Vilo revenue ledger (Pillar 2 / P2.1–P2.3) — branch `main`
 
 ### Built

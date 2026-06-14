@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
 
-import { switchPlanAction } from "./actions";
+import { startPlanCheckoutAction, switchPlanAction } from "./actions";
 import { formatZar, type PlanDef, type PlanKey } from "./plans";
 
 type Props = {
@@ -35,17 +35,29 @@ export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
     }
     setPendingPlan(plan.key);
     start(async () => {
-      const result = await switchPlanAction({
-        plan: plan.key,
-        cycle: plan.isFree ? null : cycle,
-      });
+      // Paid plans go through the checkout action (which decides trial vs charge
+      // vs state-only); free plans switch directly.
+      if (!plan.isFree) {
+        const res = await startPlanCheckoutAction({ plan: plan.key, cycle });
+        if (res.ok && res.redirectUrl) {
+          // Hand off to Paystack — the webhook activates on payment.
+          window.location.href = res.redirectUrl;
+          return;
+        }
+        setPendingPlan(null);
+        if (res.ok) {
+          toast.success(`Switched to ${plan.name} (${cycle}).`);
+          router.refresh();
+        } else {
+          toast.error(res.error);
+        }
+        return;
+      }
+
+      const result = await switchPlanAction({ plan: plan.key, cycle: null });
       setPendingPlan(null);
       if (result.ok) {
-        toast.success(
-          plan.isFree
-            ? `Switched to ${plan.name}.`
-            : `Switched to ${plan.name} (${cycle}).`,
-        );
+        toast.success(`Switched to ${plan.name}.`);
         router.refresh();
       } else {
         toast.error(result.error);

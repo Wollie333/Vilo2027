@@ -86,24 +86,33 @@ export default async function SettingsSubscriptionPage() {
     );
   }
 
-  const [{ data: subRaw }, { data: historyRaw }, plans] = await Promise.all([
-    supabase
-      .from("subscriptions")
-      .select(
-        "id, plan, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason",
-      )
-      .eq("host_id", host.id)
-      .maybeSingle(),
-    supabase
-      .from("subscription_history")
-      .select(
-        "id, event, from_plan, to_plan, from_status, to_status, notes, created_at",
-      )
-      .eq("host_id", host.id)
-      .order("created_at", { ascending: false })
-      .limit(10),
-    getPlans(),
-  ]);
+  const [{ data: subRaw }, { data: historyRaw }, plans, { data: billingRaw }] =
+    await Promise.all([
+      supabase
+        .from("subscriptions")
+        .select(
+          "id, plan, billing_cycle, status, trial_ends_at, current_period_start, current_period_end, cancel_at_period_end, cancelled_at, cancellation_reason",
+        )
+        .eq("host_id", host.id)
+        .maybeSingle(),
+      supabase
+        .from("subscription_history")
+        .select(
+          "id, event, from_plan, to_plan, from_status, to_status, notes, created_at",
+        )
+        .eq("host_id", host.id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+      getPlans(),
+      // The host's own Vilo billing rows (own-row RLS). Shows what they've paid
+      // Vilo for their subscription/services.
+      supabase
+        .from("platform_ledger")
+        .select("id, type, status, amount, currency, reason, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
 
   const sub = subRaw as {
     id: string;
@@ -265,6 +274,47 @@ export default async function SettingsSubscriptionPage() {
           )}
         </div>
       </section>
+
+      {/* ─── Vilo billing history ────────────────────────────────── */}
+      {billingRaw && billingRaw.length > 0 ? (
+        <section>
+          <h2 className="mb-3 font-display text-base font-bold text-brand-ink">
+            Billing history
+          </h2>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+            <ul className="divide-y divide-brand-line">
+              {billingRaw.map((b) => {
+                const amt = Number(b.amount);
+                return (
+                  <li
+                    key={b.id}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 text-sm"
+                  >
+                    <span className="font-medium capitalize text-brand-ink">
+                      {b.type}
+                    </span>
+                    <span className="text-brand-mute">
+                      {b.reason ?? ""}
+                      {b.status !== "completed" ? ` · ${b.status}` : ""}
+                    </span>
+                    <span
+                      className={`num ml-auto font-mono ${
+                        amt < 0 ? "text-status-cancelled" : "text-brand-ink"
+                      }`}
+                    >
+                      {amt < 0 ? "−" : ""}
+                      {formatZar(Math.abs(amt))}
+                    </span>
+                    <span className="w-full text-right font-mono text-[11px] text-brand-mute sm:w-auto">
+                      {new Date(b.created_at).toLocaleDateString("en-ZA")}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      ) : null}
 
       <p className="text-[12px] text-brand-mute">
         Need a custom arrangement? Email{" "}

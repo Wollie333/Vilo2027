@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import {
+  isPlatformBillingConfigured,
+  startSubscriptionCheckout,
+} from "@/lib/billing/platform-billing";
 import { requireHost as getMyHostId } from "@/lib/host/current";
 import { getPlan } from "@/lib/plans/getPlans";
 import { createServerClient } from "@/lib/supabase/server";
@@ -153,6 +157,61 @@ export async function switchPlanAction(input: {
   if (error) return { ok: false, error: error.message };
   revalidatePath("/dashboard/settings/subscription");
   return { ok: true };
+}
+
+type CheckoutResult =
+  | { ok: true; redirectUrl?: string }
+  | { ok: false; error: string };
+
+/**
+ * Entry point the plan picker calls for a PAID plan. Decides server-side
+ * whether a charge is due:
+ *  - First paid upgrade with a trial (never trialed) → start the trial, no charge.
+ *  - Billing not configured (no platform Paystack key) → state-only switch
+ *    (pre-MVP behaviour, lets the founder smoke-test gates).
+ *  - Otherwise → start a Paystack checkout on Vilo's platform key; the webhook
+ *    activates the subscription + completes the ledger row on payment.
+ */
+export async function startPlanCheckoutAction(input: {
+  plan: string;
+  cycle: "monthly" | "annual";
+}): Promise<CheckoutResult> {
+  const planDef = await getPlan(input.plan);
+  if (!planDef || !planDef.isActive) {
+    return { ok: false, error: "That plan isn't available." };
+  }
+  if (planDef.isFree) {
+    // Free plans never charge — fall back to the normal switch.
+    return switchPlanAction({ plan: input.plan, cycle: null });
+  }
+
+  const host = await getMyHostId();
+  if (!host.ok) return host;
+
+  const supabase = createServerClient();
+  const { data: existing } = await supabase
+    .from("subscriptions")
+    .select("plan, trial_ends_at")
+    .eq("host_id", host.hostId)
+    .maybeSingle();
+
+  const everTrialed = existing?.trial_ends_at != null;
+  const fromPaid = existing ? !(await getPlan(existing.plan))?.isFree : false;
+  const trialEligible = !fromPaid && !everTrialed && planDef.trialDays > 0;
+
+  // Trial start (no charge) or billing not wired yet → state-only switch.
+  if (trialEligible || !isPlatformBillingConfigured()) {
+    return switchPlanAction({ plan: input.plan, cycle: input.cycle });
+  }
+
+  // A charge is due now → Paystack checkout (platform key).
+  const res = await startSubscriptionCheckout({
+    hostId: host.hostId,
+    planKey: input.plan,
+    cycle: input.cycle,
+  });
+  if (!res.ok) return { ok: false, error: res.error };
+  return { ok: true, redirectUrl: res.authorizationUrl };
 }
 
 const cancelSchema = z.object({
