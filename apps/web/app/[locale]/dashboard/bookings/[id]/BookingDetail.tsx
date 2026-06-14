@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Clock,
   CreditCard,
+  DoorClosed,
   DoorOpen,
   ExternalLink,
   KeyRound,
@@ -30,6 +31,7 @@ import {
   UserRound,
   Users,
   Wifi,
+  X,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -41,14 +43,24 @@ import {
   type MessageItem,
   type TemplateItem,
 } from "@/components/messages/GuestMessagesPanel";
+import { CancelBookingDialog } from "@/components/booking/CancelBookingDialog";
 import {
   FormModal,
   FormModalCancel,
   FormModalFooter,
 } from "@/components/ui/form-modal";
+import { modal } from "@/components/ui/modal-host";
 import type { Txn } from "@/lib/finance/transactions";
 import { formatMoney } from "@/lib/format";
 
+import {
+  cancelBookingAction,
+  checkInBookingAction,
+  checkOutBookingAction,
+  confirmBookingAction,
+  declineBookingAction,
+  previewCancelRefundAction,
+} from "../actions";
 import { BookingActions } from "./BookingActions";
 import { addBookingGuestAction } from "./guest-actions";
 import { InternalNotes } from "./InternalNotes";
@@ -291,6 +303,57 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const params = useSearchParams();
   const tab = params.get("tab") ?? "overview";
   const [moreOpen, setMoreOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [, startStatus] = useTransition();
+
+  // Lifecycle actions, also surfaced in the ⋮ menu. They call the SAME server
+  // actions as the main BookingActions buttons (one applyTransition / status
+  // trigger — the single source of truth), so a check-in/out/confirm/cancel here
+  // reflects on the guest record and everywhere else the booking appears. State +
+  // the cancel dialog live here (top level) so they survive the menu closing.
+  const ACTIONABLE = new Set([
+    "pending",
+    "confirmed",
+    "checked_in",
+    "pending_eft",
+    "pending_eft_review",
+  ]);
+  function runStatus(kind: "confirm" | "decline" | "checkIn" | "checkOut") {
+    setMoreOpen(false);
+    startStatus(async () => {
+      const map = {
+        confirm: confirmBookingAction,
+        decline: declineBookingAction,
+        checkIn: checkInBookingAction,
+        checkOut: checkOutBookingAction,
+      } as const;
+      const res = await map[kind](d.id);
+      if (res.ok) {
+        toast.success(
+          {
+            confirm: "Booking confirmed",
+            decline: "Booking declined",
+            checkIn: "Guest checked in",
+            checkOut: "Guest checked out",
+          }[kind],
+        );
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+  function askDecline() {
+    setMoreOpen(false);
+    void modal
+      .destructive({
+        title: "Decline this booking?",
+        description: "The guest will be notified and it can't be undone.",
+        confirmLabel: "Decline",
+      })
+      .then((ok) => {
+        if (ok) runStatus("decline");
+      });
+  }
 
   const setTab = (t: string) => {
     const next = new URLSearchParams(params.toString());
@@ -445,6 +508,57 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                   </button>
                   {moreOpen ? (
                     <div className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[220px] rounded-xl border border-brand-line bg-white p-1.5 shadow-lift">
+                      {ACTIONABLE.has(d.status) ? (
+                        <>
+                          {d.status === "pending" ? (
+                            <>
+                              <button
+                                onMouseDown={() => runStatus("confirm")}
+                                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                              >
+                                <Check className="h-4 w-4 text-brand-primary" />{" "}
+                                Confirm booking
+                              </button>
+                              <button
+                                onMouseDown={askDecline}
+                                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-status-cancelled hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" /> Decline
+                              </button>
+                            </>
+                          ) : null}
+                          {d.status === "confirmed" ? (
+                            <button
+                              onMouseDown={() => runStatus("checkIn")}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                            >
+                              <DoorOpen className="h-4 w-4 text-brand-mute" />{" "}
+                              Mark check-in
+                            </button>
+                          ) : null}
+                          {d.status === "checked_in" ? (
+                            <button
+                              onMouseDown={() => runStatus("checkOut")}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                            >
+                              <DoorClosed className="h-4 w-4 text-brand-mute" />{" "}
+                              Mark check-out
+                            </button>
+                          ) : null}
+                          {d.status !== "pending" ? (
+                            <button
+                              onMouseDown={() => {
+                                setMoreOpen(false);
+                                setCancelOpen(true);
+                              }}
+                              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-status-cancelled hover:bg-red-50"
+                            >
+                              <X className="h-4 w-4" /> Cancel booking
+                            </button>
+                          ) : null}
+                          <div className="my-1 h-px bg-brand-line" />
+                        </>
+                      ) : null}
                       {d.listingSlug ? (
                         <a
                           href={`/listing/${d.listingSlug}`}
@@ -487,6 +601,15 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                   ) : null}
                 </div>
               </div>
+              <CancelBookingDialog
+                open={cancelOpen}
+                onOpenChange={setCancelOpen}
+                bookingId={d.id}
+                currency={d.currency}
+                audience="host"
+                loadPreview={previewCancelRefundAction}
+                onConfirm={(reason) => cancelBookingAction(d.id, reason)}
+              />
               <BookingBalanceLine
                 balanceDue={d.balanceDue}
                 amountPaid={d.amountPaid}
