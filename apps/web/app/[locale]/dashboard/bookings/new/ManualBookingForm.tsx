@@ -504,7 +504,7 @@ export function ManualBookingForm({
   }
 
   return (
-    <div className="mx-auto max-w-[820px] pb-4">
+    <div className="w-full">
       <ProgressSteps current={step} onGo={goTo} />
 
       <div className="mt-7">

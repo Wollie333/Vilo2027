@@ -14,7 +14,7 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-[1140px] px-1 py-1">
+    <div className="w-full">
       {/* White profile header + stat band, then horizontal underline tabs
           (matches the Settings design). */}
       <SettingsProfileHeader />

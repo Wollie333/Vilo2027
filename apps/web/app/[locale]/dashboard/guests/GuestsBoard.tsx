@@ -368,7 +368,7 @@ export function GuestsBoard({
   }
 
   return (
-    <div className="mx-auto max-w-[1180px] px-4 py-6 lg:px-6">
+    <div className="w-full">
       {/* ── Page header ── */}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>

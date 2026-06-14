@@ -310,7 +310,7 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1040px] px-4 py-5 lg:px-6">
+    <div className="w-full">
       {/* sub-header */}
       <div className="mb-5 flex items-center gap-3">
         <Link

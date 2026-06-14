@@ -320,7 +320,7 @@ export default async function PaymentDetailPage({
     "text-[10px] font-bold uppercase tracking-[0.1em] text-brand-mute";
 
   return (
-    <div className="mx-auto max-w-[1200px]">
+    <div className="w-full">
       {/* Breadcrumb */}
       <div className="mb-5 flex items-center gap-2 text-[12.5px]">
         <Link

@@ -593,7 +593,7 @@ export default async function PortalTripDetailPage({
     }));
 
   return (
-    <div className="mx-auto max-w-[1120px]">
+    <div className="w-full">
       {/* ===== IN-CONTENT HEADER ===== */}
       <div className="flex flex-wrap items-center gap-3">
         <Link

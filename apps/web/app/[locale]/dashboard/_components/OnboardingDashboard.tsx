@@ -46,7 +46,7 @@ export function OnboardingDashboard({
   const offset = RING * (1 - pct / 100);
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="w-full">
       {/* sub-header */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div>

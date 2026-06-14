@@ -115,7 +115,7 @@ export function LedgerBoard({
   }, [live, voidedEntries, filter, guest, search]);
 
   return (
-    <div className="mx-auto max-w-[1180px] px-4 py-6 lg:px-6">
+    <div className="w-full">
       <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-brand-secondary text-white">
           <ScrollText className="h-5 w-5" />

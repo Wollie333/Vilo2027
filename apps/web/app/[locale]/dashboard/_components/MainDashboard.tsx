@@ -120,7 +120,7 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
   const area = line ? `${line} L700,170 L0,170 Z` : "";
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="w-full">
       {/* sub-header */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div>
