@@ -214,7 +214,7 @@ async function wrap(fn: () => Promise<unknown>): Promise<Res> {
   }
 }
 
-export function updateUserProfile(input: {
+export async function updateUserProfile(input: {
   userId: string;
   fullName?: string | null;
   phone?: string | null;
@@ -222,7 +222,7 @@ export function updateUserProfile(input: {
   return wrap(() => updateUserProfileAction(input));
 }
 
-export function changeUserRole(input: {
+export async function changeUserRole(input: {
   userId: string;
   role: "guest" | "host" | "staff" | "super_admin";
   reason: string;
@@ -230,11 +230,17 @@ export function changeUserRole(input: {
   return wrap(() => changeUserRoleAction(input));
 }
 
-export function softDeleteUser(input: { userId: string; reason: string }) {
+export async function softDeleteUser(input: {
+  userId: string;
+  reason: string;
+}) {
   return wrap(() => softDeleteUserAction(input));
 }
 
-export function addAdminUserNote(input: { userId: string; body: string }) {
+export async function addAdminUserNote(input: {
+  userId: string;
+  body: string;
+}) {
   return wrap(() => addAdminUserNoteAction(input));
 }
 

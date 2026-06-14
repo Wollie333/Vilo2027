@@ -5,6 +5,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+
+type UserRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  phone: string | null;
+  is_active: boolean | null;
+  created_at: string;
+  deleted_at: string | null;
+};
+
 export const dynamic = "force-dynamic";
 
 type SearchParams = { q?: string; role?: string };
@@ -50,6 +63,57 @@ export default async function AdminUsersPage({
     query,
     "admin/users",
   );
+
+  const list = (rows as UserRow[] | null) ?? [];
+
+  const columns: AdminColumn<UserRow>[] = [
+    {
+      header: "User",
+      cell: (u) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
+            <User className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="truncate font-medium text-brand-ink">
+                {u.full_name || "—"}
+              </span>
+              {!u.is_active ? (
+                <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
+                  Suspended
+                </span>
+              ) : null}
+            </div>
+            <div className="truncate font-mono text-[11px] text-brand-mute">
+              {u.email}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    { header: "Role", cell: (u) => <RolePill role={u.role} /> },
+    {
+      header: "Joined",
+      cell: (u) => (
+        <span className="text-[12px] text-brand-mute">
+          {new Date(u.created_at).toLocaleDateString("en-ZA")}
+        </span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (u) => (
+        <Link
+          href={`/admin/users/${u.id}`}
+          className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+        >
+          Open
+        </Link>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -110,51 +174,12 @@ export default async function AdminUsersPage({
         ) : null}
       </form>
 
-      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {rows && rows.length > 0 ? (
-          <ul className="divide-y divide-brand-line">
-            {rows.map((u) => (
-              <li
-                key={u.id}
-                className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-light/50"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent text-brand-primary">
-                  <User className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium text-brand-ink">
-                      {u.full_name || "—"}
-                    </span>
-                    <RolePill role={u.role} />
-                    {!u.is_active ? (
-                      <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
-                        Suspended
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="truncate font-mono text-[11px] text-brand-mute">
-                    {u.email}
-                  </div>
-                </div>
-                <div className="hidden text-[11px] text-brand-mute sm:block">
-                  Joined {new Date(u.created_at).toLocaleDateString("en-ZA")}
-                </div>
-                <Link
-                  href={`/admin/users/${u.id}`}
-                  className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-                >
-                  Open
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No users match this search.
-          </p>
-        )}
-      </div>
+      <AdminTable
+        columns={columns}
+        rows={list}
+        getKey={(u) => u.id}
+        empty="No users match this search."
+      />
 
       {count != null && count > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">
