@@ -289,27 +289,20 @@ export default async function GuestRecordPage({
         })
       : [];
 
-  // Businesses this guest has engaged (from their bookings' listings) — drives
-  // the Finances-tab business filter. Only meaningful when there's more than one.
-  const guestBusinessIds = [
-    ...new Set(
-      bookingsRaw
-        .map((b) => b.listing?.business_id ?? null)
-        .filter((x): x is string => Boolean(x)),
-    ),
-  ];
-  let guestBusinesses: { id: string; name: string }[] = [];
-  if (guestBusinessIds.length > 0) {
-    const { data: bizRows } = await supabase
-      .from("businesses")
-      .select("id, trading_name, legal_name")
-      .in("id", guestBusinessIds);
-    guestBusinesses = (bizRows ?? []).map((b) => ({
-      id: b.id as string,
-      name: (b.trading_name || b.legal_name || "Business") as string,
-    }));
-  }
-  // Validate the requested business is one this guest engaged; else "all".
+  // The host's businesses drive the Finances-tab filter — shown whenever the
+  // host has more than one, mirroring the account-wide Ledger (so the control is
+  // present even before listings are spread across businesses). Default first.
+  const { data: bizRows } = await supabase
+    .from("businesses")
+    .select("id, trading_name, legal_name")
+    .eq("host_id", host.id)
+    .eq("is_archived", false)
+    .order("is_default", { ascending: false });
+  const guestBusinesses = (bizRows ?? []).map((b) => ({
+    id: b.id as string,
+    name: (b.trading_name || b.legal_name || "Business") as string,
+  }));
+  // Validate the requested business belongs to this host; else "all".
   const selectedBusiness =
     guestBusinesses.find((b) => b.id === searchParams.business)?.id ?? null;
 
