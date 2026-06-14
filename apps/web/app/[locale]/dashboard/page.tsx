@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 
 import { getBrandName } from "@/lib/brand";
 import { fetchGettingStartedState } from "@/lib/help/queries";
+import { throwOnError, throwOnErrorWithCount } from "@/lib/supabase/query";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -175,72 +176,100 @@ export default async function DashboardPage({
   const today = isoDate(now);
   const ninetyAgo = isoDate(new Date(Date.now() - 90 * DAY));
 
+  // Wrapped in throwOnError so a broken embed / schema drift surfaces (server
+  // log + error boundary) instead of silently rendering zero KPIs.
   const [
-    { data: monthBookings },
-    { data: prevBookings },
-    { data: last90 },
-    { data: upcoming },
-    { data: convos },
-    { data: listings },
-    { count: pendingCount },
-    { count: unreadCount },
+    monthBookings,
+    prevBookings,
+    last90,
+    upcoming,
+    convos,
+    listings,
+    pending,
+    unread,
   ] = await Promise.all([
-    supabase
-      .from("bookings")
-      .select("id, total_amount, status, nights, listing_id")
-      .eq("host_id", host.id)
-      .gte("check_in", isoDate(monthStart))
-      .lte("check_in", isoDate(monthEnd)),
-    supabase
-      .from("bookings")
-      .select("total_amount, status")
-      .eq("host_id", host.id)
-      .gte("check_in", isoDate(prevStart))
-      .lte("check_in", isoDate(prevEnd)),
-    supabase
-      .from("bookings")
-      .select("total_amount, nights, status, check_in, created_at")
-      .eq("host_id", host.id)
-      .gte("check_in", ninetyAgo),
-    supabase
-      .from("bookings")
-      .select(
-        "id, check_in, check_out, nights, guests_count, total_amount, currency, status, guest_name, guest_email, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
-      )
-      .eq("host_id", host.id)
-      .in("status", ["confirmed", "checked_in"])
-      .gte("check_in", today)
-      .order("check_in", { ascending: true })
-      .limit(4),
-    supabase
-      .from("conversations")
-      .select(
-        "id, unread_host, last_message_at, last_message_preview, is_enquiry, guest:user_profiles!conversations_guest_id_fkey ( full_name, email )",
-      )
-      .eq("host_id", host.id)
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .limit(4),
-    supabase
-      .from("listings")
-      .select("id, name, city, max_guests, is_published")
-      .eq("host_id", host.id)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(4),
-    supabase
-      .from("bookings")
-      .select("id", { count: "exact", head: true })
-      .eq("host_id", host.id)
-      .eq("status", "pending"),
-    supabase
-      .from("conversations")
-      .select("id", { count: "exact", head: true })
-      .eq("host_id", host.id)
-      .gt("unread_host", 0),
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select("id, total_amount, currency, status, nights, listing_id")
+        .eq("host_id", host.id)
+        .gte("check_in", isoDate(monthStart))
+        .lte("check_in", isoDate(monthEnd)),
+      "dashboard/month-bookings",
+    ),
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select("total_amount, status")
+        .eq("host_id", host.id)
+        .gte("check_in", isoDate(prevStart))
+        .lte("check_in", isoDate(prevEnd)),
+      "dashboard/prev-bookings",
+    ),
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select("total_amount, nights, status, check_in, created_at")
+        .eq("host_id", host.id)
+        .gte("check_in", ninetyAgo),
+      "dashboard/last90",
+    ),
+    throwOnError(
+      supabase
+        .from("bookings")
+        .select(
+          "id, check_in, check_out, nights, guests_count, total_amount, currency, status, guest_name, guest_email, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+        )
+        .eq("host_id", host.id)
+        .in("status", ["confirmed", "checked_in"])
+        .gte("check_in", today)
+        .order("check_in", { ascending: true })
+        .limit(4),
+      "dashboard/upcoming",
+    ),
+    throwOnError(
+      supabase
+        .from("conversations")
+        .select(
+          "id, unread_host, last_message_at, last_message_preview, is_enquiry, guest:user_profiles!conversations_guest_id_fkey ( full_name, email )",
+        )
+        .eq("host_id", host.id)
+        .order("last_message_at", { ascending: false, nullsFirst: false })
+        .limit(4),
+      "dashboard/conversations",
+    ),
+    throwOnError(
+      supabase
+        .from("listings")
+        .select("id, name, city, max_guests, is_published")
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(4),
+      "dashboard/listings",
+    ),
+    throwOnErrorWithCount(
+      supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id)
+        .eq("status", "pending"),
+      "dashboard/pending-count",
+    ),
+    throwOnErrorWithCount(
+      supabase
+        .from("conversations")
+        .select("id", { count: "exact", head: true })
+        .eq("host_id", host.id)
+        .gt("unread_host", 0),
+      "dashboard/unread-count",
+    ),
   ]);
+  const pendingCount = pending.count;
+  const unreadCount = unread.count;
 
-  const currency =
-    (monthBookings ?? [])[0]?.total_amount != null ? "ZAR" : "ZAR";
+  // Host's display currency from their most recent booking this month.
+  const currency = monthBookings?.[0]?.currency ?? "ZAR";
 
   // KPIs.
   const confirmedMonth = (monthBookings ?? []).filter((b) =>

@@ -190,9 +190,35 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
   **Noted (deferred email system, not a code bug):** `inviteStaffAction` doesn't
   dispatch the email yet (host shares the copyable invite link from the page);
   wire when the notification/email worker goes live. **Founder live-check pending.**
-- [⬜] 21. Help center — `/dashboard/help/*`
-- [⬜] 22. Settings hub + Data/Privacy + Notification prefs — `/dashboard/settings`
-- [⬜] 23. Dashboard home KPIs — `/dashboard` (last — aggregates everything)
+- [✅] 21. Help center — `/dashboard/help/*`. Audited CLEAN: `body_html` rendered
+  through `lib/help/sanitize.ts` (sanitize-html whitelist, no script/style/handlers);
+  RLS + query filters keep drafts hidden; audience filter correct; search uses
+  parameterised `textSearch`; no `any`/logs. The old "aria-pressed on role=tab"
+  lint note was stale — `PopularArticles` already uses `aria-selected`. **Founder
+  live-check pending.**
+- [✅] 22. Settings hub + Data/Privacy + Notification prefs — `/dashboard/settings`.
+  Audited CLEAN on security: POPIA data-export + account-deletion + notification
+  prefs all auth-gated and user-scoped; deletion uses a typed-email confirm (no
+  `window.confirm`), blocks on active bookings/refunds + super-admin self-delete,
+  and the pre-MVP hard-delete via `app_purge_user_account()` is documented (→
+  soft-delete at launch). **POLISH (separate i18n sweep, not a hardening bug):**
+  the data + notification-prefs pages have hardcoded English strings. **Founder
+  live-check pending.**
+- [⚠️] 23. Dashboard home KPIs — `/dashboard`. Audited: host-scoped, FK-pinned,
+  force-dynamic, no `any`/logs; booking statuses use the canonical CONFIRMED set.
+  **FIXED:** wrapped all 8 KPI queries in `throwOnError`/`throwOnErrorWithCount`
+  (a broken embed now surfaces in logs + the error boundary instead of silently
+  rendering zero KPIs); fixed the tautological currency (`? "ZAR" : "ZAR"`) to read
+  the booking's actual `currency`. **Noted (definitional, not changed):** "Revenue"
+  is booked value (confirmed/checked_in/completed `total_amount`), the established
+  app revenue convention — the ledger/cash figure lives on Analytics' Cash-position
+  panel; occupancy ignores blocked dates; "commission saved" hardcodes 18% (OTA
+  avg). **Founder live-check pending.**
+
+> **Pass milestone:** all 23 host features (#1–#23) audited. Code fixes shipped;
+> founder live-checks (#1–#23) remain the only open item, plus the small documented
+> follow-ups (refund admin-override remnant, iCal `ical_export_token`, voided-refund
+> refunded_amount, notifications Realtime user_id filter, settings i18n).
 
 > Stubs (confirm placeholder only, not built out): `/dashboard/reports`, `/dashboard/channels`.
 
@@ -210,6 +236,12 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-14 (cont.)** — Audited the FINAL batch #21–#23 (parallel). #21 Help +
+  #22 Settings/Data/Privacy CLEAN (POPIA flows sound; i18n gaps noted). **Fixed #23
+  Dashboard home:** wrapped all 8 KPI queries in throwOnError (no more silent-zero
+  KPIs on a broken query) + fixed the tautological currency fallback. tsc + lint +
+  build green. **ALL 23 host features audited.** Remaining = founder live-checks +
+  the small documented follow-ups.
 - **2026-06-14 (cont.)** — Audited #17–#20 (parallel). #17 Inbox + #19 Reviews
   CLEAN (Reviews confirmed the avg_rating publish trigger works — old caveat
   resolved). **Fixes:** deleted dead `lib/notifications/enqueue.ts` (#18); fixed
