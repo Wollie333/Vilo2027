@@ -16,6 +16,7 @@ import {
   ExternalLink,
   KeyRound,
   Languages,
+  Link2,
   MailCheck,
   MapPin,
   MessageSquare,
@@ -62,6 +63,7 @@ import {
   previewCancelRefundAction,
 } from "../actions";
 import { BookingActions } from "./BookingActions";
+import { PaymentLinkCard } from "./PaymentLinkCard";
 import { addBookingGuestAction } from "./guest-actions";
 import { InternalNotes } from "./InternalNotes";
 import { IssueRefundButton } from "./IssueRefundButton";
@@ -307,6 +309,7 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const tab = params.get("tab") ?? "overview";
   const [moreOpen, setMoreOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [, startStatus] = useTransition();
 
   // Lifecycle actions, also surfaced in the ⋮ menu. They call the SAME server
@@ -571,8 +574,22 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                               <X className="h-4 w-4" /> Cancel booking
                             </button>
                           ) : null}
-                          <div className="my-1 h-px bg-brand-line" />
                         </>
+                      ) : null}
+                      {d.payLink ? (
+                        <button
+                          onMouseDown={() => {
+                            setMoreOpen(false);
+                            setPayOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] font-medium text-brand-ink hover:bg-brand-light"
+                        >
+                          <Link2 className="h-4 w-4 text-brand-mute" /> Send
+                          payment link
+                        </button>
+                      ) : null}
+                      {ACTIONABLE.has(d.status) || d.payLink ? (
+                        <div className="my-1 h-px bg-brand-line" />
                       ) : null}
                       {d.listingSlug ? (
                         <a
@@ -625,6 +642,26 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
                 loadPreview={previewCancelRefundAction}
                 onConfirm={(reason) => cancelBookingAction(d.id, reason)}
               />
+              {d.payLink ? (
+                <FormModal
+                  open={payOpen}
+                  onOpenChange={setPayOpen}
+                  size="md"
+                  title="Send payment link"
+                  description={`${formatMoney(d.balanceDue, d.currency)} due on ${d.payLink.reference}`}
+                >
+                  <PaymentLinkCard
+                    bookingId={d.id}
+                    url={d.payLink.url}
+                    reference={d.payLink.reference}
+                    listingName={d.payLink.listingName}
+                    amountLabel={formatMoney(d.balanceDue, d.currency)}
+                    guestName={d.payLink.guestName}
+                    guestEmail={d.payLink.guestEmail}
+                    guestPhone={d.payLink.guestPhone}
+                  />
+                </FormModal>
+              ) : null}
               <BookingBalanceLine
                 balanceDue={d.balanceDue}
                 amountPaid={d.amountPaid}
