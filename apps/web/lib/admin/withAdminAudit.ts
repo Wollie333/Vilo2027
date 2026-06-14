@@ -16,6 +16,8 @@ type AuditTargetType =
   | "listing"
   | "review"
   | "subscription"
+  | "plan"
+  | "plan_feature"
   | "feature_override"
   | "platform_setting"
   | "platform_staff"

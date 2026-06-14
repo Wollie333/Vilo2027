@@ -31,6 +31,29 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Feature-permission matrix + per-host overrides (P1.3) — branch `main`
+
+### Built
+- Replaced the `/admin/platform/features` placeholder with a full plans × features
+  **permission matrix** — toggle any feature per plan, set numeric caps on
+  `_limit`/`_seats` features (blank = unlimited). Saves a cell at a time
+  (optimistic, audited) via `upsertPlanFeatureAction`.
+- **Per-host override** creator — grant/revoke one feature for a single host
+  (resolved by email), with optional cap + expiry and a required reason; writes
+  `host_feature_overrides` (checked first by `check_feature_permission`).
+- Pre-MVP open-on-free warning banner so the founder knows toggles are stored but
+  not yet enforced (AGENT_RULES §3.4).
+
+### Changed
+- `withAdminAudit` target types extended with `plan` + `plan_feature`.
+
+### Notes
+- Admin-internal surface — English-only + no Help Centre article (consistent with
+  the rest of /admin). `tsc` + eslint green.
+
+### Commit
+- `feat(admin): feature-permission matrix + host overrides (P1.3)`
+
 ## 2026-06-14 — Super-Admin — DB-driven custom plans + pricing (Pillar 1 / P1.1) — branch `main`
 
 ### Built
