@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Unified Users hub + Guest-Record-style user record — branch `main`
+
+### Built
+- **One Users hub** — removed the separate "Hosts" sidebar item; `/admin/users`
+  is now the single home for every Vilo user (hosts + guests + staff), with role
+  pills + filter by name/type. Host pages still exist at their routes.
+- Rebuilt `/admin/users/[id]` to mirror the **host Guest Record** design (sticky
+  dossier + working column + RecordTabs), customised for super-admin management.
+  Tabs: Overview, Subscription, Bookings (as guest + as host), **Ledger**
+  (their booking ledger via the shared `LedgerList` + their Vilo account),
+  Listings, Business, Reviews (written + received), Relationships (travelled-with),
+  **Referrals** (placeholder for the coming referral graph), Support (data/privacy
+  requests), Activity log, Notes, Audit.
+- Dossier quick-actions: edit profile, change role, suspend/reinstate, soft-delete,
+  and **View as host** — all audited.
+
+### Changed
+- Collapsible sidebar groups (shipped earlier) + Hosts merged into Users.
+
+### Notes
+- **Design rule:** super-admin surfaces reuse the host dashboard component designs
+  (LedgerList, RecordTabs, dossier layout) — only data + permissions differ.
+- Full `next build` compiles clean (the async-server-action build break is fixed).
+
+### Commit
+- `feat(admin): unified users hub + guest-record-style user record`
+
 ## 2026-06-14 — Super-Admin — Business reporting dashboard (P4.2) — branch `main`
 
 ### Built

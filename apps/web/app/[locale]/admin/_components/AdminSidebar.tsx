@@ -22,7 +22,6 @@ import {
   Sparkles,
   Star,
   Users,
-  UsersRound,
   Video,
 } from "lucide-react";
 
@@ -35,8 +34,9 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 const OPERATIONS: GmailNavItem[] = [
   { href: "/admin", label: "Overview", icon: Gauge, match: "exact" },
+  // One unified Users hub — every Vilo user (hosts + guests + staff). The old
+  // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
-  { href: "/admin/hosts", label: "Hosts", icon: UsersRound, match: "prefix" },
   {
     href: "/admin/listings",
     label: "Listings",
