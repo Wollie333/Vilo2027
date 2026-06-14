@@ -11,6 +11,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  DoorClosed,
+  DoorOpen,
   Download,
   FileText,
   GitBranch,
@@ -50,6 +52,8 @@ export type BookingRow = {
   listingThumb: string | null;
   checkIn: string | null;
   checkOut: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
   nights: number | null;
   guestsCount: number;
   adults: number;
@@ -835,6 +839,26 @@ function guestsCell(r: BookingRow): { main: string; sub: string } {
   return { main, sub: extras.join(" · ") };
 }
 
+// Actual stay-event pill: shows the checkout timestamp once the guest is checked
+// out, else the check-in timestamp once checked in. Null before arrival.
+function stayPill(r: BookingRow): { label: string; tone: "in" | "out" } | null {
+  if (r.checkedOutAt)
+    return { label: `Checked out · ${fmtStamp(r.checkedOutAt)}`, tone: "out" };
+  if (r.checkedInAt)
+    return { label: `Checked in · ${fmtStamp(r.checkedInAt)}`, tone: "in" };
+  return null;
+}
+
+function fmtStamp(iso: string): string {
+  return new Date(iso).toLocaleString("en-ZA", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Johannesburg",
+  });
+}
+
 function datesCell(
   r: BookingRow,
   today: number,
@@ -977,9 +1001,27 @@ function BookingRowItem({
         <div className="text-[12.5px] font-semibold tabular-nums text-brand-ink">
           {dc.main}
         </div>
-        {!compact && dc.sub ? (
-          <div className="mt-0.5 text-[11px] text-brand-mute">{dc.sub}</div>
-        ) : null}
+        {(() => {
+          const pill = stayPill(row);
+          return pill ? (
+            <span
+              className={`mt-1 inline-flex items-center gap-1 rounded-pill px-1.5 py-0.5 text-[10px] font-semibold ${
+                pill.tone === "out"
+                  ? "bg-status-completed/10 text-status-completed"
+                  : "bg-sky-50 text-sky-700"
+              }`}
+            >
+              {pill.tone === "out" ? (
+                <DoorClosed className="h-3 w-3" />
+              ) : (
+                <DoorOpen className="h-3 w-3" />
+              )}
+              {pill.label}
+            </span>
+          ) : !compact && dc.sub ? (
+            <div className="mt-0.5 text-[11px] text-brand-mute">{dc.sub}</div>
+          ) : null;
+        })()}
       </div>
 
       {/* channel */}

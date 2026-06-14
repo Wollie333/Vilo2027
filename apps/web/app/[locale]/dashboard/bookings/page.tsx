@@ -60,6 +60,8 @@ type RawBooking = {
   guest_phone: string | null;
   check_in: string | null;
   check_out: string | null;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
   nights: number | null;
   guests_count: number;
   guests_breakdown: Record<string, unknown> | null;
@@ -92,7 +94,7 @@ export default async function BookingsListPage() {
         supabase
           .from("bookings")
           .select(
-            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, checked_in_at, checked_out_at, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
           )
           .eq("host_id", myHostId)
           .order("created_at", { ascending: false })
@@ -144,6 +146,8 @@ export default async function BookingsListPage() {
       listingThumb: thumb,
       checkIn: b.check_in,
       checkOut: b.check_out,
+      checkedInAt: b.checked_in_at,
+      checkedOutAt: b.checked_out_at,
       nights: b.nights,
       guestsCount: b.guests_count,
       adults: numOf(gb?.adults),
