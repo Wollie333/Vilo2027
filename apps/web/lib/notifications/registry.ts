@@ -476,15 +476,6 @@ export const NOTIFICATION_REGISTRY = {
     dedupeKey: (r) => `refund_override:${r.refund_id ?? r.booking_id}`,
   } satisfies EventBuilder<RefundRefs>,
 
-  refund_escalated_admin: {
-    category: "admin_broadcasts",
-    feature: "refund",
-    severity: "high",
-    emailTemplate: "refund_escalated_admin",
-    refKeys: ["refund_id"],
-    dedupeKey: (r) => `refund_escalated:${r.refund_id ?? r.booking_id}`,
-  } satisfies EventBuilder<RefundRefs>,
-
   // ─── Reviews
   review_request_guest: {
     category: "reviews",

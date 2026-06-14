@@ -67,11 +67,6 @@ export const EXPECTED_REFS: Record<string, RefSpec> = {
     required: ["refund_id"],
     optional: ["admin_note"],
   },
-  refund_escalated_admin: {
-    required: ["refund_id", "recipient_email"],
-    optional: ["escalation_note"],
-    note: "recipient_email must be set on the queue row (custom recipient type — admin alert mailbox).",
-  },
   eft_refund_sent_guest: {
     required: ["refund_id"],
     optional: ["host_note"],

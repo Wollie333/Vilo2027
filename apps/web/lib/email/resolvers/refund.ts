@@ -218,18 +218,6 @@ const refundAdminOverrideResolver: EmailResolver = async (refs, ctx) => {
   };
 };
 
-const refundEscalatedAdminResolver: EmailResolver = async (refs, ctx) => {
-  const refundId = refId(refs, "refund_id");
-  if (!refundId) return {};
-  const bundle = await loadRefundBundle(ctx.supabase, refundId);
-  if (!bundle) return {};
-  return {
-    ...commonRefundProps(bundle),
-    escalationNote:
-      typeof refs.escalation_note === "string" ? refs.escalation_note : "",
-  };
-};
-
 const eftRefundSentResolver: EmailResolver = async (refs, ctx) => {
   const refundId = refId(refs, "refund_id");
   if (!refundId) return {};
@@ -251,6 +239,5 @@ export const REFUND_RESOLVERS: Record<string, EmailResolver> = {
   refund_declined_guest: refundDeclinedGuestResolver,
   refund_completed_guest: baseRefundResolver,
   refund_admin_override_host: refundAdminOverrideResolver,
-  refund_escalated_admin: refundEscalatedAdminResolver,
   eft_refund_sent_guest: eftRefundSentResolver,
 };

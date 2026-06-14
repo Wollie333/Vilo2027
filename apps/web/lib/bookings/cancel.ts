@@ -128,7 +128,7 @@ export async function finalizeCancellation(
         .from("refund_requests")
         .select("id")
         .eq("booking_id", booking.id)
-        .in("status", ["pending", "approved", "processing", "escalated"])
+        .in("status", ["pending", "approved", "processing"])
         .maybeSingle();
 
       if (!open) {

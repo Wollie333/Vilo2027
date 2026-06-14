@@ -1158,7 +1158,7 @@ function financeStatusCls(status: string): string {
   const s = status.toLowerCase();
   if (["paid", "issued", "accepted", "completed", "approved"].includes(s))
     return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  if (["pending", "sent", "draft", "negotiating", "escalated"].includes(s))
+  if (["pending", "sent", "draft", "negotiating"].includes(s))
     return "border-amber-200 bg-amber-50 text-amber-700";
   if (["declined", "cancelled", "void", "expired", "lost"].includes(s))
     return "border-red-200 bg-red-50 text-red-600";

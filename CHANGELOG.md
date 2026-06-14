@@ -31,6 +31,39 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Refunds — Remove refund escalation (direct-payment model) — branch `main`
+
+### Removed
+- **The entire refund "escalation / platform adjudication" concept.** Vilo never
+  holds or routes funds — bookings and refunds settle directly between host and
+  guest — so a platform escalation step is meaningless.
+- DB (`20260614000001_remove_refund_escalation.sql`): unscheduled the
+  `auto-escalate-refunds` cron, dropped the `escalated` partial index, removed
+  `escalated` from the `refund_requests.status` constraint. (Left `escalated_at`/
+  `escalation_note`/`admin_decision`/`admin_*` columns inert to avoid cascading
+  into the stats fn + status-history trigger — a later schema-tidy can drop them.)
+- Code: deleted the `RefundEscalatedAdmin` email template + its registry/resolver/
+  notification entries + admin email-preview fixtures; removed the "Escalated"
+  tab/label/style + actionable check from the refunds page; dropped `escalated`
+  from the active-refund status filters (portal trip refund, booking cancel, POPIA
+  data export) and the guest-record finance status colour.
+
+### Changed
+- Guest refund copy ("escalate to support afterwards") and the host
+  refund-request email ("respond within 72h or it's escalated to Vilo") now say
+  refunds are arranged directly between host and guest — no platform middleman.
+
+### Notes
+- Dormant remnant left for a follow-up: the `refund_admin_override_host`
+  email/notification + the `admin_decision` columns (admin-override path; no admin
+  dispute UI drives it). `disputed` status value retained (distinct, unused).
+- `pnpm build` + lint + tsc green.
+
+### Commit
+- `refactor(refunds): remove refund escalation (Vilo holds no funds)`
+
+---
+
 ## 2026-06-13 — Finance — Ledger ↔ multi-business: per-business filter (Phase 1 + Ledger) — branch `main`
 
 ### Built

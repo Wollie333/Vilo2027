@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
 import { requestRefundAction } from "./actions";
@@ -29,7 +28,6 @@ export function RequestRefundButton({
   currency: string;
 }) {
   const router = useRouter();
-  const brandName = useBrandName();
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number>(totalAmount);
   const [reason, setReason] = useState<string>(REASONS[0]);
@@ -86,8 +84,8 @@ export function RequestRefundButton({
         Request a refund
       </div>
       <p className="text-[12.5px] text-brand-mute">
-        Your host reviews refund requests directly. If they decline and you
-        disagree, you can escalate to {brandName} support afterwards.
+        Your host reviews and issues refunds directly — refunds are arranged
+        between you and your host.
       </p>
 
       <label className="block">

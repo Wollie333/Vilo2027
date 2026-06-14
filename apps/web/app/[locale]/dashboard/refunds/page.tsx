@@ -21,7 +21,7 @@ type SearchParams = {
 };
 
 const TAB_FILTERS: Record<Tab, string[] | null> = {
-  pending: ["pending", "escalated"],
+  pending: ["pending"],
   approved: ["approved", "processing", "completed"],
   declined: ["declined", "failed", "cancelled"],
   all: null,
@@ -35,7 +35,6 @@ const STATUS_LABELS: Record<string, string> = {
   declined: "Declined",
   failed: "Failed",
   cancelled: "Cancelled",
-  escalated: "Escalated",
   disputed: "Disputed",
 };
 
@@ -48,8 +47,6 @@ const REFUND_METHOD_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   pending: "bg-status-pending/10 text-status-pending border-status-pending/30",
-  escalated:
-    "bg-status-pending/10 text-status-pending border-status-pending/30",
   approved:
     "bg-status-confirmed/10 text-status-confirmed border-status-confirmed/30",
   processing: "bg-brand-accent text-brand-primary border-brand-primary/20",
@@ -277,8 +274,7 @@ export default async function RefundsPage({
                 ? booking.listing[0]
                 : booking.listing
               : null;
-            const isPending =
-              row.status === "pending" || row.status === "escalated";
+            const isPending = row.status === "pending";
             return (
               <article
                 key={row.id}

@@ -213,18 +213,6 @@ export const SAMPLE_PAYLOADS: Record<string, Record<string, unknown>> = {
     inviteToken: "preview-token-only",
     expiresAt: "7 days",
   },
-
-  refund_escalated_admin: {
-    recipient_email: "admin@viloplatform.com",
-    guestName: "Lerato N.",
-    hostName: "Amara M.",
-    listingName: "Sunbird Cottage, Hermanus",
-    bookingReference: "VILO-2026-AB1234",
-    requestedAmount: "R 2,400.00",
-    escalationNote:
-      "Guest disputes host's decline. Cites medical emergency with letter attached in inbox.",
-    refundId: "00000000-0000-0000-0000-000000000002",
-  },
 };
 
 export function getSamplePayload(type: string): Record<string, unknown> {

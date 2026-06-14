@@ -32,12 +32,9 @@ export default function RefundRequestHost({
   policyEntitlement = "—",
   reason = "",
   refundId = "",
-  responseDeadline = "72 hours",
 }: Props) {
   return (
-    <Layout
-      preview={`${guestName} requested a refund on ${bookingReference} — review within ${responseDeadline}.`}
-    >
+    <Layout preview={`${guestName} requested a refund on ${bookingReference}.`}>
       <Heading>You have a refund request</Heading>
       <Text>Hi {hostFirstName},</Text>
       <Text>
@@ -65,8 +62,8 @@ export default function RefundRequestHost({
       ) : null}
 
       <Text>
-        Please review and respond by <strong>{responseDeadline}</strong>.
-        Unresponded requests are escalated to the Vilo team automatically.
+        Please review and respond to {guestName} promptly. Refunds are arranged
+        directly between you and your guest.
       </Text>
 
       <Button href={`${APP_URL}/dashboard/refunds/${refundId}`}>

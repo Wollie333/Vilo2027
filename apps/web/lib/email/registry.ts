@@ -19,7 +19,6 @@ import {
   RefundApprovedGuest,
   RefundCompletedGuest,
   RefundDeclinedGuest,
-  RefundEscalatedAdmin,
   RefundRequestHost,
   ReviewRequestGuest,
   StaffInvite,
@@ -208,13 +207,6 @@ export const EMAIL_REGISTRY: Record<string, EmailRegistryEntry> = {
     recipient: "custom",
     subject: (p) =>
       `${str(p.hostName, "A host")} invited you to manage ${str(p.propertyName, "their property")} on ${str(p.brand_name, "Vilo")}`,
-  },
-
-  refund_escalated_admin: {
-    Template: RefundEscalatedAdmin as ComponentType<Record<string, unknown>>,
-    recipient: "custom",
-    subject: (p) =>
-      `[Admin] Refund dispute escalated — ${str(p.bookingReference, "")}`.trim(),
   },
 
   // Broadcast fan-out worker pre-fills payload.recipient_email per user

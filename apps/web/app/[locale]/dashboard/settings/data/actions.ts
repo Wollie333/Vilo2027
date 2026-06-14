@@ -171,7 +171,7 @@ export async function deleteAccountAction(input: {
       .from("refund_requests")
       .select("id", { count: "exact", head: true })
       .eq("host_id", hostId)
-      .in("status", ["pending", "processing", "escalated"]);
+      .in("status", ["pending", "processing"]);
     openRefunds = count ?? 0;
   }
 

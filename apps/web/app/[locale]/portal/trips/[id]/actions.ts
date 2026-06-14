@@ -82,7 +82,7 @@ export async function requestRefundAction(input: {
     .from("refund_requests")
     .select("id, status")
     .eq("booking_id", booking.id)
-    .in("status", ["pending", "approved", "processing", "escalated"])
+    .in("status", ["pending", "approved", "processing"])
     .maybeSingle();
 
   if (existing) {

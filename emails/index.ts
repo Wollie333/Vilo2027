@@ -16,7 +16,6 @@ export { default as RefundAdminOverrideHost } from "./templates/RefundAdminOverr
 export { default as RefundApprovedGuest } from "./templates/RefundApprovedGuest";
 export { default as RefundCompletedGuest } from "./templates/RefundCompletedGuest";
 export { default as RefundDeclinedGuest } from "./templates/RefundDeclinedGuest";
-export { default as RefundEscalatedAdmin } from "./templates/RefundEscalatedAdmin";
 export { default as RefundRequestHost } from "./templates/RefundRequestHost";
 export { default as ReviewRequestGuest } from "./templates/ReviewRequestGuest";
 export { default as StaffInvite } from "./templates/StaffInvite";
