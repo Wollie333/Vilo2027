@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 const TABS = [
   { href: "/admin/subscriptions", label: "Hosts", exact: true },
   { href: "/admin/subscriptions/plans", label: "Plans", exact: false },
+  { href: "/admin/subscriptions/revenue", label: "Revenue", exact: false },
 ] as const;
 
 // Tab strip across the admin subscription console. Active state derived from the

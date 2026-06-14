@@ -31,6 +31,33 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Vilo revenue ledger (Pillar 2 / P2.1–P2.3) — branch `main`
+
+### Built
+- New `platform_ledger` table — every **user→Vilo** transaction (subscription
+  charges, services, refunds, manual adjustments). Signed amounts; idempotent on
+  `provider_reference`; own-row RLS read for hosts; admin/webhook write via service
+  role. **Not** the booking ledger (host↔guest stays untouched).
+- `lib/billing/vilo-ledger.ts` read model — `fetchViloLedger` + `viloLedgerStats`
+  (collected/refunded/credits/net/pending), mirroring the host ledger engine.
+- Admin **Revenue** tab + page (`/admin/subscriptions/revenue`): KPI band (MRR,
+  ARR, Collected, Refunded, Net, paying hosts) + transaction list + a **manual
+  entry** form (goodwill credit / write-off / off-platform charge / correction),
+  audited. MRR derived from active paying subs × live plan prices.
+
+### Changed
+- `withAdminAudit` target types extended with `platform_ledger`.
+
+### Migrations
+- `20260614000030_platform_ledger.sql`
+
+### Notes
+- Auto-population lands with live billing (P1.5/P1.6); manual entries work now.
+  Embed + tables verified against the live DB. `tsc` + eslint green.
+
+### Commit
+- `feat(admin): Vilo revenue ledger (P2.1-P2.3)`
+
 ## 2026-06-14 — Super-Admin — Admin plan editor + console tabs (P1.7, part 1) — branch `main`
 
 ### Built

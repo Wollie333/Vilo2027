@@ -4986,6 +4986,117 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_ledger: {
+        Row: {
+          amount: number
+          billing_cycle: string | null
+          coupon_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          host_id: string | null
+          id: string
+          invoice_id: string | null
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          plan: string | null
+          provider: string | null
+          provider_reference: string | null
+          reason: string | null
+          service_id: string | null
+          status: string
+          subscription_id: string | null
+          type: string
+          user_id: string | null
+          vat_amount: number | null
+        }
+        Insert: {
+          amount: number
+          billing_cycle?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          host_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          reason?: string | null
+          service_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          type: string
+          user_id?: string | null
+          vat_amount?: number | null
+        }
+        Update: {
+          amount?: number
+          billing_cycle?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          host_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          plan?: string | null
+          provider?: string | null
+          provider_reference?: string | null
+          reason?: string | null
+          service_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          type?: string
+          user_id?: string | null
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_ledger_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "platform_ledger_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_settings: {
         Row: {
           description: string | null

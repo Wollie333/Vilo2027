@@ -18,6 +18,7 @@ type AuditTargetType =
   | "subscription"
   | "plan"
   | "plan_feature"
+  | "platform_ledger"
   | "feature_override"
   | "platform_setting"
   | "platform_staff"
