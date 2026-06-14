@@ -3,6 +3,9 @@ import { Link } from "@/i18n/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
+import { getAllPlans } from "@/lib/plans/getPlans";
+
+import { SubsTabs } from "./_SubsTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +13,6 @@ const PAGE_SIZE = 50;
 
 type SearchParams = { plan?: string; status?: string };
 
-const PLANS = ["all", "free", "basic", "pro", "business"] as const;
 const STATUSES = [
   "all",
   "active",
@@ -35,8 +37,13 @@ export default async function AdminSubscriptionsPage({
 }) {
   await requirePermission("subscriptions.edit");
 
-  const plan: (typeof PLANS)[number] = isOne(PLANS, searchParams?.plan)
-    ? (searchParams!.plan as (typeof PLANS)[number])
+  // Plan filter options come from the live catalog (custom plans included).
+  const allPlans = await getAllPlans();
+  const planKeys = ["all", ...allPlans.map((p) => p.key)];
+  const planNameByKey = new Map(allPlans.map((p) => [p.key, p.name]));
+
+  const plan: string = planKeys.includes(searchParams?.plan ?? "")
+    ? searchParams!.plan!
     : "all";
   const status: (typeof STATUSES)[number] = isOne(
     STATUSES,
@@ -70,16 +77,10 @@ export default async function AdminSubscriptionsPage({
   const { data: distRows } = await service
     .from("subscriptions")
     .select("plan, status");
-  const dist: Record<string, number> = {
-    free: 0,
-    basic: 0,
-    pro: 0,
-    business: 0,
-  };
+  const dist: Record<string, number> = {};
+  for (const p of allPlans) dist[p.key] = 0;
   for (const r of distRows ?? []) {
-    if (r.plan && dist[r.plan as string] != null) {
-      dist[r.plan as string]! += 1;
-    }
+    if (r.plan) dist[r.plan as string] = (dist[r.plan as string] ?? 0) + 1;
   }
 
   type Row = {
@@ -110,17 +111,19 @@ export default async function AdminSubscriptionsPage({
         </p>
       </header>
 
-      <section className="grid gap-3 sm:grid-cols-4">
-        {(["free", "basic", "pro", "business"] as const).map((p) => (
+      <SubsTabs />
+
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {allPlans.map((p) => (
           <div
-            key={p}
+            key={p.key}
             className="rounded-card border border-brand-line bg-white p-4 shadow-card"
           >
             <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-              {p}
+              {p.name}
             </div>
             <div className="num mt-1 font-display text-xl font-bold text-brand-ink">
-              {dist[p] ?? 0}
+              {dist[p.key] ?? 0}
             </div>
           </div>
         ))}
@@ -136,9 +139,9 @@ export default async function AdminSubscriptionsPage({
           defaultValue={plan}
           className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
         >
-          {PLANS.map((p) => (
+          {planKeys.map((p) => (
             <option key={p} value={p}>
-              {p === "all" ? "All plans" : p[0].toUpperCase() + p.slice(1)}
+              {p === "all" ? "All plans" : (planNameByKey.get(p) ?? p)}
             </option>
           ))}
         </select>

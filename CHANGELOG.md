@@ -31,6 +31,30 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — Admin plan editor + console tabs (P1.7, part 1) — branch `main`
+
+### Built
+- Tabbed admin subscription console (`Hosts | Plans`) via `_SubsTabs`.
+- **Plans editor** — `/admin/subscriptions/plans` (cards) + `…/plans/[key]`
+  (`new` to create). Name a plan, set tagline/description, monthly+annual price,
+  currency, trial days, free/paid, recommended, active, selling-point bullets and
+  sort order — applied live (busts the plans cache), no redeploy.
+- Actions: `upsertPlanAction` (writes `plans` + `plan_prices`),
+  `togglePlanActiveAction`, `deletePlanAction` (blocked while hosts are on the
+  plan) — all audited.
+
+### Changed
+- The Hosts subscriptions list now derives its plan distribution + filter options
+  from the live plan catalog (custom plans included), not a hardcoded 4-tier list.
+
+### Notes
+- Remaining for P1.7: paid platform Services (P1.2), subscription Coupons (P1.4),
+  per-host subscription management actions. Admin-internal (English-only).
+  `tsc` + eslint green.
+
+### Commit
+- `feat(admin): plan editor + subscription console tabs (P1.7)`
+
 ## 2026-06-14 — Super-Admin — Feature-permission matrix + per-host overrides (P1.3) — branch `main`
 
 ### Built
