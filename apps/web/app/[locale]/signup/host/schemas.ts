@@ -91,10 +91,13 @@ export const PLANS = [
     ],
   },
   {
+    // NOTE: display-only mirror of the DB plan catalog (see lib/plans/getPlans).
+    // Kept in sync manually until signup is fully DB-wired in P1.7. Prices must
+    // match the `plans`/`plan_prices` seed.
     value: "business" as const,
     name: "Business",
-    monthly: 999,
-    annual: 9990,
+    monthly: 1199,
+    annual: 11990,
     tag: null,
     blurb: "Teams, multi-property, exports.",
     features: [

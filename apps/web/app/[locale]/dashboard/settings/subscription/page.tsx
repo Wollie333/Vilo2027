@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
+import { getPlans } from "@/lib/plans/getPlans";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { CancelButton } from "./CancelButton";
@@ -85,7 +86,7 @@ export default async function SettingsSubscriptionPage() {
     );
   }
 
-  const [{ data: subRaw }, { data: historyRaw }] = await Promise.all([
+  const [{ data: subRaw }, { data: historyRaw }, plans] = await Promise.all([
     supabase
       .from("subscriptions")
       .select(
@@ -101,6 +102,7 @@ export default async function SettingsSubscriptionPage() {
       .eq("host_id", host.id)
       .order("created_at", { ascending: false })
       .limit(10),
+    getPlans(),
   ]);
 
   const sub = subRaw as {
@@ -118,7 +120,7 @@ export default async function SettingsSubscriptionPage() {
 
   const currentPlan: PlanKey = sub?.plan ?? "free";
   const currentCycle: "monthly" | "annual" | null = sub?.billing_cycle ?? null;
-  const planDef = findPlan(currentPlan);
+  const planDef = findPlan(plans, currentPlan);
   const now = new Date();
   const trialDaysLeft =
     sub?.status === "trialing" ? daysBetween(now, sub.trial_ends_at) : null;
@@ -214,7 +216,11 @@ export default async function SettingsSubscriptionPage() {
       </section>
 
       {/* ─── Plan picker ─────────────────────────────────────────── */}
-      <PlanPicker currentPlan={currentPlan} currentCycle={currentCycle} />
+      <PlanPicker
+        plans={plans}
+        currentPlan={currentPlan}
+        currentCycle={currentCycle}
+      />
 
       {/* ─── Audit feed ──────────────────────────────────────────── */}
       <section>

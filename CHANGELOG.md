@@ -31,6 +31,41 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-14 — Super-Admin — DB-driven custom plans + pricing (Pillar 1 / P1.1) — branch `main`
+
+### Built
+- New `plans` + `plan_prices` tables — the plan catalog (name, tagline, trial
+  days, free/paid, active, recommended, bullets, sort order) with one price row
+  per plan × billing cycle. Public read RLS for active plans; admin writes via
+  service role. Seeded the four current plans.
+- `apps/web/lib/plans/getPlans.ts` — single source of truth for the catalog
+  (`getPlans` cached + tagged `"plans"`, `getAllPlans`, `getPlan`). Pricing is no
+  longer hardcoded; the admin will edit it with no redeploy (P1.7).
+
+### Changed
+- `subscription/plans.ts` reduced to shared types + `formatZar` (data removed).
+  `PlanKey` relaxed to `string` so custom plan keys are allowed.
+- Subscription page + `PlanPicker` now read plans from the DB (PlanPicker takes a
+  `plans` prop); `SettingsProfileHeader` resolves the plan name via `getPlan`.
+- `switchPlanAction` validates the plan against the live catalog and reads trial
+  length per-plan (no more hardcoded 14-day / 4-tier enum) — forward-compatible
+  with custom plans.
+- Replaced the hardcoded `plan IN (...)` CHECKs on `subscriptions`/`plan_features`
+  with FKs to `plans(key)` (ON UPDATE CASCADE). Fixed the signup Business price
+  divergence (999 → 1199) to match the canonical seed.
+
+### Migrations
+- `20260614000020_plans_and_pricing.sql`
+
+### Notes
+- Part of the deep Super-Admin portal build (plan: rustling-doodling-rainbow).
+  Next: P1.3 feature-permission matrix, then P1.7 admin plan/console UI.
+- `tsc --noEmit` + eslint green on changed files. Migration applied to remote;
+  types regenerated.
+
+### Commit
+- `feat(admin): DB-driven custom plans + pricing (P1.1)`
+
 ## 2026-06-14 — Payments — Per-business payment gateways (Phases 4–5) — branch `main`
 
 ### Built

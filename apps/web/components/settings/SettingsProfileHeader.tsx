@@ -1,7 +1,7 @@
 import { BadgeCheck, ExternalLink, Mail, ShieldCheck } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 
-import { findPlan } from "@/app/[locale]/dashboard/settings/subscription/plans";
+import { getPlan } from "@/lib/plans/getPlans";
 import { createServerClient } from "@/lib/supabase/server";
 
 // White profile header + stat band shown above every Settings tab (matches the
@@ -55,7 +55,7 @@ export async function SettingsProfileHeader() {
   const name = host?.display_name || profile?.full_name || "Your account";
   const email = profile?.email || user.email || "";
   const avatarUrl = profile?.avatar_url || host?.avatar_url || "";
-  const planName = findPlan(sub?.plan ?? "free")?.name ?? "Free";
+  const planName = (await getPlan(sub?.plan ?? "free"))?.name ?? "Free";
   const memberSince = host?.created_at
     ? new Date(host.created_at).getFullYear()
     : new Date(user.created_at).getFullYear();

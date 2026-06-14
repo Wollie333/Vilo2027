@@ -4879,6 +4879,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "plan_features_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["key"]
+          },
+          {
             foreignKeyName: "plan_features_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
@@ -4886,6 +4893,98 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plan_prices: {
+        Row: {
+          billing_cycle: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          plan: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          billing_cycle: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          plan: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          plan?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_prices_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          bullets: Json
+          created_at: string
+          currency: string
+          description: string | null
+          is_active: boolean
+          is_free: boolean
+          is_recommended: boolean
+          key: string
+          name: string
+          sort_order: number
+          tagline: string | null
+          trial_days: number
+          updated_at: string
+          vat_inclusive: boolean
+        }
+        Insert: {
+          bullets?: Json
+          created_at?: string
+          currency?: string
+          description?: string | null
+          is_active?: boolean
+          is_free?: boolean
+          is_recommended?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          tagline?: string | null
+          trial_days?: number
+          updated_at?: string
+          vat_inclusive?: boolean
+        }
+        Update: {
+          bullets?: Json
+          created_at?: string
+          currency?: string
+          description?: string | null
+          is_active?: boolean
+          is_free?: boolean
+          is_recommended?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          tagline?: string | null
+          trial_days?: number
+          updated_at?: string
+          vat_inclusive?: boolean
+        }
+        Relationships: []
       }
       platform_settings: {
         Row: {
@@ -6667,6 +6766,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "hosts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_fkey"
+            columns: ["plan"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["key"]
           },
         ]
       }

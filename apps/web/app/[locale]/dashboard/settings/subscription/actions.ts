@@ -4,19 +4,19 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requireHost as getMyHostId } from "@/lib/host/current";
+import { getPlan } from "@/lib/plans/getPlans";
 import { createServerClient } from "@/lib/supabase/server";
 
-const PLAN_VALUES = ["free", "basic", "pro", "business"] as const;
 const CYCLE_VALUES = ["monthly", "annual"] as const;
 
+// Plan key is validated against the DB catalog (custom plans allowed), not a
+// fixed enum — so the admin can add/rename plans without code changes.
 const switchPlanSchema = z.object({
-  plan: z.enum(PLAN_VALUES),
+  plan: z.string().min(1).max(60),
   cycle: z.enum(CYCLE_VALUES).nullable(),
 });
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-
-const TRIAL_DAYS = 14;
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -40,14 +40,22 @@ function addMonths(date: Date, months: number): Date {
  * gates.
  */
 export async function switchPlanAction(input: {
-  plan: (typeof PLAN_VALUES)[number];
+  plan: string;
   cycle: "monthly" | "annual" | null;
 }): Promise<ActionResult> {
   const parsed = switchPlanSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid plan." };
   const { plan, cycle } = parsed.data;
 
-  if (plan !== "free" && !cycle) {
+  // Validate the plan against the live DB catalog.
+  const planDef = await getPlan(plan);
+  if (!planDef || !planDef.isActive) {
+    return { ok: false, error: "That plan isn't available." };
+  }
+  const isFree = planDef.isFree;
+  const trialDays = planDef.trialDays;
+
+  if (!isFree && !cycle) {
     return { ok: false, error: "Paid plans need a billing cycle." };
   }
 
@@ -74,17 +82,18 @@ export async function switchPlanAction(input: {
 
   if (!existing) {
     // No sub on file — create one. Free starts active; paid starts trialing
-    // for 14 days.
-    const trialEnds = plan === "free" ? null : addDays(now, TRIAL_DAYS);
+    // for the plan's trial length.
+    const trialEnds = isFree || trialDays <= 0 ? null : addDays(now, trialDays);
     const { error } = await supabase.from("subscriptions").insert({
       host_id: host.hostId,
       plan,
       billing_cycle: cycle,
-      status: plan === "free" ? "active" : "trialing",
+      status: isFree ? "active" : trialEnds ? "trialing" : "active",
       trial_ends_at: trialEnds?.toISOString() ?? null,
       current_period_start: now.toISOString(),
-      current_period_end:
-        plan === "free" ? null : (trialEnds ?? newPeriodEnd(now)).toISOString(),
+      current_period_end: isFree
+        ? null
+        : (trialEnds ?? newPeriodEnd(now)).toISOString(),
     });
     if (error) return { ok: false, error: error.message };
     revalidatePath("/dashboard/settings/subscription");
@@ -93,8 +102,8 @@ export async function switchPlanAction(input: {
 
   // Updating an existing sub.
   const everTrialed = existing.trial_ends_at != null;
-  const goingPaid = plan !== "free";
-  const fromPaid = existing.plan !== "free";
+  const goingPaid = !isFree;
+  const fromPaid = !(await getPlan(existing.plan))?.isFree;
 
   let status: string;
   let trialEnds: string | null = existing.trial_ends_at;
@@ -111,9 +120,9 @@ export async function switchPlanAction(input: {
     trialEnds = null;
     periodStart = null;
     periodEnd = null;
-  } else if (!fromPaid && !everTrialed) {
+  } else if (!fromPaid && !everTrialed && trialDays > 0) {
     // First-ever paid switch — start the trial.
-    const tEnds = addDays(now, TRIAL_DAYS);
+    const tEnds = addDays(now, trialDays);
     status = "trialing";
     trialEnds = tEnds.toISOString();
     periodStart = now.toISOString();
@@ -166,8 +175,8 @@ export async function cancelSubscriptionAction(input: {
     .eq("host_id", host.hostId)
     .maybeSingle();
   if (!existing) return { ok: false, error: "No active subscription." };
-  if (existing.plan === "free") {
-    return { ok: false, error: "You're already on the free plan." };
+  if ((await getPlan(existing.plan))?.isFree) {
+    return { ok: false, error: "You're already on a free plan." };
   }
 
   const { error } = await supabase

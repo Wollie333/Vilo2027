@@ -8,14 +8,15 @@ import { toast } from "sonner";
 import { useBrandName } from "@/components/brand/BrandProvider";
 
 import { switchPlanAction } from "./actions";
-import { PLANS, formatZar, type PlanKey } from "./plans";
+import { formatZar, type PlanDef, type PlanKey } from "./plans";
 
 type Props = {
+  plans: ReadonlyArray<PlanDef>;
   currentPlan: PlanKey;
   currentCycle: "monthly" | "annual" | null;
 };
 
-export function PlanPicker({ currentPlan, currentCycle }: Props) {
+export function PlanPicker({ plans, currentPlan, currentCycle }: Props) {
   const router = useRouter();
   const brandName = useBrandName();
   const [cycle, setCycle] = useState<"monthly" | "annual">(
@@ -24,23 +25,26 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
   const [pendingPlan, setPendingPlan] = useState<PlanKey | null>(null);
   const [pending, start] = useTransition();
 
-  function switchTo(plan: PlanKey) {
-    if (plan === currentPlan && cycle === currentCycle) {
+  const currentIsFree =
+    plans.find((p) => p.key === currentPlan)?.isFree ?? true;
+
+  function switchTo(plan: PlanDef) {
+    if (plan.key === currentPlan && (plan.isFree || cycle === currentCycle)) {
       toast.info("Already on this plan.");
       return;
     }
-    setPendingPlan(plan);
+    setPendingPlan(plan.key);
     start(async () => {
       const result = await switchPlanAction({
-        plan,
-        cycle: plan === "free" ? null : cycle,
+        plan: plan.key,
+        cycle: plan.isFree ? null : cycle,
       });
       setPendingPlan(null);
       if (result.ok) {
         toast.success(
-          plan === "free"
-            ? "Switched to the Free plan."
-            : `Switched to ${plan[0].toUpperCase() + plan.slice(1)} (${cycle}).`,
+          plan.isFree
+            ? `Switched to ${plan.name}.`
+            : `Switched to ${plan.name} (${cycle}).`,
         );
         router.refresh();
       } else {
@@ -99,10 +103,9 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {PLANS.map((plan) => {
+        {plans.map((plan) => {
           const isCurrent =
-            plan.key === currentPlan &&
-            (plan.key === "free" || cycle === currentCycle);
+            plan.key === currentPlan && (plan.isFree || cycle === currentCycle);
           const showMonthly =
             cycle === "monthly" ? plan.monthly : Math.round(plan.annual / 12);
           const showAnnual = plan.annual;
@@ -132,7 +135,7 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
               </p>
 
               <div className="mt-4">
-                {plan.key === "free" ? (
+                {plan.isFree ? (
                   <div className="font-display text-2xl font-bold text-brand-ink">
                     Free
                   </div>
@@ -169,7 +172,7 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
 
               <button
                 type="button"
-                onClick={() => switchTo(plan.key)}
+                onClick={() => switchTo(plan)}
                 disabled={isCurrent || pending}
                 className={`mt-5 inline-flex items-center justify-center gap-2 rounded px-3 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   plan.recommended
@@ -182,9 +185,9 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
                 ) : null}
                 {isCurrent
                   ? "Current plan"
-                  : plan.key === "free"
-                    ? "Downgrade to Free"
-                    : currentPlan === "free"
+                  : plan.isFree
+                    ? `Downgrade to ${plan.name}`
+                    : currentIsFree
                       ? `Start ${plan.name} trial`
                       : `Switch to ${plan.name}`}
               </button>
@@ -194,7 +197,7 @@ export function PlanPicker({ currentPlan, currentCycle }: Props) {
       </div>
 
       <p className="text-[12px] text-brand-mute">
-        Switching is instant. Paid plans get a 14-day trial when you upgrade
+        Switching is instant. Paid plans include a free trial when you upgrade
         from Free. Real card billing connects when the Paystack and PayPal
         webhooks go live — until then your plan record is the source of truth
         for feature gates.
