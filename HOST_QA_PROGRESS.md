@@ -186,6 +186,21 @@ Status: ⬜ not started · 🟦 in progress · ✅ done · ⚠️ done w/ caveat
 - `pnpm build` → not yet run.
 
 ## Activity log (latest first)
+- **2026-06-14 (follow-ups, walked through with founder)** — Fixed the three
+  documented items. (1) Refund email resolver now reads `refund_requests` (was a
+  non-existent `refunds` table) with requested/approved amount mapping. (2)
+  Refund approve/decline aligned to RLS (`pending`/`failed`); dropped the moot
+  `escalated` branch — **clarified: Vilo never holds funds (direct host↔guest
+  payments/refunds), so platform escalation/adjudication is meaningless.** Fuller
+  escalation removal (guest-escalate flow, admin dispute queue,
+  `refund_escalated_admin` email, refunds page.tsx tab, status enum) is a tracked
+  follow-up. (3) iCal `secret()` now requires `ICAL_TOKEN_SECRET` (no service-role
+  fallback); documented in ENV_VARS.md; founder set it in Doppler dev + local.
+  All green (tsc + eslint + build). **Remaining iCal caveat:** per-listing
+  `ical_export_token` column vs AGENT_RULES §2.6 (per-feed rotation) — deferred.
+  **Refund caveat still open:** voiding a completed refund doesn't reverse
+  `payments.refunded_amount`. **NEXT: founder live-checks #9–#16; then audit #17
+  Inbox / #18 Notifications / #19 Reviews / #20 Staff.**
 - **2026-06-14 (cont.)** — Audited the finance batch #13–#16 (parallel). #16 Invoices
   CLEAN; #13 Quotes clean (timing-safe-token noted, not a real-world risk). **Fixes:**
   deleted the leftover `/debug-analytics` page (#14 — leaked service-role key length
