@@ -34,7 +34,8 @@ export async function respondSupportAccessAction(input: {
       ? {
           status: "approved" as const,
           decided_at: now.toISOString(),
-          expires_at: new Date(now.getTime() + 72 * 3_600_000).toISOString(),
+          // 24-hour support window — auto-expires; host must re-grant after.
+          expires_at: new Date(now.getTime() + 24 * 3_600_000).toISOString(),
         }
       : parsed.data.action === "decline"
         ? { status: "declined" as const, decided_at: now.toISOString() }

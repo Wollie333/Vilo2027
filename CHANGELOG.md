@@ -31,6 +31,24 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — 24h support window + transparent activity log — branch `main`
+
+### Changed
+- Support-access window is now **24 hours** (was 72h) — auto-expires; host must
+  re-grant.
+- Merged the user-record **Audit tab into Activity** — one transparent timeline.
+  It now records the support-permission lifecycle (who requested + when, the
+  host's decision + when, validity) alongside every admin action (with actor +
+  acting-as flag) and the user's own activity. Governance rule recorded: staff
+  need in-app consent before editing sensitive data.
+
+### Migrations
+- `20260615000003_subscription_paused_status.sql` (adds `paused`/on-hold status,
+  used by upcoming manual subscription management).
+
+### Commit
+- `feat(admin): 24h support window + unified activity audit log`
+
 ## 2026-06-15 — Super-Admin — Host-consent support access (edit gate) — branch `main`
 
 ### Built

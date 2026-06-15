@@ -96,7 +96,9 @@ export default async function AdminUserDetailPage({
       .limit(50),
     service
       .from("admin_audit_log")
-      .select("id, action, created_at, impersonating")
+      .select(
+        "id, action, created_at, impersonating, actor:user_profiles!admin_id ( full_name )",
+      )
       .or(`target_id.eq.${user.id},impersonating.eq.${user.id}`)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -215,9 +217,29 @@ export default async function AdminUserDetailPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Host-consent support grant (gates admin editing of the host's financials).
+  // Host-consent support grant (gates admin editing) + the full request/decision
+  // history for the transparent activity log.
   let support: UserRecordData["support"] = null;
+  let supportGrants: UserRecordData["supportGrants"] = [];
   if (host) {
+    const { data: grantRows } = await service
+      .from("admin_support_grants")
+      .select(
+        "id, status, reason, requested_at, decided_at, expires_at, requester:user_profiles!requested_by ( full_name )",
+      )
+      .eq("host_id", host.id)
+      .order("requested_at", { ascending: false })
+      .limit(30);
+    supportGrants = (grantRows ?? []).map((g) => ({
+      id: g.id,
+      status: g.status,
+      reason: g.reason,
+      requestedAt: g.requested_at,
+      decidedAt: g.decided_at,
+      expiresAt: g.expires_at,
+      requestedBy: one(g.requester)?.full_name ?? null,
+    }));
+
     const active = await getActiveSupportGrant(service, host.id);
     if (active) {
       support = {
@@ -298,6 +320,7 @@ export default async function AdminUserDetailPage({
     hostFinance,
     hostTxns,
     support,
+    supportGrants,
     viloLedger: viloRows.map((t) => ({
       id: t.id,
       type: t.type,
@@ -323,6 +346,7 @@ export default async function AdminUserDetailPage({
     audit: (auditRows ?? []).map((a) => ({
       id: a.id,
       action: a.action,
+      actor: one(a.actor)?.full_name ?? null,
       created_at: a.created_at,
       impersonating: a.impersonating,
     })),

@@ -131,6 +131,15 @@ export type UserRecordData = {
   } | null;
   hostTxns: Txn[];
   support: { active: boolean; status: string; expiresAt: string | null } | null;
+  supportGrants: {
+    id: string;
+    status: string;
+    reason: string | null;
+    requestedAt: string;
+    decidedAt: string | null;
+    expiresAt: string | null;
+    requestedBy: string | null;
+  }[];
   viloLedger: {
     id: string;
     type: string;
@@ -156,6 +165,7 @@ export type UserRecordData = {
   audit: {
     id: string;
     action: string;
+    actor: string | null;
     created_at: string;
     impersonating: string | null;
   }[];
@@ -234,9 +244,12 @@ export function UserRecord({ data }: { data: UserRecordData }) {
       label: "Support",
       count: data.dataRequests.length || undefined,
     },
-    { key: "activity", label: "Activity" },
+    {
+      key: "activity",
+      label: "Activity",
+      count: data.audit.length || undefined,
+    },
     { key: "notes", label: "Notes", count: data.notes.length },
-    { key: "audit", label: "Audit", count: data.audit.length },
   ];
 
   return (
@@ -307,7 +320,6 @@ export function UserRecord({ data }: { data: UserRecordData }) {
                 onAdded={() => router.refresh()}
               />
             ) : null}
-            {tab === "audit" ? <AuditPanel data={data} /> : null}
           </div>
         </div>
       </div>
@@ -438,7 +450,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
         open={dialog === "support"}
         onOpenChange={(o) => (o ? null : close())}
         title="Request edit access"
-        description="The host is notified and must approve before you can edit their financial records. Approved access lasts 72 hours."
+        description="The host is notified and must approve before you can edit their records. Approved access lasts 24 hours, then auto-expires."
       >
         <Lbl label="Reason (shown to the host)">
           <Input value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -1121,9 +1133,9 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
   for (const a of data.audit)
     items.push({
       id: `au-${a.id}`,
-      label: `Admin: ${a.action}`,
+      label: `${a.actor ?? "Admin"} — ${a.action.replace(/[._]/g, " ")}`,
       date: a.created_at,
-      sub: a.impersonating ? "impersonated" : "",
+      sub: a.impersonating ? "while acting as user" : "admin action",
     });
   for (const d of data.dataRequests)
     items.push({
@@ -1132,12 +1144,33 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
       date: d.createdAt,
       sub: d.status,
     });
+  // Support-access permission lifecycle — request + the host's decision, so the
+  // log shows exactly when access was asked for, by whom, and when granted.
+  for (const g of data.supportGrants) {
+    items.push({
+      id: `sg-req-${g.id}`,
+      label: `${g.requestedBy ?? "Vilo support"} requested edit access`,
+      date: g.requestedAt,
+      sub: g.reason ? `“${g.reason}”` : "awaiting host approval",
+    });
+    if (g.decidedAt) {
+      items.push({
+        id: `sg-dec-${g.id}`,
+        label: `Host ${g.status} edit access`,
+        date: g.decidedAt,
+        sub:
+          g.status === "approved" && g.expiresAt
+            ? `valid until ${fmtDate(g.expiresAt)}`
+            : g.status,
+      });
+    }
+  }
   items.sort((x, y) => (x.date < y.date ? 1 : -1));
 
   return (
     <Section
       icon={Calendar}
-      title="Activity log"
+      title="Activity & history"
       count={items.length}
       empty="No recorded activity."
     >
@@ -1213,26 +1246,6 @@ function NotesPanel({
         ))}
       </Section>
     </div>
-  );
-}
-
-function AuditPanel({ data }: { data: UserRecordData }) {
-  return (
-    <Section
-      icon={Shield}
-      title="Audit trail"
-      count={data.audit.length}
-      empty="No admin actions recorded."
-    >
-      {data.audit.map((a) => (
-        <RowLink
-          key={a.id}
-          primary={a.action}
-          secondary={fmtDate(a.created_at)}
-          status={a.impersonating ? "impersonated" : undefined}
-        />
-      ))}
-    </Section>
   );
 }
 
