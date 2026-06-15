@@ -37,6 +37,13 @@ export type EditorProduct = {
 
 type FeatureState = { isEnabled: boolean; limitValue: number | null };
 
+type CatalogFeature = {
+  key: string;
+  label: string;
+  scope: "total" | "per_business" | "toggle";
+  description: string;
+};
+
 export function ProductEditor({
   product,
   isNew,
@@ -45,7 +52,7 @@ export function ProductEditor({
 }: {
   product: EditorProduct;
   isNew: boolean;
-  featureCatalog: { key: string; description: string }[];
+  featureCatalog: CatalogFeature[];
   productFeatures: Record<string, FeatureState>;
 }) {
   const router = useRouter();
@@ -381,20 +388,28 @@ export function ProductEditor({
                 isEnabled: false,
                 limitValue: null,
               };
+              const hasQty = feat.scope !== "toggle";
               return (
                 <div key={feat.key} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-[12px] text-brand-ink">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-medium text-brand-ink">
+                        {feat.label}
+                      </span>
+                      {feat.scope === "per_business" ? (
+                        <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wider text-brand-mute">
+                          per business
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="font-mono text-[10.5px] text-brand-mute">
                       {feat.key}
                     </div>
-                    <div className="text-[11px] text-brand-mute">
-                      {feat.description}
-                    </div>
                   </div>
-                  {/* Qty/limit for ANY enabled feature (blank = unlimited). */}
-                  {st.isEnabled ? (
+                  {/* Quantity for capacity + per-business features (blank = unlimited). */}
+                  {st.isEnabled && hasQty ? (
                     <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
-                      Qty
+                      {feat.scope === "per_business" ? "Per biz" : "Qty"}
                       <input
                         type="number"
                         min={0}

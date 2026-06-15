@@ -5,6 +5,8 @@ import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { CANONICAL_PRODUCT_FEATURES } from "@/lib/products/features";
+
 import { ProductEditor, type EditorProduct } from "../ProductEditor";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +20,8 @@ export default async function AdminProductEditorPage({
   const isNew = params.id === "new";
   const service = createAdminClient();
 
-  // Feature catalog from the canonical plan_features feature keys.
+  // Feature catalog = the canonical, real-usage feature list (with scope), in a
+  // deliberate order. Any legacy plan_features description is used as a hint.
   const { data: featRows } = await service
     .from("plan_features")
     .select("feature_key, description");
@@ -28,9 +31,12 @@ export default async function AdminProductEditorPage({
       descByKey.set(r.feature_key, r.description ?? "");
     }
   }
-  const featureCatalog = [...descByKey.keys()]
-    .sort()
-    .map((key) => ({ key, description: descByKey.get(key) ?? "" }));
+  const featureCatalog = CANONICAL_PRODUCT_FEATURES.map((f) => ({
+    key: f.key,
+    label: f.label,
+    scope: f.scope,
+    description: descByKey.get(f.key) ?? "",
+  }));
 
   let product: EditorProduct;
   const productFeatures: Record<
