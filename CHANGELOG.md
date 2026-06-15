@@ -31,6 +31,30 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Marketing — In-app host pitch deck (`/pitch`) — branch `main`
+
+### Built
+- Full-screen, slide-style **host pitch deck** at `/pitch` for stage/webinar
+  presentations. 9 slides: hook → the marketplace tax → solution → your money →
+  your guests → features-as-solutions → live pricing → why now → CTA.
+- Keyboard (→ ← space PgUp/PgDn Home/End), click-zone and chevron navigation,
+  slide counter + top progress bar (`PitchDeck` client component).
+- **Features-as-benefits** slide is pain-point-driven: each card pairs a host
+  headache (commission, losing the guest, tool sprawl, double-bookings…) with
+  the {brand} solution. Pricing slide reads **live** from the `products` table
+  via `getSubscriptionProducts()`; brand name from `platform_settings`.
+
+### Changed
+- `apps/web/messages/en.json`: added `pitch` namespace (67 keys). Page marked
+  `robots: noindex` (internal/marketing surface).
+
+### Notes
+- No Help Centre article (internal pitch surface, not a host feature).
+- New locales fall back to EN per-key automatically; no translation needed now.
+
+### Commit
+- _uncommitted — pending review_
+
 ## 2026-06-15 — Super-Admin — Users/Listings parity with host Guests + nav cleanup — branch `main`
 
 ### Changed
