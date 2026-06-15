@@ -1,9 +1,10 @@
 import * as React from "react";
 
-// Canonical admin table — matches the host dashboard table style (invoices /
-// quotes): light header row, uppercase muted labels, divided rows, hover. Server
-// component; pass column render fns. Used across every admin list so they feel
-// identical.
+// Canonical admin table — matches the host **Guests list** design
+// (dashboard/guests): white header with uppercase muted labels, divided rows,
+// hover. Server component; pass column render fns. Used across every admin list
+// (users, listings, bookings, payments, ledger) so they all feel identical to
+// the host's tables.
 
 export type AdminColumn<T> = {
   header: string;
@@ -27,12 +28,12 @@ export function AdminTable<T>({
     <div className="overflow-x-auto rounded-card border border-brand-line bg-white shadow-card">
       {rows.length > 0 ? (
         <table className="w-full text-sm">
-          <thead className="bg-brand-light/60 text-left text-[11px] uppercase tracking-wider text-brand-mute">
+          <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
             <tr>
               {columns.map((c, i) => (
                 <th
                   key={i}
-                  className={`px-4 py-3 font-semibold ${
+                  className={`px-4 py-2.5 ${
                     c.align === "right" ? "text-right" : ""
                   } ${c.className ?? ""}`}
                 >
