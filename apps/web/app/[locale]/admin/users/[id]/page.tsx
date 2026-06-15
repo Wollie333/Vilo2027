@@ -148,7 +148,7 @@ export default async function AdminUserDetailPage({
       service
         .from("reviews")
         .select(
-          "id, rating, body, created_at, is_published, host_response, listing:listings ( name ), guest:user_profiles!reviews_guest_id_fkey ( full_name )",
+          "id, rating, body, created_at, is_published, host_response, listing:listings!reviews_listing_id_fkey ( name ), guest:user_profiles!reviews_guest_id_fkey ( full_name )",
         )
         .eq("host_id", host.id)
         .order("created_at", { ascending: false })
@@ -212,7 +212,7 @@ export default async function AdminUserDetailPage({
   const { data: revWritten } = await service
     .from("reviews")
     .select(
-      "id, rating, body, created_at, is_published, host_response, listing:listings ( name ), host:hosts ( display_name )",
+      "id, rating, body, created_at, is_published, host_response, listing:listings!reviews_listing_id_fkey ( name ), host:hosts ( display_name )",
     )
     .eq("guest_id", user.id)
     .order("created_at", { ascending: false })
