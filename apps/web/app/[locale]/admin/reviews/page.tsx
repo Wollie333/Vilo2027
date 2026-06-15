@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { Flag, Star } from "lucide-react";
+import { Flag, Search, Star } from "lucide-react";
 
 import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -15,45 +15,91 @@ const PAGE_SIZE = 50;
 
 type Tab = "flagged" | "all" | "pending";
 
-const TAB_FILTERS: Record<
-  Tab,
-  (q: ReturnType<typeof base>) => ReturnType<typeof base>
-> = {
-  flagged: (q) => q.eq("flagged", true),
-  all: (q) => q,
-  pending: (q) => q.is("is_published", false).eq("flagged", false),
+type Filters = {
+  tab: Tab;
+  host: string; // host_id ("platform" filter)
+  q: string; // guest name/email search ("user" filter)
+  rating: string; // "" | "1".."5"
 };
 
-function base(service: ReturnType<typeof createAdminClient>) {
-  return service
+const SELECT = `
+  id, host_id, rating, body, flagged, flagged_reason, is_published, admin_decision,
+  created_at, publish_at,
+  listing:listings!reviews_listing_id_fkey ( name ),
+  host:hosts ( handle, display_name ),
+  booking:bookings ( guest_name ),
+  photos:review_photos ( storage_path, sort_order )
+`;
+
+function buildQuery(service: ReturnType<typeof createAdminClient>, f: Filters) {
+  // The guest embed becomes an inner join only when a guest search is active,
+  // so we can filter parent rows by guest columns without dropping reviews that
+  // have no linked account guest (manual bookings) the rest of the time.
+  const guestEmbed = f.q
+    ? "guest:user_profiles!reviews_guest_id_fkey!inner ( full_name, email )"
+    : "guest:user_profiles!reviews_guest_id_fkey ( full_name, email )";
+
+  let q = service
     .from("reviews")
-    .select(
-      `
-      id, rating, body, flagged, flagged_reason, is_published, admin_decision,
-      created_at, publish_at,
-      listing:listings!reviews_listing_id_fkey ( name ),
-      host:hosts ( handle, display_name ),
-      guest:user_profiles!reviews_guest_id_fkey ( full_name, email ),
-      booking:bookings ( guest_name ),
-      photos:review_photos ( storage_path, sort_order )
-    `,
-      { count: "exact" },
-    )
+    .select(`${SELECT}, ${guestEmbed}`, { count: "exact" })
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
+
+  // Status tab.
+  if (f.tab === "flagged") q = q.eq("flagged", true);
+  else if (f.tab === "pending")
+    q = q.is("is_published", false).eq("flagged", false);
+
+  // "Platform" = host, and rating are plain column filters.
+  if (f.host) q = q.eq("host_id", f.host);
+  if (f.rating) q = q.eq("rating", Number(f.rating));
+
+  // "User" = guest name/email. Strip chars that would break the or() parser.
+  if (f.q) {
+    const safe = f.q.replace(/[%,()]/g, " ").trim();
+    if (safe)
+      q = q.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%`, {
+        referencedTable: "guest",
+      });
+  }
+  return q;
+}
+
+/** Build a /admin/reviews href that preserves the current filters. */
+function hrefWith(f: Filters, override: Partial<Filters>): string {
+  const merged = { ...f, ...override };
+  const sp = new URLSearchParams();
+  if (merged.tab !== "flagged") sp.set("tab", merged.tab);
+  if (merged.host) sp.set("host", merged.host);
+  if (merged.q) sp.set("q", merged.q);
+  if (merged.rating) sp.set("rating", merged.rating);
+  const s = sp.toString();
+  return s ? `/admin/reviews?${s}` : "/admin/reviews";
 }
 
 export default async function AdminReviewsPage({
   searchParams,
 }: {
-  searchParams?: { tab?: string };
+  searchParams?: {
+    tab?: string;
+    host?: string;
+    q?: string;
+    rating?: string;
+  };
 }) {
   await requirePermission("reviews.moderate");
 
   const tabParam = (searchParams?.tab ?? "flagged").trim();
-  const tab: Tab = (
-    ["flagged", "all", "pending"].includes(tabParam) ? tabParam : "flagged"
-  ) as Tab;
+  const f: Filters = {
+    tab: (["flagged", "all", "pending"].includes(tabParam)
+      ? tabParam
+      : "flagged") as Tab,
+    host: (searchParams?.host ?? "").trim(),
+    q: (searchParams?.q ?? "").trim(),
+    rating: ["1", "2", "3", "4", "5"].includes(searchParams?.rating ?? "")
+      ? (searchParams?.rating as string)
+      : "",
+  };
 
   const service = createAdminClient();
 
@@ -61,6 +107,7 @@ export default async function AdminReviewsPage({
     { count: flaggedCount },
     { count: pendingCount },
     { count: allCount },
+    { data: hostRows },
   ] = await Promise.all([
     service
       .from("reviews")
@@ -72,15 +119,25 @@ export default async function AdminReviewsPage({
       .is("is_published", false)
       .eq("flagged", false),
     service.from("reviews").select("id", { count: "exact", head: true }),
+    service
+      .from("hosts")
+      .select("id, display_name")
+      .is("deleted_at", null)
+      .order("display_name", { ascending: true })
+      .limit(1000),
   ]);
 
   const { data: rows, count } = await throwOnErrorWithCount(
-    TAB_FILTERS[tab](base(service)),
+    buildQuery(service, f),
     "admin/reviews",
   );
 
+  const hosts =
+    (hostRows as { id: string; display_name: string }[] | null) ?? [];
+
   type Row = {
     id: string;
+    host_id: string;
     rating: number;
     body: string | null;
     flagged: boolean;
@@ -106,38 +163,113 @@ export default async function AdminReviewsPage({
   };
 
   const list = (rows as Row[] | null) ?? [];
+  const hasFilters = Boolean(f.host || f.q || f.rating);
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Reviews moderation
+          Reviews
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Flagged reviews, pending publication queue. Hosts respond to their own
-          reviews; admin only steps in for flags.
+          Every review across the platform. Filter by host or guest, and step in
+          on flags — hosts respond to their own reviews.
         </p>
       </header>
 
+      {/* Status tabs (counts are platform-wide) */}
       <section className="flex flex-wrap items-center gap-2">
-        <TabLink tab="flagged" current={tab} count={flaggedCount ?? 0}>
+        <TabLink f={f} tab="flagged" count={flaggedCount ?? 0}>
           Flagged
         </TabLink>
-        <TabLink tab="pending" current={tab} count={pendingCount ?? 0}>
+        <TabLink f={f} tab="pending" count={pendingCount ?? 0}>
           Pending publish
         </TabLink>
-        <TabLink tab="all" current={tab} count={allCount ?? 0}>
+        <TabLink f={f} tab="all" count={allCount ?? 0}>
           All
         </TabLink>
       </section>
+
+      {/* Filter toolbar — GET form preserves the active tab via a hidden field */}
+      <form
+        method="get"
+        className="flex flex-wrap items-end gap-3 rounded-card border border-brand-line bg-white p-4 shadow-card"
+      >
+        {f.tab !== "flagged" ? (
+          <input type="hidden" name="tab" value={f.tab} />
+        ) : null}
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Host (platform)
+          </span>
+          <select
+            name="host"
+            defaultValue={f.host}
+            className="h-9 min-w-[180px] rounded-md border border-brand-line bg-white px-2.5 text-[13px] text-brand-ink"
+          >
+            <option value="">All hosts</option>
+            {hosts.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.display_name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Guest (user)
+          </span>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-brand-mute" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={f.q}
+              placeholder="Name or email"
+              className="h-9 w-[200px] rounded-md border border-brand-line bg-white pl-8 pr-2.5 text-[13px] text-brand-ink"
+            />
+          </div>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+            Rating
+          </span>
+          <select
+            name="rating"
+            defaultValue={f.rating}
+            className="h-9 rounded-md border border-brand-line bg-white px-2.5 text-[13px] text-brand-ink"
+          >
+            <option value="">Any</option>
+            {[5, 4, 3, 2, 1].map((n) => (
+              <option key={n} value={String(n)}>
+                {n} stars
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="submit"
+          className="h-9 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white transition-colors hover:bg-brand-secondary"
+        >
+          Apply
+        </button>
+        {hasFilters ? (
+          <Link
+            href={hrefWith(f, { host: "", q: "", rating: "" })}
+            className="h-9 rounded-pill border border-brand-line bg-white px-4 text-[13px] font-medium leading-9 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink"
+          >
+            Clear
+          </Link>
+        ) : null}
+      </form>
 
       <div className="space-y-3">
         {list.length === 0 ? (
           <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
             <p className="font-display text-base font-bold text-brand-ink">
-              {tab === "flagged"
+              {f.tab === "flagged" && !hasFilters
                 ? "No flagged reviews — nice and quiet"
-                : "No reviews match this tab"}
+                : "No reviews match these filters"}
             </p>
           </div>
         ) : (
@@ -202,8 +334,12 @@ export default async function AdminReviewsPage({
                         <>
                           {" · "}
                           <Link
-                            href={`/admin/hosts/${(host as { handle: string }).handle ? `${(host as { handle: string }).handle}` : ""}`}
+                            href={hrefWith(f, {
+                              host: r.host_id,
+                              tab: "all",
+                            })}
                             className="text-brand-primary hover:underline"
+                            title="Filter to this host"
                           >
                             {host.display_name}
                           </Link>
@@ -260,20 +396,20 @@ export default async function AdminReviewsPage({
 }
 
 function TabLink({
+  f,
   tab,
-  current,
   count,
   children,
 }: {
+  f: Filters;
   tab: Tab;
-  current: Tab;
   count: number;
   children: React.ReactNode;
 }) {
-  const active = tab === current;
+  const active = tab === f.tab;
   return (
     <Link
-      href={tab === "flagged" ? "/admin/reviews" : `/admin/reviews?tab=${tab}`}
+      href={hrefWith(f, { tab })}
       className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium transition-colors ${
         active
           ? "bg-brand-primary text-white shadow-sm"

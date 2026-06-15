@@ -1,44 +1,40 @@
 import {
   AlertTriangle,
   ArrowRight,
-  CreditCard,
-  Home as HomeIcon,
-  TrendingUp,
-  Users as UsersIcon,
+  Flag,
+  ShieldAlert,
+  Wallet,
 } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
-import { getAllPlans } from "@/lib/plans/getPlans";
+import { buildPlatformReport } from "@/lib/billing/platform-report";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+import { AdminKpiCard } from "./_components/AdminKpiCard";
 
 export const dynamic = "force-dynamic";
 
+// The admin Overview is the founder's daily SaaS control centre: it answers
+// "how is Vilo-the-business doing and what needs me today" — not host-level
+// booking operations (those live on each host's own dashboard). Headline KPIs
+// come straight from buildPlatformReport (the single source of truth shared
+// with /admin/reporting + the PDF export) so the numbers can never drift.
 export default async function AdminOverviewPage() {
   const service = createAdminClient();
 
   const [
-    plans,
-    { data: subs },
-    { data: profiles },
-    { count: listingsCount },
-    { data: collectedRows },
+    report,
+    { count: flaggedReviews },
     { count: pendingRefunds },
     { count: openDataReqs },
     { data: auditRows },
   ] = await Promise.all([
-    getAllPlans(),
-    service.from("subscriptions").select("plan, billing_cycle, status"),
-    service.from("user_profiles").select("role").is("deleted_at", null),
+    buildPlatformReport("30d"),
     service
-      .from("listings")
+      .from("reviews")
       .select("id", { count: "exact", head: true })
-      .is("deleted_at", null),
-    service
-      .from("payments")
-      .select("amount, kind")
-      .eq("status", "completed")
-      .is("voided_at", null),
+      .eq("flagged", true),
     service
       .from("refund_requests")
       .select("id", { count: "exact", head: true })
@@ -54,67 +50,59 @@ export default async function AdminOverviewPage() {
       .limit(10),
   ]);
 
-  // MRR + paying hosts + past-due (Vilo revenue health).
-  const priceMap = new Map(plans.map((p) => [p.key, p]));
-  let mrr = 0;
-  let payingHosts = 0;
-  let pastDue = 0;
-  for (const s of subs ?? []) {
-    if (s.status === "past_due" || s.status === "restricted") pastDue += 1;
-    if (s.status !== "active") continue;
-    const pd = priceMap.get(s.plan as string);
-    if (!pd || pd.isFree) continue;
-    mrr += s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
-    payingHosts += 1;
-  }
+  const k = report.kpis;
+  const pastDue = report.statusFunnel
+    .filter((s) => s.status === "past_due" || s.status === "restricted")
+    .reduce((a, s) => a + s.count, 0);
 
-  // Users split.
-  let hosts = 0;
-  let guests = 0;
-  for (const u of profiles ?? []) {
-    if (u.role === "host") hosts += 1;
-    else if (u.role === "guest") guests += 1;
-  }
-  const totalUsers = profiles?.length ?? 0;
-
-  // GMV processed (booking value flowing host↔guest).
-  const INBOUND = new Set(["deposit", "balance", "addon", "payment", "credit"]);
-  let collected = 0;
-  for (const p of collectedRows ?? []) {
-    if (INBOUND.has(String(p.kind))) collected += Number(p.amount ?? 0);
-  }
-
-  const kpis = [
+  // Vilo's own SaaS revenue health — what the subscription business runs on.
+  const revenueKpis = [
     {
       label: "MRR",
-      value: formatZar(Math.round(mrr)),
-      icon: TrendingUp,
+      value: formatZar(k.mrr),
+      sub: `ARR ${formatZar(k.arr)}`,
+      href: "/admin/reporting",
+    },
+    {
+      label: "ARPU",
+      value: formatZar(k.arpu),
+      sub: "per paying host",
       href: "/admin/reporting",
     },
     {
       label: "Paying hosts",
-      value: String(payingHosts),
-      icon: UsersIcon,
+      value: k.payingHosts.toLocaleString(),
+      sub: `${k.trials} on trial`,
       href: "/admin/subscriptions",
     },
     {
-      label: "Total users",
-      value: totalUsers.toLocaleString(),
-      icon: UsersIcon,
-      href: "/admin/users",
+      label: "Trial conversion",
+      value: `${k.trialConversion}%`,
+      sub: "trial → paid",
+      href: "/admin/reporting",
     },
     {
-      label: "Collected (platform)",
-      value: formatZar(Math.round(collected)),
-      icon: CreditCard,
-      href: "/admin/payments",
+      label: "Churn rate",
+      value: `${k.churnRate}%`,
+      sub: `${k.churned} cancelled/expired`,
+      href: "/admin/reporting",
     },
     {
-      label: "Live listings",
-      value: (listingsCount ?? 0).toLocaleString(),
-      icon: HomeIcon,
-      href: "/admin/listings",
+      label: "Vilo collected",
+      value: formatZar(k.collectedAllTime),
+      sub: `${formatZar(k.collectedPeriod)} last 30d`,
+      href: "/admin/subscriptions/revenue",
     },
+  ];
+
+  // Growth & footprint over the last 30 days.
+  const growthKpis = [
+    { label: "New users (30d)", value: k.newUsersPeriod.toLocaleString() },
+    { label: "Total users", value: k.totalUsers.toLocaleString() },
+    { label: "Hosts", value: k.hosts.toLocaleString() },
+    { label: "Guests", value: k.guests.toLocaleString() },
+    { label: "Active listings", value: k.activeListings.toLocaleString() },
+    { label: "Outstanding", value: formatZar(k.outstanding) },
   ];
 
   const attention = [
@@ -122,16 +110,25 @@ export default async function AdminOverviewPage() {
       label: "Past-due subscriptions",
       count: pastDue,
       href: "/admin/subscriptions?status=past_due",
+      icon: Wallet,
+    },
+    {
+      label: "Flagged reviews",
+      count: flaggedReviews ?? 0,
+      href: "/admin/reviews",
+      icon: Flag,
     },
     {
       label: "Pending refunds",
       count: pendingRefunds ?? 0,
       href: "/admin/payments",
+      icon: AlertTriangle,
     },
     {
       label: "Open data requests",
       count: openDataReqs ?? 0,
       href: "/admin/data-requests",
+      icon: ShieldAlert,
     },
   ];
   const needsAttention = attention.filter((a) => a.count > 0);
@@ -143,27 +140,29 @@ export default async function AdminOverviewPage() {
           Control Centre
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Founder &amp; platform-staff operations console. Every write is
-          recorded in the audit log.
+          How Vilo-the-business is doing today. Deep charts live in{" "}
+          <Link
+            href="/admin/reporting"
+            className="text-brand-primary hover:underline"
+          >
+            Reporting
+          </Link>
+          . Every admin write is recorded in the audit log.
         </p>
       </header>
 
-      {/* Headline KPIs */}
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k) => (
-          <Link
-            key={k.label}
-            href={k.href}
-            className="rounded-card border border-brand-line bg-white p-5 transition-colors hover:border-brand-primary"
-          >
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
-              <k.icon className="h-3.5 w-3.5" /> {k.label}
-            </div>
-            <div className="num mt-2 font-display text-2xl font-bold text-brand-ink">
-              {k.value}
-            </div>
-          </Link>
-        ))}
+      {/* SaaS revenue health */}
+      <section>
+        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          Revenue health
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          {revenueKpis.map((kpi) => (
+            <Link key={kpi.label} href={kpi.href} className="block">
+              <AdminKpiCard label={kpi.label} value={kpi.value} sub={kpi.sub} />
+            </Link>
+          ))}
+        </div>
       </section>
 
       {/* Needs attention */}
@@ -176,7 +175,7 @@ export default async function AdminOverviewPage() {
             All clear — nothing needs action right now.
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {needsAttention.map((a) => (
               <Link
                 key={a.label}
@@ -184,7 +183,7 @@ export default async function AdminOverviewPage() {
                 className="flex items-center justify-between gap-3 rounded-card border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900 transition-colors hover:bg-amber-100"
               >
                 <span className="flex items-center gap-2 text-[13px] font-semibold">
-                  <AlertTriangle className="h-4 w-4" /> {a.label}
+                  <a.icon className="h-4 w-4" /> {a.label}
                 </span>
                 <span className="num inline-flex items-center gap-1 font-display text-lg font-bold">
                   {a.count} <ArrowRight className="h-4 w-4" />
@@ -195,20 +194,60 @@ export default async function AdminOverviewPage() {
         )}
       </section>
 
-      {/* Users at a glance */}
-      <section className="grid gap-3 sm:grid-cols-3">
-        <MiniStat label="Hosts" value={hosts} href="/admin/users?role=host" />
-        <MiniStat
-          label="Guests"
-          value={guests}
-          href="/admin/users?role=guest"
-        />
-        <MiniStat
-          label="Past-due subs"
-          value={pastDue}
-          href="/admin/subscriptions?status=past_due"
-        />
+      {/* Growth & footprint */}
+      <section>
+        <h2 className="mb-3 text-[11px] font-bold uppercase tracking-[0.08em] text-brand-mute">
+          Growth &amp; footprint
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          {growthKpis.map((kpi) => (
+            <AdminKpiCard key={kpi.label} label={kpi.label} value={kpi.value} />
+          ))}
+        </div>
       </section>
+
+      {/* Plan mix */}
+      {report.plans.length > 0 ? (
+        <section>
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 className="font-display text-lg font-semibold text-brand-ink">
+              Plan mix
+            </h2>
+            <Link
+              href="/admin/subscriptions/plans"
+              className="text-[12px] font-medium text-brand-primary hover:underline"
+            >
+              Manage plans →
+            </Link>
+          </div>
+          <div className="overflow-hidden rounded-card border border-brand-line bg-white">
+            <table className="w-full text-[13px]">
+              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
+                <tr>
+                  <th className="px-4 py-2.5">Plan</th>
+                  <th className="px-4 py-2.5 text-right">Subscribers</th>
+                  <th className="px-4 py-2.5 text-right">MRR</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-brand-line">
+                {report.plans.map((p) => (
+                  <tr key={p.key} className="hover:bg-brand-light/40">
+                    <td className="px-4 py-2.5 font-medium text-brand-ink">
+                      {p.name}
+                    </td>
+                    <td className="num px-4 py-2.5 text-right text-brand-mute">
+                      {p.count.toLocaleString()}
+                    </td>
+                    <td className="num px-4 py-2.5 text-right font-semibold text-brand-ink">
+                      {formatZar(p.mrr)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       {/* Recent admin activity */}
       <section>
@@ -265,31 +304,16 @@ export default async function AdminOverviewPage() {
           </table>
         </div>
       </section>
-    </div>
-  );
-}
 
-function MiniStat({
-  label,
-  value,
-  href,
-}: {
-  label: string;
-  value: number;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      className="rounded-card border border-brand-line bg-white p-4 transition-colors hover:border-brand-primary"
-    >
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-mute">
-        {label}
-      </div>
-      <div className="num mt-1 font-display text-xl font-bold text-brand-ink">
-        {value.toLocaleString()}
-      </div>
-    </Link>
+      {/* Marketplace context — host↔guest money, NOT Vilo revenue. Kept as a
+          quiet footnote so SaaS metrics above stay unambiguous. */}
+      <p className="text-[11.5px] text-brand-mute">
+        Marketplace throughput (booking value flowing host↔guest, not Vilo
+        revenue):{" "}
+        <span className="font-semibold text-brand-ink">{formatZar(k.gmv)}</span>{" "}
+        across {k.bookingCount.toLocaleString()} bookings.
+      </p>
+    </div>
   );
 }
 
