@@ -28,6 +28,12 @@ export type EditorProduct = {
   sortOrder: number;
   affiliateType: "none" | "amount" | "percent";
   affiliateValue: number;
+  affiliateDuration: "once" | "months" | "forever";
+  affiliateDurationMonths: number | null;
+  setupFee: number;
+  setupFeeLabel: string;
+  setupFeeAffiliateType: "none" | "amount" | "percent";
+  setupFeeAffiliateValue: number;
   bullets: string[];
   paymentMethods: ("paystack" | "eft")[];
   trialDays: number;
@@ -90,6 +96,16 @@ export function ProductEditor({
         sortOrder: f.sortOrder,
         affiliateType: f.affiliateType,
         affiliateValue: f.affiliateType === "none" ? 0 : f.affiliateValue,
+        affiliateDuration: f.affiliateDuration,
+        affiliateDurationMonths:
+          f.affiliateDuration === "months"
+            ? (f.affiliateDurationMonths ?? 1)
+            : null,
+        setupFee: f.type === "subscription" ? f.setupFee : 0,
+        setupFeeLabel: f.setupFeeLabel.trim() || null,
+        setupFeeAffiliateType: f.setupFeeAffiliateType,
+        setupFeeAffiliateValue:
+          f.setupFeeAffiliateType === "none" ? 0 : f.setupFeeAffiliateValue,
         bullets,
         paymentMethods: f.paymentMethods.length
           ? f.paymentMethods
@@ -278,13 +294,88 @@ export function ProductEditor({
         </div>
       </section>
 
-      {/* Affiliate */}
+      {/* Setup fee — once-off charge bundled with a subscription */}
+      {f.type === "subscription" ? (
+        <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <div>
+            <h2 className="font-display text-sm font-bold text-brand-ink">
+              Setup fee (once-off)
+            </h2>
+            <p className="mt-1 text-[12px] text-brand-mute">
+              A one-time charge taken with the first payment. Leave the amount
+              at 0 for no setup fee.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Setup fee name">
+              <Input
+                value={f.setupFeeLabel}
+                onChange={(e) => set("setupFeeLabel", e.target.value)}
+                placeholder="Onboarding setup"
+              />
+            </Field>
+            <Field label="Setup fee amount">
+              <Input
+                type="number"
+                min={0}
+                value={f.setupFee}
+                onChange={(e) => set("setupFee", Number(e.target.value) || 0)}
+                className="font-mono"
+              />
+            </Field>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Setup fee commission">
+              <select
+                value={f.setupFeeAffiliateType}
+                onChange={(e) =>
+                  set(
+                    "setupFeeAffiliateType",
+                    e.target.value as EditorProduct["setupFeeAffiliateType"],
+                  )
+                }
+                className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+              >
+                <option value="none">None</option>
+                <option value="amount">Fixed amount</option>
+                <option value="percent">Percentage</option>
+              </select>
+            </Field>
+            {f.setupFeeAffiliateType !== "none" ? (
+              <Field
+                label={
+                  f.setupFeeAffiliateType === "percent"
+                    ? "Percent (%)"
+                    : "Amount"
+                }
+              >
+                <Input
+                  type="number"
+                  min={0}
+                  value={f.setupFeeAffiliateValue}
+                  onChange={(e) =>
+                    set("setupFeeAffiliateValue", Number(e.target.value) || 0)
+                  }
+                  className="font-mono"
+                />
+              </Field>
+            ) : null}
+          </div>
+          <p className="text-[11px] text-brand-mute">
+            The setup fee is charged once, so its commission is paid out once.
+          </p>
+        </section>
+      ) : null}
+
+      {/* Referral commission — on the subscription / product price */}
       <section className="space-y-4 rounded-card border border-brand-line bg-white p-5 shadow-card">
         <h2 className="font-display text-sm font-bold text-brand-ink">
-          Affiliate payout
+          {f.type === "subscription"
+            ? "Subscription commission"
+            : "Referral commission"}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Affiliate reward">
+          <Field label="Commission reward">
             <select
               value={f.affiliateType}
               onChange={(e) =>
@@ -316,6 +407,44 @@ export function ProductEditor({
             </Field>
           ) : null}
         </div>
+        {/* Commission duration — only meaningful for recurring subscriptions */}
+        {f.type === "subscription" && f.affiliateType !== "none" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Pay commission for">
+              <select
+                value={f.affiliateDuration}
+                onChange={(e) =>
+                  set(
+                    "affiliateDuration",
+                    e.target.value as EditorProduct["affiliateDuration"],
+                  )
+                }
+                className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+              >
+                <option value="once">Once (first payment only)</option>
+                <option value="months">A set number of months</option>
+                <option value="forever">Forever (while active)</option>
+              </select>
+            </Field>
+            {f.affiliateDuration === "months" ? (
+              <Field label="Number of months">
+                <Input
+                  type="number"
+                  min={1}
+                  max={120}
+                  value={f.affiliateDurationMonths ?? 1}
+                  onChange={(e) =>
+                    set(
+                      "affiliateDurationMonths",
+                      Math.max(1, Number(e.target.value) || 1),
+                    )
+                  }
+                  className="w-28 font-mono"
+                />
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       {/* Flags */}

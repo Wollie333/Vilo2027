@@ -5759,6 +5759,8 @@ export type Database = {
       }
       products: {
         Row: {
+          affiliate_duration: string
+          affiliate_duration_months: number | null
           affiliate_type: string
           affiliate_value: number
           billing_cycle: string | null
@@ -5773,6 +5775,10 @@ export type Database = {
           name: string
           payment_methods: string[]
           price: number
+          setup_fee: number
+          setup_fee_affiliate_type: string
+          setup_fee_affiliate_value: number
+          setup_fee_label: string | null
           slug: string | null
           sort_order: number
           trial_days: number
@@ -5780,6 +5786,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          affiliate_duration?: string
+          affiliate_duration_months?: number | null
           affiliate_type?: string
           affiliate_value?: number
           billing_cycle?: string | null
@@ -5794,6 +5802,10 @@ export type Database = {
           name: string
           payment_methods?: string[]
           price?: number
+          setup_fee?: number
+          setup_fee_affiliate_type?: string
+          setup_fee_affiliate_value?: number
+          setup_fee_label?: string | null
           slug?: string | null
           sort_order?: number
           trial_days?: number
@@ -5801,6 +5813,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          affiliate_duration?: string
+          affiliate_duration_months?: number | null
           affiliate_type?: string
           affiliate_value?: number
           billing_cycle?: string | null
@@ -5815,6 +5829,10 @@ export type Database = {
           name?: string
           payment_methods?: string[]
           price?: number
+          setup_fee?: number
+          setup_fee_affiliate_type?: string
+          setup_fee_affiliate_value?: number
+          setup_fee_label?: string | null
           slug?: string | null
           sort_order?: number
           trial_days?: number

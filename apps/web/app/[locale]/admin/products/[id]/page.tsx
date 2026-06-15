@@ -58,6 +58,12 @@ export default async function AdminProductEditorPage({
       sortOrder: 0,
       affiliateType: "none",
       affiliateValue: 0,
+      affiliateDuration: "once",
+      affiliateDurationMonths: null,
+      setupFee: 0,
+      setupFeeLabel: "",
+      setupFeeAffiliateType: "none",
+      setupFeeAffiliateValue: 0,
       bullets: [],
       paymentMethods: ["paystack"],
       trialDays: 0,
@@ -68,7 +74,7 @@ export default async function AdminProductEditorPage({
     const { data } = await service
       .from("products")
       .select(
-        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets, payment_methods, trial_days, is_visible, slug",
+        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, affiliate_duration, affiliate_duration_months, setup_fee, setup_fee_label, setup_fee_affiliate_type, setup_fee_affiliate_value, bullets, payment_methods, trial_days, is_visible, slug",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -88,6 +94,16 @@ export default async function AdminProductEditorPage({
       affiliateType:
         (data.affiliate_type as EditorProduct["affiliateType"]) ?? "none",
       affiliateValue: Number(data.affiliate_value ?? 0),
+      affiliateDuration:
+        (data.affiliate_duration as EditorProduct["affiliateDuration"]) ??
+        "once",
+      affiliateDurationMonths: data.affiliate_duration_months ?? null,
+      setupFee: Number(data.setup_fee ?? 0),
+      setupFeeLabel: data.setup_fee_label ?? "",
+      setupFeeAffiliateType:
+        (data.setup_fee_affiliate_type as EditorProduct["setupFeeAffiliateType"]) ??
+        "none",
+      setupFeeAffiliateValue: Number(data.setup_fee_affiliate_value ?? 0),
       bullets: Array.isArray(data.bullets)
         ? (data.bullets as unknown[]).filter(
             (b): b is string => typeof b === "string",

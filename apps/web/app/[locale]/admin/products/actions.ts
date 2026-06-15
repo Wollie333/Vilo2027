@@ -24,6 +24,19 @@ const upsertSchema = z.object({
   sortOrder: z.number().int().min(0).max(9999),
   affiliateType: z.enum(["none", "amount", "percent"]),
   affiliateValue: z.number().min(0).max(10_000_000),
+  affiliateDuration: z.enum(["once", "months", "forever"]).default("once"),
+  affiliateDurationMonths: z
+    .number()
+    .int()
+    .min(1)
+    .max(120)
+    .nullable()
+    .default(null),
+  // Once-off setup fee bundled with a subscription.
+  setupFee: z.number().min(0).max(10_000_000).default(0),
+  setupFeeLabel: z.string().trim().max(120).optional().nullable(),
+  setupFeeAffiliateType: z.enum(["none", "amount", "percent"]).default("none"),
+  setupFeeAffiliateValue: z.number().min(0).max(10_000_000).default(0),
   bullets: z.array(z.string().trim().min(1).max(200)).max(20),
   paymentMethods: z.array(z.enum(["paystack", "eft"])).default(["paystack"]),
   trialDays: z.number().int().min(0).max(365).default(0),
@@ -96,6 +109,15 @@ export const upsertProductAction = withAdminAudit<
       trial_days: d.trialDays,
       affiliate_type: d.affiliateType,
       affiliate_value: d.affiliateValue,
+      affiliate_duration: d.affiliateDuration,
+      affiliate_duration_months:
+        d.affiliateDuration === "months"
+          ? (d.affiliateDurationMonths ?? 1)
+          : null,
+      setup_fee: d.type === "subscription" ? d.setupFee : 0,
+      setup_fee_label: d.setupFeeLabel ?? null,
+      setup_fee_affiliate_type: d.setupFeeAffiliateType,
+      setup_fee_affiliate_value: d.setupFeeAffiliateValue,
       bullets: d.bullets as never,
       slug,
       payment_methods: d.paymentMethods.length
