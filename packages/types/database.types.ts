@@ -5210,6 +5210,48 @@ export type Database = {
           },
         ]
       }
+      platform_payment_settings: {
+        Row: {
+          eft_account_name: string | null
+          eft_account_number: string | null
+          eft_bank_name: string | null
+          eft_branch_code: string | null
+          eft_enabled: boolean
+          eft_reference_hint: string | null
+          id: boolean
+          paystack_enabled: boolean
+          paystack_public_key: string | null
+          paystack_secret_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          eft_account_name?: string | null
+          eft_account_number?: string | null
+          eft_bank_name?: string | null
+          eft_branch_code?: string | null
+          eft_enabled?: boolean
+          eft_reference_hint?: string | null
+          id?: boolean
+          paystack_enabled?: boolean
+          paystack_public_key?: string | null
+          paystack_secret_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          eft_account_name?: string | null
+          eft_account_number?: string | null
+          eft_bank_name?: string | null
+          eft_branch_code?: string | null
+          eft_enabled?: boolean
+          eft_reference_hint?: string | null
+          id?: boolean
+          paystack_enabled?: boolean
+          paystack_public_key?: string | null
+          paystack_secret_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_services: {
         Row: {
           billing_cycle: string | null
@@ -5655,6 +5697,7 @@ export type Database = {
           is_active: boolean
           is_recommended: boolean
           name: string
+          payment_methods: string[]
           price: number
           sort_order: number
           type: string
@@ -5672,6 +5715,7 @@ export type Database = {
           is_active?: boolean
           is_recommended?: boolean
           name: string
+          payment_methods?: string[]
           price?: number
           sort_order?: number
           type?: string
@@ -5689,6 +5733,7 @@ export type Database = {
           is_active?: boolean
           is_recommended?: boolean
           name?: string
+          payment_methods?: string[]
           price?: number
           sort_order?: number
           type?: string

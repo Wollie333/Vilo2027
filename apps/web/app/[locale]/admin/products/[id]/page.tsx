@@ -53,12 +53,13 @@ export default async function AdminProductEditorPage({
       affiliateType: "none",
       affiliateValue: 0,
       bullets: [],
+      paymentMethods: ["paystack"],
     };
   } else {
     const { data } = await service
       .from("products")
       .select(
-        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets",
+        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets, payment_methods",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -83,6 +84,10 @@ export default async function AdminProductEditorPage({
             (b): b is string => typeof b === "string",
           )
         : [],
+      paymentMethods: (Array.isArray(data.payment_methods)
+        ? data.payment_methods
+        : ["paystack"]
+      ).filter((m): m is "paystack" | "eft" => m === "paystack" || m === "eft"),
     };
 
     const { data: pf } = await service

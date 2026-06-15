@@ -200,7 +200,7 @@ export async function startPlanCheckoutAction(input: {
   const trialEligible = !fromPaid && !everTrialed && planDef.trialDays > 0;
 
   // Trial start (no charge) or billing not wired yet → state-only switch.
-  if (trialEligible || !isPlatformBillingConfigured()) {
+  if (trialEligible || !(await isPlatformBillingConfigured())) {
     return switchPlanAction({ plan: input.plan, cycle: input.cycle });
   }
 

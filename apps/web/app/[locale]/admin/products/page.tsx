@@ -39,12 +39,20 @@ export default async function AdminProductsPage() {
             land in the Vilo ledger.
           </p>
         </div>
-        <Link
-          href="/admin/products/new"
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-primary px-4 text-[13px] font-semibold text-white hover:bg-brand-secondary"
-        >
-          <Plus className="h-4 w-4" /> New product
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/products/payments"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-line bg-white px-4 text-[13px] font-semibold text-brand-ink hover:bg-brand-light"
+          >
+            Payment settings
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-primary px-4 text-[13px] font-semibold text-white hover:bg-brand-secondary"
+          >
+            <Plus className="h-4 w-4" /> New product
+          </Link>
+        </div>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

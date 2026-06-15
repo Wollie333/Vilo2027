@@ -24,6 +24,7 @@ export type EditorProduct = {
   affiliateType: "none" | "amount" | "percent";
   affiliateValue: number;
   bullets: string[];
+  paymentMethods: ("paystack" | "eft")[];
 };
 
 type FeatureState = { isEnabled: boolean; limitValue: number | null };
@@ -79,6 +80,9 @@ export function ProductEditor({
         affiliateType: f.affiliateType,
         affiliateValue: f.affiliateType === "none" ? 0 : f.affiliateValue,
         bullets,
+        paymentMethods: f.paymentMethods.length
+          ? f.paymentMethods
+          : ["paystack"],
       });
       if (r.ok) {
         toast.success(isNew ? "Product created." : "Product saved.");
@@ -215,6 +219,37 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
+        </div>
+      </section>
+
+      {/* Payment methods */}
+      <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <h2 className="font-display text-sm font-bold text-brand-ink">
+          Accepted payment methods
+        </h2>
+        <p className="text-[12px] text-brand-mute">
+          How a user can pay Vilo for this product. Configure keys/bank details
+          in Payment settings.
+        </p>
+        <div className="flex flex-wrap gap-4">
+          {(["paystack", "eft"] as const).map((m) => (
+            <label key={m} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={f.paymentMethods.includes(m)}
+                onChange={(e) =>
+                  set(
+                    "paymentMethods",
+                    e.target.checked
+                      ? [...f.paymentMethods, m]
+                      : f.paymentMethods.filter((x) => x !== m),
+                  )
+                }
+                className="rounded border-brand-line"
+              />
+              {m === "paystack" ? "Paystack (card)" : "Manual EFT"}
+            </label>
+          ))}
         </div>
       </section>
 

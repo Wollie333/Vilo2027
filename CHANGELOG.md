@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Vilo payment settings (Paystack + EFT) + per-product methods — branch `main`
+
+### Built
+- `platform_payment_settings` (singleton, service-role only): admin-managed
+  platform **Paystack** keys + **EFT** bank details, at
+  `/admin/products/payments`. Secret is write-only (never echoed back).
+- `products.payment_methods` — each product chooses Paystack and/or EFT; editor
+  has the toggles.
+- Live billing now reads the **admin-configured Paystack secret** (DB) with env
+  fallback (`getPlatformPaystackSecret`); the return page verifies with it; the
+  webhook accepts either the env key (bookings) or the DB platform key
+  (subscriptions/products).
+
+### Migrations
+- `20260615000005_platform_payment_settings.sql`
+
+### Commit
+- `feat(admin): vilo payment settings (paystack + eft) + per-product methods`
+
 ## 2026-06-15 — Super-Admin — Product Manager (Products + Vilo ledger reframe, Phase A) — branch `main`
 
 ### Built

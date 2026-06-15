@@ -10,8 +10,23 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // billing is considered "not configured" and callers fall back to the pre-MVP
 // state-only flow so the founder can keep smoke-testing without real charges.
 
-export function isPlatformBillingConfigured(): boolean {
-  return !!process.env.PAYSTACK_SECRET_KEY;
+// The platform Paystack secret — admin-configured in DB (Payment settings),
+// falling back to the PAYSTACK_SECRET_KEY env var. null = not configured.
+export async function getPlatformPaystackSecret(): Promise<string | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("platform_payment_settings")
+    .select("paystack_enabled, paystack_secret_key")
+    .eq("id", true)
+    .maybeSingle();
+  if (data?.paystack_enabled && data.paystack_secret_key) {
+    return data.paystack_secret_key;
+  }
+  return process.env.PAYSTACK_SECRET_KEY ?? null;
+}
+
+export async function isPlatformBillingConfigured(): Promise<boolean> {
+  return !!(await getPlatformPaystackSecret());
 }
 
 export type CheckoutResult =
@@ -26,7 +41,8 @@ export async function startSubscriptionCheckout(input: {
   planKey: string;
   cycle: "monthly" | "annual";
 }): Promise<CheckoutResult> {
-  if (!isPlatformBillingConfigured()) {
+  const secretKey = await getPlatformPaystackSecret();
+  if (!secretKey) {
     return { ok: false, error: "Billing is not configured." };
   }
 
@@ -95,7 +111,8 @@ export async function startSubscriptionCheckout(input: {
         plan: input.planKey,
         cycle: input.cycle,
       },
-      // No secretKey → platform key (Vilo's own revenue).
+      // Admin-configured platform key (Vilo's own revenue).
+      secretKey,
     });
     return { ok: true, authorizationUrl: res.authorization_url, reference };
   } catch (e) {

@@ -24,6 +24,7 @@ const upsertSchema = z.object({
   affiliateType: z.enum(["none", "amount", "percent"]),
   affiliateValue: z.number().min(0).max(10_000_000),
   bullets: z.array(z.string().trim().min(1).max(200)).max(20),
+  paymentMethods: z.array(z.enum(["paystack", "eft"])).default(["paystack"]),
   reason: z.string().optional(),
 });
 
@@ -59,6 +60,9 @@ export const upsertProductAction = withAdminAudit<
       affiliate_type: d.affiliateType,
       affiliate_value: d.affiliateValue,
       bullets: d.bullets as never,
+      payment_methods: d.paymentMethods.length
+        ? d.paymentMethods
+        : ["paystack"],
       updated_at: new Date().toISOString(),
     };
 

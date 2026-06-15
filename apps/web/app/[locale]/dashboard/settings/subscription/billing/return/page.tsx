@@ -1,7 +1,7 @@
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
-import { isPlatformBillingConfigured } from "@/lib/billing/platform-billing";
+import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
 import { verifyTransaction } from "@/lib/paystack";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +18,10 @@ export default async function BillingReturnPage({
   const reference = searchParams?.reference ?? searchParams?.trxref ?? null;
 
   let state: "success" | "pending" | "failed" = "pending";
-  if (reference && isPlatformBillingConfigured()) {
+  const secret = await getPlatformPaystackSecret();
+  if (reference && secret) {
     try {
-      const tx = await verifyTransaction(reference);
+      const tx = await verifyTransaction(reference, secret);
       if (tx?.status === "success") state = "success";
       else if (tx && tx.status !== "success") state = "failed";
     } catch {

@@ -33,11 +33,38 @@ type PaystackEvent = {
   };
 };
 
-function verifySignature(rawBody: string, signature: string | null): boolean {
-  const secret = env.get("PAYSTACK_SECRET_KEY");
-  if (!secret || !signature) return false;
+function matchesSecret(
+  rawBody: string,
+  signature: string,
+  secret: string | null | undefined,
+): boolean {
+  if (!secret) return false;
   const hash = createHmac("sha512", secret).update(rawBody).digest("hex");
   return hash === signature;
+}
+
+// Verify against the env key (bookings) OR the admin-configured platform key
+// (subscriptions/products), since Vilo's own merchant key may be set in DB.
+// deno-lint-ignore no-explicit-any
+async function verifySignature(
+  rawBody: string,
+  signature: string | null,
+  supabase: any,
+): Promise<boolean> {
+  if (!signature) return false;
+  if (matchesSecret(rawBody, signature, env.get("PAYSTACK_SECRET_KEY"))) {
+    return true;
+  }
+  try {
+    const { data } = await supabase
+      .from("platform_payment_settings")
+      .select("paystack_secret_key")
+      .eq("id", true)
+      .maybeSingle();
+    return matchesSecret(rawBody, signature, data?.paystack_secret_key);
+  } catch {
+    return false;
+  }
 }
 
 function adminClient() {
@@ -62,7 +89,8 @@ Deno.serve(async (req: Request) => {
   const rawBody = await req.text();
   const signature = req.headers.get("x-paystack-signature");
 
-  if (!verifySignature(rawBody, signature)) {
+  const supabase = adminClient();
+  if (!(await verifySignature(rawBody, signature, supabase))) {
     return new Response("Invalid signature", { status: 401 });
   }
 
