@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { createProductOrder } from "@/lib/billing/product-checkout";
+import { PRODUCTS_CACHE_TAG } from "@/lib/products/getProducts";
 
 const PRODUCT_TARGET = "00000000-0000-0000-0000-0000000900d5";
 
@@ -144,6 +145,7 @@ export const upsertProductAction = withAdminAudit<
     }
 
     revalidatePath("/admin/products");
+    revalidateTag(PRODUCTS_CACHE_TAG);
     return { result: { ok: true, id }, after: { id } };
   },
 );
@@ -176,6 +178,7 @@ export const toggleProductActiveAction = withAdminAudit<
       .eq("id", parsed.data.id);
     if (error) throw new Error(error.message);
     revalidatePath("/admin/products");
+    revalidateTag(PRODUCTS_CACHE_TAG);
     return { result: { ok: true }, after: parsed.data };
   },
 );
@@ -204,6 +207,7 @@ export const deleteProductAction = withAdminAudit<
       .eq("id", parsed.data.id);
     if (error) throw new Error(error.message);
     revalidatePath("/admin/products");
+    revalidateTag(PRODUCTS_CACHE_TAG);
     return { result: { ok: true }, after: { id: parsed.data.id } };
   },
 );

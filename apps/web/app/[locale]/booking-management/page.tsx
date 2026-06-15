@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
+
 import { Comparison } from "./_components/Comparison";
 import { DirectoryStrip } from "./_components/DirectoryStrip";
 import { FAQ } from "./_components/FAQ";
@@ -25,7 +27,8 @@ export const metadata: Metadata = {
     "Direct-booking management for accommodation hosts. Branded booking page, unified inbox, calendar that syncs — for one flat monthly fee.",
 };
 
-export default function BookingManagementPage() {
+export default async function BookingManagementPage() {
+  const products = await getSubscriptionProducts();
   return (
     <div className="bg-brand-light text-brand-ink">
       <SiteHeader />
@@ -36,7 +39,7 @@ export default function BookingManagementPage() {
       <HowItWorks />
       <ProductShowcase />
       <DirectoryStrip />
-      <Pricing />
+      <Pricing products={products} />
       <Testimonials />
       <Comparison />
       <FAQ />
