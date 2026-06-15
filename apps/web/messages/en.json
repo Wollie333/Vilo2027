@@ -85,7 +85,59 @@
     "s9Eyebrow": "Get started",
     "s9Title": "Your booking page is waiting.",
     "s9Body": "Create your free profile in minutes and get discovered today.",
-    "s9Cta": "Create your free profile"
+    "s9Cta": "Create your free profile",
+
+    "mEyebrow": "The math",
+    "mTitle": "Do the math on commission.",
+    "mAssumption": "Example — a host taking {volume} a month in bookings:",
+    "mOtaName": "Marketplace · {rate} commission",
+    "mViloName": "{brand} · flat subscription",
+    "mPerMonth": "/ month",
+    "mSavingsLabel": "You keep the difference",
+    "mSavingsSub": "That's about {yearly} a year back in your pocket.",
+    "mFootnote": "Illustrative example — your saving grows with every booking.",
+
+    "dEyebrow": "Your command center",
+    "dTitle": "Run everything from one dashboard.",
+    "dBody": "Revenue, bookings, occupancy and ratings — your whole business at a glance, updated live.",
+
+    "bEyebrow": "Bookings",
+    "bTitle": "Every booking, under control.",
+    "bBody": "Accept or decline in a tap, track deposits and balances, and see exactly who's arriving when.",
+
+    "cEyebrow": "Calendar",
+    "cTitle": "Never double-book again.",
+    "cBody": "One calendar for every channel. Two-way iCal sync keeps Airbnb and Booking.com in step automatically.",
+
+    "gEyebrow": "Get discovered",
+    "gTitle": "A booking page that's yours.",
+    "gBody": "Your own branded page on the {brand} directory — share the link anywhere and take bookings direct, with no algorithm in the way.",
+
+    "rEyebrow": "Reputation",
+    "rTitle": "Reviews that build your brand.",
+    "rBody": "Collected automatically after every stay and shown on your page — a reputation that follows you, not a marketplace.",
+
+    "hEyebrow": "How it works",
+    "hTitle": "Live in three steps.",
+    "hStep1Title": "Create your free profile",
+    "hStep1Body": "Claim your page and add your details in minutes.",
+    "hStep2Title": "Add your listing",
+    "hStep2Body": "Photos, pricing, calendar and house rules — all guided.",
+    "hStep3Title": "Get booked & paid",
+    "hStep3Body": "Share your link, take direct bookings, and the money lands in your account.",
+
+    "s7Sub": "One flat fee. No commission, no per-booking cut, no surprises.",
+
+    "oEyebrow": "Common questions",
+    "oTitle": "Yes — it's safe, and it's yours.",
+    "oQ1": "Is my money safe?",
+    "oA1": "Guests pay into your own Paystack, PayPal or bank account. {brand} never holds your funds.",
+    "oQ2": "Who owns my guests and data?",
+    "oA2": "You do — full contact details, history and notes, yours to keep and export.",
+    "oQ3": "Am I locked in?",
+    "oA3": "No contracts. A flat monthly fee you can cancel anytime.",
+    "oQ4": "Do I lose my existing listings?",
+    "oA4": "No — sync your calendar with Airbnb and Booking.com and run them side by side."
   },
   "nav": {
     "tagline": "Direct bookings · zero commission to guests",

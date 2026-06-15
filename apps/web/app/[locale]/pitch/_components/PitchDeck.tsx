@@ -7,16 +7,19 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Globe,
   Inbox,
   LayoutGrid,
+  ListPlus,
   type LucideIcon,
   MessagesSquare,
   Receipt,
+  Rocket,
   ShieldCheck,
   Star,
   Tags,
+  UserPlus,
   UserRound,
-  Wallet,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
@@ -25,6 +28,16 @@ import { Link } from "@/i18n/navigation";
 import { useBrandName } from "@/components/brand/BrandProvider";
 import type { CatalogProduct } from "@/lib/products/getProducts";
 
+import {
+  BookingCardPreview,
+  CalendarPreview,
+  DashboardPreview,
+  InboxPreview,
+  LedgerPreview,
+  ListingCardPreview,
+  ReviewsPreview,
+} from "./Illustrations";
+
 type Props = {
   plans: CatalogProduct[];
 };
@@ -32,17 +45,29 @@ type Props = {
 const DARK_GRADIENT =
   "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)";
 
-// One zero-based count of how many slides the deck renders. Kept in sync with
-// the `slides` array built in render — the deck owns navigation state here so
-// the page can stay a Server Component that only fetches live data.
+// Illustrative inputs for the commission-math slide. The Vilo cost is pulled
+// from the real cheapest paid plan; the example booking volume + marketplace
+// rate are clearly labelled assumptions on the slide itself.
+const EXAMPLE_VOLUME = 40000;
+const OTA_RATE = 0.15;
+
+function rand(n: number): string {
+  return `R ${Math.round(n).toLocaleString("en-ZA")}`;
+}
+
 function formatPrice(plan: CatalogProduct): string {
   if (plan.isFree) return "R0";
   const n = plan.price.toLocaleString("en-ZA");
   return plan.currency === "ZAR" ? `R${n}` : `${plan.currency} ${n}`;
 }
 
-// Ordered by host pain point — the deepest pains (commission, losing the guest,
-// tool sprawl) lead so the slide reads as a benefit-driven solution list.
+function cheapestPaid(plans: CatalogProduct[]): number {
+  const paid = plans.filter((p) => !p.isFree).map((p) => p.price);
+  return paid.length ? Math.min(...paid) : 299;
+}
+
+// Feature grid, ordered by host pain point — deepest pains lead so the slide
+// reads as a benefit-driven solution list.
 const FEATURES: Array<{ icon: LucideIcon; key: string }> = [
   { icon: CreditCard, key: "featPayments" },
   { icon: Inbox, key: "featInbox" },
@@ -61,11 +86,19 @@ export function PitchDeck({ plans }: Props) {
   const slides = [
     <TitleSlide key="title" brand={brand} t={t} />,
     <ProblemSlide key="problem" t={t} />,
+    <CommissionSlide key="commission" brand={brand} plans={plans} t={t} />,
     <SolutionSlide key="solution" t={t} />,
+    <DashboardSlide key="dashboard" t={t} />,
     <MoneySlide key="money" brand={brand} t={t} />,
+    <BookingsSlide key="bookings" t={t} />,
     <GuestSlide key="guest" t={t} />,
+    <CalendarSlide key="calendar" t={t} />,
+    <DiscoverSlide key="discover" brand={brand} t={t} />,
+    <ReviewsSlide key="reviews" t={t} />,
     <FeaturesSlide key="features" t={t} />,
+    <HowItWorksSlide key="how" t={t} />,
     <PricingSlide key="pricing" plans={plans} t={t} />,
+    <ObjectionsSlide key="objections" brand={brand} t={t} />,
     <WhyNowSlide key="whynow" t={t} />,
     <CtaSlide key="cta" t={t} />,
   ];
@@ -130,7 +163,7 @@ export function PitchDeck({ plans }: Props) {
       />
 
       {/* Controls */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-between px-6 pb-6 lg:px-10 lg:pb-8">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-center justify-between px-6 pb-5 lg:px-10 lg:pb-6">
         <span className="rounded-pill bg-white/10 px-3 py-1 font-mono text-xs text-white/70 backdrop-blur">
           {t("slideCount", { current: current + 1, total })}
         </span>
@@ -172,7 +205,7 @@ export function PitchDeck({ plans }: Props) {
 
 type T = ReturnType<typeof useTranslations<"pitch">>;
 
-// --- Slide shells ---------------------------------------------------------
+// --- Shells ---------------------------------------------------------------
 
 function Slide({
   dark,
@@ -183,10 +216,10 @@ function Slide({
 }) {
   return (
     <section
-      className="flex h-full w-full items-center justify-center px-8 py-16 lg:px-16"
+      className="flex h-full w-full items-center justify-center overflow-y-auto px-8 py-14 lg:px-16"
       style={dark ? { backgroundImage: DARK_GRADIENT } : undefined}
     >
-      <div className="mx-auto w-full max-w-5xl">{children}</div>
+      <div className="mx-auto w-full max-w-6xl">{children}</div>
     </section>
   );
 }
@@ -196,6 +229,62 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     <div className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-primary">
       {children}
     </div>
+  );
+}
+
+// Copy block for split (copy + illustration) slides.
+function Copy({
+  dark,
+  eyebrow,
+  title,
+  body,
+  children,
+}: {
+  dark?: boolean;
+  eyebrow: string;
+  title: string;
+  body: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <h2
+        className={`mt-3 font-display text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-5xl ${
+          dark ? "text-white" : "text-brand-ink"
+        }`}
+      >
+        {title}
+      </h2>
+      <p
+        className={`mt-4 max-w-md text-lg leading-relaxed ${
+          dark ? "text-brand-accent/80" : "text-brand-mute"
+        }`}
+      >
+        {body}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+// Split layout: copy on the left, product illustration on the right.
+function Split({
+  dark,
+  copy,
+  media,
+}: {
+  dark?: boolean;
+  copy: React.ReactNode;
+  media: React.ReactNode;
+}) {
+  return (
+    <Slide dark={dark}>
+      <div className="grid items-center gap-10 lg:grid-cols-2">
+        {copy}
+        <div className="mx-auto w-full max-w-xl">{media}</div>
+      </div>
+    </Slide>
   );
 }
 
@@ -257,6 +346,73 @@ function ProblemSlide({ t }: { t: T }) {
   );
 }
 
+function CommissionSlide({
+  brand,
+  plans,
+  t,
+}: {
+  brand: string;
+  plans: CatalogProduct[];
+  t: T;
+}) {
+  const viloCost = cheapestPaid(plans);
+  const otaCost = EXAMPLE_VOLUME * OTA_RATE;
+  const monthlySaving = Math.max(0, otaCost - viloCost);
+  const yearlySaving = monthlySaving * 12;
+  const ratePct = `${Math.round(OTA_RATE * 100)}%`;
+  return (
+    <Slide dark>
+      <div className="text-center">
+        <Eyebrow>{t("mEyebrow")}</Eyebrow>
+        <h2 className="mt-3 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          {t("mTitle")}
+        </h2>
+        <p className="mt-4 text-sm text-brand-accent/70">
+          {t("mAssumption", { volume: rand(EXAMPLE_VOLUME) })}
+        </p>
+      </div>
+      <div className="mx-auto mt-8 grid max-w-3xl gap-5 md:grid-cols-2">
+        <div className="rounded-card border border-white/10 bg-white/[0.04] p-6">
+          <div className="text-sm text-brand-accent/70">
+            {t("mOtaName", { rate: ratePct })}
+          </div>
+          <div className="mt-2 font-display text-4xl font-bold text-red-400">
+            −{rand(otaCost)}
+          </div>
+          <div className="mt-1 text-xs text-brand-accent/50">
+            {t("mPerMonth")}
+          </div>
+        </div>
+        <div className="rounded-card border border-brand-primary/40 bg-brand-primary/10 p-6 ring-1 ring-brand-primary/30">
+          <div className="text-sm text-brand-accent/70">
+            {t("mViloName", { brand })}
+          </div>
+          <div className="mt-2 font-display text-4xl font-bold text-brand-primary">
+            {rand(viloCost)}
+          </div>
+          <div className="mt-1 text-xs text-brand-accent/50">
+            {t("mPerMonth")}
+          </div>
+        </div>
+      </div>
+      <div className="mx-auto mt-6 max-w-3xl rounded-card border border-white/10 bg-white/[0.04] p-5 text-center">
+        <div className="text-xs font-semibold uppercase tracking-wider text-brand-primary">
+          {t("mSavingsLabel")}
+        </div>
+        <div className="mt-1 font-display text-3xl font-bold text-white">
+          {rand(monthlySaving)} {t("mPerMonth")}
+        </div>
+        <div className="mt-1 text-sm text-brand-accent/70">
+          {t("mSavingsSub", { yearly: rand(yearlySaving) })}
+        </div>
+      </div>
+      <p className="mt-4 text-center text-[11px] text-brand-accent/40">
+        {t("mFootnote")}
+      </p>
+    </Slide>
+  );
+}
+
 function SolutionSlide({ t }: { t: T }) {
   return (
     <Slide>
@@ -265,7 +421,7 @@ function SolutionSlide({ t }: { t: T }) {
         <h2 className="mx-auto mt-3 max-w-3xl font-display text-4xl font-bold leading-tight tracking-tight md:text-6xl">
           {t("s3Title")}
         </h2>
-        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-accent/80">
+        <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-brand-mute">
           {t("s3Body")}
         </p>
         <span className="mt-8 inline-flex items-center gap-2 rounded-pill bg-brand-primary/15 px-4 py-2 text-sm font-semibold text-brand-primary ring-1 ring-brand-primary/30">
@@ -277,19 +433,29 @@ function SolutionSlide({ t }: { t: T }) {
   );
 }
 
+function DashboardSlide({ t }: { t: T }) {
+  return (
+    <Split
+      copy={
+        <Copy eyebrow={t("dEyebrow")} title={t("dTitle")} body={t("dBody")} />
+      }
+      media={<DashboardPreview />}
+    />
+  );
+}
+
 function MoneySlide({ brand, t }: { brand: string; t: T }) {
   const tags = [t("s4Tag1"), t("s4Tag2"), t("s4Tag3")];
   return (
-    <Slide dark>
-      <div className="grid items-center gap-10 md:grid-cols-2">
-        <div>
-          <Eyebrow>{t("s4Eyebrow")}</Eyebrow>
-          <h2 className="mt-3 font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl">
-            {t("s4Title")}
-          </h2>
-          <p className="mt-5 max-w-md text-lg leading-relaxed text-brand-accent/80">
-            {t("s4Body", { brand })}
-          </p>
+    <Split
+      dark
+      copy={
+        <Copy
+          dark
+          eyebrow={t("s4Eyebrow")}
+          title={t("s4Title")}
+          body={t("s4Body", { brand })}
+        >
           <div className="mt-6 flex flex-wrap gap-2.5">
             {tags.map((tag) => (
               <span
@@ -300,17 +466,21 @@ function MoneySlide({ brand, t }: { brand: string; t: T }) {
               </span>
             ))}
           </div>
-        </div>
-        <div className="flex justify-center">
-          <div className="flex h-44 w-44 items-center justify-center rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/30">
-            <Wallet
-              className="h-20 w-20 text-brand-primary"
-              strokeWidth={1.5}
-            />
-          </div>
-        </div>
-      </div>
-    </Slide>
+        </Copy>
+      }
+      media={<LedgerPreview />}
+    />
+  );
+}
+
+function BookingsSlide({ t }: { t: T }) {
+  return (
+    <Split
+      copy={
+        <Copy eyebrow={t("bEyebrow")} title={t("bTitle")} body={t("bBody")} />
+      }
+      media={<BookingCardPreview />}
+    />
   );
 }
 
@@ -321,30 +491,71 @@ function GuestSlide({ t }: { t: T }) {
     { icon: MessagesSquare, label: t("s5Point3") },
   ];
   return (
-    <Slide>
-      <Eyebrow>{t("s5Eyebrow")}</Eyebrow>
-      <h2 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl">
-        {t("s5Title")}
-      </h2>
-      <p className="mt-5 max-w-2xl text-lg leading-relaxed text-brand-mute">
-        {t("s5Body")}
-      </p>
-      <div className="mt-10 grid gap-4 sm:grid-cols-3">
-        {points.map(({ icon: Icon, label }) => (
-          <div
-            key={label}
-            className="flex items-center gap-3 rounded-card border border-brand-line bg-white p-5 text-brand-ink"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-brand-accent text-brand-secondary">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span className="font-display text-[15px] font-semibold">
-              {label}
+    <Split
+      copy={
+        <Copy eyebrow={t("s5Eyebrow")} title={t("s5Title")} body={t("s5Body")}>
+          <div className="mt-6 flex flex-wrap gap-2.5">
+            {points.map(({ icon: Icon, label }) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-2 rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[13px] font-semibold text-brand-ink"
+              >
+                <Icon className="h-4 w-4 text-brand-secondary" />
+                {label}
+              </span>
+            ))}
+          </div>
+        </Copy>
+      }
+      media={<InboxPreview />}
+    />
+  );
+}
+
+function CalendarSlide({ t }: { t: T }) {
+  return (
+    <Split
+      copy={
+        <Copy eyebrow={t("cEyebrow")} title={t("cTitle")} body={t("cBody")} />
+      }
+      media={<CalendarPreview />}
+    />
+  );
+}
+
+function DiscoverSlide({ brand, t }: { brand: string; t: T }) {
+  return (
+    <Split
+      dark
+      copy={
+        <Copy
+          dark
+          eyebrow={t("gEyebrow")}
+          title={t("gTitle")}
+          body={t("gBody", { brand })}
+        >
+          <div className="mt-6 inline-flex items-center gap-2 rounded-[10px] border border-white/15 bg-black/20 px-3 py-2 text-[13px] backdrop-blur">
+            <Globe className="h-4 w-4 text-brand-primary" />
+            <span className="font-mono text-brand-accent/70">vilo.co.za/</span>
+            <span className="font-mono font-semibold text-white">
+              your-page
             </span>
           </div>
-        ))}
-      </div>
-    </Slide>
+        </Copy>
+      }
+      media={<ListingCardPreview />}
+    />
+  );
+}
+
+function ReviewsSlide({ t }: { t: T }) {
+  return (
+    <Split
+      copy={
+        <Copy eyebrow={t("rEyebrow")} title={t("rTitle")} body={t("rBody")} />
+      }
+      media={<ReviewsPreview />}
+    />
   );
 }
 
@@ -379,6 +590,42 @@ function FeaturesSlide({ t }: { t: T }) {
   );
 }
 
+function HowItWorksSlide({ t }: { t: T }) {
+  const steps = [
+    { icon: UserPlus, title: t("hStep1Title"), body: t("hStep1Body") },
+    { icon: ListPlus, title: t("hStep2Title"), body: t("hStep2Body") },
+    { icon: Rocket, title: t("hStep3Title"), body: t("hStep3Body") },
+  ];
+  return (
+    <Slide dark>
+      <div className="text-center">
+        <Eyebrow>{t("hEyebrow")}</Eyebrow>
+        <h2 className="mt-3 font-display text-4xl font-bold tracking-tight md:text-5xl">
+          {t("hTitle")}
+        </h2>
+      </div>
+      <div className="mt-12 grid gap-6 md:grid-cols-3">
+        {steps.map(({ icon: Icon, title, body }, i) => (
+          <div key={title} className="text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-primary/15 ring-1 ring-brand-primary/30">
+              <Icon className="h-7 w-7 text-brand-primary" />
+            </div>
+            <div className="mt-4 font-mono text-xs text-brand-primary">
+              0{i + 1}
+            </div>
+            <div className="mt-1 font-display text-xl font-semibold text-white">
+              {title}
+            </div>
+            <p className="mx-auto mt-2 max-w-xs text-[14px] leading-relaxed text-brand-accent/70">
+              {body}
+            </p>
+          </div>
+        ))}
+      </div>
+    </Slide>
+  );
+}
+
 function PricingSlide({ plans, t }: { plans: CatalogProduct[]; t: T }) {
   return (
     <Slide dark>
@@ -387,6 +634,9 @@ function PricingSlide({ plans, t }: { plans: CatalogProduct[]; t: T }) {
         <h2 className="mt-3 font-display text-4xl font-bold tracking-tight md:text-5xl">
           {t("s7Title")}
         </h2>
+        <p className="mx-auto mt-4 max-w-xl text-[15px] text-brand-accent/70">
+          {t("s7Sub")}
+        </p>
       </div>
       {plans.length === 0 ? (
         <p className="mt-10 text-center text-brand-accent/70">{t("s7Empty")}</p>
@@ -440,6 +690,43 @@ function PricingSlide({ plans, t }: { plans: CatalogProduct[]; t: T }) {
           ))}
         </div>
       )}
+    </Slide>
+  );
+}
+
+function ObjectionsSlide({ brand, t }: { brand: string; t: T }) {
+  const qa = [
+    { q: t("oQ1"), a: t("oA1", { brand }) },
+    { q: t("oQ2"), a: t("oA2") },
+    { q: t("oQ3"), a: t("oA3") },
+    { q: t("oQ4"), a: t("oA4") },
+  ];
+  return (
+    <Slide>
+      <div className="text-center">
+        <Eyebrow>{t("oEyebrow")}</Eyebrow>
+        <h2 className="mt-3 font-display text-4xl font-bold tracking-tight text-brand-ink md:text-5xl">
+          {t("oTitle")}
+        </h2>
+      </div>
+      <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-2">
+        {qa.map(({ q, a }) => (
+          <div
+            key={q}
+            className="rounded-card border border-brand-line bg-white p-5 text-left shadow-card"
+          >
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-brand-primary" />
+              <div className="font-display text-[15px] font-semibold text-brand-ink">
+                {q}
+              </div>
+            </div>
+            <p className="mt-2 text-[14px] leading-relaxed text-brand-mute">
+              {a}
+            </p>
+          </div>
+        ))}
+      </div>
     </Slide>
   );
 }
