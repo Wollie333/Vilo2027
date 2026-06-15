@@ -6,6 +6,8 @@ import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+import { AdminKpiCard } from "../_components/AdminKpiCard";
+import { AdminSegments } from "../_components/AdminSegments";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +79,22 @@ export default async function AdminListingsPage({
   };
 
   const list = (rows as Row[] | null) ?? [];
+
+  // KPI + segment counts (all non-deleted listings).
+  const { data: allRows } = await service
+    .from("listings")
+    .select("is_published, is_featured")
+    .is("deleted_at", null);
+  let total = 0;
+  let published = 0;
+  let draft = 0;
+  let featured = 0;
+  for (const l of allRows ?? []) {
+    total += 1;
+    if (l.is_published) published += 1;
+    else draft += 1;
+    if (l.is_featured) featured += 1;
+  }
 
   const columns: AdminColumn<Row>[] = [
     {
@@ -155,26 +173,32 @@ export default async function AdminListingsPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-brand-ink">
-            Listings
-          </h1>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            Every accommodation listing on the platform.
-          </p>
-        </div>
-        <p className="text-[12px] text-brand-mute">
-          <span className="num font-semibold text-brand-ink">{count ?? 0}</span>{" "}
-          matching
+      <header>
+        <h1 className="font-display text-2xl font-bold text-brand-ink">
+          Listings
+        </h1>
+        <p className="mt-1 text-[13px] text-brand-mute">
+          Every accommodation listing on the platform.
         </p>
       </header>
 
+      {/* KPI strip */}
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <AdminKpiCard label="Total listings" value={total} />
+        <AdminKpiCard label="Published" value={published} />
+        <AdminKpiCard label="Draft" value={draft} />
+        <AdminKpiCard label="Featured" value={featured} />
+      </section>
+
+      {/* Search */}
       <form
         action="/admin/listings"
         method="get"
         className="flex flex-wrap items-center gap-2"
       >
+        {status !== "all" ? (
+          <input type="hidden" name="status" value={status} />
+        ) : null}
         <div className="relative min-w-[16rem] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
           <input
@@ -185,26 +209,19 @@ export default async function AdminListingsPage({
             className="block w-full rounded border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
-        <select
-          name="status"
-          defaultValue={status}
-          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
-        >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s === "all" ? "All listings" : s[0].toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
         <button
           type="submit"
           className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
         >
           Search
         </button>
-        {q || status !== "all" ? (
+        {q ? (
           <Link
-            href="/admin/listings"
+            href={
+              status === "all"
+                ? "/admin/listings"
+                : `/admin/listings?status=${status}`
+            }
             className="text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
           >
             Clear
@@ -216,7 +233,19 @@ export default async function AdminListingsPage({
         columns={columns}
         rows={list}
         getKey={(l) => l.id}
-        empty="No listings match this search."
+        empty="No listings match this filter."
+        topBar={
+          <AdminSegments
+            param="status"
+            current={status}
+            options={[
+              { key: "all", label: "All", count: total },
+              { key: "published", label: "Published", count: published },
+              { key: "draft", label: "Draft", count: draft },
+              { key: "featured", label: "Featured", count: featured },
+            ]}
+          />
+        }
       />
 
       {count != null && count > PAGE_SIZE ? (

@@ -6,6 +6,8 @@ import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+import { AdminKpiCard } from "../_components/AdminKpiCard";
+import { AdminSegments } from "../_components/AdminSegments";
 
 type UserRow = {
   id: string;
@@ -20,13 +22,13 @@ type UserRow = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = { q?: string; role?: string };
+type SearchParams = { q?: string; seg?: string };
 
 const PAGE_SIZE = 50;
-const ROLES = ["all", "guest", "host", "admin"] as const;
+const SEGMENTS = ["all", "guest", "host", "staff", "suspended"] as const;
 
-function isRole(role: string | undefined): role is (typeof ROLES)[number] {
-  return ROLES.includes((role ?? "") as (typeof ROLES)[number]);
+function isSeg(s: string | undefined): s is (typeof SEGMENTS)[number] {
+  return SEGMENTS.includes((s ?? "") as (typeof SEGMENTS)[number]);
 }
 
 export default async function AdminUsersPage({
@@ -37,8 +39,8 @@ export default async function AdminUsersPage({
   await requirePermission("users.view");
 
   const q = (searchParams?.q ?? "").trim();
-  const role: (typeof ROLES)[number] = isRole(searchParams?.role)
-    ? (searchParams!.role as (typeof ROLES)[number])
+  const seg: (typeof SEGMENTS)[number] = isSeg(searchParams?.seg)
+    ? (searchParams!.seg as (typeof SEGMENTS)[number])
     : "all";
 
   const service = createAdminClient();
@@ -55,9 +57,10 @@ export default async function AdminUsersPage({
   if (q) {
     query = query.or(`email.ilike.%${q}%,full_name.ilike.%${q}%`);
   }
-  if (role !== "all") {
-    query = query.eq("role", role);
-  }
+  if (seg === "guest") query = query.eq("role", "guest");
+  else if (seg === "host") query = query.eq("role", "host");
+  else if (seg === "staff") query = query.in("role", ["staff", "super_admin"]);
+  else if (seg === "suspended") query = query.eq("is_active", false);
 
   const { data: rows, count } = await throwOnErrorWithCount(
     query,
@@ -65,6 +68,27 @@ export default async function AdminUsersPage({
   );
 
   const list = (rows as UserRow[] | null) ?? [];
+
+  // KPI + segment counts (all non-deleted users).
+  const { data: allRows } = await service
+    .from("user_profiles")
+    .select("role, is_active, created_at")
+    .is("deleted_at", null);
+  const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  let total = 0;
+  let hosts = 0;
+  let guests = 0;
+  let staff = 0;
+  let suspended = 0;
+  let new30 = 0;
+  for (const u of allRows ?? []) {
+    total += 1;
+    if (u.role === "host") hosts += 1;
+    else if (u.role === "guest") guests += 1;
+    if (u.role === "staff" || u.role === "super_admin") staff += 1;
+    if (u.is_active === false) suspended += 1;
+    if (u.created_at && u.created_at >= since30) new30 += 1;
+  }
 
   const columns: AdminColumn<UserRow>[] = [
     {
@@ -117,26 +141,34 @@ export default async function AdminUsersPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-brand-ink">
-            Users
-          </h1>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            Every account on the platform — guests, hosts, and staff.
-          </p>
-        </div>
-        <p className="text-[12px] text-brand-mute">
-          <span className="num font-semibold text-brand-ink">{count ?? 0}</span>{" "}
-          matching
+      <header>
+        <h1 className="font-display text-2xl font-bold text-brand-ink">
+          Users
+        </h1>
+        <p className="mt-1 text-[13px] text-brand-mute">
+          Every account on the platform — guests, hosts, and staff.
         </p>
       </header>
 
+      {/* KPI strip */}
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <AdminKpiCard
+          label="Total users"
+          value={total}
+          sub={`+${new30} in 30 days`}
+        />
+        <AdminKpiCard label="Hosts" value={hosts} />
+        <AdminKpiCard label="Guests" value={guests} />
+        <AdminKpiCard label="Suspended" value={suspended} />
+      </section>
+
+      {/* Search */}
       <form
         action="/admin/users"
         method="get"
         className="flex flex-wrap items-center gap-2"
       >
+        {seg !== "all" ? <input type="hidden" name="seg" value={seg} /> : null}
         <div className="relative min-w-[16rem] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
           <input
@@ -147,26 +179,15 @@ export default async function AdminUsersPage({
             className="block w-full rounded border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
-        <select
-          name="role"
-          defaultValue={role}
-          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r === "all" ? "All roles" : r[0].toUpperCase() + r.slice(1)}
-            </option>
-          ))}
-        </select>
         <button
           type="submit"
           className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
         >
           Search
         </button>
-        {q || role !== "all" ? (
+        {q ? (
           <Link
-            href="/admin/users"
+            href={seg === "all" ? "/admin/users" : `/admin/users?seg=${seg}`}
             className="text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
           >
             Clear
@@ -178,7 +199,20 @@ export default async function AdminUsersPage({
         columns={columns}
         rows={list}
         getKey={(u) => u.id}
-        empty="No users match this search."
+        empty="No users match this filter."
+        topBar={
+          <AdminSegments
+            param="seg"
+            current={seg}
+            options={[
+              { key: "all", label: "All", count: total },
+              { key: "guest", label: "Guests", count: guests },
+              { key: "host", label: "Hosts", count: hosts },
+              { key: "staff", label: "Staff", count: staff },
+              { key: "suspended", label: "Suspended", count: suspended },
+            ]}
+          />
+        }
       />
 
       {count != null && count > PAGE_SIZE ? (

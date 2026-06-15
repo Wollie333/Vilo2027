@@ -5,7 +5,6 @@ import {
   BarChart3,
   BookOpen,
   CreditCard,
-  Crown,
   FileText,
   Flag,
   Gauge,
@@ -48,8 +47,15 @@ const OPERATIONS: GmailNavItem[] = [
 
 const FINANCE: GmailNavItem[] = [
   {
-    href: "/admin/ledger",
-    label: "App-wide ledger",
+    href: "/admin/products",
+    label: "Products",
+    icon: Package,
+    match: "prefix",
+  },
+  {
+    // The Vilo ledger — every transaction between users and Vilo.
+    href: "/admin/subscriptions/revenue",
+    label: "Ledger",
     icon: Wallet,
     match: "prefix",
   },
@@ -57,18 +63,6 @@ const FINANCE: GmailNavItem[] = [
     href: "/admin/payments",
     label: "Payments",
     icon: CreditCard,
-    match: "prefix",
-  },
-  {
-    href: "/admin/products",
-    label: "Products",
-    icon: Package,
-    match: "prefix",
-  },
-  {
-    href: "/admin/subscriptions/revenue",
-    label: "Revenue",
-    icon: Crown,
     match: "prefix",
   },
   {

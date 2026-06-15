@@ -31,6 +31,20 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Users/Listings parity with host Guests + nav cleanup — branch `main`
+
+### Changed
+- Admin **Users** and **Listings** now match the host Guests/Listings design:
+  a **KPI strip** + **segment pill-tabs** inside the table card (shared
+  `AdminKpiCard` + `AdminSegments`; `AdminTable` gained a `topBar` slot). Users
+  segments: All/Guests/Hosts/Staff/Suspended; Listings: All/Published/Draft/
+  Featured.
+- Nav cleanup: removed **App-wide ledger** (renamed/repointed **Ledger** → the
+  Vilo user↔Vilo transactions ledger).
+
+### Commit
+- `style(admin): users/listings KPI strip + segment tabs; ledger nav`
+
 ## 2026-06-15 — Super-Admin — Products hub consolidation — branch `main`
 
 ### Built / changed
