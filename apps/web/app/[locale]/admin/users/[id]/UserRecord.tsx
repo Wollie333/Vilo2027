@@ -5,16 +5,19 @@ import {
   ArrowRight,
   BadgeCheck,
   Calendar,
+  CalendarCheck,
   CreditCard,
   ExternalLink,
   Gift,
   Home,
+  KeyRound,
   LifeBuoy,
   Mail,
   MapPin,
   Pencil,
   Phone,
   Shield,
+  ShieldAlert,
   Star,
   Trash2,
   UserCog,
@@ -192,6 +195,7 @@ export type UserRecordData = {
   audit: {
     id: string;
     action: string;
+    targetType: string | null;
     actor: string | null;
     created_at: string;
     impersonating: string | null;
@@ -204,6 +208,13 @@ function fmtDate(iso: string | null): string {
     day: "numeric",
     month: "short",
     year: "numeric",
+  });
+}
+function fmtTime(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("en-ZA", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 function initials(name: string | null, email: string | null): string {
@@ -1346,6 +1357,7 @@ function RelationshipsPanel({ data }: { data: UserRecordData }) {
       {data.relationships.map((rel) => (
         <RowLink
           key={rel.id}
+          href={`/admin/users/${rel.id}`}
           primary={rel.name}
           secondary={rel.email ?? "No email"}
         />
@@ -1391,54 +1403,131 @@ function SupportPanel({ data }: { data: UserRecordData }) {
   );
 }
 
+type ActivityTone = "edit" | "booking" | "review" | "data" | "support";
+type ActivityItem = {
+  id: string;
+  tone: ActivityTone;
+  what: string;
+  who: string;
+  detail: string | null;
+  date: string;
+};
+
+// Friendly "what happened" copy for an admin_audit_log action code.
+function humanizeAuditAction(
+  action: string,
+  targetType: string | null,
+): string {
+  const MAP: Record<string, string> = {
+    "listing.edit": "Edited a listing",
+    "user.update": "Updated the profile",
+    "user.suspend": "Suspended the account",
+    "user.unsuspend": "Restored the account",
+    "user.role": "Changed the account role",
+    "user.delete": "Deleted the account",
+    "subscription.update": "Updated the subscription",
+    "subscription.cancel": "Cancelled the subscription",
+    "booking.edit": "Edited a booking",
+    "booking.cancel": "Cancelled a booking",
+    "payment.refund": "Issued a refund",
+    "review.moderate": "Moderated a review",
+    permission_denied: "Permission denied",
+  };
+  if (MAP[action]) return MAP[action];
+  const pretty = action
+    .replace(/[._]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return targetType ? `${pretty} (${targetType})` : pretty;
+}
+
+function ActivityDot({ tone }: { tone: ActivityTone }) {
+  const cls: Record<ActivityTone, string> = {
+    edit: "bg-brand-primary/10 text-brand-primary",
+    booking: "bg-status-confirmed/10 text-status-confirmed",
+    review: "bg-amber-100 text-amber-600",
+    data: "bg-status-cancelled/10 text-status-cancelled",
+    support: "bg-status-pending/10 text-status-pending",
+  };
+  const Icon =
+    tone === "booking"
+      ? CalendarCheck
+      : tone === "review"
+        ? Star
+        : tone === "data"
+          ? ShieldAlert
+          : tone === "support"
+            ? KeyRound
+            : Pencil;
+  return (
+    <span
+      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${cls[tone]}`}
+    >
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
+
 function ActivityPanel({ data }: { data: UserRecordData }) {
-  const items: { id: string; label: string; date: string; sub: string }[] = [];
+  const items: ActivityItem[] = [];
   for (const b of data.bookingsAsGuest)
     items.push({
       id: `bg-${b.id}`,
-      label: `Booked ${b.listingName}`,
+      tone: "booking",
+      what: `Booked ${b.listingName}`,
+      who: data.user.full_name ?? "Guest",
+      detail: `${b.reference} · ${b.status}`,
       date: b.checkIn ?? "",
-      sub: `${b.reference} · ${b.status}`,
     });
   for (const rv of data.reviewsWritten)
     items.push({
       id: `rw-${rv.id}`,
-      label: `Reviewed ${rv.listingName}`,
+      tone: "review",
+      what: `Reviewed ${rv.listingName}`,
+      who: data.user.full_name ?? "Guest",
+      detail: `${rv.rating}★`,
       date: rv.createdAt,
-      sub: `${rv.rating}★`,
     });
+  // Admin / support changes — the who/what/when trail (incl. listing edits made
+  // by staff from this very record).
   for (const a of data.audit)
     items.push({
       id: `au-${a.id}`,
-      label: `${a.actor ?? "Admin"} — ${a.action.replace(/[._]/g, " ")}`,
+      tone: "edit",
+      what: humanizeAuditAction(a.action, a.targetType),
+      who: a.actor ?? "Vilo staff",
+      detail: a.impersonating ? "while acting as this user" : "staff action",
       date: a.created_at,
-      sub: a.impersonating ? "while acting as user" : "admin action",
     });
   for (const d of data.dataRequests)
     items.push({
       id: `dr-${d.id}`,
-      label: `Data ${d.type} request`,
+      tone: "data",
+      what: `Data ${d.type} request`,
+      who: data.user.full_name ?? "User",
+      detail: d.status,
       date: d.createdAt,
-      sub: d.status,
     });
-  // Support-access permission lifecycle — request + the host's decision, so the
-  // log shows exactly when access was asked for, by whom, and when granted.
+  // Support-access permission lifecycle — request + the host's decision.
   for (const g of data.supportGrants) {
     items.push({
       id: `sg-req-${g.id}`,
-      label: `${g.requestedBy ?? "Vilo support"} requested edit access`,
+      tone: "support",
+      what: "Requested edit access",
+      who: g.requestedBy ?? "Vilo support",
+      detail: g.reason ? `“${g.reason}”` : "awaiting host approval",
       date: g.requestedAt,
-      sub: g.reason ? `“${g.reason}”` : "awaiting host approval",
     });
     if (g.decidedAt) {
       items.push({
         id: `sg-dec-${g.id}`,
-        label: `Host ${g.status} edit access`,
-        date: g.decidedAt,
-        sub:
+        tone: "support",
+        what: `Host ${g.status} edit access`,
+        who: "Host",
+        detail:
           g.status === "approved" && g.expiresAt
             ? `valid until ${fmtDate(g.expiresAt)}`
             : g.status,
+        date: g.decidedAt,
       });
     }
   }
@@ -1451,12 +1540,30 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
       count={items.length}
       empty="No recorded activity."
     >
-      {items.slice(0, 60).map((it) => (
-        <RowLink
+      {items.slice(0, 80).map((it) => (
+        <div
           key={it.id}
-          primary={it.label}
-          secondary={`${fmtDate(it.date)}${it.sub ? ` · ${it.sub}` : ""}`}
-        />
+          className="flex items-start gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+        >
+          <ActivityDot tone={it.tone} />
+          <div className="min-w-0 flex-1">
+            <div className="text-[13px] font-semibold text-brand-ink">
+              {it.what}
+            </div>
+            <div className="mt-0.5 text-[11.5px] text-brand-mute">
+              by <span className="font-medium text-brand-ink">{it.who}</span>
+              {it.detail ? ` · ${it.detail}` : ""}
+            </div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-[11.5px] font-medium text-brand-ink">
+              {fmtDate(it.date)}
+            </div>
+            <div className="text-[10.5px] text-brand-mute">
+              {fmtTime(it.date)}
+            </div>
+          </div>
+        </div>
       ))}
     </Section>
   );
