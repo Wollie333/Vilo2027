@@ -6,12 +6,27 @@ import { requireHost as getHost } from "@/lib/host/current";
 import { resolveListingHostContext } from "@/lib/host/adminListingHost";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { z } from "zod";
+
 import {
   addonInputSchema,
   listingAddonInputSchema,
+  pricingModelSchema,
   type AddonInput,
   type ListingAddonInput,
+  type PricingModel,
 } from "./schemas";
+
+// Minimal fields the inline listing-editor add-on form collects. Create fills
+// the remaining columns with sensible defaults; edit patches ONLY these so a
+// quick edit never clobbers advanced settings (stock, category, lead time…).
+const addonFormSchema = z.object({
+  name: z.string().trim().min(1, "Add a name.").max(120),
+  pricing_model: pricingModelSchema,
+  unit_price: z.number().min(0).max(1_000_000),
+  is_active: z.boolean(),
+});
+export type AddonFormInput = z.infer<typeof addonFormSchema>;
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -191,6 +206,134 @@ export async function updateAddonAction(
 
   revalidatePath("/dashboard/addons");
   return { ok: true };
+}
+
+// ── Listing-context create & edit (owner OR admin) ───────────────
+// Power the inline "add / edit add-on" affordance inside the listing editor.
+// The host is derived from the listing, so these work for the owner AND for an
+// active platform-staff member editing a user's listing (audited).
+
+export type AddonRow = {
+  id: string;
+  name: string;
+  pricingModel: PricingModel;
+  unitPrice: number;
+  currency: string;
+  isActive: boolean;
+};
+
+function toAddonRow(r: {
+  id: string;
+  name: string;
+  pricing_model: string;
+  unit_price: number | string;
+  currency: string;
+  is_active: boolean;
+}): AddonRow {
+  return {
+    id: r.id,
+    name: r.name,
+    pricingModel: r.pricing_model as PricingModel,
+    unitPrice: Number(r.unit_price),
+    currency: r.currency,
+    isActive: r.is_active,
+  };
+}
+
+const ADDON_COLS =
+  "id, name, pricing_model, unit_price, currency, is_active" as const;
+
+export async function createAddonForListingAction(
+  listingId: string,
+  input: AddonFormInput,
+): Promise<ActionResult<AddonRow>> {
+  const ctx = await resolveListingHostContext(listingId, "addon.create");
+  if (!ctx.ok) return ctx;
+  if (!(await assertAddonsEnabled(ctx.hostId))) {
+    return { ok: false, error: PLAN_GATE_MSG };
+  }
+  const parsed = addonFormSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+  const { data: existing } = await ctx.db
+    .from("addons")
+    .select("sort_order")
+    .eq("host_id", ctx.hostId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextSort = (existing?.sort_order ?? -1) + 1;
+  const { data: row, error } = await ctx.db
+    .from("addons")
+    .insert({
+      host_id: ctx.hostId,
+      name: parsed.data.name,
+      pricing_model: parsed.data.pricing_model,
+      unit_price: parsed.data.unit_price,
+      currency: "ZAR",
+      is_active: parsed.data.is_active,
+      sort_order: nextSort,
+    })
+    .select(ADDON_COLS)
+    .single();
+  if (error || !row) {
+    return {
+      ok: false,
+      error: error
+        ? `Could not create add-on: ${error.message}`
+        : "Could not create add-on.",
+    };
+  }
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/addons");
+  return { ok: true, data: toAddonRow(row) };
+}
+
+export async function updateAddonForListingAction(
+  listingId: string,
+  addonId: string,
+  input: AddonFormInput,
+): Promise<ActionResult<AddonRow>> {
+  const ctx = await resolveListingHostContext(listingId, "addon.update");
+  if (!ctx.ok) return ctx;
+  const { data: owns } = await ctx.db
+    .from("addons")
+    .select("id")
+    .eq("id", addonId)
+    .eq("host_id", ctx.hostId)
+    .maybeSingle();
+  if (!owns) return { ok: false, error: "Not your add-on." };
+
+  const parsed = addonFormSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return { ok: false, error: first?.message ?? "Some fields look wrong." };
+  }
+  // Patch ONLY the inline-editable columns — advanced settings are untouched.
+  const { data: row, error } = await ctx.db
+    .from("addons")
+    .update({
+      name: parsed.data.name,
+      pricing_model: parsed.data.pricing_model,
+      unit_price: parsed.data.unit_price,
+      is_active: parsed.data.is_active,
+    })
+    .eq("id", addonId)
+    .select(ADDON_COLS)
+    .single();
+  if (error || !row) {
+    return {
+      ok: false,
+      error: error
+        ? `Could not save add-on: ${error.message}`
+        : "Could not save add-on.",
+    };
+  }
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/addons");
+  return { ok: true, data: toAddonRow(row) };
 }
 
 export async function deleteAddonAction(
