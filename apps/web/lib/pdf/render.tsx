@@ -4,6 +4,10 @@ import { renderToBuffer } from "@react-pdf/renderer";
 
 import { CreditNoteDocument, type CreditNoteProps } from "./CreditNoteDocument";
 import { InvoiceDocument, type InvoiceProps } from "./InvoiceDocument";
+import {
+  PlatformReportDocument,
+  type PlatformReportProps,
+} from "./PlatformReportDocument";
 import { QuoteDocument, type QuoteProps } from "./QuoteDocument";
 import { ReceiptDocument, type ReceiptProps } from "./ReceiptDocument";
 
@@ -23,4 +27,10 @@ export async function renderCreditNotePdf(
 
 export async function renderReceiptPdf(receipt: ReceiptProps): Promise<Buffer> {
   return renderToBuffer(<ReceiptDocument receipt={receipt} />);
+}
+
+export async function renderPlatformReportPdf(
+  props: PlatformReportProps,
+): Promise<Buffer> {
+  return renderToBuffer(<PlatformReportDocument {...props} />);
 }
