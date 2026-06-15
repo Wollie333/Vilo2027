@@ -162,39 +162,6 @@ export default async function AdminUsersPage({
         <AdminKpiCard label="Suspended" value={suspended} />
       </section>
 
-      {/* Search */}
-      <form
-        action="/admin/users"
-        method="get"
-        className="flex flex-wrap items-center gap-2"
-      >
-        {seg !== "all" ? <input type="hidden" name="seg" value={seg} /> : null}
-        <div className="relative min-w-[16rem] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Search by email or name"
-            className="block w-full rounded border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
-          />
-        </div>
-        <button
-          type="submit"
-          className="rounded bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-secondary"
-        >
-          Search
-        </button>
-        {q ? (
-          <Link
-            href={seg === "all" ? "/admin/users" : `/admin/users?seg=${seg}`}
-            className="text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
-          >
-            Clear
-          </Link>
-        ) : null}
-      </form>
-
       <AdminTable
         columns={columns}
         rows={list}
@@ -213,13 +180,52 @@ export default async function AdminUsersPage({
             ]}
           />
         }
+        toolbar={
+          <form
+            action="/admin/users"
+            method="get"
+            className="flex flex-wrap items-center gap-2"
+          >
+            {seg !== "all" ? (
+              <input type="hidden" name="seg" value={seg} />
+            ) : null}
+            <div className="flex h-9 min-w-[220px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+              <Search className="h-4 w-4 text-brand-mute" />
+              <input
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Search name or email…"
+                className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white hover:bg-brand-secondary"
+            >
+              Search
+            </button>
+            {q ? (
+              <Link
+                href={
+                  seg === "all" ? "/admin/users" : `/admin/users?seg=${seg}`
+                }
+                className="text-xs font-medium text-brand-primary underline-offset-2 hover:underline"
+              >
+                Clear
+              </Link>
+            ) : null}
+          </form>
+        }
+        footer={
+          <div className="text-[12px] tabular-nums text-brand-mute">
+            Showing {list.length} of {count ?? list.length}
+            {count != null && count > PAGE_SIZE
+              ? " — narrow your search to see more"
+              : ""}
+          </div>
+        }
       />
-
-      {count != null && count > PAGE_SIZE ? (
-        <p className="text-center text-[12px] text-brand-mute">
-          Showing first {PAGE_SIZE} of {count}. Narrow your search to see more.
-        </p>
-      ) : null}
     </div>
   );
 }
