@@ -31,6 +31,28 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Host-consent support access (edit gate) — branch `main`
+
+### Built
+- `admin_support_grants` table — host-approved, time-boxed (72h) permission for
+  Vilo support to edit a host's records. Financial tabs on the user record stay
+  **read-only** until a grant is active.
+- Admin: `requestSupportAccessAction` (in-app request + host notification) +
+  a "Request edit access" dialog on the user record's Ledger/Bookings tabs, with
+  a banner showing read-only / pending / active-until state.
+- Host: `/dashboard/support-access` — approve / decline / revoke requests; an
+  approval opens the 72h window. RLS scopes grants to the host owner.
+
+### Migrations
+- `20260615000002_admin_support_grants.sql`
+
+### Notes
+- The grant is general ("make changes to your account") so it also gates the
+  upcoming business/listing support-edits. `next build` clean.
+
+### Commit
+- `feat(admin): host-consent support access for edits`
+
 ## 2026-06-15 — Super-Admin — Paid platform services (P1.2) — branch `main`
 
 ### Built

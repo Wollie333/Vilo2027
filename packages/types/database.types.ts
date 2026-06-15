@@ -343,6 +343,67 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_support_grants: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          expires_at: string | null
+          host_id: string
+          host_user_id: string
+          id: string
+          reason: string | null
+          requested_at: string
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          expires_at?: string | null
+          host_id: string
+          host_user_id: string
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          expires_at?: string | null
+          host_id?: string
+          host_user_id?: string
+          id?: string
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_support_grants_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_support_grants_host_user_id_fkey"
+            columns: ["host_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_support_grants_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_user_notes: {
         Row: {
           author_id: string | null

@@ -41,6 +41,7 @@ import {
   addAdminUserNote,
   changeUserRole,
   reinstateUser,
+  requestSupportAccess,
   softDeleteUser,
   suspendUser,
   updateUserProfile,
@@ -129,6 +130,7 @@ export type UserRecordData = {
     net: number;
   } | null;
   hostTxns: Txn[];
+  support: { active: boolean; status: string; expiresAt: string | null } | null;
   viloLedger: {
     id: string;
     type: string;
@@ -173,7 +175,7 @@ function initials(name: string | null, email: string | null): string {
   return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "·";
 }
 
-type Dialog = "edit" | "role" | "suspend" | "delete" | null;
+type Dialog = "edit" | "role" | "suspend" | "delete" | "support" | null;
 
 export function UserRecord({ data }: { data: UserRecordData }) {
   const router = useRouter();
@@ -277,8 +279,18 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           <div>
             {tab === "overview" ? <OverviewPanel data={data} /> : null}
             {tab === "subscription" ? <SubscriptionPanel data={data} /> : null}
-            {tab === "bookings" ? <BookingsPanel data={data} /> : null}
-            {tab === "ledger" ? <LedgerPanel data={data} /> : null}
+            {tab === "bookings" ? (
+              <BookingsPanel
+                data={data}
+                onRequestSupport={() => setDialog("support")}
+              />
+            ) : null}
+            {tab === "ledger" ? (
+              <LedgerPanel
+                data={data}
+                onRequestSupport={() => setDialog("support")}
+              />
+            ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
             {tab === "business" ? <BusinessPanel data={data} /> : null}
             {tab === "reviews" ? <ReviewsPanel data={data} /> : null}
@@ -421,6 +433,79 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           </Button>
         </FormModalFooter>
       </FormModal>
+
+      <FormModal
+        open={dialog === "support"}
+        onOpenChange={(o) => (o ? null : close())}
+        title="Request edit access"
+        description="The host is notified and must approve before you can edit their financial records. Approved access lasts 72 hours."
+      >
+        <Lbl label="Reason (shown to the host)">
+          <Input value={reason} onChange={(e) => setReason(e.target.value)} />
+        </Lbl>
+        <FormModalFooter>
+          <FormModalCancel onClick={close} />
+          <Button
+            disabled={pending || reason.trim().length < 5 || !host}
+            onClick={() =>
+              host
+                ? run(
+                    requestSupportAccess({ hostId: host.id, reason }),
+                    "Request sent to the host.",
+                  )
+                : undefined
+            }
+          >
+            Send request
+          </Button>
+        </FormModalFooter>
+      </FormModal>
+    </div>
+  );
+}
+
+// Shows on financial tabs: read-only notice + request-access, or the active grant.
+function SupportBanner({
+  support,
+  isHost,
+  onRequest,
+}: {
+  support: UserRecordData["support"];
+  isHost: boolean;
+  onRequest: () => void;
+}) {
+  if (!isHost) return null;
+  if (support?.active) {
+    return (
+      <div className="rounded-card border border-status-confirmed/30 bg-status-confirmed/10 px-4 py-2.5 text-[12.5px] font-semibold text-status-confirmed">
+        Host-approved edit access is active
+        {support.expiresAt
+          ? ` until ${new Date(support.expiresAt).toLocaleString("en-ZA", {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}`
+          : ""}
+        .
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-amber-300 bg-amber-50 px-4 py-2.5 text-[12.5px] text-amber-900">
+      <span>
+        Financial records are <span className="font-semibold">read-only</span>.
+        {support?.status === "pending"
+          ? " A support request is awaiting the host's approval."
+          : " Request the host's permission to make changes."}
+      </span>
+      {support?.status !== "pending" ? (
+        <button
+          type="button"
+          onClick={onRequest}
+          className="rounded-pill bg-amber-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-amber-700"
+        >
+          Request edit access
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -741,9 +826,20 @@ function SubscriptionPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function BookingsPanel({ data }: { data: UserRecordData }) {
+function BookingsPanel({
+  data,
+  onRequestSupport,
+}: {
+  data: UserRecordData;
+  onRequestSupport: () => void;
+}) {
   return (
     <div className="space-y-6">
+      <SupportBanner
+        support={data.support}
+        isHost={!!data.host}
+        onRequest={onRequestSupport}
+      />
       <Section
         icon={Calendar}
         title="As guest"
@@ -784,12 +880,20 @@ function BookingsPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function LedgerPanel({ data }: { data: UserRecordData }) {
+function LedgerPanel({
+  data,
+  onRequestSupport,
+}: {
+  data: UserRecordData;
+  onRequestSupport: () => void;
+}) {
   return (
     <div className="space-y-6">
-      <p className="text-[12px] text-brand-mute">
-        View-only. Use the booking/ledger pages to action items.
-      </p>
+      <SupportBanner
+        support={data.support}
+        isHost={!!data.host}
+        onRequest={onRequestSupport}
+      />
       {data.host && data.hostFinance ? (
         <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
           <h3 className="mb-3 font-display text-sm font-bold text-brand-ink">

@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
 
 import { requirePermission } from "@/lib/admin";
+import {
+  getActiveSupportGrant,
+  getLatestSupportGrant,
+} from "@/lib/admin/supportGrant";
 import { fetchViloLedger } from "@/lib/billing/vilo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -211,6 +215,26 @@ export default async function AdminUserDetailPage({
     .order("created_at", { ascending: false })
     .limit(50);
 
+  // Host-consent support grant (gates admin editing of the host's financials).
+  let support: UserRecordData["support"] = null;
+  if (host) {
+    const active = await getActiveSupportGrant(service, host.id);
+    if (active) {
+      support = {
+        active: true,
+        status: "approved",
+        expiresAt: active.expiresAt,
+      };
+    } else {
+      const latest = await getLatestSupportGrant(service, host.id);
+      support = {
+        active: false,
+        status: latest?.status ?? "none",
+        expiresAt: latest?.expiresAt ?? null,
+      };
+    }
+  }
+
   const sub = (subResult as { data: UserRecordData["subscription"] }).data;
 
   const data: UserRecordData = {
@@ -273,6 +297,7 @@ export default async function AdminUserDetailPage({
     reviewsReceived,
     hostFinance,
     hostTxns,
+    support,
     viloLedger: viloRows.map((t) => ({
       id: t.id,
       type: t.type,

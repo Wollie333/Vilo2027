@@ -203,6 +203,63 @@ export const addAdminUserNoteAction = withAdminAudit<
   },
 );
 
+// ─── Request host support access (to edit their financials) ───────────
+const supportSchema = z.object({
+  hostId: z.string().uuid(),
+  reason: z.string().min(5).max(500),
+});
+
+export const requestSupportAccessAction = withAdminAudit<
+  z.infer<typeof supportSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.request_support_access",
+    targetType: "user",
+    getTargetId: (a) => a.hostId,
+    requireReason: true,
+  },
+  async (args, service) => {
+    if (!supportSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    const admin = await requirePermission("users.edit");
+
+    const { data: host } = await service
+      .from("hosts")
+      .select("id, user_id, display_name")
+      .eq("id", args.hostId)
+      .maybeSingle();
+    if (!host?.user_id) throw new Error("Host not found.");
+
+    const { data: grant, error } = await service
+      .from("admin_support_grants")
+      .insert({
+        host_id: host.id,
+        host_user_id: host.user_id,
+        requested_by: admin.userId,
+        reason: args.reason,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+
+    // Notify the host so they can approve/decline in their dashboard.
+    await service.from("in_app_notifications").insert({
+      user_id: host.user_id,
+      kind: "support_access_request",
+      title: "Vilo support requested access",
+      body: "Vilo support has asked to make changes to your account. Review and approve or decline.",
+      link: "/dashboard/support-access",
+      payload: { grant_id: grant.id },
+    });
+
+    return { result: { ok: true }, after: grant };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -242,6 +299,13 @@ export async function addAdminUserNote(input: {
   body: string;
 }) {
   return wrap(() => addAdminUserNoteAction(input));
+}
+
+export async function requestSupportAccess(input: {
+  hostId: string;
+  reason: string;
+}) {
+  return wrap(() => requestSupportAccessAction(input));
 }
 
 export async function suspendUser(input: { userId: string; reason: string }) {
