@@ -19,6 +19,8 @@ type AuditTargetType =
   | "plan"
   | "plan_feature"
   | "platform_service"
+  | "product"
+  | "product_feature"
   | "platform_ledger"
   | "feature_override"
   | "platform_setting"

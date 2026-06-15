@@ -31,6 +31,26 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Product Manager (Products + Vilo ledger reframe, Phase A) — branch `main`
+
+### Built
+- `products` + `product_features` tables (and `platform_ledger.product_id`).
+  **Product Manager** at `/admin/products` (+ Finance nav, `[id]` editor): the
+  full workflow — name → details → price → type (subscription/once-off) →
+  duration (weekly…annual) → **feature permissions** (per-product matrix) →
+  **affiliate payout** (fixed/percent). Unifies the earlier Plans + Services.
+- Actions: upsert/toggle/delete product + per-product feature upsert (audited).
+
+### Migrations
+- `20260615000004_products.sql`
+
+### Notes
+- Phase A (catalog). Phase B = the Vilo quotes/invoices/credit-notes/refunds/
+  payments ledger keyed to products + product checkout/pay-links.
+
+### Commit
+- `feat(admin): product manager — products + permissions + affiliate (Phase A)`
+
 ## 2026-06-15 — Super-Admin — Table redesign sweep (host Guests style) — branch `main`
 
 ### Changed

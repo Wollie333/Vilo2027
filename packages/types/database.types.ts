@@ -5104,6 +5104,7 @@ export type Database = {
           period_end: string | null
           period_start: string | null
           plan: string | null
+          product_id: string | null
           provider: string | null
           provider_reference: string | null
           reason: string | null
@@ -5128,6 +5129,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           plan?: string | null
+          product_id?: string | null
           provider?: string | null
           provider_reference?: string | null
           reason?: string | null
@@ -5152,6 +5154,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           plan?: string | null
+          product_id?: string | null
           provider?: string | null
           provider_reference?: string | null
           reason?: string | null
@@ -5183,6 +5186,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "platform_ledger_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "platform_ledger_subscription_id_fkey"
@@ -5596,6 +5606,95 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      product_features: {
+        Row: {
+          feature_key: string
+          id: string
+          is_enabled: boolean
+          limit_value: number | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          feature_key: string
+          id?: string
+          is_enabled?: boolean
+          limit_value?: number | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          feature_key?: string
+          id?: string
+          is_enabled?: boolean
+          limit_value?: number | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_features_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          affiliate_type: string
+          affiliate_value: number
+          billing_cycle: string | null
+          bullets: Json
+          created_at: string
+          currency: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_recommended: boolean
+          name: string
+          price: number
+          sort_order: number
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          affiliate_type?: string
+          affiliate_value?: number
+          billing_cycle?: string | null
+          bullets?: Json
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_recommended?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          affiliate_type?: string
+          affiliate_value?: number
+          billing_cycle?: string | null
+          bullets?: Json
+          created_at?: string
+          currency?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_recommended?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       push_tokens: {
         Row: {

@@ -1,0 +1,121 @@
+import { ArrowLeft } from "lucide-react";
+import { notFound } from "next/navigation";
+
+import { Link } from "@/i18n/navigation";
+import { requirePermission } from "@/lib/admin";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+import { ProductEditor, type EditorProduct } from "../ProductEditor";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminProductEditorPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  await requirePermission("subscriptions.edit");
+  const isNew = params.id === "new";
+  const service = createAdminClient();
+
+  // Feature catalog from the canonical plan_features feature keys.
+  const { data: featRows } = await service
+    .from("plan_features")
+    .select("feature_key, description");
+  const descByKey = new Map<string, string>();
+  for (const r of featRows ?? []) {
+    if (!descByKey.has(r.feature_key)) {
+      descByKey.set(r.feature_key, r.description ?? "");
+    }
+  }
+  const featureCatalog = [...descByKey.keys()]
+    .sort()
+    .map((key) => ({ key, description: descByKey.get(key) ?? "" }));
+
+  let product: EditorProduct;
+  const productFeatures: Record<
+    string,
+    { isEnabled: boolean; limitValue: number | null }
+  > = {};
+
+  if (isNew) {
+    product = {
+      id: null,
+      name: "",
+      description: "",
+      type: "subscription",
+      price: 0,
+      currency: "ZAR",
+      billingCycle: "monthly",
+      isActive: true,
+      isRecommended: false,
+      sortOrder: 0,
+      affiliateType: "none",
+      affiliateValue: 0,
+      bullets: [],
+    };
+  } else {
+    const { data } = await service
+      .from("products")
+      .select(
+        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets",
+      )
+      .eq("id", params.id)
+      .maybeSingle();
+    if (!data) notFound();
+    product = {
+      id: data.id,
+      name: data.name,
+      description: data.description ?? "",
+      type: (data.type as EditorProduct["type"]) ?? "subscription",
+      price: Number(data.price ?? 0),
+      currency: data.currency ?? "ZAR",
+      billingCycle:
+        (data.billing_cycle as EditorProduct["billingCycle"]) ?? "monthly",
+      isActive: data.is_active ?? true,
+      isRecommended: data.is_recommended ?? false,
+      sortOrder: data.sort_order ?? 0,
+      affiliateType:
+        (data.affiliate_type as EditorProduct["affiliateType"]) ?? "none",
+      affiliateValue: Number(data.affiliate_value ?? 0),
+      bullets: Array.isArray(data.bullets)
+        ? (data.bullets as unknown[]).filter(
+            (b): b is string => typeof b === "string",
+          )
+        : [],
+    };
+
+    const { data: pf } = await service
+      .from("product_features")
+      .select("feature_key, is_enabled, limit_value")
+      .eq("product_id", params.id);
+    for (const row of pf ?? []) {
+      productFeatures[row.feature_key] = {
+        isEnabled: row.is_enabled,
+        limitValue: row.limit_value,
+      };
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <Link
+        href="/admin/products"
+        className="inline-flex items-center gap-1 text-sm font-medium text-brand-mute hover:text-brand-primary"
+      >
+        <ArrowLeft className="h-4 w-4" /> All products
+      </Link>
+      <header>
+        <h1 className="font-display text-2xl font-bold text-brand-ink">
+          {isNew ? "New product" : `Edit ${product.name}`}
+        </h1>
+      </header>
+      <ProductEditor
+        product={product}
+        isNew={isNew}
+        featureCatalog={featureCatalog}
+        productFeatures={productFeatures}
+      />
+    </div>
+  );
+}

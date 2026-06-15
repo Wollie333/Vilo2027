@@ -17,6 +17,7 @@ import {
   Mail,
   Megaphone,
   MessageSquarePlus,
+  Package,
   Send,
   ShieldAlert,
   Sparkles,
@@ -63,6 +64,12 @@ const FINANCE: GmailNavItem[] = [
     href: "/admin/payments",
     label: "Payments",
     icon: CreditCard,
+    match: "prefix",
+  },
+  {
+    href: "/admin/products",
+    label: "Products",
+    icon: Package,
     match: "prefix",
   },
   {
