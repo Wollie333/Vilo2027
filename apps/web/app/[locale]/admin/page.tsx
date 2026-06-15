@@ -22,7 +22,6 @@ export default async function AdminOverviewPage() {
     { data: subs },
     { data: profiles },
     { count: listingsCount },
-    { count: bookingsCount },
     { data: collectedRows },
     { count: pendingRefunds },
     { count: openDataReqs },
@@ -35,7 +34,6 @@ export default async function AdminOverviewPage() {
       .from("listings")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null),
-    service.from("bookings").select("id", { count: "exact", head: true }),
     service
       .from("payments")
       .select("amount, kind")
@@ -109,19 +107,13 @@ export default async function AdminOverviewPage() {
       label: "Collected (platform)",
       value: formatZar(Math.round(collected)),
       icon: CreditCard,
-      href: "/admin/ledger",
+      href: "/admin/payments",
     },
     {
       label: "Live listings",
       value: (listingsCount ?? 0).toLocaleString(),
       icon: HomeIcon,
       href: "/admin/listings",
-    },
-    {
-      label: "Bookings",
-      value: (bookingsCount ?? 0).toLocaleString(),
-      icon: HomeIcon,
-      href: "/admin/bookings",
     },
   ];
 
