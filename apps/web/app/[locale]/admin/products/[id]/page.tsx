@@ -54,12 +54,15 @@ export default async function AdminProductEditorPage({
       affiliateValue: 0,
       bullets: [],
       paymentMethods: ["paystack"],
+      trialDays: 0,
+      isVisible: true,
+      slug: null,
     };
   } else {
     const { data } = await service
       .from("products")
       .select(
-        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets, payment_methods",
+        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, sort_order, affiliate_type, affiliate_value, bullets, payment_methods, trial_days, is_visible, slug",
       )
       .eq("id", params.id)
       .maybeSingle();
@@ -88,6 +91,9 @@ export default async function AdminProductEditorPage({
         ? data.payment_methods
         : ["paystack"]
       ).filter((m): m is "paystack" | "eft" => m === "paystack" || m === "eft"),
+      trialDays: data.trial_days ?? 0,
+      isVisible: data.is_visible ?? true,
+      slug: data.slug ?? null,
     };
 
     const { data: pf } = await service

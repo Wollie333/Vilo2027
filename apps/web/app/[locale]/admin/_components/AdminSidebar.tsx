@@ -4,7 +4,6 @@ import {
   Activity,
   BarChart3,
   BookOpen,
-  CalendarCheck,
   CreditCard,
   Crown,
   FileText,
@@ -45,12 +44,6 @@ const OPERATIONS: GmailNavItem[] = [
     icon: HomeIcon,
     match: "prefix",
   },
-  {
-    href: "/admin/bookings",
-    label: "Bookings",
-    icon: CalendarCheck,
-    match: "prefix",
-  },
 ];
 
 const FINANCE: GmailNavItem[] = [
@@ -73,8 +66,8 @@ const FINANCE: GmailNavItem[] = [
     match: "prefix",
   },
   {
-    href: "/admin/subscriptions",
-    label: "Subscriptions",
+    href: "/admin/subscriptions/revenue",
+    label: "Revenue",
     icon: Crown,
     match: "prefix",
   },

@@ -30,6 +30,9 @@ export type EditorProduct = {
   affiliateValue: number;
   bullets: string[];
   paymentMethods: ("paystack" | "eft")[];
+  trialDays: number;
+  isVisible: boolean;
+  slug: string | null;
 };
 
 type FeatureState = { isEnabled: boolean; limitValue: number | null };
@@ -88,6 +91,8 @@ export function ProductEditor({
         paymentMethods: f.paymentMethods.length
           ? f.paymentMethods
           : ["paystack"],
+        trialDays: f.trialDays,
+        isVisible: f.isVisible,
       });
       if (r.ok) {
         toast.success(isNew ? "Product created." : "Product saved.");
@@ -224,6 +229,18 @@ export function ProductEditor({
               className="font-mono uppercase"
             />
           </Field>
+          {f.type === "subscription" ? (
+            <Field label="Trial days (0 = none)">
+              <Input
+                type="number"
+                min={0}
+                max={365}
+                value={f.trialDays}
+                onChange={(e) => set("trialDays", Number(e.target.value) || 0)}
+                className="w-28 font-mono"
+              />
+            </Field>
+          ) : null}
         </div>
       </section>
 
@@ -319,17 +336,35 @@ export function ProductEditor({
             />
             Recommended
           </label>
-          <label className="flex items-end gap-2 pb-2 text-sm">
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={f.isVisible}
+              onChange={(e) => set("isVisible", e.target.checked)}
+              className="rounded border-brand-line"
+            />
+            Visible on pricing page / signup
+          </label>
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={f.isActive}
               onChange={(e) => set("isActive", e.target.checked)}
               className="rounded border-brand-line"
             />
-            Active
+            Active (users can buy / access)
           </label>
         </div>
+        <p className="text-[11px] text-brand-mute">
+          Visible + active = live · Visible + inactive = shown but disabled ·
+          Hidden + active = link-only · Hidden + inactive = draft.
+        </p>
       </section>
+
+      {/* Standalone page link */}
+      {f.slug ? <StandaloneLinkBox slug={f.slug} /> : null}
 
       {/* Pay-link */}
       {f.id ? <PayLinkBox productId={f.id} /> : null}
@@ -436,6 +471,47 @@ export function ProductEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+function StandaloneLinkBox({ slug }: { slug: string }) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = `${origin}/p/${slug}`;
+  return (
+    <section className="space-y-2 rounded-card border border-brand-line bg-white p-5 shadow-card">
+      <h2 className="font-display text-sm font-bold text-brand-ink">
+        Standalone product page
+      </h2>
+      <p className="text-[12px] text-brand-mute">
+        A public page for this product you can send to prospects. They can buy
+        it there directly.
+      </p>
+      <div className="flex items-center gap-2 rounded-md border border-brand-line bg-brand-light/40 px-3 py-2">
+        <input
+          readOnly
+          value={url}
+          className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-brand-ink outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            void navigator.clipboard.writeText(url);
+            toast.success("Copied.");
+          }}
+          className="rounded border border-brand-line bg-white px-3 py-1 text-xs font-medium text-brand-ink hover:bg-brand-light"
+        >
+          Copy
+        </button>
+        <a
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded border border-brand-line bg-white px-3 py-1 text-xs font-medium text-brand-ink hover:bg-brand-light"
+        >
+          Open
+        </a>
+      </div>
+    </section>
   );
 }
 

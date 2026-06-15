@@ -25,7 +25,7 @@ export type CreateOrderResult =
 export async function createProductOrder(input: {
   productId: string;
   email: string;
-  createdBy: string;
+  createdBy: string | null;
 }): Promise<CreateOrderResult> {
   const admin = createAdminClient();
   const { data: product } = await admin
@@ -64,6 +64,23 @@ export async function createProductOrder(input: {
     token: payToken,
     url: `${siteUrl}/pay/product/${payToken}`,
   };
+}
+
+// Self-serve purchase from a product's standalone page (/p/[slug]).
+export async function startProductPurchaseBySlug(
+  slug: string,
+  email: string,
+): Promise<CreateOrderResult> {
+  const admin = createAdminClient();
+  const { data: product } = await admin
+    .from("products")
+    .select("id, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!product || !product.is_active) {
+    return { ok: false, error: "This product isn't available." };
+  }
+  return createProductOrder({ productId: product.id, email, createdBy: null });
 }
 
 export type PaystackStartResult =

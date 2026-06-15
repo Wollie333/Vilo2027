@@ -31,6 +31,25 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Products hub consolidation — branch `main`
+
+### Built / changed
+- Products is now the single hub (subscriptions + once-off + services). Added per
+  product: **trial period**, **display controls** — `is_visible` (show on pricing/
+  signup) independent of `is_active` (purchasable): visible+active=live,
+  visible+inactive=shown-but-disabled, hidden+active=link-only, hidden+inactive=
+  draft — and a **slug**.
+- Each product gets a **standalone page** `/p/[slug]` (shareable to prospects):
+  shows price/trial/bullets and lets them buy → checkout. Link shown in the editor.
+- Sidebar: removed **Subscriptions** (consolidated into Products) and **Bookings**
+  (not needed); added a direct **Revenue** entry (Vilo ledger).
+
+### Migrations
+- `20260615000007_products_hub.sql`
+
+### Commit
+- `feat(admin): products hub — trial, display controls, standalone page; trim nav`
+
 ## 2026-06-15 — Super-Admin — Product pay-links (Paystack + EFT checkout) — branch `main`
 
 ### Built

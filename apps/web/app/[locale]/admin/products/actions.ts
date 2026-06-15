@@ -26,8 +26,19 @@ const upsertSchema = z.object({
   affiliateValue: z.number().min(0).max(10_000_000),
   bullets: z.array(z.string().trim().min(1).max(200)).max(20),
   paymentMethods: z.array(z.enum(["paystack", "eft"])).default(["paystack"]),
+  trialDays: z.number().int().min(0).max(365).default(0),
+  isVisible: z.boolean().default(true),
   reason: z.string().optional(),
 });
+
+function slugify(s: string): string {
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
 
 export type UpsertProductInput = z.infer<typeof upsertSchema>;
 
@@ -47,6 +58,29 @@ export const upsertProductAction = withAdminAudit<
       throw new Error(parsed.error.issues[0]?.message ?? "Invalid product.");
     }
     const d = parsed.data;
+
+    // Resolve a stable slug for the standalone page. Keep an existing product's
+    // slug (don't break shared links); generate a unique one otherwise.
+    let slug: string;
+    if (d.id) {
+      const { data: existing } = await service
+        .from("products")
+        .select("slug")
+        .eq("id", d.id)
+        .maybeSingle();
+      slug = existing?.slug ?? (slugify(d.name) || "product");
+    } else {
+      slug = slugify(d.name) || "product";
+    }
+    const { data: clash } = await service
+      .from("products")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (clash && clash.id !== d.id) {
+      slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+    }
+
     const row = {
       name: d.name,
       description: d.description ?? null,
@@ -56,11 +90,14 @@ export const upsertProductAction = withAdminAudit<
       billing_cycle:
         d.type === "subscription" ? (d.billingCycle ?? "monthly") : null,
       is_active: d.isActive,
+      is_visible: d.isVisible,
       is_recommended: d.isRecommended,
       sort_order: d.sortOrder,
+      trial_days: d.trialDays,
       affiliate_type: d.affiliateType,
       affiliate_value: d.affiliateValue,
       bullets: d.bullets as never,
+      slug,
       payment_methods: d.paymentMethods.length
         ? d.paymentMethods
         : ["paystack"],

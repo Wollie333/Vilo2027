@@ -5769,10 +5769,13 @@ export type Database = {
           id: string
           is_active: boolean
           is_recommended: boolean
+          is_visible: boolean
           name: string
           payment_methods: string[]
           price: number
+          slug: string | null
           sort_order: number
+          trial_days: number
           type: string
           updated_at: string
         }
@@ -5787,10 +5790,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_recommended?: boolean
+          is_visible?: boolean
           name: string
           payment_methods?: string[]
           price?: number
+          slug?: string | null
           sort_order?: number
+          trial_days?: number
           type?: string
           updated_at?: string
         }
@@ -5805,10 +5811,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_recommended?: boolean
+          is_visible?: boolean
           name?: string
           payment_methods?: string[]
           price?: number
+          slug?: string | null
           sort_order?: number
+          trial_days?: number
           type?: string
           updated_at?: string
         }
