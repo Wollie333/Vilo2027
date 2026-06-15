@@ -40,6 +40,7 @@ import type { Txn } from "@/lib/finance/transactions";
 import {
   addAdminUserNote,
   adminUpdateSubscription,
+  setUserProduct,
   changeUserRole,
   reinstateUser,
   requestSupportAccess,
@@ -113,7 +114,21 @@ export type UserRecordData = {
     trial_ends_at: string | null;
     current_period_end: string | null;
     cancel_at_period_end: boolean;
+    product_id: string | null;
   } | null;
+  products: {
+    id: string;
+    name: string;
+    description: string | null;
+    price: number;
+    currency: string;
+    billingCycle: string | null;
+    trialDays: number;
+    slug: string | null;
+    isFree: boolean;
+    isRecommended: boolean;
+    bullets: string[];
+  }[];
   counts: { bookingsAsGuest: number; refunds: number; listings: number };
   listings: {
     id: string;
@@ -251,7 +266,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
 
   const tabs = [
     { key: "overview", label: "Overview" },
-    ...(host ? [{ key: "subscription", label: "Subscription" }] : []),
+    ...(host ? [{ key: "products", label: "Products" }] : []),
     { key: "bookings", label: "Bookings" },
     { key: "ledger", label: "Ledger" },
     ...(host
@@ -319,8 +334,8 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           <RecordTabs active={tab} onSelect={setTab} tabs={tabs} />
           <div>
             {tab === "overview" ? <OverviewPanel data={data} /> : null}
-            {tab === "subscription" ? (
-              <SubscriptionPanel
+            {tab === "products" ? (
+              <ProductsPanel
                 data={data}
                 onManage={() => setDialog("managesub")}
               />
@@ -914,41 +929,189 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function SubscriptionPanel({
+function ProductsPanel({
   data,
   onManage,
 }: {
   data: UserRecordData;
   onManage: () => void;
 }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [busyId, setBusyId] = useState<string | null>(null);
   const s = data.subscription;
+  const hostId = data.host?.id ?? null;
+
+  // A product is "active" on the account if it's the linked product, or (legacy
+  // / plan-mapped) its slug matches the subscription's plan key.
+  const isActive = (p: UserRecordData["products"][number]): boolean => {
+    if (!s) return false;
+    if (s.product_id && p.id === s.product_id) return true;
+    if (!s.product_id && p.slug && p.slug === s.plan) return true;
+    return false;
+  };
+
+  function activate(productId: string) {
+    if (!hostId) return;
+    setBusyId(productId);
+    start(async () => {
+      const r = await setUserProduct({ hostId, productId });
+      setBusyId(null);
+      if (r.ok) {
+        toast.success("Product activated on this account.");
+        router.refresh();
+      } else {
+        toast.error(r.error);
+      }
+    });
+  }
+
+  const cycleLabel: Record<string, string> = {
+    weekly: "week",
+    monthly: "month",
+    quarterly: "quarter",
+    biannual: "6 months",
+    annual: "year",
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-[12px] text-brand-mute">
-          Set plan, cycle and status — including placing the account on hold.
-        </span>
-        <Button size="sm" onClick={onManage}>
-          Manage subscription
-        </Button>
-      </div>
-      {!s ? (
-        <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
-          No subscription on file yet — use “Manage subscription” to set one.
-        </section>
-      ) : (
-        <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <Fact k="Plan" v={s.plan} />
-            <Fact k="Status" v={s.status} />
+    <div className="space-y-5">
+      {/* Current subscription summary */}
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              Current subscription
+            </div>
+            {s ? (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="font-display text-lg font-bold text-brand-ink">
+                  {s.plan}
+                </span>
+                <SubStatusPill status={s.status} />
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-brand-mute">
+                No subscription on file yet.
+              </div>
+            )}
+          </div>
+          {s ? (
+            <Button size="sm" variant="outline" onClick={onManage}>
+              Manage status &amp; cycle
+            </Button>
+          ) : null}
+        </div>
+        {s ? (
+          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
             <Fact k="Cycle" v={s.billing_cycle} />
             <Fact k="Renews" v={fmtDate(s.current_period_end)} />
             <Fact k="Trial ends" v={fmtDate(s.trial_ends_at)} />
-            <Fact k="Cancelling" v={s.cancel_at_period_end ? "Yes" : "No"} />
           </dl>
-        </section>
-      )}
+        ) : null}
+      </section>
+
+      {/* Product catalog — activate / manage */}
+      <div>
+        <div className="mb-2 text-[12px] text-brand-mute">
+          Products on the system. Click a product to activate it on this
+          account; the active one is marked. Edit a product in the Products hub.
+        </div>
+        {data.products.length === 0 ? (
+          <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
+            No subscription products configured yet.
+          </section>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {data.products.map((p) => {
+              const active = isActive(p);
+              const cycle = cycleLabel[p.billingCycle ?? "monthly"] ?? "month";
+              return (
+                <div
+                  key={p.id}
+                  className={`relative flex flex-col rounded-card border p-5 shadow-card ${
+                    active
+                      ? "border-brand-primary ring-1 ring-brand-primary"
+                      : "border-brand-line"
+                  } bg-white`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="font-display text-base font-bold text-brand-ink">
+                      {p.name}
+                    </div>
+                    {active ? (
+                      <span className="inline-flex items-center gap-1 rounded-pill bg-status-confirmed/10 px-2 py-0.5 text-[10.5px] font-semibold text-status-confirmed">
+                        <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+                        Active
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="font-display text-2xl font-bold text-brand-ink">
+                      {p.isFree ? "Free" : formatMoney(p.price, p.currency)}
+                    </span>
+                    {!p.isFree ? (
+                      <span className="text-xs text-brand-mute">/{cycle}</span>
+                    ) : null}
+                  </div>
+                  {p.bullets.length > 0 ? (
+                    <ul className="mt-3 space-y-1.5">
+                      {p.bullets.slice(0, 4).map((b, i) => (
+                        <li
+                          key={i}
+                          className="text-[12px] leading-snug text-brand-mute"
+                        >
+                          • {b}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <div className="mt-4 flex items-center gap-2 pt-1">
+                    {active ? (
+                      <Button size="sm" variant="outline" onClick={onManage}>
+                        Manage
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        disabled={pending || !hostId}
+                        onClick={() => activate(p.id)}
+                      >
+                        {busyId === p.id ? "Activating…" : "Activate"}
+                      </Button>
+                    )}
+                    <Link
+                      href={`/admin/products/${p.id}`}
+                      className="inline-flex items-center gap-1 text-[12px] font-medium text-brand-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" /> Edit
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function SubStatusPill({ status }: { status: string }) {
+  const good = status === "active" || status === "trialing";
+  const bad =
+    status === "cancelled" || status === "expired" || status === "restricted";
+  const cls = good
+    ? "bg-status-confirmed/10 text-status-confirmed"
+    : bad
+      ? "bg-status-cancelled/10 text-status-cancelled"
+      : "bg-status-pending/10 text-status-pending";
+  return (
+    <span
+      className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10.5px] font-semibold capitalize ${cls}`}
+    >
+      {status.replace(/_/g, " ")}
+    </span>
   );
 }
 

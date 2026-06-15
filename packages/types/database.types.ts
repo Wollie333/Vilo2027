@@ -7213,6 +7213,7 @@ export type Database = {
           paystack_customer_code: string | null
           paystack_subscription_code: string | null
           plan: string
+          product_id: string | null
           status: string
           trial_ends_at: string | null
           updated_at: string
@@ -7234,6 +7235,7 @@ export type Database = {
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
+          product_id?: string | null
           status?: string
           trial_ends_at?: string | null
           updated_at?: string
@@ -7255,6 +7257,7 @@ export type Database = {
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
           plan?: string
+          product_id?: string | null
           status?: string
           trial_ends_at?: string | null
           updated_at?: string
@@ -7273,6 +7276,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "plans"
             referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "subscriptions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
           },
         ]
       }

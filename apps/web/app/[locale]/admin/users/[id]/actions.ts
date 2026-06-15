@@ -318,6 +318,86 @@ export const requestSupportAccessAction = withAdminAudit<
   },
 );
 
+// ─── Activate a catalog product on a user's subscription ──────────────
+const setProductSchema = z.object({
+  hostId: z.string().uuid(),
+  productId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+function addMonthsIso(n: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString();
+}
+
+export const setUserProductAction = withAdminAudit<
+  z.infer<typeof setProductSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.set_product",
+    targetType: "subscription",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const parsed = setProductSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid input.");
+    const { hostId, productId } = parsed.data;
+
+    const { data: product } = await service
+      .from("products")
+      .select("id, slug, type, billing_cycle")
+      .eq("id", productId)
+      .maybeSingle();
+    if (!product) throw new Error("Product not found.");
+    if (product.type !== "subscription") {
+      throw new Error("Only subscription products can be set as a plan.");
+    }
+
+    // Map the product's slug to a plan key when one exists (drives gating);
+    // otherwise keep the current plan so the FK stays valid.
+    const { data: existing } = await service
+      .from("subscriptions")
+      .select("id, plan")
+      .eq("host_id", hostId)
+      .maybeSingle();
+
+    let plan = existing?.plan ?? "free";
+    if (product.slug) {
+      const { data: planRow } = await service
+        .from("plans")
+        .select("key")
+        .eq("key", product.slug)
+        .maybeSingle();
+      if (planRow) plan = planRow.key;
+    }
+
+    const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+    const now = new Date().toISOString();
+    const patch = {
+      product_id: product.id,
+      plan,
+      billing_cycle: cycle,
+      status: "active" as const,
+      current_period_start: now,
+      current_period_end: addMonthsIso(cycle === "annual" ? 12 : 1),
+      updated_at: now,
+    };
+
+    const { error } = existing
+      ? await service.from("subscriptions").update(patch).eq("id", existing.id)
+      : await service
+          .from("subscriptions")
+          .insert({ host_id: hostId, ...patch });
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/admin/users`);
+    return { result: { ok: true }, after: { hostId, ...patch } };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -364,6 +444,13 @@ export async function requestSupportAccess(input: {
   reason: string;
 }) {
   return wrap(() => requestSupportAccessAction(input));
+}
+
+export async function setUserProduct(input: {
+  hostId: string;
+  productId: string;
+}) {
+  return wrap(() => setUserProductAction(input));
 }
 
 export async function adminUpdateSubscription(input: {

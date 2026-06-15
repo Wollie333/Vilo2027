@@ -8,6 +8,7 @@ import {
 import { fetchViloLedger } from "@/lib/billing/vilo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { UserRecord, type UserRecordData } from "./UserRecord";
@@ -66,7 +67,7 @@ export default async function AdminUserDetailPage({
       ? service
           .from("subscriptions")
           .select(
-            "plan, status, billing_cycle, trial_ends_at, current_period_end, cancel_at_period_end",
+            "plan, status, billing_cycle, trial_ends_at, current_period_end, cancel_at_period_end, product_id",
           )
           .eq("host_id", host.id)
           .maybeSingle()
@@ -260,6 +261,9 @@ export default async function AdminUserDetailPage({
 
   const sub = (subResult as { data: UserRecordData["subscription"] }).data;
 
+  // Catalog products for the Products tab (manage the user's subscription).
+  const catalog = host ? await getSubscriptionProducts() : [];
+
   const data: UserRecordData = {
     user: {
       id: user.id,
@@ -325,6 +329,19 @@ export default async function AdminUserDetailPage({
     planOptions: (await getAllPlans()).map((p) => ({
       key: p.key,
       name: p.name,
+    })),
+    products: catalog.map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      price: p.price,
+      currency: p.currency,
+      billingCycle: p.billingCycle,
+      trialDays: p.trialDays,
+      slug: p.slug,
+      isFree: p.isFree,
+      isRecommended: p.isRecommended,
+      bullets: p.bullets,
     })),
     viloLedger: viloRows.map((t) => ({
       id: t.id,
