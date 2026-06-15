@@ -1,7 +1,8 @@
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
+import { Link } from "@/i18n/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PayButton } from "./PayButton";
@@ -17,7 +18,9 @@ export default async function ProductPayPage({
 
   const { data: order } = await service
     .from("product_orders")
-    .select("id, product_id, product_name, amount, currency, status")
+    .select(
+      "id, product_id, product_name, amount, currency, status, payer_email, payer_user_id",
+    )
     .eq("pay_token", params.token)
     .maybeSingle();
   if (!order) notFound();
@@ -47,6 +50,19 @@ export default async function ProductPayPage({
   const showEft = methods.includes("eft") && settings?.eft_enabled;
   const paid = order.status === "paid";
 
+  // Does this buyer already have a Vilo account? If not, after paying they go
+  // straight into the signup flow to complete their account (the toolkit step is
+  // locked to this purchase).
+  let hasAccount = !!order.payer_user_id;
+  if (!hasAccount && order.payer_email) {
+    const { data: existing } = await service
+      .from("user_profiles")
+      .select("id")
+      .ilike("email", order.payer_email)
+      .maybeSingle();
+    hasAccount = !!existing;
+  }
+
   return (
     <div className="mx-auto max-w-md px-4 py-12">
       <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
@@ -61,8 +77,31 @@ export default async function ProductPayPage({
         </div>
 
         {paid ? (
-          <div className="mt-6 flex items-center gap-2 rounded-md border border-status-confirmed/30 bg-status-confirmed/10 px-4 py-3 text-sm font-semibold text-status-confirmed">
-            <CheckCircle2 className="h-5 w-5" /> Paid — thank you!
+          <div className="mt-6 space-y-4">
+            <div className="flex items-center gap-2 rounded-md border border-status-confirmed/30 bg-status-confirmed/10 px-4 py-3 text-sm font-semibold text-status-confirmed">
+              <CheckCircle2 className="h-5 w-5" /> Paid — thank you!
+            </div>
+            {hasAccount ? (
+              <Link
+                href="/login"
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
+              >
+                Log in to your account <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href={`/signup/host?order=${params.token}`}
+                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
+                >
+                  Create your account <ArrowRight className="h-4 w-4" />
+                </Link>
+                <p className="text-center text-[12px] text-brand-mute">
+                  Finish setting up your account — your subscription is already
+                  active.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <div className="mt-6 space-y-5">

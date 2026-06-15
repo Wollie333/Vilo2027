@@ -218,6 +218,9 @@ export function Wizard({
   prefilledLanguages = null,
   prefilledCountry = null,
   categoryLeaves = [],
+  purchasedProductName = null,
+  purchasedOrderToken = null,
+  purchasedEmail = null,
 }: {
   prefilledEmail: string | null;
   prefilledFullName?: string | null;
@@ -233,13 +236,20 @@ export function Wizard({
     kind: "accommodation";
     description: string | null;
   }>;
+  // Set when the user paid for a product before signing up. The toolkit step is
+  // locked to that purchase and the account email is prefilled + locked.
+  purchasedProductName?: string | null;
+  purchasedOrderToken?: string | null;
+  purchasedEmail?: string | null;
 }) {
   const brandName = useBrandName();
-  // Returning users (already signed in) skip Step 1.
+  // Returning users (already signed in) skip Step 1. A product buyer is NOT yet
+  // authenticated, so they still go through account creation — we only prefill
+  // the email they paid with.
   const startIndex = prefilledEmail ? 1 : 0;
   const [currentIndex, setCurrentIndex] = useState(startIndex);
-  const [data, setData] = useState<WizardData>(() =>
-    initialData({
+  const [data, setData] = useState<WizardData>(() => {
+    const base = initialData({
       email: prefilledEmail,
       fullName: prefilledFullName,
       phone: prefilledPhone,
@@ -247,8 +257,13 @@ export function Wizard({
       avatarUrl: prefilledAvatar,
       languages: prefilledLanguages,
       country: prefilledCountry,
-    }),
-  );
+    });
+    // Prefill (but don't auto-accept terms for) a product buyer's paid email.
+    if (!prefilledEmail && purchasedEmail) {
+      return { ...base, email: purchasedEmail };
+    }
+    return base;
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [createPending, startCreate] = useTransition();
   const [finalizePending, startFinalize] = useTransition();
@@ -389,6 +404,7 @@ export function Wizard({
         longitude: data.longitude,
         plan: data.plan,
         billing_cycle: data.billingCycle,
+        purchased_order_token: purchasedOrderToken ?? undefined,
       });
       if (!result.ok) {
         toast.error(result.error);
@@ -424,9 +440,11 @@ export function Wizard({
       : current.key === "plan"
         ? finalizePending
           ? "Setting up…"
-          : data.plan === "free"
-            ? "Start with Free"
-            : "Start 14-day trial"
+          : purchasedProductName
+            ? "Finish setup"
+            : data.plan === "free"
+              ? "Start with Free"
+              : "Start 14-day trial"
         : "Continue";
   const nextDisabled = createPending || finalizePending;
 
@@ -440,6 +458,7 @@ export function Wizard({
             errors={errors}
             pending={createPending}
             stepIndex={currentIndex}
+            lockEmail={!!purchasedEmail}
           />
         );
       case "about":
@@ -462,7 +481,12 @@ export function Wizard({
           />
         );
       case "plan":
-        return <StepPlan stepIndex={currentIndex} />;
+        return (
+          <StepPlan
+            stepIndex={currentIndex}
+            purchasedProductName={purchasedProductName}
+          />
+        );
       case "welcome":
         return (
           <StepWelcome
@@ -741,12 +765,14 @@ function StepAccount({
   errors,
   pending,
   stepIndex,
+  lockEmail = false,
 }: {
   data: WizardData;
   patch: (p: Partial<WizardData>) => void;
   errors: Record<string, string>;
   pending: boolean;
   stepIndex: number;
+  lockEmail?: boolean;
 }) {
   const brandName = useBrandName();
   function notifyOAuthSoon() {
@@ -845,13 +871,17 @@ function StepAccount({
           </FormField>
         </div>
 
-        <FormField label="Email" error={errors.email}>
+        <FormField
+          label="Email"
+          hint={lockEmail ? "The email you paid with." : undefined}
+          error={errors.email}
+        >
           <TextInput
             type="email"
             value={data.email}
             onChange={(e) => patch({ email: e.target.value })}
             placeholder="you@yourbusiness.co.za"
-            disabled={pending}
+            disabled={pending || lockEmail}
             autoComplete="email"
           />
         </FormField>
@@ -1299,8 +1329,60 @@ function StepListing({
 
 // ─── Step 5: Subscription ──────────────────────────────────────────
 
-function StepPlan({ stepIndex }: { stepIndex: number }) {
+function StepPlan({
+  stepIndex,
+  purchasedProductName = null,
+}: {
+  stepIndex: number;
+  purchasedProductName?: string | null;
+}) {
   const brandName = useBrandName();
+
+  // Came in from a paid product link — they're already subscribed, so lock the
+  // step to a confirmation instead of the plan picker.
+  if (purchasedProductName) {
+    return (
+      <div className="vilo-step-enter">
+        <StepHeading
+          stepIndex={stepIndex}
+          title="You're all set — subscription active"
+          subtitle="Your payment went through, so there's nothing to choose here. Finish setup to start using your account."
+        />
+        <div className="mt-7 rounded-card border border-brand-primary bg-white p-6 shadow-glow">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-brand-primary text-white">
+              <Check className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+                Subscribed
+              </div>
+              <div className="font-display text-lg font-bold text-brand-ink">
+                {purchasedProductName}
+              </div>
+              <p className="mt-1 text-xs text-brand-mute">
+                Paid and active on your new {brandName} account. Manage or
+                change it anytime from your dashboard settings.
+              </p>
+            </div>
+            <span className="ml-auto shrink-0 self-center rounded-pill bg-status-confirmed/10 px-2.5 py-1 text-[11px] font-semibold text-status-confirmed">
+              Active
+            </span>
+          </div>
+        </div>
+        <div className="mt-5 flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div className="text-xs leading-relaxed text-brand-mute">
+            Your purchase is linked to this account. Your data, listings and
+            bookings all live here.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="vilo-step-enter">
       <StepHeading

@@ -225,6 +225,11 @@ export const finalizeOnboardingSchema = z
     // (payment wiring lands later). Surfaced for visibility only.
     plan: z.enum(["free", "basic", "pro", "business"]),
     billing_cycle: z.enum(["monthly", "annual"]),
+
+    // When the user paid for a product first (/p/[slug] → pay → signup), the
+    // paid order's pay_token is threaded here so finalize links the purchase to
+    // the new account (and sets the plan if the product maps to one).
+    purchased_order_token: z.string().trim().max(64).optional(),
   })
   .refine((d) => !!d.category_id, {
     path: ["category_id"],

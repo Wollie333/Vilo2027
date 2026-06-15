@@ -281,11 +281,43 @@ export async function finalizeOnboardingAction(
     console.error("[host-onboarding] listings insert failed", listingErr);
   }
 
-  // 4. Subscription — Free for now regardless of plan picked. Payment +
-  //    plan upgrade flow lands later. Non-blocking on failure.
+  // 3b. If they paid for a product before signing up, link that paid order to
+  //     the new account so the purchase shows in their billing / the Vilo
+  //     ledger. If the product maps to a subscription plan (slug === plan key),
+  //     start them on that plan instead of Free. Non-blocking.
+  let resolvedPlan: "free" | "basic" | "pro" | "business" = "free";
+  if (d.purchased_order_token) {
+    const { data: order } = await admin
+      .from("product_orders")
+      .select("id, product_id, status")
+      .eq("pay_token", d.purchased_order_token)
+      .maybeSingle();
+    if (order && order.status === "paid") {
+      await admin
+        .from("product_orders")
+        .update({ payer_user_id: user.id })
+        .eq("id", order.id);
+
+      // Map product → plan when the slug matches an existing plan key.
+      if (order.product_id) {
+        const { data: prod } = await admin
+          .from("products")
+          .select("slug")
+          .eq("id", order.product_id)
+          .maybeSingle();
+        const slug = prod?.slug ?? null;
+        if (slug && ["free", "basic", "pro", "business"].includes(slug)) {
+          resolvedPlan = slug as typeof resolvedPlan;
+        }
+      }
+    }
+  }
+
+  // 4. Subscription — Free unless a purchased product maps to a paid plan.
+  //    Payment auto-renewal lands later. Non-blocking on failure.
   await admin.from("subscriptions").insert({
     host_id: host.id,
-    plan: "free",
+    plan: resolvedPlan,
     status: "active",
   });
 
@@ -297,7 +329,7 @@ export async function finalizeOnboardingAction(
     data: {
       host_id: host.id,
       handle: host.handle,
-      plan: d.plan,
+      plan: d.purchased_order_token ? resolvedPlan : d.plan,
       billing_cycle: d.billing_cycle,
     },
   };

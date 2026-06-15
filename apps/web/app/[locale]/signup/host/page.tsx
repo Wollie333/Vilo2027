@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getBrandName } from "@/lib/brand";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
 
@@ -17,11 +18,36 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-export default async function HostSignupPage() {
+export default async function HostSignupPage({
+  searchParams,
+}: {
+  searchParams?: { order?: string };
+}) {
   const supabase = createServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // If they arrived from a paid product link (/p/[slug] → pay → here), load the
+  // paid order so the wizard can lock the toolkit step to that purchase and the
+  // account step can prefill the email they paid with.
+  let purchasedProductName: string | null = null;
+  let purchasedOrderToken: string | null = null;
+  let purchasedEmail: string | null = null;
+  const orderToken = (searchParams?.order ?? "").trim();
+  if (orderToken) {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("product_orders")
+      .select("pay_token, product_name, payer_email, status")
+      .eq("pay_token", orderToken)
+      .maybeSingle();
+    if (order && order.status === "paid") {
+      purchasedProductName = order.product_name ?? null;
+      purchasedOrderToken = order.pay_token ?? null;
+      purchasedEmail = order.payer_email ?? null;
+    }
+  }
 
   let prefilledFullName: string | null = null;
   let prefilledPhone: string | null = null;
@@ -86,6 +112,9 @@ export default async function HostSignupPage() {
       prefilledLanguages={prefilledLanguages}
       prefilledCountry={prefilledCountry}
       categoryLeaves={categoryLeaves}
+      purchasedProductName={purchasedProductName}
+      purchasedOrderToken={purchasedOrderToken}
+      purchasedEmail={purchasedEmail}
     />
   );
 }
