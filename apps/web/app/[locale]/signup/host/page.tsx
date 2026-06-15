@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { getBrandName } from "@/lib/brand";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getCategoryTree } from "@/lib/taxonomy/getCategories";
@@ -86,6 +87,9 @@ export default async function HostSignupPage({
     }
   }
 
+  // Real subscription products to pick from in the toolkit step.
+  const products = await getSubscriptionProducts();
+
   // Flatten the category tree to accommodation leaves only (skip the
   // Accommodation root). MVP lists accommodation only.
   const tree = await getCategoryTree();
@@ -112,6 +116,7 @@ export default async function HostSignupPage({
       prefilledLanguages={prefilledLanguages}
       prefilledCountry={prefilledCountry}
       categoryLeaves={categoryLeaves}
+      products={products}
       purchasedProductName={purchasedProductName}
       purchasedOrderToken={purchasedOrderToken}
       purchasedEmail={purchasedEmail}

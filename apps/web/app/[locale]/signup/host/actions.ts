@@ -1,5 +1,6 @@
 "use server";
 
+import { startProductPurchaseBySlug } from "@/lib/billing/product-checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -123,6 +124,27 @@ export async function uploadHostAvatarAction(
 
   const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
   return { ok: true, data: { url: pub.publicUrl } };
+}
+
+// ─── Paid plan chosen during signup → start checkout for that product ──
+//
+// Called after finalize (host exists, free subscription created). Creates a
+// product order tied to the signed-in user's email and returns its pay-link;
+// the webhook upgrades their subscription to the product's plan once paid.
+
+export async function startSignupCheckoutAction(
+  slug: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const supabase = createServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) {
+    return { ok: false, error: "Your session expired — sign in to continue." };
+  }
+  const r = await startProductPurchaseBySlug(slug, user.email);
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, url: r.url };
 }
 
 // ─── Final step: create profile + host + listing + free subscription ─

@@ -38,9 +38,12 @@ import {
   aboutSchema,
   listingSchema,
 } from "./schemas";
+import type { CatalogProduct } from "@/lib/products/getProducts";
+
 import {
   createAccountAction,
   finalizeOnboardingAction,
+  startSignupCheckoutAction,
   uploadHostAvatarAction,
   type FinalizeOnboardingData,
 } from "./actions";
@@ -94,6 +97,8 @@ type WizardData = {
   // plan
   plan: "free" | "basic" | "pro" | "business";
   billingCycle: "monthly" | "annual";
+  // selected subscription product slug (toolkit step). null → no/Free.
+  productSlug: string | null;
 };
 
 type Prefilled = {
@@ -138,6 +143,7 @@ function initialData(prefilled: Prefilled): WizardData {
     longitude: null,
     plan: "free",
     billingCycle: "monthly",
+    productSlug: null,
   };
 }
 
@@ -218,6 +224,7 @@ export function Wizard({
   prefilledLanguages = null,
   prefilledCountry = null,
   categoryLeaves = [],
+  products = [],
   purchasedProductName = null,
   purchasedOrderToken = null,
   purchasedEmail = null,
@@ -236,6 +243,8 @@ export function Wizard({
     kind: "accommodation";
     description: string | null;
   }>;
+  // Real subscription products to choose from in the toolkit step.
+  products?: CatalogProduct[];
   // Set when the user paid for a product before signing up. The toolkit step is
   // locked to that purchase and the account email is prefilled + locked.
   purchasedProductName?: string | null;
@@ -258,6 +267,8 @@ export function Wizard({
       languages: prefilledLanguages,
       country: prefilledCountry,
     });
+    // Default the toolkit selection to the first product (sorted; Free is first).
+    base.productSlug = products[0]?.slug ?? null;
     // Prefill (but don't auto-accept terms for) a product buyer's paid email.
     if (!prefilledEmail && purchasedEmail) {
       return { ...base, email: purchasedEmail };
@@ -378,10 +389,16 @@ export function Wizard({
   }
 
   function handlePlanNext() {
-    // Plan is always 'free' on submit — every signup goes through as Free
-    // for now. We finalize first (write host row + subscription) and only
-    // advance to the Welcome / receipt step on success, so the user never
-    // lands on a thank-you page for an order that didn't actually persist.
+    // Resolve the chosen product (toolkit step). A buy-first user
+    // (purchasedOrderToken) is already subscribed — never re-charge them.
+    const chosen = purchasedOrderToken
+      ? null
+      : (products.find((p) => p.slug === data.productSlug) ?? null);
+    const isPaid = !!chosen && !chosen.isFree;
+
+    // Always finalize first (writes host + a Free subscription baseline). Only
+    // then, for a paid pick, send them to checkout — the webhook upgrades their
+    // subscription to the product's plan once payment succeeds.
     startFinalize(async () => {
       const result = await finalizeOnboardingAction({
         full_name: data.fullName,
@@ -410,6 +427,18 @@ export function Wizard({
         toast.error(result.error);
         return;
       }
+
+      // Paid plan chosen → go to checkout for that product.
+      if (isPaid && chosen?.slug) {
+        const co = await startSignupCheckoutAction(chosen.slug);
+        if (!co.ok) {
+          toast.error(co.error);
+          return;
+        }
+        window.location.href = co.url;
+        return;
+      }
+
       setFinalizeResult(result.data ?? null);
       advance();
     });
@@ -432,6 +461,8 @@ export function Wizard({
     }
   }
 
+  const chosenProduct =
+    products.find((p) => p.slug === data.productSlug) ?? null;
   const nextLabel =
     current.key === "account"
       ? createPending
@@ -442,9 +473,9 @@ export function Wizard({
           ? "Setting up…"
           : purchasedProductName
             ? "Finish setup"
-            : data.plan === "free"
-              ? "Start with Free"
-              : "Start 14-day trial"
+            : chosenProduct && !chosenProduct.isFree
+              ? "Continue to payment"
+              : "Start free"
         : "Continue";
   const nextDisabled = createPending || finalizePending;
 
@@ -485,6 +516,9 @@ export function Wizard({
           <StepPlan
             stepIndex={currentIndex}
             purchasedProductName={purchasedProductName}
+            products={products}
+            selectedSlug={data.productSlug}
+            onSelect={(slug) => patch({ productSlug: slug })}
           />
         );
       case "welcome":
@@ -1332,9 +1366,15 @@ function StepListing({
 function StepPlan({
   stepIndex,
   purchasedProductName = null,
+  products = [],
+  selectedSlug = null,
+  onSelect,
 }: {
   stepIndex: number;
   purchasedProductName?: string | null;
+  products?: CatalogProduct[];
+  selectedSlug?: string | null;
+  onSelect?: (slug: string | null) => void;
 }) {
   const brandName = useBrandName();
 
@@ -1383,83 +1423,118 @@ function StepPlan({
     );
   }
 
+  // No products configured → simple Free fallback.
+  if (products.length === 0) {
+    return (
+      <div className="vilo-step-enter">
+        <StepHeading
+          stepIndex={stepIndex}
+          title="You're on the Free plan"
+          subtitle="Every host starts here with full access while we finalise billing. You can upgrade from settings anytime."
+        />
+        <div className="mt-7 flex items-start gap-3 rounded-card border border-brand-line bg-white p-4">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-accent text-brand-primary">
+            <ShieldCheck className="h-4 w-4" />
+          </div>
+          <div className="text-xs leading-relaxed text-brand-mute">
+            No card required today. Your data, listings and bookings carry over
+            when you upgrade.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const cycleLabel: Record<string, string> = {
+    weekly: "week",
+    monthly: "month",
+    quarterly: "quarter",
+    biannual: "6 months",
+    annual: "year",
+  };
+  const rand = (n: number) =>
+    "R " + Math.round(n).toLocaleString("en-ZA").replace(/,/g, " ");
+
   return (
     <div className="vilo-step-enter">
       <StepHeading
         stepIndex={stepIndex}
-        title="You're on the Free plan"
-        subtitle="Every host starts here with full access to all features while we finalise billing. Paid tiers below are coming — you'll be able to upgrade from settings once payments ship."
+        title="Choose your plan"
+        subtitle="Start free or jump onto a paid tier — you can change it anytime from settings."
       />
 
-      <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {PLANS.map((p) => {
-          const isCurrent = p.value === "free";
+      <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {products.map((p) => {
+          const selected = p.slug === selectedSlug;
+          const cycle = cycleLabel[p.billingCycle ?? "monthly"] ?? "month";
           return (
-            <div
-              key={p.value}
-              className={`relative flex flex-col rounded-card border p-5 ${
-                isCurrent
-                  ? "border-brand-primary bg-white shadow-glow"
-                  : "border-brand-line bg-white opacity-90"
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => onSelect?.(p.slug)}
+              className={`relative flex flex-col rounded-card border p-5 text-left transition ${
+                selected
+                  ? "border-brand-primary bg-white shadow-glow ring-1 ring-brand-primary"
+                  : "border-brand-line bg-white hover:border-brand-primary/50"
               }`}
             >
-              <span
-                className={`absolute -top-2 right-4 rounded-pill px-2 py-0.5 text-[10px] font-semibold ${
-                  isCurrent
-                    ? "bg-brand-primary text-white"
-                    : "border border-brand-line bg-brand-light text-brand-mute"
-                }`}
-              >
-                {isCurrent ? "Your plan today" : "Coming soon"}
-              </span>
+              {p.isRecommended ? (
+                <span className="absolute -top-2 right-4 rounded-pill bg-brand-primary px-2 py-0.5 text-[10px] font-semibold text-white">
+                  Most popular
+                </span>
+              ) : null}
 
               <div className="flex items-center justify-between">
                 <div className="font-display text-lg font-bold text-brand-ink">
                   {p.name}
                 </div>
-                {isCurrent ? (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-pill bg-brand-primary text-white">
-                    <Check className="h-3 w-3" />
-                  </div>
-                ) : null}
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-pill border ${
+                    selected
+                      ? "border-brand-primary bg-brand-primary text-white"
+                      : "border-brand-line text-transparent"
+                  }`}
+                >
+                  <Check className="h-3 w-3" />
+                </span>
               </div>
-              <p className="mt-1.5 min-h-[32px] text-xs text-brand-mute">
-                {p.blurb}
-              </p>
+              {p.description ? (
+                <p className="mt-1.5 min-h-[32px] text-xs text-brand-mute">
+                  {p.description}
+                </p>
+              ) : null}
 
               <div className="mt-4 flex items-baseline gap-1.5">
                 <span className="font-display text-3xl font-bold text-brand-ink">
-                  R{p.monthly.toLocaleString("en-ZA")}
+                  {p.isFree ? "Free" : rand(p.price)}
                 </span>
-                <span className="text-xs text-brand-mute">
-                  {p.value === "free" ? "" : "/month"}
-                </span>
+                {!p.isFree ? (
+                  <span className="text-xs text-brand-mute">/{cycle}</span>
+                ) : null}
+              </div>
+              <div className="mt-1 min-h-[16px] text-[11px] text-brand-mute">
+                {p.trialDays > 0 ? `${p.trialDays}-day free trial` : ""}
+                {p.setupFee > 0
+                  ? `${p.trialDays > 0 ? " · " : ""}${rand(p.setupFee)} ${
+                      p.setupFeeLabel || "setup"
+                    } once-off`
+                  : ""}
               </div>
 
               <ul className="mt-4 space-y-2">
-                {p.features.map((f) => (
+                {p.bullets.map((f, i) => (
                   <li
-                    key={f}
+                    key={i}
                     className="flex items-start gap-2 text-xs text-brand-ink"
                   >
                     <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
                     <span className="leading-snug">
-                      {f.replace("Vilo", brandName)}
+                      {f.replace(/Vilo/g, brandName)}
                     </span>
                   </li>
                 ))}
               </ul>
-
-              <div
-                className={`mt-5 rounded py-2 text-center text-xs font-semibold ${
-                  isCurrent
-                    ? "bg-brand-primary text-white"
-                    : "border border-brand-line bg-brand-light text-brand-mute"
-                }`}
-              >
-                {isCurrent ? "Active" : "Notify me at launch"}
-              </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -1469,9 +1544,8 @@ function StepPlan({
           <ShieldCheck className="h-4 w-4" />
         </div>
         <div className="text-xs leading-relaxed text-brand-mute">
-          No card required today. When paid tiers launch you&rsquo;ll see an
-          upgrade prompt in your dashboard — your data, listings and bookings
-          carry over.
+          Paid plans take you to secure checkout next. Free starts right away —
+          your data, listings and bookings carry over if you upgrade later.
         </div>
       </div>
     </div>

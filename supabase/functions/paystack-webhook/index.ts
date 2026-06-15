@@ -292,6 +292,62 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
     paid_at: now,
     reason: "Product purchase",
   });
+
+  // If the product is a subscription that maps to a plan, grant the buyer that
+  // plan so they get access. Only when the buyer already has a Vilo account +
+  // host (the buy-first flow sets the plan at signup instead — see
+  // signup/host/actions.ts). Plan-mapped slugs only; bespoke products stay on
+  // their existing plan and are tracked via the paid order + ledger.
+  if (order.payer_user_id && order.product_id) {
+    const { data: product } = await supabase
+      .from("products")
+      .select("type, slug, billing_cycle")
+      .eq("id", order.product_id)
+      .maybeSingle();
+    const planKeys = ["free", "basic", "pro", "business"];
+    if (
+      product &&
+      product.type === "subscription" &&
+      product.slug &&
+      planKeys.includes(product.slug)
+    ) {
+      const { data: host } = await supabase
+        .from("hosts")
+        .select("id")
+        .eq("user_id", order.payer_user_id)
+        .maybeSingle();
+      if (host) {
+        const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+        const periodEnd = addMonths(new Date(), cycle === "annual" ? 12 : 1);
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("id")
+          .eq("host_id", host.id)
+          .maybeSingle();
+        if (sub) {
+          await supabase
+            .from("subscriptions")
+            .update({
+              plan: product.slug,
+              billing_cycle: cycle,
+              status: "active",
+              current_period_start: now,
+              current_period_end: periodEnd,
+            })
+            .eq("id", sub.id);
+        } else {
+          await supabase.from("subscriptions").insert({
+            host_id: host.id,
+            plan: product.slug,
+            billing_cycle: cycle,
+            status: "active",
+            current_period_start: now,
+            current_period_end: periodEnd,
+          });
+        }
+      }
+    }
+  }
 }
 
 // ─── Vilo subscription billing handler ────────────────────────────────
