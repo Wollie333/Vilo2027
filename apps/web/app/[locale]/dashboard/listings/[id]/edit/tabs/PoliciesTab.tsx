@@ -1,6 +1,7 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
+import { Pencil, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -12,7 +13,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-import { setListingPolicyAction } from "../../../../policies/actions";
+import { PolicyEditorSheet } from "../../../../policies/PolicyEditorSheet";
+import type { PolicyCard } from "../../../../policies/policy-card";
+import {
+  createPolicyForListingAction,
+  fetchPolicyCardForListingAction,
+  setListingPolicyAction,
+  updatePolicyForListingAction,
+} from "../../../../policies/actions";
 import {
   POLICY_TYPE_LABEL,
   type PolicyType,
@@ -43,7 +51,13 @@ export function PoliciesTab({
   available: AvailablePolicy[];
   assigned: AssignedPolicy[];
 }) {
+  const router = useRouter();
   const [assigned, setAssigned] = useState<AssignedPolicy[]>(initialAssigned);
+  const [sheet, setSheet] = useState<{
+    type: PolicyType;
+    policy: PolicyCard | null;
+  } | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
 
   const types: PolicyType[] = ["cancellation", "check_in_out", "house_rules"];
 
@@ -88,6 +102,17 @@ export function PoliciesTab({
     }
   }
 
+  async function openEdit(policyId: string, type: PolicyType) {
+    setLoadingEdit(policyId);
+    const result = await fetchPolicyCardForListingAction(listingId, policyId);
+    setLoadingEdit(null);
+    if (!result.ok || !result.data) {
+      toast.error(result.ok ? "Could not load policy." : result.error);
+      return;
+    }
+    setSheet({ type, policy: result.data });
+  }
+
   return (
     <Card className="rounded-card border-brand-line shadow-card">
       <CardHeader>
@@ -95,15 +120,8 @@ export function PoliciesTab({
           Policies
         </CardTitle>
         <CardDescription className="text-brand-mute">
-          Assign refund terms, check-in/out times and house rules to this
-          listing. Create and edit them under{" "}
-          <Link
-            href="/dashboard/policies"
-            className="text-brand-primary underline decoration-brand-primary/40 underline-offset-2 hover:decoration-brand-primary"
-          >
-            Tools → Policies
-          </Link>
-          .
+          Create refund terms, check-in/out times and house rules, then assign
+          them to this listing.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -111,23 +129,28 @@ export function PoliciesTab({
           const options = byType.get(type) ?? [];
           return (
             <div key={type} className="space-y-3">
-              <div>
-                <div className="font-display text-sm font-semibold text-brand-dark">
-                  {POLICY_TYPE_LABEL[type]}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-display text-sm font-semibold text-brand-dark">
+                    {POLICY_TYPE_LABEL[type]}
+                  </div>
+                  <p className="text-xs text-brand-mute">
+                    {SECTION_BLURB[type]}
+                  </p>
                 </div>
-                <p className="text-xs text-brand-mute">{SECTION_BLURB[type]}</p>
+                <button
+                  type="button"
+                  onClick={() => setSheet({ type, policy: null })}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+                >
+                  <Plus className="h-3.5 w-3.5 text-brand-primary" /> New
+                </button>
               </div>
 
               {options.length === 0 ? (
                 <div className="rounded border border-dashed border-brand-line bg-brand-light/40 px-3 py-3 text-xs text-brand-mute">
-                  No {POLICY_TYPE_LABEL[type].toLowerCase()} yet.{" "}
-                  <Link
-                    href="/dashboard/policies"
-                    className="text-brand-primary underline underline-offset-2"
-                  >
-                    Create one
-                  </Link>
-                  .
+                  No {POLICY_TYPE_LABEL[type].toLowerCase()} yet — use “New” to
+                  create one.
                 </div>
               ) : (
                 <>
@@ -138,6 +161,22 @@ export function PoliciesTab({
                     onChange={(id) => assign(type, null, id)}
                     placeholder="None"
                   />
+
+                  {/* Manage existing policies of this type */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {options.map((o) => (
+                      <button
+                        key={o.id}
+                        type="button"
+                        disabled={loadingEdit === o.id}
+                        onClick={() => openEdit(o.id, type)}
+                        className="inline-flex items-center gap-1 rounded-pill border border-brand-line bg-white px-2.5 py-1 text-[11.5px] text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink disabled:opacity-60"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        {loadingEdit === o.id ? "Loading…" : o.name}
+                      </button>
+                    ))}
+                  </div>
 
                   {rooms.length > 0 ? (
                     <details className="rounded border border-brand-line bg-brand-light/30 px-3 py-2">
@@ -164,6 +203,23 @@ export function PoliciesTab({
           );
         })}
       </CardContent>
+
+      <PolicyEditorSheet
+        open={!!sheet}
+        onOpenChange={(o) => {
+          if (!o) setSheet(null);
+        }}
+        type={sheet?.type ?? "cancellation"}
+        policy={sheet?.policy ?? null}
+        createAction={(input) => createPolicyForListingAction(listingId, input)}
+        updateAction={(policyId, input) =>
+          updatePolicyForListingAction(listingId, policyId, input)
+        }
+        onSaved={() => {
+          setSheet(null);
+          router.refresh();
+        }}
+      />
     </Card>
   );
 }

@@ -52,6 +52,8 @@ export function PolicyEditorSheet({
   type,
   policy,
   onSaved,
+  createAction = createPolicyAction,
+  updateAction = updatePolicyAction,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -60,6 +62,13 @@ export function PolicyEditorSheet({
   // On create, receives the new policy's id so callers can act on it (e.g. the
   // setup picker auto-assigns it to the listing). On edit, called with no arg.
   onSaved: (created?: { id: string }) => void;
+  // Override the persistence actions — the admin listing editor injects
+  // listing-context variants so staff can manage a user's policies.
+  createAction?: typeof createPolicyAction;
+  updateAction?: (
+    policyId: string,
+    input: Parameters<typeof createPolicyAction>[0],
+  ) => ReturnType<typeof updatePolicyAction>;
 }) {
   const [pending, start] = useTransition();
 
@@ -188,8 +197,8 @@ export function PolicyEditorSheet({
     }
     start(async () => {
       const result = policy
-        ? await updatePolicyAction(policy.id, built)
-        : await createPolicyAction(built);
+        ? await updateAction(policy.id, built)
+        : await createAction(built);
       if (result.ok) {
         toast.success(isEdit ? "Policy saved" : "Policy created");
         onOpenChange(false);

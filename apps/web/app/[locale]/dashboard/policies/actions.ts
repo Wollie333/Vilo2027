@@ -13,9 +13,11 @@ import {
   isLockedPreset,
   legalDocInputSchema,
   refundPolicyInputSchema,
+  type CheckInMethod,
   type PolicyInput,
   type PolicyType,
 } from "./schemas";
+import type { PolicyCard } from "./policy-card";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -42,8 +44,9 @@ type PolicyRow = {
 async function fetchOwnedPolicy(
   policyId: string,
   hostId: string,
+  db: ReturnType<typeof createServerClient> = createServerClient(),
 ): Promise<PolicyRow | null> {
-  const supabase = createServerClient();
+  const supabase = db;
   const { data } = await supabase
     .from("policies")
     .select("id, host_id, type, preset")
@@ -96,8 +99,9 @@ function validate(
 async function writeChildren(
   policyId: string,
   input: PolicyInput,
+  db: ReturnType<typeof createServerClient> = createServerClient(),
 ): Promise<boolean> {
-  const supabase = createServerClient();
+  const supabase = db;
 
   if (input.type === "cancellation") {
     const rules = input.data.rules.map((r, i) => ({
@@ -139,22 +143,19 @@ async function writeChildren(
   return true;
 }
 
-export async function createPolicyAction(
+type PolicyDb = ReturnType<typeof createServerClient>;
+
+// ── Shared create/update cores (db + host injected) ──────────────
+// Used by both the host self-service actions and the admin listing-context
+// actions so the policy-shaping logic lives in exactly one place.
+
+async function insertPolicyRow(
+  db: PolicyDb,
+  hostId: string,
   input: PolicyInput,
 ): Promise<ActionResult<{ id: string }>> {
-  const host = await getHost();
-  if (!host.ok) return host;
-  if (!(await assertPoliciesEnabled(host.hostId))) {
-    return { ok: false, error: "Policies aren't available on your plan." };
-  }
-  await ensurePresets(host.hostId);
-
-  const valid = validate(input);
-  if (!valid.ok) return valid;
-
-  const supabase = createServerClient();
   const base = {
-    host_id: host.hostId,
+    host_id: hostId,
     name: input.data.name,
     type: input.type,
     status: "active" as const,
@@ -184,7 +185,7 @@ export async function createPolicyAction(
             }
           : base;
 
-  const { data: row, error } = await supabase
+  const { data: row, error } = await db
     .from("policies")
     .insert(insert)
     .select("id")
@@ -193,42 +194,18 @@ export async function createPolicyAction(
     return { ok: false, error: "Could not create policy. Try again." };
   }
 
-  if (!(await writeChildren(row.id, input))) {
-    await supabase.from("policies").delete().eq("id", row.id);
+  if (!(await writeChildren(row.id, input, db))) {
+    await db.from("policies").delete().eq("id", row.id);
     return { ok: false, error: "Could not save policy details." };
   }
-
-  // A host's first active policy of a type becomes the default (no-op if one
-  // already exists), so it's immediately valid on unassigned listings.
-  await ensureDefaults(host.hostId);
-
-  revalidatePath("/dashboard/policies");
   return { ok: true, data: { id: row.id } };
 }
 
-export async function updatePolicyAction(
+async function applyPolicyUpdate(
+  db: PolicyDb,
   policyId: string,
   input: PolicyInput,
 ): Promise<ActionResult> {
-  const host = await getHost();
-  if (!host.ok) return host;
-
-  const policy = await fetchOwnedPolicy(policyId, host.hostId);
-  if (!policy) return { ok: false, error: "Not your policy." };
-  if (isLockedPreset(policy.preset)) {
-    return {
-      ok: false,
-      error: "Preset policies can't be edited. Duplicate it to customise.",
-    };
-  }
-  if (policy.type !== input.type) {
-    return { ok: false, error: "Policy type mismatch." };
-  }
-
-  const valid = validate(input);
-  if (!valid.ok) return valid;
-
-  const supabase = createServerClient();
   const core = {
     name: input.data.name,
     summary: input.data.summary ?? null,
@@ -254,7 +231,7 @@ export async function updatePolicyAction(
       : {}),
   };
 
-  const { error: coreErr } = await supabase
+  const { error: coreErr } = await db
     .from("policies")
     .update(core)
     .eq("id", policyId);
@@ -262,18 +239,193 @@ export async function updatePolicyAction(
 
   // Cancellation rules: replace wholesale.
   if (input.type === "cancellation") {
-    await supabase
+    await db
       .from("policy_cancellation_rules")
       .delete()
       .eq("policy_id", policyId);
   }
 
-  if (!(await writeChildren(policyId, input))) {
+  if (!(await writeChildren(policyId, input, db))) {
     return { ok: false, error: "Could not save policy details." };
   }
+  return { ok: true };
+}
+
+export async function createPolicyAction(
+  input: PolicyInput,
+): Promise<ActionResult<{ id: string }>> {
+  const host = await getHost();
+  if (!host.ok) return host;
+  if (!(await assertPoliciesEnabled(host.hostId))) {
+    return { ok: false, error: "Policies aren't available on your plan." };
+  }
+  await ensurePresets(host.hostId);
+
+  const valid = validate(input);
+  if (!valid.ok) return valid;
+
+  const result = await insertPolicyRow(
+    createServerClient(),
+    host.hostId,
+    input,
+  );
+  if (!result.ok) return result;
+
+  // A host's first active policy of a type becomes the default (no-op if one
+  // already exists), so it's immediately valid on unassigned listings.
+  await ensureDefaults(host.hostId);
 
   revalidatePath("/dashboard/policies");
-  return { ok: true };
+  return result;
+}
+
+export async function updatePolicyAction(
+  policyId: string,
+  input: PolicyInput,
+): Promise<ActionResult> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  if (!policy) return { ok: false, error: "Not your policy." };
+  if (isLockedPreset(policy.preset)) {
+    return {
+      ok: false,
+      error: "Preset policies can't be edited. Duplicate it to customise.",
+    };
+  }
+  if (policy.type !== input.type) {
+    return { ok: false, error: "Policy type mismatch." };
+  }
+
+  const valid = validate(input);
+  if (!valid.ok) return valid;
+
+  const result = await applyPolicyUpdate(createServerClient(), policyId, input);
+  if (result.ok) revalidatePath("/dashboard/policies");
+  return result;
+}
+
+// ── Admin/host listing-context policy create & edit ──────────────
+// Power the inline "add / edit policy" affordance in the listing editor; host
+// resolved from the listing so owners AND active admins (audited) can manage a
+// user's policies.
+
+export async function createPolicyForListingAction(
+  listingId: string,
+  input: PolicyInput,
+): Promise<ActionResult<{ id: string }>> {
+  const ctx = await resolveListingHostContext(listingId, "policy.create");
+  if (!ctx.ok) return ctx;
+  if (!(await assertPoliciesEnabled(ctx.hostId))) {
+    return { ok: false, error: "Policies aren't available on this plan." };
+  }
+  await ensurePresets(ctx.hostId);
+
+  const valid = validate(input);
+  if (!valid.ok) return valid;
+
+  const result = await insertPolicyRow(ctx.db, ctx.hostId, input);
+  if (!result.ok) return result;
+
+  await ensureDefaults(ctx.hostId);
+  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath("/dashboard/policies");
+  return result;
+}
+
+export async function updatePolicyForListingAction(
+  listingId: string,
+  policyId: string,
+  input: PolicyInput,
+): Promise<ActionResult> {
+  const ctx = await resolveListingHostContext(listingId, "policy.update");
+  if (!ctx.ok) return ctx;
+
+  const policy = await fetchOwnedPolicy(policyId, ctx.hostId, ctx.db);
+  if (!policy) return { ok: false, error: "Not your policy." };
+  if (isLockedPreset(policy.preset)) {
+    return {
+      ok: false,
+      error: "Preset policies can't be edited. Duplicate it to customise.",
+    };
+  }
+  if (policy.type !== input.type) {
+    return { ok: false, error: "Policy type mismatch." };
+  }
+
+  const valid = validate(input);
+  if (!valid.ok) return valid;
+
+  const result = await applyPolicyUpdate(ctx.db, policyId, input);
+  if (result.ok) {
+    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath("/dashboard/policies");
+  }
+  return result;
+}
+
+// Load one policy as a full editor card (rules + body) so the listing-editor
+// Policies tab can open it for editing. Owner OR active admin (via the listing).
+export async function fetchPolicyCardForListingAction(
+  listingId: string,
+  policyId: string,
+): Promise<ActionResult<PolicyCard>> {
+  const ctx = await resolveListingHostContext(listingId, "policy.view");
+  if (!ctx.ok) return ctx;
+
+  const { data: p } = await ctx.db
+    .from("policies")
+    .select(
+      "id, type, name, summary, preset, is_non_refundable, check_in_time, check_out_time, check_in_method, pets_allowed, smoking_allowed, parties_allowed, children_welcome, quiet_hours_start, quiet_hours_end",
+    )
+    .eq("id", policyId)
+    .eq("host_id", ctx.hostId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!p) return { ok: false, error: "Policy not found." };
+
+  const [{ data: rules }, { data: content }] = await Promise.all([
+    ctx.db
+      .from("policy_cancellation_rules")
+      .select("days_before, refund_percent, label, sort_order")
+      .eq("policy_id", policyId)
+      .order("sort_order", { ascending: true }),
+    ctx.db
+      .from("policy_content")
+      .select("body_html")
+      .eq("policy_id", policyId)
+      .eq("locale", "en")
+      .maybeSingle(),
+  ]);
+
+  return {
+    ok: true,
+    data: {
+      id: p.id,
+      type: p.type as PolicyType,
+      name: p.name,
+      summary: p.summary ?? null,
+      preset: p.preset ?? null,
+      locked: isLockedPreset(p.preset),
+      isNonRefundable: p.is_non_refundable ?? false,
+      checkInTime: p.check_in_time ?? null,
+      checkOutTime: p.check_out_time ?? null,
+      rules: (rules ?? []).map((r) => ({
+        days_before: r.days_before,
+        refund_percent: r.refund_percent,
+        label: r.label,
+      })),
+      bodyHtml: content?.body_html ?? null,
+      checkInMethod: (p.check_in_method ?? null) as CheckInMethod | null,
+      petsAllowed: p.pets_allowed ?? null,
+      smokingAllowed: p.smoking_allowed ?? null,
+      partiesAllowed: p.parties_allowed ?? null,
+      childrenWelcome: p.children_welcome ?? null,
+      quietHoursStart: p.quiet_hours_start ?? null,
+      quietHoursEnd: p.quiet_hours_end ?? null,
+    },
+  };
 }
 
 export async function deletePolicyAction(
