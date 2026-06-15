@@ -39,6 +39,7 @@ import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addAdminUserNote,
+  adminUpdateSubscription,
   changeUserRole,
   reinstateUser,
   requestSupportAccess,
@@ -46,6 +47,16 @@ import {
   suspendUser,
   updateUserProfile,
 } from "./actions";
+
+const SUB_STATUSES = [
+  "active",
+  "trialing",
+  "paused",
+  "past_due",
+  "restricted",
+  "cancelled",
+  "expired",
+] as const;
 
 type BookingLite = {
   id: string;
@@ -131,6 +142,7 @@ export type UserRecordData = {
   } | null;
   hostTxns: Txn[];
   support: { active: boolean; status: string; expiresAt: string | null } | null;
+  planOptions: { key: string; name: string }[];
   supportGrants: {
     id: string;
     status: string;
@@ -185,7 +197,14 @@ function initials(name: string | null, email: string | null): string {
   return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "·";
 }
 
-type Dialog = "edit" | "role" | "suspend" | "delete" | "support" | null;
+type Dialog =
+  | "edit"
+  | "role"
+  | "suspend"
+  | "delete"
+  | "support"
+  | "managesub"
+  | null;
 
 export function UserRecord({ data }: { data: UserRecordData }) {
   const router = useRouter();
@@ -206,6 +225,15 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [phone, setPhone] = useState(user.phone ?? "");
   const [role, setRole] = useState(user.role ?? "guest");
   const [reason, setReason] = useState("");
+  const [subPlan, setSubPlan] = useState(
+    data.subscription?.plan ?? data.planOptions[0]?.key ?? "free",
+  );
+  const [subCycle, setSubCycle] = useState<"monthly" | "annual">(
+    (data.subscription?.billing_cycle as "monthly" | "annual") ?? "monthly",
+  );
+  const [subStatus, setSubStatus] = useState<(typeof SUB_STATUSES)[number]>(
+    (data.subscription?.status as (typeof SUB_STATUSES)[number]) ?? "active",
+  );
 
   const close = () => {
     setDialog(null);
@@ -291,7 +319,12 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           <RecordTabs active={tab} onSelect={setTab} tabs={tabs} />
           <div>
             {tab === "overview" ? <OverviewPanel data={data} /> : null}
-            {tab === "subscription" ? <SubscriptionPanel data={data} /> : null}
+            {tab === "subscription" ? (
+              <SubscriptionPanel
+                data={data}
+                onManage={() => setDialog("managesub")}
+              />
+            ) : null}
             {tab === "bookings" ? (
               <BookingsPanel
                 data={data}
@@ -469,6 +502,77 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             }
           >
             Send request
+          </Button>
+        </FormModalFooter>
+      </FormModal>
+
+      <FormModal
+        open={dialog === "managesub"}
+        onOpenChange={(o) => (o ? null : close())}
+        title="Manage subscription"
+        description="Set this host's plan, billing cycle and status (e.g. place on hold)."
+      >
+        <div className="space-y-4">
+          <Lbl label="Plan">
+            <select
+              value={subPlan}
+              onChange={(e) => setSubPlan(e.target.value)}
+              className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+            >
+              {data.planOptions.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </Lbl>
+          <Lbl label="Billing cycle">
+            <select
+              value={subCycle}
+              onChange={(e) =>
+                setSubCycle(e.target.value as "monthly" | "annual")
+              }
+              className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="annual">Annual</option>
+            </select>
+          </Lbl>
+          <Lbl label="Status">
+            <select
+              value={subStatus}
+              onChange={(e) =>
+                setSubStatus(e.target.value as (typeof SUB_STATUSES)[number])
+              }
+              className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+            >
+              {SUB_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s === "paused" ? "paused (on hold)" : s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </Lbl>
+        </div>
+        <FormModalFooter>
+          <FormModalCancel onClick={close} />
+          <Button
+            disabled={pending || !host}
+            onClick={() =>
+              host
+                ? run(
+                    adminUpdateSubscription({
+                      hostId: host.id,
+                      plan: subPlan,
+                      billingCycle: subCycle,
+                      status: subStatus,
+                    }),
+                    "Subscription updated.",
+                  )
+                : undefined
+            }
+          >
+            Save subscription
           </Button>
         </FormModalFooter>
       </FormModal>
@@ -810,31 +914,41 @@ function OverviewPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function SubscriptionPanel({ data }: { data: UserRecordData }) {
+function SubscriptionPanel({
+  data,
+  onManage,
+}: {
+  data: UserRecordData;
+  onManage: () => void;
+}) {
   const s = data.subscription;
-  if (!s)
-    return (
-      <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
-        No subscription on file.
-      </section>
-    );
   return (
-    <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
-      <dl className="grid gap-3 sm:grid-cols-2">
-        <Fact k="Plan" v={s.plan} />
-        <Fact k="Status" v={s.status} />
-        <Fact k="Cycle" v={s.billing_cycle} />
-        <Fact k="Renews" v={fmtDate(s.current_period_end)} />
-        <Fact k="Trial ends" v={fmtDate(s.trial_ends_at)} />
-        <Fact k="Cancelling" v={s.cancel_at_period_end ? "Yes" : "No"} />
-      </dl>
-      <Link
-        href="/admin/subscriptions"
-        className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand-primary hover:underline"
-      >
-        Manage in Subscriptions <ArrowRight className="h-4 w-4" />
-      </Link>
-    </section>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[12px] text-brand-mute">
+          Set plan, cycle and status — including placing the account on hold.
+        </span>
+        <Button size="sm" onClick={onManage}>
+          Manage subscription
+        </Button>
+      </div>
+      {!s ? (
+        <section className="rounded-card border border-brand-line bg-white p-5 text-sm text-brand-mute shadow-card">
+          No subscription on file yet — use “Manage subscription” to set one.
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <Fact k="Plan" v={s.plan} />
+            <Fact k="Status" v={s.status} />
+            <Fact k="Cycle" v={s.billing_cycle} />
+            <Fact k="Renews" v={fmtDate(s.current_period_end)} />
+            <Fact k="Trial ends" v={fmtDate(s.trial_ends_at)} />
+            <Fact k="Cancelling" v={s.cancel_at_period_end ? "Yes" : "No"} />
+          </dl>
+        </section>
+      )}
+    </div>
   );
 }
 

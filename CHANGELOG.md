@@ -31,6 +31,17 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Manual subscription management — branch `main`
+
+### Built
+- Subscription tab on the user record now has a **Manage subscription** action
+  (top of the tab) → set plan, billing cycle and **status** including
+  **paused (on hold)**, past_due, restricted, cancelled, expired —
+  `adminUpdateSubscriptionAction` (audited; upserts the host's subscription).
+
+### Commit
+- `feat(admin): manual subscription management on the user record`
+
 ## 2026-06-15 — Super-Admin — 24h support window + transparent activity log — branch `main`
 
 ### Changed

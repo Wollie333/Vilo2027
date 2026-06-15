@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/supportGrant";
 import { fetchViloLedger } from "@/lib/billing/vilo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
+import { getAllPlans } from "@/lib/plans/getPlans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { UserRecord, type UserRecordData } from "./UserRecord";
@@ -321,6 +322,10 @@ export default async function AdminUserDetailPage({
     hostTxns,
     support,
     supportGrants,
+    planOptions: (await getAllPlans()).map((p) => ({
+      key: p.key,
+      name: p.name,
+    })),
     viloLedger: viloRows.map((t) => ({
       id: t.id,
       type: t.type,

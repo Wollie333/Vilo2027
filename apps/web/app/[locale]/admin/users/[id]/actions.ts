@@ -203,6 +203,64 @@ export const addAdminUserNoteAction = withAdminAudit<
   },
 );
 
+// ─── Manually set a host's subscription (plan / cycle / status) ───────
+const subSchema = z.object({
+  hostId: z.string().uuid(),
+  plan: z.string().min(1).max(60),
+  billingCycle: z.enum(["monthly", "annual"]).nullable(),
+  status: z.enum([
+    "trialing",
+    "active",
+    "past_due",
+    "restricted",
+    "paused",
+    "cancelled",
+    "expired",
+  ]),
+  reason: z.string().optional(),
+});
+
+export const adminUpdateSubscriptionAction = withAdminAudit<
+  z.infer<typeof subSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "user.update_subscription",
+    targetType: "subscription",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const parsed = subSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid subscription input.");
+    const d = parsed.data;
+    const now = new Date().toISOString();
+
+    const { data: existing } = await service
+      .from("subscriptions")
+      .select("id")
+      .eq("host_id", d.hostId)
+      .maybeSingle();
+
+    const patch = {
+      plan: d.plan,
+      billing_cycle: d.billingCycle,
+      status: d.status,
+      updated_at: now,
+    };
+
+    const { error } = existing
+      ? await service.from("subscriptions").update(patch).eq("id", existing.id)
+      : await service
+          .from("subscriptions")
+          .insert({ host_id: d.hostId, ...patch });
+    if (error) throw new Error(error.message);
+
+    revalidatePath(`/admin/users`);
+    return { result: { ok: true }, after: { hostId: d.hostId, ...patch } };
+  },
+);
+
 // ─── Request host support access (to edit their financials) ───────────
 const supportSchema = z.object({
   hostId: z.string().uuid(),
@@ -306,6 +364,22 @@ export async function requestSupportAccess(input: {
   reason: string;
 }) {
   return wrap(() => requestSupportAccessAction(input));
+}
+
+export async function adminUpdateSubscription(input: {
+  hostId: string;
+  plan: string;
+  billingCycle: "monthly" | "annual" | null;
+  status:
+    | "trialing"
+    | "active"
+    | "past_due"
+    | "restricted"
+    | "paused"
+    | "cancelled"
+    | "expired";
+}) {
+  return wrap(() => adminUpdateSubscriptionAction(input));
 }
 
 export async function suspendUser(input: { userId: string; reason: string }) {
