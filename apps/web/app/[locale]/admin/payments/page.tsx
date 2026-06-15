@@ -1,10 +1,14 @@
-import { Link } from "@/i18n/navigation";
 import { Search } from "lucide-react";
 
 import { getBrandName } from "@/lib/brand";
+import {
+  fetchViloLedger,
+  viloLedgerStats,
+  type ViloTxn,
+} from "@/lib/billing/vilo-ledger";
+import { getAllPlans } from "@/lib/plans/getPlans";
 import { formatMoney } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
 import { AdminTable, type AdminColumn } from "../_components/AdminTable";
@@ -13,21 +17,22 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-type SearchParams = { q?: string; status?: string };
+type SearchParams = { q?: string; status?: string; type?: string };
 
-const STATUSES = [
-  "all",
-  "pending",
-  "completed",
-  "failed",
-  "refunded",
-  "partially_refunded",
-] as const;
+const STATUSES = ["all", "pending", "completed", "failed"] as const;
+const TYPES = ["all", "charge", "refund", "credit", "adjustment"] as const;
 
 function isStatus(v: string | undefined): v is (typeof STATUSES)[number] {
   return STATUSES.includes((v ?? "") as (typeof STATUSES)[number]);
 }
+function isType(v: string | undefined): v is (typeof TYPES)[number] {
+  return TYPES.includes((v ?? "") as (typeof TYPES)[number]);
+}
 
+// The admin Payments tab is every payment USERS make to Vilo for Vilo products
+// (subscriptions + service products) — i.e. the platform_ledger, read through
+// the shared fetchViloLedger SSOT. It is NOT host↔guest booking money (that is
+// the host's own ledger, never Vilo revenue).
 export default async function AdminPaymentsPage({
   searchParams,
 }: {
@@ -36,141 +41,103 @@ export default async function AdminPaymentsPage({
   await requirePermission("payments.view");
   const brandName = await getBrandName();
 
-  const q = (searchParams?.q ?? "").trim();
+  const q = (searchParams?.q ?? "").trim().toLowerCase();
   const status: (typeof STATUSES)[number] = isStatus(searchParams?.status)
     ? (searchParams!.status as (typeof STATUSES)[number])
     : "all";
+  const type: (typeof TYPES)[number] = isType(searchParams?.type)
+    ? (searchParams!.type as (typeof TYPES)[number])
+    : "all";
 
   const service = createAdminClient();
-  let query = service
-    .from("payments")
-    .select(
-      `
-      id, amount, currency, status, method, provider_reference,
-      captured_at, refunded_amount, created_at,
-      booking:bookings ( id, reference, host:hosts ( display_name ) )
-    `,
-      { count: "exact" },
-    )
-    .order("created_at", { ascending: false })
-    .limit(PAGE_SIZE);
+  const [all, plans] = await Promise.all([
+    fetchViloLedger(service, { limit: 10_000 }),
+    getAllPlans(),
+  ]);
+  const planName = new Map(plans.map((p) => [p.key, p.name]));
 
+  // KPIs reflect the whole ledger, independent of the active filters.
+  const stats = viloLedgerStats(all);
+
+  let filtered = all;
+  if (status !== "all") filtered = filtered.filter((r) => r.status === status);
+  if (type !== "all") filtered = filtered.filter((r) => r.type === type);
   if (q) {
-    query = query.or(`provider_reference.ilike.%${q}%`);
+    filtered = filtered.filter((r) =>
+      [r.userName, r.userEmail, r.providerReference, r.plan, r.reason]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
   }
-  if (status !== "all") query = query.eq("status", status);
+  const total = filtered.length;
+  const list = filtered.slice(0, PAGE_SIZE);
 
-  const { data: rows, count } = await throwOnErrorWithCount(
-    query,
-    "admin/payments",
-  );
-
-  // KPI tiles: collected (sum completed), pending (count), failed (count)
-  const [{ data: collected }, { count: pendingCount }, { count: failedCount }] =
-    await Promise.all([
-      service.from("payments").select("amount").eq("status", "completed"),
-      service
-        .from("payments")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pending"),
-      service
-        .from("payments")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "failed"),
-    ]);
-  const totalCollected = (collected ?? []).reduce(
-    (sum, p) => sum + Number(p.amount ?? 0),
-    0,
-  );
-
-  type Row = {
-    id: string;
-    amount: number;
-    currency: string;
-    status: string;
-    method: string;
-    provider_reference: string | null;
-    captured_at: string | null;
-    refunded_amount: number | null;
-    created_at: string;
-    booking:
-      | {
-          id: string;
-          reference: string;
-          host: { display_name: string } | { display_name: string }[] | null;
-        }
-      | {
-          id: string;
-          reference: string;
-          host: { display_name: string } | { display_name: string }[] | null;
-        }[]
-      | null;
+  const productLabel = (r: ViloTxn): string => {
+    if (r.plan)
+      return `${planName.get(r.plan) ?? r.plan}${
+        r.billingCycle ? ` · ${r.billingCycle}` : ""
+      }`;
+    return r.reason ?? "—";
   };
 
-  const list = (rows as Row[] | null) ?? [];
-
-  const columns: AdminColumn<Row>[] = [
+  const columns: AdminColumn<ViloTxn>[] = [
     {
       header: "Amount",
-      cell: (p) => (
-        <span className="num font-medium text-brand-ink">
-          {formatMoney(Number(p.amount), p.currency)}
+      cell: (r) => (
+        <span
+          className={`num font-medium ${
+            r.amount < 0 ? "text-status-cancelled" : "text-brand-ink"
+          }`}
+        >
+          {formatMoney(r.amount, r.currency)}
         </span>
       ),
     },
-    { header: "Status", cell: (p) => <StatusPill status={p.status} /> },
+    { header: "Status", cell: (r) => <StatusPill status={r.status} /> },
+    { header: "Type", cell: (r) => <TypePill type={r.type} /> },
     {
-      header: "Method",
-      cell: (p) => (
-        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
-          {p.method}
-        </span>
+      header: "Product",
+      cell: (r) => (
+        <span className="text-[12.5px] text-brand-ink">{productLabel(r)}</span>
       ),
     },
     {
-      header: "Details",
-      cell: (p) => {
-        const booking = Array.isArray(p.booking) ? p.booking[0] : p.booking;
-        const host = booking
-          ? Array.isArray(booking.host)
-            ? booking.host[0]
-            : booking.host
-          : null;
-        return (
-          <div className="min-w-0">
-            <div className="truncate font-mono text-[11px] text-brand-mute">
-              {p.provider_reference ?? "—"}
-            </div>
-            <div className="truncate text-[11px] text-brand-mute">
-              {booking ? booking.reference : ""}
-              {host ? ` · ${host.display_name}` : ""}
-            </div>
+      header: "User",
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="truncate text-[12.5px] font-medium text-brand-ink">
+            {r.userName ?? r.userEmail ?? "—"}
           </div>
-        );
-      },
+          {r.userName && r.userEmail ? (
+            <div className="truncate text-[11px] text-brand-mute">
+              {r.userEmail}
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: "Provider",
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="text-[11px] uppercase tracking-wider text-brand-mute">
+            {r.provider ?? "—"}
+          </div>
+          {r.providerReference ? (
+            <div className="truncate font-mono text-[11px] text-brand-mute">
+              {r.providerReference}
+            </div>
+          ) : null}
+        </div>
+      ),
     },
     {
       header: "Date",
-      cell: (p) => (
+      cell: (r) => (
         <span className="text-[12px] text-brand-mute">
-          {new Date(p.captured_at ?? p.created_at).toLocaleDateString("en-ZA")}
+          {new Date(r.date).toLocaleDateString("en-ZA")}
         </span>
       ),
-    },
-    {
-      header: "",
-      align: "right",
-      cell: (p) => {
-        const booking = Array.isArray(p.booking) ? p.booking[0] : p.booking;
-        return booking ? (
-          <Link
-            href={`/dashboard/bookings/${booking.id}`}
-            className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-          >
-            Booking
-          </Link>
-        ) : null;
-      },
     },
   ];
 
@@ -181,19 +148,17 @@ export default async function AdminPaymentsPage({
           Payments
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Every payment processed through {brandName} — Paystack, PayPal, manual
-          EFT.
+          Every payment users make to {brandName} for subscriptions and add-on
+          products. Host↔guest booking money lives on each host&rsquo;s own
+          dashboard — it is never Vilo revenue.
         </p>
       </header>
 
       {/* KPI tiles */}
       <section className="grid gap-3 sm:grid-cols-3">
-        <Kpi
-          label="Total collected"
-          value={formatMoney(totalCollected, "ZAR")}
-        />
-        <Kpi label="Pending" value={String(pendingCount ?? 0)} />
-        <Kpi label="Failed" value={String(failedCount ?? 0)} />
+        <Kpi label="Collected" value={formatMoney(stats.collected, "ZAR")} />
+        <Kpi label="Pending" value={formatMoney(stats.pending, "ZAR")} />
+        <Kpi label="Refunded" value={formatMoney(stats.refunded, "ZAR")} />
       </section>
 
       <form
@@ -206,11 +171,22 @@ export default async function AdminPaymentsPage({
           <input
             type="search"
             name="q"
-            defaultValue={q}
-            placeholder="Search by provider reference"
+            defaultValue={searchParams?.q ?? ""}
+            placeholder="Search user, email, plan or reference"
             className="block w-full rounded border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
+        <select
+          name="type"
+          defaultValue={type}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          {TYPES.map((s) => (
+            <option key={s} value={s}>
+              {s === "all" ? "All types" : s}
+            </option>
+          ))}
+        </select>
         <select
           name="status"
           defaultValue={status}
@@ -218,7 +194,7 @@ export default async function AdminPaymentsPage({
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s === "all" ? "All" : s.replace(/_/g, " ")}
+              {s === "all" ? "All statuses" : s}
             </option>
           ))}
         </select>
@@ -233,13 +209,13 @@ export default async function AdminPaymentsPage({
       <AdminTable
         columns={columns}
         rows={list}
-        getKey={(p) => p.id}
+        getKey={(r) => r.id}
         empty="No payments match this search."
       />
 
-      {count != null && count > PAGE_SIZE ? (
+      {total > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">
-          Showing first {PAGE_SIZE} of {count}. Narrow your search to see more.
+          Showing first {PAGE_SIZE} of {total}. Narrow your search to see more.
         </p>
       ) : null}
     </div>
@@ -267,16 +243,21 @@ function StatusPill({ status }: { status: string }) {
       "bg-status-pending/10 text-status-pending border-status-pending/30",
     failed:
       "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/30",
-    refunded: "bg-brand-light text-brand-mute border-brand-line",
-    partially_refunded:
-      "bg-status-pending/10 text-status-pending border-status-pending/30",
   };
   const cls = map[status] ?? "bg-brand-light text-brand-mute border-brand-line";
   return (
     <span
       className={`inline-flex items-center rounded-pill border px-2 py-0.5 text-[10px] font-medium ${cls}`}
     >
-      {status.replace(/_/g, " ")}
+      {status}
+    </span>
+  );
+}
+
+function TypePill({ type }: { type: string }) {
+  return (
+    <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-brand-mute">
+      {type}
     </span>
   );
 }
