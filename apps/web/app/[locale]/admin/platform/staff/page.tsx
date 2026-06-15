@@ -48,7 +48,7 @@ export default async function PlatformStaffPage() {
         </h2>
         <div className="overflow-hidden rounded-card border border-brand-line bg-white">
           <table className="w-full text-[13px]">
-            <thead className="border-b border-brand-line bg-brand-light text-left text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+            <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
               <tr>
                 <th className="px-4 py-2.5">Email</th>
                 <th className="px-4 py-2.5">Role</th>
@@ -118,7 +118,7 @@ export default async function PlatformStaffPage() {
           </h2>
           <div className="overflow-hidden rounded-card border border-brand-line bg-white">
             <table className="w-full text-[13px]">
-              <thead className="border-b border-brand-line bg-brand-light text-left text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+              <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
                 <tr>
                   <th className="px-4 py-2.5">Email</th>
                   <th className="px-4 py-2.5">Role</th>

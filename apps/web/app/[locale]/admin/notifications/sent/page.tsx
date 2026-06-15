@@ -74,7 +74,7 @@ export default async function SentNotificationsPage() {
 
       <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
         <table className="w-full text-sm">
-          <thead className="border-b border-brand-line bg-brand-light text-left text-xs font-semibold uppercase tracking-wider text-brand-mute">
+          <thead className="border-b border-brand-line text-left text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
             <tr>
               <th className="px-4 py-2">Title</th>
               <th className="px-4 py-2">Severity</th>

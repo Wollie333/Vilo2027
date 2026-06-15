@@ -109,7 +109,7 @@ export function CategoriesEditor({ rows }: { rows: Row[] }) {
 
       <div className="overflow-hidden rounded-card border border-brand-line bg-white">
         <table className="w-full table-fixed text-sm">
-          <thead className="bg-brand-light/60 text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+          <thead className="border-b border-brand-line text-[10.5px] font-bold uppercase tracking-[0.06em] text-[#8AA89C]">
             <tr>
               <th className="w-12 px-4 py-2 text-left">Icon</th>
               <th className="px-4 py-2 text-left">Name &amp; slug</th>

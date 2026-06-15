@@ -5,6 +5,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { throwOnErrorWithCount } from "@/lib/supabase/query";
 import { requirePermission } from "@/lib/admin";
 
+import { AdminTable, type AdminColumn } from "../_components/AdminTable";
+
+type HostRow = {
+  id: string;
+  handle: string;
+  display_name: string;
+  is_verified: boolean | null;
+  is_active: boolean | null;
+  total_bookings: number | null;
+  total_reviews: number | null;
+  avg_rating: number | null;
+};
+
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
@@ -51,6 +64,73 @@ export default async function AdminHostsPage({
     query,
     "admin/hosts",
   );
+
+  const list = (rows as HostRow[] | null) ?? [];
+
+  const columns: AdminColumn<HostRow>[] = [
+    {
+      header: "Host",
+      cell: (h) => (
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent font-mono text-[11px] font-semibold text-brand-secondary">
+            {h.display_name
+              .split(/\s+/)
+              .slice(0, 2)
+              .map((p) => p[0]?.toUpperCase() ?? "")
+              .join("")}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="truncate font-medium text-brand-ink">
+                {h.display_name}
+              </span>
+              {h.is_verified ? (
+                <span className="inline-flex items-center rounded-pill bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
+                  Verified
+                </span>
+              ) : null}
+              {!h.is_active ? (
+                <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
+                  Inactive
+                </span>
+              ) : null}
+            </div>
+            <div className="truncate font-mono text-[11px] text-brand-mute">
+              @{h.handle}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Rating",
+      cell: (h) => (
+        <span className="inline-flex items-center gap-1 text-[12px] text-brand-mute">
+          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+          <span className="num">{Number(h.avg_rating ?? 0).toFixed(1)}</span>
+        </span>
+      ),
+    },
+    {
+      header: "Bookings",
+      align: "right",
+      cell: (h) => (
+        <span className="num text-brand-ink">{h.total_bookings ?? 0}</span>
+      ),
+    },
+    {
+      header: "",
+      align: "right",
+      cell: (h) => (
+        <Link
+          href={`/admin/hosts/${h.id}`}
+          className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
+        >
+          Open
+        </Link>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -111,65 +191,12 @@ export default async function AdminHostsPage({
         ) : null}
       </form>
 
-      <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
-        {rows && rows.length > 0 ? (
-          <ul className="divide-y divide-brand-line">
-            {rows.map((h) => (
-              <li
-                key={h.id}
-                className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-brand-light/50"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-accent font-mono text-[11px] font-semibold text-brand-secondary">
-                  {h.display_name
-                    .split(/\s+/)
-                    .slice(0, 2)
-                    .map((p: string) => p[0]?.toUpperCase() ?? "")
-                    .join("")}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-medium text-brand-ink">
-                      {h.display_name}
-                    </span>
-                    {h.is_verified ? (
-                      <span className="inline-flex items-center rounded-pill bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
-                        Verified
-                      </span>
-                    ) : null}
-                    {!h.is_active ? (
-                      <span className="inline-flex items-center rounded-pill border border-status-cancelled/30 bg-status-cancelled/10 px-2 py-0.5 text-[10px] font-medium text-status-cancelled">
-                        Inactive
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="truncate font-mono text-[11px] text-brand-mute">
-                    @{h.handle}
-                  </div>
-                </div>
-                <div className="hidden items-center gap-1 text-[12px] text-brand-mute sm:flex">
-                  <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                  <span className="num">
-                    {Number(h.avg_rating ?? 0).toFixed(1)}
-                  </span>
-                  <span>·</span>
-                  <span className="num">{h.total_bookings}</span>
-                  <span>bookings</span>
-                </div>
-                <Link
-                  href={`/admin/hosts/${h.id}`}
-                  className="rounded border border-brand-line bg-white px-3 py-1.5 text-xs font-medium text-brand-ink hover:bg-brand-light"
-                >
-                  Open
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="px-5 py-10 text-center text-sm text-brand-mute">
-            No hosts match this search.
-          </p>
-        )}
-      </div>
+      <AdminTable
+        columns={columns}
+        rows={list}
+        getKey={(h) => h.id}
+        empty="No hosts match this search."
+      />
 
       {count != null && count > PAGE_SIZE ? (
         <p className="text-center text-[12px] text-brand-mute">

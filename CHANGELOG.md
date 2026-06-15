@@ -31,6 +31,19 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Table redesign sweep (host Guests style) — branch `main`
+
+### Changed
+- Converted remaining admin data lists to the shared `AdminTable` (host Guests
+  list style): **Hosts** and the **Subscriptions → Hosts** list (were `<ul>`).
+- Restyled the remaining admin table headers to match (white, uppercase muted
+  `#8AA89C`, tracking): Audit log, Broadcasts, Notifications-sent, Platform staff,
+  Help categories. Every admin table now shares one design.
+- (Ledger feeds keep the host LedgerList design intentionally.)
+
+### Commit
+- `style(admin): unify all admin data tables to the host Guests design`
+
 ## 2026-06-15 — Super-Admin — Manual subscription management — branch `main`
 
 ### Built
