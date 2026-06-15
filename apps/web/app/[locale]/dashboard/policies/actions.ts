@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { requireHost as getHost } from "@/lib/host/current";
+import { resolveListingHostContext } from "@/lib/host/adminListingHost";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -51,20 +52,6 @@ async function fetchOwnedPolicy(
     .is("deleted_at", null)
     .maybeSingle();
   return (data as PolicyRow | null) ?? null;
-}
-
-async function assertListingOwnership(
-  listingId: string,
-  hostId: string,
-): Promise<boolean> {
-  const supabase = createServerClient();
-  const { data } = await supabase
-    .from("listings")
-    .select("id")
-    .eq("id", listingId)
-    .eq("host_id", hostId)
-    .maybeSingle();
-  return !!data;
 }
 
 /** Materialise the locked refund presets for this host (idempotent). */
@@ -696,13 +683,12 @@ export async function setListingPolicyAction(
   roomId: string | null,
   policyId: string | null,
 ): Promise<ActionResult> {
-  const host = await getHost();
-  if (!host.ok) return host;
-  if (!(await assertListingOwnership(listingId, host.hostId))) {
-    return { ok: false, error: "Not your listing." };
-  }
+  // Owner OR an active admin managing this user's listing (host derived from
+  // the listing, so no session-host dependency for staff).
+  const ctx = await resolveListingHostContext(listingId, "policy.assign");
+  if (!ctx.ok) return ctx;
 
-  const supabase = createServerClient();
+  const supabase = ctx.db;
 
   // Clear the matching scope.
   const clearScope = async () => {
@@ -724,7 +710,13 @@ export async function setListingPolicyAction(
     return { ok: true };
   }
 
-  const policy = await fetchOwnedPolicy(policyId, host.hostId);
+  const { data: policy } = await supabase
+    .from("policies")
+    .select("id, type, preset")
+    .eq("id", policyId)
+    .eq("host_id", ctx.hostId)
+    .is("deleted_at", null)
+    .maybeSingle();
   if (!policy) return { ok: false, error: "Not your policy." };
   if (policy.type !== policyType) {
     return { ok: false, error: "Policy type mismatch." };
@@ -737,7 +729,7 @@ export async function setListingPolicyAction(
     policy_id: policyId,
     policy_type: policyType,
     room_id: roomId,
-    assigned_by: host.userId,
+    assigned_by: ctx.userId,
   });
   if (error) return { ok: false, error: "Could not assign policy." };
 

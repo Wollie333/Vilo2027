@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireHost as getHost } from "@/lib/host/current";
+import { resolveListingHostContext } from "@/lib/host/adminListingHost";
 import { createServerClient } from "@/lib/supabase/server";
 
 import {
@@ -345,19 +346,24 @@ export async function setListingAddonAction(
   addonId: string,
   input: ListingAddonInput | null,
 ): Promise<ActionResult> {
-  const host = await getHost();
-  if (!host.ok) return host;
-  if (!(await assertAddonsEnabled(host.hostId))) {
+  // Owner OR an active admin managing this user's listing (host derived from
+  // the listing, so no session-host dependency for staff).
+  const ctx = await resolveListingHostContext(listingId, "addon.assign");
+  if (!ctx.ok) return ctx;
+  if (!(await assertAddonsEnabled(ctx.hostId))) {
     return { ok: false, error: PLAN_GATE_MSG };
   }
-  if (!(await assertListingOwnership(listingId, host.hostId))) {
-    return { ok: false, error: "Not your listing." };
-  }
-  if (!(await assertAddonOwnership(addonId, host.hostId))) {
+  const { data: ownsAddon } = await ctx.db
+    .from("addons")
+    .select("id")
+    .eq("id", addonId)
+    .eq("host_id", ctx.hostId)
+    .maybeSingle();
+  if (!ownsAddon) {
     return { ok: false, error: "Not your add-on." };
   }
 
-  const supabase = createServerClient();
+  const supabase = ctx.db;
 
   // Passing null = disable on this listing — wipe every scope row for this pair.
   if (input === null) {
