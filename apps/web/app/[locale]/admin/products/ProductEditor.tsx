@@ -37,10 +37,6 @@ export type EditorProduct = {
 
 type FeatureState = { isEnabled: boolean; limitValue: number | null };
 
-function isLimitFeature(key: string): boolean {
-  return /_limit$|_seats$/.test(key);
-}
-
 export function ProductEditor({
   product,
   isNew,
@@ -385,7 +381,6 @@ export function ProductEditor({
                 isEnabled: false,
                 limitValue: null,
               };
-              const numeric = isLimitFeature(feat.key);
               return (
                 <div key={feat.key} className="flex items-center gap-3 py-2.5">
                   <div className="min-w-0 flex-1">
@@ -396,31 +391,35 @@ export function ProductEditor({
                       {feat.description}
                     </div>
                   </div>
-                  {numeric && st.isEnabled ? (
-                    <input
-                      type="number"
-                      min={0}
-                      value={st.limitValue ?? ""}
-                      placeholder="∞"
-                      onChange={(e) => {
-                        const v = e.target.value.trim();
-                        setFeatures((s) => ({
-                          ...s,
-                          [feat.key]: {
+                  {/* Qty/limit for ANY enabled feature (blank = unlimited). */}
+                  {st.isEnabled ? (
+                    <label className="flex items-center gap-1.5 text-[10.5px] text-brand-mute">
+                      Qty
+                      <input
+                        type="number"
+                        min={0}
+                        value={st.limitValue ?? ""}
+                        placeholder="∞"
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          setFeatures((s) => ({
+                            ...s,
+                            [feat.key]: {
+                              ...st,
+                              limitValue: v === "" ? null : Number(v),
+                            },
+                          }));
+                        }}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          saveFeature(feat.key, {
                             ...st,
                             limitValue: v === "" ? null : Number(v),
-                          },
-                        }));
-                      }}
-                      onBlur={(e) => {
-                        const v = e.target.value.trim();
-                        saveFeature(feat.key, {
-                          ...st,
-                          limitValue: v === "" ? null : Number(v),
-                        });
-                      }}
-                      className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
-                    />
+                          });
+                        }}
+                        className="w-16 rounded-md border border-brand-line px-2 py-1 text-center font-mono text-[12px] focus:border-brand-primary focus:outline-none"
+                      />
+                    </label>
                   ) : null}
                   {savingFeat === feat.key ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-mute" />
