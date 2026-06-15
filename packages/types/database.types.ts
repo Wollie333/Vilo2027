@@ -5684,6 +5684,79 @@ export type Database = {
           },
         ]
       }
+      product_orders: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          method: string | null
+          paid_at: string | null
+          pay_token: string
+          payer_email: string
+          payer_user_id: string | null
+          product_id: string | null
+          product_name: string
+          provider_reference: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          pay_token: string
+          payer_email: string
+          payer_user_id?: string | null
+          product_id?: string | null
+          product_name: string
+          provider_reference?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string | null
+          paid_at?: string | null
+          pay_token?: string
+          payer_email?: string
+          payer_user_id?: string | null
+          product_id?: string | null
+          product_name?: string
+          provider_reference?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_payer_user_id_fkey"
+            columns: ["payer_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           affiliate_type: string

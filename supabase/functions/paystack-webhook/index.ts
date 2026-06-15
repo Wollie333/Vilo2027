@@ -127,6 +127,10 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
     await processSubscriptionEvent(event, supabase);
     return;
   }
+  if (purpose === "product") {
+    await processProductEvent(event, supabase);
+    return;
+  }
 
   // Locate the payment row. provider_reference is UNIQUE so this is a
   // single-row lookup.
@@ -255,6 +259,39 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
       .eq("id", payment.booking_id);
     return;
   }
+}
+
+// ─── Vilo product order handler ───────────────────────────────────────
+// deno-lint-ignore no-explicit-any
+async function processProductEvent(event: PaystackEvent, supabase: any) {
+  if (event.event !== "charge.success") return;
+  const ref = event.data.reference;
+  const { data: order } = await supabase
+    .from("product_orders")
+    .select("id, product_id, payer_user_id, amount, currency, status")
+    .eq("provider_reference", ref)
+    .maybeSingle();
+  if (!order || order.status === "paid") return;
+
+  const now = new Date().toISOString();
+  await supabase
+    .from("product_orders")
+    .update({ status: "paid", paid_at: now, method: "paystack" })
+    .eq("id", order.id);
+
+  // Idempotent on provider_reference (UNIQUE on platform_ledger).
+  await supabase.from("platform_ledger").insert({
+    user_id: order.payer_user_id,
+    product_id: order.product_id,
+    type: "charge",
+    status: "completed",
+    amount: Number(order.amount),
+    currency: order.currency,
+    provider: "paystack",
+    provider_reference: ref,
+    paid_at: now,
+    reason: "Product purchase",
+  });
 }
 
 // ─── Vilo subscription billing handler ────────────────────────────────

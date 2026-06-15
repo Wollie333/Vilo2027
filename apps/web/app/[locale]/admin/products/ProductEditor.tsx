@@ -8,7 +8,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { deleteProduct, upsertProduct, upsertProductFeature } from "./actions";
+import {
+  deleteProduct,
+  generateProductPayLink,
+  upsertProduct,
+  upsertProductFeature,
+} from "./actions";
 
 export type EditorProduct = {
   id: string | null;
@@ -326,6 +331,9 @@ export function ProductEditor({
         </div>
       </section>
 
+      {/* Pay-link */}
+      {f.id ? <PayLinkBox productId={f.id} /> : null}
+
       {/* Feature permissions */}
       <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
         <h2 className="font-display text-sm font-bold text-brand-ink">
@@ -428,6 +436,75 @@ export function ProductEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+function PayLinkBox({ productId }: { productId: string }) {
+  const [email, setEmail] = useState("");
+  const [url, setUrl] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
+      <h2 className="font-display text-sm font-bold text-brand-ink">
+        Generate a pay-link
+      </h2>
+      <p className="text-[12px] text-brand-mute">
+        Create a payment link for a user to buy this product, then send it to
+        them. They pay Vilo via the accepted methods above.
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="block flex-1 space-y-1.5">
+          <span className="block text-[11.5px] font-semibold uppercase tracking-wider text-brand-mute">
+            User email
+          </span>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="user@example.com"
+          />
+        </label>
+        <Button
+          type="button"
+          disabled={pending || !email.trim()}
+          onClick={() =>
+            start(async () => {
+              const r = await generateProductPayLink({
+                productId,
+                email: email.trim(),
+              });
+              if (r.ok) {
+                setUrl(r.url);
+                toast.success("Pay-link created.");
+              } else {
+                toast.error(r.error);
+              }
+            })
+          }
+        >
+          {pending ? "Creating…" : "Create link"}
+        </Button>
+      </div>
+      {url ? (
+        <div className="flex items-center gap-2 rounded-md border border-brand-line bg-brand-light/40 px-3 py-2">
+          <input
+            readOnly
+            value={url}
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-brand-ink outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard.writeText(url);
+              toast.success("Copied.");
+            }}
+            className="rounded border border-brand-line bg-white px-3 py-1 text-xs font-medium text-brand-ink hover:bg-brand-light"
+          >
+            Copy
+          </button>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

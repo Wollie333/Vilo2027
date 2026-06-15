@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { withAdminAudit } from "@/lib/admin";
+import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { createProductOrder } from "@/lib/billing/product-checkout";
 
 const PRODUCT_TARGET = "00000000-0000-0000-0000-0000000900d5";
 
@@ -186,6 +187,40 @@ export const upsertProductFeatureAction = withAdminAudit<
   },
 );
 
+// Generate a tokenised pay-link for a user to buy a product.
+const payLinkSchema = z.object({
+  productId: z.string().uuid(),
+  email: z.string().trim().toLowerCase().email("Enter a valid email."),
+  reason: z.string().optional(),
+});
+
+export const generateProductPayLinkAction = withAdminAudit<
+  z.infer<typeof payLinkSchema>,
+  { ok: true; url: string }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "products.paylink",
+    targetType: "product",
+    getTargetId: (a) => a.productId,
+  },
+  async (args, service) => {
+    void service;
+    const parsed = payLinkSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const admin = await requirePermission("subscriptions.edit");
+    const r = await createProductOrder({
+      productId: parsed.data.productId,
+      email: parsed.data.email,
+      createdBy: admin.userId,
+    });
+    if (!r.ok) throw new Error(r.error);
+    return { result: { ok: true, url: r.url }, after: { url: r.url } };
+  },
+);
+
 // ─── Thin client wrappers ─────────────────────────────────────
 type Res = { ok: true; id?: string } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -216,4 +251,16 @@ export async function upsertProductFeature(input: {
   limitValue: number | null;
 }) {
   return wrap(() => upsertProductFeatureAction(input));
+}
+
+export async function generateProductPayLink(input: {
+  productId: string;
+  email: string;
+}): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    const r = await generateProductPayLinkAction(input);
+    return { ok: true, url: r.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
 }

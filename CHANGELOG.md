@@ -31,6 +31,23 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Product pay-links (Paystack + EFT checkout) — branch `main`
+
+### Built
+- `product_orders` + tokenised **pay-links** — mirrors the host booking pay-link
+  for Vilo products. From a product, "Generate a pay-link" for a user's email →
+  copy/send. Public `/pay/product/[token]` page: pay by **Paystack** (platform
+  key) or see **EFT** bank details (per the product's accepted methods + platform
+  payment settings).
+- Webhook gains a `product` branch — on `charge.success` marks the order paid and
+  posts a `platform_ledger` row (idempotent on reference).
+
+### Migrations
+- `20260615000006_product_orders.sql`
+
+### Commit
+- `feat(admin): product pay-links + public checkout (paystack/eft)`
+
 ## 2026-06-15 — Super-Admin — Vilo payment settings (Paystack + EFT) + per-product methods — branch `main`
 
 ### Built
