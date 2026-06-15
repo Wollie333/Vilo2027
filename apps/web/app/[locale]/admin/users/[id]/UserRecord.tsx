@@ -1244,7 +1244,7 @@ function ListingsPanel({ data }: { data: UserRecordData }) {
       {data.listings.map((l) => (
         <RowLink
           key={l.id}
-          href={l.slug ? `/listing/${l.slug}` : undefined}
+          href={`/admin/users/${data.user.id}/listings/${l.id}/edit`}
           primary={l.name}
           secondary={`${l.location || "—"} · from ${formatMoney(l.price, l.currency)}`}
           status={l.isPublished ? "published" : "draft"}

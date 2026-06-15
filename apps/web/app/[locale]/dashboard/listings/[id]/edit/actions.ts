@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 import { hostHasValidEft } from "@/lib/payments/eft";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -31,31 +32,94 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
+type ListingDb = ReturnType<typeof createServerClient>;
+
+type OwnershipOk = {
+  ok: true;
+  userId: string;
+  db: ListingDb;
+  asAdmin: boolean;
+};
+
+// Resolve which DB client a listing-edit action should use:
+//   • the listing's owner → the RLS-bound client (host self-service, unchanged);
+//   • platform staff holding `listings.edit` → the service-role client so they
+//     can edit ANY host's listing, and we record an admin_audit_log row so the
+//     change surfaces on that user's Activity tab (who / what / when).
+// Anyone else is refused. `own.db` is used for every read+write in the action,
+// so the owner path stays on RLS and the admin path bypasses it deliberately.
 async function assertOwnership(
   listingId: string,
-): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
-  const supabase = createServerClient();
+): Promise<OwnershipOk | { ok: false; error: string }> {
+  const rls = createServerClient();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await rls.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in." };
 
-  const { data: listing } = await supabase
+  // Service role so we can read the owner even when the caller isn't the owner.
+  const admin = createAdminClient();
+  const { data: listing } = await admin
     .from("listings")
     .select("id, host:hosts!inner ( user_id )")
     .eq("id", listingId)
     .maybeSingle();
-
   if (!listing) return { ok: false, error: "Listing not found." };
 
-  // The join filters by RLS too (host_manage_own_listings), so a non-owner
-  // would already have gotten null. Belt-and-braces.
   const ownerId = (listing as unknown as { host: { user_id: string } }).host
     .user_id;
-  if (ownerId !== user.id) {
+
+  if (ownerId === user.id) {
+    return { ok: true, userId: user.id, db: rls, asAdmin: false };
+  }
+
+  // Not the owner — listings are open to any active platform-staff member
+  // (per the admin permission model: financials + bookings are permission-
+  // gated, but the rest of a user's record is open to admins). Staff access to
+  // /admin is already enforced by the admin layout; this is the action-layer
+  // equivalent for direct calls.
+  const { data: staff } = await rls
+    .from("platform_staff")
+    .select("is_active")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!staff?.is_active) {
     return { ok: false, error: "Not your listing." };
   }
-  return { ok: true, userId: user.id };
+  await logAdminListingEdit(admin, user.id, ownerId, listingId);
+  return {
+    ok: true,
+    userId: user.id,
+    db: admin as unknown as ListingDb,
+    asAdmin: true,
+  };
+}
+
+// Audit a staff/admin edit of someone else's listing. Tagged with the owner's
+// user id in the payload so the user-record Activity tab can surface it.
+async function logAdminListingEdit(
+  admin: ReturnType<typeof createAdminClient>,
+  adminId: string,
+  ownerUserId: string,
+  listingId: string,
+): Promise<void> {
+  try {
+    const h = headers();
+    await admin.from("admin_audit_log").insert({
+      admin_id: adminId,
+      action: "listing.edit",
+      target_type: "listing",
+      target_id: listingId,
+      payload: { owner_user_id: ownerUserId },
+      ip_address:
+        h.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        h.get("x-real-ip") ??
+        null,
+      user_agent: h.get("user-agent"),
+    });
+  } catch {
+    // Never let an audit-log failure block the edit itself.
+  }
 }
 
 export async function saveListingPatchAction(
@@ -80,7 +144,7 @@ export async function saveListingPatchAction(
         }
       : parsed.data;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { error } = await supabase
     .from("listings")
     .update(patch)
@@ -104,7 +168,7 @@ export async function assignListingBusinessAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { data: listing } = await supabase
     .from("listings")
     .select("host_id")
@@ -150,7 +214,7 @@ export async function saveListingAccessAction(
     return { ok: false, error: "Some fields look wrong. Check the form." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { error } = await supabase.from("listing_access").upsert(
     {
       listing_id: listingId,
@@ -192,7 +256,7 @@ export async function replaceLocalPicksAction(
     return { ok: false, error: "Some picks look wrong. Check the list." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Full replacement — wipe this listing's picks then re-insert in order.
   const { error: delErr } = await supabase
@@ -244,7 +308,7 @@ export async function replaceAmenitiesAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Preserve per-amenity room assignments across re-saves by snapshotting
   // the existing key → room_id map before wiping.
@@ -311,7 +375,7 @@ export async function createListingPhotoUploadUrl(
   if (!own.ok) return own;
 
   if (roomId) {
-    const supabase = createServerClient();
+    const supabase = own.db;
     const { data: room } = await supabase
       .from("listing_rooms")
       .select("id")
@@ -355,7 +419,7 @@ export async function registerListingPhotoAction(
     return { ok: false, error: "Invalid photo path." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   if (roomId) {
     const { data: room } = await supabase
@@ -409,7 +473,7 @@ export async function deleteListingPhotoAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { data: photo, error: fetchErr } = await supabase
     .from("listing_photos")
     .select("storage_path")
@@ -451,7 +515,7 @@ export async function reorderListingPhotosAction(
     return { ok: false, error: "Bad photo id list." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   // Parallel updates — sort_order is independent per row, no FK churn, the
   // listing_id eq narrows to this listing so cross-listing writes are blocked
   // by RLS even if the IDs were forged.
@@ -478,7 +542,7 @@ export async function softDeleteListingAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Block deletion when there are active bookings — soft-deleting a listing
   // with future stays would orphan paid bookings. Per AGENT_RULES.md §2.1
@@ -521,7 +585,7 @@ export async function togglePublishAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   if (!publish) {
     const { error } = await supabase
@@ -673,7 +737,7 @@ export async function setBookingModeAction(
     return { ok: false, error: "Pick a valid booking mode." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Booking mode is independent of room existence. A listing in per-room or
   // flexible mode with zero rooms is simply not bookable as rooms until the
@@ -748,7 +812,7 @@ export async function createRoomAction(
     return { ok: false, error: "Room needs a max guest count." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Sort_order = current max + 1 so new rooms append to the bottom.
   const { data: existing } = await supabase
@@ -821,7 +885,7 @@ export async function updateRoomAction(
     return { ok: false, error: "Some room fields look wrong." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { error } = await supabase
     .from("listing_rooms")
     .update(parsed.data)
@@ -853,7 +917,7 @@ export async function updateRoomAccessAction(
     return { ok: false, error: "Some fields look wrong. Check the form." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   // Confirm the room belongs to this listing before writing access for it.
   const { data: room } = await supabase
     .from("listing_rooms")
@@ -929,7 +993,7 @@ export async function fetchRoomEditorDataAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { data: room } = await supabase
     .from("listing_rooms")
     .select(
@@ -1020,7 +1084,7 @@ export async function deleteRoomAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Refuse if any active booking_rooms point at this room.
   const { count } = await supabase
@@ -1069,7 +1133,7 @@ export async function assignPhotoToRoomAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { error } = await supabase
     .from("listing_photos")
     .update({ room_id: roomId })
@@ -1090,7 +1154,7 @@ export async function assignAmenityToRoomAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
   const { error } = await supabase
     .from("listing_amenities")
     .update({ room_id: roomId })
@@ -1113,7 +1177,7 @@ export async function setRoomFeaturedPhotoAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   if (photoId) {
     const { data: photo } = await supabase
@@ -1154,7 +1218,7 @@ export async function setRoomAmenityAction(
   const own = await assertOwnership(listingId);
   if (!own.ok) return own;
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   if (on) {
     const { data: existing } = await supabase
@@ -1207,7 +1271,7 @@ export async function setRoomBedsAction(
     return { ok: false, error: "Some bed entries look wrong." };
   }
 
-  const supabase = createServerClient();
+  const supabase = own.db;
 
   // Confirm the room belongs to the listing (defence in depth — RLS would
   // already deny cross-host writes).

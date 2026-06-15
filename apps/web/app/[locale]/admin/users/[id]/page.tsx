@@ -101,7 +101,13 @@ export default async function AdminUserDetailPage({
       .select(
         "id, action, created_at, impersonating, actor:user_profiles!admin_id ( full_name )",
       )
-      .or(`target_id.eq.${user.id},impersonating.eq.${user.id}`)
+      // Surface entries that target this user directly, impersonate them, or
+      // act on something they own (e.g. an admin editing their listing, tagged
+      // with payload.owner_user_id) — so the Activity tab is a full who/what/
+      // when trail including staff changes.
+      .or(
+        `target_id.eq.${user.id},impersonating.eq.${user.id},payload->>owner_user_id.eq.${user.id}`,
+      )
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
