@@ -13,6 +13,7 @@ import { NotificationBell } from "./_components/notifications/NotificationBell";
 import { QuickNavProvider } from "./_components/QuickNavPalette";
 import { SavingsBadge } from "./_components/SavingsBadge";
 import { Sidebar } from "./_components/Sidebar";
+import { DashboardTour } from "./_components/tour/DashboardTour";
 
 // Full-bleed routes (Inbox) come from the shared rule in
 // @/lib/layout/fullBleed so host and guest dashboards stay in lockstep.
@@ -164,6 +165,7 @@ export default async function DashboardLayout({
       >
         {children}
       </ClassicShellFrame>
+      <DashboardTour />
     </QuickNavProvider>
   );
 }

@@ -90,7 +90,7 @@ export async function FirstLoginHero({ firstName, handle, steps }: Props) {
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
-                href="/help"
+                href="/dashboard/help"
                 className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10"
               >
                 <Play className="h-4 w-4" />

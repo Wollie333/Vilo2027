@@ -20,6 +20,7 @@ import {
 import { Link } from "@/i18n/navigation";
 
 import { type SetupStep, setupProgress } from "./setupSteps";
+import { TourButton } from "./tour/TourButton";
 
 const STEP_ICON: Record<string, typeof Mail> = {
   email_verified: Mail,
@@ -263,6 +264,7 @@ export function OnboardingDashboard({
               </div>
             </div>
             <div className="p-2">
+              <TourButton variant="row" />
               <SupportLink
                 href="/dashboard/help"
                 icon={BookOpen}
