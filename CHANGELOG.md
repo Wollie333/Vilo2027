@@ -31,6 +31,21 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-15 — Super-Admin — Paid platform services (P1.2) — branch `main`
+
+### Built
+- New `platform_services` table — Vilo's own paid add-ons sold to hosts
+  (one-time or recurring). Admin **Services** tab + CRUD
+  (`/admin/subscriptions/services` + `[id]` editor): name, description, billing
+  type, price, cycle, active, sort. Audited; purchases land in `platform_ledger`
+  (service_id already wired) once the purchase flow ships.
+
+### Migrations
+- `20260615000001_platform_services.sql`
+
+### Commit
+- `feat(admin): paid platform services (P1.2)`
+
 ## 2026-06-14 — Super-Admin — Control-centre overview + host-style tables — branch `main`
 
 ### Built
