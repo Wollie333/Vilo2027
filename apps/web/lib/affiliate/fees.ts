@@ -2,10 +2,10 @@
 // The fee is DEDUCTED from the affiliate: they earn gross, receive net. Mirrors
 // the SQL kept in the migrations; keep the two in lock-step.
 
-/** Round to 2 decimal places (full Rand units, no float drift). */
-export function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
+// Reuse the canonical money rounder rather than forking it.
+import { round2 } from "@/lib/format";
+
+export { round2 };
 
 export type PayoutMethod = "eft" | "paystack" | "paypal";
 
