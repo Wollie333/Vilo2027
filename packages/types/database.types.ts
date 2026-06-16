@@ -5596,6 +5596,7 @@ export type Database = {
           provider: string | null
           provider_reference: string | null
           reason: string | null
+          reverses_ledger_id: string | null
           service_id: string | null
           status: string
           subscription_id: string | null
@@ -5621,6 +5622,7 @@ export type Database = {
           provider?: string | null
           provider_reference?: string | null
           reason?: string | null
+          reverses_ledger_id?: string | null
           service_id?: string | null
           status?: string
           subscription_id?: string | null
@@ -5646,6 +5648,7 @@ export type Database = {
           provider?: string | null
           provider_reference?: string | null
           reason?: string | null
+          reverses_ledger_id?: string | null
           service_id?: string | null
           status?: string
           subscription_id?: string | null
@@ -5680,6 +5683,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ledger_reverses_ledger_id_fkey"
+            columns: ["reverses_ledger_id"]
+            isOneToOne: false
+            referencedRelation: "platform_ledger"
             referencedColumns: ["id"]
           },
           {
@@ -8119,6 +8129,10 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      accrue_affiliate_commission: {
+        Args: { p_ledger_id: string }
+        Returns: string
+      }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
         | {
@@ -8189,6 +8203,10 @@ export type Database = {
       check_feature_permission: {
         Args: { p_feature_key: string; p_host_id: string }
         Returns: Json
+      }
+      clawback_affiliate_commission: {
+        Args: { p_refund_ledger_id: string; p_source_ledger_id: string }
+        Returns: undefined
       }
       clear_all: { Args: never; Returns: string }
       compute_addon_subtotal: {

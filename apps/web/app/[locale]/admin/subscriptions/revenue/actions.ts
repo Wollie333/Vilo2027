@@ -79,6 +79,14 @@ export const recordManualLedgerEntryAction = withAdminAudit<
       .single();
     if (error) throw new Error(error.message);
 
+    // A manual charge against a referred user accrues affiliate commission too
+    // (idempotent + no-ops for unreferred payers).
+    if (type === "charge" && data?.id) {
+      await service.rpc("accrue_affiliate_commission", {
+        p_ledger_id: data.id,
+      });
+    }
+
     revalidatePath("/admin/subscriptions/revenue");
     return { result: { ok: true }, after: data };
   },
