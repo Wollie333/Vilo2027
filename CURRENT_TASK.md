@@ -4,7 +4,24 @@
 
 **Active focus:** **Harden each feature to 100% for MVP.**
 
-## ✅ Done this session (2026-06-16) — Affiliate programme (Phases 1–8)
+## ✅ Done this session (2026-06-16) — Vilo product payments: reporting + invoices + thank-you + Meta Pixel + test mode
+- Fixed: a Vilo product/subscription purchase paid with Paystack test keys
+  "stopped" after payment and never showed in admin payments/ledger/reporting.
+  Root cause: product orders settled only via the webhook. Now they settle on
+  return (`confirmProductOrderByReference`), with the webhook as backstop.
+- Post-payment **thank-you one-pager** + **auto-issued Vilo invoices**
+  (`vilo_invoices`, minted by a `platform_ledger` trigger; public page + PDF;
+  admin **Vilo business details** form). User **Settings → Transaction history**
+  lists purchases with invoice downloads.
+- **Admin-managed Meta Pixel** (Platform settings) + shared `firePurchase`
+  (fbq Purchase with dynamic value + `eventID`; CAPI plumbed, not wired).
+- **Test/Live tagging** (`environment`) + admin Payments Live/Test/All filter;
+  live KPIs exclude test. Plan: `~/.claude/plans/when-a-user-pays-snuggly-bonbon.md`.
+- **TODO before launch:** set the Paystack **test** webhook URL in the dashboard
+  (backstop in test mode); fill Vilo business details for the invoice issuer;
+  wire the Meta Conversions API server post; full i18n pass on the new strings.
+
+## (Earlier) ✅ Affiliate programme (Phases 1–8)
 - Full enterprise affiliate programme for Vilo products, open to any user
   (anchored on `user_profiles.id`, not host). Mounted at `/portal/affiliates`.
 - 30-day cookie tracking + permanent binding; commission accrual/clearing/

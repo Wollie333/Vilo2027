@@ -5,6 +5,59 @@
 
 ---
 
+## 2026-06-16 — Vilo product payments → reporting, thank-you page, invoices, Meta Pixel, test mode
+
+### Built
+- **Reliable product settlement.** Product/subscription purchases now settle on
+  return from Paystack (`confirmProductOrderByReference`) instead of relying only
+  on the webhook — fixes test-mode purchases that "stopped" and never reached the
+  ledger. Webhook stays an idempotent backstop.
+- **Rich thank-you one-pager** for product purchases (StepWelcome-style receipt:
+  product, invoice number, VAT split, download invoice, CTA).
+- **Auto-issued Vilo invoices.** A DB trigger mints a `vilo_invoices` row on every
+  completed `platform_ledger` charge (products, subscriptions, manual) — Vilo is
+  the issuer. Public `/vilo-invoice/[token]` page + PDF reuse the host invoice
+  renderer. Admin → Platform settings has a **Vilo business details** form.
+- **User Transaction history tab** (Settings) listing own purchases + invoice
+  downloads (RLS-scoped).
+- **Admin-managed Meta Pixel** (Platform settings): paste pixel id + enable; a
+  shared `firePurchase` fires GA4/GTM + `fbq('track','Purchase')` with dynamic
+  value/currency and a stable `eventID` (Conversions API plumbed for later).
+- **Test/Live tagging:** `environment` on `product_orders` + `platform_ledger`
+  (from the `sk_test_`/`sk_live_` key prefix); admin Payments has a Live/Test/All
+  filter; platform reporting/overview/revenue count live revenue only.
+
+### Changed
+- `startProductPaystack` seeds a pending `platform_ledger` row + sets environment.
+- Webhook product handler flips-or-inserts the ledger row + carries environment.
+- `InvoiceDocument` stay block is now optional (non-stay invoices).
+
+### Migrations
+- `20260616000020_transaction_environment.sql`
+- `20260616000021_vilo_invoices.sql`
+- `20260616000022_platform_integrations.sql`
+- `20260616000023_vilo_invoice_trigger.sql`
+- `20260616000024_help_vilo_invoices.sql`
+
+### Notes
+- `paystack-webhook` redeployed. Set the **test** webhook URL in the Paystack
+  dashboard for the webhook backstop to fire in test mode (confirm-on-return works
+  regardless). Fill Vilo business details in Admin → Platform settings so invoices
+  show the issuer; VAT (15%) only splits when a Vilo VAT number is set.
+- Conversions API: storage + toggle + `eventID` are in place; the server post is
+  not wired yet (intentional).
+
+### Commits
+- `migration(billing): test/live env tag + vilo_invoices + platform_integrations`
+- `fix(billing): settle product orders on return from Paystack`
+- `feat(billing): auto-issued Vilo invoices + admin business details`
+- `feat(billing): rich post-payment thank-you one-pager for products`
+- `feat(analytics): admin-managed Meta Pixel + shared Purchase event`
+- `feat(admin): test/live/all filter on Vilo revenue`
+- `feat(settings): user Transaction history tab with invoice downloads`
+
+---
+
 ## How to Add an Entry
 
 Copy this template and fill it in at the end of every session:
