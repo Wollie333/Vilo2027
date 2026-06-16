@@ -18,15 +18,18 @@ export default async function AdminPaymentSettingsPage() {
   const { data } = await service
     .from("platform_payment_settings")
     .select(
-      "paystack_enabled, paystack_secret_key, paystack_public_key, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
+      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_public_key, paystack_test_secret_key, paystack_test_public_key, eft_enabled, eft_bank_name, eft_account_name, eft_account_number, eft_branch_code, eft_reference_hint",
     )
     .eq("id", true)
     .maybeSingle();
 
   const initial: PaymentSettings = {
     paystackEnabled: data?.paystack_enabled ?? false,
+    paystackMode: data?.paystack_mode === "test" ? "test" : "live",
     hasSecret: !!data?.paystack_secret_key,
     paystackPublicKey: data?.paystack_public_key ?? "",
+    hasTestSecret: !!data?.paystack_test_secret_key,
+    paystackTestPublicKey: data?.paystack_test_public_key ?? "",
     eftEnabled: data?.eft_enabled ?? false,
     eftBankName: data?.eft_bank_name ?? "",
     eftAccountName: data?.eft_account_name ?? "",

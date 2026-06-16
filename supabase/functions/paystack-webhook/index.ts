@@ -58,10 +58,14 @@ async function verifySignature(
   try {
     const { data } = await supabase
       .from("platform_payment_settings")
-      .select("paystack_secret_key")
+      .select("paystack_secret_key, paystack_test_secret_key")
       .eq("id", true)
       .maybeSingle();
-    return matchesSecret(rawBody, signature, data?.paystack_secret_key);
+    // Try both live and test secrets so webhooks verify in either mode.
+    return (
+      matchesSecret(rawBody, signature, data?.paystack_secret_key) ||
+      matchesSecret(rawBody, signature, data?.paystack_test_secret_key)
+    );
   } catch {
     return false;
   }

@@ -11,8 +11,11 @@ import { savePaymentSettings } from "./actions";
 
 export type PaymentSettings = {
   paystackEnabled: boolean;
+  paystackMode: "live" | "test";
   hasSecret: boolean;
   paystackPublicKey: string;
+  hasTestSecret: boolean;
+  paystackTestPublicKey: string;
   eftEnabled: boolean;
   eftBankName: string;
   eftAccountName: string;
@@ -25,6 +28,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
   const router = useRouter();
   const [f, setF] = useState(initial);
   const [secret, setSecret] = useState("");
+  const [testSecret, setTestSecret] = useState("");
   const [pending, start] = useTransition();
 
   function set<K extends keyof PaymentSettings>(k: K, v: PaymentSettings[K]) {
@@ -35,8 +39,11 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
     start(async () => {
       const r = await savePaymentSettings({
         paystackEnabled: f.paystackEnabled,
+        paystackMode: f.paystackMode,
         paystackSecretKey: secret.trim() || null,
         paystackPublicKey: f.paystackPublicKey.trim() || null,
+        paystackTestSecretKey: testSecret.trim() || null,
+        paystackTestPublicKey: f.paystackTestPublicKey.trim() || null,
         eftEnabled: f.eftEnabled,
         eftBankName: f.eftBankName.trim() || null,
         eftAccountName: f.eftAccountName.trim() || null,
@@ -47,6 +54,7 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
       if (r.ok) {
         toast.success("Payment settings saved.");
         setSecret("");
+        setTestSecret("");
         router.refresh();
       } else {
         toast.error(r.error);
@@ -67,30 +75,98 @@ export function PaymentSettingsForm({ initial }: { initial: PaymentSettings }) {
           />
           Paystack (cards) for Vilo
         </label>
-        <Field
-          label="Secret key"
-          hint={
-            f.hasSecret
-              ? "A secret key is set. Leave blank to keep it, or paste a new one to replace."
-              : "Paste the platform Paystack secret key (sk_…)."
-          }
-        >
-          <Input
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            placeholder={f.hasSecret ? "•••••••• (set)" : "sk_live_…"}
-            className="font-mono"
-          />
-        </Field>
-        <Field label="Public key">
-          <Input
-            value={f.paystackPublicKey}
-            onChange={(e) => set("paystackPublicKey", e.target.value)}
-            placeholder="pk_live_…"
-            className="font-mono"
-          />
-        </Field>
+
+        {/* Active mode — which key pair checkouts use */}
+        <div className="space-y-1.5">
+          <span className="block text-[11.5px] font-semibold uppercase tracking-wider text-brand-mute">
+            Active mode
+          </span>
+          <div className="inline-flex rounded-pill border border-brand-line bg-brand-light p-0.5">
+            {(["live", "test"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => set("paystackMode", m)}
+                className={`rounded-pill px-3.5 py-1.5 text-[12.5px] font-semibold capitalize transition-colors ${
+                  f.paystackMode === m
+                    ? m === "test"
+                      ? "bg-status-pending text-white"
+                      : "bg-brand-primary text-white"
+                    : "text-brand-mute hover:text-brand-ink"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+          <span className="block text-[11px] text-brand-mute">
+            {f.paystackMode === "test"
+              ? "Checkouts use your TEST keys — safe for testing, no real charges."
+              : "Checkouts use your LIVE keys — real charges."}
+          </span>
+        </div>
+
+        {/* Live keys */}
+        <div className="space-y-4 rounded-md border border-brand-line/70 bg-[#FBFDFC] p-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-brand-mute">
+            Live keys
+          </div>
+          <Field
+            label="Live secret key"
+            hint={
+              f.hasSecret
+                ? "A live secret is set. Leave blank to keep it, or paste a new one."
+                : "Paste the live Paystack secret key (sk_live_…)."
+            }
+          >
+            <Input
+              type="password"
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              placeholder={f.hasSecret ? "•••••••• (set)" : "sk_live_…"}
+              className="font-mono"
+            />
+          </Field>
+          <Field label="Live public key">
+            <Input
+              value={f.paystackPublicKey}
+              onChange={(e) => set("paystackPublicKey", e.target.value)}
+              placeholder="pk_live_…"
+              className="font-mono"
+            />
+          </Field>
+        </div>
+
+        {/* Test keys */}
+        <div className="space-y-4 rounded-md border border-status-pending/30 bg-status-pending/5 p-4">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-status-pending">
+            Test keys
+          </div>
+          <Field
+            label="Test secret key"
+            hint={
+              f.hasTestSecret
+                ? "A test secret is set. Leave blank to keep it, or paste a new one."
+                : "Paste the test Paystack secret key (sk_test_…)."
+            }
+          >
+            <Input
+              type="password"
+              value={testSecret}
+              onChange={(e) => setTestSecret(e.target.value)}
+              placeholder={f.hasTestSecret ? "•••••••• (set)" : "sk_test_…"}
+              className="font-mono"
+            />
+          </Field>
+          <Field label="Test public key">
+            <Input
+              value={f.paystackTestPublicKey}
+              onChange={(e) => set("paystackTestPublicKey", e.target.value)}
+              placeholder="pk_test_…"
+              className="font-mono"
+            />
+          </Field>
+        </div>
       </section>
 
       {/* EFT */}

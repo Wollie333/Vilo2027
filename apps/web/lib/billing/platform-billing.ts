@@ -16,11 +16,18 @@ export async function getPlatformPaystackSecret(): Promise<string | null> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("platform_payment_settings")
-    .select("paystack_enabled, paystack_secret_key")
+    .select(
+      "paystack_enabled, paystack_mode, paystack_secret_key, paystack_test_secret_key",
+    )
     .eq("id", true)
     .maybeSingle();
-  if (data?.paystack_enabled && data.paystack_secret_key) {
-    return data.paystack_secret_key;
+  if (data?.paystack_enabled) {
+    // Use the key pair for the active mode so test checkouts use sk_test_ keys.
+    const active =
+      data.paystack_mode === "test"
+        ? data.paystack_test_secret_key
+        : data.paystack_secret_key;
+    if (active) return active;
   }
   return process.env.PAYSTACK_SECRET_KEY ?? null;
 }

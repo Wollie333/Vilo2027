@@ -9,9 +9,12 @@ const PAY_SETTINGS_TARGET = "00000000-0000-0000-0000-0000000a7000";
 
 const schema = z.object({
   paystackEnabled: z.boolean(),
+  paystackMode: z.enum(["live", "test"]),
   // Blank = keep the existing secret (we never echo it back to the client).
   paystackSecretKey: z.string().trim().max(200).optional().nullable(),
   paystackPublicKey: z.string().trim().max(200).optional().nullable(),
+  paystackTestSecretKey: z.string().trim().max(200).optional().nullable(),
+  paystackTestPublicKey: z.string().trim().max(200).optional().nullable(),
   eftEnabled: z.boolean(),
   eftBankName: z.string().trim().max(120).optional().nullable(),
   eftAccountName: z.string().trim().max(120).optional().nullable(),
@@ -40,7 +43,9 @@ export const savePaymentSettingsAction = withAdminAudit<
 
     const patch: Record<string, unknown> = {
       paystack_enabled: d.paystackEnabled,
+      paystack_mode: d.paystackMode,
       paystack_public_key: d.paystackPublicKey || null,
+      paystack_test_public_key: d.paystackTestPublicKey || null,
       eft_enabled: d.eftEnabled,
       eft_bank_name: d.eftBankName || null,
       eft_account_name: d.eftAccountName || null,
@@ -49,9 +54,12 @@ export const savePaymentSettingsAction = withAdminAudit<
       eft_reference_hint: d.eftReferenceHint || null,
       updated_at: new Date().toISOString(),
     };
-    // Only overwrite the secret when a new one is supplied.
+    // Only overwrite each secret when a new one is supplied (blank = keep).
     if (d.paystackSecretKey && d.paystackSecretKey.length > 0) {
       patch.paystack_secret_key = d.paystackSecretKey;
+    }
+    if (d.paystackTestSecretKey && d.paystackTestSecretKey.length > 0) {
+      patch.paystack_test_secret_key = d.paystackTestSecretKey;
     }
 
     const { error } = await service
