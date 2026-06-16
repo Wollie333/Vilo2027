@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { Link } from "@/i18n/navigation";
+import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PayButton } from "./PayButton";
@@ -11,10 +12,20 @@ export const dynamic = "force-dynamic";
 
 export default async function ProductPayPage({
   params,
+  searchParams,
 }: {
   params: { token: string };
+  searchParams: { reference?: string; trxref?: string };
 }) {
   const service = createAdminClient();
+
+  // Primary settle path: Paystack redirects back here with ?reference=…&trxref=…
+  // Confirm server-side BEFORE reading the order so the page renders the paid
+  // state immediately (the webhook is only an idempotent backstop).
+  const reference = searchParams.reference ?? searchParams.trxref;
+  if (reference) {
+    await confirmProductOrderByReference(reference);
+  }
 
   const { data: order } = await service
     .from("product_orders")

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getPlatformPaystackSecret } from "@/lib/billing/platform-billing";
-import { initializeTransaction } from "@/lib/paystack";
+import { initializeTransaction, verifyTransaction } from "@/lib/paystack";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Vilo product checkout — mirrors the host booking pay-link, but for Vilo's own
@@ -87,15 +87,25 @@ export type PaystackStartResult =
   | { ok: true; authorizationUrl: string }
   | { ok: false; error: string };
 
+// Test vs live is derived from the active Paystack secret key prefix, so test-key
+// purchases are tagged and kept out of live KPIs (see migration 20260616000020).
+function envFromSecret(secret: string): "test" | "live" {
+  return secret.startsWith("sk_live_") ? "live" : "test";
+}
+
 // Initialise a Paystack transaction for an order (platform key). Called from the
-// public pay page.
+// public pay page. Also seeds a PENDING platform_ledger row keyed by the
+// reference (idempotency anchor) — mirrors startSubscriptionCheckout — so the
+// confirm-on-return path and the webhook can both flip it to completed.
 export async function startProductPaystack(
   payToken: string,
 ): Promise<PaystackStartResult> {
   const admin = createAdminClient();
   const { data: order } = await admin
     .from("product_orders")
-    .select("id, product_id, payer_email, amount, currency, status, pay_token")
+    .select(
+      "id, product_id, payer_email, payer_user_id, amount, currency, status, pay_token",
+    )
     .eq("pay_token", payToken)
     .maybeSingle();
   if (!order) return { ok: false, error: "Order not found." };
@@ -104,6 +114,7 @@ export async function startProductPaystack(
   const secret = await getPlatformPaystackSecret();
   if (!secret) return { ok: false, error: "Card payments aren't configured." };
 
+  const environment = envFromSecret(secret);
   const reference = `prod_${order.id}_${Date.now()}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   try {
@@ -122,13 +133,200 @@ export async function startProductPaystack(
     });
     await admin
       .from("product_orders")
-      .update({ provider_reference: reference, method: "paystack" })
+      .update({
+        provider_reference: reference,
+        method: "paystack",
+        environment,
+      })
       .eq("id", order.id);
+
+    // Pending revenue row (idempotency anchor for the confirm/webhook flip).
+    await admin.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "pending",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "paystack",
+      provider_reference: reference,
+      environment,
+      reason: "Product purchase",
+    });
     return { ok: true, authorizationUrl: res.authorization_url };
   } catch (e) {
+    // Roll back the pending row so a failed init doesn't leave noise.
+    await admin
+      .from("platform_ledger")
+      .delete()
+      .eq("provider_reference", reference);
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Couldn't start checkout.",
     };
   }
+}
+
+function addMonths(d: Date, n: number): string {
+  const x = new Date(d);
+  x.setUTCMonth(x.getUTCMonth() + n);
+  return x.toISOString();
+}
+
+// Activate the buyer's plan when the purchased product is a plan-mapped
+// subscription. Mirrors the webhook's processProductEvent so the TS confirm and
+// the Deno backstop behave identically. No-op for bespoke products.
+async function activateMappedPlan(
+  admin: ReturnType<typeof createAdminClient>,
+  payerUserId: string | null,
+  productId: string | null,
+  now: Date,
+): Promise<void> {
+  if (!payerUserId || !productId) return;
+  const { data: product } = await admin
+    .from("products")
+    .select("type, slug, billing_cycle")
+    .eq("id", productId)
+    .maybeSingle();
+  const planKeys = ["free", "basic", "pro", "business"];
+  if (
+    !product ||
+    product.type !== "subscription" ||
+    !product.slug ||
+    !planKeys.includes(product.slug)
+  ) {
+    return;
+  }
+  const { data: host } = await admin
+    .from("hosts")
+    .select("id")
+    .eq("user_id", payerUserId)
+    .maybeSingle();
+  if (!host) return;
+  const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+  const periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("id")
+    .eq("host_id", host.id)
+    .maybeSingle();
+  const patch = {
+    plan: product.slug,
+    billing_cycle: cycle,
+    status: "active" as const,
+    current_period_start: now.toISOString(),
+    current_period_end: periodEnd,
+  };
+  if (sub) {
+    await admin.from("subscriptions").update(patch).eq("id", sub.id);
+  } else {
+    await admin.from("subscriptions").insert({ host_id: host.id, ...patch });
+  }
+}
+
+export type ConfirmProductResult =
+  | { ok: true; status: "paid"; payToken: string; alreadyPaid: boolean }
+  | { ok: false; error: string };
+
+// Settle a product order from the public pay page on return from Paystack
+// (?reference=…). This is the PRIMARY settle path (the webhook is an idempotent
+// backstop), mirroring the booking confirmHostCardPaymentByReference: verify the
+// transaction server-side with the platform key, then flip the order + the
+// pending platform_ledger row to completed and activate any mapped plan.
+// Idempotent: a second call (or the webhook) no-ops once the order is paid.
+export async function confirmProductOrderByReference(
+  reference: string,
+): Promise<ConfirmProductResult> {
+  const admin = createAdminClient();
+  const { data: order } = await admin
+    .from("product_orders")
+    .select(
+      "id, product_id, payer_user_id, amount, currency, status, pay_token, environment",
+    )
+    .eq("provider_reference", reference)
+    .maybeSingle();
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "paid") {
+    return {
+      ok: true,
+      status: "paid",
+      payToken: order.pay_token,
+      alreadyPaid: true,
+    };
+  }
+
+  const secret = await getPlatformPaystackSecret();
+  if (!secret) return { ok: false, error: "Card payments aren't configured." };
+
+  const verified = await verifyTransaction(reference, secret);
+  if (!verified || verified.status !== "success") {
+    return { ok: false, error: "Payment not confirmed yet." };
+  }
+
+  const environment = order.environment ?? envFromSecret(secret);
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  await admin
+    .from("product_orders")
+    .update({
+      status: "paid",
+      paid_at: nowIso,
+      method: "paystack",
+      environment,
+    })
+    .eq("id", order.id);
+
+  // Flip the pending revenue row to completed (or insert if it's missing —
+  // e.g. an EFT-seeded order that never got a pending row).
+  const { data: led } = await admin
+    .from("platform_ledger")
+    .select("id, status")
+    .eq("provider_reference", reference)
+    .maybeSingle();
+  if (led) {
+    if (led.status !== "completed") {
+      await admin
+        .from("platform_ledger")
+        .update({ status: "completed", paid_at: nowIso, environment })
+        .eq("id", led.id);
+    }
+  } else {
+    await admin.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "completed",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "paystack",
+      provider_reference: reference,
+      environment,
+      paid_at: nowIso,
+      reason: "Product purchase",
+    });
+  }
+
+  // Accrue affiliate commission if the payer was referred (idempotent RPC).
+  try {
+    const { data: row } = await admin
+      .from("platform_ledger")
+      .select("id")
+      .eq("provider_reference", reference)
+      .maybeSingle();
+    if (row?.id) {
+      await admin.rpc("accrue_affiliate_commission", { p_ledger_id: row.id });
+    }
+  } catch {
+    // Commission accrual must never break settlement.
+  }
+
+  await activateMappedPlan(admin, order.payer_user_id, order.product_id, now);
+
+  return {
+    ok: true,
+    status: "paid",
+    payToken: order.pay_token,
+    alreadyPaid: false,
+  };
 }

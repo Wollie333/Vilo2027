@@ -292,30 +292,49 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   const ref = event.data.reference;
   const { data: order } = await supabase
     .from("product_orders")
-    .select("id, product_id, payer_user_id, amount, currency, status")
+    .select(
+      "id, product_id, payer_user_id, amount, currency, status, environment",
+    )
     .eq("provider_reference", ref)
     .maybeSingle();
   if (!order || order.status === "paid") return;
 
   const now = new Date().toISOString();
+  const environment = order.environment ?? "live";
   await supabase
     .from("product_orders")
     .update({ status: "paid", paid_at: now, method: "paystack" })
     .eq("id", order.id);
 
-  // Idempotent on provider_reference (UNIQUE on platform_ledger).
-  await supabase.from("platform_ledger").insert({
-    user_id: order.payer_user_id,
-    product_id: order.product_id,
-    type: "charge",
-    status: "completed",
-    amount: Number(order.amount),
-    currency: order.currency,
-    provider: "paystack",
-    provider_reference: ref,
-    paid_at: now,
-    reason: "Product purchase",
-  });
+  // A pending platform_ledger row is seeded at checkout init — flip it to
+  // completed. Insert only if it's missing (idempotent on provider_reference).
+  const { data: led } = await supabase
+    .from("platform_ledger")
+    .select("id, status")
+    .eq("provider_reference", ref)
+    .maybeSingle();
+  if (led) {
+    if (led.status !== "completed") {
+      await supabase
+        .from("platform_ledger")
+        .update({ status: "completed", paid_at: now, environment })
+        .eq("id", led.id);
+    }
+  } else {
+    await supabase.from("platform_ledger").insert({
+      user_id: order.payer_user_id,
+      product_id: order.product_id,
+      type: "charge",
+      status: "completed",
+      amount: Number(order.amount),
+      currency: order.currency,
+      provider: "paystack",
+      provider_reference: ref,
+      environment,
+      paid_at: now,
+      reason: "Product purchase",
+    });
+  }
 
   // Accrue affiliate commission if the payer was referred (idempotent in the RPC).
   await accrueCommissionByReference(supabase, ref);
