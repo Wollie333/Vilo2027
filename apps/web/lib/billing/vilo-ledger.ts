@@ -8,6 +8,7 @@ import type { createAdminClient } from "@/lib/supabase/admin";
 
 export type ViloTxnType = "charge" | "refund" | "credit" | "adjustment";
 export type ViloTxnStatus = "pending" | "completed" | "failed";
+export type ViloEnvironment = "test" | "live";
 
 export type ViloTxn = {
   id: string;
@@ -16,6 +17,7 @@ export type ViloTxn = {
   status: ViloTxnStatus;
   amount: number; // signed
   currency: string;
+  environment: ViloEnvironment;
   vatAmount: number | null;
   plan: string | null;
   billingCycle: string | null;
@@ -35,6 +37,7 @@ export type ViloLedgerFilter = {
   plan?: string;
   type?: ViloTxnType;
   status?: ViloTxnStatus;
+  environment?: ViloEnvironment; // omit = both
   since?: string; // ISO
   until?: string; // ISO
   limit?: number;
@@ -58,7 +61,7 @@ export async function fetchViloLedger(
   let q = admin
     .from("platform_ledger")
     .select(
-      `id, created_at, type, status, amount, currency, vat_amount, plan,
+      `id, created_at, type, status, amount, currency, environment, vat_amount, plan,
        billing_cycle, provider, provider_reference, reason, user_id, host_id,
        payer:user_profiles!user_id ( full_name, email ),
        host:hosts!host_id ( handle )`,
@@ -71,6 +74,7 @@ export async function fetchViloLedger(
   if (filter.plan) q = q.eq("plan", filter.plan);
   if (filter.type) q = q.eq("type", filter.type);
   if (filter.status) q = q.eq("status", filter.status);
+  if (filter.environment) q = q.eq("environment", filter.environment);
   if (filter.since) q = q.gte("created_at", filter.since);
   if (filter.until) q = q.lte("created_at", filter.until);
 
@@ -87,6 +91,9 @@ export async function fetchViloLedger(
       status: r.status as ViloTxnStatus,
       amount: Number(r.amount),
       currency: r.currency,
+      environment: (r.environment === "test"
+        ? "test"
+        : "live") as ViloEnvironment,
       vatAmount: r.vat_amount != null ? Number(r.vat_amount) : null,
       plan: r.plan,
       billingCycle: r.billing_cycle,

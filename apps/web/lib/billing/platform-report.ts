@@ -118,7 +118,9 @@ export async function buildPlatformReport(
   ] = await Promise.all([
     getAllPlans(),
     service.from("subscriptions").select("plan, billing_cycle, status"),
-    fetchViloLedger(service, { limit: 10_000 }),
+    // Live revenue only — Paystack test-key transactions never count toward
+    // business KPIs (the admin Payments tab has a Test filter to inspect them).
+    fetchViloLedger(service, { limit: 10_000, environment: "live" }),
     service
       .from("user_profiles")
       .select("role, created_at")

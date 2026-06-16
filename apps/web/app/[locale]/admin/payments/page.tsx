@@ -17,16 +17,27 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 
-type SearchParams = { q?: string; status?: string; type?: string };
+type SearchParams = {
+  q?: string;
+  status?: string;
+  type?: string;
+  env?: string;
+};
 
 const STATUSES = ["all", "pending", "completed", "failed"] as const;
 const TYPES = ["all", "charge", "refund", "credit", "adjustment"] as const;
+// Default to live so real test purchases stay visible (pick "Test") without
+// polluting the numbers the founder looks at day-to-day.
+const ENVS = ["live", "test", "all"] as const;
 
 function isStatus(v: string | undefined): v is (typeof STATUSES)[number] {
   return STATUSES.includes((v ?? "") as (typeof STATUSES)[number]);
 }
 function isType(v: string | undefined): v is (typeof TYPES)[number] {
   return TYPES.includes((v ?? "") as (typeof TYPES)[number]);
+}
+function isEnv(v: string | undefined): v is (typeof ENVS)[number] {
+  return ENVS.includes((v ?? "") as (typeof ENVS)[number]);
 }
 
 // The admin Payments tab is every payment USERS make to Vilo for Vilo products
@@ -48,6 +59,9 @@ export default async function AdminPaymentsPage({
   const type: (typeof TYPES)[number] = isType(searchParams?.type)
     ? (searchParams!.type as (typeof TYPES)[number])
     : "all";
+  const env: (typeof ENVS)[number] = isEnv(searchParams?.env)
+    ? (searchParams!.env as (typeof ENVS)[number])
+    : "live";
 
   const service = createAdminClient();
   const [all, plans] = await Promise.all([
@@ -56,10 +70,15 @@ export default async function AdminPaymentsPage({
   ]);
   const planName = new Map(plans.map((p) => [p.key, p.name]));
 
-  // KPIs reflect the whole ledger, independent of the active filters.
-  const stats = viloLedgerStats(all);
+  // Scope to the chosen environment first so KPIs + table never mix test money
+  // into the live numbers (live is the default).
+  const envScoped =
+    env === "all" ? all : all.filter((r) => r.environment === env);
 
-  let filtered = all;
+  // KPIs reflect the whole (env-scoped) ledger, independent of the other filters.
+  const stats = viloLedgerStats(envScoped);
+
+  let filtered = envScoped;
   if (status !== "all") filtered = filtered.filter((r) => r.status === status);
   if (type !== "all") filtered = filtered.filter((r) => r.type === type);
   if (q) {
@@ -139,6 +158,22 @@ export default async function AdminPaymentsPage({
         </span>
       ),
     },
+    // Only worth a column when test + live are shown together.
+    ...(env === "all"
+      ? [
+          {
+            header: "Env",
+            cell: (r: ViloTxn) =>
+              r.environment === "test" ? (
+                <span className="inline-flex items-center rounded-pill border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                  Test
+                </span>
+              ) : (
+                <span className="text-[11px] text-brand-mute">Live</span>
+              ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -152,6 +187,12 @@ export default async function AdminPaymentsPage({
           products. Host↔guest booking money lives on each host&rsquo;s own
           dashboard — it is never Vilo revenue.
         </p>
+        {env === "test" ? (
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+            Test mode — these are Paystack test-key transactions, excluded from
+            live revenue.
+          </p>
+        ) : null}
       </header>
 
       {/* KPI tiles */}
@@ -176,6 +217,17 @@ export default async function AdminPaymentsPage({
             className="block w-full rounded border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
         </div>
+        <select
+          name="env"
+          defaultValue={env}
+          className="rounded border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink"
+        >
+          {ENVS.map((s) => (
+            <option key={s} value={s}>
+              {s === "live" ? "Live" : s === "test" ? "Test" : "Test + Live"}
+            </option>
+          ))}
+        </select>
         <select
           name="type"
           defaultValue={type}

@@ -75,6 +75,8 @@ export default async function AdminRevenuePage({
       plan: planFilter || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
       type: typeFilter === "all" ? undefined : typeFilter,
+      // Live revenue only — test-key transactions are inspected via Payments.
+      environment: "live",
     }),
     getAllPlans(),
     service.from("subscriptions").select("plan, billing_cycle, status"),
