@@ -1,8 +1,10 @@
 "use client";
 
 import { ArrowRight, Download, PartyPopper } from "lucide-react";
+import { useEffect } from "react";
 
 import { Link } from "@/i18n/navigation";
+import { firePurchase } from "@/lib/analytics/purchase";
 
 // Post-payment thank-you one-pager for a Vilo product/subscription purchase —
 // mirrors the signup last step (StepWelcome) receipt. Dynamic values come from
@@ -21,6 +23,9 @@ export type ReceiptPurchase = {
   buyerEmail: string | null;
   hasAccount: boolean;
   signupHref: string;
+  /** Stable id for the Meta Pixel / CAPI dedupe (invoice number or order id). */
+  eventId: string;
+  productId: string | null;
 };
 
 function money(n: number, currency: string): string {
@@ -40,6 +45,26 @@ export function Receipt({ purchase: p }: { purchase: ReceiptPurchase }) {
     year: "numeric",
   });
   const hasVat = p.vat > 0.005;
+
+  // Fire the GA4/GTM purchase + Meta Pixel Purchase once, with the real amount.
+  useEffect(() => {
+    firePurchase({
+      transactionId: p.eventId,
+      value: p.total,
+      currency: p.currency,
+      contentName: p.productName,
+      contentIds: [p.productId ?? p.eventId],
+      numItems: 1,
+      items: [
+        {
+          item_id: p.productId ?? p.eventId,
+          item_name: p.productName,
+          price: p.total,
+          quantity: 1,
+        },
+      ],
+    });
+  }, [p.eventId, p.total, p.currency, p.productName, p.productId]);
 
   return (
     <div className="mx-auto max-w-xl px-4 py-12">

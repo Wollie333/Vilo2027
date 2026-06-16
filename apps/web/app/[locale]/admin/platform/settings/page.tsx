@@ -1,22 +1,29 @@
 import { requirePermission } from "@/lib/admin";
 import { getViloBusinessProfile } from "@/lib/billing/vilo-invoice";
 import { getBranding } from "@/lib/brand";
+import { getMetaIntegration } from "@/lib/integrations/meta";
 import { getLegalDocuments } from "@/lib/legal";
 
 import { BrandingForm } from "./BrandNameForm";
 import { LegalDocsForm } from "./LegalDocsForm";
+import { MetaPixelForm } from "./MetaPixelForm";
 import { ViloBusinessForm } from "./ViloBusinessForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformSettingsPage() {
   await requirePermission("platform.settings");
-  const [{ brandName, companyName, companyLocation }, legal, viloBusiness] =
-    await Promise.all([
-      getBranding(),
-      getLegalDocuments(),
-      getViloBusinessProfile(),
-    ]);
+  const [
+    { brandName, companyName, companyLocation },
+    legal,
+    viloBusiness,
+    meta,
+  ] = await Promise.all([
+    getBranding(),
+    getLegalDocuments(),
+    getViloBusinessProfile(),
+    getMetaIntegration(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -36,6 +43,13 @@ export default async function PlatformSettingsPage() {
       />
 
       <ViloBusinessForm initial={viloBusiness} />
+
+      <MetaPixelForm
+        pixelId={meta.pixelId ?? ""}
+        pixelEnabled={meta.pixelEnabled}
+        testEventCode={meta.testEventCode ?? ""}
+        capiTokenSet={meta.capiTokenSet}
+      />
 
       <section>
         <h2 className="font-display text-base font-bold text-brand-ink">

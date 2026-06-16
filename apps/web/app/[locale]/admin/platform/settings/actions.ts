@@ -11,6 +11,7 @@ import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 const BRANDING_SETTING_ID = "00000000-0000-0000-0000-0000000b5a4d";
 const LEGAL_SETTING_ID = "00000000-0000-0000-0000-0000001e6a1f";
 const VILO_BUSINESS_SETTING_ID = "00000000-0000-0000-0000-0000005b1d00";
+const META_INTEGRATION_ID = "00000000-0000-0000-0000-0000000fb1d0";
 
 const brandingSchema = z.object({
   brandName: z
@@ -183,5 +184,56 @@ export const saveViloBusinessAction = withAdminAudit<
     });
     if (error) throw new Error(error.message);
     return { result: { ok: true }, after: value };
+  },
+);
+
+// ─── Meta Pixel (Conversions API plumbed for later) ────────────────
+const metaIntegrationSchema = z.object({
+  meta_pixel_id: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^\d*$/, "A Meta Pixel ID is numeric.")
+    .optional()
+    .default(""),
+  meta_pixel_enabled: z.boolean(),
+  meta_test_event_code: z.string().trim().max(40).optional().default(""),
+  reason: z.string().optional(),
+});
+
+// Save the Meta Pixel config (platform_integrations singleton). The pixel loads
+// site-wide when enabled + an id is set — no redeploy. The Conversions API token
+// is intentionally not editable here yet (coming soon). Admin only + audited.
+export const saveMetaIntegrationAction = withAdminAudit<
+  z.infer<typeof metaIntegrationSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.meta_integration",
+    targetType: "platform_setting",
+    getTargetId: () => META_INTEGRATION_ID,
+  },
+  async (args, service) => {
+    const parsed = metaIntegrationSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const { meta_pixel_id, meta_pixel_enabled, meta_test_event_code } =
+      parsed.data;
+    const { error } = await service.from("platform_integrations").upsert({
+      id: true,
+      meta_pixel_id: meta_pixel_id || null,
+      meta_pixel_enabled,
+      meta_test_event_code: meta_test_event_code || null,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    // Pixel id is read by the root layout — revalidate the whole tree.
+    revalidatePath("/", "layout");
+    return {
+      result: { ok: true },
+      after: { meta_pixel_id, meta_pixel_enabled },
+    };
   },
 );

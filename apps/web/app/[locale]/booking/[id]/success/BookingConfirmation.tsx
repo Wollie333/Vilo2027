@@ -29,6 +29,8 @@ import {
 import { Link } from "@/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { firePurchase } from "@/lib/analytics/purchase";
+
 import { useBrandName } from "@/components/brand/BrandProvider";
 import { formatMoney } from "@/lib/format";
 
@@ -135,49 +137,13 @@ export type ConfirmationData = {
 /* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
-/*  Analytics dataLayer — fires a single `purchase` event once the booking is  */
-/*  paid. No pixel is loaded yet; this just stages the event + dynamic values  */
-/*  so a future GTM container / Meta Pixel maps it straight to a Purchase.     */
+/*  Analytics — fire a single GA4/GTM purchase + Meta Pixel Purchase once the  */
+/*  booking is paid (shared with the product thank-you page). De-dupe + dynamic */
+/*  value/currency live in lib/analytics/purchase.ts.                           */
 /* -------------------------------------------------------------------------- */
-declare global {
-  interface Window {
-    dataLayer?: Array<Record<string, unknown>>;
-  }
-}
-
 function usePurchaseDataLayer(purchase: ConfirmationData["purchase"]) {
   useEffect(() => {
-    if (!purchase) return; // only when status is paid
-    const guardKey = `vilo_purchase_pushed_${purchase.transactionId}`;
-    try {
-      if (window.sessionStorage.getItem(guardKey)) return; // de-dupe on refresh
-      window.sessionStorage.setItem(guardKey, "1");
-    } catch {
-      /* sessionStorage may be unavailable (private mode) — push anyway */
-    }
-    window.dataLayer = window.dataLayer || [];
-    // Clear any prior ecommerce object so GTM doesn't merge stale items.
-    window.dataLayer.push({ ecommerce: null });
-    window.dataLayer.push({
-      event: "purchase",
-      // GA4 / GTM ecommerce shape
-      ecommerce: {
-        transaction_id: purchase.transactionId,
-        value: purchase.value,
-        currency: purchase.currency,
-        items: purchase.items,
-      },
-      // Meta Pixel mirror — a GTM "Purchase" tag reads these straight through.
-      meta_purchase: {
-        currency: purchase.currency,
-        value: purchase.value,
-        content_type: "product",
-        content_name: purchase.contentName,
-        content_ids: purchase.contentIds,
-        num_items: purchase.numItems,
-        order_id: purchase.transactionId,
-      },
-    });
+    firePurchase(purchase);
   }, [purchase]);
 }
 

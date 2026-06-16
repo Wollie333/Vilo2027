@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
 
+import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { BrandProvider } from "@/components/brand/BrandProvider";
 import { CurrencyProvider } from "@/components/currency/CurrencyProvider";
 import { ModalHost } from "@/components/ui/modal-host";
@@ -12,6 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { routing } from "@/i18n/routing";
 import { getBranding, getBrandName } from "@/lib/brand";
 import { getDisplayRates } from "@/lib/fx";
+import { getActiveMetaPixelId } from "@/lib/integrations/meta";
 
 import { CookieBanner } from "../_components/CookieBanner";
 import "../globals.css";
@@ -59,10 +61,11 @@ export default async function RootLayout({
   // Enable static rendering for this request's locale.
   setRequestLocale(locale);
 
-  const [branding, rates, messages] = await Promise.all([
+  const [branding, rates, messages, metaPixelId] = await Promise.all([
     getBranding(),
     getDisplayRates(),
     getMessages(),
+    getActiveMetaPixelId(),
   ]);
   const displayCurrency = cookies().get("vilo_display_ccy")?.value ?? null;
   return (
@@ -71,6 +74,7 @@ export default async function RootLayout({
       className={`${inter.variable} ${jakarta.variable} ${jetbrainsMono.variable}`}
     >
       <body className="font-sans antialiased">
+        {metaPixelId ? <MetaPixel pixelId={metaPixelId} /> : null}
         <NextIntlClientProvider locale={locale} messages={messages}>
           <BrandProvider value={branding}>
             <CurrencyProvider initialCurrency={displayCurrency} rates={rates}>
