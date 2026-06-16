@@ -45,12 +45,13 @@ export type InvoiceProps = {
     email: string | null;
     phone: string | null;
   };
-  stay: {
+  /** Booking stay summary. Omit/null for non-stay invoices (e.g. Vilo products). */
+  stay?: {
     listingName: string | null;
     checkIn: string | null;
     checkOut: string | null;
     nights: number | null;
-  };
+  } | null;
   lines: InvoiceLineItem[];
   subtotal: number;
   discountAmount?: number;
@@ -156,32 +157,34 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceProps }) {
           </View>
         </View>
 
-        <View style={styles.staySummaryBox}>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Listing</Text>
-            <Text style={styles.staySummaryValue}>
-              {invoice.stay.listingName ?? "—"}
-            </Text>
+        {invoice.stay ? (
+          <View style={styles.staySummaryBox}>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Listing</Text>
+              <Text style={styles.staySummaryValue}>
+                {invoice.stay.listingName ?? "—"}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Check-in</Text>
+              <Text style={styles.staySummaryValue}>
+                {formatDate(invoice.stay.checkIn)}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Check-out</Text>
+              <Text style={styles.staySummaryValue}>
+                {formatDate(invoice.stay.checkOut)}
+              </Text>
+            </View>
+            <View style={styles.staySummaryItem}>
+              <Text style={styles.staySummaryLabel}>Nights</Text>
+              <Text style={styles.staySummaryValue}>
+                {invoice.stay.nights ?? "—"}
+              </Text>
+            </View>
           </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Check-in</Text>
-            <Text style={styles.staySummaryValue}>
-              {formatDate(invoice.stay.checkIn)}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Check-out</Text>
-            <Text style={styles.staySummaryValue}>
-              {formatDate(invoice.stay.checkOut)}
-            </Text>
-          </View>
-          <View style={styles.staySummaryItem}>
-            <Text style={styles.staySummaryLabel}>Nights</Text>
-            <Text style={styles.staySummaryValue}>
-              {invoice.stay.nights ?? "—"}
-            </Text>
-          </View>
-        </View>
+        ) : null}
 
         <View style={styles.tableHeader}>
           <Text style={[styles.th, styles.colDesc]}>Description</Text>

@@ -10,6 +10,7 @@ import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 // uuid column; platform_settings is keyed by text, so we use a stable uuid).
 const BRANDING_SETTING_ID = "00000000-0000-0000-0000-0000000b5a4d";
 const LEGAL_SETTING_ID = "00000000-0000-0000-0000-0000001e6a1f";
+const VILO_BUSINESS_SETTING_ID = "00000000-0000-0000-0000-0000005b1d00";
 
 const brandingSchema = z.object({
   brandName: z
@@ -137,5 +138,50 @@ export const saveLegalDocAction = withAdminAudit<
     revalidatePath("/privacy");
 
     return { result: { ok: true, version }, after: { key, version } };
+  },
+);
+
+// ─── Vilo business details (issuer on every Vilo invoice) ──────────
+const viloBusinessSchema = z.object({
+  legal_name: z.string().trim().max(160),
+  vat_number: z.string().trim().max(40),
+  company_reg_number: z.string().trim().max(60),
+  address_line1: z.string().trim().max(160),
+  address_line2: z.string().trim().max(160),
+  city: z.string().trim().max(80),
+  postal_code: z.string().trim().max(20),
+  country: z.string().trim().max(2),
+  email: z.string().trim().max(160),
+  logo_path: z.string().trim().max(400),
+  reason: z.string().optional(),
+});
+
+// Save Vilo's own business identity (platform_settings.vilo_business). Frozen
+// into each Vilo invoice at issue time by the mint_vilo_invoice trigger. Admin
+// only + audited; the country defaults to ZA when left blank.
+export const saveViloBusinessAction = withAdminAudit<
+  z.infer<typeof viloBusinessSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "platform.settings",
+    actionName: "platform.settings.vilo_business",
+    targetType: "platform_setting",
+    getTargetId: () => VILO_BUSINESS_SETTING_ID,
+  },
+  async (args, service) => {
+    const parsed = viloBusinessSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid input.");
+    }
+    const { reason: _reason, ...value } = parsed.data;
+    void _reason;
+    const { error } = await service.from("platform_settings").upsert({
+      key: "vilo_business",
+      value: { ...value, country: value.country || "ZA" } as never,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw new Error(error.message);
+    return { result: { ok: true }, after: value };
   },
 );

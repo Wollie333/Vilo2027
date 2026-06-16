@@ -1,16 +1,22 @@
 import { requirePermission } from "@/lib/admin";
+import { getViloBusinessProfile } from "@/lib/billing/vilo-invoice";
 import { getBranding } from "@/lib/brand";
 import { getLegalDocuments } from "@/lib/legal";
 
 import { BrandingForm } from "./BrandNameForm";
 import { LegalDocsForm } from "./LegalDocsForm";
+import { ViloBusinessForm } from "./ViloBusinessForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformSettingsPage() {
   await requirePermission("platform.settings");
-  const [{ brandName, companyName, companyLocation }, legal] =
-    await Promise.all([getBranding(), getLegalDocuments()]);
+  const [{ brandName, companyName, companyLocation }, legal, viloBusiness] =
+    await Promise.all([
+      getBranding(),
+      getLegalDocuments(),
+      getViloBusinessProfile(),
+    ]);
 
   return (
     <div className="space-y-6">
@@ -28,6 +34,8 @@ export default async function PlatformSettingsPage() {
         companyName={companyName}
         companyLocation={companyLocation}
       />
+
+      <ViloBusinessForm initial={viloBusiness} />
 
       <section>
         <h2 className="font-display text-base font-bold text-brand-ink">
