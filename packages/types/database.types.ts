@@ -8282,6 +8282,10 @@ export type Database = {
         Args: { p_audience: string; p_host_id: string }
         Returns: Json
       }
+      create_affiliate_payout: {
+        Args: { p_affiliate_id: string; p_method: string }
+        Returns: Json
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
