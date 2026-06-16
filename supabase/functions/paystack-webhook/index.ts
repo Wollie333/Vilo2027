@@ -265,6 +265,26 @@ async function processEvent(event: PaystackEvent, rawBody: string) {
   }
 }
 
+// Resolve the completed platform_ledger charge by reference and accrue affiliate
+// commission. Idempotent (the RPC no-ops on replays and unreferred payers).
+// deno-lint-ignore no-explicit-any
+async function accrueCommissionByReference(supabase: any, ref: string) {
+  try {
+    const { data: led } = await supabase
+      .from("platform_ledger")
+      .select("id")
+      .eq("provider_reference", ref)
+      .maybeSingle();
+    if (led?.id) {
+      await supabase.rpc("accrue_affiliate_commission", {
+        p_ledger_id: led.id,
+      });
+    }
+  } catch {
+    // Commission accrual must never break payment settlement.
+  }
+}
+
 // ─── Vilo product order handler ───────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 async function processProductEvent(event: PaystackEvent, supabase: any) {
@@ -296,6 +316,9 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
     paid_at: now,
     reason: "Product purchase",
   });
+
+  // Accrue affiliate commission if the payer was referred (idempotent in the RPC).
+  await accrueCommissionByReference(supabase, ref);
 
   // If the product is a subscription that maps to a plan, grant the buyer that
   // plan so they get access. Only when the buyer already has a Vilo account +
@@ -455,6 +478,9 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
         notes: "Paystack charge",
       });
     }
+
+    // Accrue affiliate commission if the payer was referred (idempotent in the RPC).
+    await accrueCommissionByReference(supabase, ref);
     return;
   }
 

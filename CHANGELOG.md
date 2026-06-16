@@ -31,6 +31,68 @@ Copy this template and fill it in at the end of every session:
 
 ---
 
+## 2026-06-16 — Affiliate programme (Phases 1–8) — branch `feat/affiliate-program`
+
+### Built
+- **Enterprise affiliate programme for Vilo's own products**, open to ANY user
+  (a guest account is the only prerequisite — identity is `user_profiles.id`,
+  not the host). Mounted at `/portal/affiliates` (universal authenticated area)
+  with a cross-workspace discovery link from the host dashboard sidebar.
+- **Tracking**: `/r/<slug>` route drops a 30-day first-party cookie + logs the
+  click; the referred user is bound to the affiliate permanently at signup
+  (`UNIQUE(referred_user_id)`), surviving the guest→host transition.
+- **Commission engine** (the finance core): `accrue_affiliate_commission` RPC
+  derives commission from each completed `platform_ledger` charge — NET base
+  (amount − VAT), per-product rate + duration (once/months/forever), idempotent.
+  Hourly clearing cron (pending→cleared after the refund hold); clawback RPC +
+  trigger (void pending/cleared, negative offset for already-paid) wired to a new
+  `platform_ledger.reverses_ledger_id` link + daily backstop.
+- **Affiliate UI**: Overview (hero, referral link, stat cards, referred-users
+  breakdown), Products (per-product links + commission), Marketing (download +
+  copy-embed with the link baked in), Payouts (balance, request modal with
+  gross/fee/net, methods, threshold, history).
+- **Payouts**: `create_affiliate_payout` RPC atomically claims cleared commission
+  (FOR UPDATE SKIP LOCKED), enforces threshold, deducts the per-method processor
+  fee (affiliate earns gross, receives net). Manual-first settlement.
+- **Admin**: `/admin/affiliates` (payout queue approve/paid/reject + affiliate
+  list with suspend/reactivate) and `/admin/affiliates/settings` (cookie/hold/
+  threshold/terms/attribution, per-method fees, marketing-asset upload). Wired
+  the user-record **Referrals tab** to real data.
+
+### Changed
+- `products.affiliate_*` (already present) is the commission source of truth.
+- Accrual hooked into the Paystack webhook (product + subscription paths) and the
+  admin manual-charge action. `withAdminAudit` target union extended.
+
+### Migrations
+- `20260616000010_affiliate_core.sql`, `…011_affiliate_payouts.sql`,
+  `…012_affiliate_settings.sql`, `…013_affiliate_rpcs.sql`,
+  `…014_affiliate_cron.sql`, `…015_affiliate_marketing.sql`,
+  `…016_affiliate_payout_rpc.sql`, `…017_affiliate_admin_rpcs.sql`,
+  `…018_help_affiliate_program.sql`.
+
+### Notes
+- **Action required:** redeploy the `paystack-webhook` Edge Function so
+  Paystack-triggered accrual goes live (`supabase functions deploy
+  paystack-webhook --no-verify-jwt`) — the safety classifier blocked the agent
+  from deploying the live payment function.
+- Setup-fee commission deferred (billing doesn't charge it as a separable
+  ledger amount); the `kind='setup_fee'` path is reserved.
+- i18n: affiliate surfaces render English directly, matching the current
+  portal/admin convention (those subtrees aren't yet wired to next-intl); a
+  platform-wide i18n pass should cover them together.
+- `scripts/verify-affiliate-ledger.mjs` — 16/16 invariants pass (schema, no
+  double-accrual/orphans, recompute parity, refund coverage, help article).
+- Preview-deploy errors on Vercel are environmental: the **Preview** scope is
+  missing Supabase env vars, so prerendering pre-existing static pages (e.g.
+  `/login`) fails. Not affiliate code. Fix: add the env vars to Vercel's Preview
+  scope.
+
+### Commit
+- `feat/affiliate-program` branch — Phases 1–8 (see git log).
+
+---
+
 ## 2026-06-15 — Marketing — In-app host pitch deck (`/pitch`) — branch `main`
 
 ### Built

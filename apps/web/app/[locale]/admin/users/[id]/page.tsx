@@ -270,6 +270,9 @@ export default async function AdminUserDetailPage({
   // Catalog products for the Products tab (manage the user's subscription).
   const catalog = host ? await getSubscriptionProducts() : [];
 
+  // Referrals this user has made as an affiliate (their affiliate link's signups).
+  const referralBundle = await loadReferrals(service, user.id);
+
   const data: UserRecordData = {
     user: {
       id: user.id,
@@ -358,6 +361,8 @@ export default async function AdminUserDetailPage({
       date: t.date,
     })),
     relationships: relationshipBundle,
+    affiliateSlug: referralBundle.slug,
+    referrals: referralBundle.referrals,
     dataRequests: (dataReqRows ?? []).map((d) => ({
       id: d.id,
       type: d.request_type,
@@ -425,4 +430,93 @@ async function loadRelationships(
     out.push({ id: r.id, name: c.name ?? "Guest", email: c.email });
   }
   return out;
+}
+
+const PAID_PLANS = new Set(["basic", "pro", "business"]);
+
+// Everyone this user has referred via their affiliate link, with each referred
+// user's plan and the commission earned from them.
+async function loadReferrals(
+  service: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<{ slug: string | null; referrals: UserRecordData["referrals"] }> {
+  const { data: account } = await service
+    .from("affiliate_accounts")
+    .select("id, slug, currency")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!account) return { slug: null, referrals: [] };
+
+  const { data: refs } = await service
+    .from("affiliate_referrals")
+    .select("id, referred_user_id, bound_at")
+    .eq("affiliate_id", account.id)
+    .order("bound_at", { ascending: false });
+  if (!refs || refs.length === 0) return { slug: account.slug, referrals: [] };
+
+  const referredIds = refs.map((r) => r.referred_user_id);
+  const [{ data: profiles }, { data: hosts }, { data: commissions }] =
+    await Promise.all([
+      service
+        .from("user_profiles")
+        .select("id, full_name, email")
+        .in("id", referredIds),
+      service.from("hosts").select("id, user_id").in("user_id", referredIds),
+      service
+        .from("affiliate_commissions")
+        .select("referral_id, commission_amount, status")
+        .eq("affiliate_id", account.id),
+    ]);
+
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const hostByUser = new Map((hosts ?? []).map((h) => [h.user_id, h.id]));
+  const hostIds = (hosts ?? []).map((h) => h.id);
+  const { data: subs } = hostIds.length
+    ? await service
+        .from("subscriptions")
+        .select("host_id, plan, status")
+        .in("host_id", hostIds)
+    : {
+        data: [] as { host_id: string; plan: string | null; status: string }[],
+      };
+  const planByHost = new Map(
+    (subs ?? []).map((s) => [s.host_id, { plan: s.plan, status: s.status }]),
+  );
+
+  const commByReferral = new Map<string, number>();
+  for (const c of commissions ?? []) {
+    if (c.status === "voided") continue;
+    commByReferral.set(
+      c.referral_id,
+      (commByReferral.get(c.referral_id) ?? 0) + Number(c.commission_amount),
+    );
+  }
+
+  const referrals = refs.map((r) => {
+    const profile = profileById.get(r.referred_user_id);
+    const hostId = hostByUser.get(r.referred_user_id);
+    const sub = hostId ? planByHost.get(hostId) : undefined;
+    const isPaid =
+      !!sub &&
+      sub.plan != null &&
+      PAID_PLANS.has(sub.plan) &&
+      ["active", "trialing", "past_due"].includes(sub.status);
+    const plan = isPaid
+      ? sub!.plan!.charAt(0).toUpperCase() + sub!.plan!.slice(1)
+      : hostId
+        ? "Free"
+        : "Guest";
+    return {
+      id: r.id,
+      userId: r.referred_user_id,
+      name: profile?.full_name || "Unnamed",
+      email: profile?.email ?? null,
+      plan,
+      commission: Number(commByReferral.get(r.id) ?? 0),
+      currency: account.currency,
+      joinedAt: r.bound_at,
+    };
+  });
+
+  return { slug: account.slug, referrals };
 }

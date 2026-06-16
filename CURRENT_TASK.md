@@ -2,8 +2,22 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Active focus:** **Harden each feature to 100% for MVP.** This session:
-the **Reviews** feature, end-to-end.
+**Active focus:** **Harden each feature to 100% for MVP.**
+
+## ✅ Done this session (2026-06-16) — Affiliate programme (Phases 1–8)
+- Full enterprise affiliate programme for Vilo products, open to any user
+  (anchored on `user_profiles.id`, not host). Mounted at `/portal/affiliates`.
+- 30-day cookie tracking + permanent binding; commission accrual/clearing/
+  clawback engine (RPCs + crons); affiliate Overview/Products/Marketing/Payouts;
+  payout requests with per-method fee; admin management + settings + the
+  user-record Referrals tab. Migrations `…010`–`…018`; `verify-affiliate-ledger.mjs`
+  16/16. Plan: `~/.claude/plans/flickering-tinkering-ripple.md`.
+- **TODO before launch:** redeploy `paystack-webhook` (live accrual); add Supabase
+  env vars to Vercel **Preview** scope (preview builds fail prerendering `/login`
+  without them); platform-wide i18n pass covering portal/admin/affiliate strings;
+  setup-fee commission when billing charges it as a separable amount.
+
+## (Earlier) Harden each feature to 100% for MVP — Reviews feature, end-to-end.
 
 ## ✅ Done this session (2026-06-13) — Guest Reputation (hosts rate guests, cross-host)
 - Built `host_review_guest.md` end-to-end: `guest_ratings` table (cross-host

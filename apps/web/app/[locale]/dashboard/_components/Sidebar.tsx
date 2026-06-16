@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgePercent,
   BarChart3,
   BedDouble,
   Cable,
@@ -120,6 +121,14 @@ const TOOLS: GmailNavItem[] = [
     href: "/dashboard/policies",
     label: "Policies",
     icon: ShieldCheck,
+    match: "prefix",
+  },
+  // The affiliate programme lives in the universal portal area (open to every
+  // user). Hosts reach it via this cross-workspace link.
+  {
+    href: "/portal/affiliates",
+    label: "Affiliates",
+    icon: BadgePercent,
     match: "prefix",
   },
 ];

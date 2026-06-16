@@ -1,5 +1,6 @@
 "use server";
 
+import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { startProductPurchaseBySlug } from "@/lib/billing/product-checkout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -71,6 +72,13 @@ export async function createAccountAction(
       error: "Account was created but sign-in failed. Try signing in manually.",
     };
   }
+
+  // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
+  // Keyed on the user — the host row is created later in finalizeOnboardingAction.
+  const {
+    data: { user: newUser },
+  } = await supabase.auth.getUser();
+  if (newUser) await bindAffiliateReferral(newUser.id);
 
   return { ok: true };
 }

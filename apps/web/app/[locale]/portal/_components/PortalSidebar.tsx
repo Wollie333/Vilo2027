@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BadgePercent,
   Bell,
   Compass,
   FileText,
@@ -34,6 +35,12 @@ const MAIN: GmailNavItem[] = [
     match: "prefix",
   },
   { href: "/portal/reviews", label: "Reviews", icon: Star, match: "prefix" },
+  {
+    href: "/portal/affiliates",
+    label: "Affiliates",
+    icon: BadgePercent,
+    match: "prefix",
+  },
 ];
 
 export function PortalSidebar({
