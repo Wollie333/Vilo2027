@@ -184,6 +184,20 @@ async function main() {
     }
   }
 
+  // 9. Help article published (RULES.md §9).
+  {
+    const { data, error } = await supabase
+      .from("help_articles")
+      .select("slug, status")
+      .eq("slug", "how-affiliate-program-works")
+      .maybeSingle();
+    log(
+      !error && data?.status === "published",
+      "help article how-affiliate-program-works published",
+      error?.message ?? data?.status ?? "missing",
+    );
+  }
+
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail > 0 ? 1 : 0);
 }
