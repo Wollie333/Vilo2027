@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { combineName } from "@/lib/profile/name";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -75,6 +76,8 @@ export async function createGuestAccountAction(
       .from("user_profiles")
       .update({ full_name, role: "guest" })
       .eq("id", newUser.id);
+    // Attribute this signup to a referring affiliate if a vilo_ref cookie is set.
+    await bindAffiliateReferral(newUser.id);
   }
 
   return { ok: true };

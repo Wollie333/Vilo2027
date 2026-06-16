@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { isSelfRecipient } from "@/lib/host/self";
 import type { StayPricingResult } from "@/lib/pricing/quote";
@@ -230,6 +231,9 @@ export async function createEnquiry(
         is_lead: true,
       })
       .eq("id", guestId);
+    // A newly-minted lead is also a new Vilo account — attribute it to a
+    // referring affiliate if a vilo_ref cookie is set on this request.
+    await bindAffiliateReferral(guestId);
   }
 
   // Upsert the host's contact row through the one canonical writer (find-or-

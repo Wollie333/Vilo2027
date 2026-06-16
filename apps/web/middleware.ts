@@ -7,9 +7,10 @@ import { updateSession } from "@/lib/supabase/middleware";
 const handleI18n = createMiddleware(routing);
 
 // Route-handler trees that must NOT get locale handling (no UI / no layout):
-// api workers, the iCal feed, the Supabase auth callback, unsubscribe, and the
-// quote PDF handler. These still get Supabase session refresh, exactly as before.
-const FUNCTIONAL = /^\/(api|ical|auth|unsubscribe|quote)(\/|$)/;
+// api workers, the iCal feed, the Supabase auth callback, unsubscribe, the
+// quote PDF handler, and the affiliate referral link (/r/<slug>). These still
+// get Supabase session refresh, exactly as before.
+const FUNCTIONAL = /^\/(api|ical|auth|unsubscribe|quote|r)(\/|$)/;
 
 export async function middleware(request: NextRequest) {
   if (FUNCTIONAL.test(request.nextUrl.pathname)) {
