@@ -38,7 +38,11 @@ type AuditTargetType =
   | "notification_send"
   | "listing_category"
   | "amenity_group"
-  | "amenity_catalog";
+  | "amenity_catalog"
+  | "affiliate"
+  | "affiliate_payout"
+  | "affiliate_settings"
+  | "marketing_asset";
 
 export type AuditConfig<TArgs> = {
   /** Permission key the caller must hold. */
