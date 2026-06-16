@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { requirePermission } from "@/lib/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { PaystackModeBadge } from "../PaystackModeBadge";
 import {
   PaymentSettingsForm,
   type PaymentSettings,
@@ -47,9 +48,15 @@ export default async function AdminPaymentSettingsPage() {
         <ArrowLeft className="h-4 w-4" /> Products
       </Link>
       <header>
-        <h1 className="font-display text-2xl font-bold text-brand-ink">
-          Vilo payment settings
-        </h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-display text-2xl font-bold text-brand-ink">
+            Vilo payment settings
+          </h1>
+          <PaystackModeBadge
+            enabled={initial.paystackEnabled}
+            mode={initial.paystackMode}
+          />
+        </div>
         <p className="mt-1 text-[13px] text-brand-mute">
           How Vilo collects money for its products — its own Paystack account
           (cards) and manual EFT. Each product chooses which of these it

@@ -5,6 +5,8 @@ import { requirePermission } from "@/lib/admin";
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+import { PaystackModeBadge } from "./PaystackModeBadge";
+
 export const dynamic = "force-dynamic";
 
 const CYCLE_LABEL: Record<string, string> = {
@@ -19,12 +21,19 @@ export default async function AdminProductsPage() {
   await requirePermission("subscriptions.edit");
   const service = createAdminClient();
 
-  const { data: products } = await service
-    .from("products")
-    .select(
-      "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, sort_order",
-    )
-    .order("sort_order", { ascending: true });
+  const [{ data: products }, { data: pay }] = await Promise.all([
+    service
+      .from("products")
+      .select(
+        "id, name, description, type, price, currency, billing_cycle, is_active, is_recommended, affiliate_type, affiliate_value, sort_order",
+      )
+      .order("sort_order", { ascending: true }),
+    service
+      .from("platform_payment_settings")
+      .select("paystack_enabled, paystack_mode")
+      .eq("id", true)
+      .maybeSingle(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -40,6 +49,10 @@ export default async function AdminProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <PaystackModeBadge
+            enabled={pay?.paystack_enabled ?? false}
+            mode={pay?.paystack_mode === "test" ? "test" : "live"}
+          />
           <Link
             href="/admin/products/payments"
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-line bg-white px-4 text-[13px] font-semibold text-brand-ink hover:bg-brand-light"
