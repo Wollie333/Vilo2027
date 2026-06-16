@@ -1,12 +1,12 @@
-import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
-import { Link } from "@/i18n/navigation";
 import { confirmProductOrderByReference } from "@/lib/billing/product-checkout";
+import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { PayButton } from "./PayButton";
+import { Receipt } from "./Receipt";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +74,39 @@ export default async function ProductPayPage({
     hasAccount = !!existing;
   }
 
+  // Paid → the rich thank-you one-pager, driven by the issued Vilo invoice so the
+  // figures match the invoice exactly (mirrors the signup last step).
+  if (paid) {
+    const { data: invoices } = await service
+      .from("vilo_invoices")
+      .select(
+        "invoice_number, issued_at, subtotal, vat_amount, total_amount, currency, hosted_token",
+      )
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const invoice = invoices?.[0] ?? null;
+    const brandName = await getBrandName();
+    return (
+      <Receipt
+        purchase={{
+          brandName,
+          productName: order.product_name,
+          reference: invoice?.invoice_number ?? "—",
+          dateIso: invoice?.issued_at ?? new Date().toISOString(),
+          subtotal: Number(invoice?.subtotal ?? order.amount),
+          vat: Number(invoice?.vat_amount ?? 0),
+          total: Number(invoice?.total_amount ?? order.amount),
+          currency: invoice?.currency ?? order.currency,
+          invoiceToken: invoice?.hosted_token ?? null,
+          buyerEmail: order.payer_email,
+          hasAccount,
+          signupHref: `/signup/host?order=${params.token}`,
+        }}
+      />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md px-4 py-12">
       <div className="rounded-card border border-brand-line bg-white p-6 shadow-card">
@@ -87,67 +120,38 @@ export default async function ProductPayPage({
           {formatZar(Number(order.amount))}
         </div>
 
-        {paid ? (
-          <div className="mt-6 space-y-4">
-            <div className="flex items-center gap-2 rounded-md border border-status-confirmed/30 bg-status-confirmed/10 px-4 py-3 text-sm font-semibold text-status-confirmed">
-              <CheckCircle2 className="h-5 w-5" /> Paid — thank you!
-            </div>
-            {hasAccount ? (
-              <Link
-                href="/login"
-                className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
-              >
-                Log in to your account <ArrowRight className="h-4 w-4" />
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href={`/signup/host?order=${params.token}`}
-                  className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
-                >
-                  Create your account <ArrowRight className="h-4 w-4" />
-                </Link>
-                <p className="text-center text-[12px] text-brand-mute">
-                  Finish setting up your account — your subscription is already
-                  active.
-                </p>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="mt-6 space-y-5">
-            {showPaystack ? <PayButton token={params.token} /> : null}
+        <div className="mt-6 space-y-5">
+          {showPaystack ? <PayButton token={params.token} /> : null}
 
-            {showEft ? (
-              <div className="rounded-md border border-brand-line bg-brand-light/40 p-4 text-sm">
-                <div className="mb-2 font-semibold text-brand-ink">
-                  Or pay by EFT
-                </div>
-                <dl className="space-y-1 text-[13px] text-brand-mute">
-                  <Row k="Bank" v={settings?.eft_bank_name} />
-                  <Row k="Account name" v={settings?.eft_account_name} />
-                  <Row k="Account number" v={settings?.eft_account_number} />
-                  <Row k="Branch code" v={settings?.eft_branch_code} />
-                  <Row
-                    k="Reference"
-                    v={settings?.eft_reference_hint || order.id.slice(0, 8)}
-                  />
-                </dl>
-                <p className="mt-2 text-[11px] text-brand-mute">
-                  Once paid, email proof to Vilo and we&apos;ll confirm your
-                  order.
-                </p>
+          {showEft ? (
+            <div className="rounded-md border border-brand-line bg-brand-light/40 p-4 text-sm">
+              <div className="mb-2 font-semibold text-brand-ink">
+                Or pay by EFT
               </div>
-            ) : null}
-
-            {!showPaystack && !showEft ? (
-              <p className="text-sm text-brand-mute">
-                No payment method is available for this product yet. Please
-                contact Vilo.
+              <dl className="space-y-1 text-[13px] text-brand-mute">
+                <Row k="Bank" v={settings?.eft_bank_name} />
+                <Row k="Account name" v={settings?.eft_account_name} />
+                <Row k="Account number" v={settings?.eft_account_number} />
+                <Row k="Branch code" v={settings?.eft_branch_code} />
+                <Row
+                  k="Reference"
+                  v={settings?.eft_reference_hint || order.id.slice(0, 8)}
+                />
+              </dl>
+              <p className="mt-2 text-[11px] text-brand-mute">
+                Once paid, email proof to Vilo and we&apos;ll confirm your
+                order.
               </p>
-            ) : null}
-          </div>
-        )}
+            </div>
+          ) : null}
+
+          {!showPaystack && !showEft ? (
+            <p className="text-sm text-brand-mute">
+              No payment method is available for this product yet. Please
+              contact Vilo.
+            </p>
+          ) : null}
+        </div>
       </div>
     </div>
   );
