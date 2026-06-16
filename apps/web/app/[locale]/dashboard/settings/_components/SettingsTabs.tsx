@@ -28,6 +28,11 @@ const TABS: Tab[] = [
     match: "prefix",
   },
   {
+    href: "/dashboard/settings/transactions",
+    labelKey: "tabTransactions",
+    match: "prefix",
+  },
+  {
     href: "/dashboard/settings/notifications",
     labelKey: "tabNotifications",
     match: "prefix",
