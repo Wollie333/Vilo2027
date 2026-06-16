@@ -8736,6 +8736,25 @@ export type Database = {
         Returns: boolean
       }
       send_due_access_cards: { Args: never; Returns: number }
+      set_affiliate_status: {
+        Args: {
+          p_admin: string
+          p_affiliate_id: string
+          p_reason?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      settle_affiliate_payout: {
+        Args: {
+          p_action: string
+          p_admin: string
+          p_payout_id: string
+          p_reason?: string
+          p_reference?: string
+        }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       snapshot_booking_policies: {

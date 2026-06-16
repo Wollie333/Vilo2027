@@ -179,6 +179,17 @@ export type UserRecordData = {
     date: string;
   }[];
   relationships: { id: string; name: string; email: string | null }[];
+  referrals: {
+    id: string;
+    userId: string;
+    name: string;
+    email: string | null;
+    plan: string;
+    commission: number;
+    currency: string;
+    joinedAt: string;
+  }[];
+  affiliateSlug: string | null;
   dataRequests: {
     id: string;
     type: string;
@@ -369,7 +380,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             {tab === "relationships" ? (
               <RelationshipsPanel data={data} />
             ) : null}
-            {tab === "referrals" ? <ReferralsPanel /> : null}
+            {tab === "referrals" ? <ReferralsPanel data={data} /> : null}
             {tab === "support" ? <SupportPanel data={data} /> : null}
             {tab === "activity" ? <ActivityPanel data={data} /> : null}
             {tab === "notes" ? (
@@ -1366,15 +1377,42 @@ function RelationshipsPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function ReferralsPanel() {
+function ReferralsPanel({ data }: { data: UserRecordData }) {
+  if (data.referrals.length === 0) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
+        <Gift className="mx-auto h-6 w-6 text-brand-line" />
+        <p className="mt-3 text-[13px] text-brand-mute">
+          {data.affiliateSlug
+            ? "No referrals yet. People this affiliate brings to Vilo will appear here."
+            : "This user isn't an affiliate yet. When they refer others, the people they bring to Vilo will appear here."}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
-      <Gift className="mx-auto h-6 w-6 text-brand-line" />
-      <p className="mt-3 text-[13px] text-brand-mute">
-        No referrals yet. When this user refers others, the people they brought
-        to Vilo will appear here.
-      </p>
-    </div>
+    <Section
+      icon={Gift}
+      title={
+        data.affiliateSlug
+          ? `Referrals via /r/${data.affiliateSlug}`
+          : "Referrals"
+      }
+      count={data.referrals.length}
+      empty="No referrals yet."
+    >
+      {data.referrals.map((r) => (
+        <RowLink
+          key={r.id}
+          href={`/admin/users/${r.userId}`}
+          primary={r.name}
+          secondary={`${r.email ?? "No email"} · joined ${fmtDate(r.joinedAt)}`}
+          amount={formatMoney(r.commission, r.currency)}
+          status={r.plan}
+        />
+      ))}
+    </Section>
   );
 }
 
