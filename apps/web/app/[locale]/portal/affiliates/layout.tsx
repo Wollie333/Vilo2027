@@ -3,6 +3,7 @@ import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { AffiliateNav } from "./_components/AffiliateNav";
 import { AffiliateTermsGate } from "./_components/AffiliateTermsGate";
 
 export const dynamic = "force-dynamic";
@@ -41,5 +42,10 @@ export default async function AffiliatesLayout({
     );
   }
 
-  return <>{children}</>;
+  return (
+    <div>
+      <AffiliateNav />
+      {children}
+    </div>
+  );
 }

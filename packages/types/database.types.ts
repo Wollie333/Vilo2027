@@ -4938,6 +4938,65 @@ export type Database = {
           },
         ]
       }
+      marketing_assets: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          file_path: string
+          file_url: string
+          height: number | null
+          id: string
+          is_active: boolean
+          mime_type: string | null
+          sort_order: number
+          title: string
+          updated_at: string
+          width: number | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path: string
+          file_url: string
+          height?: number | null
+          id?: string
+          is_active?: boolean
+          mime_type?: string | null
+          sort_order?: number
+          title: string
+          updated_at?: string
+          width?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          file_path?: string
+          file_url?: string
+          height?: number | null
+          id?: string
+          is_active?: boolean
+          mime_type?: string | null
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_assets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_templates: {
         Row: {
           body: string
