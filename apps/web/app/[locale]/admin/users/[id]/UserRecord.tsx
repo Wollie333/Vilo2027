@@ -49,6 +49,14 @@ import {
   PRICING_MODELS,
   type AddonInput,
 } from "@/app/[locale]/dashboard/addons/schemas";
+import { PolicyEditorSheet } from "@/app/[locale]/dashboard/policies/PolicyEditorSheet";
+import type { PolicyCard } from "@/app/[locale]/dashboard/policies/policy-card";
+import type { PolicyType } from "@/app/[locale]/dashboard/policies/schemas";
+import {
+  createPolicyForListingAction,
+  fetchPolicyCardForListingAction,
+  updatePolicyForListingAction,
+} from "@/app/[locale]/dashboard/policies/actions";
 import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
 import {
@@ -1759,13 +1767,42 @@ const POLICY_TYPE_LABEL: Record<string, string> = {
 // Combined host-level catalogue: the add-ons catalog and the policies library.
 // Per-listing attachment/assignment lives in the listing editor; this manages
 // the reusable host-wide library itself.
+// Policy types the admin can create/edit here (legal docs are platform-wide).
+const EDITABLE_POLICY_TYPES: { type: PolicyType; label: string }[] = [
+  { type: "cancellation", label: "Add cancellation policy" },
+  { type: "check_in_out", label: "Add check-in / out policy" },
+  { type: "house_rules", label: "Add house rules" },
+];
+
 function CatalogPanel({ data }: { data: UserRecordData }) {
   const router = useRouter();
   const hostId = data.host?.id ?? null;
+  // Policy create/edit resolves the host from one of their listings (the policy
+  // is created host-wide, not attached). Needs at least one listing for context.
+  const policyCtxListingId = data.listings[0]?.id ?? null;
   const [pending, start] = useTransition();
   const [editAddon, setEditAddon] = useState<AddonItem | "new" | null>(null);
+  const [policySheet, setPolicySheet] = useState<{
+    type: PolicyType;
+    policy: PolicyCard | null;
+  } | null>(null);
+  const [loadingPolicy, setLoadingPolicy] = useState(false);
 
   const refresh = () => router.refresh();
+
+  const openEditPolicy = (type: PolicyType, policyId: string) => {
+    if (!policyCtxListingId) return;
+    setLoadingPolicy(true);
+    start(async () => {
+      const r = await fetchPolicyCardForListingAction(
+        policyCtxListingId,
+        policyId,
+      );
+      setLoadingPolicy(false);
+      if (r.ok && r.data) setPolicySheet({ type, policy: r.data });
+      else toast.error(r.ok ? "Could not load policy." : r.error);
+    });
+  };
 
   const toggle = (a: AddonItem) => {
     if (!hostId) return;
@@ -1878,7 +1915,7 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
 
       {/* Policies library */}
       <div>
-        <div className="mb-2 flex items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <ScrollText className="h-4 w-4 text-brand-mute" />
           <h3 className="font-display text-[15px] font-bold text-brand-ink">
             Policies library
@@ -1886,7 +1923,26 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
           <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
             {data.policies.length}
           </span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {EDITABLE_POLICY_TYPES.map((t) => (
+              <button
+                key={t.type}
+                type="button"
+                disabled={!policyCtxListingId || loadingPolicy}
+                onClick={() => setPolicySheet({ type: t.type, policy: null })}
+                className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-50"
+              >
+                <Plus className="h-3.5 w-3.5" /> {t.label}
+              </button>
+            ))}
+          </div>
         </div>
+        {!policyCtxListingId ? (
+          <p className="mb-2 text-[12px] text-amber-700">
+            Add a listing for this host first — new policies are created in a
+            listing&apos;s context.
+          </p>
+        ) : null}
         <Section
           icon={ScrollText}
           title="Policies"
@@ -1970,6 +2026,18 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
                     Set default
                   </button>
                 ) : null}
+                {policyCtxListingId &&
+                EDITABLE_POLICY_TYPES.some((t) => t.type === p.type) &&
+                !(p.preset && p.preset !== "custom") ? (
+                  <button
+                    type="button"
+                    disabled={pending || loadingPolicy}
+                    onClick={() => openEditPolicy(p.type as PolicyType, p.id)}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Edit
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={pending}
@@ -1993,9 +2061,9 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
           })}
         </Section>
         <p className="mt-2 text-[12px] text-brand-mute">
-          To create or edit policy content, open any of this host&apos;s
-          listings (Listings → open a listing → Policies) — per-listing
-          assignment lives there too.
+          Per-listing policy assignment lives in the listing editor (Listings →
+          open a listing → Policies). Booking-terms &amp; privacy are
+          platform-wide.
         </p>
       </div>
 
@@ -2008,6 +2076,25 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
             setEditAddon(null);
             refresh();
           }}
+        />
+      ) : null}
+
+      {policyCtxListingId ? (
+        <PolicyEditorSheet
+          open={!!policySheet}
+          onOpenChange={(o) => (o ? null : setPolicySheet(null))}
+          type={policySheet?.type ?? "cancellation"}
+          policy={policySheet?.policy ?? null}
+          onSaved={() => {
+            setPolicySheet(null);
+            refresh();
+          }}
+          createAction={(input) =>
+            createPolicyForListingAction(policyCtxListingId, input)
+          }
+          updateAction={(policyId, input) =>
+            updatePolicyForListingAction(policyCtxListingId, policyId, input)
+          }
         />
       ) : null}
     </div>

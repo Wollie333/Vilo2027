@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-17 — Create/edit policies from the admin Catalog tab
+
+### Built
+- **Green "Add cancellation / check-in-out / house rules" buttons** + per-policy
+  **Edit** in the admin Add-ons & policies tab. Reuses the host `PolicyEditorSheet`
+  with the existing admin-aware listing-context actions
+  (`createPolicyForListingAction`/`updatePolicyForListingAction`/
+  `fetchPolicyCardForListingAction`) — no forked policy-write logic (refund
+  snapshots stay SSOT). Policies are created host-wide using the host's first
+  listing only for host resolution; the buttons disable with a hint if the host
+  has no listing yet.
+
 ## 2026-06-17 — Seasonal pricing in the listing editor (host + admin)
 
 ### Built
