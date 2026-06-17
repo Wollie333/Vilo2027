@@ -2,7 +2,23 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Active focus:** **Harden each feature to 100% for MVP.**
+**Active focus:** **Website CMS pivot + `listings → properties` rename (Property + Channels model).**
+
+> **RESUME ANCHOR (multi-session project).** Branch: `feat/website-property-restructure`.
+> Plan: `~/.claude/plans/ok-it-has-come-spicy-snail.md`. Rename checklist + progress log:
+> `RENAME_LISTINGS_TO_PROPERTIES.md` (repo root). To continue in a fresh session: read
+> those two files + `git log --oneline -15`, then do the next unchecked phase.
+>
+> **Sequence:** Phase 0 = full `listings→properties` rename in 5 green checkpoints
+> (R0 inventory ✓ → R1 leaf tables → R2 core tables → R3 `listing_id→property_id` cols →
+> R4 routes+i18n). THEN the website build (plan §1+): Property+Channels, per-business
+> `host_websites` CMS, subdomains + custom domains, sidebar/IA restructure, product gating.
+> Ledger/booking core is NOT touched. Each phase: migration → `db push --linked` → gen types
+> → code sweep → `pnpm build`+`pnpm lint`+query-sweep → commit → (optionally start fresh session).
+>
+> **Status:** R0 done (inventory). Next: **R1 — leaf tables.**
+
+_(Previous focus below — hardening features for MVP — remains valid context.)_
 
 ## ✅ Done this session (2026-06-16) — Vilo product payments: reporting + invoices + thank-you + Meta Pixel + test mode
 - Fixed: a Vilo product/subscription purchase paid with Paystack test keys
