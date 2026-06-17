@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-17 — Admin user record: editable businesses, reviews tables, relationship cards
+
+### Built
+- **Editable business details from the admin user record** (`?tab=business`). The
+  Business tab now lists each business with its trading/legal name, VAT, location
+  and currency·language, plus an **Edit** button that opens a modal mirroring the
+  host `BusinessForm` fields. Saves go through a new audited
+  `adminUpdateBusiness` server action (`user.update_business`,
+  `targetType: "business"`) so any host's business is editable and the change
+  lands on the Activity tab. Map lat/lng are preserved (no picker in the modal).
+- **Reviews tab → two standard tables** (`?tab=reviews`) using the canonical
+  `AdminTable` design: "Reviews of this host (from guests)" and "Reviews of guests
+  (by this host)" — the latter loads host→guest `guest_ratings`. Each table has
+  in-card search, rating filter, status filter (where applicable) and sort
+  (newest/oldest/highest/lowest). Reviews-written-as-guest kept as a third table
+  when present.
+- **Relationships tab → filterable cards** (`?tab=relationships`). Each travelled-
+  with guest is a two-column card showing avatar (resolved from the linked
+  account), name, email, phone and connection date, with search + sort controls.
+
+---
+
 ## 2026-06-16 — Vilo product payments → reporting, thank-you page, invoices, Meta Pixel, test mode
 
 ### Built

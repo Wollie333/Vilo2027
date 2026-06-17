@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { requirePermission, withAdminAudit } from "@/lib/admin";
+import { DISPLAY_CURRENCIES } from "@/lib/currency";
+import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
 
 const suspendSchema = z.object({
   userId: z.string().uuid(),
@@ -398,6 +400,79 @@ export const setUserProductAction = withAdminAudit<
   },
 );
 
+// ─── Edit a host's business (legal entity on their documents) ─────────
+const opt = z.string().trim().max(200).optional().or(z.literal(""));
+const businessSchema = z.object({
+  businessId: z.string().uuid(),
+  trading_name: z.string().trim().min(1, "Give the business a name.").max(160),
+  legal_name: z.string().trim().max(160).optional().or(z.literal("")),
+  vat_number: z.string().trim().max(20).optional().or(z.literal("")),
+  company_registration_number: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .or(z.literal("")),
+  address_line1: opt,
+  address_line2: opt,
+  city: z.string().trim().max(120).optional().or(z.literal("")),
+  municipality: z.string().trim().max(160).optional().or(z.literal("")),
+  province: z.string().trim().max(120).optional().or(z.literal("")),
+  postal_code: z.string().trim().max(20).optional().or(z.literal("")),
+  country: z.string().trim().length(2, "Use a 2-letter country code, e.g. ZA."),
+  default_currency: z.enum(DISPLAY_CURRENCIES),
+  default_language: z.enum(BUSINESS_LOCALES),
+  reason: z.string().optional(),
+});
+
+const nn = (v: string | undefined) => (v && v.length > 0 ? v : null);
+
+export const adminUpdateBusinessAction = withAdminAudit<
+  z.infer<typeof businessSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.update_business",
+    targetType: "business",
+    getTargetId: (a) => a.businessId,
+  },
+  async (args, service) => {
+    const parsed = businessSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(
+        parsed.error.issues[0]?.message ?? "Invalid business details.",
+      );
+    }
+    const d = parsed.data;
+    // lat/lng are left untouched — there's no map picker in the admin modal, so
+    // we never want to wipe a host's geocoded coordinates.
+    const { error, data } = await service
+      .from("businesses")
+      .update({
+        trading_name: d.trading_name.trim(),
+        legal_name: nn(d.legal_name),
+        vat_number: nn(d.vat_number),
+        company_registration_number: nn(d.company_registration_number),
+        address_line1: nn(d.address_line1),
+        address_line2: nn(d.address_line2),
+        city: nn(d.city),
+        municipality: nn(d.municipality),
+        province: nn(d.province),
+        postal_code: nn(d.postal_code),
+        country: d.country.toUpperCase(),
+        default_currency: d.default_currency,
+        default_language: d.default_language,
+      })
+      .eq("id", d.businessId)
+      .select("id, trading_name")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users`);
+    return { result: { ok: true }, after: data };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -451,6 +526,30 @@ export async function setUserProduct(input: {
   productId: string;
 }) {
   return wrap(() => setUserProductAction(input));
+}
+
+export async function adminUpdateBusiness(input: {
+  businessId: string;
+  trading_name: string;
+  legal_name: string;
+  vat_number: string;
+  company_registration_number: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  municipality: string;
+  province: string;
+  postal_code: string;
+  country: string;
+  default_currency: string;
+  default_language: string;
+}) {
+  // The action re-validates with Zod; cast past the enum-narrowed param type.
+  return wrap(() =>
+    adminUpdateBusinessAction(
+      input as Parameters<typeof adminUpdateBusinessAction>[0],
+    ),
+  );
 }
 
 export async function adminUpdateSubscription(input: {

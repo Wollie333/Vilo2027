@@ -117,6 +117,7 @@ export default async function AdminUserDetailPage({
   let businesses: UserRecordData["businesses"] = [];
   let bookingsAsHost: UserRecordData["bookingsAsHost"] = [];
   let reviewsReceived: UserRecordData["reviewsReceived"] = [];
+  let guestRatingsGiven: UserRecordData["guestRatingsGiven"] = [];
   let hostFinance: UserRecordData["hostFinance"] = null;
   let hostTxns: UserRecordData["hostTxns"] = [];
   let listingsCount = 0;
@@ -127,6 +128,7 @@ export default async function AdminUserDetailPage({
       { data: brows },
       { data: bookHost },
       { data: revRecv },
+      { data: grGiven },
     ] = await Promise.all([
       service
         .from("listings")
@@ -141,7 +143,9 @@ export default async function AdminUserDetailPage({
         .order("created_at", { ascending: false }),
       service
         .from("businesses")
-        .select("id, trading_name, legal_name, is_default, is_archived")
+        .select(
+          "id, trading_name, legal_name, vat_number, company_registration_number, address_line1, address_line2, city, municipality, province, postal_code, country, latitude, longitude, default_currency, default_language, is_default, is_archived",
+        )
         .eq("host_id", host.id)
         .order("is_default", { ascending: false }),
       service
@@ -160,6 +164,16 @@ export default async function AdminUserDetailPage({
         .eq("host_id", host.id)
         .order("created_at", { ascending: false })
         .limit(50),
+      // Host → guest ratings this host has left (private; the Reviews tab shows
+      // them as the "reviews of guests" table).
+      service
+        .from("guest_ratings")
+        .select(
+          "id, rating, summary, updated_at, guest:user_profiles ( full_name, email )",
+        )
+        .eq("host_id", host.id)
+        .order("updated_at", { ascending: false })
+        .limit(100),
     ]);
 
     listingsCount = lcount ?? 0;
@@ -175,6 +189,19 @@ export default async function AdminUserDetailPage({
     businesses = (brows ?? []).map((b) => ({
       id: b.id,
       name: b.trading_name || b.legal_name || "Business",
+      tradingName: b.trading_name ?? "",
+      legalName: b.legal_name ?? "",
+      vatNumber: b.vat_number ?? "",
+      companyRegistrationNumber: b.company_registration_number ?? "",
+      addressLine1: b.address_line1 ?? "",
+      addressLine2: b.address_line2 ?? "",
+      city: b.city ?? "",
+      municipality: b.municipality ?? "",
+      province: b.province ?? "",
+      postalCode: b.postal_code ?? "",
+      country: b.country ?? "ZA",
+      defaultCurrency: b.default_currency ?? "ZAR",
+      defaultLanguage: b.default_language ?? "en",
       isDefault: b.is_default ?? false,
       isArchived: b.is_archived ?? false,
     }));
@@ -198,6 +225,14 @@ export default async function AdminUserDetailPage({
       hostResponse: rv.host_response,
       listingName: one(rv.listing)?.name ?? "—",
       counterparty: one(rv.guest)?.full_name ?? "Guest",
+    }));
+    guestRatingsGiven = (grGiven ?? []).map((g) => ({
+      id: g.id,
+      rating: g.rating,
+      summary: g.summary,
+      date: g.updated_at,
+      guestName: one(g.guest)?.full_name ?? "Guest",
+      guestEmail: one(g.guest)?.email ?? null,
     }));
 
     try {
@@ -331,6 +366,7 @@ export default async function AdminUserDetailPage({
       counterparty: one(rv.host)?.display_name ?? "Host",
     })),
     reviewsReceived,
+    guestRatingsGiven,
     hostFinance,
     hostTxns,
     support,
@@ -405,8 +441,9 @@ async function loadRelationships(
 
   const { data: rels } = await service
     .from("guest_relationships")
-    .select("id, related_contact_id, source_booking_id")
+    .select("id, related_contact_id, source_booking_id, created_at")
     .in("contact_id", contactIds)
+    .order("created_at", { ascending: false })
     .limit(50);
   const relatedIds = [
     ...new Set((rels ?? []).map((r) => r.related_contact_id)),
@@ -415,9 +452,37 @@ async function loadRelationships(
 
   const { data: related } = await service
     .from("host_contacts")
-    .select("id, name, email")
+    .select("id, name, email, phone, guest_id")
     .in("id", relatedIds);
   const byId = new Map((related ?? []).map((c) => [c.id, c]));
+
+  // Resolve avatars (and a phone fallback) from the linked account, by guest_id
+  // and by email — host_contacts has no avatar of its own.
+  const accountIds = [
+    ...new Set((related ?? []).map((c) => c.guest_id).filter(Boolean)),
+  ] as string[];
+  const emails = [
+    ...new Set(
+      (related ?? []).map((c) => c.email?.toLowerCase()).filter(Boolean),
+    ),
+  ] as string[];
+  const { data: profiles } = await service
+    .from("user_profiles")
+    .select("id, email, phone, avatar_url")
+    .or(
+      [
+        accountIds.length ? `id.in.(${accountIds.join(",")})` : null,
+        emails.length
+          ? `email.in.(${emails.map((e) => `"${e}"`).join(",")})`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(",") || "id.eq.00000000-0000-0000-0000-000000000000",
+    );
+  const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const profileByEmail = new Map(
+    (profiles ?? []).map((p) => [(p.email ?? "").toLowerCase(), p]),
+  );
 
   const seen = new Set<string>();
   const out: UserRecordData["relationships"] = [];
@@ -427,7 +492,19 @@ async function loadRelationships(
     const key = (c.email ?? c.name ?? c.id).toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ id: r.id, name: c.name ?? "Guest", email: c.email });
+    const profile =
+      (c.guest_id ? profileById.get(c.guest_id) : null) ??
+      (c.email ? profileByEmail.get(c.email.toLowerCase()) : null) ??
+      null;
+    out.push({
+      id: r.id,
+      contactId: c.id,
+      name: c.name ?? "Guest",
+      email: c.email,
+      phone: c.phone ?? profile?.phone ?? null,
+      avatarUrl: profile?.avatar_url ?? null,
+      connectedAt: r.created_at ?? null,
+    });
   }
   return out;
 }

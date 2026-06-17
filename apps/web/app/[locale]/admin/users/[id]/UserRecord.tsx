@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Building2,
   Calendar,
   CalendarCheck,
   CreditCard,
@@ -16,6 +17,7 @@ import {
   MapPin,
   Pencil,
   Phone,
+  Search,
   Shield,
   ShieldAlert,
   Star,
@@ -24,11 +26,20 @@ import {
   Users,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
+import {
+  AdminTable,
+  type AdminColumn,
+} from "@/app/[locale]/admin/_components/AdminTable";
+import {
+  BUSINESS_LOCALE_LABELS,
+  BUSINESS_LOCALES,
+} from "@/app/[locale]/dashboard/settings/businesses/schemas";
+import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
 import {
   FormModal,
@@ -42,6 +53,7 @@ import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addAdminUserNote,
+  adminUpdateBusiness,
   adminUpdateSubscription,
   setUserProduct,
   changeUserRole,
@@ -51,6 +63,8 @@ import {
   suspendUser,
   updateUserProfile,
 } from "./actions";
+
+type BusinessItem = UserRecordData["businesses"][number];
 
 const SUB_STATUSES = [
   "active",
@@ -145,6 +159,19 @@ export type UserRecordData = {
   businesses: {
     id: string;
     name: string;
+    tradingName: string;
+    legalName: string;
+    vatNumber: string;
+    companyRegistrationNumber: string;
+    addressLine1: string;
+    addressLine2: string;
+    city: string;
+    municipality: string;
+    province: string;
+    postalCode: string;
+    country: string;
+    defaultCurrency: string;
+    defaultLanguage: string;
     isDefault: boolean;
     isArchived: boolean;
   }[];
@@ -152,6 +179,14 @@ export type UserRecordData = {
   bookingsAsHost: BookingLite[];
   reviewsWritten: ReviewLite[];
   reviewsReceived: ReviewLite[];
+  guestRatingsGiven: {
+    id: string;
+    rating: number;
+    summary: string | null;
+    date: string;
+    guestName: string;
+    guestEmail: string | null;
+  }[];
   hostFinance: {
     collected: number;
     outstanding: number;
@@ -178,7 +213,15 @@ export type UserRecordData = {
     reason: string | null;
     date: string;
   }[];
-  relationships: { id: string; name: string; email: string | null }[];
+  relationships: {
+    id: string;
+    contactId: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    connectedAt: string | null;
+  }[];
   referrals: {
     id: string;
     userId: string;
@@ -271,6 +314,7 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const [subStatus, setSubStatus] = useState<(typeof SUB_STATUSES)[number]>(
     (data.subscription?.status as (typeof SUB_STATUSES)[number]) ?? "active",
   );
+  const [editBiz, setEditBiz] = useState<BusinessItem | null>(null);
 
   const close = () => {
     setDialog(null);
@@ -375,7 +419,9 @@ export function UserRecord({ data }: { data: UserRecordData }) {
               />
             ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
-            {tab === "business" ? <BusinessPanel data={data} /> : null}
+            {tab === "business" ? (
+              <BusinessPanel data={data} onEdit={setEditBiz} />
+            ) : null}
             {tab === "reviews" ? <ReviewsPanel data={data} /> : null}
             {tab === "relationships" ? (
               <RelationshipsPanel data={data} />
@@ -613,7 +659,209 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           </Button>
         </FormModalFooter>
       </FormModal>
+
+      <BusinessEditModal
+        business={editBiz}
+        onClose={() => setEditBiz(null)}
+        onSaved={() => {
+          setEditBiz(null);
+          router.refresh();
+        }}
+      />
     </div>
+  );
+}
+
+// Admin-side editor for a host's business (legal entity). Mirrors the host
+// BusinessForm fields, but saves through the audited admin action so any host's
+// business is editable and the change lands on the Activity tab.
+function BusinessEditModal({
+  business,
+  onClose,
+  onSaved,
+}: {
+  business: BusinessItem | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [form, setForm] = useState({
+    trading_name: "",
+    legal_name: "",
+    vat_number: "",
+    company_registration_number: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    municipality: "",
+    province: "",
+    postal_code: "",
+    country: "ZA",
+    default_currency: "ZAR",
+    default_language: "en",
+  });
+
+  // Re-seed the form whenever a different business is opened.
+  const seedId = business?.id ?? null;
+  useEffect(() => {
+    if (!business) return;
+    setForm({
+      trading_name: business.tradingName,
+      legal_name: business.legalName,
+      vat_number: business.vatNumber,
+      company_registration_number: business.companyRegistrationNumber,
+      address_line1: business.addressLine1,
+      address_line2: business.addressLine2,
+      city: business.city,
+      municipality: business.municipality,
+      province: business.province,
+      postal_code: business.postalCode,
+      country: business.country || "ZA",
+      default_currency: business.defaultCurrency || "ZAR",
+      default_language: business.defaultLanguage || "en",
+    });
+    // seedId tracks identity so we only re-seed on open / business switch.
+  }, [seedId, business]);
+
+  const set = (k: keyof typeof form, v: string) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  const save = () => {
+    if (!business) return;
+    if (!form.trading_name.trim()) {
+      toast.error("Give the business a name.");
+      return;
+    }
+    if (form.country.trim().length !== 2) {
+      toast.error("Use a 2-letter country code, e.g. ZA.");
+      return;
+    }
+    start(async () => {
+      const r = await adminUpdateBusiness({
+        businessId: business.id,
+        ...form,
+        country: form.country.trim().toUpperCase(),
+      });
+      if (r.ok) {
+        toast.success("Business updated.");
+        onSaved();
+      } else toast.error(r.error ?? "Failed.");
+    });
+  };
+
+  return (
+    <FormModal
+      open={!!business}
+      onOpenChange={(o) => (o ? null : onClose())}
+      title="Edit business"
+      description="These details print on this host's quotes, invoices and credit notes."
+    >
+      <div className="space-y-4">
+        <Lbl label="Trading name">
+          <Input
+            value={form.trading_name}
+            onChange={(e) => set("trading_name", e.target.value)}
+          />
+        </Lbl>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Lbl label="Legal name">
+            <Input
+              value={form.legal_name}
+              onChange={(e) => set("legal_name", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="VAT number">
+            <Input
+              value={form.vat_number}
+              onChange={(e) => set("vat_number", e.target.value)}
+            />
+          </Lbl>
+        </div>
+        <Lbl label="Company registration number">
+          <Input
+            value={form.company_registration_number}
+            onChange={(e) => set("company_registration_number", e.target.value)}
+          />
+        </Lbl>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Lbl label="Currency">
+            <Select
+              value={form.default_currency}
+              onChange={(e) => set("default_currency", e.target.value)}
+            >
+              {DISPLAY_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c} · {CURRENCY_META[c].label}
+                </option>
+              ))}
+            </Select>
+          </Lbl>
+          <Lbl label="Language">
+            <Select
+              value={form.default_language}
+              onChange={(e) => set("default_language", e.target.value)}
+            >
+              {BUSINESS_LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {BUSINESS_LOCALE_LABELS[l]}
+                </option>
+              ))}
+            </Select>
+          </Lbl>
+        </div>
+        <Lbl label="Address line 1">
+          <Input
+            value={form.address_line1}
+            onChange={(e) => set("address_line1", e.target.value)}
+          />
+        </Lbl>
+        <Lbl label="Address line 2">
+          <Input
+            value={form.address_line2}
+            onChange={(e) => set("address_line2", e.target.value)}
+          />
+        </Lbl>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Lbl label="City">
+            <Input
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Municipality">
+            <Input
+              value={form.municipality}
+              onChange={(e) => set("municipality", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Province">
+            <Input
+              value={form.province}
+              onChange={(e) => set("province", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Postal code">
+            <Input
+              value={form.postal_code}
+              onChange={(e) => set("postal_code", e.target.value)}
+            />
+          </Lbl>
+        </div>
+        <Lbl label="Country (2-letter code)">
+          <Input
+            value={form.country}
+            maxLength={2}
+            onChange={(e) => set("country", e.target.value.toUpperCase())}
+          />
+        </Lbl>
+      </div>
+      <FormModalFooter>
+        <FormModalCancel onClick={onClose} />
+        <Button disabled={pending} onClick={save}>
+          {pending ? "Saving…" : "Save business"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
@@ -1276,104 +1524,472 @@ function ListingsPanel({ data }: { data: UserRecordData }) {
   );
 }
 
-function BusinessPanel({ data }: { data: UserRecordData }) {
+function BusinessPanel({
+  data,
+  onEdit,
+}: {
+  data: UserRecordData;
+  onEdit: (b: BusinessItem) => void;
+}) {
   return (
     <Section
-      icon={Home}
+      icon={Building2}
       title="Businesses"
       count={data.businesses.length}
       empty="No businesses."
     >
-      {data.businesses.map((b) => (
-        <RowLink
-          key={b.id}
-          primary={b.name}
-          secondary={b.isDefault ? "Default business" : "Business"}
-          status={b.isArchived ? "archived" : "active"}
-        />
-      ))}
+      {data.businesses.map((b) => {
+        const place = [b.city, b.province].filter(Boolean).join(", ");
+        const meta = [
+          b.isDefault ? "Default business" : "Business",
+          b.legalName || null,
+          b.vatNumber ? `VAT ${b.vatNumber}` : null,
+          place || null,
+          `${b.defaultCurrency} · ${b.defaultLanguage.toUpperCase()}`,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        return (
+          <div
+            key={b.id}
+            className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-[13px] font-semibold text-brand-ink">
+                  {b.name}
+                </span>
+                {b.isDefault ? <Pill tone="good">Default</Pill> : null}
+                {b.isArchived ? <Pill tone="bad">Archived</Pill> : null}
+              </div>
+              <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                {meta}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onEdit(b)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </button>
+          </div>
+        );
+      })}
     </Section>
   );
 }
 
-function ReviewCardLite({
-  rev,
-  counterLabel,
-}: {
-  rev: ReviewLite;
-  counterLabel: string;
-}) {
+type ReviewRow = {
+  id: string;
+  rating: number;
+  person: string;
+  personSub: string | null;
+  context: string | null;
+  text: string | null;
+  date: string;
+  published: boolean | null;
+};
+
+function Stars({ rating }: { rating: number }) {
   return (
-    <div className="border-t border-brand-line px-5 py-4 first:border-t-0">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-ink">
-          {rev.rating}{" "}
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+    <span className="inline-flex items-center gap-1 text-[13px] font-bold tabular-nums text-brand-ink">
+      {rating}
+      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+    </span>
+  );
+}
+
+// One standard admin table of reviews with in-card search / rating / status /
+// sort filters. `variant` toggles the Listing + Status columns (host→guest
+// ratings have neither).
+function ReviewsTable({
+  title,
+  rows,
+  variant,
+  empty,
+  personHeader,
+  contextHeader,
+}: {
+  title: string;
+  rows: ReviewRow[];
+  variant: "received" | "given" | "written";
+  empty: string;
+  personHeader: string;
+  contextHeader?: string;
+}) {
+  const [q, setQ] = useState("");
+  const [rating, setRating] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("newest");
+  const showContext = variant !== "given";
+  const showStatus = variant !== "given";
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let out = rows.filter((r) => {
+      if (rating !== "all" && r.rating !== Number(rating)) return false;
+      if (showStatus && status !== "all") {
+        const pub = r.published ?? true;
+        if (status === "published" && !pub) return false;
+        if (status === "hidden" && pub) return false;
+      }
+      if (needle) {
+        const hay = [r.person, r.personSub, r.context, r.text]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+    out = [...out].sort((a, b) => {
+      if (sort === "highest") return b.rating - a.rating;
+      if (sort === "lowest") return a.rating - b.rating;
+      if (sort === "oldest") return a.date < b.date ? -1 : 1;
+      return a.date < b.date ? 1 : -1; // newest
+    });
+    return out;
+  }, [rows, q, rating, status, sort, showStatus]);
+
+  const columns: AdminColumn<ReviewRow>[] = [
+    {
+      header: personHeader,
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium text-brand-ink">{r.person}</div>
+          {r.personSub ? (
+            <div className="truncate font-mono text-[11px] text-brand-mute">
+              {r.personSub}
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
+    ...(showContext
+      ? [
+          {
+            header: contextHeader ?? "Listing",
+            cell: (r: ReviewRow) => (
+              <span className="text-[12.5px] text-brand-ink">
+                {r.context || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    { header: "Rating", cell: (r) => <Stars rating={r.rating} /> },
+    {
+      header: variant === "given" ? "Summary" : "Review",
+      className: "max-w-[320px]",
+      cell: (r) => (
+        <span className="line-clamp-2 text-[12.5px] text-brand-mute">
+          {r.text || "—"}
         </span>
-        <span className="text-[12px] text-brand-mute">
-          {rev.listingName} · {counterLabel} {rev.counterparty} ·{" "}
-          {fmtDate(rev.createdAt)}
+      ),
+    },
+    ...(showStatus
+      ? [
+          {
+            header: "Status",
+            cell: (r: ReviewRow) =>
+              (r.published ?? true) ? (
+                <Pill tone="good">Published</Pill>
+              ) : (
+                <Pill tone="muted">Hidden</Pill>
+              ),
+          },
+        ]
+      : []),
+    {
+      header: "Date",
+      align: "right" as const,
+      cell: (r) => (
+        <span className="text-[12px] text-brand-mute">{fmtDate(r.date)}</span>
+      ),
+    },
+  ];
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <Star className="h-4 w-4 text-brand-mute" />
+        <h3 className="font-display text-[15px] font-bold text-brand-ink">
+          {title}
+        </h3>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {rows.length}
         </span>
-        {!rev.isPublished ? <Pill tone="muted">unpublished</Pill> : null}
       </div>
-      {rev.body ? (
-        <p className="mt-2 text-[13px] text-brand-ink">{rev.body}</p>
-      ) : null}
-      {rev.hostResponse ? (
-        <p className="mt-2 rounded-md bg-brand-light px-3 py-2 text-[12.5px] text-brand-mute">
-          Host: {rev.hostResponse}
-        </p>
-      ) : null}
+      <AdminTable
+        columns={columns}
+        rows={filtered}
+        getKey={(r) => r.id}
+        empty={empty}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+              <Search className="h-4 w-4 text-brand-mute" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search reviews…"
+                className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+              />
+            </div>
+            <FilterSelect value={rating} onChange={setRating}>
+              <option value="all">All ratings</option>
+              {[5, 4, 3, 2, 1].map((n) => (
+                <option key={n} value={String(n)}>
+                  {n} ★
+                </option>
+              ))}
+            </FilterSelect>
+            {showStatus ? (
+              <FilterSelect value={status} onChange={setStatus}>
+                <option value="all">Any status</option>
+                <option value="published">Published</option>
+                <option value="hidden">Hidden</option>
+              </FilterSelect>
+            ) : null}
+            <FilterSelect value={sort} onChange={setSort}>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="highest">Highest rated</option>
+              <option value="lowest">Lowest rated</option>
+            </FilterSelect>
+          </div>
+        }
+        footer={
+          <div className="text-[12px] tabular-nums text-brand-mute">
+            Showing {filtered.length} of {rows.length}
+          </div>
+        }
+      />
     </div>
   );
 }
 
 function ReviewsPanel({ data }: { data: UserRecordData }) {
-  return (
-    <div className="space-y-6">
-      <Section
-        icon={Star}
-        title="Written (as guest)"
-        count={data.reviewsWritten.length}
+  const received: ReviewRow[] = data.reviewsReceived.map((rv) => ({
+    id: rv.id,
+    rating: rv.rating,
+    person: rv.counterparty,
+    personSub: null,
+    context: rv.listingName,
+    text: rv.body,
+    date: rv.createdAt,
+    published: rv.isPublished,
+  }));
+  const given: ReviewRow[] = data.guestRatingsGiven.map((g) => ({
+    id: g.id,
+    rating: g.rating,
+    person: g.guestName,
+    personSub: g.guestEmail,
+    context: null,
+    text: g.summary,
+    date: g.date,
+    published: null,
+  }));
+  const written: ReviewRow[] = data.reviewsWritten.map((rv) => ({
+    id: rv.id,
+    rating: rv.rating,
+    person: rv.counterparty,
+    personSub: null,
+    context: rv.listingName,
+    text: rv.body,
+    date: rv.createdAt,
+    published: rv.isPublished,
+  }));
+
+  if (!data.host) {
+    return (
+      <ReviewsTable
+        title="Reviews written (as guest)"
+        rows={written}
+        variant="written"
         empty="No reviews written."
-      >
-        {data.reviewsWritten.map((rv) => (
-          <ReviewCardLite key={rv.id} rev={rv} counterLabel="for" />
-        ))}
-      </Section>
-      {data.host ? (
-        <Section
-          icon={Star}
-          title="Received (as host)"
-          count={data.reviewsReceived.length}
-          empty="No reviews received."
-        >
-          {data.reviewsReceived.map((rv) => (
-            <ReviewCardLite key={rv.id} rev={rv} counterLabel="from" />
-          ))}
-        </Section>
+        personHeader="Host"
+        contextHeader="Listing"
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <ReviewsTable
+        title="Reviews of this host (from guests)"
+        rows={received}
+        variant="received"
+        empty="No reviews received from guests."
+        personHeader="Guest"
+        contextHeader="Listing"
+      />
+      <ReviewsTable
+        title="Reviews of guests (by this host)"
+        rows={given}
+        variant="given"
+        empty="This host hasn't rated any guests yet."
+        personHeader="Guest"
+      />
+      {written.length > 0 ? (
+        <ReviewsTable
+          title="Reviews written (as a guest)"
+          rows={written}
+          variant="written"
+          empty="No reviews written."
+          personHeader="Host"
+          contextHeader="Listing"
+        />
       ) : null}
     </div>
   );
 }
 
-function RelationshipsPanel({ data }: { data: UserRecordData }) {
+function FilterSelect({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  children: React.ReactNode;
+}) {
   return (
-    <Section
-      icon={Users}
-      title="Travelled with"
-      count={data.relationships.length}
-      empty="No travel connections yet."
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-9 rounded-pill border border-brand-line bg-white px-3 text-[12.5px] font-medium text-brand-ink focus:border-brand-primary focus:outline-none"
     >
-      {data.relationships.map((rel) => (
-        <RowLink
-          key={rel.id}
-          href={`/admin/users/${rel.id}`}
-          primary={rel.name}
-          secondary={rel.email ?? "No email"}
-        />
-      ))}
-    </Section>
+      {children}
+    </select>
+  );
+}
+
+function RelationshipsPanel({ data }: { data: UserRecordData }) {
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState("recent");
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let out = data.relationships.filter((rel) => {
+      if (!needle) return true;
+      return [rel.name, rel.email, rel.phone]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    });
+    out = [...out].sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      const da = a.connectedAt ?? "";
+      const db = b.connectedAt ?? "";
+      return da < db ? 1 : -1; // most recent first
+    });
+    return out;
+  }, [data.relationships, q, sort]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Users className="h-4 w-4 text-brand-mute" />
+        <h3 className="font-display text-[15px] font-bold text-brand-ink">
+          Travelled with
+        </h3>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {data.relationships.length}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex h-9 min-w-[220px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+          <Search className="h-4 w-4 text-brand-mute" />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search name, email or phone…"
+            className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+          />
+        </div>
+        <FilterSelect value={sort} onChange={setSort}>
+          <option value="recent">Most recent</option>
+          <option value="name">Name (A–Z)</option>
+        </FilterSelect>
+      </div>
+
+      {data.relationships.length === 0 ? (
+        <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center text-[13px] text-brand-mute">
+          No travel connections yet.
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center text-[13px] text-brand-mute">
+          No connections match your search.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {filtered.map((rel) => (
+            <div
+              key={rel.id}
+              className="flex items-start gap-3.5 rounded-card border border-brand-line bg-white p-4 shadow-card"
+            >
+              {rel.avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={rel.avatarUrl}
+                  alt=""
+                  className="h-12 w-12 shrink-0 rounded-pill object-cover ring-1 ring-brand-line"
+                />
+              ) : (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-pill bg-brand-secondary font-display text-sm font-bold text-white">
+                  {initials(rel.name, rel.email)}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[14px] font-bold text-brand-ink">
+                  {rel.name}
+                </div>
+                <div className="mt-1.5 flex flex-col gap-1 text-[12px]">
+                  {rel.email ? (
+                    <a
+                      href={`mailto:${rel.email}`}
+                      className="flex items-center gap-1.5 text-brand-ink hover:text-brand-primary"
+                    >
+                      <Mail className="h-3.5 w-3.5 shrink-0 text-brand-mute" />
+                      <span className="truncate">{rel.email}</span>
+                    </a>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-brand-mute">
+                      <Mail className="h-3.5 w-3.5 shrink-0" /> No email
+                    </span>
+                  )}
+                  {rel.phone ? (
+                    <a
+                      href={`tel:${rel.phone}`}
+                      className="flex items-center gap-1.5 text-brand-ink hover:text-brand-primary"
+                    >
+                      <Phone className="h-3.5 w-3.5 shrink-0 text-brand-mute" />
+                      <span className="truncate">{rel.phone}</span>
+                    </a>
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-brand-mute">
+                      <Phone className="h-3.5 w-3.5 shrink-0" /> No phone
+                    </span>
+                  )}
+                  {rel.connectedAt ? (
+                    <span className="flex items-center gap-1.5 text-brand-mute">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" /> Connected{" "}
+                      {fmtDate(rel.connectedAt)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1752,6 +2368,25 @@ function Lbl({
       </span>
       {children}
     </label>
+  );
+}
+function Select({
+  value,
+  onChange,
+  children,
+}: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+    >
+      {children}
+    </select>
   );
 }
 function Pill({
