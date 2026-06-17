@@ -98,6 +98,19 @@ export type EditorAmenity = {
   roomId: string | null;
 };
 
+export type EditorSeasonalRule = {
+  id: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  adjustmentType: "absolute" | "percent";
+  adjustmentValue: number;
+  currency: string;
+  minNights: number | null;
+  priority: number;
+  isActive: boolean;
+};
+
 export type EditorRoom = {
   id: string;
   name: string;
@@ -225,6 +238,7 @@ export function Editor({
   amenities,
   photos: initialPhotos,
   rooms: initialRooms,
+  seasonalRules,
   availableAddons,
   assignedAddons,
   availablePolicies,
@@ -241,6 +255,7 @@ export function Editor({
   amenities: EditorAmenity[];
   photos: EditorPhoto[];
   rooms: EditorRoom[];
+  seasonalRules: EditorSeasonalRule[];
   availableAddons: AvailableAddon[];
   assignedAddons: AssignedAddon[];
   availablePolicies: AvailablePolicy[];
@@ -531,7 +546,9 @@ export function Editor({
               initialAssigned={assignedAddons}
             />
           ) : null}
-          {active === "pricing" ? <PricingTab listing={listing} /> : null}
+          {active === "pricing" ? (
+            <PricingTab listing={listing} seasonalRules={seasonalRules} />
+          ) : null}
           {active === "policies" ? (
             <PoliciesTab
               listingId={listing.id}

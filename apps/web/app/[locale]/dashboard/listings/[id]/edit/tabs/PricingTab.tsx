@@ -25,8 +25,9 @@ import {
 import { Input } from "@/components/ui/input";
 
 import { saveListingPatchAction } from "../actions";
-import type { EditorListing } from "../Editor";
+import type { EditorListing, EditorSeasonalRule } from "../Editor";
 import { pricingSchema, type PricingInput } from "../schemas";
+import { SeasonalSection } from "./SeasonalSection";
 
 function toMoney(v: string): number | null {
   if (v === "") return null;
@@ -38,7 +39,13 @@ function numToStr(v: number | null | undefined): string {
   return v == null ? "" : String(v);
 }
 
-export function PricingTab({ listing }: { listing: EditorListing }) {
+export function PricingTab({
+  listing,
+  seasonalRules,
+}: {
+  listing: EditorListing;
+  seasonalRules: EditorSeasonalRule[];
+}) {
   const [pending, start] = useTransition();
   const form = useForm<PricingInput>({
     resolver: zodResolver(pricingSchema),
@@ -310,6 +317,14 @@ export function PricingTab({ listing }: { listing: EditorListing }) {
             </div>
           </form>
         </Form>
+
+        <div className="mt-6">
+          <SeasonalSection
+            listingId={listing.id}
+            currency={listing.currency || "ZAR"}
+            initial={seasonalRules}
+          />
+        </div>
       </CardContent>
     </Card>
   );

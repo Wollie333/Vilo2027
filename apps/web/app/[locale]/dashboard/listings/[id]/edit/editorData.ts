@@ -11,6 +11,7 @@ import {
   type EditorListing,
   type EditorPhoto,
   type EditorRoom,
+  type EditorSeasonalRule,
 } from "./Editor";
 import { type PricingModel } from "../../../addons/schemas";
 import { type PolicyType } from "../../../policies/schemas";
@@ -27,6 +28,7 @@ export type ListingEditorData = {
   amenities: EditorAmenity[];
   photos: EditorPhoto[];
   rooms: EditorRoom[];
+  seasonalRules: EditorSeasonalRule[];
   availableAddons: AvailableAddon[];
   assignedAddons: AssignedAddon[];
   availablePolicies: AvailablePolicy[];
@@ -116,6 +118,7 @@ export async function loadListingEditorData(
     { data: listingPolicyRows },
     { data: accessRow },
     { data: localPickRows },
+    { data: seasonalRows },
   ] = await Promise.all([
     db
       .from("listing_amenities")
@@ -171,6 +174,16 @@ export async function loadListingEditorData(
       .select("category, title, blurb, distance_label, sort_order")
       .eq("listing_id", listingId)
       .order("sort_order", { ascending: true }),
+    // Listing-wide seasonal rules (room-scoped rules are managed in the
+    // dedicated seasonal-pricing page; the editor section is listing-wide).
+    db
+      .from("listing_seasonal_pricing")
+      .select(
+        "id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
+      )
+      .eq("listing_id", listingId)
+      .is("room_id", null)
+      .order("start_date", { ascending: true }),
   ]);
 
   const amenities: EditorAmenity[] = (amenityRows ?? []).map((r) => ({
@@ -279,6 +292,18 @@ export async function loadListingEditorData(
     blurb: r.blurb ?? "",
     distance_label: r.distance_label ?? "",
   }));
+  const seasonalRules: EditorSeasonalRule[] = (seasonalRows ?? []).map((r) => ({
+    id: r.id,
+    label: r.label,
+    startDate: r.start_date,
+    endDate: r.end_date,
+    adjustmentType: r.adjustment_type === "percent" ? "percent" : "absolute",
+    adjustmentValue: Number(r.adjustment_value),
+    currency: r.currency ?? "ZAR",
+    minNights: r.min_nights,
+    priority: r.priority ?? 0,
+    isActive: r.is_active ?? true,
+  }));
 
   const [categoryLeavesAll, amenityGroups, { data: businessRows }] =
     await Promise.all([
@@ -312,6 +337,7 @@ export async function loadListingEditorData(
     amenities,
     photos,
     rooms,
+    seasonalRules,
     availableAddons,
     assignedAddons,
     availablePolicies,

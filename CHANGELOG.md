@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-17 — Seasonal pricing in the listing editor (host + admin)
+
+### Built
+- **Seasonal pricing moved into the listing editor's Pricing tab.** A new
+  `SeasonalSection` lets hosts add/edit/activate/delete listing-wide date-range
+  rules (set nightly price or +/- percent, optional min-nights, priority) right
+  where the base price lives. Rules load via `loadListingEditorData` (SSR).
+- **Admin inherits it** — the admin reuses the same editor, and the new
+  listing-scoped actions (`createSeasonalRuleForListingAction` etc.) resolve
+  ownership through `resolveListingHostContext`: owner → RLS, platform staff →
+  service-role + audit. So admins manage any host's seasons from the user record.
+
 ## 2026-06-17 — Admin user record: Add-ons & policies tab + Website placeholder
 
 ### Built
