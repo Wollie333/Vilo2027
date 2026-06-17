@@ -78,11 +78,22 @@
 > folders (`__site`) are non-routable in Next, and a 2nd route-group root layout can't
 > coexist with the non-grouped `[locale]` root. Booking CTAs deep-link the engine. Chrome
 > reads live columns (published_snapshot fast-path → W10).
-> **Next: W5 — middleware host routing + wildcard** (plan §8.5): host classifier in
-> `middleware.ts` (APP_HOSTS allowlist runs FIRST, unchanged for app domains; else rewrite
-> tenant host → `/<defaultLocale>/site/<path>` + set `x-vilo-site-host`), `RESERVED` subs
-> module, `NEXT_PUBLIC_ROOT_DOMAIN`, wildcard `*.vilo.site` DNS + Vercel domain, and an
-> AUTOMATED TEST that the app domain still routes through next-intl/session. Fresh session.
+> **W5 (middleware host routing, plan §8.5/§3) DONE** (commit `de12cdf`):
+> `lib/site/host.ts` pure classifier (`classifyHost` app vs {site,ref}, `RESERVED_SUBDOMAINS`,
+> `siteRewritePath`, `isSeoFile`) — FAIL-SAFE (no `NEXT_PUBLIC_ROOT_DOMAIN` ⇒ all app, opt-in
+> by env). `middleware.ts`: classifier FIRST; tenant host → rewrite `/<defaultLocale>/site<path>`
+> + `x-vilo-site-host`, NO next-intl/NO session (no cookies on tenant hosts); app hosts UNCHANGED;
+> sitemap.xml/robots.txt added to matcher. `host.test.ts` 10 tests (the mandated app-routing-
+> unchanged guard) — vitest 49/49 green. `ENV_VARS.md` + new `WEBSITE_HOSTING.md` (DNS/Vercel ops,
+> reserved subs, `?site=` pre-DNS testing). **OPS TODO (founder):** set `NEXT_PUBLIC_ROOT_DOMAIN=
+> vilo.site`, add wildcard `*.vilo.site` DNS + Vercel project domain (the on-switch + DNS are
+> external; code is ready and inert until then). Shell `<html lang>` is `en` for tenants (site
+> language still drives content via business default_language) — refine later if wanted.
+> **Next: W6 — create-site flow + builder shell** (plan §8.6): `/dashboard/website` create CTA
+> (`createWebsiteAction`: derive+reserved-check subdomain via `RESERVED_SUBDOMAINS`, seed home/about
+> pages + flagship `website_properties`/`website_rooms` sync) + tabbed `[websiteId]` layout +
+> disabled Publish; replace the W2 ComingSoon placeholder. ALSO build the deferred-from-W2
+> **business/website switcher** here (its first consumer). Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

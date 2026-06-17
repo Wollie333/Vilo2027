@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 5: middleware host routing
+
+### Added
+- **Tenant micro-sites now route by host** (plan §8.5 / §3). `lib/site/host.ts` —
+  a pure, unit-tested host classifier (no Next imports): `classifyHost(host, root)`
+  → app vs `{site, ref}`, `RESERVED_SUBDOMAINS`, `siteRewritePath`, `isSeoFile`.
+  **Fail-safe:** with no `NEXT_PUBLIC_ROOT_DOMAIN`, everything classifies as app,
+  so app routing can never regress — the feature is opt-in by env.
+- `middleware.ts`: the host classifier runs **first**. Tenant hosts
+  (`<sub>.vilo.site` / custom domains) → rewrite to `/<defaultLocale>/site<path>`
+  + `x-vilo-site-host` header, with **no next-intl and no session refresh** (never
+  set cookies on a tenant host). App hosts → the existing pipeline, **unchanged**.
+  `sitemap.xml` + `robots.txt` added to the matcher so they rewrite on tenant
+  hosts and pass through (no i18n redirect) on app hosts.
+- `lib/site/host.test.ts` — 10 tests, incl. **the mandated guard** that every app
+  hostname (root/www/app/localhost/`*.vercel.app`/reserved/locale subs) stays on
+  the app branch; plus tenant subdomain, custom domain, and `foo.localhost` dev.
+- `ENV_VARS.md`: `NEXT_PUBLIC_ROOT_DOMAIN` (the feature switch) + Vercel domain
+  creds. New `WEBSITE_HOSTING.md`: routing model, reserved subs, one-time DNS/
+  Vercel ops, local-dev + pre-DNS `?site=` testing.
+
+### Verification
+- `pnpm build` + `pnpm lint` + `pnpm type-check` green; **vitest 49/49** (10 new).
+
+---
+
 ## 2026-06-17 — Website CMS Phase 4: public site routes + loadSitePage
 
 ### Added
