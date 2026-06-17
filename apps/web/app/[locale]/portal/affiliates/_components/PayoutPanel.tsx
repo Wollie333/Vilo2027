@@ -179,23 +179,27 @@ export function PayoutPanel({
           </p>
         ) : null}
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line lg:grid-cols-4">
           <BalanceCard
             label="Available now"
             value={formatMoney(balance.available, currency)}
-            strong
+            hint="Ready to withdraw"
           />
           <BalanceCard
             label="Pending (clearing)"
             value={formatMoney(balance.pending, currency)}
+            hint="Clears after the hold window"
           />
           <BalanceCard
             label="Paid out"
             value={formatMoney(balance.paid, currency)}
+            hint="All-time"
           />
           <BalanceCard
             label="Lifetime earned"
             value={formatMoney(balance.lifetime, currency)}
+            hint="Gross commission"
+            dark
           />
         </div>
       </div>
@@ -573,22 +577,37 @@ function Field({
 function BalanceCard({
   label,
   value,
-  strong,
+  hint,
+  dark,
 }: {
   label: string;
   value: string;
-  strong?: boolean;
+  hint?: string;
+  dark?: boolean;
 }) {
   return (
-    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-brand-mute">
+    <div className={`p-4 ${dark ? "bg-brand-secondary" : "bg-[#FAFCFB]"}`}>
+      <div
+        className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
+          dark ? "text-white/70" : "text-brand-mute"
+        }`}
+      >
         {label}
       </div>
       <div
-        className={`mt-2 font-display font-bold text-brand-ink ${strong ? "text-3xl" : "text-2xl"}`}
+        className={`num mt-2 font-display text-[24px] font-bold leading-none ${
+          dark ? "text-white" : "text-brand-ink"
+        }`}
       >
         {value}
       </div>
+      {hint ? (
+        <div
+          className={`mt-1.5 text-[11px] ${dark ? "text-brand-accent" : "text-brand-mute"}`}
+        >
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
