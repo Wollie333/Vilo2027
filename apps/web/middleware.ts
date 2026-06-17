@@ -1,7 +1,8 @@
 import createMiddleware from "next-intl/middleware";
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { routing } from "@/i18n/routing";
+import { classifyHost, isSeoFile, siteRewritePath } from "@/lib/site/host";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const handleI18n = createMiddleware(routing);
@@ -13,7 +14,33 @@ const handleI18n = createMiddleware(routing);
 const FUNCTIONAL = /^\/(api|ical|auth|unsubscribe|quote|r)(\/|$)/;
 
 export async function middleware(request: NextRequest) {
-  if (FUNCTIONAL.test(request.nextUrl.pathname)) {
+  const { pathname } = request.nextUrl;
+
+  // ─── Host classifier runs FIRST ──────────────────────────────
+  // Tenant micro-sites (<sub>.vilo.site / custom domains) are rewritten into the
+  // public site routes and given the x-vilo-site-host header. They do NOT run
+  // next-intl and do NOT refresh the Supabase session — no cookies are ever set
+  // on a tenant host. App hosts fall through to the UNCHANGED pipeline below.
+  // Fail-safe: with no NEXT_PUBLIC_ROOT_DOMAIN, classifyHost() always returns
+  // "app", so app routing can never regress.
+  const host = classifyHost(
+    request.headers.get("host"),
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+  );
+  if (host.kind === "site") {
+    const url = request.nextUrl.clone();
+    url.pathname = siteRewritePath(pathname, routing.defaultLocale);
+    const headers = new Headers(request.headers);
+    headers.set("x-vilo-site-host", host.ref);
+    return NextResponse.rewrite(url, { request: { headers } });
+  }
+
+  // ─── App hosts: existing behaviour, UNCHANGED ────────────────
+  // Bare-host SEO files are plain route handlers (the app's /sitemap.xml); never
+  // run them through next-intl, which would 307 them to /en/sitemap.xml.
+  if (isSeoFile(pathname)) return NextResponse.next();
+
+  if (FUNCTIONAL.test(pathname)) {
     return await updateSession(request);
   }
 
@@ -28,7 +55,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Run on everything except Next internals and files with an extension
-  // (assets, sitemap.xml, robots.txt, favicon). api/ical/etc. still match here
-  // and are routed to the Supabase-only branch above.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  // (assets, favicon). api/ical/etc. still match here and route to the
+  // Supabase-only branch above. sitemap.xml + robots.txt are listed explicitly
+  // so the host classifier can rewrite them on tenant hosts (and pass them
+  // through untouched on app hosts).
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
+    "/sitemap.xml",
+    "/robots.txt",
+  ],
 };

@@ -31,6 +31,31 @@ This file documents every environment variable used across the platform, what it
 | `BANKING_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `PAYMENT_CIPHER_KEY` | Server only | — | ✅ | ✅ |
 | `ICAL_TOKEN_SECRET` | Server only | — | — | ✅ |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | ✅ | — | — | Website CMS |
+| `VERCEL_TOKEN` | Server only | — | ✅ | Custom domains |
+| `VERCEL_PROJECT_ID` | Server only | — | ✅ | Custom domains |
+| `VERCEL_TEAM_ID` | Server only | — | ✅ | Custom domains |
+
+---
+
+## Website CMS (hosted micro-sites)
+
+### `NEXT_PUBLIC_ROOT_DOMAIN`
+The apex domain tenant micro-sites hang off of — e.g. `vilo.site`. **This single
+var is the feature switch for host-based site routing.** When unset, the
+middleware classifies EVERY request as the app (host routing is a no-op), so the
+platform behaves exactly as before. When set:
+- `vilo.site`, `www.vilo.site`, `app.vilo.site`, `localhost`, `*.vercel.app` and
+  every reserved subdomain stay on the app.
+- `<sub>.vilo.site` (non-reserved) and any connected custom domain are rewritten
+  into the public site routes (`/<locale>/site/…`) with an `x-vilo-site-host`
+  header. See `WEBSITE_HOSTING.md`.
+- Local dev: set it (e.g. `vilo.site`) and visit `<sub>.localhost:3000`.
+
+### `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`
+Server/Edge-only credentials for the custom-domain connect + verification flow
+(Vercel Domains API), used by the `website-domain-connect`/`website-domain-poll`
+work (later phase). Not needed for subdomain-only hosting.
 
 ---
 
