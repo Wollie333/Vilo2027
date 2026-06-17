@@ -16,7 +16,10 @@
 > Ledger/booking core is NOT touched. Each phase: migration → `db push --linked` → gen types
 > → code sweep → `pnpm build`+`pnpm lint`+query-sweep → commit → (optionally start fresh session).
 >
-> **Status:** R0 done (inventory). Next: **R1 — leaf tables.**
+> **Status:** R0 done (inventory); R1 done (8 leaf tables `listing_*→property_*`,
+> commit `ca78d20`; `listing_view_events` deferred to R3). Next: **R2 — core tables**
+> (`listings→properties` + core children `listing_rooms/photos/amenities/seasonal_pricing/
+> policies/addons`; recreate pricing/policy/availability fns; sweep `.from()`/embeds/types).
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
