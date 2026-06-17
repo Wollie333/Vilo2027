@@ -57,11 +57,20 @@
 > a `vilo_active_business` cookie now would be a no-op — views are all-businesses, Ledger/
 > Guest-record use `?business=`); (b) Policies/Staff as Settings tabs (route move); (c) the
 > ~50 hardcoded "Listing" headings → i18n sweep.
-> **Next: W3 — shared section components + renderer** (plan §8.3): build
-> `components/site/*` (Hero/Intro/Highlights/Gallery/RoomsPreview/Location/Reviews/Cta/
-> HostBio/Values/BlogPreview/RichText/Faq), `SectionRenderer`, `SiteThemeRoot`, `SiteChrome`,
-> `lib/site/themes.ts`, against the Zod schema from W1 (`lib/website/sections.schema.ts`);
-> verify via a temp preview route. Fresh session per phase.
+> **W3 (shared section components + renderer, plan §2/§8.3) DONE** (commit `<W3>`):
+> the ONE presentational component set (preview === public) — `lib/site/themes.ts`
+> (5 presets → `--site-*` vars via `buildSiteVars`), `components/site/SiteThemeRoot`
+> (scopes the vars), `SiteChrome` (header/nav/footer + Book CTA), `lib/site/types.ts`
+> (auto-populate `SiteData` shapes + `dataFor`), 13 `components/site/sections/*` +
+> `_shared`, and `SectionRenderer` (switch(type), passes live `data` to auto sections +
+> an `asset` path→URL resolver to hero/host_bio). Pure presentational, no fetching, read
+> `--site-*` only. Temp harness at `dashboard/website/preview` (sample data + preset
+> switcher; sample sections validated through W1 `sectionsSchema`). Build+lint+type-check
+> green. **Next: W4 — public `(site)` route group** (plan §8.4): `app/(site)/` +
+> `lib/site/loadSitePage.ts` (resolve website by host header / temporary `?site=<sub>`;
+> chrome from `published_snapshot`; published_sections public / draft in preview; wire the
+> auto-populate loaders reusing `firstPhotoByRoom`/`loadListingReviews`/POIs) + blog +
+> sitemap/robots, testable on the app domain via `?site=`. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

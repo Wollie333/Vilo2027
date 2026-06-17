@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 3: shared section components + renderer
+
+### Added
+- **The ONE set of presentational site components** (plan §2/§8.3) — preview ===
+  public. Pure presentational, no data fetching inside; they read scoped
+  `--site-*` CSS vars only (never the app's `brand-*` tokens) so each tenant site
+  themes independently.
+- `lib/site/themes.ts` — 5 theme presets (classic/modern/coastal/warm/minimal) →
+  palette + font stack + radius; `buildSiteVars(theme)` emits the `--site-*` vars
+  (with accent override + auto on-accent ink by luminance).
+- `components/site/SiteThemeRoot.tsx` — injects + scopes the vars; `SiteChrome.tsx`
+  — header/nav/footer + Book CTA; `lib/site/types.ts` — auto-populate data shapes
+  (`SiteData` keyed by section id) + `dataFor` lookup helper.
+- `components/site/sections/*` — 13 section components (Hero, Intro, Highlights,
+  Gallery, RoomsPreview, Location, Reviews, Cta, HostBio, Values, BlogPreview,
+  RichText, Faq) + `_shared` primitives. Free-form sections render `props`;
+  auto-populate sections render injected live `data`; image-bearing free-form
+  sections take an injected `asset` resolver (path→URL). Faq uses native
+  `<details>` (no client JS); RichText renders pre-sanitised HTML.
+- `components/site/SectionRenderer.tsx` — the shared switch(type) renderer used by
+  both the dashboard preview and (later) the public site; filters disabled
+  sections, passes data to auto sections and the asset resolver to image ones.
+- Temp dev harness at `dashboard/website/preview` — renders all 13 sections via
+  the real renderer with sample data + a preset switcher (sample sections run
+  through the W1 `sectionsSchema`, validating that contract too). Removed when the
+  live builder preview lands (W6/W8).
+
+### Verification
+- `pnpm type-check` + `pnpm lint` + `pnpm build` green (preview route compiles;
+  only the 2 pre-existing `<img>` warnings).
+
+---
+
 ## 2026-06-17 — Website CMS Phase 2: channel-based sidebar IA
 
 ### Changed
