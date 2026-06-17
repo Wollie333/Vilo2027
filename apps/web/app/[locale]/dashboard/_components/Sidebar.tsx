@@ -3,20 +3,17 @@
 import {
   BadgePercent,
   BarChart3,
-  BedDouble,
   Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
-  CalendarRange,
   CreditCard,
   FileMinus,
   FileText,
+  Globe,
   Home as HomeIcon,
   LayoutDashboard,
   LifeBuoy,
-  MapPin,
   MessageSquare,
-  PackagePlus,
   Receipt,
   RotateCcw,
   RotateCw,
@@ -25,6 +22,7 @@ import {
   ShieldCheck,
   Star,
   Ticket,
+  UserCog,
   Users,
 } from "lucide-react";
 import { Link } from "@/i18n/navigation";
@@ -36,35 +34,50 @@ import {
 } from "@/app/_components/GmailNav";
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
-const MAIN: GmailNavItem[] = [
+// Channel-based IA (plan §5). Five groups: an always-open daily-driver block,
+// then collapsible PROPERTIES / CHANNELS / FINANCES / INSIGHTS. Rooms, Seasonal
+// pricing, Add-ons and per-property Policies are folded into the per-Property
+// editor's tabs (Rooms/Pricing/Add-ons/Policies) so they no longer need their
+// own nav rows. Account-level Policies + Staff stay reachable in the footer
+// until they're nested as Settings tabs (route move — follow-up).
+
+const DAILY: GmailNavItem[] = [
   {
     href: "/dashboard",
     label: "Overview",
     icon: LayoutDashboard,
     match: "exact",
   },
-  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
-  { href: "/dashboard/guests", label: "Guests", icon: Users, match: "prefix" },
-  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
+  { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
+  { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/dashboard/guests", label: "Guests", icon: Users, match: "prefix" },
+];
+
+const PROPERTIES: GmailNavItem[] = [
   {
     href: "/dashboard/properties",
     label: "Properties",
     icon: HomeIcon,
     match: "prefix",
   },
-  { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
-  {
-    href: "/dashboard/seasonal-pricing",
-    label: "Seasonal pricing",
-    icon: CalendarRange,
-  },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
+];
+
+const CHANNELS: GmailNavItem[] = [
   {
-    href: "/dashboard/listing-extras",
-    label: "Listing extras",
-    icon: MapPin,
+    href: "/dashboard/website",
+    label: "Website",
+    icon: Globe,
     match: "prefix",
+    badge: { text: "NEW", tone: "count" },
+  },
+  { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
+  {
+    href: "/dashboard/channels",
+    label: "OTA channels",
+    icon: Cable,
+    badge: { text: "PRO", tone: "pro" },
   },
 ];
 
@@ -97,32 +110,9 @@ const FINANCES: GmailNavItem[] = [
   { href: "/dashboard/refunds", label: "Refunds", icon: RotateCcw },
 ];
 
-const CONNECT: GmailNavItem[] = [
-  {
-    href: "/dashboard/channels",
-    label: "Channels",
-    icon: Cable,
-    badge: { text: "PRO", tone: "pro" },
-  },
-  { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
-  { href: "/dashboard/staff", label: "Staff", icon: Users },
-];
-
-const TOOLS: GmailNavItem[] = [
-  {
-    href: "/dashboard/addons",
-    label: "Add-ons",
-    icon: PackagePlus,
-    badge: { text: "PRO", tone: "pro" },
-  },
-  { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
+const INSIGHTS: GmailNavItem[] = [
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
-  {
-    href: "/dashboard/policies",
-    label: "Policies",
-    icon: ShieldCheck,
-    match: "prefix",
-  },
+  { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
   // The affiliate programme lives in the universal portal area (open to every
   // user). Hosts reach it via this cross-workspace link.
   {
@@ -134,6 +124,13 @@ const TOOLS: GmailNavItem[] = [
 ];
 
 const FOOTER: GmailNavItem[] = [
+  {
+    href: "/dashboard/policies",
+    label: "Policies",
+    icon: ShieldCheck,
+    match: "prefix",
+  },
+  { href: "/dashboard/staff", label: "Staff", icon: UserCog },
   {
     href: "/dashboard/settings",
     label: "Settings",
@@ -170,7 +167,7 @@ export function Sidebar({
         ? plan[0].toUpperCase() + plan.slice(1)
         : "—";
 
-  const mainItems = MAIN.map((item) => {
+  const dailyItems = DAILY.map((item) => {
     if (item.href === "/dashboard/inbox" && inboxUnread > 0) {
       return {
         ...item,
@@ -184,10 +181,11 @@ export function Sidebar({
   });
 
   const sections: GmailNavSection[] = [
-    { items: mainItems },
-    { label: "Finances", items: FINANCES },
-    { label: "Connect", items: CONNECT },
-    { label: "Tools", items: TOOLS },
+    { items: dailyItems },
+    { label: "Properties", items: PROPERTIES, collapsible: true },
+    { label: "Channels", items: CHANNELS, collapsible: true },
+    { label: "Finances", items: FINANCES, collapsible: true },
+    { label: "Insights", items: INSIGHTS, collapsible: true },
   ];
 
   return (
