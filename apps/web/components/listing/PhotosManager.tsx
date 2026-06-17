@@ -10,7 +10,7 @@ import {
   deleteListingPhotoAction,
   registerListingPhotoAction,
   reorderListingPhotosAction,
-} from "@/app/[locale]/dashboard/listings/[id]/edit/actions";
+} from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 import { createClient } from "@/lib/supabase/client";
 
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];

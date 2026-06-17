@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   assignAmenityToRoomAction,
   replaceAmenitiesAction,
-} from "@/app/[locale]/dashboard/listings/[id]/edit/actions";
+} from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
 type Item = { id: string; key: string; roomId: string | null };

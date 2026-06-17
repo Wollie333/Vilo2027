@@ -10,12 +10,12 @@ import {
   SelectInput,
   TextInput,
 } from "@/app/[locale]/dashboard/setup/_atoms";
-import { saveListingPatchAction } from "@/app/[locale]/dashboard/listings/[id]/edit/actions";
+import { saveListingPatchAction } from "@/app/[locale]/dashboard/properties/[id]/edit/actions";
 import {
   SA_PROVINCES,
   locationSchema,
   type LocationInput,
-} from "@/app/[locale]/dashboard/listings/[id]/edit/schemas";
+} from "@/app/[locale]/dashboard/properties/[id]/edit/schemas";
 import { LocationPicker } from "@/components/location/LocationPicker";
 
 type LocationListing = {

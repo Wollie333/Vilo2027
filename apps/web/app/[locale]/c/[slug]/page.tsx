@@ -202,7 +202,7 @@ export default async function CategoryLandingPage({
               return (
                 <Link
                   key={l.id}
-                  href={`/listing/${l.slug}`}
+                  href={`/property/${l.slug}`}
                   className="group overflow-hidden rounded-card"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-brand-accent">

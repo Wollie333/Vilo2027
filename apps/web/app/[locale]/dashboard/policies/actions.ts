@@ -329,7 +329,7 @@ export async function createPolicyForListingAction(
   if (!result.ok) return result;
 
   await ensureDefaults(ctx.hostId);
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/policies");
   return result;
 }
@@ -359,7 +359,7 @@ export async function updatePolicyForListingAction(
 
   const result = await applyPolicyUpdate(ctx.db, policyId, input);
   if (result.ok) {
-    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath(`/dashboard/properties/${listingId}/edit`);
     revalidatePath("/dashboard/policies");
   }
   return result;
@@ -856,7 +856,7 @@ export async function setListingPolicyAction(
   if (policyId === null) {
     const { error } = await clearScope();
     if (error) return { ok: false, error: "Could not remove policy." };
-    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath(`/dashboard/properties/${listingId}/edit`);
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/setup");
     return { ok: true };
@@ -897,7 +897,7 @@ export async function setListingPolicyAction(
     }
   }
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/setup");
   return { ok: true };

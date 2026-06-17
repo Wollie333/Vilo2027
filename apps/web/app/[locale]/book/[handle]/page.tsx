@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 // A host's permanent, shareable DIRECT-BOOKING link: vilo.../book/{handle}.
 // It drops the guest straight into checkout, skipping the listing detail page.
-//  • one published listing  → redirect to /listing/{slug}/book
+//  • one published listing  → redirect to /property/{slug}/book
 //  • several                → a tiny "pick where to stay" page, each going to /book
 //  • none                   → a friendly "not taking bookings yet" message
 // Public + anonymous (the /book page itself allows guest checkout without login).
@@ -69,7 +69,7 @@ export default async function DirectBookingPage({
 
   // Straight to checkout when there's a single place — the whole point of the link.
   if (live.length === 1) {
-    redirect(`/listing/${live[0].slug}/book`);
+    redirect(`/property/${live[0].slug}/book`);
   }
 
   if (live.length === 0) {
@@ -112,7 +112,7 @@ export default async function DirectBookingPage({
             return (
               <Link
                 key={l.slug}
-                href={`/listing/${l.slug}/book`}
+                href={`/property/${l.slug}/book`}
                 className="group overflow-hidden rounded-card border border-brand-line bg-white shadow-card transition hover:shadow-lift"
               >
                 <div className="relative aspect-[16/10] bg-brand-accent/40">

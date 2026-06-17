@@ -137,7 +137,7 @@ export default async function CalendarSyncPage() {
                       {listing.name}
                     </div>
                     <Link
-                      href={`/dashboard/listings/${listing.id}/edit`}
+                      href={`/dashboard/properties/${listing.id}/edit`}
                       className="text-[11px] font-medium text-brand-primary hover:underline"
                     >
                       Edit listing →

@@ -24,7 +24,7 @@ const ITEMS: Item[] = [
   { href: "/dashboard/bookings", label: "Bookings", icon: CalendarCheck },
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   {
-    href: "/dashboard/listings",
+    href: "/dashboard/properties",
     label: "Listings",
     icon: HomeIcon,
     match: "prefix",

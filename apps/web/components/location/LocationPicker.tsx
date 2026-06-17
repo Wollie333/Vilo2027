@@ -8,7 +8,7 @@ import { useEffect, useId, useRef, useState } from "react";
 // Keyless OpenStreetMap location picker — no API token, no paid service.
 // Type-ahead search uses Photon (komoot's free OSM geocoder, built for
 // autocomplete); the interactive map is Leaflet on OSM tiles (already a repo
-// dependency, see app/listing/[slug]/LocationMap). Three ways to set the pin:
+// dependency, see app/property/[slug]/LocationMap). Three ways to set the pin:
 //   1. Type an address → suggestions appear → pick one (fills every field).
 //   2. Click the map → drops the pin and reverse-geocodes the address.
 //   3. Drag the pin → same as a click at the new spot.

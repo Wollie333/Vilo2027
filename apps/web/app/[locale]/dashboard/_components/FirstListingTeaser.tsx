@@ -36,7 +36,7 @@ const TILES = [
 
 // "Step 2 of 4" listing-teaser card from the design. Shown only when the
 // host has not yet created their first listing. Each tile deep-links to
-// /dashboard/listings/new with the relevant type pre-selected.
+// /dashboard/properties/new with the relevant type pre-selected.
 export async function FirstListingTeaser() {
   const brandName = await getBrandName();
   return (
@@ -73,7 +73,7 @@ export async function FirstListingTeaser() {
             {TILES.map(({ Icon, title, sub, type, sub_type }) => (
               <Link
                 key={title}
-                href={`/dashboard/listings/new?kind=${type}&type=${sub_type}`}
+                href={`/dashboard/properties/new?kind=${type}&type=${sub_type}`}
                 className="group flex flex-col items-start gap-1.5 rounded-[10px] border border-brand-line p-3 text-left transition hover:-translate-y-px hover:shadow-card"
               >
                 <Icon className="h-4 w-4 text-brand-secondary" />
@@ -87,7 +87,7 @@ export async function FirstListingTeaser() {
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Link
-              href="/dashboard/listings/new"
+              href="/dashboard/properties/new"
               className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-secondary"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} />

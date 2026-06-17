@@ -2,7 +2,7 @@
 // guest count and its pricing mode. Pure, non-client module so SERVER actions,
 // client cart widgets, and the pricing engine all share ONE implementation.
 //
-// Moved here from app/listing/[slug]/roomDisplay.ts so there is a single home
+// Moved here from app/property/[slug]/roomDisplay.ts so there is a single home
 // for the money maths; roomDisplay.ts re-exports these for existing callers.
 
 export type RoomPricingMode = "per_room" | "per_person" | "per_room_plus_extra";

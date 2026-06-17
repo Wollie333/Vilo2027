@@ -142,7 +142,7 @@ function toListingCard(l: ListingCardRow): HomeListingCard {
       : null;
 
   return {
-    href: `/listing/${l.slug}`,
+    href: `/property/${l.slug}`,
     image: heroPhoto(l.photos),
     name: l.name,
     location,

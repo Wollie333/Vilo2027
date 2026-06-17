@@ -120,7 +120,7 @@ export default async function ListingExtrasPage() {
             These extras attach to a listing — create one to get started.
           </p>
           <Link
-            href="/dashboard/listings/new"
+            href="/dashboard/properties/new"
             className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-secondary"
           >
             New listing

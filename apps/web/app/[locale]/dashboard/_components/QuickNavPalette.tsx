@@ -70,7 +70,7 @@ const MAIN: Route[] = [
     keywords: ["dates", "availability"],
   },
   {
-    href: "/dashboard/listings",
+    href: "/dashboard/properties",
     label: "Listings",
     icon: HomeIcon,
     keywords: ["properties", "homes"],

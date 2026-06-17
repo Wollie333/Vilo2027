@@ -75,7 +75,7 @@ export default async function BookingFailedPage({
 
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <Link
-              href={listing.slug ? `/listing/${listing.slug}` : "/"}
+              href={listing.slug ? `/property/${listing.slug}` : "/"}
               className="inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
             >
               {t("tryAgain")}

@@ -444,7 +444,7 @@ export async function createSeasonalRuleForListingAction(
     .single();
   if (error || !row) return { ok: false, error: "Could not create rule." };
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/seasonal-pricing");
   return { ok: true, data: { rule: mapInline(row) } };
 }
@@ -496,7 +496,7 @@ export async function updateSeasonalRuleForListingAction(
     .single();
   if (error || !row) return { ok: false, error: "Could not save rule." };
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/seasonal-pricing");
   return { ok: true, data: { rule: mapInline(row) } };
 }
@@ -518,7 +518,7 @@ export async function deleteSeasonalRuleForListingAction(
     .eq("property_id", listingId);
   if (error) return { ok: false, error: "Could not delete rule." };
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/seasonal-pricing");
   return { ok: true };
 }
@@ -541,7 +541,7 @@ export async function toggleSeasonalRuleForListingAction(
     .eq("property_id", listingId);
   if (error) return { ok: false, error: "Could not update rule." };
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/seasonal-pricing");
   return { ok: true };
 }

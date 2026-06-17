@@ -577,7 +577,7 @@ export default async function QuoteDetailPage({
                 <div className="min-w-0 flex-1">
                   {listing?.slug ? (
                     <Link
-                      href={`/listing/${listing.slug}`}
+                      href={`/property/${listing.slug}`}
                       target="_blank"
                       className="font-display text-[16px] font-bold text-brand-ink hover:text-brand-primary"
                     >

@@ -18,8 +18,8 @@ import { Link } from "@/i18n/navigation";
 
 import { createServerClient } from "@/lib/supabase/server";
 
-import type { EditorRoom } from "../listings/[id]/edit/Editor";
-import { type BedKind, bedKindLabel } from "../listings/[id]/edit/schemas";
+import type { EditorRoom } from "../properties/[id]/edit/Editor";
+import { type BedKind, bedKindLabel } from "../properties/[id]/edit/schemas";
 
 export const metadata: Metadata = {
   title: "Rooms",
@@ -384,7 +384,7 @@ export default async function RoomsPage({
           title: `${r.name} · no photos`,
           sub: "Rooms with photos get far more bookings.",
           cta: "Upload",
-          href: `/dashboard/listings/${g.listing.id}/edit/rooms/${r.id}`,
+          href: `/dashboard/properties/${g.listing.id}/edit/rooms/${r.id}`,
         });
       } else if (r.is_active && roomRate(r) == null) {
         attention.push({
@@ -392,7 +392,7 @@ export default async function RoomsPage({
           title: `${r.name} · no rate`,
           sub: "Set a nightly rate so guests can book it.",
           cta: "Set rate",
-          href: `/dashboard/listings/${g.listing.id}/edit/rooms/${r.id}`,
+          href: `/dashboard/properties/${g.listing.id}/edit/rooms/${r.id}`,
         });
       }
     }
@@ -434,13 +434,13 @@ export default async function RoomsPage({
 
   const addRoomHref =
     listingsCount === 1
-      ? `/dashboard/listings/${groups[0].listing.id}/edit?tab=rooms&add=1`
-      : "/dashboard/listings";
+      ? `/dashboard/properties/${groups[0].listing.id}/edit?tab=rooms&add=1`
+      : "/dashboard/properties";
 
   if (groups.length === 0) {
     return (
       <div className="space-y-6">
-        <PageHeader addRoomHref="/dashboard/listings/new" />
+        <PageHeader addRoomHref="/dashboard/properties/new" />
         <EmptyStateNoListings />
       </div>
     );
@@ -560,7 +560,7 @@ export default async function RoomsPage({
                   return (
                     <Link
                       key={t.room.id}
-                      href={`/dashboard/listings/${t.listing.id}/edit/rooms/${t.room.id}`}
+                      href={`/dashboard/properties/${t.listing.id}/edit/rooms/${t.room.id}`}
                       className="flex items-center gap-3 px-5 py-3 hover:bg-brand-light/50"
                     >
                       <span className="num w-4 text-center font-display text-[16px] font-bold text-brand-mute">
@@ -640,7 +640,7 @@ function PageHeader({ addRoomHref }: { addRoomHref: string }) {
     <div className="flex flex-wrap items-center gap-3 border-b border-brand-line pb-4">
       <div className="shrink-0">
         <nav className="flex items-center gap-1.5 text-[11.5px] text-brand-mute">
-          <Link href="/dashboard/listings" className="hover:text-brand-ink">
+          <Link href="/dashboard/properties" className="hover:text-brand-ink">
             Listings
           </Link>
           <ChevronRight className="h-3 w-3" />
@@ -893,8 +893,8 @@ function ListingGroupCard({
   const locationLine = [listing.city, listing.province]
     .filter(Boolean)
     .join(", ");
-  const editListingHref = `/dashboard/listings/${listing.id}/edit`;
-  const addRoomHref = `/dashboard/listings/${listing.id}/edit?tab=rooms&add=1`;
+  const editListingHref = `/dashboard/properties/${listing.id}/edit`;
+  const addRoomHref = `/dashboard/properties/${listing.id}/edit?tab=rooms&add=1`;
 
   return (
     <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
@@ -1039,7 +1039,7 @@ function RoomRow({
   room: EditorRoom;
   occ: Occ | undefined;
 }) {
-  const editHref = `/dashboard/listings/${listingId}/edit/rooms/${room.id}`;
+  const editHref = `/dashboard/properties/${listingId}/edit/rooms/${room.id}`;
   const photoCount = room.photos?.length ?? 0;
   const subTitle =
     [describeBeds(room.beds), describeRoomFeatures(room)]
@@ -1276,7 +1276,7 @@ function EmptyStateNoListings() {
         Rooms live inside a listing — create one to start managing rooms.
       </p>
       <Link
-        href="/dashboard/listings/new"
+        href="/dashboard/properties/new"
         className="mt-4 inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-secondary"
       >
         <Plus className="h-4 w-4" />
@@ -1299,7 +1299,7 @@ function EmptyStateNoRooms({ listingId }: { listingId: string }) {
         Add a room to let guests book a single bedroom inside this property.
       </p>
       <Link
-        href={`/dashboard/listings/${listingId}/edit?tab=rooms&add=1`}
+        href={`/dashboard/properties/${listingId}/edit?tab=rooms&add=1`}
         className="mt-1 inline-flex items-center gap-1 rounded-[9px] bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-brand-secondary"
       >
         <Plus className="h-3 w-3" />

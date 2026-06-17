@@ -246,7 +246,7 @@ export default async function DashboardPage({
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(4),
-      "dashboard/listings",
+      "dashboard/properties",
     ),
     throwOnErrorWithCount(
       supabase

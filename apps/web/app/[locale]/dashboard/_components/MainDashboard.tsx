@@ -442,7 +442,7 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
                 Your listings
               </div>
               <Link
-                href="/dashboard/listings"
+                href="/dashboard/properties"
                 className="text-[12px] font-medium text-brand-primary hover:underline"
               >
                 Manage →
@@ -457,7 +457,7 @@ export function MainDashboard({ data: d }: { data: MainDashboardData }) {
                 d.listings.map((l) => (
                   <Link
                     key={l.id}
-                    href="/dashboard/listings"
+                    href="/dashboard/properties"
                     className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-brand-light"
                   >
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[11px] bg-brand-light text-brand-secondary">

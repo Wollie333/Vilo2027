@@ -17,11 +17,11 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 
-import { fetchRoomEditorDataAction } from "../../listings/[id]/edit/actions";
-import type { RoomEditorRoom } from "../../listings/[id]/edit/rooms/[roomId]/RoomEditor";
-import { RoomAmenitiesSection } from "../../listings/[id]/edit/rooms/[roomId]/sections/RoomAmenitiesSection";
-import { RoomDetailsForm } from "../../listings/[id]/edit/rooms/[roomId]/sections/RoomDetailsForm";
-import { RoomPhotosSection } from "../../listings/[id]/edit/rooms/[roomId]/sections/RoomPhotosSection";
+import { fetchRoomEditorDataAction } from "../../properties/[id]/edit/actions";
+import type { RoomEditorRoom } from "../../properties/[id]/edit/rooms/[roomId]/RoomEditor";
+import { RoomAmenitiesSection } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomAmenitiesSection";
+import { RoomDetailsForm } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomDetailsForm";
+import { RoomPhotosSection } from "../../properties/[id]/edit/rooms/[roomId]/sections/RoomPhotosSection";
 
 type StepId = 1 | 2 | 3;
 

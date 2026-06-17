@@ -48,7 +48,7 @@ const MAIN: GmailNavItem[] = [
   { href: "/dashboard/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
   {
-    href: "/dashboard/listings",
+    href: "/dashboard/properties",
     label: "Listings",
     icon: HomeIcon,
     match: "prefix",

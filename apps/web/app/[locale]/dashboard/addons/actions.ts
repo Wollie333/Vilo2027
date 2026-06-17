@@ -286,7 +286,7 @@ export async function createAddonForListingAction(
         : "Could not create add-on.",
     };
   }
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/addons");
   return { ok: true, data: toAddonRow(row) };
 }
@@ -331,7 +331,7 @@ export async function updateAddonForListingAction(
         : "Could not save add-on.",
     };
   }
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   revalidatePath("/dashboard/addons");
   return { ok: true, data: toAddonRow(row) };
 }
@@ -516,7 +516,7 @@ export async function setListingAddonAction(
       .eq("property_id", listingId)
       .eq("addon_id", addonId);
     if (error) return { ok: false, error: "Could not disable add-on." };
-    revalidatePath(`/dashboard/listings/${listingId}/edit`);
+    revalidatePath(`/dashboard/properties/${listingId}/edit`);
     return { ok: true };
   }
 
@@ -543,7 +543,7 @@ export async function setListingAddonAction(
     return { ok: false, error: "Could not save add-on assignment." };
   }
 
-  revalidatePath(`/dashboard/listings/${listingId}/edit`);
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
   return { ok: true };
 }
 

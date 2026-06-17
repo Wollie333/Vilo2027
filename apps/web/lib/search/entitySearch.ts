@@ -66,7 +66,7 @@ export async function searchEntities(rawQuery: string): Promise<SearchResult> {
       kind: "listing",
       title: row.name,
       subtitle: row.city ?? undefined,
-      href: `/dashboard/listings/${row.id}/edit`,
+      href: `/dashboard/properties/${row.id}/edit`,
     });
   }
 

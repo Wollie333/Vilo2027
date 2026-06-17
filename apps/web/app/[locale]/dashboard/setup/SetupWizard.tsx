@@ -28,7 +28,7 @@ import type { BusinessDetailsInput } from "@/app/[locale]/dashboard/settings/ban
 import type { CategoryPickerLeaf } from "@/lib/taxonomy/CategoryPicker";
 import type { AmenityGroupWithItems } from "@/lib/taxonomy/types";
 
-import { togglePublishAction } from "../listings/[id]/edit/actions";
+import { togglePublishAction } from "../properties/[id]/edit/actions";
 import type { PolicyCard } from "../policies/PolicyManager";
 import type { PolicyType } from "../policies/schemas";
 import { SetupPreview } from "./SetupPreview";
@@ -493,7 +493,7 @@ function PublishedModal({
   onClose: () => void;
 }) {
   const slug = listing.slug;
-  const path = slug ? `/listing/${slug}` : null;
+  const path = slug ? `/property/${slug}` : null;
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const displayUrl = path ? `${origin}${path}`.replace(/^https?:\/\//, "") : "";

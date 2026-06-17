@@ -585,7 +585,7 @@ export function ManualBookingForm({
                 }. Pick the one this guest will use.`}
                 action={
                   <Link
-                    href={`/dashboard/listings/${listingId}/edit?tab=rooms`}
+                    href={`/dashboard/properties/${listingId}/edit?tab=rooms`}
                     className="text-[13px] font-medium text-brand-primary hover:underline"
                   >
                     Manage rooms
@@ -1031,7 +1031,7 @@ export function ManualBookingForm({
                 subtitle="Extras the guest can opt into. Selected items show in the summary."
                 action={
                   <Link
-                    href={`/dashboard/listings/${listingId}/edit?tab=addons`}
+                    href={`/dashboard/properties/${listingId}/edit?tab=addons`}
                     className="text-[13px] font-medium text-brand-primary hover:underline"
                   >
                     New add-on

@@ -2,7 +2,7 @@
 // booking action (source of truth) so the two can never drift. Non-client module
 // → safe to import from both "use client" and server code.
 //
-// Moved here from app/listing/[slug]/pricing.ts; that path now re-exports these.
+// Moved here from app/property/[slug]/pricing.ts; that path now re-exports these.
 
 export type StayDiscountInput = {
   /** Room/whole base subtotal, already multiplied by nights (excl. cleaning). */

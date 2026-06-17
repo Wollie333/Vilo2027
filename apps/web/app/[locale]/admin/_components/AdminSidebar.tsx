@@ -39,7 +39,7 @@ const OPERATIONS: GmailNavItem[] = [
   // separate "Hosts" tab is gone; filter by type inside Users instead.
   { href: "/admin/users", label: "Users", icon: Users, match: "prefix" },
   {
-    href: "/admin/listings",
+    href: "/admin/properties",
     label: "Listings",
     icon: HomeIcon,
     match: "prefix",

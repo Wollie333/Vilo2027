@@ -319,7 +319,7 @@ function TripActions({ trip }: { trip: Trip }) {
   // Deep-link to the listing's checkout with the same party size prefilled;
   // dates are left blank for the guest to pick. Falls back to in-portal browse.
   const rebookHref = trip.slug
-    ? `/listing/${trip.slug}/book?guests=${trip.guests}`
+    ? `/property/${trip.slug}/book?guests=${trip.guests}`
     : "/portal/browse";
 
   if (trip.status === "confirmed") {

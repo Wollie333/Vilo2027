@@ -35,9 +35,9 @@ onto `bookings.price_breakdown` so invoices/refunds/support read the exact bill.
 
 | Surface | File | Role |
 |---|---|---|
-| **Authoritative charge** | `app/listing/[slug]/book/actions.ts` | recalculates server-side; never trusts the client; persists the breakdown + records coupon redemption |
-| Checkout estimate | `app/listing/[slug]/book/BookingForm.tsx` | live 3-step summary — equals the charge to the cent (room/date/guest selection happens here, not on the listing) |
-| Single-room page | `app/listing/[slug]/rooms/[roomId]/RoomBookingWidget.tsx` | one-room estimate |
+| **Authoritative charge** | `app/property/[slug]/book/actions.ts` | recalculates server-side; never trusts the client; persists the breakdown + records coupon redemption |
+| Checkout estimate | `app/property/[slug]/book/BookingForm.tsx` | live 3-step summary — equals the charge to the cent (room/date/guest selection happens here, not on the listing) |
+| Single-room page | `app/property/[slug]/rooms/[roomId]/RoomBookingWidget.tsx` | one-room estimate |
 | Host seasonal preview | `app/dashboard/seasonal-pricing/*` | year-at-a-glance |
 
 Server-side coupon validation lives in `@/lib/coupons` (`resolveCoupon`) and is

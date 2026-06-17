@@ -130,7 +130,7 @@ export function WorkspaceSwitcher({
     show: boolean;
   }> = [
     {
-      href: "/dashboard/listings/new",
+      href: "/dashboard/properties/new",
       label: "Create another listing",
       icon: PlusCircle,
       show: canHost,

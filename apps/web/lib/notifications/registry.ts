@@ -683,13 +683,13 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Calendar sync issue",
       body: clip(`We can't reach your ${r.feed_label} feed.`),
-      data: link("/dashboard/listings/[id]/calendar", { id: r.property_id }),
+      data: link("/dashboard/properties/[id]/calendar", { id: r.property_id }),
       sound: null,
     }),
     inApp: (r) => ({
       title: "Calendar sync issue",
       body: r.feed_label,
-      link: `/dashboard/listings/${r.property_id}/calendar`,
+      link: `/dashboard/properties/${r.property_id}/calendar`,
     }),
     dedupeKey: (r) => `ical_error:${r.property_id}:${r.feed_label}`,
   } satisfies EventBuilder<ICalRefs>,

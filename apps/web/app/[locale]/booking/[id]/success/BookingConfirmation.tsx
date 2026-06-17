@@ -1223,7 +1223,7 @@ export function BookingConfirmation({ data }: { data: ConfirmationData }) {
 
         <div className="vc-noprint mt-7 flex flex-wrap items-center justify-between gap-3">
           <Link
-            href={data.listing.slug ? `/listing/${data.listing.slug}` : "/"}
+            href={data.listing.slug ? `/property/${data.listing.slug}` : "/"}
             className="inline-flex items-center gap-1.5 text-sm text-brand-mute hover:text-brand-ink"
           >
             <ArrowLeft className="h-4 w-4" /> Back to listing

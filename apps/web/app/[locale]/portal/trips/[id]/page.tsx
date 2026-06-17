@@ -725,7 +725,7 @@ export default async function PortalTripDetailPage({
         ) : null}
         {listing?.slug ? (
           <Link
-            href={`/listing/${listing.slug}`}
+            href={`/property/${listing.slug}`}
             target="_blank"
             className="inline-flex items-center gap-2 rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
           >
@@ -734,7 +734,7 @@ export default async function PortalTripDetailPage({
         ) : null}
         {listing?.slug ? (
           <Link
-            href={`/listing/${listing.slug}/book?guests=${booking.guests_count}`}
+            href={`/property/${listing.slug}/book?guests=${booking.guests_count}`}
             className="inline-flex items-center gap-2 rounded-[10px] border border-brand-line bg-white px-4 py-2.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
           >
             <RotateCcw className="h-4 w-4 text-brand-primary" /> Book again

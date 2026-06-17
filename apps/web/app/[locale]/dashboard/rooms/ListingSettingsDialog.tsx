@@ -11,8 +11,8 @@ import {
   FormModalFooter,
 } from "@/components/ui/form-modal";
 
-import { setBookingModeAction } from "../listings/[id]/edit/actions";
-import { BOOKING_MODES } from "../listings/[id]/edit/schemas";
+import { setBookingModeAction } from "../properties/[id]/edit/actions";
+import { BOOKING_MODES } from "../properties/[id]/edit/schemas";
 
 export type BookingMode = "whole_listing" | "rooms_only" | "flexible";
 

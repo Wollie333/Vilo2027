@@ -224,7 +224,7 @@ export default async function PortalOverviewPage() {
             {rebookStays.map((s) => (
               <Link
                 key={s.slug}
-                href={`/listing/${s.slug}/book?guests=${s.guests}`}
+                href={`/property/${s.slug}/book?guests=${s.guests}`}
                 className="flex items-center justify-between gap-3 rounded-card border border-brand-line bg-white p-4 shadow-card transition hover:border-brand-primary/40 hover:shadow-lift"
               >
                 <div className="min-w-0">

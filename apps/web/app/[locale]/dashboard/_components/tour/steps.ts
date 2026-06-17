@@ -44,7 +44,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     key: "listings",
-    selector: 'nav a[href$="/dashboard/listings"]',
+    selector: 'nav a[href$="/dashboard/properties"]',
     placement: "right",
   },
   {

@@ -138,7 +138,7 @@ export function SendForm() {
                 type="url"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
-                placeholder="/dashboard/listings/abc"
+                placeholder="/dashboard/properties/abc"
               />
             </div>
             <div>

@@ -4,8 +4,8 @@ import { ExternalLink } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 
-import type { EditorRoom } from "../listings/[id]/edit/Editor";
-import { RoomsManager } from "../listings/[id]/edit/tabs/RoomsManager";
+import type { EditorRoom } from "../properties/[id]/edit/Editor";
+import { RoomsManager } from "../properties/[id]/edit/tabs/RoomsManager";
 import {
   ListingSettingsDialog,
   type BookingMode,
@@ -67,7 +67,7 @@ export function RoomsGroupCard({
         <div className="flex items-center gap-2">
           {listing.is_published && listing.slug ? (
             <Link
-              href={`/listing/${listing.slug}`}
+              href={`/property/${listing.slug}`}
               target="_blank"
               className="inline-flex items-center gap-1 text-xs font-medium text-brand-mute hover:text-brand-ink"
             >

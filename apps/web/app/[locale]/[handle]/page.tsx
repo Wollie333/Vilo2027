@@ -560,7 +560,7 @@ export default async function HostProfilePage({
                     return (
                       <Link
                         key={l.id}
-                        href={`/listing/${l.slug}`}
+                        href={`/property/${l.slug}`}
                         className="group flex gap-4 overflow-hidden rounded-card border border-brand-line bg-white p-3 shadow-card transition-shadow hover:shadow-lift"
                       >
                         <div className="relative h-28 w-32 shrink-0 overflow-hidden rounded-[10px] bg-brand-accent">

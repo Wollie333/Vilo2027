@@ -34,7 +34,7 @@ export async function GettingStarted({ state }: Props) {
           meta: state.first_listing.meta ?? "Pictures, pricing, the basics",
           cta: state.first_listing.done
             ? undefined
-            : { label: "Add listing", href: "/dashboard/listings/new" },
+            : { label: "Add listing", href: "/dashboard/properties/new" },
         },
       },
       {

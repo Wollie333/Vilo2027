@@ -71,7 +71,7 @@ export default async function SetupPage({
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (!listing) redirect("/dashboard/listings/new");
+  if (!listing) redirect("/dashboard/properties/new");
 
   // Banking + business — both nullable; the wizard handles "no row yet".
   // No deleted_at on this table — soft delete is via is_archived.

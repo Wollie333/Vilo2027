@@ -41,7 +41,7 @@ export default async function NewQuotePage() {
             You need at least one listing before you can draw a quote.
           </p>
           <Link
-            href="/dashboard/listings/new"
+            href="/dashboard/properties/new"
             className="mt-4 inline-flex items-center gap-1.5 rounded bg-brand-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-secondary"
           >
             New listing

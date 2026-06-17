@@ -13,7 +13,7 @@ import {
   PRICING_LABEL,
   type PricingModel,
 } from "../../../dashboard/addons/schemas";
-import { bedSummary } from "../../../listing/[slug]/roomDisplay";
+import { bedSummary } from "../../../property/[slug]/roomDisplay";
 import {
   BookingConfirmation,
   type ConfirmationData,

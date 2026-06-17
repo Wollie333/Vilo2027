@@ -217,7 +217,7 @@ export default async function ReviewSubmissionPage({
       {listing?.slug ? (
         <p className="mt-4 text-center text-[12px]">
           <Link
-            href={`/listing/${listing.slug}`}
+            href={`/property/${listing.slug}`}
             className="text-brand-primary underline-offset-2 hover:underline"
           >
             View the listing
