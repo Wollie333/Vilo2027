@@ -4943,15 +4943,17 @@ export type Database = {
       }
       marketing_assets: {
         Row: {
+          body: string | null
           category: string
           created_at: string
           created_by: string | null
           description: string | null
-          file_path: string
-          file_url: string
+          file_path: string | null
+          file_url: string | null
           height: number | null
           id: string
           is_active: boolean
+          link_url: string | null
           mime_type: string | null
           sort_order: number
           title: string
@@ -4959,15 +4961,17 @@ export type Database = {
           width: number | null
         }
         Insert: {
+          body?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
-          file_path: string
-          file_url: string
+          file_path?: string | null
+          file_url?: string | null
           height?: number | null
           id?: string
           is_active?: boolean
+          link_url?: string | null
           mime_type?: string | null
           sort_order?: number
           title: string
@@ -4975,15 +4979,17 @@ export type Database = {
           width?: number | null
         }
         Update: {
+          body?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
-          file_path?: string
-          file_url?: string
+          file_path?: string | null
+          file_url?: string | null
           height?: number | null
           id?: string
           is_active?: boolean
+          link_url?: string | null
           mime_type?: string | null
           sort_order?: number
           title?: string
