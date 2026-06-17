@@ -193,9 +193,9 @@ node apps/web/scripts/verify-policy-resolver.mjs      # + query sweep after R2/R
   pricing + availability + policy) execute against the renamed schema; recreate-
   ranking INSERT path + booking-path fns (`booking_business_id`,
   `ensure_booking_invoice`, `_materialize_booking_party`) green; all renamed columns
-  resolve. **Edge fn `track-listing-view` updated** (table+col+body) — needs
-  `supabase functions deploy track-listing-view` (the live one was broken by the
-  table rename). `seed-demo.mjs` has a pre-existing, unrelated
+  resolve. **Edge fn `track-listing-view` updated + redeployed** (table+col+body
+  → `property_view_events`/`property_id`) and smoke-tested green end-to-end.
+  `seed-demo.mjs` has a pre-existing, unrelated
   `eft_banking_details.business_id` not-null failure (multi-business build, not R3).
   Next: **R4 — routes + i18n labels** (`/listing/[slug]`, `/dashboard/listings`,
   iCal `[listing_id]` folder, "Listing" → "Property" copy).

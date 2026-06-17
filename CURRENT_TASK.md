@@ -25,9 +25,9 @@
 > `clicked_listing→clicked_property` + `listing_view_events→property_view_events`;
 > 36 fns recreated by mechanical swap; 104 source files + edge fn swept;
 > `20260617000400` drops a stale pre-SSOT `get_listing_policy_summary(uuid)` overload;
-> build + type-check + lint green; verify-policy-resolver + 13 RPCs live-green).
-> **Ops TODO:** `supabase functions deploy track-listing-view` (live one broke on the
-> table rename). Next: **R4 — routes + i18n labels** (`/listing/[slug]`,
+> build + type-check + lint green; verify-policy-resolver + 13 RPCs live-green;
+> `track-listing-view` edge fn redeployed + smoke-tested green).
+> Next: **R4 — routes + i18n labels** (`/listing/[slug]`,
 > `/dashboard/listings`, iCal `[listing_id]` folder, "Listing"→"Property" copy), then
 > the website build.
 

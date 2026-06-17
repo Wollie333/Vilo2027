@@ -49,9 +49,10 @@
   (`booking_business_id`, `ensure_booking_invoice`, `_materialize_booking_party`)
   green; all renamed columns resolve on the live DB.
 
-### Ops TODO
-- `supabase functions deploy track-listing-view` — the deployed edge function
-  still writes to the old table/column and is broken by the rename until redeployed.
+### Ops
+- **Redeployed** the `track-listing-view` edge function (table + column + body
+  contract now `property_view_events`/`property_id`) and smoke-tested it green
+  (POST → 200 → row written → cleaned up).
 - `seed-demo.mjs` has a pre-existing, unrelated `eft_banking_details.business_id`
   not-null failure (from the multi-business build) — fix when next touching seeds.
 
