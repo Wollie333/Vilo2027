@@ -1,3 +1,5 @@
+import { ChevronRight } from "lucide-react";
+
 import { getAffiliateForUser } from "@/lib/affiliate/account";
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -43,10 +45,59 @@ export default async function AffiliatesLayout({
     );
   }
 
+  const { count: productCount } = await admin
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true)
+    .neq("affiliate_type", "none");
+
+  const memberSince = account.accepted_at
+    ? new Date(account.accepted_at).toLocaleDateString("en-ZA", {
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+  const isActive = account.status === "active";
+
   return (
     <div>
-      <AffiliateNav />
-      {children}
+      {/* Header */}
+      <div className="flex flex-wrap items-end gap-x-4 gap-y-2 pb-1">
+        <div>
+          <nav className="flex items-center gap-1.5 text-[11px] text-brand-mute">
+            <span>Portal</span>
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-brand-ink">Affiliates</span>
+          </nav>
+          <h1 className="mt-1 font-display text-[24px] font-extrabold leading-none text-brand-ink">
+            Affiliate Portal
+          </h1>
+        </div>
+        <div className="ml-auto flex items-center gap-2 pb-0.5">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[11.5px] font-semibold ${
+              isActive
+                ? "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]"
+                : "border-[#FDE9C8] bg-[#FFFBEB] text-[#B45309]"
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isActive ? "bg-brand-primary" : "bg-status-pending"
+              }`}
+            />
+            {isActive ? "Active partner" : "Suspended"}
+          </span>
+          {memberSince ? (
+            <span className="text-[12px] text-brand-mute">
+              Member since {memberSince}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <AffiliateNav productCount={productCount ?? 0} />
+      <div className="pt-6">{children}</div>
     </div>
   );
 }

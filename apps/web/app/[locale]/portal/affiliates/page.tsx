@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
-import { BadgePercent, MousePointerClick, Users, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Coins,
+  MousePointerClick,
+  UserPlus,
+  Wallet,
+} from "lucide-react";
+import { Link } from "@/i18n/navigation";
 
 import {
   AdminColumn,
@@ -7,7 +15,6 @@ import {
 } from "@/app/[locale]/admin/_components/AdminTable";
 import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
-import { getBrandName } from "@/lib/brand";
 import { formatMoney, round2 } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -38,6 +45,11 @@ function fmtDate(iso: string | null): string {
   });
 }
 
+function pct(part: number, whole: number): number {
+  if (whole <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((part / whole) * 100)));
+}
+
 export default async function AffiliateOverviewPage() {
   const supabase = createServerClient();
   const {
@@ -49,20 +61,28 @@ export default async function AffiliateOverviewPage() {
   const account = await getAffiliateForUser(admin, user.id);
   if (!account) return null; // layout shows the terms gate
 
-  const [brand, balance, { count: clickCount }, { data: referrals }] =
-    await Promise.all([
-      getBrandName(),
-      getAffiliateBalance(admin, account.id),
-      admin
-        .from("affiliate_clicks")
-        .select("id", { count: "exact", head: true })
-        .eq("affiliate_id", account.id),
-      admin
-        .from("affiliate_referrals")
-        .select("id, referred_user_id, bound_at")
-        .eq("affiliate_id", account.id)
-        .order("bound_at", { ascending: false }),
-    ]);
+  const [
+    balance,
+    { count: clickCount },
+    { data: referrals },
+    { data: settings },
+  ] = await Promise.all([
+    getAffiliateBalance(admin, account.id),
+    admin
+      .from("affiliate_clicks")
+      .select("id", { count: "exact", head: true })
+      .eq("affiliate_id", account.id),
+    admin
+      .from("affiliate_referrals")
+      .select("id, referred_user_id, bound_at")
+      .eq("affiliate_id", account.id)
+      .order("bound_at", { ascending: false }),
+    admin
+      .from("affiliate_settings")
+      .select("min_payout_threshold")
+      .eq("id", true)
+      .maybeSingle(),
+  ]);
 
   const refs = referrals ?? [];
   const userIds = refs.map((r) => r.referred_user_id);
@@ -148,6 +168,9 @@ export default async function AffiliateOverviewPage() {
   const signups = rows.length;
   const paidCount = rows.filter((r) => r.paid).length;
   const freeCount = signups - paidCount;
+  const clicks = clickCount ?? 0;
+  const threshold =
+    account.payout_threshold ?? Number(settings?.min_payout_threshold ?? 0);
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
@@ -196,78 +219,97 @@ export default async function AffiliateOverviewPage() {
 
   return (
     <div>
-      {/* Hero */}
-      <div
-        className="overflow-hidden rounded-card text-white shadow-card"
-        style={{
-          backgroundImage:
-            "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
-        }}
-      >
-        <div className="grid gap-6 p-7 sm:p-9 lg:grid-cols-[1.3fr_1fr]">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white/80">
-              Affiliate dashboard
-            </span>
-            <h1 className="mt-4 font-display text-3xl font-bold tracking-tight sm:text-4xl">
-              Earn with {brand}.
-            </h1>
-            <p className="mt-2 max-w-md text-sm text-white/70">
-              Share your link, grab marketing material, and track every click,
-              signup and rand you&apos;ve earned.
-            </p>
-            <div className="mt-5">
-              <ReferralLinkCard baseUrl={baseUrl} slug={account.slug} />
-            </div>
+      {/* Affiliate link hero */}
+      <ReferralLinkCard baseUrl={baseUrl} slug={account.slug} />
+
+      {/* Stat band */}
+      <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line md:grid-cols-3 lg:grid-cols-5">
+        <Stat
+          icon={<MousePointerClick className="h-3.5 w-3.5" />}
+          label="Link clicks"
+          value={clicks.toLocaleString("en-ZA").replace(/,/g, " ")}
+        />
+        <Stat
+          icon={<UserPlus className="h-3.5 w-3.5" />}
+          label="Signups"
+          value={String(signups)}
+          hint={clicks ? `${pct(signups, clicks)}% of clicks` : undefined}
+        />
+        <Stat
+          icon={<BadgeCheck className="h-3.5 w-3.5" />}
+          label="Paid customers"
+          value={String(paidCount)}
+          hint={`${freeCount} on free`}
+        />
+        <Stat
+          icon={<Coins className="h-3.5 w-3.5" />}
+          label="Lifetime earned"
+          value={formatMoney(balance.lifetime, balance.currency)}
+        />
+        <div className="col-span-2 bg-brand-secondary p-4 md:col-span-1">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/70">
+            <Wallet className="h-3.5 w-3.5" /> Payout balance
           </div>
-          <div className="flex flex-col justify-center rounded-card border border-white/10 bg-white/[0.04] p-6">
-            <div className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
-              Payout-ready balance
-            </div>
-            <div className="mt-1 font-display text-4xl font-bold">
-              {formatMoney(balance.available, balance.currency)}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <div className="text-white/50">Pending</div>
-                <div className="font-semibold">
-                  {formatMoney(balance.pending, balance.currency)}
-                </div>
-              </div>
-              <div>
-                <div className="text-white/50">Paid out</div>
-                <div className="font-semibold">
-                  {formatMoney(balance.paid, balance.currency)}
-                </div>
-              </div>
-            </div>
+          <div className="num mt-2 font-display text-[26px] font-bold leading-none text-white">
+            {formatMoney(balance.available, balance.currency)}
+          </div>
+          <div className="mt-1.5 text-[11px] text-brand-accent">
+            Threshold {formatMoney(threshold, balance.currency)}
           </div>
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat
-          icon={<MousePointerClick className="h-4 w-4" />}
-          label="Link clicks"
-          value={String(clickCount ?? 0)}
-        />
-        <Stat
-          icon={<Users className="h-4 w-4" />}
-          label="Signups"
-          value={String(signups)}
-        />
-        <Stat
-          icon={<BadgePercent className="h-4 w-4" />}
-          label="Paid customers"
-          value={`${paidCount}`}
-          hint={`${freeCount} free`}
-        />
-        <Stat
-          icon={<Wallet className="h-4 w-4" />}
-          label="Lifetime earned"
-          value={formatMoney(balance.lifetime, balance.currency)}
-        />
+      {/* Funnel + how you earn */}
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        <div className="rounded-card border border-brand-line bg-white p-5 shadow-card lg:col-span-2">
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            Your funnel
+          </h3>
+          <p className="mt-0.5 text-[12.5px] text-brand-mute">All-time</p>
+          <div className="mt-4 space-y-3">
+            <FunnelBar label="Clicks" value={clicks} width={100} />
+            <FunnelBar
+              label="Signups"
+              value={signups}
+              width={pct(signups, clicks)}
+            />
+            <FunnelBar
+              label="Paid customers"
+              value={paidCount}
+              width={pct(paidCount, clicks)}
+            />
+          </div>
+          <p className="mt-4 text-[12px] leading-relaxed text-brand-mute">
+            Hosts get a free trial. Commission starts the day a referred host
+            begins their first paid month.
+          </p>
+        </div>
+
+        <div className="rounded-card border border-brand-line bg-[#FAFCFB] p-5 shadow-card">
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            How you earn
+          </h3>
+          <ol className="mt-3 space-y-3 text-[12.5px] text-brand-ink">
+            {[
+              "Share your link with hosts and property owners.",
+              "They sign up and start a Vilo subscription.",
+              "You earn recurring commission for as long as they stay.",
+            ].map((step, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="num flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-accent text-[11px] font-bold text-brand-secondary">
+                  {i + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+          <Link
+            href="/portal/affiliates/products"
+            className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-brand-primary hover:text-brand-secondary"
+          >
+            See what you can promote <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* Referred users */}
@@ -298,19 +340,44 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-      <div className="flex items-center gap-2 text-brand-mute">
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
         {icon}
-        <span className="text-[11px] font-semibold uppercase tracking-wider">
-          {label}
-        </span>
+        {label}
       </div>
-      <div className="mt-3 font-display text-3xl font-bold text-brand-ink">
+      <div className="num mt-2 font-display text-[26px] font-bold leading-none text-brand-ink">
         {value}
       </div>
       {hint ? (
-        <div className="mt-0.5 text-xs text-brand-mute">{hint}</div>
+        <div className="mt-1.5 text-[11px] text-brand-mute">{hint}</div>
       ) : null}
+    </div>
+  );
+}
+
+function FunnelBar({
+  label,
+  value,
+  width,
+}: {
+  label: string;
+  value: number;
+  width: number;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[12.5px]">
+        <span className="font-medium text-brand-ink">{label}</span>
+        <span className="num text-brand-mute">
+          {value.toLocaleString("en-ZA").replace(/,/g, " ")}
+        </span>
+      </div>
+      <div className="mt-1.5 h-2.5 rounded-pill bg-brand-light">
+        <div
+          className="h-full rounded-pill bg-brand-primary"
+          style={{ width: `${Math.max(width, value > 0 ? 2 : 0)}%` }}
+        />
+      </div>
     </div>
   );
 }

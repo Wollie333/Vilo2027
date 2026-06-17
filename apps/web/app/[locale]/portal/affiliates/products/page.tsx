@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Package } from "lucide-react";
 
 import { commissionLabel } from "@/lib/affiliate/commission";
 import { getAffiliateForUser } from "@/lib/affiliate/account";
@@ -63,47 +64,37 @@ export default async function AffiliateProductsPage() {
 
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="font-display text-2xl font-bold tracking-tight text-brand-ink sm:text-3xl">
-          Products to promote
-        </h1>
-        <p className="mt-1 text-sm text-brand-mute">
-          Share a product&apos;s link. Anyone who buys it within 30 days of
-          clicking earns you the commission shown.
-        </p>
-      </header>
+      <p className="max-w-2xl text-[13.5px] leading-relaxed text-brand-mute">
+        Every plan and tool you can promote. Each has its own commission and a
+        ready-to-share link with your code already attached.
+      </p>
 
       {earning.length === 0 ? (
-        <div className="rounded-card border border-dashed border-brand-line bg-white p-8 text-center text-sm text-brand-mute">
+        <div className="mt-5 rounded-card border border-dashed border-brand-line bg-white p-8 text-center text-sm text-brand-mute">
           No commissionable products are live yet. Check back soon.
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="mt-5 grid grid-cols-1 gap-3.5 lg:grid-cols-2">
           {earning.map((p) => {
             const dest = p.slug ? `/p/${p.slug}` : "/";
             const link = `${baseUrl}/r/${account.slug}?next=${encodeURIComponent(dest)}`;
             const dur = durationLabel(p);
             return (
-              <div
+              <article
                 key={p.id}
-                className="rounded-card border border-brand-line bg-white p-5 shadow-card"
+                className="flex flex-col overflow-hidden rounded-[14px] border border-brand-line bg-white shadow-card transition hover:-translate-y-0.5 hover:border-[#CDE6D8] hover:shadow-lift"
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-display text-base font-semibold text-brand-ink">
-                      {p.name}
-                    </div>
-                    {p.description ? (
-                      <p className="mt-0.5 max-w-xl text-sm text-brand-mute">
-                        {p.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                      <span className="text-brand-mute">
-                        {formatMoney(p.price, p.currency)}
-                        {p.billing_cycle ? ` / ${p.billing_cycle}` : ""}
-                      </span>
-                      <span className="inline-flex items-center rounded-pill bg-brand-accent px-2 py-0.5 font-medium text-brand-secondary">
+                <div className="flex gap-4 p-4">
+                  <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[12px] bg-brand-light text-brand-secondary">
+                    <Package className="h-[22px] w-[22px]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-display text-[15px] font-bold leading-snug text-brand-ink">
+                        {p.name}
+                      </h3>
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-[#C7F0DC] bg-[#ECFDF5] px-2.5 py-[3px] text-[11.5px] font-semibold text-[#047857]">
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
                         {commissionLabel(
                           p.affiliate_type,
                           p.affiliate_value,
@@ -112,10 +103,28 @@ export default async function AffiliateProductsPage() {
                         {dur ? ` · ${dur}` : ""}
                       </span>
                     </div>
+                    {p.description ? (
+                      <p className="mt-1 text-[12px] leading-snug text-brand-mute">
+                        {p.description}
+                      </p>
+                    ) : null}
+                    <div className="mt-2">
+                      <span className="num font-display text-[16px] font-bold text-brand-ink">
+                        {formatMoney(p.price, p.currency)}
+                      </span>
+                      {p.billing_cycle ? (
+                        <span className="text-[11px] text-brand-mute">
+                          {" "}
+                          / {p.billing_cycle}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-                <ProductLinkRow link={link} />
-              </div>
+                <div className="mt-auto border-t border-brand-line px-4 py-2.5">
+                  <ProductLinkRow link={link} />
+                </div>
+              </article>
             );
           })}
         </div>
