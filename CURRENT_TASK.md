@@ -100,7 +100,7 @@
 > namespace (52 keys); help migration `20260617000600`. build+lint+type-check green; vitest 54/54.
 > **STILL DEFERRED:** the business/website switcher (kept deferred — the per-business create/manage
 > cards already handle multi-business; revisit if the editing flow needs a global active-business).
-> **W7 (Brand & Theme tabs, plan §8.7) DONE** (commit `<pending>`): `[websiteId]/brand` +
+> **W7 (Brand & Theme tabs, plan §8.7) DONE** (commit `58f1831`): `[websiteId]/brand` +
 > `[websiteId]/theme` routes wired live in `WebsiteTabs` (Overview/Brand/Theme live; rest "coming
 > soon"). **Brand**: logo upload browser→Storage into public `website-assets` (signed-URL pattern:
 > `createWebsiteLogoUploadUrl`→`uploadToSignedUrl`→`registerWebsiteLogoAction`, path `{websiteId}/…`)
