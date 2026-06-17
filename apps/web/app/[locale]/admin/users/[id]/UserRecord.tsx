@@ -65,8 +65,11 @@ import {
   addAdminUserNote,
   adminCreateAddon,
   adminDeleteAddon,
+  adminDeletePolicy,
   adminPayoutAffiliate,
+  adminSetDefaultPolicy,
   adminToggleAddon,
+  adminTogglePolicyStatus,
   adminUpdateAddon,
   adminUpdateBusiness,
   adminUpdateSubscription,
@@ -1890,35 +1893,109 @@ function CatalogPanel({ data }: { data: UserRecordData }) {
           count={data.policies.length}
           empty="No policies in this host's library yet."
         >
-          {data.policies.map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-[13px] font-semibold text-brand-ink">
-                    {p.name}
-                  </span>
-                  {p.isDefault ? <Pill tone="good">Default</Pill> : null}
-                  {p.status !== "active" ? (
-                    <Pill tone="muted">{p.status}</Pill>
-                  ) : null}
+          {data.policies.map((p) => {
+            const setDefault = () => {
+              if (!hostId) return;
+              start(async () => {
+                const r = await adminSetDefaultPolicy(hostId, p.id);
+                if (r.ok) {
+                  toast.success("Set as default.");
+                  refresh();
+                } else toast.error(r.error ?? "Failed.");
+              });
+            };
+            const toggleStatus = () => {
+              if (!hostId) return;
+              start(async () => {
+                const r = await adminTogglePolicyStatus(
+                  hostId,
+                  p.id,
+                  p.status !== "active",
+                );
+                if (r.ok) {
+                  toast.success(
+                    p.status === "active" ? "Moved to draft." : "Activated.",
+                  );
+                  refresh();
+                } else toast.error(r.error ?? "Failed.");
+              });
+            };
+            const removePolicy = () => {
+              if (!hostId) return;
+              if (
+                !window.confirm(
+                  p.assignmentsCount > 0
+                    ? `“${p.name}” is on ${p.assignmentsCount} listing(s); it will be archived (not deleted).`
+                    : `Delete “${p.name}”?`,
+                )
+              )
+                return;
+              start(async () => {
+                const r = await adminDeletePolicy(hostId, p.id);
+                if (r.ok) {
+                  toast.success("Policy removed.");
+                  refresh();
+                } else toast.error(r.error ?? "Failed.");
+              });
+            };
+            return (
+              <div
+                key={p.id}
+                className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-[13px] font-semibold text-brand-ink">
+                      {p.name}
+                    </span>
+                    {p.isDefault ? <Pill tone="good">Default</Pill> : null}
+                    {p.status !== "active" ? (
+                      <Pill tone="muted">{p.status}</Pill>
+                    ) : null}
+                  </div>
+                  <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                    {POLICY_TYPE_LABEL[p.type] ?? p.type}
+                    {p.preset && p.preset !== "custom" ? ` · ${p.preset}` : ""}
+                    {` · on ${p.assignmentsCount} listing(s)`}
+                    {p.summary ? ` · ${p.summary}` : ""}
+                  </div>
                 </div>
-                <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
-                  {POLICY_TYPE_LABEL[p.type] ?? p.type}
-                  {p.preset && p.preset !== "custom" ? ` · ${p.preset}` : ""}
-                  {` · on ${p.assignmentsCount} listing(s)`}
-                  {p.summary ? ` · ${p.summary}` : ""}
-                </div>
+                {!p.isDefault && p.status === "active" ? (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={setDefault}
+                    className="inline-flex shrink-0 items-center rounded-pill border border-brand-line px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-50"
+                  >
+                    Set default
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={toggleStatus}
+                  title={p.status === "active" ? "Move to draft" : "Activate"}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light disabled:opacity-50"
+                >
+                  <Power className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={removePolicy}
+                  title="Delete / archive"
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill border border-red-200 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </Section>
         <p className="mt-2 text-[12px] text-brand-mute">
-          Create and edit a host&apos;s policies from any of their listings
-          (Listings → open a listing → Policies). Per-listing assignment lives
-          there too.
+          To create or edit policy content, open any of this host&apos;s
+          listings (Listings → open a listing → Policies) — per-listing
+          assignment lives there too.
         </p>
       </div>
 

@@ -13,8 +13,10 @@
   count, plus create/edit/activate/delete via audited admin actions
   (`adminCreateAddon`/`adminUpdateAddon`/`adminToggleAddon`/`adminDeleteAddon`,
   service-role + by hostId). Shows the host's **policies library** (type, preset,
-  default, assignment count); per-listing assignment + policy create/edit stay in
-  the listing editor (already admin-accessible).
+  default, assignment count) with host-level controls — **set default**,
+  **activate/draft**, **delete-or-archive** — via audited admin actions
+  (`adminSetDefaultPolicy`/`adminTogglePolicyStatus`/`adminDeletePolicy`).
+  Policy create/edit + per-listing assignment stay in the listing editor.
 - **New "Website" tab** — placeholder for the future host website builder.
 - Added `addon` / `policy` to the audit target-type union.
 

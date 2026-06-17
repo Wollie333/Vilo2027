@@ -720,6 +720,146 @@ export const adminDeleteAddonAction = withAdminAudit<
   },
 );
 
+// ─── Policies library (host-wide; create/edit happens in the listing editor) ──
+// Host-level controls: set default, activate/draft, delete-or-archive. Mirrors
+// the host self-service logic but service-role + by hostId + audited.
+const policyToggleSchema = z.object({
+  hostId: z.string().uuid(),
+  policyId: z.string().uuid(),
+  active: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const adminTogglePolicyStatusAction = withAdminAudit<
+  z.infer<typeof policyToggleSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.toggle_policy",
+    targetType: "policy",
+    getTargetId: (a) => a.policyId,
+  },
+  async (args, service) => {
+    if (!policyToggleSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    const update: { status: string; is_default?: boolean } = {
+      status: args.active ? "active" : "draft",
+    };
+    if (!args.active) update.is_default = false; // a draft can't be default
+    const { error } = await service
+      .from("policies")
+      .update(update)
+      .eq("id", args.policyId)
+      .eq("host_id", args.hostId);
+    if (error) throw new Error(error.message);
+    // Activating may be the first active policy of its type — backfill a default.
+    if (args.active) {
+      await service.rpc("ensure_host_default_policies", {
+        p_host_id: args.hostId,
+      });
+    }
+    revalidatePath(`/admin/users/${args.hostId}`);
+    return { result: { ok: true }, after: { active: args.active } };
+  },
+);
+
+const policyOpSchema = z.object({
+  hostId: z.string().uuid(),
+  policyId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const adminSetDefaultPolicyAction = withAdminAudit<
+  z.infer<typeof policyOpSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.set_default_policy",
+    targetType: "policy",
+    getTargetId: (a) => a.policyId,
+  },
+  async (args, service) => {
+    if (!policyOpSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    const { data: policy } = await service
+      .from("policies")
+      .select("type")
+      .eq("id", args.policyId)
+      .eq("host_id", args.hostId)
+      .maybeSingle();
+    if (!policy) throw new Error("Policy not found.");
+    // Clear the current default of this type first (partial unique index).
+    await service
+      .from("policies")
+      .update({ is_default: false })
+      .eq("host_id", args.hostId)
+      .eq("type", policy.type)
+      .eq("is_default", true);
+    const { error } = await service
+      .from("policies")
+      .update({ is_default: true, status: "active" })
+      .eq("id", args.policyId)
+      .eq("host_id", args.hostId);
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${args.hostId}`);
+    return { result: { ok: true }, after: { default: args.policyId } };
+  },
+);
+
+export const adminDeletePolicyAction = withAdminAudit<
+  z.infer<typeof policyOpSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.delete_policy",
+    targetType: "policy",
+    getTargetId: (a) => a.policyId,
+  },
+  async (args, service) => {
+    // listing_policies / policy_snapshots are ON DELETE RESTRICT — a referenced
+    // policy is archived (soft) rather than hard-deleted.
+    const [{ count: assigned }, { count: snapshots }] = await Promise.all([
+      service
+        .from("listing_policies")
+        .select("id", { count: "exact", head: true })
+        .eq("policy_id", args.policyId),
+      service
+        .from("policy_snapshots")
+        .select("id", { count: "exact", head: true })
+        .eq("policy_id", args.policyId),
+    ]);
+    if ((assigned ?? 0) > 0 || (snapshots ?? 0) > 0) {
+      const { error } = await service
+        .from("policies")
+        .update({ status: "archived", deleted_at: new Date().toISOString() })
+        .eq("id", args.policyId)
+        .eq("host_id", args.hostId);
+      if (error) throw new Error(error.message);
+      await service.rpc("ensure_host_default_policies", {
+        p_host_id: args.hostId,
+      });
+      revalidatePath(`/admin/users/${args.hostId}`);
+      return { result: { ok: true }, after: { archived: args.policyId } };
+    }
+    const { error } = await service
+      .from("policies")
+      .delete()
+      .eq("id", args.policyId)
+      .eq("host_id", args.hostId);
+    if (error) throw new Error(error.message);
+    await service.rpc("ensure_host_default_policies", {
+      p_host_id: args.hostId,
+    });
+    revalidatePath(`/admin/users/${args.hostId}`);
+    return { result: { ok: true }, after: { deleted: args.policyId } };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -844,6 +984,24 @@ export async function adminToggleAddon(
 
 export async function adminDeleteAddon(hostId: string, addonId: string) {
   return wrap(() => adminDeleteAddonAction({ hostId, addonId }));
+}
+
+export async function adminTogglePolicyStatus(
+  hostId: string,
+  policyId: string,
+  active: boolean,
+) {
+  return wrap(() =>
+    adminTogglePolicyStatusAction({ hostId, policyId, active }),
+  );
+}
+
+export async function adminSetDefaultPolicy(hostId: string, policyId: string) {
+  return wrap(() => adminSetDefaultPolicyAction({ hostId, policyId }));
+}
+
+export async function adminDeletePolicy(hostId: string, policyId: string) {
+  return wrap(() => adminDeletePolicyAction({ hostId, policyId }));
 }
 
 export async function adminUpdateSubscription(input: {
