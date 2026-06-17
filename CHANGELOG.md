@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 7: Brand & Theme tabs
+
+### Added
+- **Brand tab** (`/dashboard/website/[websiteId]/brand`) — logo upload, site name
+  and tagline, writing the `host_websites.brand` jsonb (`{ name, tagline,
+  logo_path }`). The logo uploads **browser → Storage** via a server-minted signed
+  upload URL into the public `website-assets` bucket (the `registerListingPhoto`
+  pattern: `createWebsiteLogoUploadUrl` → `uploadToSignedUrl` →
+  `registerWebsiteLogoAction`), path-scoped `{websiteId}/…` to satisfy bucket RLS.
+  `removeWebsiteLogoAction` clears the path + deletes the object.
+- **Theme tab** (`/dashboard/website/[websiteId]/theme`) — 5 preset swatches +
+  accent colour, font and corner-radius overrides (empty = inherit preset), with
+  a **live `--site-*` preview** rendered through `buildSiteVars`. Writes the
+  `host_websites.theme` jsonb (`{ preset, accent?, font?, radius? }`).
+- `saveBrandAction` / `saveThemeAction` (+ `patchSiteJson` merge helper);
+  owner-scoped `assertWebsiteOwnership` + pre-MVP `assertWebsiteFeature`
+  short-circuit (AGENT_RULES §3.4). New `brandSchema` / `themeSchema` (Zod).
+- The editor tab bar (`WebsiteTabs`) now drives **Overview/Brand/Theme** as live
+  tabs (Pages/Rooms/Blog/Domain/SEO still "coming soon").
+- Shared `lib/website/assets.ts` (`websiteAssetUrl`) — single source for
+  `website-assets` path → public URL; adopted by `loadSitePage` (logo now
+  resolves to a URL) + `SitePageView`'s `siteAsset` resolver.
+
+### Changed
+- i18n: +44 keys in the `website` namespace (`en.json`). Help article migration
+  `20260617000700_help_website_brand_theme` (RULES §9) — pushed to remote.
+
+### Verification
+- `pnpm build` + `pnpm lint` + `pnpm type-check` green. No DB schema change
+  (brand/theme columns + bucket already existed from W1).
+  `scripts/verify-website-brand-theme.mjs` 🎉 (jsonb round-trip + bucket/signed-URL).
+
+---
+
 ## 2026-06-17 — Website CMS Phase 6: create-site flow + builder shell
 
 ### Added

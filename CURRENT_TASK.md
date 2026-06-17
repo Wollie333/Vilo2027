@@ -100,10 +100,22 @@
 > namespace (52 keys); help migration `20260617000600`. build+lint+type-check green; vitest 54/54.
 > **STILL DEFERRED:** the business/website switcher (kept deferred — the per-business create/manage
 > cards already handle multi-business; revisit if the editing flow needs a global active-business).
-> **Next: W7 — Brand & Theme tabs** (plan §8.7): `[websiteId]/brand` + `theme` routes (Storage
-> uploads to `website-assets` via the registerListingPhoto browser→Storage pattern; preset/accent/
-> font/radius writing `host_websites.brand`/`theme`); the preview (`?site=&preview=1`) reflects them.
-> Wire the WebsiteTabs Brand+Theme tabs live. Fresh session per phase.
+> **W7 (Brand & Theme tabs, plan §8.7) DONE** (commit `<pending>`): `[websiteId]/brand` +
+> `[websiteId]/theme` routes wired live in `WebsiteTabs` (Overview/Brand/Theme live; rest "coming
+> soon"). **Brand**: logo upload browser→Storage into public `website-assets` (signed-URL pattern:
+> `createWebsiteLogoUploadUrl`→`uploadToSignedUrl`→`registerWebsiteLogoAction`, path `{websiteId}/…`)
+> + name + tagline → `host_websites.brand` jsonb; `removeWebsiteLogoAction` clears path + deletes
+> object. **Theme**: 5 preset swatches + accent/font/radius overrides (empty=inherit preset) + a live
+> `--site-*` preview via `buildSiteVars` → `host_websites.theme` jsonb. `saveBrandAction`/
+> `saveThemeAction` (+ `patchSiteJson` merge), owner-scoped `assertWebsiteOwnership` + pre-MVP
+> `assertWebsiteFeature` short-circuit (§3.4); `brandSchema`/`themeSchema`. New shared
+> `lib/website/assets.ts` (`websiteAssetUrl`) — SSOT path→public-URL, adopted by `loadSitePage`
+> (logo now resolves) + `SitePageView.siteAsset`. **NO DB schema change** (brand/theme cols + bucket
+> from W1); help migration `20260617000700` pushed; +44 `website` i18n keys (en). build+lint+
+> type-check green; `scripts/verify-website-brand-theme.mjs` 🎉.
+> **Next: W8 — Home + About section builder** (plan §8.8): accordion + reorder + click-to-edit +
+> inline preview + desktop/phone toggle; Zustand draft store; `saveDraftSectionsAction`. Fresh
+> session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

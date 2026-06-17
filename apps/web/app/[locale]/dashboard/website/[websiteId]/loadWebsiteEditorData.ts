@@ -11,7 +11,7 @@ export type WebsiteEditorData = {
   status: "draft" | "published" | "unpublished";
   publishedAt: string | null;
   brand: { name?: string; tagline?: string; logo_path?: string };
-  theme: { preset?: string; accent?: string };
+  theme: { preset?: string; accent?: string; font?: string; radius?: string };
   businessName: string | null;
   counts: { pages: number; properties: number; rooms: number; posts: number };
 };

@@ -11,6 +11,7 @@
 // allows any status; public selects published_sections and requires published.
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   parseSectionsLoose,
   type WebsiteSection,
@@ -114,7 +115,7 @@ export async function loadSiteContext(
       site.business?.trading_name ||
       site.subdomain,
     tagline: (brandJson.tagline as string) ?? null,
-    logoUrl: (brandJson.logo_path as string) ?? null,
+    logoUrl: websiteAssetUrl(brandJson.logo_path as string | undefined),
   };
 
   const [{ data: pageRows }, { data: memberRows }] = await Promise.all([

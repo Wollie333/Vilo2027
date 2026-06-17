@@ -2,24 +2,18 @@ import { notFound } from "next/navigation";
 
 import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
 import type { SiteAssetResolver } from "@/lib/site/types";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
 
-const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, "") ?? "";
-
 /**
- * Resolve a `website-assets` storage path to a public URL. Pass-through for
- * values that are already absolute URLs (e.g. preview sample data).
+ * Resolve a `website-assets` storage path to a public URL for the section
+ * renderer (shared SSOT in `lib/website/assets`; returns `undefined` for empty).
  */
-export const siteAsset: SiteAssetResolver = (path) => {
-  if (!path) return undefined;
-  if (/^https?:\/\//.test(path)) return path;
-  return SUPA
-    ? `${SUPA}/storage/v1/object/public/website-assets/${path}`
-    : path;
-};
+export const siteAsset: SiteAssetResolver = (path) =>
+  websiteAssetUrl(path) ?? undefined;
 
 /**
  * Loads a site + one of its pages and renders the themed frame + sections. The
