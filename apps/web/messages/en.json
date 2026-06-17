@@ -710,6 +710,24 @@
     "liveRooms": "Pulls live from your rooms & rates. Manage which rooms show on the Rooms tab.",
     "liveLocation": "Pulls live from your property's address and nearby points of interest.",
     "liveReviews": "Pulls live from your published guest reviews.",
-    "liveBlog": "Pulls live from your published blog posts."
+    "liveBlog": "Pulls live from your published blog posts.",
+    "roomsHeading": "Rooms",
+    "roomsSub": "Choose which rooms appear on your site, set their order, and tweak how each one is shown. Booking always uses your live prices and availability.",
+    "roomsEmpty": "No rooms found for this site's properties yet. Add rooms to a property, then sync them here.",
+    "roomsShownCount": "{shown} of {total} rooms showing on your site",
+    "roomsSync": "Sync rooms",
+    "roomsSyncHint": "Pull in any rooms added since you created this site (and remove deleted ones).",
+    "roomsSynced": "Rooms synced.",
+    "roomsSaved": "Rooms saved.",
+    "roomsUnsaved": "Unsaved changes",
+    "roomInactive": "Inactive",
+    "roomEditDisplay": "Edit display",
+    "roomHideOverrides": "Hide display options",
+    "roomDisplayName": "Display name",
+    "roomDisplayPrice": "Display price",
+    "roomDisplayCurrency": "Currency",
+    "roomDisplayDesc": "Display description",
+    "roomOverrideHint": "Leave blank to use the room's own details.",
+    "roomPriceCosmetic": "Shown for display only — guests are always charged your live, server-calculated price at booking."
   }
 }

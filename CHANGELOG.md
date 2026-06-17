@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phase 9: Rooms tab
+
+### Added
+- **Rooms tab** (`/dashboard/website/[websiteId]/rooms`) — controls which rooms
+  appear on the site. Rooms are grouped under their property; each row has a
+  **show/hide** switch, **up/down** reorder (within its property), and an
+  expandable **display options** panel for cosmetic overrides: display name,
+  price, currency and description (blank = inherit the live room value). A header
+  counter shows "{shown} of {total} rooms showing".
+- **Sync rooms** action (`syncWebsiteRoomsAction`) — reconciles
+  `website_properties` + `website_rooms` with the business's current
+  properties/rooms: inserts anything added since the site was created (default
+  visible), prunes membership for deleted ones, and preserves overrides on
+  surviving rooms. Keeps room book-links resolvable by also topping up property
+  channel membership.
+- **`saveWebsiteRoomsAction`** — upserts one `website_rooms` row per submitted
+  room (`sort_order` = display index, so reorder sticks). Every `room_id` is
+  verified to belong to the website's business before any write (anti-tamper).
+- `loadRoomsEditor` (owner-scoped: properties → active `property_rooms` ⟕
+  `website_rooms` overrides). New `websiteRoomSchema` / `saveWebsiteRoomsSchema`.
+  `RoomsManager` client island (local state; reuses the W8 `fields.tsx`
+  primitives). The Rooms tab is now live in `WebsiteTabs`.
+- New `website` i18n keys (rooms heading/sub/empty/count, sync, override field
+  labels, cosmetic-price note). Help article `website-rooms`
+  (`20260617000900_help_website_rooms.sql`, pushed).
+
+### Notes
+- **Booking is untouched.** `display_price` is cosmetic only — the public
+  RoomsPreview's per-room CTA already deep-links to `/property/[slug]/book`, which
+  re-prices server-side via the existing engine (ledger invariant intact). No DB
+  schema change (all columns from the W1 foundation). `scripts/verify-website-rooms.mjs` 🎉.
+
+---
+
 ## 2026-06-17 — Website CMS Phase 8: Home + About section builder
 
 ### Added

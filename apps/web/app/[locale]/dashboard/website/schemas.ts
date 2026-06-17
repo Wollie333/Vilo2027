@@ -61,3 +61,30 @@ export const saveDraftSectionsSchema = z.object({
 });
 
 export type SaveDraftSectionsInput = z.infer<typeof saveDraftSectionsSchema>;
+
+// --- Rooms tab (W9) ---
+
+// One room's channel state. Empty display_* strings mean "inherit the live room
+// value" and are stored as NULL. `display_price` is cosmetic only — the Book CTA
+// always re-prices server-side via the booking engine (ledger invariant intact).
+export const websiteRoomSchema = z.object({
+  roomId: z.string().uuid(),
+  isVisible: z.boolean(),
+  displayName: z.string().trim().max(120).default(""),
+  displayPrice: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "invalid_price")
+    .or(z.literal(""))
+    .default(""),
+  displayCurrency: z.string().trim().max(3).default(""),
+  displayDesc: z.string().trim().max(600).default(""),
+});
+
+export const saveWebsiteRoomsSchema = z.object({
+  websiteId: z.string().uuid(),
+  // Rooms in their final display order — sort_order is derived from the index.
+  rooms: z.array(websiteRoomSchema).max(500),
+});
+
+export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;

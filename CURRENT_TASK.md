@@ -130,8 +130,22 @@
 > **DEVIATION (noted):** local React state in the one builder island instead of the plan's Zustand
 > store (Zustand not a dep; a global store buys nothing here) — no package added. Help migration
 > `20260617000800` pushed; +~95 `website` i18n keys (en). build+lint+type-check green.
-> **Next: W9 — Rooms tab** (plan §8.9): sync rooms, per-room show/hide + display overrides
-> (`website_rooms`), booking CTA band deep-linking to `/property/[slug]/book`. Fresh session per phase.
+> **W9 (Rooms tab, plan §8.9) DONE** (commit pending): Rooms tab now live in `WebsiteTabs` →
+> `[websiteId]/rooms`. `loadRoomsEditor` (owner-scoped; properties → active `property_rooms` ⟕
+> `website_rooms` overrides, grouped by property). `RoomsManager` island: per-room show/hide
+> switch, up/down reorder (within property), expandable display overrides (name/price/currency/
+> desc; blank=inherit live value), "{shown} of {total}" counter. `syncWebsiteRoomsAction`
+> reconciles `website_properties`+`website_rooms` with the business's current props/rooms
+> (insert new visible, prune deleted, preserve overrides — also tops up property membership so
+> book-links resolve). `saveWebsiteRoomsAction` upserts one row/room (sort_order=index;
+> anti-tamper room→business check). New `websiteRoomSchema`/`saveWebsiteRoomsSchema`; reuses W8
+> `fields.tsx` primitives. **Booking untouched** — `display_price` cosmetic; public RoomsPreview
+> per-room CTA already deep-links `/property/[slug]/book` (re-prices server-side). **NO DB schema
+> change** (cols from W1). Help migration `20260617000900` pushed; +~18 `website` i18n keys (en).
+> build+lint+type-check green; `scripts/verify-website-rooms.mjs` 🎉.
+> **Next: W10 — Publish workflow** (plan §8.10): `publishWebsiteAction` (twin-column copy +
+> `published_snapshot`) + dirty detection + "Publish changes" button + Overview status; public
+> reads published only. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

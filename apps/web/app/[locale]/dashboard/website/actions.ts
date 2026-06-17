@@ -11,10 +11,12 @@ import {
   brandSchema,
   createWebsiteSchema,
   saveDraftSectionsSchema,
+  saveWebsiteRoomsSchema,
   themeSchema,
   type BrandInput,
   type CreateWebsiteInput,
   type SaveDraftSectionsInput,
+  type SaveWebsiteRoomsInput,
   type ThemeInput,
 } from "./schemas";
 
@@ -473,5 +475,168 @@ export async function removeWebsiteLogoAction(
   }
 
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
+  return { ok: true };
+}
+
+// ============================================================
+// W9 — Rooms tab (channel membership + display overrides)
+// ============================================================
+
+/**
+ * Reconcile the site's `website_properties` + `website_rooms` with the business's
+ * current properties/rooms — pulls in anything added since the site was created and
+ * prunes membership for rooms/properties that no longer exist. Newly synced rows
+ * default to visible. Cosmetic overrides on still-present rooms are preserved.
+ */
+export async function syncWebsiteRoomsAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("business_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (!site) return { ok: false, error: "not_found" };
+
+  const { data: props } = await supabase
+    .from("properties")
+    .select("id")
+    .eq("business_id", site.business_id)
+    .is("deleted_at", null);
+  const propertyIds = (props ?? []).map((p) => p.id);
+
+  // Reconcile property channel membership (keeps room book-links resolvable).
+  const { data: memberRows } = await supabase
+    .from("website_properties")
+    .select("id, property_id")
+    .eq("website_id", websiteId);
+  const memberSet = new Set((memberRows ?? []).map((m) => m.property_id));
+  const newProps = propertyIds.filter((id) => !memberSet.has(id));
+  if (newProps.length > 0) {
+    await supabase.from("website_properties").insert(
+      newProps.map((property_id, i) => ({
+        website_id: websiteId,
+        property_id,
+        is_visible: true,
+        sort_order: memberSet.size + i,
+      })),
+    );
+  }
+  const orphanProps = (memberRows ?? [])
+    .filter((m) => !propertyIds.includes(m.property_id))
+    .map((m) => m.id);
+  if (orphanProps.length > 0) {
+    await supabase.from("website_properties").delete().in("id", orphanProps);
+  }
+
+  // Reconcile rooms.
+  const roomIds: string[] = [];
+  if (propertyIds.length > 0) {
+    const { data: rooms } = await supabase
+      .from("property_rooms")
+      .select("id")
+      .in("property_id", propertyIds)
+      .is("deleted_at", null);
+    roomIds.push(...(rooms ?? []).map((r) => r.id));
+  }
+
+  const { data: roomMembers } = await supabase
+    .from("website_rooms")
+    .select("id, room_id")
+    .eq("website_id", websiteId);
+  const roomMemberSet = new Set((roomMembers ?? []).map((m) => m.room_id));
+  const newRooms = roomIds.filter((id) => !roomMemberSet.has(id));
+  if (newRooms.length > 0) {
+    await supabase.from("website_rooms").insert(
+      newRooms.map((room_id, i) => ({
+        website_id: websiteId,
+        room_id,
+        is_visible: true,
+        sort_order: roomMemberSet.size + i,
+      })),
+    );
+  }
+  const orphanRooms = (roomMembers ?? [])
+    .filter((m) => !roomIds.includes(m.room_id))
+    .map((m) => m.id);
+  if (orphanRooms.length > 0) {
+    await supabase.from("website_rooms").delete().in("id", orphanRooms);
+  }
+
+  revalidatePath(`/dashboard/website/${websiteId}/rooms`);
+  return { ok: true };
+}
+
+/**
+ * Save per-room visibility + cosmetic display overrides + order. Upserts one
+ * `website_rooms` row per submitted room (sort_order = array index, so the host's
+ * reorder sticks). Every room_id is verified to belong to the website's business
+ * before any write, so a tampered payload can't touch another host's rooms.
+ */
+export async function saveWebsiteRoomsAction(
+  input: SaveWebsiteRoomsInput,
+): Promise<ActionResult> {
+  const parsed = saveWebsiteRoomsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, rooms } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("business_id")
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (!site) return { ok: false, error: "not_found" };
+
+  // Validate every room belongs to this business (anti-tamper).
+  const roomIds = rooms.map((r) => r.roomId);
+  if (roomIds.length > 0) {
+    const { data: owned } = await supabase
+      .from("property_rooms")
+      .select("id, property:properties!inner ( business_id )")
+      .in("id", roomIds)
+      .is("deleted_at", null);
+    const ownedSet = new Set(
+      (owned ?? [])
+        .filter(
+          (r) =>
+            (r.property as unknown as { business_id: string } | null)
+              ?.business_id === site.business_id,
+        )
+        .map((r) => r.id),
+    );
+    if (roomIds.some((id) => !ownedSet.has(id))) {
+      return { ok: false, error: "invalid" };
+    }
+  }
+
+  const payload = rooms.map((r, i) => ({
+    website_id: websiteId,
+    room_id: r.roomId,
+    is_visible: r.isVisible,
+    display_name: r.displayName.trim() || null,
+    display_price: r.displayPrice ? Number(r.displayPrice) : null,
+    display_currency: r.displayCurrency.trim().toUpperCase() || null,
+    display_desc: r.displayDesc.trim() || null,
+    sort_order: i,
+  }));
+
+  if (payload.length > 0) {
+    const { error } = await supabase
+      .from("website_rooms")
+      .upsert(payload, { onConflict: "website_id,room_id" });
+    if (error) return { ok: false, error: "save_failed" };
+  }
+
+  revalidatePath(`/dashboard/website/${websiteId}/rooms`);
   return { ok: true };
 }
