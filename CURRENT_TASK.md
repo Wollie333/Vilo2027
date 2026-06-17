@@ -113,9 +113,25 @@
 > (logo now resolves) + `SitePageView.siteAsset`. **NO DB schema change** (brand/theme cols + bucket
 > from W1); help migration `20260617000700` pushed; +44 `website` i18n keys (en). build+lint+
 > type-check green; `scripts/verify-website-brand-theme.mjs` 🎉.
-> **Next: W8 — Home + About section builder** (plan §8.8): accordion + reorder + click-to-edit +
-> inline preview + desktop/phone toggle; Zustand draft store; `saveDraftSectionsAction`. Fresh
-> session per phase.
+> **W8 (Home + About section builder, plan §8.8) DONE** (commit pending): the flagship CMS editor.
+> **Pages** tab now live → `[websiteId]/pages` (list: Home/About + section counts) → `pages/[pageId]`
+> two-pane builder. LEFT: accordion of sections — add (typed menu), reorder (up/down buttons, NO
+> `@dnd-kit`), show/hide, delete, click-to-edit. RIGHT: **inline live preview** through the SAME
+> `components/site/*` renderer the public site uses (preview === public) + desktop/phone width toggle.
+> `SectionEditor` = per-type RHF-free forms over the shared `sectionSchema` union (free-form edit
+> text/images; auto-populate sections edit config only + "pulls live data" note). Reusable field
+> primitives in `pages/[pageId]/_components/fields.tsx`. Section images (hero bg, host photo) upload
+> browser→Storage via `createWebsiteAssetUploadUrl` (path saved into props on Save).
+> `saveDraftSectionsAction` (owner-checked, validates via `sectionsSchema`, writes
+> `website_pages.draft_sections`); `newSection()` defaults; `loadPageBuilder` + `loadPagesList`.
+> **KEY REFACTOR:** `lib/site/loadSitePage.ts` now exports **`assembleSiteDataByType`** (data keyed
+> by TYPE = SSOT); `assembleSectionData` fans it out by id; the builder preview reuses it via
+> `loadSiteContext(subdomain,{preview})` so auto sections show REAL data. **NO DB schema change.**
+> **DEVIATION (noted):** local React state in the one builder island instead of the plan's Zustand
+> store (Zustand not a dep; a global store buys nothing here) — no package added. Help migration
+> `20260617000800` pushed; +~95 `website` i18n keys (en). build+lint+type-check green.
+> **Next: W9 — Rooms tab** (plan §8.9): sync rooms, per-room show/hide + display overrides
+> (`website_rooms`), booking CTA band deep-linking to `/property/[slug]/book`. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

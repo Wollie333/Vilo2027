@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { sectionsSchema } from "@/lib/website/sections.schema";
+
 export const createWebsiteSchema = z.object({
   businessId: z.string().uuid(),
   subdomain: z
@@ -49,3 +51,13 @@ export const themeSchema = z.object({
 });
 
 export type ThemeInput = z.infer<typeof themeSchema>;
+
+// --- Section builder (W8) ---
+
+export const saveDraftSectionsSchema = z.object({
+  websiteId: z.string().uuid(),
+  pageId: z.string().uuid(),
+  sections: sectionsSchema,
+});
+
+export type SaveDraftSectionsInput = z.infer<typeof saveDraftSectionsSchema>;

@@ -10,9 +10,11 @@ import { validateSubdomain } from "@/lib/website/subdomain";
 import {
   brandSchema,
   createWebsiteSchema,
+  saveDraftSectionsSchema,
   themeSchema,
   type BrandInput,
   type CreateWebsiteInput,
+  type SaveDraftSectionsInput,
   type ThemeInput,
 } from "./schemas";
 
@@ -374,6 +376,73 @@ export async function registerWebsiteLogoAction(
 
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
   return { ok: true };
+}
+
+// ============================================================
+// W8 — Section builder (Home + About pages)
+// ============================================================
+
+/**
+ * Save a page's draft sections (the builder's working copy). Validated through
+ * the shared `sectionsSchema` SSOT so the renderer + publish action can trust the
+ * stored shape. Public visitors still see `published_sections` until Publish (W10).
+ */
+export async function saveDraftSectionsAction(
+  input: SaveDraftSectionsInput,
+): Promise<ActionResult> {
+  const parsed = saveDraftSectionsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, pageId, sections } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  // Page must belong to this (owner-verified) website.
+  const { data: page } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!page) return { ok: false, error: "not_found" };
+
+  const { error } = await supabase
+    .from("website_pages")
+    .update({ draft_sections: sections })
+    .eq("id", pageId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages/${pageId}`);
+  return { ok: true };
+}
+
+/**
+ * Issue a signed upload URL for a section image (hero / host photo). Same direct
+ * browser→Storage pattern as the logo; the returned path is stored into the
+ * section's props and persisted on the next Save. Path is `{websiteId}/...` to
+ * satisfy the bucket RLS.
+ */
+export async function createWebsiteAssetUploadUrl(
+  websiteId: string,
+  ext: string,
+): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const safeExt =
+    (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${websiteId}/section-${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("website-assets")
+    .createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "upload_start_failed" };
+  return { ok: true, data: { path, token: data.token } };
 }
 
 /** Remove the logo from the brand + delete the object from Storage. */

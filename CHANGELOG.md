@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 8: Home + About section builder
+
+### Added
+- **Section builder** (`/dashboard/website/[websiteId]/pages` + `pages/[pageId]`) —
+  the flagship CMS editing surface. A **Pages** list (Home / About + section
+  counts) opens a two-pane builder: a left accordion of sections (add via a typed
+  menu, reorder with up/down, show/hide, delete, click-to-edit) and a right
+  **inline live preview** rendered through the SAME `components/site/*` tree the
+  public site uses (preview === public), with a **desktop/phone** width toggle.
+- Per-type property forms (`SectionEditor`) over the shared `sectionSchema`
+  discriminated union — free-form sections (hero, intro, highlights, cta,
+  host_bio, values, rich_text, faq) edit their own text/images; auto-populate
+  sections (gallery, rooms_preview, location, reviews, blog_preview) edit only
+  config and show a "pulls live data" note. Reusable dashboard field primitives
+  (`fields.tsx`: Text/TextArea/Number/Select/Toggle/Image/ItemList).
+- Section images (hero background, host photo) upload **browser → Storage** via
+  `createWebsiteAssetUploadUrl` (signed URL → `uploadToSignedUrl`), path-scoped
+  `{websiteId}/…`; the stored path is persisted into the section props on save.
+- `saveDraftSectionsAction` (owner-checked; validates the array through
+  `sectionsSchema`; writes `website_pages.draft_sections`). `newSection()` starter
+  defaults per type. New `saveDraftSectionsSchema`. **Pages** tab now live.
+- New `website` i18n keys (section-type labels, field labels, live notes, builder
+  chrome). Help article `website-building-pages`
+  (`20260617000800_help_website_pages.sql`).
+
+### Changed
+- Refactored `lib/site/loadSitePage.ts`: extracted **`assembleSiteDataByType`**
+  (live data keyed by section TYPE) as the SSOT, with `assembleSectionData`
+  fanning it out by section id. The builder loader (`loadPageBuilder`) reuses it —
+  via `loadSiteContext(subdomain, { preview })` — so the preview's auto-populate
+  sections show real rooms/reviews/location/gallery/blog data and stay in lockstep
+  with the public renderer. No DB schema change.
+
+### Notes
+- **Deviation (noted):** used local React state in the builder client island
+  instead of the plan's Zustand store — Zustand isn't a dep and the whole editor
+  is one island, so a global store buys nothing. No package added. Reorder uses
+  up/down buttons (no `@dnd-kit` dep), per the plan's fallback.
+
+---
+
 ## 2026-06-17 — Website CMS Phase 7: Brand & Theme tabs
 
 ### Added

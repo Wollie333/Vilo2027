@@ -1,0 +1,154 @@
+// Starter props for a freshly-added builder section (W8). Every default is a
+// COMPLETE, schema-valid `props` object (post-default shape) so a new section
+// renders immediately and `saveDraftSectionsAction` validation passes. Text is
+// intentionally placeholder-y to prompt the host to edit it.
+//
+// Client-safe (pure data + crypto.randomUUID, available in the browser).
+import type {
+  SectionType,
+  WebsiteSection,
+} from "@/lib/website/sections.schema";
+
+/** Build a new, valid section document of the given type. */
+export function newSection(type: SectionType): WebsiteSection {
+  const id = crypto.randomUUID();
+  switch (type) {
+    case "hero":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          headline: "Your headline here",
+          subheadline: "A short welcoming line beneath it.",
+          align: "center",
+        },
+      };
+    case "intro":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Welcome",
+          body: "Tell guests what makes your place special.",
+        },
+      };
+    case "highlights":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Why guests come back",
+          items: [
+            { title: "Direct rates", body: "No platform markup." },
+            {
+              title: "Personal welcome",
+              body: "We host every guest ourselves.",
+            },
+            {
+              title: "Great location",
+              body: "Close to everything that matters.",
+            },
+          ],
+        },
+      };
+    case "gallery":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "Gallery", layout: "grid", max: 12 },
+      };
+    case "rooms_preview":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "Rooms & rates", layout: "grid", max: 6 },
+      };
+    case "location":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "Where you'll be", show_map: true },
+      };
+    case "reviews":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "What guests say", max: 6 },
+      };
+    case "cta":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Ready to book?",
+          body: "Reserve your dates directly — no booking fees.",
+          button_label: "Check availability",
+          button_href: "#rooms",
+        },
+      };
+    case "host_bio":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Your host",
+          name: "",
+          body: "A few warm lines about you and your team.",
+        },
+      };
+    case "values":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "How we host",
+          items: [
+            {
+              title: "Thoughtful",
+              body: "The little touches guests remember.",
+            },
+            { title: "Local", body: "We point you to the best of the area." },
+          ],
+        },
+      };
+    case "blog_preview":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "From the journal", max: 3 },
+      };
+    case "rich_text":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { html: "<p>Add your own text here.</p>" },
+      };
+    case "faq":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Good to know",
+          items: [{ q: "Is there Wi-Fi?", a: "Yes — free, uncapped." }],
+        },
+      };
+    default: {
+      // Exhaustiveness guard — a new SectionType must add a default above.
+      const never: never = type;
+      throw new Error(`No default for section type: ${String(never)}`);
+    }
+  }
+}

@@ -14,6 +14,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   parseSectionsLoose,
+  type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 import type { SiteThemeConfig } from "./themes";
@@ -25,6 +26,7 @@ import type {
   RoomCard,
   SiteBrand,
   SiteData,
+  SiteDataByType,
   SiteNavItem,
 } from "./types";
 
@@ -216,16 +218,62 @@ function bookHref(locale: string, slug: string, roomId?: string): string {
   return APP_URL ? `${APP_URL}${path}` : path;
 }
 
-/** Build the SiteData map — one query batch per auto-populate section type present. */
+/**
+ * Build the SiteData map — one query batch per auto-populate section type present.
+ * Resolves the live data once per TYPE (via {@link assembleSiteDataByType}) then
+ * fans it out to each section's id, so two `rooms_preview` sections share a query.
+ */
 async function assembleSectionData(
   sb: Sb,
   ctx: SiteContext,
   sections: WebsiteSection[],
 ): Promise<SiteData> {
-  const data: SiteData = {};
-  const ids = ctx.propertyIds;
   const types = new Set(sections.map((s) => s.type));
-  if (ids.length === 0) return data;
+  const byType = await assembleSiteDataByType(sb, ctx, types);
+  const data: SiteData = {};
+  for (const s of sections) {
+    switch (s.type) {
+      case "gallery":
+        if (byType.gallery)
+          data[s.id] = { type: "gallery", data: byType.gallery };
+        break;
+      case "rooms_preview":
+        if (byType.rooms_preview)
+          data[s.id] = { type: "rooms_preview", data: byType.rooms_preview };
+        break;
+      case "location":
+        if (byType.location)
+          data[s.id] = { type: "location", data: byType.location };
+        break;
+      case "reviews":
+        if (byType.reviews)
+          data[s.id] = { type: "reviews", data: byType.reviews };
+        break;
+      case "blog_preview":
+        if (byType.blog_preview)
+          data[s.id] = { type: "blog_preview", data: byType.blog_preview };
+        break;
+      default:
+        break;
+    }
+  }
+  return data;
+}
+
+/**
+ * Resolve the live data for each requested auto-populate section TYPE (keyed by
+ * type, not section id) — the SSOT used by both the public renderer
+ * ({@link assembleSectionData}) and the dashboard builder preview, which asks for
+ * every auto type so newly-added sections render real data instantly.
+ */
+export async function assembleSiteDataByType(
+  sb: Sb,
+  ctx: SiteContext,
+  types: Set<SectionType>,
+): Promise<Partial<SiteDataByType>> {
+  const out: Partial<SiteDataByType> = {};
+  const ids = ctx.propertyIds;
+  if (ids.length === 0) return out;
 
   // Resolve property slugs once (needed by rooms + location).
   const needsSlugs = types.has("rooms_preview") || types.has("location");
@@ -270,9 +318,7 @@ async function assembleSectionData(
         url: (p as { url: string }).url,
         caption: null,
       }));
-      for (const s of sections)
-        if (s.type === "gallery")
-          data[s.id] = { type: "gallery", data: { images } };
+      out.gallery = { images };
     })(),
 
     // ROOMS — website_rooms (visible) ⨝ property_rooms, with display overrides.
@@ -337,9 +383,7 @@ async function assembleSectionData(
         })
         .filter((r): r is RoomCard => r !== null);
 
-      for (const s of sections)
-        if (s.type === "rooms_preview")
-          data[s.id] = { type: "rooms_preview", data: { rooms } };
+      out.rooms_preview = { rooms };
     })(),
 
     // LOCATION — the primary visible property's address + POIs.
@@ -363,12 +407,7 @@ async function assembleSectionData(
       ]
         .filter(Boolean)
         .join(", ");
-      for (const s of sections)
-        if (s.type === "location")
-          data[s.id] = {
-            type: "location",
-            data: { address: address || null, mapEmbedUrl: null, pois },
-          };
+      out.location = { address: address || null, mapEmbedUrl: null, pois };
     })(),
 
     // REVIEWS — published reviews across visible properties (aggregate + cards).
@@ -407,9 +446,7 @@ async function assembleSectionData(
           body: r.body as string,
           date: r.created_at.slice(0, 10),
         }));
-      for (const s of sections)
-        if (s.type === "reviews")
-          data[s.id] = { type: "reviews", data: { items, average, count } };
+      out.reviews = { items, average, count };
     })(),
 
     // BLOG — published posts for this site.
@@ -440,13 +477,11 @@ async function assembleSectionData(
           date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
         };
       });
-      for (const s of sections)
-        if (s.type === "blog_preview")
-          data[s.id] = { type: "blog_preview", data: { posts: cards } };
+      out.blog_preview = { posts: cards };
     })(),
   ]);
 
-  return data;
+  return out;
 }
 
 /** Load a single published blog post by slug (for the blog detail page). */
