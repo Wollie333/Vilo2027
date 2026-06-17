@@ -1,0 +1,103 @@
+// Shared types for the hosted micro-site renderer.
+//
+// Section components are PURE PRESENTATIONAL — they never fetch. Auto-populate
+// sections (gallery, rooms_preview, location, reviews, blog_preview) receive
+// their live data via a `SiteData` map keyed by section id, assembled
+// server-side (W4 `loadSitePage.ts`). Free-form sections read everything from
+// their own `props` and ignore this map.
+import type { SectionType } from "@/lib/website/sections.schema";
+
+export type SiteBrand = {
+  name: string;
+  tagline?: string | null;
+  logoUrl?: string | null;
+};
+
+export type SiteNavItem = {
+  label: string;
+  href: string; // path within the site (e.g. "/", "/about")
+};
+
+// ── Per-section live data (auto-populate sections only) ───────
+export type GalleryImage = { url: string; caption?: string | null };
+export type GalleryData = { images: GalleryImage[] };
+
+export type RoomCard = {
+  id: string;
+  name: string;
+  price?: number | null;
+  currency?: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  bookHref: string; // absolute deep-link into the existing booking engine
+};
+export type RoomsPreviewData = { rooms: RoomCard[] };
+
+export type Poi = {
+  name: string;
+  category?: string | null;
+  distance?: string | null;
+};
+export type LocationData = {
+  address?: string | null;
+  mapEmbedUrl?: string | null;
+  pois: Poi[];
+};
+
+export type ReviewCard = {
+  author: string;
+  rating: number; // 1..5
+  body: string;
+  date?: string | null;
+};
+export type ReviewsData = {
+  items: ReviewCard[];
+  average?: number | null;
+  count?: number | null;
+};
+
+export type BlogCard = {
+  title: string;
+  href: string;
+  excerpt?: string | null;
+  coverUrl?: string | null;
+  date?: string | null;
+};
+export type BlogPreviewData = { posts: BlogCard[] };
+
+/** Live-data shape per auto-populate section type. */
+export type SiteDataByType = {
+  gallery: GalleryData;
+  rooms_preview: RoomsPreviewData;
+  location: LocationData;
+  reviews: ReviewsData;
+  blog_preview: BlogPreviewData;
+};
+export type AutoSectionType = keyof SiteDataByType;
+
+/** A datum tagged with its section type (for the by-id map). */
+export type SiteSectionDatum = {
+  [K in AutoSectionType]: { type: K; data: SiteDataByType[K] };
+}[AutoSectionType];
+
+/** sectionId → live data for that section (only auto-populate sections appear). */
+export type SiteData = Record<string, SiteSectionDatum>;
+
+export type SiteAssetResolver = (
+  path: string | null | undefined,
+) => string | undefined;
+
+/** Narrow a SiteData entry to the datum for a given section type. */
+export function dataFor<T extends AutoSectionType>(
+  map: SiteData | undefined,
+  id: string,
+  type: T,
+): SiteDataByType[T] | undefined {
+  const entry = map?.[id];
+  if (!entry || entry.type !== type) return undefined;
+  // Runtime check guarantees the match; the flat lookup keeps the return type
+  // narrow for call sites (which pass a literal `type`).
+  return entry.data as SiteDataByType[T];
+}
+
+export type { SectionType };

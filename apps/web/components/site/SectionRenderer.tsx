@@ -1,0 +1,118 @@
+import type { WebsiteSection } from "@/lib/website/sections.schema";
+import {
+  dataFor,
+  type SiteAssetResolver,
+  type SiteData,
+} from "@/lib/site/types";
+
+import { HeroSection } from "./sections/HeroSection";
+import { IntroSection } from "./sections/IntroSection";
+import { HighlightsSection } from "./sections/HighlightsSection";
+import { GallerySection } from "./sections/GallerySection";
+import { RoomsPreviewSection } from "./sections/RoomsPreviewSection";
+import { LocationSection } from "./sections/LocationSection";
+import { ReviewsSection } from "./sections/ReviewsSection";
+import { CtaSection } from "./sections/CtaSection";
+import { HostBioSection } from "./sections/HostBioSection";
+import { ValuesSection } from "./sections/ValuesSection";
+import { BlogPreviewSection } from "./sections/BlogPreviewSection";
+import { RichTextSection } from "./sections/RichTextSection";
+import { FaqSection } from "./sections/FaqSection";
+
+/**
+ * Renders an ordered list of validated sections — the ONE renderer shared by the
+ * dashboard live preview and the public site (preview === public). Free-form
+ * sections read their `props`; auto-populate sections additionally receive their
+ * live data via the `data` map (keyed by section id). `asset` resolves storage
+ * paths → URLs for the image-bearing free-form sections (hero, host_bio).
+ */
+export function SectionRenderer({
+  sections,
+  data,
+  asset,
+}: {
+  sections: WebsiteSection[];
+  data?: SiteData;
+  asset?: SiteAssetResolver;
+}) {
+  return (
+    <>
+      {sections
+        .filter((s) => s.enabled)
+        .map((section) => (
+          <SectionSwitch
+            key={section.id}
+            section={section}
+            data={data}
+            asset={asset}
+          />
+        ))}
+    </>
+  );
+}
+
+function SectionSwitch({
+  section,
+  data,
+  asset,
+}: {
+  section: WebsiteSection;
+  data?: SiteData;
+  asset?: SiteAssetResolver;
+}) {
+  switch (section.type) {
+    case "hero":
+      return <HeroSection props={section.props} asset={asset} />;
+    case "intro":
+      return <IntroSection props={section.props} />;
+    case "highlights":
+      return <HighlightsSection props={section.props} />;
+    case "gallery":
+      return (
+        <GallerySection
+          props={section.props}
+          data={dataFor(data, section.id, "gallery")}
+        />
+      );
+    case "rooms_preview":
+      return (
+        <RoomsPreviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "rooms_preview")}
+        />
+      );
+    case "location":
+      return (
+        <LocationSection
+          props={section.props}
+          data={dataFor(data, section.id, "location")}
+        />
+      );
+    case "reviews":
+      return (
+        <ReviewsSection
+          props={section.props}
+          data={dataFor(data, section.id, "reviews")}
+        />
+      );
+    case "cta":
+      return <CtaSection props={section.props} />;
+    case "host_bio":
+      return <HostBioSection props={section.props} asset={asset} />;
+    case "values":
+      return <ValuesSection props={section.props} />;
+    case "blog_preview":
+      return (
+        <BlogPreviewSection
+          props={section.props}
+          data={dataFor(data, section.id, "blog_preview")}
+        />
+      );
+    case "rich_text":
+      return <RichTextSection props={section.props} />;
+    case "faq":
+      return <FaqSection props={section.props} />;
+    default:
+      return null;
+  }
+}
