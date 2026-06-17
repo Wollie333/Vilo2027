@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-17 — Consolidate the admin user-record tabs (~14 → 7)
+
+### Changed
+- Collapsed the user-record tab strip into logical groups: **Overview · Bookings ·
+  Listings · Finance · Business & catalogue · Reviews & guests · Activity &
+  notes** (5 for non-host guests). Finance stacks subscription/products + Vilo &
+  booking ledger + affiliate/referrals; Business & catalogue stacks businesses +
+  add-ons/policies + website; Reviews & guests stacks reviews + relationships;
+  Activity & notes stacks the audit trail + data requests + internal notes, each
+  under a labelled `GroupSection` divider. Old deep-links (`?tab=ledger`,
+  `?tab=catalog`, …) still resolve via a `TAB_ALIASES` map.
+
 ## 2026-06-17 — Reconcile the admin Vilo revenue ledger
 
 ### Changed

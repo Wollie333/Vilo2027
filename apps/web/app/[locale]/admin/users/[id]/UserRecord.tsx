@@ -356,11 +356,27 @@ type Dialog =
   | "managesub"
   | null;
 
+// Old per-panel tab keys fold into the consolidated groups (keeps existing
+// deep-links working: ?tab=catalog → Business, ?tab=ledger → Finance, …).
+const TAB_ALIASES: Record<string, string> = {
+  products: "finance",
+  ledger: "finance",
+  referrals: "finance",
+  catalog: "business",
+  website: "business",
+  reviews: "guests",
+  relationships: "guests",
+  support: "admin",
+  activity: "admin",
+  notes: "admin",
+};
+
 export function UserRecord({ data }: { data: UserRecordData }) {
   const router = useRouter();
   const params = useSearchParams();
   const { user, host } = data;
-  const tab = params.get("tab") ?? "overview";
+  const rawTab = params.get("tab") ?? "overview";
+  const tab = TAB_ALIASES[rawTab] ?? rawTab;
 
   const setTab = (t: string) => {
     const next = new URLSearchParams(params.toString());
@@ -400,45 +416,34 @@ export function UserRecord({ data }: { data: UserRecordData }) {
       } else toast.error(r.error ?? "Failed.");
     });
 
+  // Consolidated tab groups (each stacks the related panels). Far fewer top-
+  // level tabs; deep-links to the old keys still resolve via TAB_ALIASES.
   const tabs = [
     { key: "overview", label: "Overview" },
-    ...(host ? [{ key: "products", label: "Products" }] : []),
     { key: "bookings", label: "Bookings" },
-    { key: "ledger", label: "Ledger" },
     ...(host
       ? [{ key: "listings", label: "Listings", count: data.listings.length }]
       : []),
-    ...(host
-      ? [{ key: "business", label: "Business", count: data.businesses.length }]
-      : []),
+    { key: "finance", label: "Finance" },
     ...(host
       ? [
           {
-            key: "catalog",
-            label: "Add-ons & policies",
-            count: data.addons.length + data.policies.length,
+            key: "business",
+            label: "Business & catalogue",
+            count: data.businesses.length + data.addons.length,
           },
         ]
       : []),
-    ...(host ? [{ key: "website", label: "Website" }] : []),
-    { key: "reviews", label: "Reviews" },
     {
-      key: "relationships",
-      label: "Relationships",
-      count: data.relationships.length,
-    },
-    { key: "referrals", label: "Referrals" },
-    {
-      key: "support",
-      label: "Support",
-      count: data.dataRequests.length || undefined,
+      key: "guests",
+      label: "Reviews & guests",
+      count: data.relationships.length || undefined,
     },
     {
-      key: "activity",
-      label: "Activity",
-      count: data.audit.length || undefined,
+      key: "admin",
+      label: "Activity & notes",
+      count: data.notes.length || undefined,
     },
-    { key: "notes", label: "Notes", count: data.notes.length },
   ];
 
   return (
@@ -480,43 +485,81 @@ export function UserRecord({ data }: { data: UserRecordData }) {
           <RecordTabs active={tab} onSelect={setTab} tabs={tabs} />
           <div>
             {tab === "overview" ? <OverviewPanel data={data} /> : null}
-            {tab === "products" ? (
-              <ProductsPanel
-                data={data}
-                onManage={() => setDialog("managesub")}
-              />
-            ) : null}
             {tab === "bookings" ? (
               <BookingsPanel
                 data={data}
                 onRequestSupport={() => setDialog("support")}
               />
             ) : null}
-            {tab === "ledger" ? (
-              <LedgerPanel
-                data={data}
-                onRequestSupport={() => setDialog("support")}
-              />
-            ) : null}
             {tab === "listings" ? <ListingsPanel data={data} /> : null}
+
+            {/* Finance — subscription/products, Vilo + booking ledger, affiliate */}
+            {tab === "finance" ? (
+              <div className="space-y-10">
+                {host ? (
+                  <GroupSection title="Subscription & products">
+                    <ProductsPanel
+                      data={data}
+                      onManage={() => setDialog("managesub")}
+                    />
+                  </GroupSection>
+                ) : null}
+                <GroupSection title="Ledger">
+                  <LedgerPanel
+                    data={data}
+                    onRequestSupport={() => setDialog("support")}
+                  />
+                </GroupSection>
+                <GroupSection title="Affiliate & referrals">
+                  <ReferralsPanel data={data} />
+                </GroupSection>
+              </div>
+            ) : null}
+
+            {/* Business & catalogue — entity, add-ons, policies, website */}
             {tab === "business" ? (
-              <BusinessPanel data={data} onEdit={setEditBiz} />
+              <div className="space-y-10">
+                <GroupSection title="Businesses">
+                  <BusinessPanel data={data} onEdit={setEditBiz} />
+                </GroupSection>
+                <GroupSection title="Add-ons & policies">
+                  <CatalogPanel data={data} />
+                </GroupSection>
+                <GroupSection title="Website">
+                  <WebsitePanel data={data} />
+                </GroupSection>
+              </div>
             ) : null}
-            {tab === "catalog" ? <CatalogPanel data={data} /> : null}
-            {tab === "website" ? <WebsitePanel data={data} /> : null}
-            {tab === "reviews" ? <ReviewsPanel data={data} /> : null}
-            {tab === "relationships" ? (
-              <RelationshipsPanel data={data} />
+
+            {/* Reviews & guests */}
+            {tab === "guests" ? (
+              <div className="space-y-10">
+                <GroupSection title="Reviews">
+                  <ReviewsPanel data={data} />
+                </GroupSection>
+                <GroupSection title="Travelled with">
+                  <RelationshipsPanel data={data} />
+                </GroupSection>
+              </div>
             ) : null}
-            {tab === "referrals" ? <ReferralsPanel data={data} /> : null}
-            {tab === "support" ? <SupportPanel data={data} /> : null}
-            {tab === "activity" ? <ActivityPanel data={data} /> : null}
-            {tab === "notes" ? (
-              <NotesPanel
-                userId={user.id}
-                notes={data.notes}
-                onAdded={() => router.refresh()}
-              />
+
+            {/* Activity & notes — audit trail, data requests, internal notes */}
+            {tab === "admin" ? (
+              <div className="space-y-10">
+                <GroupSection title="Activity">
+                  <ActivityPanel data={data} />
+                </GroupSection>
+                <GroupSection title="Data & privacy requests">
+                  <SupportPanel data={data} />
+                </GroupSection>
+                <GroupSection title="Internal notes">
+                  <NotesPanel
+                    userId={user.id}
+                    notes={data.notes}
+                    onAdded={() => router.refresh()}
+                  />
+                </GroupSection>
+              </div>
             ) : null}
           </div>
         </div>
@@ -3567,6 +3610,26 @@ function Lbl({
       </span>
       {children}
     </label>
+  );
+}
+// Labelled divider that separates the stacked panels inside a consolidated tab.
+function GroupSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-3 flex items-center gap-3">
+        <h2 className="font-display text-[12px] font-bold uppercase tracking-[0.1em] text-brand-mute">
+          {title}
+        </h2>
+        <div className="h-px flex-1 bg-brand-line" />
+      </div>
+      {children}
+    </section>
   );
 }
 function Select({
