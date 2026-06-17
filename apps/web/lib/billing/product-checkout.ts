@@ -173,9 +173,15 @@ function addMonths(d: Date, n: number): string {
   return x.toISOString();
 }
 
-// Activate the buyer's plan when the purchased product is a plan-mapped
-// subscription. Mirrors the webhook's processProductEvent so the TS confirm and
-// the Deno backstop behave identically. No-op for bespoke products.
+// Activate the buyer's subscription when the purchased product is any
+// subscription product (not just the seeded plan-mapped ones). The PRODUCT is
+// authoritative for gating/scopes — we record it on subscriptions.product_id so
+// check_feature_permission resolves the buyer's features from product_features.
+// `plan` is kept valid (FK to plans.key) for legacy reads: derived from the
+// product's slug when that slug is a real plan key, otherwise the host's current
+// plan is preserved (or 'free' for a brand-new subscription). Mirrors the
+// webhook's processProductEvent and the admin setUserProductAction so all three
+// paths behave identically. No-op for one-off products.
 async function activateMappedPlan(
   admin: ReturnType<typeof createAdminClient>,
   payerUserId: string | null,
@@ -188,30 +194,38 @@ async function activateMappedPlan(
     .select("type, slug, billing_cycle")
     .eq("id", productId)
     .maybeSingle();
-  const planKeys = ["free", "basic", "pro", "business"];
-  if (
-    !product ||
-    product.type !== "subscription" ||
-    !product.slug ||
-    !planKeys.includes(product.slug)
-  ) {
-    return;
-  }
+  if (!product || product.type !== "subscription") return;
+
   const { data: host } = await admin
     .from("hosts")
     .select("id")
     .eq("user_id", payerUserId)
     .maybeSingle();
   if (!host) return;
-  const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
-  const periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
+
   const { data: sub } = await admin
     .from("subscriptions")
-    .select("id")
+    .select("id, plan")
     .eq("host_id", host.id)
     .maybeSingle();
+
+  // Keep `plan` a valid plans.key: use the product slug only when a matching
+  // plan exists, else preserve the current plan (or default to 'free').
+  let plan = sub?.plan ?? "free";
+  if (product.slug) {
+    const { data: planRow } = await admin
+      .from("plans")
+      .select("key")
+      .eq("key", product.slug)
+      .maybeSingle();
+    if (planRow) plan = planRow.key;
+  }
+
+  const cycle = product.billing_cycle === "annual" ? "annual" : "monthly";
+  const periodEnd = addMonths(now, cycle === "annual" ? 12 : 1);
   const patch = {
-    plan: product.slug,
+    product_id: productId,
+    plan,
     billing_cycle: cycle,
     status: "active" as const,
     current_period_start: now.toISOString(),

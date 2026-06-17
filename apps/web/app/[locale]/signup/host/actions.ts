@@ -316,6 +316,7 @@ export async function finalizeOnboardingAction(
   //     ledger. If the product maps to a subscription plan (slug === plan key),
   //     start them on that plan instead of Free. Non-blocking.
   let resolvedPlan: "free" | "basic" | "pro" | "business" = "free";
+  let resolvedProductId: string | null = null;
   if (d.purchased_order_token) {
     const { data: order } = await admin
       .from("product_orders")
@@ -328,26 +329,37 @@ export async function finalizeOnboardingAction(
         .update({ payer_user_id: user.id })
         .eq("id", order.id);
 
-      // Map product → plan when the slug matches an existing plan key.
+      // The product is authoritative for gating/scopes — record it on the
+      // subscription (check_feature_permission resolves from product_features).
+      // Derive `plan` from the product slug only when it matches a real plan key
+      // (FK to plans.key); a bespoke product keeps the host on Free for the FK.
       if (order.product_id) {
+        resolvedProductId = order.product_id;
         const { data: prod } = await admin
           .from("products")
           .select("slug")
           .eq("id", order.product_id)
           .maybeSingle();
         const slug = prod?.slug ?? null;
-        if (slug && ["free", "basic", "pro", "business"].includes(slug)) {
-          resolvedPlan = slug as typeof resolvedPlan;
+        if (slug) {
+          const { data: planRow } = await admin
+            .from("plans")
+            .select("key")
+            .eq("key", slug)
+            .maybeSingle();
+          if (planRow) resolvedPlan = planRow.key as typeof resolvedPlan;
         }
       }
     }
   }
 
   // 4. Subscription — Free unless a purchased product maps to a paid plan.
-  //    Payment auto-renewal lands later. Non-blocking on failure.
+  //    product_id records the exact catalog product (drives gating). Payment
+  //    auto-renewal lands later. Non-blocking on failure.
   await admin.from("subscriptions").insert({
     host_id: host.id,
     plan: resolvedPlan,
+    product_id: resolvedProductId,
     status: "active",
   });
 

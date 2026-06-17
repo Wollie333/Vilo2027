@@ -339,24 +339,21 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
   // Accrue affiliate commission if the payer was referred (idempotent in the RPC).
   await accrueCommissionByReference(supabase, ref);
 
-  // If the product is a subscription that maps to a plan, grant the buyer that
-  // plan so they get access. Only when the buyer already has a Vilo account +
-  // host (the buy-first flow sets the plan at signup instead — see
-  // signup/host/actions.ts). Plan-mapped slugs only; bespoke products stay on
-  // their existing plan and are tracked via the paid order + ledger.
+  // If the buyer purchased ANY subscription product, activate it on their
+  // subscription. The PRODUCT is authoritative for gating/scopes, recorded on
+  // subscriptions.product_id (check_feature_permission resolves features from
+  // product_features). `plan` is kept a valid plans.key for legacy reads:
+  // derived from the product slug when that slug is a real plan, else the host's
+  // current plan is preserved. Mirrors the TS confirm path (activateMappedPlan)
+  // and admin setUserProductAction. Only when the buyer has a Vilo account +
+  // host (the buy-first flow sets this at signup instead).
   if (order.payer_user_id && order.product_id) {
     const { data: product } = await supabase
       .from("products")
       .select("type, slug, billing_cycle")
       .eq("id", order.product_id)
       .maybeSingle();
-    const planKeys = ["free", "basic", "pro", "business"];
-    if (
-      product &&
-      product.type === "subscription" &&
-      product.slug &&
-      planKeys.includes(product.slug)
-    ) {
+    if (product && product.type === "subscription") {
       const { data: host } = await supabase
         .from("hosts")
         .select("id")
@@ -367,29 +364,36 @@ async function processProductEvent(event: PaystackEvent, supabase: any) {
         const periodEnd = addMonths(new Date(), cycle === "annual" ? 12 : 1);
         const { data: sub } = await supabase
           .from("subscriptions")
-          .select("id")
+          .select("id, plan")
           .eq("host_id", host.id)
           .maybeSingle();
+
+        // Keep `plan` a valid plans.key (FK): product slug only if it matches a
+        // plan, else preserve the current plan (or default to 'free').
+        let plan = sub?.plan ?? "free";
+        if (product.slug) {
+          const { data: planRow } = await supabase
+            .from("plans")
+            .select("key")
+            .eq("key", product.slug)
+            .maybeSingle();
+          if (planRow) plan = planRow.key;
+        }
+
+        const patch = {
+          product_id: order.product_id,
+          plan,
+          billing_cycle: cycle,
+          status: "active",
+          current_period_start: now,
+          current_period_end: periodEnd,
+        };
         if (sub) {
+          await supabase.from("subscriptions").update(patch).eq("id", sub.id);
+        } else {
           await supabase
             .from("subscriptions")
-            .update({
-              plan: product.slug,
-              billing_cycle: cycle,
-              status: "active",
-              current_period_start: now,
-              current_period_end: periodEnd,
-            })
-            .eq("id", sub.id);
-        } else {
-          await supabase.from("subscriptions").insert({
-            host_id: host.id,
-            plan: product.slug,
-            billing_cycle: cycle,
-            status: "active",
-            current_period_start: now,
-            current_period_end: periodEnd,
-          });
+            .insert({ host_id: host.id, ...patch });
         }
       }
     }
@@ -414,6 +418,7 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
   const userId = meta.user_id ?? null;
   const plan = meta.plan ?? null;
   const cycle = meta.cycle === "annual" ? "annual" : "monthly";
+  const environment = meta.environment === "test" ? "test" : "live";
   const amount = Number(event.data.amount ?? 0) / 100;
   const currency = event.data.currency ?? "ZAR";
   const now = new Date();
@@ -462,6 +467,7 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
         currency,
         provider: "paystack",
         provider_reference: ref,
+        environment,
         paid_at: now.toISOString(),
         period_start: now.toISOString(),
         period_end: addMonths(now, cycle === "annual" ? 12 : 1),
@@ -470,10 +476,25 @@ async function processSubscriptionEvent(event: PaystackEvent, supabase: any) {
     }
 
     if (sub) {
+      // Record the product behind this plan (if one exists) so gating resolves
+      // from product_features and the admin sees the active product. Plan-based
+      // checkout carries only `plan`; the seeded products share its slug.
+      let productId: string | null = null;
+      if (plan) {
+        const { data: prod } = await supabase
+          .from("products")
+          .select("id")
+          .eq("slug", plan)
+          .eq("type", "subscription")
+          .maybeSingle();
+        productId = prod?.id ?? null;
+      }
+
       await supabase
         .from("subscriptions")
         .update({
           plan: plan ?? undefined,
+          product_id: productId ?? undefined,
           billing_cycle: cycle,
           status: "active",
           current_period_start: now.toISOString(),

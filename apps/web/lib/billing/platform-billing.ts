@@ -86,6 +86,10 @@ export async function startSubscriptionCheckout(input: {
 
   const reference = `sub_${input.hostId}_${Date.now()}`;
 
+  // Test vs live is derived from the active Paystack secret key prefix so
+  // test-key checkouts stay out of live KPIs (see migration 20260616000020).
+  const environment = secretKey.startsWith("sk_live_") ? "live" : "test";
+
   // Pending revenue row (idempotency anchor for the webhook).
   const { error: ledgerErr } = await admin.from("platform_ledger").insert({
     user_id: host.user_id,
@@ -99,6 +103,7 @@ export async function startSubscriptionCheckout(input: {
     currency: plan.currency,
     provider: "paystack",
     provider_reference: reference,
+    environment,
     reason: `Subscription: ${plan.name} (${input.cycle})`,
   });
   if (ledgerErr) return { ok: false, error: ledgerErr.message };
@@ -117,6 +122,8 @@ export async function startSubscriptionCheckout(input: {
         user_id: host.user_id,
         plan: input.planKey,
         cycle: input.cycle,
+        // Carried so the webhook tags auto-renewal ledger rows correctly.
+        environment,
       },
       // Admin-configured platform key (Vilo's own revenue).
       secretKey,
