@@ -13,7 +13,7 @@ type Leaf = Pick<
  *
  * Replaces the hardcoded ACCOMMODATION_TYPES button grid that used to live
  * in three different forms. The leaves come from the admin-managed
- * listing_categories taxonomy.
+ * property_categories taxonomy.
  */
 export function CategoryPicker({
   leaves,

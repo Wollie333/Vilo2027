@@ -3,7 +3,7 @@
  *
  * Given a listing's saved latitude/longitude we ask the free, keyless
  * Overpass API for real places around it and bucket them into the same
- * Eat / Do / Travel categories used by `listing_points_of_interest`.
+ * Eat / Do / Travel categories used by `property_points_of_interest`.
  *
  * Pure, dependency-free, and runs server-side only (the action POSTs the
  * built query). Travel time is an estimate derived from straight-line

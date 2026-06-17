@@ -18,13 +18,13 @@ export default async function EditCategoryPage({
 
   const [{ data: row }, { data: allRows }] = await Promise.all([
     service
-      .from("listing_categories")
+      .from("property_categories")
       .select("*")
       .eq("id", params.id)
       .is("deleted_at", null)
       .maybeSingle(),
     service
-      .from("listing_categories")
+      .from("property_categories")
       .select("id, label, kind, parent_id")
       .is("deleted_at", null)
       .is("parent_id", null)

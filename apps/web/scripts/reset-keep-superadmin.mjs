@@ -3,7 +3,7 @@
 // the tested app_purge_user_account() teardown RPC, then auth.admin.deleteUser
 // cascades user_profiles + the rest of the CASCADE graph.
 //
-// Platform CONFIG/REFERENCE data (plans, plan_features, listing_categories,
+// Platform CONFIG/REFERENCE data (plans, plan_features, property_categories,
 // help_*, platform_settings, amenity_catalog, fx_rates, etc.) is left intact —
 // only USER data (hosts, guests, listings, bookings, payments, quotes,
 // conversations, reviews, …) tied to deleted users is removed.

@@ -233,7 +233,7 @@ export default async function BookingDetailPage({
       .eq("booking_id", booking.id)
       .order("created_at", { ascending: true }),
     supabase
-      .from("listing_access")
+      .from("property_access")
       .select(
         "check_in_method, check_in_instructions, door_code, gate_code, wifi_network, wifi_password",
       )

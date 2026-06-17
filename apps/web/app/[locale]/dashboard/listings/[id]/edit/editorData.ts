@@ -163,14 +163,14 @@ export async function loadListingEditorData(
       .select("policy_id, policy_type, room_id")
       .eq("listing_id", listingId),
     db
-      .from("listing_access")
+      .from("property_access")
       .select(
         "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
       )
       .eq("listing_id", listingId)
       .maybeSingle(),
     db
-      .from("listing_local_picks")
+      .from("property_local_picks")
       .select("category, title, blurb, distance_label, sort_order")
       .eq("listing_id", listingId)
       .order("sort_order", { ascending: true }),

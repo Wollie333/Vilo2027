@@ -40,14 +40,22 @@ Goal: logical naming before the website build sits on top of it.
 | `listing_access` | RENAME | `property_access` | R1 |
 | `listing_local_picks` | RENAME | `property_local_picks` | R1 |
 | `listing_room_access` | RENAME | `property_room_access` | R1 |
-| `listing_view_events` | RENAME | `property_view_events` | R1 |
-| `listing_categories` | RENAME | `property_categories` | R1 |
+| `listing_view_events` | RENAME | `property_view_events` | ~~R1~~ **R3** (see note) |
+| `listing_categories` | RENAME ✅ | `property_categories` | R1 (done — renamed; it's the *kinds of properties* taxonomy) |
 | `featured_listings` | **KEEP** (directory channel) | — (col→property_id) | R3 |
 | `directory_search_logs` | **KEEP** (directory channel) | — (`clicked_listing`→`clicked_property`) | R3 |
 
 > Verify the full table set against the live DB before R1/R2 (grep `CREATE TABLE …
 > listing`). `listing_categories` is the taxonomy catalog — confirm it's property-scoped
 > before renaming; if it's a global taxonomy it may stay (decide in R1).
+>
+> **R1 decisions (done):** (a) `listing_categories` → `property_categories` — it's the
+> admin-managed catalog of *kinds of properties* (Villa, Cottage, …), so the property
+> name reads logically; the `listings.category_id` FK auto-follows. (b) `listing_view_events`
+> **deferred to R3** — it's consumed only by the large analytics RPC suite, which R3 already
+> recreates for the `listing_id→property_id` column change. Renaming it in R1 would force
+> recreating that whole suite twice (table-name now, column later) for no benefit; in R3 it
+> renames table + column in one clean pass.
 
 ## Column renames (R3) — `listing_id → property_id` everywhere
 Tables carrying a `listing_id` FK (non-exhaustive — re-grep `listing_id` in migrations
@@ -99,7 +107,7 @@ Recreate in the phase that renames the objects the body touches. Known universe:
 
 ## Per-phase checklist (each: migration → `db push --linked` → gen types → sweep → `pnpm build` + `pnpm lint` + query-sweep → commit)
 - [ ] **R0** Inventory doc (this file) committed.
-- [ ] **R1** Leaf tables renamed + isolated fns recreated + code swept. Green. Commit.
+- [x] **R1** Leaf tables renamed + isolated fns recreated + code swept. Green. Commit.
 - [ ] **R2** Core tables renamed + core fns recreated + `.from()`/embeds/types swept. Green. Commit.
 - [ ] **R3** `listing_id → property_id` (+ listing_type etc.) + fns recreated + code swept. Green. Commit.
 - [ ] **R4** Routes + i18n labels. Green. Commit.
@@ -116,3 +124,17 @@ node apps/web/scripts/verify-policy-resolver.mjs      # + query sweep after R2/R
 ## Progress log
 - **R0 (done):** inventory + rule (channel tables keep "listing"; RPC params stay) +
   5-phase plan. Next: **R1 — leaf tables.**
+- **R1 (done):** migration `20260617000100_rename_r1_leaf_tables.sql` renamed 8 leaf
+  tables (`listing_{rankings,counters,categories,review_themes,local_picks,access,
+  room_access,points_of_interest}` → `property_*`). Indexes/constraints/triggers/RLS
+  policies/FKs follow the table rename automatically (kept their old internal names —
+  cosmetic). Recreated the 3 functions whose bodies named a renamed table, swapping
+  only that ref: `recalculate_listing_ranking` (→`property_rankings`),
+  `gen_booking_reference` (→`property_counters`), `send_due_access_cards`
+  (→`property_access`/`property_room_access`). `app_purge_user_account`/`clear_all`
+  needed no change (they delete `listings` and rely on CASCADE). Swept 17 code files
+  (`.from()` + the trips-page embed) + `seed-demo.mjs` + 2 doc comments. Regenerated
+  types; `pnpm type-check` + `pnpm build` green; `pnpm lint` clean (only 2 pre-existing
+  `<img>` warnings in untouched reports components); live-DB sweep on all 8 tables OK.
+  **`listing_view_events` deferred to R3** (analytics-suite entanglement — see note above).
+  Next: **R2 — core tables** (`listings`→`properties` + core children).

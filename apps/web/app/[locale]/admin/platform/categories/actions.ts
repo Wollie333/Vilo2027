@@ -56,7 +56,7 @@ async function loadSlugs(
   excludeId?: string,
 ): Promise<Set<string>> {
   const { data } = await service
-    .from("listing_categories")
+    .from("property_categories")
     .select("id, slug")
     .is("deleted_at", null);
   const set = new Set<string>();
@@ -107,7 +107,7 @@ export const upsertCategoryAction = withAdminAudit<
 
     if (args.isNew) {
       const { data, error } = await service
-        .from("listing_categories")
+        .from("property_categories")
         .insert({ id: args.id, ...row })
         .select("*")
         .single();
@@ -120,7 +120,7 @@ export const upsertCategoryAction = withAdminAudit<
     }
 
     const { data, error } = await service
-      .from("listing_categories")
+      .from("property_categories")
       .update(row)
       .eq("id", args.id)
       .select("*")
@@ -147,7 +147,7 @@ export const deleteCategoryAction = withAdminAudit<
   },
   async (args, service) => {
     const { data, error } = await service
-      .from("listing_categories")
+      .from("property_categories")
       .update({ deleted_at: new Date().toISOString() })
       .eq("id", args.id)
       .select("id")

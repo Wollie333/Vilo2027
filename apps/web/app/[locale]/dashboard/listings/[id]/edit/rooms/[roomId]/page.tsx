@@ -82,7 +82,7 @@ export default async function EditRoomPage({
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_room_access")
+      .from("property_room_access")
       .select(
         "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
       )

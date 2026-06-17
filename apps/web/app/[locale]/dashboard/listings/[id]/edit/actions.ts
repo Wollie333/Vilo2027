@@ -215,7 +215,7 @@ export async function saveListingAccessAction(
   }
 
   const supabase = own.db;
-  const { error } = await supabase.from("listing_access").upsert(
+  const { error } = await supabase.from("property_access").upsert(
     {
       listing_id: listingId,
       check_in_method: cleanStr(parsed.data.check_in_method),
@@ -260,7 +260,7 @@ export async function replaceLocalPicksAction(
 
   // Full replacement — wipe this listing's picks then re-insert in order.
   const { error: delErr } = await supabase
-    .from("listing_local_picks")
+    .from("property_local_picks")
     .delete()
     .eq("listing_id", listingId);
   if (delErr) {
@@ -277,7 +277,7 @@ export async function replaceLocalPicksAction(
       sort_order: i,
     }));
     const { error: insErr } = await supabase
-      .from("listing_local_picks")
+      .from("property_local_picks")
       .insert(rows);
     if (insErr) {
       return { ok: false, error: "Could not save local picks." };
@@ -285,7 +285,7 @@ export async function replaceLocalPicksAction(
   }
 
   const { data: fresh } = await supabase
-    .from("listing_local_picks")
+    .from("property_local_picks")
     .select("id, category, title, blurb, distance_label, sort_order")
     .eq("listing_id", listingId)
     .order("sort_order", { ascending: true });
@@ -927,7 +927,7 @@ export async function updateRoomAccessAction(
     .maybeSingle();
   if (!room) return { ok: false, error: "Room not found." };
 
-  const { error } = await supabase.from("listing_room_access").upsert(
+  const { error } = await supabase.from("property_room_access").upsert(
     {
       room_id: roomId,
       check_in_method: cleanStr(parsed.data.check_in_method),

@@ -11,7 +11,7 @@ export default async function NewCategoryPage() {
   const service = createAdminClient();
 
   const { data } = await service
-    .from("listing_categories")
+    .from("property_categories")
     .select("id, label, kind, parent_id")
     .is("deleted_at", null)
     .is("parent_id", null)

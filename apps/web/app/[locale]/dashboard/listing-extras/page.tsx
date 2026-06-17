@@ -50,14 +50,14 @@ export default async function ListingExtrasPage() {
   const [{ data: poiRaw }, { data: themeRaw }] = await Promise.all([
     listingIds.length > 0
       ? supabase
-          .from("listing_points_of_interest")
+          .from("property_points_of_interest")
           .select("id, listing_id, category, name, travel_time")
           .in("listing_id", listingIds)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] as never[] }),
     listingIds.length > 0
       ? supabase
-          .from("listing_review_themes")
+          .from("property_review_themes")
           .select("id, listing_id, label, icon_key, mention_count")
           .in("listing_id", listingIds)
           .order("sort_order", { ascending: true })

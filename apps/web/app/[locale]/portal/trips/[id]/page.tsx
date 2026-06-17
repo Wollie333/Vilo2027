@@ -231,7 +231,7 @@ export default async function PortalTripDetailPage({
         avg_rating, total_reviews,
         photos:listing_photos ( url, sort_order ),
         amenities:listing_amenities ( amenity_key, amenity_label ),
-        local_picks:listing_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
+        local_picks:property_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
       ),
       host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at ),
       booking_rooms ( room:listing_rooms ( id, name ) )
@@ -314,7 +314,7 @@ export default async function PortalTripDetailPage({
     const admin = createAdminClient();
     const [{ data: listingAccess }, { count }] = await Promise.all([
       admin
-        .from("listing_access")
+        .from("property_access")
         .select(
           "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
         )
@@ -348,7 +348,7 @@ export default async function PortalTripDetailPage({
 
     if (bookedRooms.length > 0) {
       const { data: roomAccessRows } = await admin
-        .from("listing_room_access")
+        .from("property_room_access")
         .select(
           "room_id, check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
         )

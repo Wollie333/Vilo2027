@@ -14,7 +14,7 @@ const loadAllCategories = unstable_cache(
   async (): Promise<ListingCategoryRow[]> => {
     const service = createAdminClient();
     const { data, error } = await service
-      .from("listing_categories")
+      .from("property_categories")
       .select("*")
       .is("deleted_at", null)
       .order("sort_order");
@@ -52,7 +52,7 @@ export async function getAllCategoriesForAdmin(): Promise<
 > {
   const service = createAdminClient();
   const { data, error } = await service
-    .from("listing_categories")
+    .from("property_categories")
     .select("*")
     .is("deleted_at", null)
     // MVP: hide experience taxonomy rows from the admin UI too.

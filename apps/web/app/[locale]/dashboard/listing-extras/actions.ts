@@ -45,7 +45,7 @@ export async function createPoiAction(
   }
   const supabase = createServerClient();
   const { data, error } = await supabase
-    .from("listing_points_of_interest")
+    .from("property_points_of_interest")
     .insert({
       listing_id: parsed.data.listing_id,
       category: parsed.data.category,
@@ -62,7 +62,7 @@ export async function createPoiAction(
 export async function deletePoiAction(id: string): Promise<ExtrasResult> {
   const supabase = createServerClient();
   const { error } = await supabase
-    .from("listing_points_of_interest")
+    .from("property_points_of_interest")
     .delete()
     .eq("id", id);
   if (error) return { ok: false, error: "Could not remove. Try again." };
@@ -79,7 +79,7 @@ export async function createThemeAction(
   }
   const supabase = createServerClient();
   const { data, error } = await supabase
-    .from("listing_review_themes")
+    .from("property_review_themes")
     .insert({
       listing_id: parsed.data.listing_id,
       label: parsed.data.label,
@@ -96,7 +96,7 @@ export async function createThemeAction(
 export async function deleteThemeAction(id: string): Promise<ExtrasResult> {
   const supabase = createServerClient();
   const { error } = await supabase
-    .from("listing_review_themes")
+    .from("property_review_themes")
     .delete()
     .eq("id", id);
   if (error) return { ok: false, error: "Could not remove. Try again." };
@@ -136,7 +136,7 @@ export async function suggestNearbyPlacesAction(
 
   // Names already on the listing, so suggestions don't repeat them.
   const { data: existingPoiRows } = await supabase
-    .from("listing_points_of_interest")
+    .from("property_points_of_interest")
     .select("name")
     .eq("listing_id", listingId);
   const existing = new Set(
@@ -197,7 +197,7 @@ export async function createPoisBatchAction(
   // One insert; host_manage_* RLS rejects rows for listings the host
   // doesn't own, same as createPoiAction.
   const { data, error } = await supabase
-    .from("listing_points_of_interest")
+    .from("property_points_of_interest")
     .insert(
       parsed.data.items.map((it) => ({
         listing_id: parsed.data.listing_id,

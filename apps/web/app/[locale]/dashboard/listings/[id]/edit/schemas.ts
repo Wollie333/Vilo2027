@@ -131,8 +131,8 @@ export const settingsSchema = z.object({
 export type SettingsInput = z.infer<typeof settingsSchema>;
 
 // ── Guest access + local picks (Trip Details page) ──────────────
-// Sensitive access details live in the listing_access table (never publicly
-// readable); local picks live in listing_local_picks (public marketing).
+// Sensitive access details live in the property_access table (never publicly
+// readable); local picks live in property_local_picks (public marketing).
 export const LOCAL_PICK_CATEGORIES = [
   { value: "eat", label: "Eat" },
   { value: "drink", label: "Drink" },

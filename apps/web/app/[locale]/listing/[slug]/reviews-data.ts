@@ -111,7 +111,7 @@ export async function loadListingReviews(
         .eq("is_published", true)
         .order("created_at", { ascending: false }),
       supabase
-        .from("listing_review_themes")
+        .from("property_review_themes")
         .select("label, icon_key, mention_count, sort_order")
         .eq("listing_id", listingId)
         .order("sort_order", { ascending: true }),

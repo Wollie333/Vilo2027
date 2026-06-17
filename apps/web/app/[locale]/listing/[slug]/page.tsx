@@ -228,7 +228,7 @@ async function loadListing(slug: string) {
       .is("room_id", null)
       .gte("date", todayStr),
     supabase
-      .from("listing_points_of_interest")
+      .from("property_points_of_interest")
       .select("id, category, name, travel_time, sort_order")
       .eq("listing_id", listing.id)
       .order("category", { ascending: true })

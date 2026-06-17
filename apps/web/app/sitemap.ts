@@ -28,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .is("deleted_at", null)
       .limit(200),
     supabase
-      .from("listing_categories")
+      .from("property_categories")
       .select("slug, updated_at")
       .eq("is_published", true)
       .is("deleted_at", null)

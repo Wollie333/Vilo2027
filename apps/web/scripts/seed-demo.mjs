@@ -673,7 +673,7 @@ async function main() {
   );
 
   // Points of interest ("Where you'll be").
-  await up("listing_points_of_interest", [
+  await up("property_points_of_interest", [
     { id: "0a0e0000-0000-4000-8000-0000000000e1", listing_id: LISTING_B, category: "eat", name: "Tokara Restaurant", travel_time: "8 min", sort_order: 0 },
     { id: "0a0e0000-0000-4000-8000-0000000000e2", listing_id: LISTING_B, category: "eat", name: "The Fat Butcher", travel_time: "10 min", sort_order: 1 },
     { id: "0a0e0000-0000-4000-8000-0000000000e3", listing_id: LISTING_B, category: "eat", name: "Schoon Café", travel_time: "12 min", sort_order: 2 },
@@ -686,7 +686,7 @@ async function main() {
   ]);
 
   // "Guests mention" review themes.
-  await up("listing_review_themes", [
+  await up("property_review_themes", [
     { id: "0a0a0000-0000-4000-8000-0000000000a1", listing_id: LISTING_B, label: "Wine farm setting", icon_key: "grape", mention_count: 41, sort_order: 0 },
     { id: "0a0a0000-0000-4000-8000-0000000000a2", listing_id: LISTING_B, label: "The host", icon_key: "heart-handshake", mention_count: 58, sort_order: 1 },
     { id: "0a0a0000-0000-4000-8000-0000000000a3", listing_id: LISTING_B, label: "Spotless", icon_key: "sparkles", mention_count: 47, sort_order: 2 },

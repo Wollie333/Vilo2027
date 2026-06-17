@@ -3857,50 +3857,6 @@ export type Database = {
           },
         ]
       }
-      listing_access: {
-        Row: {
-          check_in_instructions: string | null
-          check_in_method: string | null
-          created_at: string
-          door_code: string | null
-          gate_code: string | null
-          listing_id: string
-          updated_at: string
-          wifi_network: string | null
-          wifi_password: string | null
-        }
-        Insert: {
-          check_in_instructions?: string | null
-          check_in_method?: string | null
-          created_at?: string
-          door_code?: string | null
-          gate_code?: string | null
-          listing_id: string
-          updated_at?: string
-          wifi_network?: string | null
-          wifi_password?: string | null
-        }
-        Update: {
-          check_in_instructions?: string | null
-          check_in_method?: string | null
-          created_at?: string
-          door_code?: string | null
-          gate_code?: string | null
-          listing_id?: string
-          updated_at?: string
-          wifi_network?: string | null
-          wifi_password?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_access_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: true
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       listing_addons: {
         Row: {
           addon_id: string
@@ -3999,153 +3955,6 @@ export type Database = {
           },
         ]
       }
-      listing_categories: {
-        Row: {
-          canonical_url: string | null
-          created_at: string
-          deleted_at: string | null
-          description: string | null
-          faq: Json
-          hero_image_url: string | null
-          icon: string
-          id: string
-          intro_markdown: string | null
-          is_published: boolean
-          kind: string
-          label: string
-          meta_description: string | null
-          meta_title: string | null
-          og_image_url: string | null
-          parent_id: string | null
-          slug: string
-          sort_order: number
-          updated_at: string
-        }
-        Insert: {
-          canonical_url?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          faq?: Json
-          hero_image_url?: string | null
-          icon?: string
-          id?: string
-          intro_markdown?: string | null
-          is_published?: boolean
-          kind: string
-          label: string
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
-          parent_id?: string | null
-          slug: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Update: {
-          canonical_url?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          description?: string | null
-          faq?: Json
-          hero_image_url?: string | null
-          icon?: string
-          id?: string
-          intro_markdown?: string | null
-          is_published?: boolean
-          kind?: string
-          label?: string
-          meta_description?: string | null
-          meta_title?: string | null
-          og_image_url?: string | null
-          parent_id?: string | null
-          slug?: string
-          sort_order?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_categories_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "listing_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_counters: {
-        Row: {
-          last_booking_number: number
-          listing_id: string
-          updated_at: string
-        }
-        Insert: {
-          last_booking_number?: number
-          listing_id: string
-          updated_at?: string
-        }
-        Update: {
-          last_booking_number?: number
-          listing_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_counters_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: true
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_local_picks: {
-        Row: {
-          blurb: string | null
-          category: string
-          created_at: string
-          distance_label: string | null
-          id: string
-          image_path: string | null
-          listing_id: string
-          sort_order: number
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          blurb?: string | null
-          category?: string
-          created_at?: string
-          distance_label?: string | null
-          id?: string
-          image_path?: string | null
-          listing_id: string
-          sort_order?: number
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          blurb?: string | null
-          category?: string
-          created_at?: string
-          distance_label?: string | null
-          id?: string
-          image_path?: string | null
-          listing_id?: string
-          sort_order?: number
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_local_picks_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       listing_photos: {
         Row: {
           caption: string | null
@@ -4190,44 +3999,6 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_points_of_interest: {
-        Row: {
-          category: string
-          created_at: string
-          id: string
-          listing_id: string
-          name: string
-          sort_order: number
-          travel_time: string | null
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          id?: string
-          listing_id: string
-          name: string
-          sort_order?: number
-          travel_time?: string | null
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          id?: string
-          listing_id?: string
-          name?: string
-          sort_order?: number
-          travel_time?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_points_of_interest_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
             referencedColumns: ["id"]
           },
         ]
@@ -4286,129 +4057,6 @@ export type Database = {
             foreignKeyName: "listing_policies_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_rankings: {
-        Row: {
-          component_plan_boost: number
-          component_profile: number
-          component_rating: number
-          component_response_rate: number
-          component_reviews: number
-          last_calculated: string
-          listing_id: string
-          ranking_score: number
-        }
-        Insert: {
-          component_plan_boost?: number
-          component_profile?: number
-          component_rating?: number
-          component_response_rate?: number
-          component_reviews?: number
-          last_calculated?: string
-          listing_id: string
-          ranking_score?: number
-        }
-        Update: {
-          component_plan_boost?: number
-          component_profile?: number
-          component_rating?: number
-          component_response_rate?: number
-          component_reviews?: number
-          last_calculated?: string
-          listing_id?: string
-          ranking_score?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_rankings_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: true
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_review_themes: {
-        Row: {
-          created_at: string
-          icon_key: string
-          id: string
-          label: string
-          listing_id: string
-          mention_count: number | null
-          sort_order: number
-        }
-        Insert: {
-          created_at?: string
-          icon_key?: string
-          id?: string
-          label: string
-          listing_id: string
-          mention_count?: number | null
-          sort_order?: number
-        }
-        Update: {
-          created_at?: string
-          icon_key?: string
-          id?: string
-          label?: string
-          listing_id?: string
-          mention_count?: number | null
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_review_themes_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_room_access: {
-        Row: {
-          check_in_instructions: string | null
-          check_in_method: string | null
-          created_at: string
-          door_code: string | null
-          gate_code: string | null
-          room_id: string
-          updated_at: string
-          wifi_network: string | null
-          wifi_password: string | null
-        }
-        Insert: {
-          check_in_instructions?: string | null
-          check_in_method?: string | null
-          created_at?: string
-          door_code?: string | null
-          gate_code?: string | null
-          room_id: string
-          updated_at?: string
-          wifi_network?: string | null
-          wifi_password?: string | null
-        }
-        Update: {
-          check_in_instructions?: string | null
-          check_in_method?: string | null
-          created_at?: string
-          door_code?: string | null
-          gate_code?: string | null
-          room_id?: string
-          updated_at?: string
-          wifi_network?: string | null
-          wifi_password?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_room_access_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: true
             referencedRelation: "listing_rooms"
             referencedColumns: ["id"]
           },
@@ -4922,7 +4570,7 @@ export type Database = {
             foreignKeyName: "listings_category_id_fkey"
             columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "listing_categories"
+            referencedRelation: "property_categories"
             referencedColumns: ["id"]
           },
           {
@@ -6469,6 +6117,358 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      property_access: {
+        Row: {
+          check_in_instructions: string | null
+          check_in_method: string | null
+          created_at: string
+          door_code: string | null
+          gate_code: string | null
+          listing_id: string
+          updated_at: string
+          wifi_network: string | null
+          wifi_password: string | null
+        }
+        Insert: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          listing_id: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Update: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          listing_id?: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_access_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_categories: {
+        Row: {
+          canonical_url: string | null
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          faq: Json
+          hero_image_url: string | null
+          icon: string
+          id: string
+          intro_markdown: string | null
+          is_published: boolean
+          kind: string
+          label: string
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
+          parent_id: string | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          faq?: Json
+          hero_image_url?: string | null
+          icon?: string
+          id?: string
+          intro_markdown?: string | null
+          is_published?: boolean
+          kind: string
+          label: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          faq?: Json
+          hero_image_url?: string | null
+          icon?: string
+          id?: string
+          intro_markdown?: string | null
+          is_published?: boolean
+          kind?: string
+          label?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "property_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_counters: {
+        Row: {
+          last_booking_number: number
+          listing_id: string
+          updated_at: string
+        }
+        Insert: {
+          last_booking_number?: number
+          listing_id: string
+          updated_at?: string
+        }
+        Update: {
+          last_booking_number?: number
+          listing_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_counters_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_local_picks: {
+        Row: {
+          blurb: string | null
+          category: string
+          created_at: string
+          distance_label: string | null
+          id: string
+          image_path: string | null
+          listing_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          blurb?: string | null
+          category?: string
+          created_at?: string
+          distance_label?: string | null
+          id?: string
+          image_path?: string | null
+          listing_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          blurb?: string | null
+          category?: string
+          created_at?: string
+          distance_label?: string | null
+          id?: string
+          image_path?: string | null
+          listing_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_local_picks_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_points_of_interest: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          listing_id: string
+          name: string
+          sort_order: number
+          travel_time: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          name: string
+          sort_order?: number
+          travel_time?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          name?: string
+          sort_order?: number
+          travel_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_points_of_interest_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_rankings: {
+        Row: {
+          component_plan_boost: number
+          component_profile: number
+          component_rating: number
+          component_response_rate: number
+          component_reviews: number
+          last_calculated: string
+          listing_id: string
+          ranking_score: number
+        }
+        Insert: {
+          component_plan_boost?: number
+          component_profile?: number
+          component_rating?: number
+          component_response_rate?: number
+          component_reviews?: number
+          last_calculated?: string
+          listing_id: string
+          ranking_score?: number
+        }
+        Update: {
+          component_plan_boost?: number
+          component_profile?: number
+          component_rating?: number
+          component_response_rate?: number
+          component_reviews?: number
+          last_calculated?: string
+          listing_id?: string
+          ranking_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_rankings_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_review_themes: {
+        Row: {
+          created_at: string
+          icon_key: string
+          id: string
+          label: string
+          listing_id: string
+          mention_count: number | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          icon_key?: string
+          id?: string
+          label: string
+          listing_id: string
+          mention_count?: number | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          icon_key?: string
+          id?: string
+          label?: string
+          listing_id?: string
+          mention_count?: number | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_review_themes_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_room_access: {
+        Row: {
+          check_in_instructions: string | null
+          check_in_method: string | null
+          created_at: string
+          door_code: string | null
+          gate_code: string | null
+          room_id: string
+          updated_at: string
+          wifi_network: string | null
+          wifi_password: string | null
+        }
+        Insert: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          room_id: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Update: {
+          check_in_instructions?: string | null
+          check_in_method?: string | null
+          created_at?: string
+          door_code?: string | null
+          gate_code?: string | null
+          room_id?: string
+          updated_at?: string
+          wifi_network?: string | null
+          wifi_password?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_room_access_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: true
+            referencedRelation: "listing_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_tokens: {
         Row: {

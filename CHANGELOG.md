@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-17 — Rename R1: leaf tables `listing_* → property_*`
+
+### Changed
+- **Renamed 8 self-contained "leaf" tables** (migration
+  `20260617000100_rename_r1_leaf_tables.sql`): `listing_rankings`,
+  `listing_counters`, `listing_categories`, `listing_review_themes`,
+  `listing_local_picks`, `listing_access`, `listing_room_access`,
+  `listing_points_of_interest` → `property_*`. First green checkpoint of the
+  `listings → properties` rename (see `RENAME_LISTINGS_TO_PROPERTIES.md`). Table
+  NAMES only — `listing_id` columns stay until R3. Indexes/constraints/triggers/
+  RLS/FKs follow the rename automatically.
+- **Recreated 3 functions** that named a renamed table (table-ref swap only):
+  `recalculate_listing_ranking`, `gen_booking_reference`, `send_due_access_cards`.
+- **Swept 17 app files + `seed-demo.mjs`** (`.from()` calls + the Trip-page
+  PostgREST embed). Regenerated `database.types.ts`. `type-check` + `build` green,
+  `lint` clean, live-DB sweep on all 8 tables OK.
+- **Deferred `listing_view_events` to R3** — consumed only by the analytics RPC
+  suite that R3 recreates anyway for the column rename; renaming it now would mean
+  recreating that suite twice.
+
 ## 2026-06-17 — Consolidate the admin user-record tabs (~14 → 7)
 
 ### Changed
