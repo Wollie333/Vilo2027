@@ -58,16 +58,16 @@ export default async function CalendarSyncPage() {
   const { data: feedsRaw } = await supabase
     .from("ical_feeds")
     .select(
-      "id, listing_id, source_label, url, status, last_sync_at, last_error, imported_count",
+      "id, property_id, source_label, url, status, last_sync_at, last_error, imported_count",
     )
     .order("created_at", { ascending: false });
 
   const feedsByListing = new Map<string, Feed[]>();
-  for (const f of (feedsRaw as Array<Feed & { listing_id: string }> | null) ??
+  for (const f of (feedsRaw as Array<Feed & { property_id: string }> | null) ??
     []) {
-    const arr = feedsByListing.get(f.listing_id) ?? [];
+    const arr = feedsByListing.get(f.property_id) ?? [];
     arr.push(f);
-    feedsByListing.set(f.listing_id, arr);
+    feedsByListing.set(f.property_id, arr);
   }
 
   const listingList = listings ?? [];

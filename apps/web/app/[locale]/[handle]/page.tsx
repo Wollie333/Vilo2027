@@ -176,7 +176,7 @@ async function loadHost(handle: string) {
     .eq("host_id", host.id)
     .eq("is_published", true)
     // MVP: accommodation only — experiences/tour guides ship later.
-    .eq("listing_type", "accommodation")
+    .eq("property_type", "accommodation")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -185,7 +185,7 @@ async function loadHost(handle: string) {
   // reviews render anonymised ("Verified guest") with the listing they're for.
   const { data: reviews } = await supabase
     .from("reviews")
-    .select("id, rating, body, created_at, listing_id")
+    .select("id, rating, body, created_at, property_id")
     .eq("host_id", host.id)
     .eq("is_published", true)
     .eq("flagged", false)
@@ -668,8 +668,8 @@ export default async function HostProfilePage({
 
                 <div className="mt-7 grid gap-x-8 gap-y-6 sm:grid-cols-2">
                   {reviews.map((r) => {
-                    const listing = r.listing_id
-                      ? listingsById.get(r.listing_id)
+                    const listing = r.property_id
+                      ? listingsById.get(r.property_id)
                       : undefined;
                     const when = new Date(r.created_at).toLocaleDateString(
                       "en-ZA",

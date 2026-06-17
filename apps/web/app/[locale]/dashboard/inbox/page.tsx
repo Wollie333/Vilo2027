@@ -96,7 +96,7 @@ export default async function InboxPage({
       `
         id, status, is_enquiry, unread_host, pinned,
         last_message_at, last_message_preview, created_at,
-        listing_id,
+        property_id,
         guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, avatar_url ),
         listing:properties ( id, name ),
         booking:bookings ( id, reference, status, check_in, check_out )
@@ -117,7 +117,7 @@ export default async function InboxPage({
     last_message_at: string | null;
     last_message_preview: string | null;
     created_at: string;
-    listing_id: string | null;
+    property_id: string | null;
     guest: {
       id: string;
       full_name: string | null;
@@ -149,7 +149,7 @@ export default async function InboxPage({
     guestName: c.guest?.full_name ?? null,
     guestEmail: c.guest?.email ?? null,
     guestAvatarUrl: c.guest?.avatar_url ?? null,
-    listingId: c.listing?.id ?? c.listing_id ?? null,
+    listingId: c.listing?.id ?? c.property_id ?? null,
     listingName: c.listing?.name ?? null,
     bookingStatus: c.booking?.status ?? null,
     checkIn: c.booking?.check_in ?? null,

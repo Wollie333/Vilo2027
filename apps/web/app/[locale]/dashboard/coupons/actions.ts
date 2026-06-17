@@ -40,7 +40,7 @@ async function assertRoomBelongsToListing(
     .from("property_rooms")
     .select("id")
     .eq("id", roomId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .maybeSingle();
   return !!data;
 }
@@ -71,13 +71,13 @@ async function validateTargets(
   v: CouponInput,
   hostId: string,
 ): Promise<ActionResult> {
-  if (v.listing_id && !(await assertListingOwnership(v.listing_id, hostId))) {
+  if (v.property_id && !(await assertListingOwnership(v.property_id, hostId))) {
     return { ok: false, error: "Not your listing." };
   }
   if (
     v.room_id &&
-    v.listing_id &&
-    !(await assertRoomBelongsToListing(v.room_id, v.listing_id))
+    v.property_id &&
+    !(await assertRoomBelongsToListing(v.room_id, v.property_id))
   ) {
     return { ok: false, error: "That room doesn’t belong to this listing." };
   }
@@ -99,7 +99,7 @@ function row(v: CouponInput, hostId: string) {
     discount_type: v.discount_type,
     discount_value: v.discount_value,
     scope: v.scope,
-    listing_id: v.listing_id,
+    property_id: v.property_id,
     room_id: v.scope === "accommodation" ? v.room_id : null,
     addon_id: v.scope === "addons" ? v.addon_id : null,
     min_nights: v.min_nights,

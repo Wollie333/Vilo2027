@@ -5,6 +5,58 @@
 
 ---
 
+## 2026-06-17 — Rename R3: columns `listing_id → property_id` (+ `listing_type`, view events)
+
+### Changed
+- **Renamed every "listing"-named column** (migration
+  `20260617000300_rename_r3_columns.sql`) — third green checkpoint of the
+  `listings → properties` rename (see `RENAME_LISTINGS_TO_PROPERTIES.md`):
+  `listing_id → property_id` on **20 tables** (`bookings`, `quotes`,
+  `conversations`, `coupons`, `reviews`, `blocked_dates`, `ical_feeds`,
+  `featured_listings` (channel table — name kept, column follows) and every
+  `property_*` child), `properties.listing_type → property_type`,
+  `properties.whole_listing_discount_pct → whole_property_discount_pct` (added for
+  full consistency), and `directory_search_logs.clicked_listing →
+  clicked_property`. Renamed the deferred `listing_view_events →
+  property_view_events` (table + column). FKs/PKs/indexes/RLS/CHECK expressions
+  follow the column rename by attribute number (only FK-constraint NAMES keep the
+  old cosmetic label) — only function bodies break.
+- **Recreated 36 functions** whose latest def names a renamed column/table, by a
+  mechanical, reviewable swap of the verbatim latest defs (`listing_id →
+  property_id`, `listing_view_events → property_view_events`). `p_listing_id`
+  params and `listing_ids` array outputs are preserved by word boundaries; jsonb
+  output keys + SQL aliases inside functions also become `property_id` so each
+  function stays internally consistent.
+- **Code sweep** across **104 source files** + the `track-listing-view` edge
+  function: PostgREST `.select/.eq/.insert/.order` strings, typed row reads,
+  RPC-JSON reads, `listing_type` and `whole_listing_discount_pct`. The iCal
+  `[listing_id]` route-param folder is left for R4; only its `.eq("property_id")`
+  DB filter was swapped.
+
+### Fixed
+- **Dropped a stale pre-SSOT `get_listing_policy_summary(uuid)` overload**
+  (migration `20260617000400`) that had coexisted with the canonical 2-arg
+  `(uuid, uuid DEFAULT NULL)` since 2026-06-10 — PostgREST could not disambiguate
+  single-arg calls ("Could not choose the best candidate function"), silently
+  breaking `ListingPolicyBlock` and `lib/policy/listing-summary`. Surfaced by the
+  R3 verify pass; the 2-arg canonical serves every call site.
+
+### Verified
+- `pnpm build` + `pnpm type-check` + `pnpm lint` green (only the 2 pre-existing
+  `<img>` warnings). `verify-policy-resolver.mjs` 🎉 green. 13 callable RPCs
+  (analytics + pricing + availability + policy) execute against the renamed schema;
+  `recalculate_listing_ranking` INSERT path and booking-path functions
+  (`booking_business_id`, `ensure_booking_invoice`, `_materialize_booking_party`)
+  green; all renamed columns resolve on the live DB.
+
+### Ops TODO
+- `supabase functions deploy track-listing-view` — the deployed edge function
+  still writes to the old table/column and is broken by the rename until redeployed.
+- `seed-demo.mjs` has a pre-existing, unrelated `eft_banking_details.business_id`
+  not-null failure (from the multi-business build) — fix when next touching seeds.
+
+---
+
 ## 2026-06-17 — Rename R2: core tables `listings → properties` (+ core children)
 
 ### Changed

@@ -43,7 +43,7 @@ export async function createListingAction(
     .from("properties")
     .insert({
       host_id: host.id,
-      listing_type: "accommodation",
+      property_type: "accommodation",
       category_id: d.category_id,
       accommodation_type: d.accommodation_type ?? null,
       name: d.name,

@@ -174,7 +174,7 @@ type ListingEmbed = {
   house_rules: string | null;
   max_guests: number | null;
   accommodation_type: string | null;
-  listing_type: string | null;
+  property_type: string | null;
   avg_rating: number | null;
   total_reviews: number | null;
   photos: { url: string | null; sort_order: number }[] | null;
@@ -227,7 +227,7 @@ export default async function PortalTripDetailPage({
       listing:properties (
         id, name, slug, city, province, address_line1, address_line2,
         postal_code, latitude, longitude, check_in_time, check_out_time,
-        house_rules, max_guests, accommodation_type, listing_type,
+        house_rules, max_guests, accommodation_type, property_type,
         avg_rating, total_reviews,
         photos:property_photos ( url, sort_order ),
         amenities:property_amenities ( amenity_key, amenity_label ),
@@ -318,7 +318,7 @@ export default async function PortalTripDetailPage({
         .select(
           "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
         )
-        .eq("listing_id", listing.id)
+        .eq("property_id", listing.id)
         .maybeSingle(),
       admin
         .from("reviews")
@@ -405,7 +405,7 @@ export default async function PortalTripDetailPage({
       .select(
         "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active )",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("room_id", null);
     addExtraOptions = (linkRows ?? [])
       .map((r) => {
@@ -538,7 +538,7 @@ export default async function PortalTripDetailPage({
     .map((br) => one(br.room)?.name)
     .filter((n): n is string => Boolean(n));
   const typeLabel =
-    listing?.accommodation_type ?? listing?.listing_type ?? "Stay";
+    listing?.accommodation_type ?? listing?.property_type ?? "Stay";
   const stayLabel =
     booking.scope === "whole"
       ? `Whole ${typeLabel.toLowerCase()}`

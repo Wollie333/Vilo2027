@@ -34,7 +34,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, host_id, listing_id, guest_id, status, total_amount, vat_amount, vat_rate",
+      "id, host_id, property_id, guest_id, status, total_amount, vat_amount, vat_rate",
     )
     .eq("id", input.bookingId)
     .maybeSingle();
@@ -62,7 +62,7 @@ export async function addGuestBookingAddonAction(input: {
   const { data: link } = await admin
     .from("property_addons")
     .select("unit_price_override")
-    .eq("listing_id", booking.listing_id)
+    .eq("property_id", booking.property_id)
     .eq("addon_id", addon.id)
     .is("room_id", null)
     .maybeSingle();

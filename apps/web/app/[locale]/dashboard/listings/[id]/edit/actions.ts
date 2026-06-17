@@ -217,7 +217,7 @@ export async function saveListingAccessAction(
   const supabase = own.db;
   const { error } = await supabase.from("property_access").upsert(
     {
-      listing_id: listingId,
+      property_id: listingId,
       check_in_method: cleanStr(parsed.data.check_in_method),
       check_in_instructions: cleanStr(parsed.data.check_in_instructions),
       gate_code: cleanStr(parsed.data.gate_code),
@@ -225,7 +225,7 @@ export async function saveListingAccessAction(
       wifi_network: cleanStr(parsed.data.wifi_network),
       wifi_password: cleanStr(parsed.data.wifi_password),
     },
-    { onConflict: "listing_id" },
+    { onConflict: "property_id" },
   );
   if (error) {
     return { ok: false, error: "Could not save access details. Try again." };
@@ -262,14 +262,14 @@ export async function replaceLocalPicksAction(
   const { error: delErr } = await supabase
     .from("property_local_picks")
     .delete()
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (delErr) {
     return { ok: false, error: "Could not update local picks." };
   }
 
   if (parsed.data.length > 0) {
     const rows = parsed.data.map((p, i) => ({
-      listing_id: listingId,
+      property_id: listingId,
       category: p.category,
       title: p.title.trim(),
       blurb: cleanStr(p.blurb),
@@ -287,7 +287,7 @@ export async function replaceLocalPicksAction(
   const { data: fresh } = await supabase
     .from("property_local_picks")
     .select("id, category, title, blurb, distance_label, sort_order")
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .order("sort_order", { ascending: true });
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
@@ -315,7 +315,7 @@ export async function replaceAmenitiesAction(
   const { data: existing } = await supabase
     .from("property_amenities")
     .select("amenity_key, room_id")
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   const roomByKey = new Map<string, string | null>(
     (existing ?? []).map((r) => [r.amenity_key, r.room_id ?? null]),
   );
@@ -323,14 +323,14 @@ export async function replaceAmenitiesAction(
   const { error: delErr } = await supabase
     .from("property_amenities")
     .delete()
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (delErr) {
     return { ok: false, error: "Could not update amenities." };
   }
 
   if (amenityKeys.length > 0) {
     const rows = amenityKeys.map((key) => ({
-      listing_id: listingId,
+      property_id: listingId,
       amenity_key: key,
       room_id: roomByKey.get(key) ?? null,
     }));
@@ -345,7 +345,7 @@ export async function replaceAmenitiesAction(
   const { data: fresh } = await supabase
     .from("property_amenities")
     .select("id, amenity_key, amenity_label, room_id")
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
   return {
@@ -380,7 +380,7 @@ export async function createListingPhotoUploadUrl(
       .from("property_rooms")
       .select("id")
       .eq("id", roomId)
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .is("deleted_at", null)
       .maybeSingle();
     if (!room) return { ok: false, error: "Room not found on this listing." };
@@ -426,7 +426,7 @@ export async function registerListingPhotoAction(
       .from("property_rooms")
       .select("id")
       .eq("id", roomId)
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .is("deleted_at", null)
       .maybeSingle();
     if (!room) {
@@ -441,12 +441,12 @@ export async function registerListingPhotoAction(
   const { count } = await supabase
     .from("property_photos")
     .select("id", { count: "exact", head: true })
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
 
   const { data: row, error: rowErr } = await supabase
     .from("property_photos")
     .insert({
-      listing_id: listingId,
+      property_id: listingId,
       storage_path: storagePath,
       url: publicUrl.publicUrl,
       sort_order: count ?? 0,
@@ -478,7 +478,7 @@ export async function deleteListingPhotoAction(
     .from("property_photos")
     .select("storage_path")
     .eq("id", photoId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .maybeSingle();
   if (fetchErr || !photo) {
     return { ok: false, error: "Photo not found." };
@@ -517,7 +517,7 @@ export async function reorderListingPhotosAction(
 
   const supabase = own.db;
   // Parallel updates — sort_order is independent per row, no FK churn, the
-  // listing_id eq narrows to this listing so cross-listing writes are blocked
+  // property_id eq narrows to this listing so cross-listing writes are blocked
   // by RLS even if the IDs were forged.
   const results = await Promise.all(
     orderedIds.map((id, index) =>
@@ -525,7 +525,7 @@ export async function reorderListingPhotosAction(
         .from("property_photos")
         .update({ sort_order: index })
         .eq("id", id)
-        .eq("listing_id", listingId),
+        .eq("property_id", listingId),
     ),
   );
   if (results.some((r) => r.error)) {
@@ -550,7 +550,7 @@ export async function softDeleteListingAction(
   const { count } = await supabase
     .from("bookings")
     .select("id", { count: "exact", head: true })
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .in("status", ["pending", "pending_eft", "confirmed", "checked_in"]);
 
   if (count && count > 0) {
@@ -604,7 +604,7 @@ export async function togglePublishAction(
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "name, base_price, max_guests, slug, host_id, listing_type, booking_mode, cancellation_policy, check_in_time, check_out_time",
+      "name, base_price, max_guests, slug, host_id, property_type, booking_mode, cancellation_policy, check_in_time, check_out_time",
     )
     .eq("id", listingId)
     .single();
@@ -641,17 +641,17 @@ export async function togglePublishAction(
     supabase
       .from("property_photos")
       .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId),
+      .eq("property_id", listingId),
     supabase
       .from("property_rooms")
       .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .is("deleted_at", null)
       .eq("is_active", true),
     supabase
       .from("property_policies")
       .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("policy_type", "cancellation")
       .is("room_id", null),
   ]);
@@ -768,7 +768,7 @@ async function recomputeListingFromRooms(
     .select(
       "base_price, price_per_person, pricing_mode, max_guests, bedrooms, bathrooms",
     )
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .is("deleted_at", null)
     .eq("is_active", true);
   if (!rooms || rooms.length === 0) return;
@@ -818,7 +818,7 @@ export async function createRoomAction(
   const { data: existing } = await supabase
     .from("property_rooms")
     .select("sort_order")
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .is("deleted_at", null)
     .order("sort_order", { ascending: false })
     .limit(1)
@@ -828,7 +828,7 @@ export async function createRoomAction(
   const { data: room, error } = await supabase
     .from("property_rooms")
     .insert({
-      listing_id: listingId,
+      property_id: listingId,
       name: parsed.data.name,
       description: parsed.data.description ?? null,
       bedrooms: parsed.data.bedrooms ?? 1,
@@ -890,7 +890,7 @@ export async function updateRoomAction(
     .from("property_rooms")
     .update(parsed.data)
     .eq("id", roomId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) {
     return { ok: false, error: "Could not save room." };
   }
@@ -923,7 +923,7 @@ export async function updateRoomAccessAction(
     .from("property_rooms")
     .select("id")
     .eq("id", roomId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .maybeSingle();
   if (!room) return { ok: false, error: "Room not found." };
 
@@ -1000,7 +1000,7 @@ export async function fetchRoomEditorDataAction(
       "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets",
     )
     .eq("id", roomId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .is("deleted_at", null)
     .maybeSingle();
   if (!room) return { ok: false, error: "Room not found." };
@@ -1010,13 +1010,13 @@ export async function fetchRoomEditorDataAction(
       supabase
         .from("property_photos")
         .select("id, url, sort_order")
-        .eq("listing_id", listingId)
+        .eq("property_id", listingId)
         .eq("room_id", roomId)
         .order("sort_order", { ascending: true }),
       supabase
         .from("property_amenities")
         .select("amenity_key")
-        .eq("listing_id", listingId)
+        .eq("property_id", listingId)
         .eq("room_id", roomId),
       supabase
         .from("room_beds")
@@ -1114,7 +1114,7 @@ export async function deleteRoomAction(
     .from("property_rooms")
     .update({ deleted_at: new Date().toISOString(), is_active: false })
     .eq("id", roomId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) {
     return { ok: false, error: "Could not delete room." };
   }
@@ -1138,7 +1138,7 @@ export async function assignPhotoToRoomAction(
     .from("property_photos")
     .update({ room_id: roomId })
     .eq("id", photoId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) {
     return { ok: false, error: "Could not assign photo." };
   }
@@ -1159,7 +1159,7 @@ export async function assignAmenityToRoomAction(
     .from("property_amenities")
     .update({ room_id: roomId })
     .eq("id", amenityId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) {
     return { ok: false, error: "Could not assign amenity." };
   }
@@ -1184,7 +1184,7 @@ export async function setRoomFeaturedPhotoAction(
       .from("property_photos")
       .select("id")
       .eq("id", photoId)
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("room_id", roomId)
       .maybeSingle();
     if (!photo) {
@@ -1199,7 +1199,7 @@ export async function setRoomFeaturedPhotoAction(
     .from("property_rooms")
     .update({ featured_photo_id: photoId })
     .eq("id", roomId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) {
     return { ok: false, error: "Could not set cover photo." };
   }
@@ -1224,13 +1224,13 @@ export async function setRoomAmenityAction(
     const { data: existing } = await supabase
       .from("property_amenities")
       .select("id")
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("room_id", roomId)
       .eq("amenity_key", amenityKey)
       .maybeSingle();
     if (!existing) {
       const { error } = await supabase.from("property_amenities").insert({
-        listing_id: listingId,
+        property_id: listingId,
         room_id: roomId,
         amenity_key: amenityKey,
       });
@@ -1242,7 +1242,7 @@ export async function setRoomAmenityAction(
     const { error } = await supabase
       .from("property_amenities")
       .delete()
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("room_id", roomId)
       .eq("amenity_key", amenityKey);
     if (error) {
@@ -1279,7 +1279,7 @@ export async function setRoomBedsAction(
     .from("property_rooms")
     .select("id")
     .eq("id", roomId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .is("deleted_at", null)
     .maybeSingle();
   if (!roomRow) {
@@ -1329,7 +1329,7 @@ export async function setRoomBedsAction(
       ...(derivedCapacity > 0 ? { max_guests: derivedCapacity } : {}),
     })
     .eq("id", roomId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
 
   // Keep the parent listing's headline capacity / "from" price in sync.
   await recomputeListingFromRooms(supabase, listingId);

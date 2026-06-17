@@ -472,7 +472,7 @@ export function BookingForm({
     setCheckingAvail(true);
     const t = setTimeout(async () => {
       const res = await checkAvailabilityAction({
-        listing_id: listingId,
+        property_id: listingId,
         check_in: dates.from,
         check_out: dates.to,
         room_ids: allRooms.map((r) => r.id),
@@ -639,7 +639,7 @@ export function BookingForm({
     startCoupon(async () => {
       const res = await validateCouponAction({
         code,
-        listing_id: listingId,
+        property_id: listingId,
         check_in: dates.from,
         check_out: dates.to,
         room_ids: scope === "rooms" ? selectedRooms.map((r) => r.id) : [],
@@ -888,7 +888,7 @@ export function BookingForm({
       const messageOut = contact.message.trim() || undefined;
 
       const result = await createBookingAction({
-        listing_id: listingId,
+        property_id: listingId,
         scope,
         room_ids:
           scope === "rooms" ? selectedRooms.map((r) => r.id) : undefined,

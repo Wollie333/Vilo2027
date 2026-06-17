@@ -36,7 +36,7 @@ export type CreateBookingResult = { ok: true } | { ok: false; error: string };
 // so anonymous visitors can check before creating an account. Read-only and
 // non-sensitive (just which rooms are free for these dates).
 const availabilitySchema = z.object({
-  listing_id: z.string().uuid(),
+  property_id: z.string().uuid(),
   check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   room_ids: z.array(z.string().uuid()).max(50).default([]),
@@ -51,21 +51,21 @@ export async function checkAvailabilityAction(
 ): Promise<CheckAvailabilityResult> {
   const parsed = availabilitySchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid dates." };
-  const { listing_id, check_in, check_out, room_ids } = parsed.data;
+  const { property_id, check_in, check_out, room_ids } = parsed.data;
   if (check_out <= check_in) return { ok: false, error: "Invalid dates." };
 
   const admin = createAdminClient();
   try {
     const [{ data: wholeData }, roomResults] = await Promise.all([
       admin.rpc("listing_is_available_whole", {
-        p_listing_id: listing_id,
+        p_listing_id: property_id,
         p_check_in: check_in,
         p_check_out: check_out,
       }),
       Promise.all(
         room_ids.map(async (rid) => {
           const { data } = await admin.rpc("room_is_available", {
-            p_listing_id: listing_id,
+            p_listing_id: property_id,
             p_room_id: rid,
             p_check_in: check_in,
             p_check_out: check_out,
@@ -173,7 +173,7 @@ export async function createCheckoutGuestAccountAction(
 // authoritatively, so this is advisory only (never the source of the charge).
 const validateCouponSchema = z.object({
   code: z.string().trim().min(1, "Enter a code.").max(40),
-  listing_id: z.string().uuid(),
+  property_id: z.string().uuid(),
   check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   check_out: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   room_ids: z.array(z.string().uuid()).optional().default([]),
@@ -199,7 +199,7 @@ export async function validateCouponAction(
   const { data: listing } = await admin
     .from("properties")
     .select("id, host_id")
-    .eq("id", v.listing_id)
+    .eq("id", v.property_id)
     .maybeSingle();
   if (!listing) return { ok: false, error: "This listing isn’t available." };
 
@@ -253,9 +253,9 @@ export async function createBookingAction(
   const { data: listing } = await userClient
     .from("properties")
     .select(
-      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
-    .eq("id", d.listing_id)
+    .eq("id", d.property_id)
     .maybeSingle();
 
   if (!listing || !listing.is_published) {
@@ -333,7 +333,7 @@ export async function createBookingAction(
       .select(
         "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
       .in("id", roomIds);
@@ -442,7 +442,7 @@ export async function createBookingAction(
     const { count: activeRoomCount } = await admin
       .from("property_rooms")
       .select("id", { count: "exact", head: true })
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true);
     isWholeCombo =
@@ -533,7 +533,7 @@ export async function createBookingAction(
       .select(
         "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )
-      .eq("listing_id", listing.id);
+      .eq("property_id", listing.id);
 
     type AddonJoinRow = {
       addon_id: string;
@@ -645,7 +645,7 @@ export async function createBookingAction(
       .select(
         "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .eq("is_active", true)
       .lte("start_date", d.check_out!)
       .gte("end_date", d.check_in!);
@@ -672,7 +672,7 @@ export async function createBookingAction(
       totalGuests: d.guests,
       listingMinNights: listing.min_nights ?? 1,
       isWholeCombo,
-      wholePct: numOrNull(listing.whole_listing_discount_pct),
+      wholePct: numOrNull(listing.whole_property_discount_pct),
       weeklyPct: numOrNull(listing.weekly_discount_pct),
       monthlyPct: numOrNull(listing.monthly_discount_pct),
       addons: addonInserts.map((a) => ({
@@ -726,7 +726,7 @@ export async function createBookingAction(
         totalGuests: d.guests,
         listingMinNights: listing.min_nights ?? 1,
         isWholeCombo,
-        wholePct: numOrNull(listing.whole_listing_discount_pct),
+        wholePct: numOrNull(listing.whole_property_discount_pct),
         weeklyPct: numOrNull(listing.weekly_discount_pct),
         monthlyPct: numOrNull(listing.monthly_discount_pct),
         addons: addonInserts.map((a) => ({
@@ -800,7 +800,7 @@ export async function createBookingAction(
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
     .insert({
-      listing_id: listing.id,
+      property_id: listing.id,
       host_id: listing.host_id,
       guest_id: user.id,
       check_in: d.check_in,
@@ -984,7 +984,7 @@ export async function createBookingAction(
       deposit_amount: null,
       currency: listing.currency,
       guest_id: user.id,
-      listing_id: listing.id,
+      property_id: listing.id,
       listing_name: listing.name,
       host_id: listing.host_id,
     },

@@ -75,7 +75,7 @@ export async function createManualBookingAction(
   const { data: listing } = await supabase
     .from("properties")
     .select("id, host_id, currency")
-    .eq("id", data.listing_id)
+    .eq("id", data.property_id)
     .maybeSingle();
   if (!listing || listing.host_id !== host.id) {
     return { ok: false, error: "Listing not found." };
@@ -104,7 +104,7 @@ export async function createManualBookingAction(
     if (data.scope === "rooms" && data.rooms.length > 0) {
       for (const r of data.rooms) {
         const { data: free } = await supabase.rpc("room_is_available", {
-          p_listing_id: data.listing_id,
+          p_listing_id: data.property_id,
           p_room_id: r.room_id,
           p_check_in: data.check_in,
           p_check_out: data.check_out,
@@ -118,7 +118,7 @@ export async function createManualBookingAction(
       }
     } else {
       const { data: free } = await supabase.rpc("listing_is_available_whole", {
-        p_listing_id: data.listing_id,
+        p_listing_id: data.property_id,
         p_check_in: data.check_in,
         p_check_out: data.check_out,
       });
@@ -147,7 +147,7 @@ export async function createManualBookingAction(
       .select(
         "addon_id, unit_price_override, addons!inner ( name, unit_price, pricing_model )",
       )
-      .eq("listing_id", data.listing_id)
+      .eq("property_id", data.property_id)
       .in("addon_id", configuredIds);
     for (const row of rows ?? []) {
       const a = row.addons as unknown as {
@@ -199,7 +199,7 @@ export async function createManualBookingAction(
     .from("bookings")
     .insert({
       host_id: host.id,
-      listing_id: data.listing_id,
+      property_id: data.property_id,
       guest_id: null,
       guest_name: data.guest_name,
       guest_email: data.guest_email,
@@ -267,7 +267,7 @@ export async function createManualBookingAction(
     // Single shape so the array's element type unifies cleanly — Supabase
     // .insert() can't accept a discriminated union of two row types.
     const blocks: Array<{
-      listing_id: string;
+      property_id: string;
       room_id: string | null;
       date: string;
       reason: string;
@@ -276,7 +276,7 @@ export async function createManualBookingAction(
       data.scope === "rooms" && data.rooms.length > 0
         ? data.rooms.flatMap((r) =>
             nights.map((date) => ({
-              listing_id: data.listing_id,
+              property_id: data.property_id,
               room_id: r.room_id as string | null,
               date,
               reason: "booking",
@@ -284,7 +284,7 @@ export async function createManualBookingAction(
             })),
           )
         : nights.map((date) => ({
-            listing_id: data.listing_id,
+            property_id: data.property_id,
             room_id: null as string | null,
             date,
             reason: "booking",
@@ -305,7 +305,7 @@ export async function createManualBookingAction(
   // refund calculations have a snapshot to read, same as guest checkout.
   await supabase.rpc("snapshot_booking_policies", {
     p_booking_id: booking.id,
-    p_listing_id: data.listing_id,
+    p_listing_id: data.property_id,
   });
 
   // Marked fully paid → record the payment through the ledger SSOT so the

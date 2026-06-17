@@ -1908,7 +1908,7 @@ function QuickBookModal({
       return;
     }
     const input: ManualBookingInput = {
-      listing_id: listing.id,
+      property_id: listing.id,
       guest_name: guestName.trim(),
       guest_email: guestEmail.trim(),
       guest_phone: guestPhone.trim(),

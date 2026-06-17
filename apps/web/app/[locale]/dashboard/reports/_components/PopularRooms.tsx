@@ -3,7 +3,7 @@
 import { Trophy, TrendingUp } from "lucide-react";
 
 interface RoomData {
-  listing_id: string;
+  property_id: string;
   listing_name: string;
   listing_slug: string;
   cover_image_url: string | null;
@@ -47,7 +47,7 @@ export function PopularRooms({ data }: PopularRoomsProps) {
       <div className="space-y-3">
         {data.map((room, index) => (
           <div
-            key={room.listing_id}
+            key={room.property_id}
             className="flex items-center gap-3 rounded border border-brand-line p-3 transition-colors hover:bg-brand-light/50"
           >
             {/* Rank Badge */}

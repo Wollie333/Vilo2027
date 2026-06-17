@@ -76,9 +76,9 @@ export default async function SeasonalPricingPage() {
     ? await supabase
         .from("property_seasonal_pricing")
         .select(
-          "id, listing_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, price, currency, min_nights, priority, is_active",
+          "id, property_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, price, currency, min_nights, priority, is_active",
         )
-        .in("listing_id", hostListingIds)
+        .in("property_id", hostListingIds)
         .order("priority", { ascending: false })
         .order("start_date", { ascending: true })
     : { data: null };
@@ -154,7 +154,7 @@ export default async function SeasonalPricingPage() {
       r.adjustment_type === "percent" ? "percent" : "absolute";
     const adjustmentValue = Number(r.adjustment_value ?? r.price ?? 0);
     const refBase =
-      (r.room_id ? roomBase.get(r.room_id) : listingBase.get(r.listing_id)) ??
+      (r.room_id ? roomBase.get(r.room_id) : listingBase.get(r.property_id)) ??
       0;
     const price =
       adjustmentType === "absolute"
@@ -162,7 +162,7 @@ export default async function SeasonalPricingPage() {
         : Math.max(0, refBase * (1 + adjustmentValue / 100));
     return {
       id: r.id,
-      listingId: r.listing_id,
+      listingId: r.property_id,
       roomId: r.room_id,
       label: r.label,
       startDate: r.start_date,

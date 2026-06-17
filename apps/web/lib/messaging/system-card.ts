@@ -7,7 +7,7 @@ export type CardBooking = {
   id: string;
   host_id: string;
   guest_id: string | null;
-  listing_id: string | null;
+  property_id: string | null;
   quote_id?: string | null;
 };
 
@@ -25,7 +25,7 @@ export async function resolveGuestConversation(
   admin: Admin,
   booking: CardBooking,
 ): Promise<string | null> {
-  if (!booking.guest_id || !booking.listing_id) return null;
+  if (!booking.guest_id || !booking.property_id) return null;
 
   if (booking.quote_id) {
     const { data: q } = await admin
@@ -41,7 +41,7 @@ export async function resolveGuestConversation(
     .select("id")
     .eq("host_id", booking.host_id)
     .eq("guest_id", booking.guest_id)
-    .eq("listing_id", booking.listing_id)
+    .eq("property_id", booking.property_id)
     .neq("status", "archived")
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(1)
@@ -53,7 +53,7 @@ export async function resolveGuestConversation(
     .insert({
       host_id: booking.host_id,
       guest_id: booking.guest_id,
-      listing_id: booking.listing_id,
+      property_id: booking.property_id,
       booking_id: booking.id,
       status: "open",
       is_enquiry: false,

@@ -46,7 +46,7 @@ type RawListing = {
 };
 type RawBooking = {
   id: string;
-  listing_id: string;
+  property_id: string;
   status: string;
   origin: string | null;
   guest_name: string | null;
@@ -91,7 +91,7 @@ export default async function CalendarPage() {
         "id, name, city, province, base_price, cleaning_fee, booking_mode, property_photos ( url, sort_order ), property_rooms ( id )",
       )
       .eq("host_id", host.id)
-      .eq("listing_type", "accommodation")
+      .eq("property_type", "accommodation")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -122,7 +122,7 @@ export default async function CalendarPage() {
         supabase
           .from("bookings")
           .select(
-            "id, listing_id, status, origin, guest_name, check_in, check_out, guests_count, total_amount, guest:user_profiles!bookings_guest_id_fkey ( full_name, avatar_url )",
+            "id, property_id, status, origin, guest_name, check_in, check_out, guests_count, total_amount, guest:user_profiles!bookings_guest_id_fkey ( full_name, avatar_url )",
           )
           .eq("host_id", host.id)
           .not("check_in", "is", null)
@@ -130,14 +130,14 @@ export default async function CalendarPage() {
           .gte("check_out", iso(winStart)),
         supabase
           .from("blocked_dates")
-          .select("listing_id, date, reason, booking_id, room_id")
-          .in("listing_id", listingIds)
+          .select("property_id, date, reason, booking_id, room_id")
+          .in("property_id", listingIds)
           .gte("date", iso(winStart))
           .lte("date", iso(winEnd)),
         supabase
           .from("property_seasonal_pricing")
-          .select("listing_id, start_date, end_date, price, is_active")
-          .in("listing_id", listingIds),
+          .select("property_id, start_date, end_date, price, is_active")
+          .in("property_id", listingIds),
       ]);
 
       bookings = ((bk as RawBooking[] | null) ?? [])
@@ -149,7 +149,7 @@ export default async function CalendarPage() {
           const total = Number(b.total_amount ?? 0);
           return {
             id: b.id,
-            listingId: b.listing_id,
+            listingId: b.property_id,
             guest: b.guest?.full_name || b.guest_name || "Guest",
             avatar: b.guest?.avatar_url ?? null,
             ci,
@@ -165,7 +165,7 @@ export default async function CalendarPage() {
         });
 
       blocks = (bl ?? []).map((b) => ({
-        listingId: b.listing_id as string,
+        listingId: b.property_id as string,
         date: b.date as string,
         roomId: (b.room_id as string | null) ?? null,
         kind: blockKind(
@@ -178,7 +178,7 @@ export default async function CalendarPage() {
       seasonal = (sp ?? [])
         .filter((r) => (r as { is_active?: boolean }).is_active !== false)
         .map((r) => ({
-          listingId: r.listing_id as string,
+          listingId: r.property_id as string,
           start: r.start_date as string,
           end: r.end_date as string,
           price: Number(r.price),

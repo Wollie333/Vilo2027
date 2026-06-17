@@ -109,7 +109,7 @@ Recreate in the phase that renames the objects the body touches. Known universe:
 - [ ] **R0** Inventory doc (this file) committed.
 - [x] **R1** Leaf tables renamed + isolated fns recreated + code swept. Green. Commit.
 - [x] **R2** Core tables renamed + core fns recreated + `.from()`/embeds/types swept. Green. Commit.
-- [ ] **R3** `listing_id → property_id` (+ listing_type etc.) + fns recreated + code swept. Green. Commit.
+- [x] **R3** `listing_id → property_id` (+ listing_type etc.) + fns recreated + code swept. Green. Commit.
 - [ ] **R4** Routes + i18n labels. Green. Commit.
 - [ ] Run `apps/web/scripts/verify-policy-resolver.mjs` + a query-sweep after R2/R3.
 
@@ -162,3 +162,40 @@ node apps/web/scripts/verify-policy-resolver.mjs      # + query sweep after R2/R
   17 recreated RPCs callable. Next: **R3 — `listing_id → property_id` columns**
   (+ `listing_type`, `clicked_listing`, rename `listing_view_events` table+col,
   recreate analytics suite once for the column change).
+- **R3 (done):** migration `20260617000300_rename_r3_columns.sql`. **Column renames**
+  via `ALTER TABLE … RENAME COLUMN`: `listing_id → property_id` on 20 tables
+  (`bookings`, `quotes`, `conversations`, `coupons`, `reviews`, `blocked_dates`,
+  `ical_feeds`, `featured_listings` (channel table — name kept, col follows) + every
+  `property_*` child), plus `properties.listing_type → property_type`,
+  `properties.whole_listing_discount_pct → whole_property_discount_pct` (added for
+  full consistency — was not in the original R3 column list), and
+  `directory_search_logs.clicked_listing → clicked_property`. Renamed the deferred
+  `listing_view_events` → `property_view_events` (+ its col). FKs/PKs/indexes/RLS/
+  CHECK expressions all follow the column rename by attnum (same as R1/R2) — only
+  function bodies break. **Recreated 36 functions** whose latest def names a renamed
+  column/table, by a mechanical, reviewable swap of the verbatim latest defs
+  (`\blisting_id\b → property_id`, `listing_view_events → property_view_events`);
+  `p_listing_id` params + `listing_ids` array outputs preserved by word boundaries.
+  Full-consistency choice: jsonb output keys + SQL aliases inside functions also
+  became `property_id`, so each function is internally consistent and the app reads
+  match. **Code sweep:** word-boundary replace across **104 source files** (+ the
+  `track-listing-view` edge fn) — `.select/.eq/.insert/.order` strings, typed row
+  reads, RPC-JSON reads, `listing_type`/`whole_listing_discount_pct`; the iCal
+  `[listing_id]` route param left as-is (folder coupling → R4), only its
+  `.eq("property_id", …)` DB filter swapped. **Follow-up migration
+  `20260617000400`** drops a **stale pre-SSOT 1-arg `get_listing_policy_summary`
+  overload** that had coexisted with the canonical 2-arg since 2026-06-10 (R1/R2/R3
+  by-name recreation kept refreshing the wrong one) — PostgREST could not
+  disambiguate single-arg calls, which the R3 verify surfaced. Types regenerated
+  (0 bare `listing_id`; only FK-constraint NAMES keep the old label, cosmetic).
+  `pnpm type-check` + `pnpm lint` green (only the 2 pre-existing `<img>` warnings).
+  **Live verify:** `verify-policy-resolver` 🎉 green; 13 callable RPCs (analytics +
+  pricing + availability + policy) execute against the renamed schema; recreate-
+  ranking INSERT path + booking-path fns (`booking_business_id`,
+  `ensure_booking_invoice`, `_materialize_booking_party`) green; all renamed columns
+  resolve. **Edge fn `track-listing-view` updated** (table+col+body) — needs
+  `supabase functions deploy track-listing-view` (the live one was broken by the
+  table rename). `seed-demo.mjs` has a pre-existing, unrelated
+  `eft_banking_details.business_id` not-null failure (multi-business build, not R3).
+  Next: **R4 — routes + i18n labels** (`/listing/[slug]`, `/dashboard/listings`,
+  iCal `[listing_id]` folder, "Listing" → "Property" copy).

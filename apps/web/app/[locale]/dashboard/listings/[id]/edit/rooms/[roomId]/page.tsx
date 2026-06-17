@@ -50,10 +50,10 @@ export default async function EditRoomPage({
   const { data: room } = await supabase
     .from("property_rooms")
     .select(
-      "id, listing_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets, has_ensuite_bathroom, inventory_count",
+      "id, property_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets, has_ensuite_bathroom, inventory_count",
     )
     .eq("id", params.roomId)
-    .eq("listing_id", params.id)
+    .eq("property_id", params.id)
     .is("deleted_at", null)
     .maybeSingle();
   if (!room) notFound();
@@ -68,13 +68,13 @@ export default async function EditRoomPage({
     supabase
       .from("property_photos")
       .select("id, url, sort_order")
-      .eq("listing_id", params.id)
+      .eq("property_id", params.id)
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
       .from("property_amenities")
       .select("amenity_key")
-      .eq("listing_id", params.id)
+      .eq("property_id", params.id)
       .eq("room_id", params.roomId),
     supabase
       .from("room_beds")

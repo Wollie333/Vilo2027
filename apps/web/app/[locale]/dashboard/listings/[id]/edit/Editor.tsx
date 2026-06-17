@@ -49,7 +49,7 @@ export type EditorListing = {
   id: string;
   host_id: string;
   business_id: string | null;
-  listing_type: "accommodation";
+  property_type: "accommodation";
   accommodation_type: string | null;
   category_id: string | null;
   name: string;
@@ -72,7 +72,7 @@ export type EditorListing = {
   base_price: number | null;
   weekend_price: number | null;
   cleaning_fee: number | null;
-  whole_listing_discount_pct: number | null;
+  whole_property_discount_pct: number | null;
   weekly_discount_pct: number | null;
   monthly_discount_pct: number | null;
   currency: string;

@@ -38,7 +38,7 @@ export default async function EditQuotePage({
   const { data: quote } = await supabase
     .from("quotes")
     .select(
-      "id, listing_id, status, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, price_mode, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
+      "id, property_id, status, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, price_mode, base_amount, cleaning_fee, notes, guests_breakdown, discount_type, discount_value, discount_reason, deposit_type, deposit_pct, balance_due_days, conversation_id, created_at",
     )
     .eq("id", params.id)
     .is("deleted_at", null)
@@ -67,7 +67,7 @@ export default async function EditQuotePage({
   // their own message, who they are, the requested stay, party + add-ons — as
   // read-only context above the form. This card is the ONLY thing that differs
   // between "new quote" and "respond to a request".
-  const matchedListing = list.find((l) => l.id === quote.listing_id) ?? null;
+  const matchedListing = list.find((l) => l.id === quote.property_id) ?? null;
   let requestCtx: QuoteRequestContext | null = null;
   if (quote.conversation_id) {
     const today = new Date().toISOString().slice(0, 10);
@@ -121,7 +121,7 @@ export default async function EditQuotePage({
         ? supabase
             .from("blocked_dates")
             .select("date")
-            .eq("listing_id", quote.listing_id)
+            .eq("property_id", quote.property_id)
             .gte("date", quote.check_in)
             .lt("date", quote.check_out)
             .or(`quote_id.is.null,quote_id.neq.${quote.id}`)
@@ -216,7 +216,7 @@ export default async function EditQuotePage({
 
   const initial = {
     id: quote.id,
-    listingId: quote.listing_id,
+    listingId: quote.property_id,
     guestName: quote.guest_name ?? "",
     guestEmail: quote.guest_email ?? "",
     guestPhone: quote.guest_phone ?? "",

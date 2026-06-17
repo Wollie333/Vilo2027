@@ -74,7 +74,7 @@ export default async function CategoryLandingPage({
   const { data: listings } = await supabase
     .from("properties")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("is_published", true)
     .is("deleted_at", null)

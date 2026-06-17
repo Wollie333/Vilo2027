@@ -1,6 +1,6 @@
 // Analytics demo seed for testing the analytics dashboard
 //
-// Populates listing_view_events, additional bookings with varied dates/channels,
+// Populates property_view_events, additional bookings with varied dates/channels,
 // and generates realistic data distributions for the analytics dashboard.
 //
 // Prerequisites: Run seed-demo.mjs first to create the base host/listings
@@ -68,7 +68,7 @@ async function main() {
     const viewedAt = randomDateInPast(90); // Past 90 days
 
     viewEvents.push({
-      listing_id: listingId,
+      property_id: listingId,
       session_id: sessionId,
       user_id: null, // Most views are anonymous
       duration_seconds: Math.floor(Math.random() * 300) + 10, // 10-310 seconds
@@ -81,8 +81,8 @@ async function main() {
   }
 
   const { error: viewsError } = await admin
-    .from("listing_view_events")
-    .upsert(viewEvents, { onConflict: "session_id,listing_id" });
+    .from("property_view_events")
+    .upsert(viewEvents, { onConflict: "session_id,property_id" });
 
   if (viewsError) {
     console.error("❌ Failed to seed listing views:", viewsError);
@@ -121,7 +121,7 @@ async function main() {
     bookings.push({
       id: bookingId,
       host_id: HOST_ID,
-      listing_id: listingId,
+      property_id: listingId,
       guest_user_id: null, // Anonymous guest
       guest_email: `guest${i}@example.com`,
       guest_name: `Guest ${i}`,

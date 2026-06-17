@@ -185,7 +185,7 @@ export default async function BookingSuccessPage({
     supabase
       .from("property_photos")
       .select("room_id, url, sort_order")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .order("sort_order", { ascending: true }),
   ]);
 

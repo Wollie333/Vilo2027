@@ -54,7 +54,7 @@ type RawListing = {
   slug: string | null;
   name: string;
   description: string | null;
-  listing_type: "accommodation";
+  property_type: "accommodation";
   accommodation_type: string | null;
   city: string | null;
   province: string | null;
@@ -83,7 +83,7 @@ type RawListing = {
   pet_fee: number | null;
   infant_max_age: number | null;
   child_max_age: number | null;
-  whole_listing_discount_pct: number | null;
+  whole_property_discount_pct: number | null;
   weekly_discount_pct: number | null;
   monthly_discount_pct: number | null;
   avg_rating: number | null;
@@ -158,7 +158,7 @@ async function loadListing(slug: string) {
     .select(
       `
         id, slug, name, description,
-        listing_type, accommodation_type,
+        property_type, accommodation_type,
         city, province, country, latitude, longitude,
         bedrooms, bathrooms, max_guests, min_nights,
         check_in_time, check_out_time,
@@ -166,7 +166,7 @@ async function loadListing(slug: string) {
         cancellation_policy, house_rules, instant_booking,
         allow_children, allow_infants, allow_pets,
         child_price, infant_price, pet_fee, infant_max_age, child_max_age,
-        whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct,
+        whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct,
         avg_rating, total_reviews,
         host:hosts!inner (
           display_name, handle, bio, avatar_url, is_verified,
@@ -193,12 +193,12 @@ async function loadListing(slug: string) {
     supabase
       .from("property_photos")
       .select("id, url, sort_order, room_id")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .order("sort_order", { ascending: true }),
     supabase
       .from("property_amenities")
       .select("amenity_key")
-      .eq("listing_id", listing.id),
+      .eq("property_id", listing.id),
     // Rooms are fetched for every mode now — they're descriptive on
     // whole-place listings (bedroom layout, beds, flags) and bookable
     // on per-room / flexible.
@@ -207,7 +207,7 @@ async function loadListing(slug: string) {
       .select(
         "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
@@ -216,7 +216,7 @@ async function loadListing(slug: string) {
       .select(
         "id, label, start_date, end_date, adjustment_type, adjustment_value, room_id, priority, min_nights, is_active, created_at",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .eq("is_active", true)
       .order("start_date", { ascending: true }),
     // Whole-listing blocks (room_id NULL) from today on — drives the
@@ -224,13 +224,13 @@ async function loadListing(slug: string) {
     supabase
       .from("blocked_dates")
       .select("date")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("room_id", null)
       .gte("date", todayStr),
     supabase
       .from("property_points_of_interest")
       .select("id, category, name, travel_time, sort_order")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .order("category", { ascending: true })
       .order("sort_order", { ascending: true }),
   ]);
@@ -325,7 +325,7 @@ async function loadListing(slug: string) {
     total_reviews: toNum(listing.total_reviews),
     latitude: toNum(listing.latitude),
     longitude: toNum(listing.longitude),
-    whole_listing_discount_pct: toNum(listing.whole_listing_discount_pct),
+    whole_property_discount_pct: toNum(listing.whole_property_discount_pct),
     weekly_discount_pct: toNum(listing.weekly_discount_pct),
     monthly_discount_pct: toNum(listing.monthly_discount_pct),
   };

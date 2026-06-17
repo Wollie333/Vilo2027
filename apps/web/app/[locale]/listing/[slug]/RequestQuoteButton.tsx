@@ -125,7 +125,7 @@ export function RequestQuoteButton({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          listing_id: listingId,
+          property_id: listingId,
           scope,
           room_ids: scope === "rooms" ? selectedRooms : [],
           check_in: checkIn,

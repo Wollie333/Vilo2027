@@ -64,7 +64,7 @@ export default async function SetupPage({
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "id, name, slug, listing_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
+      "id, name, slug, property_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -100,7 +100,7 @@ export default async function SetupPage({
   const { data: photos } = await supabase
     .from("property_photos")
     .select("id, url, sort_order")
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .order("sort_order", { ascending: true });
 
   const { data: rooms } = await supabase
@@ -108,7 +108,7 @@ export default async function SetupPage({
     .select(
       "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, bed_type, view_type, is_active, featured_photo_id",
     )
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .is("deleted_at", null)
     .order("sort_order", { ascending: true });
 
@@ -116,7 +116,7 @@ export default async function SetupPage({
   const { data: roomPhotos } = await supabase
     .from("property_photos")
     .select("id, url, room_id, sort_order")
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .not("room_id", "is", null)
     .order("sort_order", { ascending: true });
 
@@ -126,7 +126,7 @@ export default async function SetupPage({
     supabase
       .from("property_amenities")
       .select("id, amenity_key, room_id")
-      .eq("listing_id", listing.id),
+      .eq("property_id", listing.id),
   ]);
 
   // Accommodation category leaves (skip the root) — drives the picker.
@@ -174,7 +174,7 @@ export default async function SetupPage({
           supabase
             .from("property_policies")
             .select("policy_type, policy_id")
-            .eq("listing_id", listing.id)
+            .eq("property_id", listing.id)
             .is("room_id", null),
         ])
       : [{ data: [] }, { data: [] }, { data: [] }];
@@ -248,7 +248,7 @@ export default async function SetupPage({
       listing={{
         id: listing.id,
         name: listing.name,
-        listing_type: "accommodation",
+        property_type: "accommodation",
         category_id: listing.category_id ?? null,
         accommodation_type: listing.accommodation_type ?? null,
         description: listing.description ?? "",

@@ -42,7 +42,7 @@ export type PayableBooking = {
   deposit_amount: number | string | null;
   currency: string;
   guest_id: string | null;
-  listing_id: string;
+  property_id: string;
   listing_name: string;
   host_id: string;
 };
@@ -164,7 +164,7 @@ export async function startBookingPayment(opts: {
       metadata: {
         booking_id: booking.id,
         payment_id: payment.id,
-        listing_id: booking.listing_id,
+        property_id: booking.property_id,
         listing_name: booking.listing_name,
         guest_id: booking.guest_id,
         reference: booking.reference,
@@ -298,7 +298,7 @@ async function postPaymentConfirmedCard(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, reference, host_id, guest_id, listing_id, quote_id, listing:properties ( name )",
+      "id, reference, host_id, guest_id, property_id, quote_id, listing:properties ( name )",
     )
     .eq("id", bookingId)
     .maybeSingle();

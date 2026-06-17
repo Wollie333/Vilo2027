@@ -526,7 +526,7 @@ export function QuoteForm({
       }
       startPricing(async () => {
         const r = await priceQuoteAction({
-          listing_id: listingId,
+          property_id: listingId,
           check_in: checkIn,
           check_out: checkOut,
           scope,
@@ -639,7 +639,7 @@ export function QuoteForm({
   function buildInput() {
     if (priceMode === "single") {
       return {
-        listing_id: listingId,
+        property_id: listingId,
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim(),
@@ -696,7 +696,7 @@ export function QuoteForm({
       })),
     ];
     return {
-      listing_id: listingId,
+      property_id: listingId,
       guest_name: guestName.trim(),
       guest_email: guestEmail.trim(),
       guest_phone: guestPhone.trim(),
@@ -736,7 +736,7 @@ export function QuoteForm({
 
   function validate(): boolean {
     const input = buildInput();
-    if (!input.listing_id) {
+    if (!input.property_id) {
       toast.error("Pick a listing.");
       return false;
     }

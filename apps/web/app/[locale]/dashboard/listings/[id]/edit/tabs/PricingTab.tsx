@@ -53,7 +53,9 @@ export function PricingTab({
       base_price: numToStr(listing.base_price),
       weekend_price: numToStr(listing.weekend_price),
       cleaning_fee: numToStr(listing.cleaning_fee),
-      whole_listing_discount_pct: numToStr(listing.whole_listing_discount_pct),
+      whole_property_discount_pct: numToStr(
+        listing.whole_property_discount_pct,
+      ),
       weekly_discount_pct: numToStr(listing.weekly_discount_pct),
       monthly_discount_pct: numToStr(listing.monthly_discount_pct),
       currency: listing.currency || "ZAR",
@@ -68,7 +70,9 @@ export function PricingTab({
         base_price: toMoney(values.base_price),
         weekend_price: toMoney(values.weekend_price),
         cleaning_fee: toMoney(values.cleaning_fee),
-        whole_listing_discount_pct: toMoney(values.whole_listing_discount_pct),
+        whole_property_discount_pct: toMoney(
+          values.whole_property_discount_pct,
+        ),
         weekly_discount_pct: toMoney(values.weekly_discount_pct),
         monthly_discount_pct: toMoney(values.monthly_discount_pct),
         currency: values.currency || "ZAR",
@@ -182,7 +186,7 @@ export function PricingTab({
               <div className="mt-3 grid gap-4 sm:grid-cols-3">
                 <FormField
                   control={form.control}
-                  name="whole_listing_discount_pct"
+                  name="whole_property_discount_pct"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Whole-place %</FormLabel>

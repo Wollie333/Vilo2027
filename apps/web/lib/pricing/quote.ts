@@ -43,7 +43,7 @@ export type StayPricingResult =
 export async function computeStayPricing(
   admin: AdminClient,
   input: {
-    listing_id: string;
+    property_id: string;
     check_in: string;
     check_out: string;
     scope: "whole_listing" | "rooms";
@@ -64,9 +64,9 @@ export async function computeStayPricing(
   const { data: listing } = await admin
     .from("properties")
     .select(
-      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
-    .eq("id", input.listing_id)
+    .eq("id", input.property_id)
     .maybeSingle();
   if (!listing || (expectedHostId && listing.host_id !== expectedHostId)) {
     return { ok: false, error: "Listing not found." };
@@ -97,7 +97,7 @@ export async function computeStayPricing(
       .select(
         "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
       .in("id", roomIds);
@@ -132,7 +132,7 @@ export async function computeStayPricing(
     const { count: activeRoomCount } = await admin
       .from("property_rooms")
       .select("id", { count: "exact", head: true })
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true);
     isWholeCombo =
@@ -164,7 +164,7 @@ export async function computeStayPricing(
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .eq("is_active", true)
     .lte("start_date", input.check_out)
     .gte("end_date", input.check_in);
@@ -191,7 +191,7 @@ export async function computeStayPricing(
     totalGuests: Math.max(1, input.guests),
     listingMinNights: listing.min_nights ?? 1,
     isWholeCombo,
-    wholePct: numOrNull(listing.whole_listing_discount_pct),
+    wholePct: numOrNull(listing.whole_property_discount_pct),
     weeklyPct: numOrNull(listing.weekly_discount_pct),
     monthlyPct: numOrNull(listing.monthly_discount_pct),
   });

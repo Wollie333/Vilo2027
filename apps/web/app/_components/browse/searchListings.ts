@@ -36,7 +36,7 @@ export type BrowseListing = {
   base_price: number | null;
   currency: string;
   max_guests: number | null;
-  listing_type: string;
+  property_type: string;
   accommodation_type: string | null;
   booking_mode: string;
   avg_rating: number | null;
@@ -99,12 +99,12 @@ export async function searchListings(
   let query = supabase
     .from("properties")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, property_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)
     // MVP: accommodation only — experiences/tour guides ship later.
-    .eq("listing_type", "accommodation")
+    .eq("property_type", "accommodation")
     .is("deleted_at", null);
 
   if (where.length > 0) {

@@ -35,7 +35,7 @@ export function NewListingForm({
     resolver: zodResolver(newListingSchema),
     defaultValues: {
       name: "",
-      listing_type: "accommodation",
+      property_type: "accommodation",
       category_id: undefined,
       accommodation_type: undefined,
     },

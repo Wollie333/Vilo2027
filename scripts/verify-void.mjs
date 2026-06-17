@@ -39,7 +39,7 @@ const { data: bk } = await supabase
   .from("bookings")
   .insert({
     host_id: listing.host_id,
-    listing_id: listing.id,
+    property_id: listing.id,
     guest_name: "Void Probe",
     guest_email: "void-probe@example.com",
     origin: "host_manual",

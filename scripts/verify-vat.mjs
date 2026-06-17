@@ -80,7 +80,7 @@ try {
     .from("bookings")
     .insert({
       host_id: listing.host_id,
-      listing_id: listing.id,
+      property_id: listing.id,
       guest_name: "VAT Probe",
       guest_email: "vat-probe@example.com",
       origin: "host_manual",
@@ -119,7 +119,7 @@ try {
       .from("bookings")
       .insert({
         host_id: listing.host_id,
-        listing_id: listing.id,
+        property_id: listing.id,
         guest_name: "VAT Probe 2",
         guest_email: "vat-probe2@example.com",
         origin: "host_manual",

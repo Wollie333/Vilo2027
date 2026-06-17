@@ -24,7 +24,7 @@ export type SetupCompletionInput = {
   /** A non-archived EFT bank account exists for the host. */
   hasBankAccount: boolean;
   listing: {
-    listing_type?: string | null;
+    property_type?: string | null;
     booking_mode?: string | null;
     base_price?: number | string | null;
     max_guests?: number | null;

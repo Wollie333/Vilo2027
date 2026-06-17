@@ -72,7 +72,7 @@ type ListingRow = {
   id: string;
   name: string;
   slug: string | null;
-  listing_type: string;
+  property_type: string;
   accommodation_type: string | null;
   city: string | null;
   province: string | null;
@@ -91,12 +91,12 @@ type ListingRow = {
 };
 
 type MonthBookingRow = {
-  listing_id: string;
+  property_id: string;
   check_in: string | null;
   check_out: string | null;
   status: string;
 };
-type UpcomingBookingRow = { listing_id: string; check_in: string | null };
+type UpcomingBookingRow = { property_id: string; check_in: string | null };
 
 type Derived = ListingRow & {
   status: "published" | "draft" | "paused";
@@ -200,17 +200,17 @@ export default async function ListingsPage({
         supabase
           .from("properties")
           .select(
-            "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:property_photos ( url, sort_order ), rooms:property_rooms ( id )",
+            "id, name, slug, property_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:property_photos ( url, sort_order ), rooms:property_rooms ( id )",
           )
           .eq("host_id", host.id)
-          .eq("listing_type", "accommodation")
+          .eq("property_type", "accommodation")
           .is("deleted_at", null)
           .order("created_at", { ascending: false }),
         // Occupied stays overlapping the previous or current month — enough to
         // compute both months' booked nights for the occupancy trend.
         supabase
           .from("bookings")
-          .select("listing_id, check_in, check_out, status")
+          .select("property_id, check_in, check_out, status")
           .eq("host_id", host.id)
           .is("deleted_at", null)
           .in("status", [...OCCUPIED_STATUSES])
@@ -221,7 +221,7 @@ export default async function ListingsPage({
         // Future arrivals, soonest first — first hit per listing is its "Next".
         supabase
           .from("bookings")
-          .select("listing_id, check_in")
+          .select("property_id, check_in")
           .eq("host_id", host.id)
           .is("deleted_at", null)
           .in("status", [...OCCUPIED_STATUSES])
@@ -243,17 +243,17 @@ export default async function ListingsPage({
     if (!b.check_in || !b.check_out) continue;
     const c = overlapNights(b.check_in, b.check_out, cur);
     if (c > 0)
-      bookedCur.set(b.listing_id, (bookedCur.get(b.listing_id) ?? 0) + c);
+      bookedCur.set(b.property_id, (bookedCur.get(b.property_id) ?? 0) + c);
     const p = overlapNights(b.check_in, b.check_out, prev);
     if (p > 0)
-      bookedPrev.set(b.listing_id, (bookedPrev.get(b.listing_id) ?? 0) + p);
+      bookedPrev.set(b.property_id, (bookedPrev.get(b.property_id) ?? 0) + p);
   }
 
   // Soonest future arrival per listing (rows already sorted ascending).
   const nextBy = new Map<string, string>();
   for (const b of (upcomingBookings as UpcomingBookingRow[] | null) ?? []) {
-    if (b.check_in && !nextBy.has(b.listing_id))
-      nextBy.set(b.listing_id, b.check_in);
+    if (b.check_in && !nextBy.has(b.property_id))
+      nextBy.set(b.property_id, b.check_in);
   }
 
   const all: Derived[] = raw.map((l) => {

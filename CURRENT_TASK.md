@@ -19,9 +19,17 @@
 > **Status:** R0 done (inventory); R1 done (8 leaf tables, commit `ca78d20`); R2 done
 > (7 core tables `listings→properties` + core children; migration
 > `20260617000200_rename_r2_core_tables.sql`; 30 fns recreated; 112 code files + 4
-> scripts swept; type-check/lint green; live verify green). Next: **R3 —
-> `listing_id → property_id` columns** (+ `listing_type`, `clicked_listing`, rename
-> `listing_view_events` table+col, recreate the analytics RPC suite once for columns).
+> scripts swept; type-check/lint green; live verify green). **R3 done** (migrations
+> `20260617000300` cols `listing_id→property_id` on 20 tables + `listing_type→
+> property_type` + `whole_listing_discount_pct→whole_property_discount_pct` +
+> `clicked_listing→clicked_property` + `listing_view_events→property_view_events`;
+> 36 fns recreated by mechanical swap; 104 source files + edge fn swept;
+> `20260617000400` drops a stale pre-SSOT `get_listing_policy_summary(uuid)` overload;
+> build + type-check + lint green; verify-policy-resolver + 13 RPCs live-green).
+> **Ops TODO:** `supabase functions deploy track-listing-view` (live one broke on the
+> table rename). Next: **R4 — routes + i18n labels** (`/listing/[slug]`,
+> `/dashboard/listings`, iCal `[listing_id]` folder, "Listing"→"Property" copy), then
+> the website build.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

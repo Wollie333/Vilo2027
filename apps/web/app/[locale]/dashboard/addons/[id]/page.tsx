@@ -90,16 +90,16 @@ export default async function AddonEditorPage({
   const { data: roomRows } = listingIds.length
     ? await supabase
         .from("property_rooms")
-        .select("id, name, listing_id")
-        .in("listing_id", listingIds)
+        .select("id, name, property_id")
+        .in("property_id", listingIds)
         .eq("is_active", true)
         .is("deleted_at", null)
         .order("sort_order")
-    : { data: [] as { id: string; name: string; listing_id: string }[] };
+    : { data: [] as { id: string; name: string; property_id: string }[] };
 
   const { data: assignmentRows } = await supabase
     .from("property_addons")
-    .select("listing_id, room_id")
+    .select("property_id, room_id")
     .eq("addon_id", params.id);
 
   const availability: AddonAvailability = {
@@ -107,11 +107,11 @@ export default async function AddonEditorPage({
       id: l.id,
       name: l.name,
       rooms: (roomRows ?? [])
-        .filter((room) => room.listing_id === l.id)
+        .filter((room) => room.property_id === l.id)
         .map((room) => ({ id: room.id, name: room.name })),
     })),
     assignments: (assignmentRows ?? []).map((a) => ({
-      listingId: a.listing_id,
+      listingId: a.property_id,
       roomId: a.room_id,
     })),
   };

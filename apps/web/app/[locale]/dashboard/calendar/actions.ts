@@ -56,7 +56,7 @@ export async function toggleBlockedDateAction(
   const baseQuery = supabase
     .from("blocked_dates")
     .select("id, reason, booking_id, room_id")
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .eq("date", iso);
   const { data: existing } =
     roomId == null
@@ -94,7 +94,7 @@ export async function toggleBlockedDateAction(
     data: { user },
   } = await supabase.auth.getUser();
   const { error } = await supabase.from("blocked_dates").insert({
-    listing_id: listingId,
+    property_id: listingId,
     date: iso,
     room_id: roomId,
     reason: "manual",
@@ -128,7 +128,7 @@ export async function setManualBlocksAction(
   const { data: existing } = await supabase
     .from("blocked_dates")
     .select("id, date, reason, booking_id")
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .is("room_id", null)
     .in("date", dates);
   const byDate = new Map((existing ?? []).map((r) => [r.date as string, r]));
@@ -140,7 +140,7 @@ export async function setManualBlocksAction(
     const toInsert = dates
       .filter((d) => !byDate.has(d))
       .map((d) => ({
-        listing_id: listingId,
+        property_id: listingId,
         date: d,
         room_id: null,
         reason: "manual",

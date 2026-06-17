@@ -32,7 +32,7 @@ type Row = {
         city: string | null;
         province: string | null;
         accommodation_type: string | null;
-        listing_type: string;
+        property_type: string;
         photos: Photo[] | null;
       }
     | {
@@ -41,7 +41,7 @@ type Row = {
         city: string | null;
         province: string | null;
         accommodation_type: string | null;
-        listing_type: string;
+        property_type: string;
         photos: Photo[] | null;
       }[]
     | null;
@@ -89,7 +89,7 @@ export default async function PortalTripsPage() {
           id, reference, status,
           check_in, check_out, nights,
           guests_count, total_amount, refund_total, currency, scope,
-          listing:properties ( name, slug, city, province, accommodation_type, listing_type, photos:property_photos ( url, sort_order ) ),
+          listing:properties ( name, slug, city, province, accommodation_type, property_type, photos:property_photos ( url, sort_order ) ),
           host:hosts ( display_name, avatar_url ),
           booking_rooms ( room:property_rooms ( name ) )
         `,
@@ -143,7 +143,7 @@ export default async function PortalTripsPage() {
         .sort((a, b2) => a.sort_order - b2.sort_order)[0]?.url ?? null;
 
     const typeLabel =
-      listing?.accommodation_type ?? listing?.listing_type ?? "Stay";
+      listing?.accommodation_type ?? listing?.property_type ?? "Stay";
 
     // Room label: whole bookings show the place type; room bookings list
     // the booked room name(s).

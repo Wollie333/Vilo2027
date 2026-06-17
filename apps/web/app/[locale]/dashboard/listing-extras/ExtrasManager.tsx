@@ -237,7 +237,7 @@ function PoiAdder({
     }
     start(async () => {
       const r = await createPoiAction({
-        listing_id: listingId,
+        property_id: listingId,
         category,
         name: name.trim(),
         travel_time: travelTime.trim() || null,
@@ -315,7 +315,7 @@ function ThemeAdder({
     const mention = count.trim() === "" ? null : Number(count);
     start(async () => {
       const r = await createThemeAction({
-        listing_id: listingId,
+        property_id: listingId,
         label: label.trim(),
         icon_key: iconKey,
         mention_count:
@@ -432,7 +432,7 @@ function SuggestNearby({
     }
     startSave(async () => {
       const r = await createPoisBatchAction({
-        listing_id: listingId,
+        property_id: listingId,
         items: chosen.map((c) => ({
           category: c.category,
           name: c.name,

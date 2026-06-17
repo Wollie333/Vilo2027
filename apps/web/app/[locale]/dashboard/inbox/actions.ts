@@ -224,7 +224,7 @@ export async function startGuestConversationAction(input: {
       .insert({
         host_id: host.hostId,
         guest_id: input.guestId,
-        listing_id: input.listingId ?? null,
+        property_id: input.listingId ?? null,
         booking_id: input.bookingId ?? null,
         is_enquiry: false,
         status: "open",

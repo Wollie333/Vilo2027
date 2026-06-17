@@ -50,7 +50,7 @@ function ListingPaper({
   const rest = photos.slice(1, 5);
   const rate = listing.base_price ?? 0;
   const cleaning = listing.cleaning_fee ?? 0;
-  const typeLabel = listing.accommodation_type ?? listing.listing_type;
+  const typeLabel = listing.accommodation_type ?? listing.property_type;
   const firstName = (profile.full_name || host.display_name || "Host").split(
     " ",
   )[0];

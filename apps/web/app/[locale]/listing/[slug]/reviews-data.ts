@@ -107,13 +107,13 @@ export async function loadListingReviews(
          booking:bookings ( nights, guest_name ),
          photos:review_photos ( storage_path, sort_order )`,
         )
-        .eq("listing_id", listingId)
+        .eq("property_id", listingId)
         .eq("is_published", true)
         .order("created_at", { ascending: false }),
       supabase
         .from("property_review_themes")
         .select("label, icon_key, mention_count, sort_order")
-        .eq("listing_id", listingId)
+        .eq("property_id", listingId)
         .order("sort_order", { ascending: true }),
       supabase
         .from("properties")

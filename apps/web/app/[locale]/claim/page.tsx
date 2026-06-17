@@ -131,7 +131,7 @@ export default async function ClaimPage({
           ? admin
               .from("property_photos")
               .select("url")
-              .eq("listing_id", listing.id)
+              .eq("property_id", listing.id)
               .order("sort_order", { ascending: true })
               .limit(1)
               .maybeSingle()

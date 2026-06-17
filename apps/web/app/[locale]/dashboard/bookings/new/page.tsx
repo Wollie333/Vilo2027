@@ -53,7 +53,7 @@ export default async function NewBookingPage({
           "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests",
         )
         .eq("host_id", host.id)
-        .eq("listing_type", "accommodation")
+        .eq("property_type", "accommodation")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
     : { data: null };
@@ -73,28 +73,28 @@ export default async function NewBookingPage({
     ? await Promise.all([
         supabase
           .from("property_photos")
-          .select("id, listing_id, room_id, url, sort_order")
-          .in("listing_id", listingIds)
+          .select("id, property_id, room_id, url, sort_order")
+          .in("property_id", listingIds)
           .order("sort_order", { ascending: true }),
         supabase
           .from("property_rooms")
           .select(
-            "id, listing_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person",
+            "id, property_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person",
           )
-          .in("listing_id", listingIds)
+          .in("property_id", listingIds)
           .eq("is_active", true)
           .is("deleted_at", null)
           .order("sort_order", { ascending: true }),
         supabase
           .from("property_addons")
           .select(
-            "id, listing_id, addon_id, unit_price_override, addons!inner ( name, description, unit_price, currency, pricing_model, min_quantity, max_quantity, is_required, is_active )",
+            "id, property_id, addon_id, unit_price_override, addons!inner ( name, description, unit_price, currency, pricing_model, min_quantity, max_quantity, is_required, is_active )",
           )
-          .in("listing_id", listingIds),
+          .in("property_id", listingIds),
         supabase
           .from("blocked_dates")
-          .select("listing_id, room_id, date")
-          .in("listing_id", listingIds)
+          .select("property_id, room_id, date")
+          .in("property_id", listingIds)
           .gte("date", today),
         supabase
           .from("bookings")
@@ -121,8 +121,8 @@ export default async function NewBookingPage({
     photoById.set(p.id, p.url);
     if (p.room_id) {
       if (!roomPhoto.has(p.room_id)) roomPhoto.set(p.room_id, p.url);
-    } else if (!listingCover.has(p.listing_id)) {
-      listingCover.set(p.listing_id, p.url);
+    } else if (!listingCover.has(p.property_id)) {
+      listingCover.set(p.property_id, p.url);
     }
   }
 
@@ -140,7 +140,7 @@ export default async function NewBookingPage({
 
   const rooms: BookingRoom[] = (roomRows ?? []).map((r) => ({
     id: r.id,
-    listing_id: r.listing_id,
+    property_id: r.property_id,
     name: r.name,
     base_price: r.base_price,
     cleaning_fee: r.cleaning_fee,
@@ -175,7 +175,7 @@ export default async function NewBookingPage({
     .filter(({ a }) => a.is_active)
     .map(({ row, a }) => ({
       id: row.addon_id,
-      listing_id: row.listing_id,
+      property_id: row.property_id,
       name: a.name,
       description: a.description,
       unit_price: row.unit_price_override ?? a.unit_price,
@@ -187,7 +187,7 @@ export default async function NewBookingPage({
     }));
 
   const blocked: BookingBlocked[] = (blockedRows ?? []).map((b) => ({
-    listing_id: b.listing_id,
+    property_id: b.property_id,
     room_id: b.room_id,
     date: b.date,
   }));

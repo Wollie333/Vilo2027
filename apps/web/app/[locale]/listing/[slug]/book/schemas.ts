@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createBookingSchema = z
   .object({
-    listing_id: z.string().uuid(),
+    property_id: z.string().uuid(),
     // Accommodation: "whole_listing" | "rooms".
     scope: z.enum(["whole_listing", "rooms"]).default("whole_listing"),
     room_ids: z.array(z.string().uuid()).optional(),

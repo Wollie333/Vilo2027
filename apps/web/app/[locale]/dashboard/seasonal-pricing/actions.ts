@@ -47,7 +47,7 @@ async function assertRoomBelongsToListing(
     .from("property_rooms")
     .select("id")
     .eq("id", roomId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .maybeSingle();
   return !!data;
 }
@@ -59,15 +59,15 @@ async function assertRuleOwnership(
   const supabase = createServerClient();
   const { data } = await supabase
     .from("property_seasonal_pricing")
-    .select("listing_id, listings:properties!inner(host_id)")
+    .select("property_id, listings:properties!inner(host_id)")
     .eq("id", ruleId)
     .maybeSingle();
   const row = data as {
-    listing_id: string;
+    property_id: string;
     listings: { host_id: string } | null;
   } | null;
   if (!row?.listings || row.listings.host_id !== hostId) return { ok: false };
-  return { ok: true, listingId: row.listing_id };
+  return { ok: true, listingId: row.property_id };
 }
 
 export async function createSeasonalRuleAction(
@@ -86,12 +86,12 @@ export async function createSeasonalRuleAction(
   }
   const v = parsed.data;
 
-  if (!(await assertListingOwnership(v.listing_id, host.hostId))) {
+  if (!(await assertListingOwnership(v.property_id, host.hostId))) {
     return { ok: false, error: "Not your listing." };
   }
   if (
     v.room_id &&
-    !(await assertRoomBelongsToListing(v.room_id, v.listing_id))
+    !(await assertRoomBelongsToListing(v.room_id, v.property_id))
   ) {
     return { ok: false, error: "That room doesn't belong to this listing." };
   }
@@ -100,7 +100,7 @@ export async function createSeasonalRuleAction(
   const { data: row, error } = await supabase
     .from("property_seasonal_pricing")
     .insert({
-      listing_id: v.listing_id,
+      property_id: v.property_id,
       room_id: v.room_id,
       label: v.label,
       start_date: v.start_date,
@@ -145,12 +145,12 @@ export async function updateSeasonalRuleAction(
   }
   const v = parsed.data;
 
-  if (v.listing_id !== owned.listingId) {
+  if (v.property_id !== owned.listingId) {
     return { ok: false, error: "Rule can't move to another listing." };
   }
   if (
     v.room_id &&
-    !(await assertRoomBelongsToListing(v.room_id, v.listing_id))
+    !(await assertRoomBelongsToListing(v.room_id, v.property_id))
   ) {
     return { ok: false, error: "That room doesn't belong to this listing." };
   }
@@ -244,7 +244,7 @@ export async function copySeasonalRulesToListingAction(
     .select(
       "label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
     )
-    .eq("listing_id", fromListingId)
+    .eq("property_id", fromListingId)
     .is("room_id", null);
 
   const rows = source ?? [];
@@ -259,7 +259,7 @@ export async function copySeasonalRulesToListingAction(
     .from("property_seasonal_pricing")
     .insert(
       rows.map((r) => ({
-        listing_id: toListingId,
+        property_id: toListingId,
         room_id: null,
         label: r.label,
         start_date: r.start_date,
@@ -274,7 +274,7 @@ export async function copySeasonalRulesToListingAction(
       })),
     )
     .select(
-      "id, listing_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
+      "id, property_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
     );
   if (error || !inserted) {
     return { ok: false, error: "Could not copy seasons. Try again." };
@@ -286,7 +286,7 @@ export async function copySeasonalRulesToListingAction(
     data: {
       rules: inserted.map((r) => ({
         id: r.id,
-        listingId: r.listing_id,
+        listingId: r.property_id,
         roomId: r.room_id,
         label: r.label,
         startDate: r.start_date,
@@ -413,7 +413,7 @@ export async function createSeasonalRuleForListingAction(
 
   const parsed = seasonalRuleInputSchema.safeParse({
     ...input,
-    listing_id: listingId,
+    property_id: listingId,
     room_id: null,
   });
   if (!parsed.success) {
@@ -427,7 +427,7 @@ export async function createSeasonalRuleForListingAction(
   const { data: row, error } = await ctx.db
     .from("property_seasonal_pricing")
     .insert({
-      listing_id: listingId,
+      property_id: listingId,
       room_id: null,
       label: v.label,
       start_date: v.start_date,
@@ -465,7 +465,7 @@ export async function updateSeasonalRuleForListingAction(
 
   const parsed = seasonalRuleInputSchema.safeParse({
     ...input,
-    listing_id: listingId,
+    property_id: listingId,
     room_id: null,
   });
   if (!parsed.success) {
@@ -491,7 +491,7 @@ export async function updateSeasonalRuleForListingAction(
       is_active: v.is_active,
     })
     .eq("id", ruleId)
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .select(INLINE_COLS)
     .single();
   if (error || !row) return { ok: false, error: "Could not save rule." };
@@ -515,7 +515,7 @@ export async function deleteSeasonalRuleForListingAction(
     .from("property_seasonal_pricing")
     .delete()
     .eq("id", ruleId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) return { ok: false, error: "Could not delete rule." };
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);
@@ -538,7 +538,7 @@ export async function toggleSeasonalRuleForListingAction(
     .from("property_seasonal_pricing")
     .update({ is_active: isActive })
     .eq("id", ruleId)
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   if (error) return { ok: false, error: "Could not update rule." };
 
   revalidatePath(`/dashboard/listings/${listingId}/edit`);

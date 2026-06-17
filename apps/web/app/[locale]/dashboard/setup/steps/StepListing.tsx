@@ -95,7 +95,7 @@ export function StepListing({
           <ListingBasicsForm
             listing={{
               id: listing.id,
-              listing_type: listing.listing_type,
+              property_type: listing.property_type,
               name: listing.name,
               category_id: listing.category_id,
               accommodation_type: listing.accommodation_type,

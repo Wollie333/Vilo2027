@@ -23,14 +23,14 @@ export type ExtrasResult<T = undefined> =
 // are seeded open on every plan pre-MVP (AGENT_RULES §3.4).
 
 const poiSchema = z.object({
-  listing_id: z.string().uuid(),
+  property_id: z.string().uuid(),
   category: z.enum(["eat", "do", "travel"]),
   name: z.string().trim().min(1, "Add a name.").max(120),
   travel_time: z.string().trim().max(40).optional().nullable(),
 });
 
 const themeSchema = z.object({
-  listing_id: z.string().uuid(),
+  property_id: z.string().uuid(),
   label: z.string().trim().min(1, "Add a label.").max(60),
   icon_key: z.string().trim().min(1).max(40).default("sparkles"),
   mention_count: z.number().int().min(0).max(100000).nullable().optional(),
@@ -47,7 +47,7 @@ export async function createPoiAction(
   const { data, error } = await supabase
     .from("property_points_of_interest")
     .insert({
-      listing_id: parsed.data.listing_id,
+      property_id: parsed.data.property_id,
       category: parsed.data.category,
       name: parsed.data.name,
       travel_time: parsed.data.travel_time || null,
@@ -81,7 +81,7 @@ export async function createThemeAction(
   const { data, error } = await supabase
     .from("property_review_themes")
     .insert({
-      listing_id: parsed.data.listing_id,
+      property_id: parsed.data.property_id,
       label: parsed.data.label,
       icon_key: parsed.data.icon_key,
       mention_count: parsed.data.mention_count ?? null,
@@ -138,7 +138,7 @@ export async function suggestNearbyPlacesAction(
   const { data: existingPoiRows } = await supabase
     .from("property_points_of_interest")
     .select("name")
-    .eq("listing_id", listingId);
+    .eq("property_id", listingId);
   const existing = new Set(
     (existingPoiRows ?? []).map((r) => r.name.trim().toLowerCase()),
   );
@@ -173,7 +173,7 @@ export async function suggestNearbyPlacesAction(
 }
 
 const batchSchema = z.object({
-  listing_id: z.string().uuid(),
+  property_id: z.string().uuid(),
   items: z
     .array(
       z.object({
@@ -200,7 +200,7 @@ export async function createPoisBatchAction(
     .from("property_points_of_interest")
     .insert(
       parsed.data.items.map((it) => ({
-        listing_id: parsed.data.listing_id,
+        property_id: parsed.data.property_id,
         category: it.category,
         name: it.name,
         travel_time: it.travel_time || null,

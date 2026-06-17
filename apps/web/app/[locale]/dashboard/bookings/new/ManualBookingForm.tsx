@@ -44,7 +44,7 @@ export type BookingListing = {
 };
 export type BookingRoom = {
   id: string;
-  listing_id: string;
+  property_id: string;
   name: string;
   base_price: number;
   cleaning_fee: number;
@@ -65,7 +65,7 @@ function roomFromNightly(r: BookingRoom): number {
 }
 export type BookingAddon = {
   id: string;
-  listing_id: string;
+  property_id: string;
   name: string;
   description: string | null;
   unit_price: number;
@@ -76,7 +76,7 @@ export type BookingAddon = {
   is_required: boolean;
 };
 export type BookingBlocked = {
-  listing_id: string;
+  property_id: string;
   room_id: string | null;
   date: string;
 };
@@ -220,11 +220,11 @@ export function ManualBookingForm({
   const listing = listings.find((l) => l.id === listingId);
   const currency = listing?.currency ?? "ZAR";
   const listingRooms = useMemo(
-    () => rooms.filter((r) => r.listing_id === listingId),
+    () => rooms.filter((r) => r.property_id === listingId),
     [rooms, listingId],
   );
   const listingAddons = useMemo(
-    () => addons.filter((a) => a.listing_id === listingId),
+    () => addons.filter((a) => a.property_id === listingId),
     [addons, listingId],
   );
   const hasRooms = listingRooms.length > 0;
@@ -262,7 +262,7 @@ export function ManualBookingForm({
 
   // ── Availability ──────────────────────────────────────────────────────
   const listingBlocks = useMemo(
-    () => blocked.filter((b) => b.listing_id === listingId),
+    () => blocked.filter((b) => b.property_id === listingId),
     [blocked, listingId],
   );
   function isNightBlocked(dateStr: string): boolean {
@@ -431,7 +431,7 @@ export function ManualBookingForm({
 
     start(async () => {
       const r = await createManualBookingAction({
-        listing_id: listingId,
+        property_id: listingId,
         guest_name: guestName.trim(),
         guest_email: guestEmail.trim(),
         guest_phone: guestPhone.trim(),

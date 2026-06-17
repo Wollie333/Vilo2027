@@ -1,0 +1,18 @@
+-- ════════════════════════════════════════════════════════════════════════
+--  R3 follow-up — drop the stale 1-arg get_listing_policy_summary overload
+-- ════════════════════════════════════════════════════════════════════════
+-- Part of the listings→properties rename (see RENAME_LISTINGS_TO_PROPERTIES.md).
+--
+-- The policy resolver SSOT (20260610180000) introduced the canonical 2-arg
+-- get_listing_policy_summary(p_listing_id, p_room_id DEFAULT NULL), which
+-- delegates to resolve_listing_policy_id and references no property tables
+-- directly. The obsolete pre-SSOT 1-arg get_listing_policy_summary(p_listing_id)
+-- was never dropped, so the two overloads have coexisted since 2026-06-10.
+-- PostgREST cannot disambiguate a {p_listing_id}-only call between them
+-- ("Could not choose the best candidate function"), which broke every
+-- single-arg call site (ListingPolicyBlock, lib/policy/listing-summary).
+--
+-- R1/R2 — and R3's by-name function recreation — each refreshed the stale 1-arg
+-- body (latest by name), masking that it was redundant. Drop it: the 2-arg
+-- canonical (p_room_id defaults NULL) serves every call site verbatim.
+DROP FUNCTION IF EXISTS public.get_listing_policy_summary(uuid);

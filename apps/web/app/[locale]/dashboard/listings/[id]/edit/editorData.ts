@@ -67,7 +67,7 @@ export async function loadListingEditorData(
         "id",
         "host_id",
         "business_id",
-        "listing_type",
+        "property_type",
         "accommodation_type",
         "category_id",
         "name",
@@ -90,7 +90,7 @@ export async function loadListingEditorData(
         "base_price",
         "weekend_price",
         "cleaning_fee",
-        "whole_listing_discount_pct",
+        "whole_property_discount_pct",
         "weekly_discount_pct",
         "monthly_discount_pct",
         "currency",
@@ -123,18 +123,18 @@ export async function loadListingEditorData(
     db
       .from("property_amenities")
       .select("id, amenity_key, amenity_label, room_id")
-      .eq("listing_id", listingId),
+      .eq("property_id", listingId),
     db
       .from("property_photos")
       .select("id, url, sort_order, room_id")
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .order("sort_order", { ascending: true }),
     db
       .from("property_rooms")
       .select(
         "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sleeps, sort_order )",
       )
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true }),
     db
@@ -148,7 +148,7 @@ export async function loadListingEditorData(
     db
       .from("property_addons")
       .select("addon_id, room_id, unit_price_override")
-      .eq("listing_id", listingId),
+      .eq("property_id", listingId),
     db
       .from("policies")
       .select("id, name, type")
@@ -161,18 +161,18 @@ export async function loadListingEditorData(
     db
       .from("property_policies")
       .select("policy_id, policy_type, room_id")
-      .eq("listing_id", listingId),
+      .eq("property_id", listingId),
     db
       .from("property_access")
       .select(
         "check_in_method, check_in_instructions, gate_code, door_code, wifi_network, wifi_password",
       )
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .maybeSingle(),
     db
       .from("property_local_picks")
       .select("category, title, blurb, distance_label, sort_order")
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .order("sort_order", { ascending: true }),
     // Listing-wide seasonal rules (room-scoped rules are managed in the
     // dedicated seasonal-pricing page; the editor section is listing-wide).
@@ -181,7 +181,7 @@ export async function loadListingEditorData(
       .select(
         "id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
       )
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .is("room_id", null)
       .order("start_date", { ascending: true }),
   ]);
@@ -307,7 +307,7 @@ export async function loadListingEditorData(
 
   const [categoryLeavesAll, amenityGroups, { data: businessRows }] =
     await Promise.all([
-      getCategoriesForKind(listing.listing_type),
+      getCategoriesForKind(listing.property_type),
       getAmenityCatalog(),
       db
         .from("businesses")

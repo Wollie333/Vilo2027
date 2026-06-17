@@ -95,19 +95,19 @@ export default async function PoliciesPage() {
     listingIds.length
       ? supabase
           .from("property_rooms")
-          .select("id, listing_id")
-          .in("listing_id", listingIds)
+          .select("id, property_id")
+          .in("property_id", listingIds)
           .eq("is_active", true)
           .is("deleted_at", null)
-      : Promise.resolve({ data: [] as { id: string; listing_id: string }[] }),
+      : Promise.resolve({ data: [] as { id: string; property_id: string }[] }),
     listingIds.length
       ? supabase
           .from("property_policies")
-          .select("listing_id, room_id, policy_id, policy_type")
-          .in("listing_id", listingIds)
+          .select("property_id, room_id, policy_id, policy_type")
+          .in("property_id", listingIds)
       : Promise.resolve({
           data: [] as {
-            listing_id: string;
+            property_id: string;
             room_id: string | null;
             policy_id: string;
             policy_type: string;
@@ -148,9 +148,9 @@ export default async function PoliciesPage() {
   const roomScoped = new Set<string>(); // `${roomId}:${type}`
   (assignments ?? []).forEach((a) => {
     if (a.room_id === null) {
-      const set = wideByListing.get(a.listing_id) ?? new Set<string>();
+      const set = wideByListing.get(a.property_id) ?? new Set<string>();
       set.add(a.policy_type);
-      wideByListing.set(a.listing_id, set);
+      wideByListing.set(a.property_id, set);
     } else {
       roomScoped.add(`${a.room_id}:${a.policy_type}`);
     }
@@ -161,10 +161,10 @@ export default async function PoliciesPage() {
 
   const roomsTotal = allRooms.length;
   const roomsWithCancellation = allRooms.filter((r) =>
-    roomCovered(r.id, r.listing_id, "cancellation"),
+    roomCovered(r.id, r.property_id, "cancellation"),
   ).length;
   const roomsWithHouseRules = allRooms.filter((r) =>
-    roomCovered(r.id, r.listing_id, "house_rules"),
+    roomCovered(r.id, r.property_id, "house_rules"),
   ).length;
   const fullyCovered =
     roomsTotal > 0 &&

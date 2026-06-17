@@ -19,7 +19,7 @@ import { useTransition } from "react";
 
 type BasicsListing = {
   id: string;
-  listing_type: "accommodation";
+  property_type: "accommodation";
   name: string;
   category_id: string | null;
   accommodation_type: string | null;

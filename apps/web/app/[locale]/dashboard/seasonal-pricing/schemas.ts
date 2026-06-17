@@ -11,7 +11,7 @@ export type SeasonalAdjustmentType = z.infer<
 
 export const seasonalRuleInputSchema = z
   .object({
-    listing_id: z.string().uuid(),
+    property_id: z.string().uuid(),
     room_id: z.string().uuid().nullable(),
     label: z.string().trim().min(1, "Add a label.").max(80),
     start_date: isoDate,

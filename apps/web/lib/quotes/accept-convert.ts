@@ -25,7 +25,7 @@ export async function acceptAndConvertQuote(
     .from("quotes")
     .select(
       `
-      id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
+      id, host_id, property_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
@@ -78,7 +78,7 @@ export async function acceptAndConvertQuote(
     .from("bookings")
     .insert({
       host_id: quote.host_id,
-      listing_id: quote.listing_id,
+      property_id: quote.property_id,
       guest_id: acceptGuestId,
       guest_name: quote.guest_name,
       guest_email: quote.guest_email,
@@ -166,7 +166,7 @@ export async function acceptAndConvertQuote(
   // Freeze the cancellation policy onto the booking (refund maths reads this).
   await admin.rpc("snapshot_booking_policies", {
     p_booking_id: booking.id,
-    p_listing_id: quote.listing_id,
+    p_listing_id: quote.property_id,
   });
 
   // Mark the quote accepted and link the booking — but keep status 'accepted'

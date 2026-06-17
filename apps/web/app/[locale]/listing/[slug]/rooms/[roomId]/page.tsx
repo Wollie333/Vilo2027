@@ -57,7 +57,7 @@ export default async function PublicRoomPage({
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .eq("is_active", true);
   const seasonalRules = (seasonalRows ?? [])
     .filter((s) => s.room_id === null || s.room_id === params.roomId)
@@ -82,7 +82,7 @@ export default async function PublicRoomPage({
       "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count",
     )
     .eq("id", params.roomId)
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .is("deleted_at", null)
     .eq("is_active", true)
     .maybeSingle();
@@ -98,13 +98,13 @@ export default async function PublicRoomPage({
     supabase
       .from("property_photos")
       .select("id, url, sort_order")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
       .from("property_amenities")
       .select("amenity_key")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .eq("room_id", params.roomId),
     supabase
       .from("room_beds")
@@ -114,7 +114,7 @@ export default async function PublicRoomPage({
     supabase
       .from("property_rooms")
       .select("id")
-      .eq("listing_id", listing.id)
+      .eq("property_id", listing.id)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),

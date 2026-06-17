@@ -225,7 +225,7 @@ async function main() {
     {
       id: LISTING_A,
       host_id: HOST_ID,
-      listing_type: "accommodation",
+      property_type: "accommodation",
       accommodation_type: "self_catering",
       name: "Seaview Cottage, Hermanus",
       slug: "seaview-cottage-hermanus",
@@ -254,7 +254,7 @@ async function main() {
     {
       id: LISTING_B,
       host_id: HOST_ID,
-      listing_type: "accommodation",
+      property_type: "accommodation",
       accommodation_type: "guesthouse",
       name: "The Vines Guesthouse, Stellenbosch",
       slug: "the-vines-guesthouse-stellenbosch",
@@ -280,7 +280,7 @@ async function main() {
       booking_mode: "flexible",
       instant_booking: true,
       // Combo discounts (listing-page redesign) — applied server-side.
-      whole_listing_discount_pct: 10,
+      whole_property_discount_pct: 10,
       weekly_discount_pct: 5,
       monthly_discount_pct: 10,
       is_published: true,
@@ -292,7 +292,7 @@ async function main() {
   await up("property_photos", [
     {
       id: PHOTO_A,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       storage_path: `listing-photos/${LISTING_A}/cover.jpg`,
       url: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200",
       sort_order: 0,
@@ -300,7 +300,7 @@ async function main() {
     },
     {
       id: PHOTO_B,
-      listing_id: LISTING_B,
+      property_id: LISTING_B,
       storage_path: `listing-photos/${LISTING_B}/cover.jpg`,
       url: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200",
       sort_order: 0,
@@ -310,20 +310,20 @@ async function main() {
 
   // 5. Amenities
   await up("property_amenities", [
-    { id: "0ad00000-0000-4000-8000-00000000a001", listing_id: LISTING_A, amenity_key: "wifi" },
-    { id: "0ad00000-0000-4000-8000-00000000a002", listing_id: LISTING_A, amenity_key: "kitchen" },
-    { id: "0ad00000-0000-4000-8000-00000000a003", listing_id: LISTING_A, amenity_key: "sea_view" },
-    { id: "0ad00000-0000-4000-8000-00000000a004", listing_id: LISTING_A, amenity_key: "braai_bbq" },
-    { id: "0ad00000-0000-4000-8000-00000000b001", listing_id: LISTING_B, amenity_key: "wifi" },
-    { id: "0ad00000-0000-4000-8000-00000000b002", listing_id: LISTING_B, amenity_key: "pool" },
-    { id: "0ad00000-0000-4000-8000-00000000b003", listing_id: LISTING_B, amenity_key: "breakfast_included" },
+    { id: "0ad00000-0000-4000-8000-00000000a001", property_id: LISTING_A, amenity_key: "wifi" },
+    { id: "0ad00000-0000-4000-8000-00000000a002", property_id: LISTING_A, amenity_key: "kitchen" },
+    { id: "0ad00000-0000-4000-8000-00000000a003", property_id: LISTING_A, amenity_key: "sea_view" },
+    { id: "0ad00000-0000-4000-8000-00000000a004", property_id: LISTING_A, amenity_key: "braai_bbq" },
+    { id: "0ad00000-0000-4000-8000-00000000b001", property_id: LISTING_B, amenity_key: "wifi" },
+    { id: "0ad00000-0000-4000-8000-00000000b002", property_id: LISTING_B, amenity_key: "pool" },
+    { id: "0ad00000-0000-4000-8000-00000000b003", property_id: LISTING_B, amenity_key: "breakfast_included" },
   ]);
 
   // 6. Rooms (for the flexible listing B)
   await up("property_rooms", [
     {
       id: ROOM_1,
-      listing_id: LISTING_B,
+      property_id: LISTING_B,
       name: "Chardonnay Room",
       description: "Queen room overlooking the vineyard.",
       bedrooms: 1,
@@ -338,7 +338,7 @@ async function main() {
     },
     {
       id: ROOM_2,
-      listing_id: LISTING_B,
+      property_id: LISTING_B,
       name: "Shiraz Suite",
       description: "Spacious suite with a private balcony.",
       bedrooms: 1,
@@ -357,7 +357,7 @@ async function main() {
   await up("property_seasonal_pricing", [
     {
       id: SEASON_1,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       label: "December Peak",
       start_date: "2026-12-15",
       end_date: "2027-01-10",
@@ -388,7 +388,7 @@ async function main() {
     },
   ]);
   await up("property_addons", [
-    { id: LISTING_ADDON_1, listing_id: LISTING_A, addon_id: ADDON_1 },
+    { id: LISTING_ADDON_1, property_id: LISTING_A, addon_id: ADDON_1 },
   ]);
 
   // 9. Bookings (+ rooms / addons / status transitions)
@@ -398,7 +398,7 @@ async function main() {
   await seedBooking(
     {
       id: B1,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       ...baseGuest,
       check_in: "2026-06-10",
@@ -419,7 +419,7 @@ async function main() {
   await seedBooking(
     {
       id: B2,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       ...baseGuest,
       check_in: "2026-06-20",
@@ -460,7 +460,7 @@ async function main() {
   await seedBooking(
     {
       id: B3,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       ...baseGuest,
       check_in: "2026-05-10",
@@ -485,7 +485,7 @@ async function main() {
   await seedBooking(
     {
       id: B4,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       ...baseGuest,
       check_in: "2026-07-01",
@@ -524,7 +524,7 @@ async function main() {
   await seedBooking(
     {
       id: B5,
-      listing_id: LISTING_B,
+      property_id: LISTING_B,
       host_id: HOST_ID,
       ...baseGuest,
       check_in: "2026-06-15",
@@ -556,7 +556,7 @@ async function main() {
       id: CONV_1,
       guest_id: GUEST_UID,
       host_id: HOST_ID,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       booking_id: B2,
       status: "open",
       unread_host: 1,
@@ -588,7 +588,7 @@ async function main() {
     {
       id: REVIEW_1,
       booking_id: B3,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       guest_id: GUEST_UID,
       rating: 5,
@@ -622,13 +622,13 @@ async function main() {
 
   // Gallery photos for LISTING_B (cover PHOTO_B already exists at sort 0).
   await up("property_photos", [
-    { id: "0a666666-6666-4666-8666-6666666666b1", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g1.jpg`, url: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200", sort_order: 1, caption: "Vineyard suite" },
-    { id: "0a666666-6666-4666-8666-6666666666b2", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g2.jpg`, url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200", sort_order: 2, caption: "Lounge" },
-    { id: "0a666666-6666-4666-8666-6666666666b3", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g3.jpg`, url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200", sort_order: 3, caption: "Kitchen" },
-    { id: "0a666666-6666-4666-8666-6666666666b4", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g4.jpg`, url: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=1200", sort_order: 4, caption: "Winelands at dusk" },
+    { id: "0a666666-6666-4666-8666-6666666666b1", property_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g1.jpg`, url: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200", sort_order: 1, caption: "Vineyard suite" },
+    { id: "0a666666-6666-4666-8666-6666666666b2", property_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g2.jpg`, url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200", sort_order: 2, caption: "Lounge" },
+    { id: "0a666666-6666-4666-8666-6666666666b3", property_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g3.jpg`, url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200", sort_order: 3, caption: "Kitchen" },
+    { id: "0a666666-6666-4666-8666-6666666666b4", property_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g4.jpg`, url: "https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=1200", sort_order: 4, caption: "Winelands at dusk" },
     // Per-room cover photos.
-    { id: "0a666666-6666-4666-8666-66666666f6c1", listing_id: LISTING_B, room_id: ROOM_1, storage_path: `listing-photos/${LISTING_B}/r1.jpg`, url: "https://images.unsplash.com/photo-1591088398332-8a7791972843?w=900", sort_order: 5, caption: "Chardonnay Room" },
-    { id: "0a666666-6666-4666-8666-66666666f6c2", listing_id: LISTING_B, room_id: ROOM_2, storage_path: `listing-photos/${LISTING_B}/r2.jpg`, url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=900", sort_order: 6, caption: "Shiraz Suite" },
+    { id: "0a666666-6666-4666-8666-66666666f6c1", property_id: LISTING_B, room_id: ROOM_1, storage_path: `listing-photos/${LISTING_B}/r1.jpg`, url: "https://images.unsplash.com/photo-1591088398332-8a7791972843?w=900", sort_order: 5, caption: "Chardonnay Room" },
+    { id: "0a666666-6666-4666-8666-66666666f6c2", property_id: LISTING_B, room_id: ROOM_2, storage_path: `listing-photos/${LISTING_B}/r2.jpg`, url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=900", sort_order: 6, caption: "Shiraz Suite" },
   ]);
 
   // Point each room at its cover photo + a size, so room cards (and the rich
@@ -647,18 +647,18 @@ async function main() {
 
   // More amenities for LISTING_B.
   await up("property_amenities", [
-    { id: "0ad00000-0000-4000-8000-00000000b004", listing_id: LISTING_B, amenity_key: "parking" },
-    { id: "0ad00000-0000-4000-8000-00000000b005", listing_id: LISTING_B, amenity_key: "kitchen" },
-    { id: "0ad00000-0000-4000-8000-00000000b006", listing_id: LISTING_B, amenity_key: "air_conditioning" },
-    { id: "0ad00000-0000-4000-8000-00000000b007", listing_id: LISTING_B, amenity_key: "garden" },
-    { id: "0ad00000-0000-4000-8000-00000000b008", listing_id: LISTING_B, amenity_key: "braai_bbq" },
-    { id: "0ad00000-0000-4000-8000-00000000b009", listing_id: LISTING_B, amenity_key: "mountain_view" },
+    { id: "0ad00000-0000-4000-8000-00000000b004", property_id: LISTING_B, amenity_key: "parking" },
+    { id: "0ad00000-0000-4000-8000-00000000b005", property_id: LISTING_B, amenity_key: "kitchen" },
+    { id: "0ad00000-0000-4000-8000-00000000b006", property_id: LISTING_B, amenity_key: "air_conditioning" },
+    { id: "0ad00000-0000-4000-8000-00000000b007", property_id: LISTING_B, amenity_key: "garden" },
+    { id: "0ad00000-0000-4000-8000-00000000b008", property_id: LISTING_B, amenity_key: "braai_bbq" },
+    { id: "0ad00000-0000-4000-8000-00000000b009", property_id: LISTING_B, amenity_key: "mountain_view" },
   ]);
 
   // Seasonal pricing tiers for LISTING_B (listing-wide).
   await up("property_seasonal_pricing", [
-    { id: "0a555555-5555-4555-8555-5555555555b1", listing_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", adjustment_type: "absolute", adjustment_value: 1900, priority: 1 },
-    { id: "0a555555-5555-4555-8555-5555555555b2", listing_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", adjustment_type: "absolute", adjustment_value: 3200, min_nights: 4, priority: 10 },
+    { id: "0a555555-5555-4555-8555-5555555555b1", property_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", adjustment_type: "absolute", adjustment_value: 1900, priority: 1 },
+    { id: "0a555555-5555-4555-8555-5555555555b2", property_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", adjustment_type: "absolute", adjustment_value: 3200, min_nights: 4, priority: 10 },
   ]);
 
   // Blocked dates for LISTING_B (manual host blocks — show as unavailable).
@@ -666,7 +666,7 @@ async function main() {
     "blocked_dates",
     ["2026-12-24", "2026-12-25", "2026-12-26", "2026-12-31", "2027-01-01"].map((date, i) => ({
       id: `0ab10cd0-0000-4000-8000-00000000b0${(i + 10).toString().padStart(2, "0")}`,
-      listing_id: LISTING_B,
+      property_id: LISTING_B,
       date,
       reason: "Owner stay",
     })),
@@ -674,24 +674,24 @@ async function main() {
 
   // Points of interest ("Where you'll be").
   await up("property_points_of_interest", [
-    { id: "0a0e0000-0000-4000-8000-0000000000e1", listing_id: LISTING_B, category: "eat", name: "Tokara Restaurant", travel_time: "8 min", sort_order: 0 },
-    { id: "0a0e0000-0000-4000-8000-0000000000e2", listing_id: LISTING_B, category: "eat", name: "The Fat Butcher", travel_time: "10 min", sort_order: 1 },
-    { id: "0a0e0000-0000-4000-8000-0000000000e3", listing_id: LISTING_B, category: "eat", name: "Schoon Café", travel_time: "12 min", sort_order: 2 },
-    { id: "0a0d0000-0000-4000-8000-0000000000d1", listing_id: LISTING_B, category: "do", name: "Stellenbosch wine route", travel_time: "5 min", sort_order: 0 },
-    { id: "0a0d0000-0000-4000-8000-0000000000d2", listing_id: LISTING_B, category: "do", name: "Jonkershoek hikes", travel_time: "20 min", sort_order: 1 },
-    { id: "0a0d0000-0000-4000-8000-0000000000d3", listing_id: LISTING_B, category: "do", name: "Village museum", travel_time: "9 min", sort_order: 2 },
-    { id: "0a0c0000-0000-4000-8000-0000000000c1", listing_id: LISTING_B, category: "travel", name: "Cape Town Intl (CPT)", travel_time: "35 min", sort_order: 0 },
-    { id: "0a0c0000-0000-4000-8000-0000000000c2", listing_id: LISTING_B, category: "travel", name: "Cape Town CBD", travel_time: "50 min", sort_order: 1 },
-    { id: "0a0c0000-0000-4000-8000-0000000000c3", listing_id: LISTING_B, category: "travel", name: "Stellenbosch station", travel_time: "10 min", sort_order: 2 },
+    { id: "0a0e0000-0000-4000-8000-0000000000e1", property_id: LISTING_B, category: "eat", name: "Tokara Restaurant", travel_time: "8 min", sort_order: 0 },
+    { id: "0a0e0000-0000-4000-8000-0000000000e2", property_id: LISTING_B, category: "eat", name: "The Fat Butcher", travel_time: "10 min", sort_order: 1 },
+    { id: "0a0e0000-0000-4000-8000-0000000000e3", property_id: LISTING_B, category: "eat", name: "Schoon Café", travel_time: "12 min", sort_order: 2 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d1", property_id: LISTING_B, category: "do", name: "Stellenbosch wine route", travel_time: "5 min", sort_order: 0 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d2", property_id: LISTING_B, category: "do", name: "Jonkershoek hikes", travel_time: "20 min", sort_order: 1 },
+    { id: "0a0d0000-0000-4000-8000-0000000000d3", property_id: LISTING_B, category: "do", name: "Village museum", travel_time: "9 min", sort_order: 2 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c1", property_id: LISTING_B, category: "travel", name: "Cape Town Intl (CPT)", travel_time: "35 min", sort_order: 0 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c2", property_id: LISTING_B, category: "travel", name: "Cape Town CBD", travel_time: "50 min", sort_order: 1 },
+    { id: "0a0c0000-0000-4000-8000-0000000000c3", property_id: LISTING_B, category: "travel", name: "Stellenbosch station", travel_time: "10 min", sort_order: 2 },
   ]);
 
   // "Guests mention" review themes.
   await up("property_review_themes", [
-    { id: "0a0a0000-0000-4000-8000-0000000000a1", listing_id: LISTING_B, label: "Wine farm setting", icon_key: "grape", mention_count: 41, sort_order: 0 },
-    { id: "0a0a0000-0000-4000-8000-0000000000a2", listing_id: LISTING_B, label: "The host", icon_key: "heart-handshake", mention_count: 58, sort_order: 1 },
-    { id: "0a0a0000-0000-4000-8000-0000000000a3", listing_id: LISTING_B, label: "Spotless", icon_key: "sparkles", mention_count: 47, sort_order: 2 },
-    { id: "0a0a0000-0000-4000-8000-0000000000a4", listing_id: LISTING_B, label: "Quiet", icon_key: "ear-off", mention_count: 24, sort_order: 3 },
-    { id: "0a0a0000-0000-4000-8000-0000000000a5", listing_id: LISTING_B, label: "Breakfast", icon_key: "coffee", mention_count: 33, sort_order: 4 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a1", property_id: LISTING_B, label: "Wine farm setting", icon_key: "grape", mention_count: 41, sort_order: 0 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a2", property_id: LISTING_B, label: "The host", icon_key: "heart-handshake", mention_count: 58, sort_order: 1 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a3", property_id: LISTING_B, label: "Spotless", icon_key: "sparkles", mention_count: 47, sort_order: 2 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a4", property_id: LISTING_B, label: "Quiet", icon_key: "ear-off", mention_count: 24, sort_order: 3 },
+    { id: "0a0a0000-0000-4000-8000-0000000000a5", property_id: LISTING_B, label: "Breakfast", icon_key: "coffee", mention_count: 33, sort_order: 4 },
   ]);
 
   // Extra reviewers → completed bookings on LISTING_B → published reviews
@@ -719,7 +719,7 @@ async function main() {
     await seedBooking(
       {
         id: rv.bId,
-        listing_id: LISTING_B,
+        property_id: LISTING_B,
         host_id: HOST_ID,
         guest_id: rv.uid,
         guest_name: rv.name,
@@ -742,7 +742,7 @@ async function main() {
       {
         id: rv.rId,
         booking_id: rv.bId,
-        listing_id: LISTING_B,
+        property_id: LISTING_B,
         host_id: HOST_ID,
         guest_id: rv.uid,
         rating: rv.rating,

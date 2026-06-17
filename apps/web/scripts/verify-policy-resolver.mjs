@@ -91,7 +91,7 @@ console.log("\n3) Bookings have a cancellation snapshot");
 {
   const { data: bookings, error } = await sb
     .from("bookings")
-    .select("id, listing_id")
+    .select("id, property_id")
     .limit(200);
   if (error) bad("bookings query: " + error.message);
   else if (!bookings.length) console.log("  (no bookings to check)");

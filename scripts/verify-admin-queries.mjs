@@ -29,7 +29,7 @@ const checks = [
   [
     "listings/list",
     "listings",
-    "id, name, slug, listing_type, is_published, is_featured, city, province, base_price, currency, created_at, host:hosts ( id, handle, display_name )",
+    "id, name, slug, property_type, is_published, is_featured, city, province, base_price, currency, created_at, host:hosts ( id, handle, display_name )",
   ],
   [
     "bookings/list",

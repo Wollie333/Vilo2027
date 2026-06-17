@@ -111,7 +111,7 @@ export async function toggleFeaturedReviewAction(
   // RLS host_read_own_reviews → only the owning host gets a row back.
   const { data: review } = await supabase
     .from("reviews")
-    .select("id, listing_id, is_published")
+    .select("id, property_id, is_published")
     .eq("id", reviewId)
     .maybeSingle();
   if (!review) return { ok: false, error: "Review not found." };
@@ -122,7 +122,7 @@ export async function toggleFeaturedReviewAction(
   let update = supabase
     .from("properties")
     .update({ featured_review_id: featured ? reviewId : null })
-    .eq("id", review.listing_id)
+    .eq("id", review.property_id)
     .eq("host_id", host.id);
   // Unpin only if THIS review is the current featured one (don't clear another).
   if (!featured) update = update.eq("featured_review_id", reviewId);

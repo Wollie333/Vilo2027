@@ -82,7 +82,7 @@ export async function submitReviewAction(
   const { data: booking, error: bookingError } = await admin
     .from("bookings")
     .select(
-      "id, status, checked_out_at, guest_id, host_id, listing_id, deleted_at",
+      "id, status, checked_out_at, guest_id, host_id, property_id, deleted_at",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -116,7 +116,7 @@ export async function submitReviewAction(
     .from("reviews")
     .insert({
       booking_id: bookingId,
-      listing_id: booking.listing_id,
+      property_id: booking.property_id,
       host_id: booking.host_id,
       // Null for an account-less (manual-booking) guest — the review still maps
       // to this real booking; the display name comes from bookings.guest_name.

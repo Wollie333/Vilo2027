@@ -518,17 +518,17 @@ export async function getPolicyRetirementInfoAction(
   // Listing assignments (listing-wide + per-room) with listing names.
   const { data: lpRows } = await supabase
     .from("property_policies")
-    .select("listing_id, room_id, listings:properties!inner(name)")
+    .select("property_id, room_id, listings:properties!inner(name)")
     .eq("policy_id", policyId);
 
   const assignments = (
     (lpRows ?? []) as unknown as {
-      listing_id: string;
+      property_id: string;
       room_id: string | null;
       listings: { name: string } | { name: string }[];
     }[]
   ).map((r) => ({
-    listingId: r.listing_id,
+    listingId: r.property_id,
     listingName: Array.isArray(r.listings)
       ? (r.listings[0]?.name ?? "Listing")
       : (r.listings?.name ?? "Listing"),
@@ -847,7 +847,7 @@ export async function setListingPolicyAction(
     let q = supabase
       .from("property_policies")
       .delete()
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("policy_type", policyType);
     q = roomId === null ? q.is("room_id", null) : q.eq("room_id", roomId);
     return q;
@@ -877,7 +877,7 @@ export async function setListingPolicyAction(
   // Replace the scope row (delete then insert — NULL-safe across both indexes).
   await clearScope();
   const { error } = await supabase.from("property_policies").insert({
-    listing_id: listingId,
+    property_id: listingId,
     policy_id: policyId,
     policy_type: policyType,
     room_id: roomId,

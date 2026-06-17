@@ -393,7 +393,7 @@ export default async function ReportsPage({
   } | null;
 
   const popularRooms = (popularRoomsRes.data || []) as Array<{
-    listing_id: string;
+    property_id: string;
     listing_name: string;
     listing_slug: string;
     cover_image_url: string | null;

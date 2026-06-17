@@ -27,7 +27,7 @@ export type Profile = {
 export type Listing = {
   id: string;
   name: string;
-  listing_type: "accommodation";
+  property_type: "accommodation";
   category_id: string | null;
   accommodation_type: string | null;
   description: string;

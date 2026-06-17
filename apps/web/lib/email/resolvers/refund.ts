@@ -27,7 +27,7 @@ type RefundBundle = {
     currency: string;
     payment_method: string | null;
     guest_name: string | null;
-    listing_id: string;
+    property_id: string;
     host_id: string;
     guest_id: string | null;
   } | null;
@@ -66,7 +66,7 @@ async function loadRefundBundle(
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, check_in, total_amount, currency, payment_method, guest_name, listing_id, host_id, guest_id",
+      "id, reference, check_in, total_amount, currency, payment_method, guest_name, property_id, host_id, guest_id",
     )
     .eq("id", refund.booking_id)
     .maybeSingle();
@@ -81,7 +81,7 @@ async function loadRefundBundle(
       supabase
         .from("properties")
         .select("name")
-        .eq("id", booking.listing_id)
+        .eq("id", booking.property_id)
         .maybeSingle(),
       supabase
         .from("hosts")

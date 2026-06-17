@@ -200,7 +200,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("properties")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
-        .eq("listing_type", "accommodation")
+        .eq("property_type", "accommodation")
         .is("deleted_at", null)
         .eq("is_featured", true)
         .order("created_at", { ascending: false })
@@ -210,7 +210,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("properties")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
-        .eq("listing_type", "accommodation")
+        .eq("property_type", "accommodation")
         .is("deleted_at", null)
         .order("avg_rating", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
@@ -222,7 +222,7 @@ export async function getHomeData(): Promise<HomeData> {
           "city, province, category_id, base_price, currency, booking_mode, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
         )
         .eq("is_published", true)
-        .eq("listing_type", "accommodation")
+        .eq("property_type", "accommodation")
         .is("deleted_at", null)
         .limit(1000),
       // Exact published-listing count for the hero + "show all" CTA.
@@ -230,7 +230,7 @@ export async function getHomeData(): Promise<HomeData> {
         .from("properties")
         .select("id", { count: "exact", head: true })
         .eq("is_published", true)
-        .eq("listing_type", "accommodation")
+        .eq("property_type", "accommodation")
         .is("deleted_at", null),
       // Most-recent public reviews (anonymised).
       supabase

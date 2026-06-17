@@ -248,7 +248,7 @@ export default async function GuestRecordPage({
     const { data: rv } = await supabase
       .from("reviews")
       .select(
-        `id, rating, body, created_at, listing_id,
+        `id, rating, body, created_at, property_id,
          host_response, host_responded_at, flagged,
          booking:bookings ( nights, check_in ),
          photos:review_photos ( storage_path, sort_order )`,
@@ -266,7 +266,7 @@ export default async function GuestRecordPage({
         hostResponse: r.host_response,
         hostRespondedAt: r.host_responded_at,
         flagged: r.flagged,
-        listingName: listingNames.get(r.listing_id) ?? "Listing",
+        listingName: listingNames.get(r.property_id) ?? "Listing",
         nights: booking?.nights ?? null,
         stayMonth: reviewMonth(booking?.check_in ?? null),
         photos: (r.photos ?? [])
@@ -323,7 +323,7 @@ export default async function GuestRecordPage({
     let qq = supabase
       .from("quotes")
       .select(
-        "id, status, total_amount, currency, check_in, check_out, listing_id, created_at",
+        "id, status, total_amount, currency, check_in, check_out, property_id, created_at",
       )
       .eq("host_id", host.id)
       .is("deleted_at", null)
@@ -341,7 +341,7 @@ export default async function GuestRecordPage({
       currency: q.currency,
       checkIn: q.check_in,
       checkOut: q.check_out,
-      listingName: listingNames.get(q.listing_id) ?? "Listing",
+      listingName: listingNames.get(q.property_id) ?? "Listing",
       date: q.created_at,
     }));
   }

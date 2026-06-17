@@ -128,7 +128,7 @@ const reviewRequestResolver: EmailResolver = async (refs, ctx) => {
   if (!bookingId) return {};
   const { data: booking } = await ctx.supabase
     .from("bookings")
-    .select("guest_id, guest_name, listing_id, host_id")
+    .select("guest_id, guest_name, property_id, host_id")
     .eq("id", bookingId)
     .maybeSingle();
   if (!booking) return {};
@@ -137,7 +137,7 @@ const reviewRequestResolver: EmailResolver = async (refs, ctx) => {
     ctx.supabase
       .from("properties")
       .select("name")
-      .eq("id", booking.listing_id)
+      .eq("id", booking.property_id)
       .maybeSingle(),
     loadHostUser(ctx.supabase, booking.host_id),
     booking.guest_id
@@ -165,7 +165,7 @@ const newReviewHostResolver: EmailResolver = async (refs, ctx) => {
   if (!reviewId) return {};
   const { data: review } = await ctx.supabase
     .from("reviews")
-    .select("rating, body, guest_id, host_id, listing_id, booking_id")
+    .select("rating, body, guest_id, host_id, property_id, booking_id")
     .eq("id", reviewId)
     .maybeSingle();
   if (!review) return {};
@@ -183,7 +183,7 @@ const newReviewHostResolver: EmailResolver = async (refs, ctx) => {
       ctx.supabase
         .from("properties")
         .select("name")
-        .eq("id", review.listing_id)
+        .eq("id", review.property_id)
         .maybeSingle(),
       // Account-less guest → name comes from the booking.
       ctx.supabase

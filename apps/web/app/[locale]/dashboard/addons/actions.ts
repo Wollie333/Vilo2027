@@ -513,7 +513,7 @@ export async function setListingAddonAction(
     const { error } = await supabase
       .from("property_addons")
       .delete()
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("addon_id", addonId);
     if (error) return { ok: false, error: "Could not disable add-on." };
     revalidatePath(`/dashboard/listings/${listingId}/edit`);
@@ -530,11 +530,11 @@ export async function setListingAddonAction(
   await supabase
     .from("property_addons")
     .delete()
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .eq("addon_id", addonId);
 
   const { error } = await supabase.from("property_addons").insert({
-    listing_id: listingId,
+    property_id: listingId,
     addon_id: addonId,
     room_id: parsed.data.room_id,
     unit_price_override: parsed.data.unit_price_override,
@@ -578,7 +578,7 @@ export async function setAddonListingRoomsAction(
   const { error: delErr } = await supabase
     .from("property_addons")
     .delete()
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .eq("addon_id", addonId);
   if (delErr) {
     return { ok: false, error: "Could not update availability." };
@@ -591,7 +591,7 @@ export async function setAddonListingRoomsAction(
 
   if (selection.mode === "all") {
     const { error } = await supabase.from("property_addons").insert({
-      listing_id: listingId,
+      property_id: listingId,
       addon_id: addonId,
       room_id: null,
     });
@@ -610,7 +610,7 @@ export async function setAddonListingRoomsAction(
       .from("property_rooms")
       .select("id")
       .in("id", requested)
-      .eq("listing_id", listingId)
+      .eq("property_id", listingId)
       .eq("is_active", true)
       .is("deleted_at", null);
     validIds = (rooms ?? []).map((row) => row.id);
@@ -624,7 +624,7 @@ export async function setAddonListingRoomsAction(
 
   const { error } = await supabase.from("property_addons").insert(
     validIds.map((roomId) => ({
-      listing_id: listingId,
+      property_id: listingId,
       addon_id: addonId,
       room_id: roomId,
     })),

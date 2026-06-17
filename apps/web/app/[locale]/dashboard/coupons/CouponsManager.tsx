@@ -395,7 +395,7 @@ function CouponDialog({
       discount_type: discountType,
       discount_value: Number(discountValue),
       scope,
-      listing_id: listingId,
+      property_id: listingId,
       room_id: scope === "accommodation" ? roomId : null,
       addon_id: scope === "addons" ? addonId : null,
       min_nights: numOrNull(minNights),

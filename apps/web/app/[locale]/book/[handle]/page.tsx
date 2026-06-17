@@ -59,7 +59,7 @@ export default async function DirectBookingPage({
     )
     .eq("host_id", host.id)
     .eq("is_published", true)
-    .eq("listing_type", "accommodation")
+    .eq("property_type", "accommodation")
     .is("deleted_at", null)
     .neq("is_suspended", true)
     .order("is_featured", { ascending: false })

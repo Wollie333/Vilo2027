@@ -23,7 +23,7 @@ const EDITABLE = new Set([
 type BookingForEdit = {
   id: string;
   host_id: string;
-  listing_id: string;
+  property_id: string;
   status: string;
   scope: string;
   guests_count: number;
@@ -42,7 +42,7 @@ async function loadBooking(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, host_id, listing_id, status, scope, guests_count, currency, cleaning_fee, vat_rate, booking_rooms ( room_id ), booking_addons ( subtotal )",
+      "id, host_id, property_id, status, scope, guests_count, currency, cleaning_fee, vat_rate, booking_rooms ( room_id ), booking_addons ( subtotal )",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -56,7 +56,7 @@ async function loadBooking(
   return {
     id: b.id as string,
     host_id: b.host_id as string,
-    listing_id: b.listing_id as string,
+    property_id: b.property_id as string,
     status: b.status as string,
     scope: b.scope as string,
     guests_count: b.guests_count as number,
@@ -80,7 +80,7 @@ async function hasConflict(
   let q = admin
     .from("blocked_dates")
     .select("id", { count: "exact", head: true })
-    .eq("listing_id", b.listing_id)
+    .eq("property_id", b.property_id)
     .gte("date", checkIn)
     .lt("date", checkOut)
     .or(`booking_id.is.null,booking_id.neq.${b.id}`);
@@ -110,7 +110,7 @@ async function suggestTotal(
   const priced = await computeStayPricing(
     admin,
     {
-      listing_id: b.listing_id,
+      property_id: b.property_id,
       check_in: checkIn,
       check_out: checkOut,
       scope: b.scope === "rooms" ? "rooms" : "whole_listing",
@@ -253,7 +253,7 @@ export async function changeBookingDatesAction(input: {
       b.scope === "rooms" && roomIds.length > 0
         ? roomIds.flatMap((room_id) =>
             nightsList.map((date) => ({
-              listing_id: b.listing_id,
+              property_id: b.property_id,
               room_id: room_id as string | null,
               date,
               reason: "booking",
@@ -261,7 +261,7 @@ export async function changeBookingDatesAction(input: {
             })),
           )
         : nightsList.map((date) => ({
-            listing_id: b.listing_id,
+            property_id: b.property_id,
             room_id: null as string | null,
             date,
             reason: "booking",

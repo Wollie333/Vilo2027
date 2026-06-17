@@ -337,7 +337,7 @@ export async function fetchGettingStartedState(
     const { data: firstL } = await supabase
       .from("properties")
       .select(
-        "id, name, is_published, listing_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
+        "id, name, is_published, property_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
       )
       .eq("host_id", hostId)
       .is("deleted_at", null)
@@ -349,7 +349,7 @@ export async function fetchGettingStartedState(
         id: string;
         name?: string;
         is_published?: boolean | null;
-        listing_type?: string | null;
+        property_type?: string | null;
         booking_mode?: string | null;
         base_price?: number | string | null;
         max_guests?: number | null;
@@ -368,11 +368,11 @@ export async function fetchGettingStartedState(
         supabase
           .from("property_photos")
           .select("id", { count: "exact", head: true })
-          .eq("listing_id", row.id),
+          .eq("property_id", row.id),
         supabase
           .from("property_rooms")
           .select("id", { count: "exact", head: true })
-          .eq("listing_id", row.id)
+          .eq("property_id", row.id)
           .is("deleted_at", null)
           .eq("is_active", true),
       ]);
@@ -384,7 +384,7 @@ export async function fetchGettingStartedState(
       const { count: cancellationCount } = await supabase
         .from("property_policies")
         .select("id", { count: "exact", head: true })
-        .eq("listing_id", row.id)
+        .eq("property_id", row.id)
         .eq("policy_type", "cancellation")
         .is("room_id", null);
       setupHasCancellation = (cancellationCount ?? 0) > 0;
@@ -412,7 +412,7 @@ export async function fetchGettingStartedState(
       const { count: feedCount } = await supabase
         .from("ical_feeds")
         .select("id", { count: "exact", head: true })
-        .in("listing_id", listingIds);
+        .in("property_id", listingIds);
       icalConnected = {
         done: (feedCount ?? 0) > 0,
         meta:

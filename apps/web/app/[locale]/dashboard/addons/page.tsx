@@ -77,14 +77,14 @@ export default async function AddonsPage() {
   const { data: laRows } = addonIds.length
     ? await supabase
         .from("property_addons")
-        .select("addon_id, listing_id")
+        .select("addon_id, property_id")
         .in("addon_id", addonIds)
-    : { data: [] as { addon_id: string; listing_id: string }[] };
+    : { data: [] as { addon_id: string; property_id: string }[] };
 
   const listingsByAddon = new Map<string, Set<string>>();
   for (const row of laRows ?? []) {
     const set = listingsByAddon.get(row.addon_id) ?? new Set<string>();
-    set.add(row.listing_id);
+    set.add(row.property_id);
     listingsByAddon.set(row.addon_id, set);
   }
 

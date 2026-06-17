@@ -88,7 +88,7 @@ export async function addQuoteNoteAction(
 // charge for the same dates/rooms (seasonal + weekend aware). Add-ons are priced
 // separately as quote lines. Host-only: the listing must belong to the caller.
 export async function priceQuoteAction(input: {
-  listing_id: string;
+  property_id: string;
   check_in: string;
   check_out: string;
   scope: "whole_listing" | "rooms";
@@ -206,7 +206,7 @@ export async function createQuoteAction(
     .select(
       "id, host_id, business_id, cancellation_policy, cancellation_policy_label",
     )
-    .eq("id", parsed.data.listing_id)
+    .eq("id", parsed.data.property_id)
     .maybeSingle();
   if (!listing || listing.host_id !== host.hostId) {
     return { ok: false, error: "Listing not found." };
@@ -244,7 +244,7 @@ export async function createQuoteAction(
     .from("quotes")
     .insert({
       host_id: host.hostId,
-      listing_id: parsed.data.listing_id,
+      property_id: parsed.data.property_id,
       quote_number: numberResult as unknown as string,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
@@ -388,7 +388,7 @@ export async function updateQuoteAction(
   const { error: updErr } = await supabase
     .from("quotes")
     .update({
-      listing_id: parsed.data.listing_id,
+      property_id: parsed.data.property_id,
       guest_name: parsed.data.guest_name,
       guest_email: parsed.data.guest_email,
       guest_phone: parsed.data.guest_phone || null,
@@ -700,7 +700,7 @@ export async function convertQuoteAction(
     .from("quotes")
     .select(
       `
-      id, host_id, listing_id, guest_name, guest_email, guest_phone, guest_id,
+      id, host_id, property_id, guest_name, guest_email, guest_phone, guest_id,
       check_in, check_out, headcount, scope, base_amount, cleaning_fee,
       addons_total, total_amount, currency, status, notes, guests_breakdown,
       discount_amount, deposit_amount, balance_amount, balance_due_days,
@@ -858,7 +858,7 @@ export async function convertQuoteAction(
     .from("bookings")
     .insert({
       host_id: quote.host_id,
-      listing_id: quote.listing_id,
+      property_id: quote.property_id,
       guest_id: convGuestId,
       guest_name: quote.guest_name,
       guest_email: quote.guest_email,
@@ -954,7 +954,7 @@ export async function convertQuoteAction(
   // maths (calculate_policy_refund_amount) has a snapshot to read. Best-effort.
   await supabase.rpc("snapshot_booking_policies", {
     p_booking_id: booking.id,
-    p_listing_id: quote.listing_id,
+    p_listing_id: quote.property_id,
   });
 
   // Confirm → fires on_booking_confirmed (blocks the calendar) and

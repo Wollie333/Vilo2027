@@ -100,7 +100,7 @@ export default async function BookingPage({
   const { data: listing } = await supabase
     .from("properties")
     .select(
-      "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
+      "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, property_type, accommodation_type, avg_rating, total_reviews, whole_property_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
     .eq("slug", params.slug)
     .maybeSingle();
@@ -124,7 +124,7 @@ export default async function BookingPage({
     .select(
       "id, name, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
     )
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .is("deleted_at", null)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
@@ -156,7 +156,7 @@ export default async function BookingPage({
       supabase
         .from("property_photos")
         .select("room_id, url, sort_order")
-        .eq("listing_id", listing.id)
+        .eq("property_id", listing.id)
         .order("sort_order", { ascending: true }),
     ]);
     for (const b of bedRows ?? []) {
@@ -214,7 +214,7 @@ export default async function BookingPage({
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .eq("is_active", true);
   const seasonalRules: SeasonalRule[] = (seasonalRows ?? []).map((s) => ({
     roomId: s.room_id,
@@ -301,7 +301,7 @@ export default async function BookingPage({
       .select(
         "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )
-      .eq("listing_id", listing.id);
+      .eq("property_id", listing.id);
 
     type Row = {
       addon_id: string;
@@ -426,9 +426,9 @@ export default async function BookingPage({
           hasPaystack={hasPaystack}
           seasonalRules={seasonalRules}
           wholeListingDiscountPct={
-            listing.whole_listing_discount_pct == null
+            listing.whole_property_discount_pct == null
               ? null
-              : Number(listing.whole_listing_discount_pct)
+              : Number(listing.whole_property_discount_pct)
           }
           weeklyDiscountPct={
             listing.weekly_discount_pct == null

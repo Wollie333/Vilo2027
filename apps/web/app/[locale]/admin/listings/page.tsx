@@ -38,7 +38,7 @@ export default async function AdminListingsPage({
     .from("properties")
     .select(
       `
-      id, name, slug, listing_type, is_published, is_featured, city, province,
+      id, name, slug, property_type, is_published, is_featured, city, province,
       base_price, currency, created_at,
       host:hosts ( id, handle, display_name )
     `,
@@ -64,7 +64,7 @@ export default async function AdminListingsPage({
     id: string;
     name: string;
     slug: string | null;
-    listing_type: string;
+    property_type: string;
     is_published: boolean;
     is_featured: boolean;
     city: string | null;
@@ -103,7 +103,7 @@ export default async function AdminListingsPage({
         <div className="min-w-0">
           <div className="truncate font-medium text-brand-ink">{l.name}</div>
           <div className="truncate text-[11px] uppercase tracking-wider text-brand-mute">
-            {l.listing_type}
+            {l.property_type}
           </div>
         </div>
       ),

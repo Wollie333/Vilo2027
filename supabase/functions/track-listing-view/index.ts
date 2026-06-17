@@ -3,11 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface TrackingRequest {
-  listing_id: string;
+  property_id: string;
   session_id?: string;
   duration_seconds?: number;
   device?: string;
@@ -25,16 +26,19 @@ serve(async (req) => {
     // Parse request body
     const body: TrackingRequest = await req.json();
 
-    if (!body.listing_id) {
+    if (!body.property_id) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: { code: "MISSING_LISTING_ID", message: "listing_id is required" },
+          error: {
+            code: "MISSING_LISTING_ID",
+            message: "property_id is required",
+          },
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
-        }
+        },
       );
     }
 
@@ -49,7 +53,9 @@ serve(async (req) => {
 
     if (authHeader) {
       const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser(token);
       userId = user?.id || null;
     }
 
@@ -64,8 +70,8 @@ serve(async (req) => {
     const sessionId = body.session_id || crypto.randomUUID();
 
     // Insert listing view event
-    const { error } = await supabase.from("listing_view_events").insert({
-      listing_id: body.listing_id,
+    const { error } = await supabase.from("property_view_events").insert({
+      property_id: body.property_id,
       session_id: sessionId,
       user_id: userId,
       duration_seconds: body.duration_seconds || 0,
@@ -84,7 +90,7 @@ serve(async (req) => {
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 500,
-        }
+        },
       );
     }
 
@@ -99,7 +105,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
   } catch (error) {
     console.error("track-listing-view error:", error);
@@ -111,7 +117,7 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500,
-      }
+      },
     );
   }
 });
@@ -122,7 +128,11 @@ serve(async (req) => {
 function detectDevice(userAgent: string): string {
   const ua = userAgent.toLowerCase();
 
-  if (ua.includes("mobile") || ua.includes("android") || ua.includes("iphone")) {
+  if (
+    ua.includes("mobile") ||
+    ua.includes("android") ||
+    ua.includes("iphone")
+  ) {
     return "mobile";
   }
 

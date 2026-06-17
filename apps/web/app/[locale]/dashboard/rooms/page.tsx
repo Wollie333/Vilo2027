@@ -292,14 +292,14 @@ export default async function RoomsPage({
   const { data: blockRows } = listingIds.length
     ? await supabase
         .from("blocked_dates")
-        .select("listing_id, room_id, date, source, booking_id, quote_id")
-        .in("listing_id", listingIds)
+        .select("property_id, room_id, date, source, booking_id, quote_id")
+        .in("property_id", listingIds)
         .gte("date", rangeStart)
         .lte("date", rangeEnd)
     : { data: [] as BlockRow[] };
 
   type BlockRow = {
-    listing_id: string;
+    property_id: string;
     room_id: string | null;
     date: string;
     source: string;
@@ -324,9 +324,9 @@ export default async function RoomsPage({
       if (rank(m.get(raw.date)) < rank(cell)) m.set(raw.date, cell);
       perRoom.set(raw.room_id, m);
     } else {
-      const m = listingWide.get(raw.listing_id) ?? new Map();
+      const m = listingWide.get(raw.property_id) ?? new Map();
       if (rank(m.get(raw.date)) < rank(cell)) m.set(raw.date, cell);
-      listingWide.set(raw.listing_id, m);
+      listingWide.set(raw.property_id, m);
     }
   }
   const occFor = (listingId: string, roomId: string): Occ => {

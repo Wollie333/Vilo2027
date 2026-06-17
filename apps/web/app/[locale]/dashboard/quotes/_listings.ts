@@ -23,7 +23,7 @@ export async function loadQuoteFormListings(
       "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests, allow_children, allow_infants, allow_pets",
     )
     .eq("host_id", hostId)
-    .eq("listing_type", "accommodation")
+    .eq("property_type", "accommodation")
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -39,54 +39,54 @@ export async function loadQuoteFormListings(
     supabase
       .from("property_rooms")
       .select(
-        "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, allow_children, allow_infants, allow_pets, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url )",
+        "id, property_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, allow_children, allow_infants, allow_pets, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url )",
       )
-      .in("listing_id", listingIds)
+      .in("property_id", listingIds)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase
       .from("property_addons")
       .select(
-        "listing_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_active )",
+        "property_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_active )",
       )
-      .in("listing_id", listingIds),
+      .in("property_id", listingIds),
     supabase
       .from("property_photos")
-      .select("listing_id, url, sort_order, room_id")
-      .in("listing_id", listingIds)
+      .select("property_id, url, sort_order, room_id")
+      .in("property_id", listingIds)
       .is("room_id", null)
       .order("sort_order", { ascending: true }),
     // Whole-listing blocked nights only (room_id null) so a guesthouse with one
     // room booked isn't shown as fully unavailable.
     supabase
       .from("blocked_dates")
-      .select("listing_id, date, quote_id")
-      .in("listing_id", listingIds)
+      .select("property_id, date, quote_id")
+      .in("property_id", listingIds)
       .is("room_id", null),
   ]);
 
   const coverByListing = new Map<string, string>();
-  for (const p of (photos ?? []) as { listing_id: string; url: string }[]) {
-    if (!coverByListing.has(p.listing_id))
-      coverByListing.set(p.listing_id, p.url);
+  for (const p of (photos ?? []) as { property_id: string; url: string }[]) {
+    if (!coverByListing.has(p.property_id))
+      coverByListing.set(p.property_id, p.url);
   }
 
   const blockedByListing = new Map<string, string[]>();
   for (const b of (blocks ?? []) as {
-    listing_id: string;
+    property_id: string;
     date: string;
     quote_id: string | null;
   }[]) {
     // Skip the edited quote's own soft-hold — those nights are "free" to it.
     if (excludeQuoteId && b.quote_id === excludeQuoteId) continue;
-    const list = blockedByListing.get(b.listing_id) ?? [];
+    const list = blockedByListing.get(b.property_id) ?? [];
     list.push(b.date);
-    blockedByListing.set(b.listing_id, list);
+    blockedByListing.set(b.property_id, list);
   }
 
   type AddonJoin = {
-    listing_id: string;
+    property_id: string;
     unit_price_override: number | null;
     addons: {
       id: string;
@@ -107,7 +107,7 @@ export async function loadQuoteFormListings(
       raw.unit_price_override == null
         ? Number(a.unit_price)
         : Number(raw.unit_price_override);
-    const list = addonsByListing.get(raw.listing_id) ?? [];
+    const list = addonsByListing.get(raw.property_id) ?? [];
     const existing = list.find((x) => x.id === a.id);
     if (existing) {
       if (price < existing.unit_price) existing.unit_price = price;
@@ -122,12 +122,12 @@ export async function loadQuoteFormListings(
         max_quantity: a.max_quantity,
       });
     }
-    addonsByListing.set(raw.listing_id, list);
+    addonsByListing.set(raw.property_id, list);
   }
 
   type RoomRow = {
     id: string;
-    listing_id: string;
+    property_id: string;
     name: string;
     base_price: number | null;
     cleaning_fee: number | null;
@@ -144,7 +144,7 @@ export async function loadQuoteFormListings(
     const photo = Array.isArray(r.featured_photo)
       ? r.featured_photo[0]
       : r.featured_photo;
-    const list = roomsByListing.get(r.listing_id) ?? [];
+    const list = roomsByListing.get(r.property_id) ?? [];
     list.push({
       id: r.id,
       name: r.name,
@@ -158,7 +158,7 @@ export async function loadQuoteFormListings(
       allowInfants: r.allow_infants ?? true,
       allowPets: r.allow_pets ?? true,
     });
-    roomsByListing.set(r.listing_id, list);
+    roomsByListing.set(r.property_id, list);
   }
 
   type ListingRow = {

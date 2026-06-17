@@ -191,7 +191,7 @@ export default async function DashboardPage({
     throwOnError(
       supabase
         .from("bookings")
-        .select("id, total_amount, currency, status, nights, listing_id")
+        .select("id, total_amount, currency, status, nights, property_id")
         .eq("host_id", host.id)
         .gte("check_in", isoDate(monthStart))
         .lte("check_in", isoDate(monthEnd)),
@@ -307,8 +307,8 @@ export default async function DashboardPage({
   const nightsByListing = new Map<string, number>();
   for (const b of confirmedMonth)
     nightsByListing.set(
-      b.listing_id,
-      (nightsByListing.get(b.listing_id) ?? 0) + (Number(b.nights) || 0),
+      b.property_id,
+      (nightsByListing.get(b.property_id) ?? 0) + (Number(b.nights) || 0),
     );
 
   // 90-day revenue series (weekly buckets) + stats.

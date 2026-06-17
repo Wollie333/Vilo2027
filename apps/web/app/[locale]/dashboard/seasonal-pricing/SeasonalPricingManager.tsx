@@ -1641,7 +1641,7 @@ function RuleDialog({
     }
 
     const payload = {
-      listing_id: listingId,
+      property_id: listingId,
       room_id: roomId,
       label: label.trim(),
       start_date: startDate,

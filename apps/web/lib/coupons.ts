@@ -40,7 +40,7 @@ type CouponRow = {
   discount_type: string;
   discount_value: number | string;
   scope: "order" | "accommodation" | "addons";
-  listing_id: string | null;
+  property_id: string | null;
   room_id: string | null;
   addon_id: string | null;
   min_nights: number | null;
@@ -69,7 +69,7 @@ export async function resolveCoupon(
   const { data: rows } = await admin
     .from("coupons")
     .select(
-      "id, code, description, discount_type, discount_value, scope, listing_id, room_id, addon_id, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
+      "id, code, description, discount_type, discount_value, scope, property_id, room_id, addon_id, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
     )
     .eq("host_id", ctx.hostId)
     .ilike("code", code)
@@ -86,7 +86,7 @@ export async function resolveCoupon(
   if (c.ends_at && nowIso > c.ends_at) {
     return { ok: false, error: "This coupon has expired." };
   }
-  if (c.listing_id && c.listing_id !== ctx.listingId) {
+  if (c.property_id && c.property_id !== ctx.listingId) {
     return { ok: false, error: "This coupon doesn’t apply to this listing." };
   }
   if (c.room_id && !ctx.roomIds.includes(c.room_id)) {

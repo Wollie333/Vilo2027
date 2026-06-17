@@ -26,7 +26,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export const guestQuoteRequestSchema = z
   .object({
-    listing_id: z.string().uuid(),
+    property_id: z.string().uuid(),
     scope: z.enum(["whole_listing", "rooms"]).default("whole_listing"),
     room_ids: z.array(z.string().uuid()).max(50).default([]),
     check_in: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a check-in date."),
@@ -140,7 +140,7 @@ export async function createEnquiry(
     .select(
       "id, host_id, business_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
     )
-    .eq("id", d.listing_id)
+    .eq("id", d.property_id)
     .maybeSingle();
   if (
     !listing ||
@@ -255,7 +255,7 @@ export async function createEnquiry(
     .select("id")
     .eq("host_id", listing.host_id)
     .eq("guest_id", guestId)
-    .eq("listing_id", listing.id)
+    .eq("property_id", listing.id)
     .eq("is_enquiry", true)
     .neq("status", "archived")
     .order("last_message_at", { ascending: false, nullsFirst: false })
@@ -269,7 +269,7 @@ export async function createEnquiry(
       .insert({
         host_id: listing.host_id,
         guest_id: guestId,
-        listing_id: listing.id,
+        property_id: listing.id,
         is_enquiry: true,
         status: "open",
         pipeline_stage: "new_quote",
@@ -299,7 +299,7 @@ export async function createEnquiry(
   try {
     const { computeStayPricing } = await import("@/lib/pricing/quote");
     priced = await computeStayPricing(admin, {
-      listing_id: listing.id,
+      property_id: listing.id,
       check_in: d.check_in,
       check_out: d.check_out,
       scope: d.scope,
@@ -336,7 +336,7 @@ export async function createEnquiry(
     .from("quotes")
     .insert({
       host_id: listing.host_id,
-      listing_id: listing.id,
+      property_id: listing.id,
       conversation_id: conversationId,
       quote_number: (qnum as unknown as string) ?? null,
       guest_name: d.guest_name,

@@ -50,7 +50,7 @@ export async function GET(
   const { data: blocks } = await supabase
     .from("blocked_dates")
     .select("date, booking_id, reason, room_id, room:property_rooms ( name )")
-    .eq("listing_id", listingId)
+    .eq("property_id", listingId)
     .gte("date", today.toISOString().slice(0, 10))
     .lte("date", horizon.toISOString().slice(0, 10))
     .order("date", { ascending: true });

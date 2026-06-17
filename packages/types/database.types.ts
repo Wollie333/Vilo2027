@@ -1028,7 +1028,7 @@ export type Database = {
           date: string
           ical_feed_id: string | null
           id: string
-          listing_id: string
+          property_id: string
           quote_id: string | null
           reason: string | null
           room_id: string | null
@@ -1041,7 +1041,7 @@ export type Database = {
           date: string
           ical_feed_id?: string | null
           id?: string
-          listing_id: string
+          property_id: string
           quote_id?: string | null
           reason?: string | null
           room_id?: string | null
@@ -1054,7 +1054,7 @@ export type Database = {
           date?: string
           ical_feed_id?: string | null
           id?: string
-          listing_id?: string
+          property_id?: string
           quote_id?: string | null
           reason?: string | null
           room_id?: string | null
@@ -1084,7 +1084,7 @@ export type Database = {
           },
           {
             foreignKeyName: "blocked_dates_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -1313,7 +1313,6 @@ export type Database = {
           host_payment_note: string | null
           id: string
           internal_notes: string | null
-          listing_id: string
           nights: number | null
           origin: string
           pay_token: string
@@ -1323,6 +1322,7 @@ export type Database = {
           policy_acknowledged_at: string | null
           previous_status: string | null
           price_breakdown: Json | null
+          property_id: string
           quote_id: string | null
           reference: string
           refund_total: number | null
@@ -1375,7 +1375,6 @@ export type Database = {
           host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
-          listing_id: string
           nights?: number | null
           origin?: string
           pay_token?: string
@@ -1385,6 +1384,7 @@ export type Database = {
           policy_acknowledged_at?: string | null
           previous_status?: string | null
           price_breakdown?: Json | null
+          property_id: string
           quote_id?: string | null
           reference: string
           refund_total?: number | null
@@ -1437,7 +1437,6 @@ export type Database = {
           host_payment_note?: string | null
           id?: string
           internal_notes?: string | null
-          listing_id?: string
           nights?: number | null
           origin?: string
           pay_token?: string
@@ -1447,6 +1446,7 @@ export type Database = {
           policy_acknowledged_at?: string | null
           previous_status?: string | null
           price_breakdown?: Json | null
+          property_id?: string
           quote_id?: string | null
           reference?: string
           refund_total?: number | null
@@ -1490,7 +1490,7 @@ export type Database = {
           },
           {
             foreignKeyName: "bookings_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -1776,10 +1776,10 @@ export type Database = {
           is_enquiry: boolean
           last_message_at: string | null
           last_message_preview: string | null
-          listing_id: string | null
           lost_reason: string | null
           pinned: boolean
           pipeline_stage: string | null
+          property_id: string | null
           status: string
           unread_guest: number
           unread_host: number
@@ -1798,10 +1798,10 @@ export type Database = {
           is_enquiry?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
-          listing_id?: string | null
           lost_reason?: string | null
           pinned?: boolean
           pipeline_stage?: string | null
+          property_id?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number
@@ -1820,10 +1820,10 @@ export type Database = {
           is_enquiry?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
-          listing_id?: string | null
           lost_reason?: string | null
           pinned?: boolean
           pipeline_stage?: string | null
+          property_id?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number
@@ -1860,7 +1860,7 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -1932,11 +1932,11 @@ export type Database = {
           host_id: string
           id: string
           is_active: boolean
-          listing_id: string | null
           max_redemptions: number | null
           min_nights: number | null
           min_spend: number | null
           per_guest_limit: number | null
+          property_id: string | null
           redeemed_count: number
           room_id: string | null
           scope: string
@@ -1955,11 +1955,11 @@ export type Database = {
           host_id: string
           id?: string
           is_active?: boolean
-          listing_id?: string | null
           max_redemptions?: number | null
           min_nights?: number | null
           min_spend?: number | null
           per_guest_limit?: number | null
+          property_id?: string | null
           redeemed_count?: number
           room_id?: string | null
           scope?: string
@@ -1978,11 +1978,11 @@ export type Database = {
           host_id?: string
           id?: string
           is_active?: boolean
-          listing_id?: string | null
           max_redemptions?: number | null
           min_nights?: number | null
           min_spend?: number | null
           per_guest_limit?: number | null
+          property_id?: string | null
           redeemed_count?: number
           room_id?: string | null
           scope?: string
@@ -2006,7 +2006,7 @@ export type Database = {
           },
           {
             foreignKeyName: "coupons_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -2206,7 +2206,7 @@ export type Database = {
       }
       directory_search_logs: {
         Row: {
-          clicked_listing: string | null
+          clicked_property: string | null
           created_at: string
           filters: Json | null
           id: string
@@ -2215,7 +2215,7 @@ export type Database = {
           session_id: string | null
         }
         Insert: {
-          clicked_listing?: string | null
+          clicked_property?: string | null
           created_at?: string
           filters?: Json | null
           id?: string
@@ -2224,7 +2224,7 @@ export type Database = {
           session_id?: string | null
         }
         Update: {
-          clicked_listing?: string | null
+          clicked_property?: string | null
           created_at?: string
           filters?: Json | null
           id?: string
@@ -2235,7 +2235,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "directory_search_logs_clicked_listing_fkey"
-            columns: ["clicked_listing"]
+            columns: ["clicked_property"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -2317,7 +2317,7 @@ export type Database = {
           expires_at: string | null
           featured_by: string
           id: string
-          listing_id: string
+          property_id: string
           reason: string | null
           sort_order: number
         }
@@ -2326,7 +2326,7 @@ export type Database = {
           expires_at?: string | null
           featured_by: string
           id?: string
-          listing_id: string
+          property_id: string
           reason?: string | null
           sort_order?: number
         }
@@ -2335,7 +2335,7 @@ export type Database = {
           expires_at?: string | null
           featured_by?: string
           id?: string
-          listing_id?: string
+          property_id?: string
           reason?: string | null
           sort_order?: number
         }
@@ -2349,7 +2349,7 @@ export type Database = {
           },
           {
             foreignKeyName: "featured_listings_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -3605,7 +3605,7 @@ export type Database = {
           imported_count: number
           last_error: string | null
           last_sync_at: string | null
-          listing_id: string
+          property_id: string
           source_label: string
           status: string
           updated_at: string
@@ -3617,7 +3617,7 @@ export type Database = {
           imported_count?: number
           last_error?: string | null
           last_sync_at?: string | null
-          listing_id: string
+          property_id: string
           source_label: string
           status?: string
           updated_at?: string
@@ -3629,7 +3629,7 @@ export type Database = {
           imported_count?: number
           last_error?: string | null
           last_sync_at?: string | null
-          listing_id?: string
+          property_id?: string
           source_label?: string
           status?: string
           updated_at?: string
@@ -3638,7 +3638,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ical_feeds_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -3851,60 +3851,6 @@ export type Database = {
           {
             foreignKeyName: "invoices_voided_by_fkey"
             columns: ["voided_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_view_events: {
-        Row: {
-          country: string | null
-          created_at: string
-          device: string | null
-          duration_seconds: number | null
-          id: string
-          listing_id: string
-          referrer: string | null
-          session_id: string
-          user_id: string | null
-          viewed_at: string
-        }
-        Insert: {
-          country?: string | null
-          created_at?: string
-          device?: string | null
-          duration_seconds?: number | null
-          id?: string
-          listing_id: string
-          referrer?: string | null
-          session_id: string
-          user_id?: string | null
-          viewed_at?: string
-        }
-        Update: {
-          country?: string | null
-          created_at?: string
-          device?: string | null
-          duration_seconds?: number | null
-          id?: string
-          listing_id?: string
-          referrer?: string | null
-          session_id?: string
-          user_id?: string | null
-          viewed_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_view_events_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "properties"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_view_events_user_id_fkey"
-            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
             referencedColumns: ["id"]
@@ -5485,7 +5431,6 @@ export type Database = {
           is_published: boolean
           is_suspended: boolean
           latitude: number | null
-          listing_type: string
           location: unknown
           longitude: number | null
           max_guests: number | null
@@ -5499,6 +5444,7 @@ export type Database = {
           pet_fee: number
           postal_code: string | null
           private_group_price: number | null
+          property_type: string
           province: string | null
           published_at: string | null
           room_config: Json | null
@@ -5513,7 +5459,7 @@ export type Database = {
           weekend_price: number | null
           weekly_discount_pct: number | null
           what_to_bring: string | null
-          whole_listing_discount_pct: number | null
+          whole_property_discount_pct: number | null
         }
         Insert: {
           accepts_eft?: boolean
@@ -5559,7 +5505,6 @@ export type Database = {
           is_published?: boolean
           is_suspended?: boolean
           latitude?: number | null
-          listing_type: string
           location?: unknown
           longitude?: number | null
           max_guests?: number | null
@@ -5573,6 +5518,7 @@ export type Database = {
           pet_fee?: number
           postal_code?: string | null
           private_group_price?: number | null
+          property_type: string
           province?: string | null
           published_at?: string | null
           room_config?: Json | null
@@ -5587,7 +5533,7 @@ export type Database = {
           weekend_price?: number | null
           weekly_discount_pct?: number | null
           what_to_bring?: string | null
-          whole_listing_discount_pct?: number | null
+          whole_property_discount_pct?: number | null
         }
         Update: {
           accepts_eft?: boolean
@@ -5633,7 +5579,6 @@ export type Database = {
           is_published?: boolean
           is_suspended?: boolean
           latitude?: number | null
-          listing_type?: string
           location?: unknown
           longitude?: number | null
           max_guests?: number | null
@@ -5647,6 +5592,7 @@ export type Database = {
           pet_fee?: number
           postal_code?: string | null
           private_group_price?: number | null
+          property_type?: string
           province?: string | null
           published_at?: string | null
           room_config?: Json | null
@@ -5661,7 +5607,7 @@ export type Database = {
           weekend_price?: number | null
           weekly_discount_pct?: number | null
           what_to_bring?: string | null
-          whole_listing_discount_pct?: number | null
+          whole_property_discount_pct?: number | null
         }
         Relationships: [
           {
@@ -5701,7 +5647,7 @@ export type Database = {
           created_at: string
           door_code: string | null
           gate_code: string | null
-          listing_id: string
+          property_id: string
           updated_at: string
           wifi_network: string | null
           wifi_password: string | null
@@ -5712,7 +5658,7 @@ export type Database = {
           created_at?: string
           door_code?: string | null
           gate_code?: string | null
-          listing_id: string
+          property_id: string
           updated_at?: string
           wifi_network?: string | null
           wifi_password?: string | null
@@ -5723,7 +5669,7 @@ export type Database = {
           created_at?: string
           door_code?: string | null
           gate_code?: string | null
-          listing_id?: string
+          property_id?: string
           updated_at?: string
           wifi_network?: string | null
           wifi_password?: string | null
@@ -5731,7 +5677,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listing_access_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -5743,7 +5689,7 @@ export type Database = {
           addon_id: string
           created_at: string
           id: string
-          listing_id: string
+          property_id: string
           room_id: string | null
           unit_price_override: number | null
         }
@@ -5751,7 +5697,7 @@ export type Database = {
           addon_id: string
           created_at?: string
           id?: string
-          listing_id: string
+          property_id: string
           room_id?: string | null
           unit_price_override?: number | null
         }
@@ -5759,7 +5705,7 @@ export type Database = {
           addon_id?: string
           created_at?: string
           id?: string
-          listing_id?: string
+          property_id?: string
           room_id?: string | null
           unit_price_override?: number | null
         }
@@ -5773,7 +5719,7 @@ export type Database = {
           },
           {
             foreignKeyName: "listing_addons_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -5793,7 +5739,7 @@ export type Database = {
           amenity_label: string | null
           catalog_id: string | null
           id: string
-          listing_id: string
+          property_id: string
           room_id: string | null
         }
         Insert: {
@@ -5801,7 +5747,7 @@ export type Database = {
           amenity_label?: string | null
           catalog_id?: string | null
           id?: string
-          listing_id: string
+          property_id: string
           room_id?: string | null
         }
         Update: {
@@ -5809,7 +5755,7 @@ export type Database = {
           amenity_label?: string | null
           catalog_id?: string | null
           id?: string
-          listing_id?: string
+          property_id?: string
           room_id?: string | null
         }
         Relationships: [
@@ -5822,7 +5768,7 @@ export type Database = {
           },
           {
             foreignKeyName: "listing_amenities_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -5913,23 +5859,23 @@ export type Database = {
       property_counters: {
         Row: {
           last_booking_number: number
-          listing_id: string
+          property_id: string
           updated_at: string
         }
         Insert: {
           last_booking_number?: number
-          listing_id: string
+          property_id: string
           updated_at?: string
         }
         Update: {
           last_booking_number?: number
-          listing_id?: string
+          property_id?: string
           updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "listing_counters_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -5944,7 +5890,7 @@ export type Database = {
           distance_label: string | null
           id: string
           image_path: string | null
-          listing_id: string
+          property_id: string
           sort_order: number
           title: string
           updated_at: string
@@ -5956,7 +5902,7 @@ export type Database = {
           distance_label?: string | null
           id?: string
           image_path?: string | null
-          listing_id: string
+          property_id: string
           sort_order?: number
           title: string
           updated_at?: string
@@ -5968,7 +5914,7 @@ export type Database = {
           distance_label?: string | null
           id?: string
           image_path?: string | null
-          listing_id?: string
+          property_id?: string
           sort_order?: number
           title?: string
           updated_at?: string
@@ -5976,7 +5922,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listing_local_picks_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -5988,7 +5934,7 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
-          listing_id: string
+          property_id: string
           room_id: string | null
           sort_order: number
           storage_path: string
@@ -5998,7 +5944,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
-          listing_id: string
+          property_id: string
           room_id?: string | null
           sort_order?: number
           storage_path: string
@@ -6008,7 +5954,7 @@ export type Database = {
           caption?: string | null
           created_at?: string
           id?: string
-          listing_id?: string
+          property_id?: string
           room_id?: string | null
           sort_order?: number
           storage_path?: string
@@ -6017,7 +5963,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listing_photos_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6036,8 +5982,8 @@ export type Database = {
           category: string
           created_at: string
           id: string
-          listing_id: string
           name: string
+          property_id: string
           sort_order: number
           travel_time: string | null
         }
@@ -6045,8 +5991,8 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
-          listing_id: string
           name: string
+          property_id: string
           sort_order?: number
           travel_time?: string | null
         }
@@ -6054,15 +6000,15 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
-          listing_id?: string
           name?: string
+          property_id?: string
           sort_order?: number
           travel_time?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "listing_points_of_interest_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6074,27 +6020,27 @@ export type Database = {
           assigned_at: string
           assigned_by: string | null
           id: string
-          listing_id: string
           policy_id: string
           policy_type: string
+          property_id: string
           room_id: string | null
         }
         Insert: {
           assigned_at?: string
           assigned_by?: string | null
           id?: string
-          listing_id: string
           policy_id: string
           policy_type: string
+          property_id: string
           room_id?: string | null
         }
         Update: {
           assigned_at?: string
           assigned_by?: string | null
           id?: string
-          listing_id?: string
           policy_id?: string
           policy_type?: string
+          property_id?: string
           room_id?: string | null
         }
         Relationships: [
@@ -6107,7 +6053,7 @@ export type Database = {
           },
           {
             foreignKeyName: "listing_policies_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6136,7 +6082,7 @@ export type Database = {
           component_response_rate: number
           component_reviews: number
           last_calculated: string
-          listing_id: string
+          property_id: string
           ranking_score: number
         }
         Insert: {
@@ -6146,7 +6092,7 @@ export type Database = {
           component_response_rate?: number
           component_reviews?: number
           last_calculated?: string
-          listing_id: string
+          property_id: string
           ranking_score?: number
         }
         Update: {
@@ -6156,13 +6102,13 @@ export type Database = {
           component_response_rate?: number
           component_reviews?: number
           last_calculated?: string
-          listing_id?: string
+          property_id?: string
           ranking_score?: number
         }
         Relationships: [
           {
             foreignKeyName: "listing_rankings_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: true
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6175,8 +6121,8 @@ export type Database = {
           icon_key: string
           id: string
           label: string
-          listing_id: string
           mention_count: number | null
+          property_id: string
           sort_order: number
         }
         Insert: {
@@ -6184,8 +6130,8 @@ export type Database = {
           icon_key?: string
           id?: string
           label: string
-          listing_id: string
           mention_count?: number | null
+          property_id: string
           sort_order?: number
         }
         Update: {
@@ -6193,14 +6139,14 @@ export type Database = {
           icon_key?: string
           id?: string
           label?: string
-          listing_id?: string
           mention_count?: number | null
+          property_id?: string
           sort_order?: number
         }
         Relationships: [
           {
             foreignKeyName: "listing_review_themes_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6278,7 +6224,6 @@ export type Database = {
           infant_price: number
           inventory_count: number
           is_active: boolean
-          listing_id: string
           max_guests: number
           min_guests: number
           min_nights: number
@@ -6288,6 +6233,7 @@ export type Database = {
           price_per_person: number | null
           pricing_mode: string
           private_entrance: boolean
+          property_id: string
           room_size_sqm: number | null
           smoking_allowed: boolean
           sort_order: number
@@ -6322,7 +6268,6 @@ export type Database = {
           infant_price?: number
           inventory_count?: number
           is_active?: boolean
-          listing_id: string
           max_guests?: number
           min_guests?: number
           min_nights?: number
@@ -6332,6 +6277,7 @@ export type Database = {
           price_per_person?: number | null
           pricing_mode?: string
           private_entrance?: boolean
+          property_id: string
           room_size_sqm?: number | null
           smoking_allowed?: boolean
           sort_order?: number
@@ -6366,7 +6312,6 @@ export type Database = {
           infant_price?: number
           inventory_count?: number
           is_active?: boolean
-          listing_id?: string
           max_guests?: number
           min_guests?: number
           min_nights?: number
@@ -6376,6 +6321,7 @@ export type Database = {
           price_per_person?: number | null
           pricing_mode?: string
           private_entrance?: boolean
+          property_id?: string
           room_size_sqm?: number | null
           smoking_allowed?: boolean
           sort_order?: number
@@ -6394,7 +6340,7 @@ export type Database = {
           },
           {
             foreignKeyName: "listing_rooms_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6411,10 +6357,10 @@ export type Database = {
           id: string
           is_active: boolean
           label: string
-          listing_id: string
           min_nights: number | null
           price: number | null
           priority: number
+          property_id: string
           room_id: string | null
           start_date: string
           updated_at: string
@@ -6428,10 +6374,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           label: string
-          listing_id: string
           min_nights?: number | null
           price?: number | null
           priority?: number
+          property_id: string
           room_id?: string | null
           start_date: string
           updated_at?: string
@@ -6445,10 +6391,10 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
-          listing_id?: string
           min_nights?: number | null
           price?: number | null
           priority?: number
+          property_id?: string
           room_id?: string | null
           start_date?: string
           updated_at?: string
@@ -6456,7 +6402,7 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listing_seasonal_pricing_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -6466,6 +6412,60 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_view_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device: string | null
+          duration_seconds: number | null
+          id: string
+          property_id: string
+          referrer: string | null
+          session_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_seconds?: number | null
+          id?: string
+          property_id: string
+          referrer?: string | null
+          session_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          duration_seconds?: number | null
+          id?: string
+          property_id?: string
+          referrer?: string | null
+          session_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_view_events_listing_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_view_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -6749,11 +6749,11 @@ export type Database = {
           headcount: number
           host_id: string
           id: string
-          listing_id: string
           notes: string | null
           policy_snapshot: Json | null
           previous_status: string | null
           price_mode: string
+          property_id: string
           quote_number: string
           scope: string
           sent_at: string | null
@@ -6795,11 +6795,11 @@ export type Database = {
           headcount?: number
           host_id: string
           id?: string
-          listing_id: string
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
           price_mode?: string
+          property_id: string
           quote_number: string
           scope?: string
           sent_at?: string | null
@@ -6841,11 +6841,11 @@ export type Database = {
           headcount?: number
           host_id?: string
           id?: string
-          listing_id?: string
           notes?: string | null
           policy_snapshot?: Json | null
           previous_status?: string | null
           price_mode?: string
+          property_id?: string
           quote_number?: string
           scope?: string
           sent_at?: string | null
@@ -6886,7 +6886,7 @@ export type Database = {
           },
           {
             foreignKeyName: "quotes_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -7428,7 +7428,7 @@ export type Database = {
           host_response: string | null
           id: string
           is_published: boolean
-          listing_id: string
+          property_id: string
           publish_at: string | null
           rating: number
           rating_accuracy: number | null
@@ -7458,7 +7458,7 @@ export type Database = {
           host_response?: string | null
           id?: string
           is_published?: boolean
-          listing_id: string
+          property_id: string
           publish_at?: string | null
           rating: number
           rating_accuracy?: number | null
@@ -7488,7 +7488,7 @@ export type Database = {
           host_response?: string | null
           id?: string
           is_published?: boolean
-          listing_id?: string
+          property_id?: string
           publish_at?: string | null
           rating?: number
           rating_accuracy?: number | null
@@ -7533,7 +7533,7 @@ export type Database = {
           },
           {
             foreignKeyName: "reviews_listing_id_fkey"
-            columns: ["listing_id"]
+            columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "properties"
             referencedColumns: ["id"]
@@ -8747,9 +8747,10 @@ export type Database = {
         Args: { p_listing_id: string; p_month: number; p_year: number }
         Returns: string[]
       }
-      get_listing_policy_summary:
-        | { Args: { p_listing_id: string }; Returns: Json }
-        | { Args: { p_listing_id: string; p_room_id?: string }; Returns: Json }
+      get_listing_policy_summary: {
+        Args: { p_listing_id: string; p_room_id?: string }
+        Returns: Json
+      }
       get_min_nights_for_stay: {
         Args: {
           p_check_in: string

@@ -243,7 +243,7 @@ export default async function ReviewsPage({
     feedQuery = feedQuery.not("host_response", "is", null);
   else if (tab === "flagged") feedQuery = feedQuery.eq("flagged", true);
 
-  if (listingFilter) feedQuery = feedQuery.eq("listing_id", listingFilter);
+  if (listingFilter) feedQuery = feedQuery.eq("property_id", listingFilter);
   if (ratingFilter) feedQuery = feedQuery.eq("rating", ratingFilter);
 
   // If the feed query itself errors (e.g. a schema change makes an embed

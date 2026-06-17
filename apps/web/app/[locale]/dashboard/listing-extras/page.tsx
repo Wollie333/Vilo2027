@@ -51,15 +51,15 @@ export default async function ListingExtrasPage() {
     listingIds.length > 0
       ? supabase
           .from("property_points_of_interest")
-          .select("id, listing_id, category, name, travel_time")
-          .in("listing_id", listingIds)
+          .select("id, property_id, category, name, travel_time")
+          .in("property_id", listingIds)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] as never[] }),
     listingIds.length > 0
       ? supabase
           .from("property_review_themes")
-          .select("id, listing_id, label, icon_key, mention_count")
-          .in("listing_id", listingIds)
+          .select("id, property_id, label, icon_key, mention_count")
+          .in("property_id", listingIds)
           .order("sort_order", { ascending: true })
       : Promise.resolve({ data: [] as never[] }),
   ]);
@@ -67,13 +67,13 @@ export default async function ListingExtrasPage() {
   const pois: PoiItem[] = (poiRaw ?? []).map(
     (p: {
       id: string;
-      listing_id: string;
+      property_id: string;
       category: string;
       name: string;
       travel_time: string | null;
     }) => ({
       id: p.id,
-      listingId: p.listing_id,
+      listingId: p.property_id,
       category: p.category as PoiItem["category"],
       name: p.name,
       travelTime: p.travel_time,
@@ -83,13 +83,13 @@ export default async function ListingExtrasPage() {
   const themes: ThemeItem[] = (themeRaw ?? []).map(
     (t: {
       id: string;
-      listing_id: string;
+      property_id: string;
       label: string;
       icon_key: string;
       mention_count: number | null;
     }) => ({
       id: t.id,
-      listingId: t.listing_id,
+      listingId: t.property_id,
       label: t.label,
       iconKey: t.icon_key,
       mentionCount: t.mention_count,

@@ -82,7 +82,7 @@ export type QuoteRequestRefs = {
 };
 
 export type ICalRefs = {
-  listing_id: string;
+  property_id: string;
   feed_label: string;
 };
 
@@ -683,15 +683,15 @@ export const NOTIFICATION_REGISTRY = {
     push: (r) => ({
       title: "Calendar sync issue",
       body: clip(`We can't reach your ${r.feed_label} feed.`),
-      data: link("/dashboard/listings/[id]/calendar", { id: r.listing_id }),
+      data: link("/dashboard/listings/[id]/calendar", { id: r.property_id }),
       sound: null,
     }),
     inApp: (r) => ({
       title: "Calendar sync issue",
       body: r.feed_label,
-      link: `/dashboard/listings/${r.listing_id}/calendar`,
+      link: `/dashboard/listings/${r.property_id}/calendar`,
     }),
-    dedupeKey: (r) => `ical_error:${r.listing_id}:${r.feed_label}`,
+    dedupeKey: (r) => `ical_error:${r.property_id}:${r.feed_label}`,
   } satisfies EventBuilder<ICalRefs>,
 
   // ─── Admin-originated

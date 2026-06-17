@@ -79,7 +79,7 @@ async function insertQuote(over = {}) {
     .from("quotes")
     .insert({
       host_id: HOST_ID,
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       quote_number: qn,
       guest_name: "Quote Tester",
       guest_email: GUEST_EMAIL,
@@ -112,7 +112,7 @@ async function insertBooking(over = {}) {
   const { data, error } = await db
     .from("bookings")
     .insert({
-      listing_id: LISTING_A,
+      property_id: LISTING_A,
       host_id: HOST_ID,
       guest_id: over.guest_id,
       reference: ref,
@@ -386,7 +386,7 @@ async function main() {
     const { data: room } = await db
       .from("property_rooms")
       .select("id, base_price, cleaning_fee")
-      .eq("listing_id", LISTING_B)
+      .eq("property_id", LISTING_B)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
@@ -399,7 +399,7 @@ async function main() {
       const { data: b } = await db
         .from("bookings")
         .insert({
-          listing_id: LISTING_B,
+          property_id: LISTING_B,
           host_id: HOST_ID,
           guest_id: GUEST_UID,
           reference: ref,
@@ -794,7 +794,7 @@ async function main() {
     const { data: b } = await db
       .from("bookings")
       .insert({
-        listing_id: LISTING_A,
+        property_id: LISTING_A,
         host_id: HOST_ID,
         guest_id: GUEST_UID,
         check_in: isoPlus(150),
@@ -903,7 +903,7 @@ async function main() {
     const { data: la } = await db
       .from("property_addons")
       .select("addon_id")
-      .eq("listing_id", LISTING_A)
+      .eq("property_id", LISTING_A)
       .limit(1)
       .maybeSingle();
     if (!la?.addon_id) {
@@ -953,7 +953,7 @@ async function main() {
     const { data: room } = await db
       .from("property_rooms")
       .select("id, bed_type")
-      .eq("listing_id", LISTING_B)
+      .eq("property_id", LISTING_B)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order")
@@ -963,7 +963,7 @@ async function main() {
       check("P0 demo room present", false, "no active room on LISTING_B");
     } else {
       const q = await insertQuote({
-        listing_id: LISTING_B,
+        property_id: LISTING_B,
         scope: "rooms",
         check_in: isoPlus(200),
         check_out: isoPlus(202),
@@ -981,7 +981,7 @@ async function main() {
       const { data: b } = await db
         .from("bookings")
         .insert({
-          listing_id: LISTING_B,
+          property_id: LISTING_B,
           host_id: HOST_ID,
           guest_id: GUEST_UID,
           origin: "quote_converted",

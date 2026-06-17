@@ -53,7 +53,7 @@ async function loadBookingBundle(
   const { data: booking, error } = await supabase
     .from("bookings")
     .select(
-      "id, reference, check_in, check_out, session_date, nights, guests_count, total_amount, currency, payment_method, guest_name, guest_email, eft_proof_url, host_id, listing_id, guest_id",
+      "id, reference, check_in, check_out, session_date, nights, guests_count, total_amount, currency, payment_method, guest_name, guest_email, eft_proof_url, host_id, property_id, guest_id",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -64,7 +64,7 @@ async function loadBookingBundle(
       supabase
         .from("properties")
         .select("id, name, slug")
-        .eq("id", booking.listing_id)
+        .eq("id", booking.property_id)
         .maybeSingle(),
       supabase
         .from("hosts")

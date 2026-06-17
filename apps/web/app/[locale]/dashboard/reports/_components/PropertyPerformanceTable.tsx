@@ -9,7 +9,7 @@ interface PropertyPerformanceTableProps {
 }
 
 interface PropertyData {
-  listing_id: string;
+  property_id: string;
   listing_name: string;
   listing_slug: string;
   cover_image_url: string | null;

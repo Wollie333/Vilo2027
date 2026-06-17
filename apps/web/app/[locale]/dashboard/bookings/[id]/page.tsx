@@ -133,7 +133,7 @@ export default async function BookingDetailPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, host_id, listing_id, quote_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, listing_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
+      "id, host_id, property_id, quote_id, reference, pay_token, status, payment_status, scope, origin, check_in, check_out, nights, guests_count, guests_breakdown, additional_guests, base_amount, cleaning_fee, total_amount, vat_amount, vat_rate, deposit_amount, balance_due, refund_total, currency, payment_method, special_requests, host_message, cancellation_reason, created_at, confirmed_at, cancelled_at, declined_at, checked_in_at, checked_out_at, has_open_refund, guest_id, guest_name, guest_email, guest_phone, listing:properties!inner ( name, slug, city, province, accommodation_type, property_type, bedrooms, bathrooms, max_guests, check_in_time, check_out_time, cancellation_policy, cancellation_policy_label, featured_review_id, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url, country, languages, created_at ), booking_rooms ( id, base_amount, cleaning_fee, room:property_rooms ( name ) ), booking_addons ( id, label, quantity, unit_price, subtotal, currency, is_required, sort_order, source )",
     )
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -237,7 +237,7 @@ export default async function BookingDetailPage({
       .select(
         "check_in_method, check_in_instructions, door_code, gate_code, wifi_network, wifi_password",
       )
-      .eq("listing_id", booking.listing_id)
+      .eq("property_id", booking.property_id)
       .maybeSingle(),
     supabase
       .from("reviews")
@@ -254,7 +254,7 @@ export default async function BookingDetailPage({
     city: string | null;
     province: string | null;
     accommodation_type: string | null;
-    listing_type: string | null;
+    property_type: string | null;
     bedrooms: number | null;
     bathrooms: number | null;
     max_guests: number | null;
@@ -494,7 +494,7 @@ export default async function BookingDetailPage({
 
   const propertyMeta = [
     listing.city,
-    listing.accommodation_type ?? listing.listing_type,
+    listing.accommodation_type ?? listing.property_type,
     listing.max_guests ? `Sleeps ${listing.max_guests}` : null,
   ]
     .filter(Boolean)
@@ -617,7 +617,7 @@ export default async function BookingDetailPage({
     messages,
     templates,
     guestId: booking.guest_id,
-    listingId: booking.listing_id,
+    listingId: booking.property_id,
     status,
     statusLabel: meta.label,
     statusTone: meta.tone,

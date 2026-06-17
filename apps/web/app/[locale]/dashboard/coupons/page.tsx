@@ -54,7 +54,7 @@ export default async function CouponsPage() {
       supabase
         .from("coupons")
         .select(
-          "id, code, description, discount_type, discount_value, scope, listing_id, room_id, addon_id, currency, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
+          "id, code, description, discount_type, discount_value, scope, property_id, room_id, addon_id, currency, min_nights, min_spend, starts_at, ends_at, max_redemptions, per_guest_limit, redeemed_count, is_active",
         )
         .eq("host_id", host.id)
         .order("created_at", { ascending: false }),
@@ -102,7 +102,7 @@ export default async function CouponsPage() {
     discountType: c.discount_type === "fixed" ? "fixed" : "percent",
     discountValue: Number(c.discount_value),
     scope: c.scope as CouponRow["scope"],
-    listingId: c.listing_id,
+    listingId: c.property_id,
     roomId: c.room_id,
     addonId: c.addon_id,
     currency: c.currency,

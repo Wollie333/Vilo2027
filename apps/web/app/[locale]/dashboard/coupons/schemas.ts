@@ -27,7 +27,7 @@ export const couponInputSchema = z
       .positive("Must be greater than 0.")
       .max(1_000_000),
     scope: z.enum(["order", "accommodation", "addons"]),
-    listing_id: z.string().uuid().nullable(),
+    property_id: z.string().uuid().nullable(),
     room_id: z.string().uuid().nullable(),
     addon_id: z.string().uuid().nullable(),
     min_nights: z.number().int().min(1).max(365).nullable(),
@@ -42,7 +42,7 @@ export const couponInputSchema = z
     path: ["discount_value"],
     message: "A percentage can't exceed 100.",
   })
-  .refine((v) => v.room_id == null || v.listing_id != null, {
+  .refine((v) => v.room_id == null || v.property_id != null, {
     path: ["room_id"],
     message: "Pick a listing before a room.",
   })

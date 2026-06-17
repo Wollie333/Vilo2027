@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 
 interface PropertyData {
-  listing_id: string;
+  property_id: string;
   listing_name: string;
   listing_slug: string;
   cover_image_url: string | null;
@@ -182,7 +182,7 @@ export function PerformanceTableClient({
           <tbody>
             {properties.map((property) => (
               <tr
-                key={property.listing_id}
+                key={property.property_id}
                 className="border-b border-brand-line last:border-0 hover:bg-brand-light/50"
               >
                 {/* Property Name + Status */}

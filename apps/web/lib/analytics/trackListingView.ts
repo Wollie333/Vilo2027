@@ -60,11 +60,13 @@ export function trackListingView(options: TrackListingViewOptions): () => void {
 
   const startTime = Date.now();
   const effectiveSessionId = sessionId || getSessionId();
-  const effectiveReferrer = referrer || (typeof document !== "undefined" ? document.referrer : undefined);
+  const effectiveReferrer =
+    referrer ||
+    (typeof document !== "undefined" ? document.referrer : undefined);
 
   // Send initial tracking event (duration: 0)
   sendTrackingEvent({
-    listing_id: listingId,
+    property_id: listingId,
     session_id: effectiveSessionId,
     duration_seconds: 0,
     referrer: effectiveReferrer,
@@ -80,7 +82,7 @@ export function trackListingView(options: TrackListingViewOptions): () => void {
     // Only send duration update if user stayed for at least 1 second
     if (durationSeconds >= 1) {
       sendTrackingEvent({
-        listing_id: listingId,
+        property_id: listingId,
         session_id: effectiveSessionId,
         duration_seconds: durationSeconds,
         referrer: effectiveReferrer,
@@ -96,7 +98,7 @@ export function trackListingView(options: TrackListingViewOptions): () => void {
  * Send tracking event to Edge Function
  */
 async function sendTrackingEvent(data: {
-  listing_id: string;
+  property_id: string;
   session_id: string;
   duration_seconds: number;
   referrer?: string;
@@ -108,14 +110,17 @@ async function sendTrackingEvent(data: {
     throw new Error("Supabase configuration missing");
   }
 
-  const response = await fetch(`${supabaseUrl}/functions/v1/track-listing-view`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${supabaseAnonKey}`,
+  const response = await fetch(
+    `${supabaseUrl}/functions/v1/track-listing-view`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify(data),
     },
-    body: JSON.stringify(data),
-  });
+  );
 
   if (!response.ok) {
     const error: TrackingResponse = await response.json();
@@ -146,6 +151,6 @@ export function useTrackListingView(listingId: string | undefined): void {
   // Use useEffect in the consuming component
   // This is just a helper for documentation
   throw new Error(
-    "useTrackListingView is not implemented. Use trackListingView() directly in useEffect."
+    "useTrackListingView is not implemented. Use trackListingView() directly in useEffect.",
   );
 }

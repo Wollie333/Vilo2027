@@ -27,7 +27,7 @@ export type RoomLineInput = z.infer<typeof roomLineSchema>;
 // Shared base for quote create + manual booking create.
 export const quoteOrBookingBaseSchema = z
   .object({
-    listing_id: z.string().uuid(),
+    property_id: z.string().uuid(),
 
     guest_name: z.string().trim().min(1, "Guest name is required.").max(200),
     guest_email: z.string().trim().email("Must be a valid email."),
@@ -100,7 +100,7 @@ export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;
 // Manual booking adds a payment hint.
 export const manualBookingSchema = z
   .object({
-    listing_id: z.string().uuid(),
+    property_id: z.string().uuid(),
 
     guest_name: z.string().trim().min(1).max(200),
     guest_email: z.string().trim().email(),

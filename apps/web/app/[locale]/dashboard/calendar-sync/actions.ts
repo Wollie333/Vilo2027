@@ -52,7 +52,7 @@ export async function addIcalFeedAction(input: {
 
   const supabase = createServerClient();
   const { error } = await supabase.from("ical_feeds").insert({
-    listing_id: parsed.data.listingId,
+    property_id: parsed.data.listingId,
     url: parsed.data.url,
     source_label: parsed.data.sourceLabel,
     status: "active",
@@ -126,7 +126,7 @@ export async function syncIcalFeedAction(input: {
 
   const { data: feed } = await supabase
     .from("ical_feeds")
-    .select("id, listing_id, url, status")
+    .select("id, property_id, url, status")
     .eq("id", parsed.data.feedId)
     .maybeSingle();
   if (!feed) return { ok: false, error: "Feed not found." };
@@ -172,7 +172,7 @@ export async function syncIcalFeedAction(input: {
 
   if (dates.length > 0) {
     const rows = dates.map((date) => ({
-      listing_id: feed.listing_id,
+      property_id: feed.property_id,
       date,
       reason: "Imported from external calendar",
       source: "ical",
@@ -184,7 +184,7 @@ export async function syncIcalFeedAction(input: {
       const slice = rows.slice(i, i + 500);
       const { error } = await admin
         .from("blocked_dates")
-        .upsert(slice, { onConflict: "listing_id,date" });
+        .upsert(slice, { onConflict: "property_id,date" });
       if (error) {
         await admin
           .from("ical_feeds")
