@@ -1,12 +1,12 @@
 import { requirePermission } from "@/lib/admin";
 import { fetchViloLedger, viloLedgerStats } from "@/lib/billing/vilo-ledger";
 import { getAllPlans } from "@/lib/plans/getPlans";
+import { getSubscriptionProducts } from "@/lib/products/getProducts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatZar } from "@/app/[locale]/dashboard/settings/subscription/plans";
 
 import { Link } from "@/i18n/navigation";
 
-import { SubsTabs } from "../_SubsTabs";
 import { ManualEntryForm } from "./ManualEntryForm";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +68,7 @@ export default async function AdminRevenuePage({
     userId = u?.id ?? "00000000-0000-0000-0000-000000000000";
   }
 
-  const [rows, plans, { data: subs }] = await Promise.all([
+  const [rows, plans, products, { data: subs }] = await Promise.all([
     fetchViloLedger(service, {
       limit: 1000,
       userId,
@@ -79,20 +79,35 @@ export default async function AdminRevenuePage({
       environment: "live",
     }),
     getAllPlans(),
-    service.from("subscriptions").select("plan, billing_cycle, status"),
+    getSubscriptionProducts(),
+    service
+      .from("subscriptions")
+      .select("plan, billing_cycle, status, product_id"),
   ]);
 
   const stats = viloLedgerStats(rows);
 
-  // MRR from active, paying subscriptions × plan price (annual normalised /12).
-  const priceMap = new Map(plans.map((p) => [p.key, p]));
+  // MRR from active, paying subscriptions. Product-first (the current model):
+  // read the real price from the linked PRODUCT; fall back to the legacy plan
+  // price only for subscriptions not yet linked to a product. Annual /12.
+  const planPrice = new Map(plans.map((p) => [p.key, p]));
+  const productPrice = new Map(products.map((p) => [p.id, p]));
   let mrr = 0;
   let payingHosts = 0;
   for (const s of subs ?? []) {
     if (s.status !== "active") continue;
-    const pd = priceMap.get(s.plan as string);
-    if (!pd || pd.isFree) continue;
-    mrr += s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
+    let monthly: number | null = null;
+    const prod = s.product_id ? productPrice.get(s.product_id) : undefined;
+    if (prod && !prod.isFree) {
+      monthly = prod.billingCycle === "annual" ? prod.price / 12 : prod.price;
+    } else if (!s.product_id) {
+      const pd = planPrice.get(s.plan as string);
+      if (pd && !pd.isFree) {
+        monthly = s.billing_cycle === "annual" ? pd.annual / 12 : pd.monthly;
+      }
+    }
+    if (monthly == null) continue;
+    mrr += monthly;
     payingHosts += 1;
   }
   const arr = mrr * 12;
@@ -106,13 +121,14 @@ export default async function AdminRevenuePage({
           Vilo revenue ledger
         </h1>
         <p className="mt-1 text-[13px] text-brand-mute">
-          Every transaction between a user and Vilo — subscriptions, services,
-          refunds and manual adjustments. (Booking money goes directly to hosts
-          and is not shown here.)
+          Every transaction between a user and Vilo — product &amp; subscription
+          purchases, refunds, credits and manual adjustments, straight from{" "}
+          <code className="rounded bg-brand-light px-1 py-0.5 text-[11px]">
+            platform_ledger
+          </code>
+          . Booking money goes directly to hosts and is not shown here.
         </p>
       </header>
-
-      <SubsTabs />
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Kpi label="MRR" value={formatZar(Math.round(mrr))} />

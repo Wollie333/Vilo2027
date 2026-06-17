@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-17 — Reconcile the admin Vilo revenue ledger
+
+### Changed
+- **MRR/ARR now reflect the real product model.** Active subscriptions price off
+  the linked **product** (`subscriptions.product_id` → `products.price`/cycle)
+  first, falling back to the legacy plan price only for un-linked subs — so
+  product purchases are no longer missed/mis-priced. The ledger list already read
+  `platform_ledger` (product + subscription charges, refunds, credits, manual).
+- **Dropped the Hosts/Plans/Services/Revenue tab strip from the ledger page.** It
+  is the Finance → Ledger view (reached from the sidebar), not a subscriptions
+  sub-page, so the strip was confusing. (Plans/Services remain as legacy admin
+  pages; the canonical catalogue is /admin/products — folding them in is a
+  separate migration.)
+
 ## 2026-06-17 — Create/edit policies from the admin Catalog tab
 
 ### Built
