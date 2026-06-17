@@ -119,6 +119,8 @@ export default async function AdminUserDetailPage({
   let bookingsAsHost: UserRecordData["bookingsAsHost"] = [];
   let reviewsReceived: UserRecordData["reviewsReceived"] = [];
   let guestRatingsGiven: UserRecordData["guestRatingsGiven"] = [];
+  let addons: UserRecordData["addons"] = [];
+  let policies: UserRecordData["policies"] = [];
   let hostFinance: UserRecordData["hostFinance"] = null;
   let hostTxns: UserRecordData["hostTxns"] = [];
   let listingsCount = 0;
@@ -236,6 +238,83 @@ export default async function AdminUserDetailPage({
       guestEmail: one(g.guest)?.email ?? null,
     }));
 
+    // Host-wide add-ons catalog + policies library (managed from the admin
+    // "Add-ons & policies" tab). Counts how many listings each is attached to.
+    const [{ data: addonRows }, { data: policyRows }] = await Promise.all([
+      service
+        .from("addons")
+        .select(
+          "id, name, description, pricing_model, unit_price, currency, category, is_active, is_required, min_quantity, max_quantity, stock_quantity, allow_custom_quantity, lead_time_days, vat_included, sort_order",
+        )
+        .eq("host_id", host.id)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false }),
+      service
+        .from("policies")
+        .select(
+          "id, name, type, status, preset, is_default, is_non_refundable, summary, updated_at",
+        )
+        .eq("host_id", host.id)
+        .is("deleted_at", null)
+        .neq("status", "archived")
+        .order("type", { ascending: true })
+        .order("updated_at", { ascending: false }),
+    ]);
+
+    const addonIds = (addonRows ?? []).map((a) => a.id);
+    const policyIds = (policyRows ?? []).map((p) => p.id);
+    const [{ data: laRows }, { data: lpRows }] = await Promise.all([
+      addonIds.length
+        ? service
+            .from("listing_addons")
+            .select("addon_id")
+            .in("addon_id", addonIds)
+        : Promise.resolve({ data: [] as { addon_id: string }[] }),
+      policyIds.length
+        ? service
+            .from("listing_policies")
+            .select("policy_id")
+            .in("policy_id", policyIds)
+        : Promise.resolve({ data: [] as { policy_id: string }[] }),
+    ]);
+    const addonAttach = new Map<string, number>();
+    for (const r of laRows ?? [])
+      addonAttach.set(r.addon_id, (addonAttach.get(r.addon_id) ?? 0) + 1);
+    const policyAttach = new Map<string, number>();
+    for (const r of lpRows ?? [])
+      policyAttach.set(r.policy_id, (policyAttach.get(r.policy_id) ?? 0) + 1);
+
+    addons = (addonRows ?? []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      description: a.description,
+      pricingModel: a.pricing_model,
+      unitPrice: Number(a.unit_price ?? 0),
+      currency: a.currency ?? "ZAR",
+      category: a.category,
+      isActive: a.is_active ?? true,
+      isRequired: a.is_required ?? false,
+      minQuantity: a.min_quantity ?? 1,
+      maxQuantity: a.max_quantity,
+      stockQuantity: a.stock_quantity,
+      allowCustomQuantity: a.allow_custom_quantity ?? true,
+      leadTimeDays: a.lead_time_days ?? 0,
+      vatIncluded: a.vat_included ?? false,
+      listingsCount: addonAttach.get(a.id) ?? 0,
+    }));
+    policies = (policyRows ?? []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      type: p.type,
+      status: p.status,
+      preset: p.preset,
+      isDefault: p.is_default ?? false,
+      isNonRefundable: p.is_non_refundable ?? false,
+      summary: p.summary,
+      updatedAt: p.updated_at,
+      assignmentsCount: policyAttach.get(p.id) ?? 0,
+    }));
+
     try {
       const txns = await fetchHostTransactions(service, { hostId: host.id });
       hostTxns = txns;
@@ -344,6 +423,8 @@ export default async function AdminUserDetailPage({
     },
     listings,
     businesses,
+    addons,
+    policies,
     bookingsAsGuest: (bookingsAsGuestRes.data ?? []).map((b) => ({
       id: b.id,
       reference: b.reference,

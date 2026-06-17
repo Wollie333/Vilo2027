@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-17 — Admin user record: Add-ons & policies tab + Website placeholder
+
+### Built
+- **New "Add-ons & policies" tab** on the admin user record (host-only). Manages
+  the host-wide **add-ons catalog**: list with price/model/category/attachment
+  count, plus create/edit/activate/delete via audited admin actions
+  (`adminCreateAddon`/`adminUpdateAddon`/`adminToggleAddon`/`adminDeleteAddon`,
+  service-role + by hostId). Shows the host's **policies library** (type, preset,
+  default, assignment count); per-listing assignment + policy create/edit stay in
+  the listing editor (already admin-accessible).
+- **New "Website" tab** — placeholder for the future host website builder.
+- Added `addon` / `policy` to the audit target-type union.
+
 ## 2026-06-17 — Product-driven gating consolidation + guest transactions/reviews
 
 ### Built

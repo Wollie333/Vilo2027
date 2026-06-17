@@ -15,6 +15,8 @@ type AuditTargetType =
   | "booking"
   | "listing"
   | "business"
+  | "addon"
+  | "policy"
   | "review"
   | "subscription"
   | "plan"

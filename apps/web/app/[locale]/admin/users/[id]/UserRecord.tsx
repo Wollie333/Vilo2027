@@ -13,10 +13,15 @@ import {
   Home,
   KeyRound,
   LifeBuoy,
+  Globe,
   Mail,
   MapPin,
+  PackagePlus,
   Pencil,
   Phone,
+  Plus,
+  Power,
+  ScrollText,
   Search,
   Shield,
   ShieldAlert,
@@ -39,6 +44,11 @@ import {
   BUSINESS_LOCALE_LABELS,
   BUSINESS_LOCALES,
 } from "@/app/[locale]/dashboard/settings/businesses/schemas";
+import {
+  ADDON_CATEGORIES,
+  PRICING_MODELS,
+  type AddonInput,
+} from "@/app/[locale]/dashboard/addons/schemas";
 import { CURRENCY_META, DISPLAY_CURRENCIES } from "@/lib/currency";
 import { LedgerList } from "@/components/finance/LedgerList";
 import {
@@ -53,7 +63,11 @@ import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addAdminUserNote,
+  adminCreateAddon,
+  adminDeleteAddon,
   adminPayoutAffiliate,
+  adminToggleAddon,
+  adminUpdateAddon,
   adminUpdateBusiness,
   adminUpdateSubscription,
   setUserProduct,
@@ -66,6 +80,7 @@ import {
 } from "./actions";
 
 type BusinessItem = UserRecordData["businesses"][number];
+type AddonItem = UserRecordData["addons"][number];
 
 const SUB_STATUSES = [
   "active",
@@ -175,6 +190,36 @@ export type UserRecordData = {
     defaultLanguage: string;
     isDefault: boolean;
     isArchived: boolean;
+  }[];
+  addons: {
+    id: string;
+    name: string;
+    description: string | null;
+    pricingModel: string;
+    unitPrice: number;
+    currency: string;
+    category: string | null;
+    isActive: boolean;
+    isRequired: boolean;
+    minQuantity: number;
+    maxQuantity: number | null;
+    stockQuantity: number | null;
+    allowCustomQuantity: boolean;
+    leadTimeDays: number;
+    vatIncluded: boolean;
+    listingsCount: number;
+  }[];
+  policies: {
+    id: string;
+    name: string;
+    type: string;
+    status: string;
+    preset: string | null;
+    isDefault: boolean;
+    isNonRefundable: boolean;
+    summary: string | null;
+    updatedAt: string;
+    assignmentsCount: number;
   }[];
   bookingsAsGuest: BookingLite[];
   bookingsAsHost: BookingLite[];
@@ -355,6 +400,16 @@ export function UserRecord({ data }: { data: UserRecordData }) {
     ...(host
       ? [{ key: "business", label: "Business", count: data.businesses.length }]
       : []),
+    ...(host
+      ? [
+          {
+            key: "catalog",
+            label: "Add-ons & policies",
+            count: data.addons.length + data.policies.length,
+          },
+        ]
+      : []),
+    ...(host ? [{ key: "website", label: "Website" }] : []),
     { key: "reviews", label: "Reviews" },
     {
       key: "relationships",
@@ -436,6 +491,8 @@ export function UserRecord({ data }: { data: UserRecordData }) {
             {tab === "business" ? (
               <BusinessPanel data={data} onEdit={setEditBiz} />
             ) : null}
+            {tab === "catalog" ? <CatalogPanel data={data} /> : null}
+            {tab === "website" ? <WebsitePanel data={data} /> : null}
             {tab === "reviews" ? <ReviewsPanel data={data} /> : null}
             {tab === "relationships" ? (
               <RelationshipsPanel data={data} />
@@ -1679,6 +1736,499 @@ function ListingsPanel({ data }: { data: UserRecordData }) {
         />
       ))}
     </Section>
+  );
+}
+
+const PRICING_LABEL_BY_KEY: Record<string, string> = Object.fromEntries(
+  PRICING_MODELS.map((m) => [m.value, m.label]),
+);
+const ADDON_CATEGORY_LABEL_BY_KEY: Record<string, string> = Object.fromEntries(
+  ADDON_CATEGORIES.map((c) => [c.value, c.label]),
+);
+const POLICY_TYPE_LABEL: Record<string, string> = {
+  cancellation: "Refund terms",
+  check_in_out: "Check-in / out",
+  house_rules: "House rules",
+  booking_terms: "Booking terms",
+  privacy: "Privacy",
+};
+
+// Combined host-level catalogue: the add-ons catalog and the policies library.
+// Per-listing attachment/assignment lives in the listing editor; this manages
+// the reusable host-wide library itself.
+function CatalogPanel({ data }: { data: UserRecordData }) {
+  const router = useRouter();
+  const hostId = data.host?.id ?? null;
+  const [pending, start] = useTransition();
+  const [editAddon, setEditAddon] = useState<AddonItem | "new" | null>(null);
+
+  const refresh = () => router.refresh();
+
+  const toggle = (a: AddonItem) => {
+    if (!hostId) return;
+    start(async () => {
+      const r = await adminToggleAddon(hostId, a.id, !a.isActive);
+      if (r.ok) {
+        toast.success(a.isActive ? "Add-on deactivated." : "Add-on activated.");
+        refresh();
+      } else toast.error(r.error ?? "Failed.");
+    });
+  };
+  const remove = (a: AddonItem) => {
+    if (!hostId) return;
+    if (
+      !window.confirm(
+        `Delete “${a.name}”? It will be detached from ${a.listingsCount} listing(s).`,
+      )
+    )
+      return;
+    start(async () => {
+      const r = await adminDeleteAddon(hostId, a.id);
+      if (r.ok) {
+        toast.success("Add-on deleted.");
+        refresh();
+      } else toast.error(r.error ?? "Failed.");
+    });
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Add-ons catalog */}
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <PackagePlus className="h-4 w-4 text-brand-mute" />
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            Add-ons catalog
+          </h3>
+          <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+            {data.addons.length}
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditAddon("new")}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-brand-secondary"
+          >
+            <Plus className="h-3.5 w-3.5" /> New add-on
+          </button>
+        </div>
+        <Section
+          icon={PackagePlus}
+          title="Catalog"
+          count={data.addons.length}
+          empty="No add-ons in this host's catalog yet."
+        >
+          {data.addons.map((a) => (
+            <div
+              key={a.id}
+              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[13px] font-semibold text-brand-ink">
+                    {a.name}
+                  </span>
+                  {a.isActive ? (
+                    <Pill tone="good">Active</Pill>
+                  ) : (
+                    <Pill tone="muted">Inactive</Pill>
+                  )}
+                  {a.isRequired ? <Pill tone="muted">Required</Pill> : null}
+                </div>
+                <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                  {formatMoney(a.unitPrice, a.currency)} ·{" "}
+                  {PRICING_LABEL_BY_KEY[a.pricingModel] ?? a.pricingModel}
+                  {a.category
+                    ? ` · ${ADDON_CATEGORY_LABEL_BY_KEY[a.category] ?? a.category}`
+                    : ""}
+                  {` · on ${a.listingsCount} listing(s)`}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => toggle(a)}
+                title={a.isActive ? "Deactivate" : "Activate"}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill border border-brand-line text-brand-mute transition hover:bg-brand-light disabled:opacity-50"
+              >
+                <Power className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditAddon(a)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-brand-line px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => remove(a)}
+                title="Delete"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-pill border border-red-200 text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+        </Section>
+      </div>
+
+      {/* Policies library */}
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <ScrollText className="h-4 w-4 text-brand-mute" />
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            Policies library
+          </h3>
+          <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+            {data.policies.length}
+          </span>
+        </div>
+        <Section
+          icon={ScrollText}
+          title="Policies"
+          count={data.policies.length}
+          empty="No policies in this host's library yet."
+        >
+          {data.policies.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[13px] font-semibold text-brand-ink">
+                    {p.name}
+                  </span>
+                  {p.isDefault ? <Pill tone="good">Default</Pill> : null}
+                  {p.status !== "active" ? (
+                    <Pill tone="muted">{p.status}</Pill>
+                  ) : null}
+                </div>
+                <div className="mt-0.5 truncate text-[11.5px] text-brand-mute">
+                  {POLICY_TYPE_LABEL[p.type] ?? p.type}
+                  {p.preset && p.preset !== "custom" ? ` · ${p.preset}` : ""}
+                  {` · on ${p.assignmentsCount} listing(s)`}
+                  {p.summary ? ` · ${p.summary}` : ""}
+                </div>
+              </div>
+            </div>
+          ))}
+        </Section>
+        <p className="mt-2 text-[12px] text-brand-mute">
+          Create and edit a host&apos;s policies from any of their listings
+          (Listings → open a listing → Policies). Per-listing assignment lives
+          there too.
+        </p>
+      </div>
+
+      {hostId ? (
+        <AddonEditModal
+          hostId={hostId}
+          addon={editAddon}
+          onClose={() => setEditAddon(null)}
+          onSaved={() => {
+            setEditAddon(null);
+            refresh();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AddonEditModal({
+  hostId,
+  addon,
+  onClose,
+  onSaved,
+}: {
+  hostId: string;
+  addon: AddonItem | "new" | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isNew = addon === "new";
+  const existing = addon && addon !== "new" ? addon : null;
+  const [pending, start] = useTransition();
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    pricing_model: "per_stay",
+    unit_price: "0",
+    currency: "ZAR",
+    category: "",
+    min_quantity: "1",
+    max_quantity: "",
+    stock_quantity: "",
+    lead_time_days: "0",
+    is_active: true,
+    is_required: false,
+    vat_included: false,
+    allow_custom_quantity: true,
+  });
+
+  const key = addon === "new" ? "new" : (existing?.id ?? null);
+  useEffect(() => {
+    if (!addon) return;
+    if (addon === "new") {
+      setForm({
+        name: "",
+        description: "",
+        pricing_model: "per_stay",
+        unit_price: "0",
+        currency: "ZAR",
+        category: "",
+        min_quantity: "1",
+        max_quantity: "",
+        stock_quantity: "",
+        lead_time_days: "0",
+        is_active: true,
+        is_required: false,
+        vat_included: false,
+        allow_custom_quantity: true,
+      });
+      return;
+    }
+    setForm({
+      name: addon.name,
+      description: addon.description ?? "",
+      pricing_model: addon.pricingModel,
+      unit_price: String(addon.unitPrice),
+      currency: addon.currency || "ZAR",
+      category: addon.category ?? "",
+      min_quantity: String(addon.minQuantity),
+      max_quantity: addon.maxQuantity != null ? String(addon.maxQuantity) : "",
+      stock_quantity:
+        addon.stockQuantity != null ? String(addon.stockQuantity) : "",
+      lead_time_days: String(addon.leadTimeDays),
+      is_active: addon.isActive,
+      is_required: addon.isRequired,
+      vat_included: addon.vatIncluded,
+      allow_custom_quantity: addon.allowCustomQuantity,
+    });
+  }, [key, addon]);
+
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((p) => ({ ...p, [k]: v }));
+
+  const save = () => {
+    if (!form.name.trim()) {
+      toast.error("Give the add-on a name.");
+      return;
+    }
+    const num = (s: string) => (s.trim() === "" ? null : Number(s));
+    const payload: AddonInput = {
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      pricing_model: form.pricing_model as AddonInput["pricing_model"],
+      unit_price: Number(form.unit_price) || 0,
+      currency: form.currency || "ZAR",
+      min_quantity: Number(form.min_quantity) || 0,
+      max_quantity: num(form.max_quantity),
+      allow_custom_quantity: form.allow_custom_quantity,
+      stock_quantity: num(form.stock_quantity),
+      is_required: form.is_required,
+      is_active: form.is_active,
+      lead_time_days: Number(form.lead_time_days) || 0,
+      category: (form.category || null) as AddonInput["category"],
+      vat_included: form.vat_included,
+    };
+    start(async () => {
+      const r = existing
+        ? await adminUpdateAddon(hostId, existing.id, payload)
+        : await adminCreateAddon(hostId, payload);
+      if (r.ok) {
+        toast.success(existing ? "Add-on updated." : "Add-on created.");
+        onSaved();
+      } else toast.error(r.error ?? "Failed.");
+    });
+  };
+
+  return (
+    <FormModal
+      open={!!addon}
+      onOpenChange={(o) => (o ? null : onClose())}
+      title={isNew ? "New add-on" : "Edit add-on"}
+      description="Part of this host's add-on catalog. Attach it to listings from the listing editor."
+    >
+      <div className="space-y-4">
+        <Lbl label="Name">
+          <Input
+            value={form.name}
+            onChange={(e) => set("name", e.target.value)}
+          />
+        </Lbl>
+        <Lbl label="Description">
+          <textarea
+            value={form.description}
+            onChange={(e) => set("description", e.target.value)}
+            rows={2}
+            className="block w-full rounded-md border border-brand-line bg-white px-3 py-2 text-sm focus:border-brand-primary focus:outline-none"
+          />
+        </Lbl>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Lbl label="Pricing model">
+            <Select
+              value={form.pricing_model}
+              onChange={(e) => set("pricing_model", e.target.value)}
+            >
+              {PRICING_MODELS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </Select>
+          </Lbl>
+          <Lbl label="Category">
+            <Select
+              value={form.category}
+              onChange={(e) => set("category", e.target.value)}
+            >
+              <option value="">None</option>
+              {ADDON_CATEGORIES.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Lbl>
+          <Lbl label="Unit price">
+            <Input
+              type="number"
+              value={form.unit_price}
+              onChange={(e) => set("unit_price", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Currency">
+            <Select
+              value={form.currency}
+              onChange={(e) => set("currency", e.target.value)}
+            >
+              {DISPLAY_CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </Lbl>
+          <Lbl label="Min quantity">
+            <Input
+              type="number"
+              value={form.min_quantity}
+              onChange={(e) => set("min_quantity", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Max quantity (blank = none)">
+            <Input
+              type="number"
+              value={form.max_quantity}
+              onChange={(e) => set("max_quantity", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Stock (blank = unlimited)">
+            <Input
+              type="number"
+              value={form.stock_quantity}
+              onChange={(e) => set("stock_quantity", e.target.value)}
+            />
+          </Lbl>
+          <Lbl label="Lead time (days)">
+            <Input
+              type="number"
+              value={form.lead_time_days}
+              onChange={(e) => set("lead_time_days", e.target.value)}
+            />
+          </Lbl>
+        </div>
+        <div className="flex flex-wrap gap-4 pt-1">
+          <Check
+            label="Active"
+            checked={form.is_active}
+            onChange={(v) => set("is_active", v)}
+          />
+          <Check
+            label="Required"
+            checked={form.is_required}
+            onChange={(v) => set("is_required", v)}
+          />
+          <Check
+            label="VAT included"
+            checked={form.vat_included}
+            onChange={(v) => set("vat_included", v)}
+          />
+          <Check
+            label="Custom quantity"
+            checked={form.allow_custom_quantity}
+            onChange={(v) => set("allow_custom_quantity", v)}
+          />
+        </div>
+      </div>
+      <FormModalFooter>
+        <FormModalCancel onClick={onClose} />
+        <Button disabled={pending} onClick={save}>
+          {pending ? "Saving…" : isNew ? "Create add-on" : "Save add-on"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
+  );
+}
+
+function WebsitePanel({ data }: { data: UserRecordData }) {
+  const handle = data.host?.handle ?? null;
+  return (
+    <section className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+        <Globe className="h-4 w-4 text-brand-mute" />
+        <span className="font-display text-[15px] font-bold text-brand-ink">
+          Website
+        </span>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-brand-mute">
+          Coming soon
+        </span>
+      </div>
+      <div className="px-6 py-12 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-pill bg-brand-light">
+          <Globe className="h-6 w-6 text-brand-mute" />
+        </div>
+        <h3 className="mt-4 font-display text-base font-bold text-brand-ink">
+          Host website builder
+        </h3>
+        <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-brand-mute">
+          A future feature: each host will get a hosted, branded website for
+          their listings and direct bookings. This tab will let you manage that
+          site — domain, theme, pages and publish state — from the admin.
+        </p>
+        {handle ? (
+          <p className="mt-3 text-[12px] text-brand-mute">
+            Reserved handle:{" "}
+            <span className="font-mono text-brand-ink">@{handle}</span>
+          </p>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function Check({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2 text-[13px] text-brand-ink">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+      />
+      {label}
+    </label>
   );
 }
 

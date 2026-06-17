@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requirePermission, withAdminAudit } from "@/lib/admin";
 import { DISPLAY_CURRENCIES } from "@/lib/currency";
 import { BUSINESS_LOCALES } from "@/app/[locale]/dashboard/settings/businesses/schemas";
+import { addonInputSchema } from "@/app/[locale]/dashboard/addons/schemas";
 
 const suspendSchema = z.object({
   userId: z.string().uuid(),
@@ -553,6 +554,172 @@ export const adminPayoutAffiliateAction = withAdminAudit<
   },
 );
 
+// ─── Add-ons catalog (host-wide; managed from the admin "Add-ons & policies" tab) ──
+function addonRow(input: z.infer<typeof addonInputSchema>) {
+  return {
+    name: input.name,
+    description: input.description ?? null,
+    pricing_model: input.pricing_model,
+    unit_price: input.unit_price,
+    currency: input.currency,
+    min_quantity: input.min_quantity,
+    max_quantity: input.max_quantity ?? null,
+    allow_custom_quantity: input.allow_custom_quantity,
+    stock_quantity: input.stock_quantity ?? null,
+    is_required: input.is_required,
+    is_active: input.is_active,
+    lead_time_days: input.lead_time_days,
+    category: input.category ?? null,
+    vat_included: input.vat_included,
+    daily_capacity: input.daily_capacity ?? null,
+  };
+}
+
+const createAddonSchema = z.object({
+  hostId: z.string().uuid(),
+  addon: addonInputSchema,
+  reason: z.string().optional(),
+});
+
+export const adminCreateAddonAction = withAdminAudit<
+  z.infer<typeof createAddonSchema>,
+  { ok: true; id: string }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.create_addon",
+    targetType: "addon",
+    getTargetId: (a) => a.hostId,
+  },
+  async (args, service) => {
+    const parsed = createAddonSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid add-on.");
+    }
+    const { hostId, addon } = parsed.data;
+    const { data: last } = await service
+      .from("addons")
+      .select("sort_order")
+      .eq("host_id", hostId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const { data, error } = await service
+      .from("addons")
+      .insert({
+        host_id: hostId,
+        sort_order: (last?.sort_order ?? -1) + 1,
+        ...addonRow(addon),
+      })
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${hostId}`);
+    return { result: { ok: true, id: data.id }, after: data };
+  },
+);
+
+const updateAddonSchema = z.object({
+  hostId: z.string().uuid(),
+  addonId: z.string().uuid(),
+  addon: addonInputSchema,
+  reason: z.string().optional(),
+});
+
+export const adminUpdateAddonAction = withAdminAudit<
+  z.infer<typeof updateAddonSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.update_addon",
+    targetType: "addon",
+    getTargetId: (a) => a.addonId,
+  },
+  async (args, service) => {
+    const parsed = updateAddonSchema.safeParse(args);
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Invalid add-on.");
+    }
+    const { hostId, addonId, addon } = parsed.data;
+    const { data, error } = await service
+      .from("addons")
+      .update(addonRow(addon))
+      .eq("id", addonId)
+      .eq("host_id", hostId)
+      .select("id")
+      .single();
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${hostId}`);
+    return { result: { ok: true }, after: data };
+  },
+);
+
+const toggleAddonSchema = z.object({
+  hostId: z.string().uuid(),
+  addonId: z.string().uuid(),
+  isActive: z.boolean(),
+  reason: z.string().optional(),
+});
+
+export const adminToggleAddonAction = withAdminAudit<
+  z.infer<typeof toggleAddonSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.toggle_addon",
+    targetType: "addon",
+    getTargetId: (a) => a.addonId,
+  },
+  async (args, service) => {
+    if (!toggleAddonSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    const { error } = await service
+      .from("addons")
+      .update({ is_active: args.isActive })
+      .eq("id", args.addonId)
+      .eq("host_id", args.hostId);
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${args.hostId}`);
+    return { result: { ok: true }, after: { isActive: args.isActive } };
+  },
+);
+
+const deleteAddonSchema = z.object({
+  hostId: z.string().uuid(),
+  addonId: z.string().uuid(),
+  reason: z.string().optional(),
+});
+
+export const adminDeleteAddonAction = withAdminAudit<
+  z.infer<typeof deleteAddonSchema>,
+  { ok: true }
+>(
+  {
+    permissionKey: "users.edit",
+    actionName: "user.delete_addon",
+    targetType: "addon",
+    getTargetId: (a) => a.addonId,
+  },
+  async (args, service) => {
+    if (!deleteAddonSchema.safeParse(args).success) {
+      throw new Error("Invalid input.");
+    }
+    // Detach from any listings first (FK), then remove the catalog row.
+    await service.from("listing_addons").delete().eq("addon_id", args.addonId);
+    const { error } = await service
+      .from("addons")
+      .delete()
+      .eq("id", args.addonId)
+      .eq("host_id", args.hostId);
+    if (error) throw new Error(error.message);
+    revalidatePath(`/admin/users/${args.hostId}`);
+    return { result: { ok: true }, after: { deleted: args.addonId } };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -643,6 +810,40 @@ export async function adminPayoutAffiliate(input: {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed." };
   }
+}
+
+type AdminAddonInput = z.infer<typeof addonInputSchema>;
+
+export async function adminCreateAddon(
+  hostId: string,
+  addon: AdminAddonInput,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    const r = await adminCreateAddonAction({ hostId, addon });
+    return { ok: true, id: r.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
+}
+
+export async function adminUpdateAddon(
+  hostId: string,
+  addonId: string,
+  addon: AdminAddonInput,
+) {
+  return wrap(() => adminUpdateAddonAction({ hostId, addonId, addon }));
+}
+
+export async function adminToggleAddon(
+  hostId: string,
+  addonId: string,
+  isActive: boolean,
+) {
+  return wrap(() => adminToggleAddonAction({ hostId, addonId, isActive }));
+}
+
+export async function adminDeleteAddon(hostId: string, addonId: string) {
+  return wrap(() => adminDeleteAddonAction({ hostId, addonId }));
 }
 
 export async function adminUpdateSubscription(input: {
