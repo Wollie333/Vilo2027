@@ -1,6 +1,3 @@
-import { Link } from "@/i18n/navigation";
-import { FileText, Settings } from "lucide-react";
-
 import { requirePermission } from "@/lib/admin";
 import { summariseCommissions } from "@/lib/affiliate/balance";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -111,32 +108,14 @@ export default async function AdminAffiliatesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-brand-ink">
-            Affiliates
-          </h1>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            Every affiliate, their referrals and earnings, plus the payout
-            queue. Commission rates are set per product in the Product manager.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/affiliates/terms"
-            className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
-          >
-            <FileText className="h-4 w-4" />
-            Terms
-          </Link>
-          <Link
-            href="/admin/affiliates/settings"
-            className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
-          >
-            <Settings className="h-4 w-4" />
-            Programme settings
-          </Link>
-        </div>
+      <header>
+        <h1 className="font-display text-2xl font-bold text-brand-ink">
+          Affiliates
+        </h1>
+        <p className="mt-1 text-[13px] text-brand-mute">
+          Every affiliate, their referrals and earnings, plus the payout queue.
+          Commission rates are set per product in the Product manager.
+        </p>
       </header>
 
       <AffiliateAdminPanel affiliates={affiliates} payouts={payoutRows} />
