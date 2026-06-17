@@ -76,6 +76,38 @@ export const settleAffiliatePayoutAction = withAdminAudit<
   },
 );
 
+// ─── Affiliate terms (shown on the gated programme) ─────────────────────────
+export const updateAffiliateTermsAction = withAdminAudit<
+  { termsContent: string; termsVersion: string; reason?: string },
+  ActionResult
+>(
+  {
+    permissionKey: PERMISSION,
+    actionName: "affiliate.update_terms",
+    targetType: "affiliate_settings",
+    getTargetId: () => "affiliate_settings",
+  },
+  async (args, service) => {
+    const content = args.termsContent.trim();
+    const version = args.termsVersion.trim() || "v1";
+    if (!content) {
+      return { result: { ok: false, error: "The terms can't be empty." } };
+    }
+    const { error } = await service
+      .from("affiliate_settings")
+      .update({
+        terms_content: content,
+        terms_version: version,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", true);
+    if (error) return { result: { ok: false, error: error.message } };
+    revalidatePath("/admin/affiliates/terms");
+    revalidatePath("/portal/affiliates");
+    return { result: { ok: true }, after: { version } };
+  },
+);
+
 // ─── Program settings + per-method fees ─────────────────────────────────────
 export const updateAffiliateSettingsAction = withAdminAudit<
   {

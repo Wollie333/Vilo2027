@@ -30,13 +30,22 @@ const PERKS = [
 export function AffiliateTermsGate({
   brand,
   termsVersion,
+  termsContent,
 }: {
   brand: string;
   termsVersion: string;
+  termsContent: string;
 }) {
   const router = useRouter();
   const [agreed, setAgreed] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Admin-authored terms: blank lines → paragraphs, {brand} → live brand name.
+  const paragraphs = termsContent
+    .replace(/\{brand\}/g, brand)
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
 
   function handleAccept() {
     if (!agreed) return;
@@ -95,28 +104,9 @@ export function AffiliateTermsGate({
           Affiliate terms
         </h2>
         <div className="mt-3 space-y-3 text-sm leading-relaxed text-brand-mute">
-          <p>
-            As a {brand} affiliate you may promote {brand} products using the
-            unique referral link and approved marketing material provided to
-            you. You may not misrepresent {brand}, bid on {brand} brand terms in
-            paid search, spam, or self-refer.
-          </p>
-          <p>
-            Commission is calculated on the net amount a referred customer
-            actually pays {brand} for a product (excluding VAT and before payout
-            fees), at the rate set on that product. A referred customer is
-            attributed to you for 30 days from their click and remains yours
-            once they create an account.
-          </p>
-          <p>
-            Commission is held until the refund window passes, then becomes
-            payable. Refunded or charged-back sales reverse the related
-            commission. Payouts are made on request once your cleared balance
-            meets the threshold; the payout processor fee is deducted from your
-            payout. {brand} may suspend an affiliate for abuse, which voids
-            pending commission. {brand} may update these terms; continued use
-            means you accept the changes.
-          </p>
+          {paragraphs.map((p, i) => (
+            <p key={i}>{p}</p>
+          ))}
           <p className="text-xs text-brand-mute/70">
             Terms version {termsVersion}
           </p>

@@ -5,6 +5,19 @@
 
 ---
 
+## 2026-06-17 — Admin-editable affiliate terms + filterable Bookings/Activity tabs
+
+### Built
+- **Admin-editable affiliate terms.** New `affiliate_settings.terms_content`
+  (migration, seeded with the previous copy) + an **Affiliates → Terms** sub-page
+  (`/admin/affiliates/terms`) with a live preview. The gated `/portal/affiliates`
+  sign-up now renders the admin-authored terms (was hardcoded); `{brand}` resolves
+  to the live brand name and blank lines become paragraphs. Audited
+  `updateAffiliateTermsAction`.
+- **Filterable Bookings + Activity tabs** on the admin user record: Bookings is now
+  standard tables with search/status/sort (and the host-only 404 link removed);
+  Activity gained search + a type filter (edits/bookings/reviews/data/support).
+
 ## 2026-06-17 — Admin user record: editable businesses, reviews tables, relationship cards
 
 ### Built

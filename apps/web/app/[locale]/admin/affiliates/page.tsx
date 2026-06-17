@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/navigation";
-import { Settings } from "lucide-react";
+import { FileText, Settings } from "lucide-react";
 
 import { requirePermission } from "@/lib/admin";
 import { summariseCommissions } from "@/lib/affiliate/balance";
@@ -121,13 +121,22 @@ export default async function AdminAffiliatesPage() {
             queue. Commission rates are set per product in the Product manager.
           </p>
         </div>
-        <Link
-          href="/admin/affiliates/settings"
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
-        >
-          <Settings className="h-4 w-4" />
-          Programme settings
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/affiliates/terms"
+            className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <FileText className="h-4 w-4" />
+            Terms
+          </Link>
+          <Link
+            href="/admin/affiliates/settings"
+            className="inline-flex items-center gap-1.5 rounded-md border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-ink hover:bg-brand-light"
+          >
+            <Settings className="h-4 w-4" />
+            Programme settings
+          </Link>
+        </div>
       </header>
 
       <AffiliateAdminPanel affiliates={affiliates} payouts={payoutRows} />

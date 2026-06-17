@@ -907,6 +907,7 @@ export type Database = {
           id: boolean
           min_payout_threshold: number
           self_referral_blocked: boolean
+          terms_content: string | null
           terms_version: string
           updated_at: string
         }
@@ -918,6 +919,7 @@ export type Database = {
           id?: boolean
           min_payout_threshold?: number
           self_referral_blocked?: boolean
+          terms_content?: string | null
           terms_version?: string
           updated_at?: string
         }
@@ -929,6 +931,7 @@ export type Database = {
           id?: boolean
           min_payout_threshold?: number
           self_referral_blocked?: boolean
+          terms_content?: string | null
           terms_version?: string
           updated_at?: string
         }

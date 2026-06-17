@@ -29,7 +29,7 @@ export default async function AffiliatesLayout({
     const [{ data: settings }, brand] = await Promise.all([
       admin
         .from("affiliate_settings")
-        .select("terms_version")
+        .select("terms_version, terms_content")
         .eq("id", true)
         .maybeSingle(),
       getBrandName(),
@@ -38,6 +38,7 @@ export default async function AffiliatesLayout({
       <AffiliateTermsGate
         brand={brand}
         termsVersion={settings?.terms_version ?? "v1"}
+        termsContent={settings?.terms_content ?? ""}
       />
     );
   }
