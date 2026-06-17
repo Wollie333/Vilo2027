@@ -6,6 +6,7 @@ import { ReviewPhotoGrid } from "@/components/reviews/ReviewPhotoGrid";
 import { reviewPhotoUrl } from "@/lib/reviews/photos";
 import { buildReviewPath } from "@/lib/review-token";
 import { createServerClient } from "@/lib/supabase/server";
+import { CreateReviewButton } from "./_components/CreateReviewButton";
 
 export const metadata: Metadata = {
   title: "Reviews",
@@ -29,18 +30,21 @@ export default async function PortalReviewsPage() {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  // Bookings that are completed (i.e. stay is done) — eligible for a review.
+  // Review-eligible stays — the canonical rule (see lib/reviews/request.ts):
+  // completed AND paid (payment settled or refunded) AND not yet reviewed.
   const { data: completedRows } = await supabase
     .from("bookings")
     .select(
       `
       id, reference, check_in, check_out, session_date, status,
-      listing:listings ( name )
+      listing:listings ( name ),
+      host:hosts ( display_name )
     `,
     )
     .eq("guest_id", user.id)
     .is("deleted_at", null)
-    .in("status", ["completed"])
+    .eq("status", "completed")
+    .in("payment_status", ["completed", "partially_refunded", "refunded"])
     .order("check_out", { ascending: false })
     .limit(50);
 
@@ -61,6 +65,7 @@ export default async function PortalReviewsPage() {
     session_date: string | null;
     status: string;
     listing: { name: string } | { name: string }[] | null;
+    host: { display_name: string } | { display_name: string }[] | null;
   };
   type ReviewRow = {
     booking_id: string;
@@ -76,15 +81,35 @@ export default async function PortalReviewsPage() {
   const writtenIds = new Set(written.map((r) => r.booking_id));
   const pending = completed.filter((b) => !writtenIds.has(b.id));
 
+  // Eligible stays for the "Create review" picker — hrefs are signed here
+  // (server-side); the client modal only renders them.
+  const reviewable = pending.map((b) => {
+    const listing = Array.isArray(b.listing) ? b.listing[0] : b.listing;
+    const host = Array.isArray(b.host) ? b.host[0] : b.host;
+    return {
+      id: b.id,
+      reviewHref: buildReviewPath(b.id),
+      listingName: listing?.name ?? "Stay",
+      hostName: host?.display_name ?? null,
+      reference: b.reference,
+      dateLabel: b.session_date
+        ? (fmtDate(b.session_date) ?? "")
+        : `${fmtDate(b.check_in)} → ${fmtDate(b.check_out)}`,
+    };
+  });
+
   return (
     <div>
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
-          Reviews
-        </h1>
-        <p className="mt-2 text-sm text-brand-mute">
-          Help future guests by sharing what your stay was actually like.
-        </p>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-brand-ink sm:text-4xl">
+            Reviews
+          </h1>
+          <p className="mt-2 text-sm text-brand-mute">
+            Help future guests by sharing what your stay was actually like.
+          </p>
+        </div>
+        <CreateReviewButton bookings={reviewable} />
       </header>
 
       <section className="mb-10">

@@ -11,6 +11,11 @@ const TABS = [
     match: "prefix" as const,
   },
   {
+    href: "/portal/settings/transactions",
+    label: "Transactions",
+    match: "prefix" as const,
+  },
+  {
     href: "/portal/settings/data",
     label: "Data & privacy",
     match: "prefix" as const,

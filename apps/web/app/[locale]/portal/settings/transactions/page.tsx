@@ -8,6 +8,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function TransactionsPage() {
-  return <ViloTransactionHistory />;
+export default function PortalTransactionsPage() {
+  return (
+    <ViloTransactionHistory
+      heading="Transaction history"
+      description="Your payments to Vilo, with downloadable invoices."
+    />
+  );
 }
