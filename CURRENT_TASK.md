@@ -57,7 +57,7 @@
 > a `vilo_active_business` cookie now would be a no-op — views are all-businesses, Ledger/
 > Guest-record use `?business=`); (b) Policies/Staff as Settings tabs (route move); (c) the
 > ~50 hardcoded "Listing" headings → i18n sweep.
-> **W3 (shared section components + renderer, plan §2/§8.3) DONE** (commit `<W3>`):
+> **W3 (shared section components + renderer, plan §2/§8.3) DONE** (commit `12873de`):
 > the ONE presentational component set (preview === public) — `lib/site/themes.ts`
 > (5 presets → `--site-*` vars via `buildSiteVars`), `components/site/SiteThemeRoot`
 > (scopes the vars), `SiteChrome` (header/nav/footer + Book CTA), `lib/site/types.ts`
