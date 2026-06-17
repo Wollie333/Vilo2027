@@ -130,7 +130,7 @@ export async function buildPlatformReport(
       .select("total_amount, status")
       .in("status", REVENUE_BOOKING_STATUSES),
     service
-      .from("listings")
+      .from("properties")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null)
       .eq("is_published", true),

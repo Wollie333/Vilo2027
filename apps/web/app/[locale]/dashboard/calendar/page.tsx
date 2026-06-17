@@ -41,8 +41,8 @@ type RawListing = {
   base_price: number | string | null;
   cleaning_fee: number | string | null;
   booking_mode: string;
-  listing_photos: RawPhoto[] | null;
-  listing_rooms: { id: string }[] | null;
+  property_photos: RawPhoto[] | null;
+  property_rooms: { id: string }[] | null;
 };
 type RawBooking = {
   id: string;
@@ -86,9 +86,9 @@ export default async function CalendarPage() {
   if (host) {
     // Listings (host-scoped — listings has a public_read_published RLS policy).
     const { data: lr } = await supabase
-      .from("listings")
+      .from("properties")
       .select(
-        "id, name, city, province, base_price, cleaning_fee, booking_mode, listing_photos ( url, sort_order ), listing_rooms ( id )",
+        "id, name, city, province, base_price, cleaning_fee, booking_mode, property_photos ( url, sort_order ), property_rooms ( id )",
       )
       .eq("host_id", host.id)
       .eq("listing_type", "accommodation")
@@ -97,7 +97,7 @@ export default async function CalendarPage() {
 
     listings = ((lr as RawListing[] | null) ?? []).map((l, i) => {
       const photo =
-        (l.listing_photos ?? [])
+        (l.property_photos ?? [])
           .slice()
           .sort((a, b) => a.sort_order - b.sort_order)[0]?.url ?? null;
       return {
@@ -107,7 +107,7 @@ export default async function CalendarPage() {
         rooms:
           l.booking_mode === "whole_listing"
             ? 1
-            : Math.max(1, (l.listing_rooms ?? []).length),
+            : Math.max(1, (l.property_rooms ?? []).length),
         basePrice: Number(l.base_price ?? 0),
         cleaningFee: Number(l.cleaning_fee ?? 0),
         photo,
@@ -135,7 +135,7 @@ export default async function CalendarPage() {
           .gte("date", iso(winStart))
           .lte("date", iso(winEnd)),
         supabase
-          .from("listing_seasonal_pricing")
+          .from("property_seasonal_pricing")
           .select("listing_id, start_date, end_date, price, is_active")
           .in("listing_id", listingIds),
       ]);

@@ -78,7 +78,7 @@ export default async function DashboardLayout({
       { data: guestSummary },
     ] = await Promise.all([
       supabase
-        .from("listings")
+        .from("properties")
         .select("id", { count: "exact", head: true })
         .eq("host_id", host.id),
       supabase

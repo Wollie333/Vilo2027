@@ -98,7 +98,7 @@ export default async function InboxPage({
         last_message_at, last_message_preview, created_at,
         listing_id,
         guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, avatar_url ),
-        listing:listings ( id, name ),
+        listing:properties ( id, name ),
         booking:bookings ( id, reference, status, check_in, check_out )
       `,
     )
@@ -181,7 +181,7 @@ export default async function InboxPage({
           `
             id, status, is_enquiry, pinned, created_at, guest_last_seen_at,
             guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, phone, avatar_url ),
-            listing:listings ( id, name, slug, city, province, max_guests, bedrooms ),
+            listing:properties ( id, name, slug, city, province, max_guests, bedrooms ),
             booking:bookings ( id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, payment_status, pay_token, currency )
           `,
         )
@@ -349,7 +349,7 @@ export default async function InboxPage({
 
   // Host listings — power the listing filter in the list header.
   const { data: listingRows } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name")
     .eq("host_id", host.id)
     .is("deleted_at", null)

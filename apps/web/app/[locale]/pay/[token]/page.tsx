@@ -50,7 +50,7 @@ type ListingSnap = {
   business_id: string | null;
   city: string | null;
   province: string | null;
-  listing_photos: { url: string; sort_order: number }[] | null;
+  property_photos: { url: string; sort_order: number }[] | null;
 };
 
 export default async function PayPage({
@@ -66,7 +66,7 @@ export default async function PayPage({
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:listings!inner ( name, host_id, business_id, city, province, listing_photos ( url, sort_order ) )",
+      "id, reference, scope, status, payment_status, payment_method, check_in, check_out, nights, guests_count, total_amount, currency, guest_name, listing:properties!inner ( name, host_id, business_id, city, province, property_photos ( url, sort_order ) )",
     )
     .eq("pay_token", params.token)
     .maybeSingle();
@@ -76,7 +76,7 @@ export default async function PayPage({
 
   // Listing feature image (first photo by sort order) for the hero banner.
   const featureImage =
-    [...(listing.listing_photos ?? [])].sort(
+    [...(listing.property_photos ?? [])].sort(
       (a, b) => a.sort_order - b.sort_order,
     )[0]?.url ?? null;
 

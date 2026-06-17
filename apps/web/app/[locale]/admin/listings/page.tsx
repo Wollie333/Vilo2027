@@ -35,7 +35,7 @@ export default async function AdminListingsPage({
 
   const service = createAdminClient();
   let query = service
-    .from("listings")
+    .from("properties")
     .select(
       `
       id, name, slug, listing_type, is_published, is_featured, city, province,
@@ -82,7 +82,7 @@ export default async function AdminListingsPage({
 
   // KPI + segment counts (all non-deleted listings).
   const { data: allRows } = await service
-    .from("listings")
+    .from("properties")
     .select("is_published, is_featured")
     .is("deleted_at", null);
   let total = 0;

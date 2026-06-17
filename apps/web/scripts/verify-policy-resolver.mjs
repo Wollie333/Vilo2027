@@ -62,7 +62,7 @@ console.log("1) RPCs exist");
 console.log("\n2) Published listings resolve a cancellation policy");
 {
   const { data: listings, error } = await sb
-    .from("listings")
+    .from("properties")
     .select("id, name, is_published")
     .eq("is_published", true)
     .is("deleted_at", null)

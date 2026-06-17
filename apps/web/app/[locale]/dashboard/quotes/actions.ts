@@ -202,7 +202,7 @@ export async function createQuoteAction(
 
   // Verify the listing belongs to this host (RLS will also enforce).
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "id, host_id, business_id, cancellation_policy, cancellation_policy_label",
     )
@@ -481,7 +481,7 @@ async function snapshotQuoteVersion(
   const { data: q } = await supabase
     .from("quotes")
     .select(
-      "quote_number, status, created_at, valid_until, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, addons_total, total_amount, currency, notes, listing:listings ( name )",
+      "quote_number, status, created_at, valid_until, guest_name, guest_email, guest_phone, check_in, check_out, headcount, scope, base_amount, cleaning_fee, addons_total, total_amount, currency, notes, listing:properties ( name )",
     )
     .eq("id", quoteId)
     .maybeSingle();

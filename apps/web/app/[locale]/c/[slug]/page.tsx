@@ -72,9 +72,9 @@ export default async function CategoryLandingPage({
   // accommodation_type text column for pre-migration listings.
   const idList = `(${descendantIds.join(",")})`;
   const { data: listings } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("is_published", true)
     .is("deleted_at", null)

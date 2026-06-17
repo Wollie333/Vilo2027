@@ -75,7 +75,7 @@ export async function GET(
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       discount_amount, discount_reason,
       notes,
-      listing:listings ( name, business_id ),
+      listing:properties ( name, business_id ),
       host:hosts!inner ( id, display_name, handle, user_id, user_profiles:user_profiles!hosts_user_id_fkey ( email, phone ) )
     `,
     )

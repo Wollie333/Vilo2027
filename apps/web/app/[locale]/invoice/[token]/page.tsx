@@ -91,7 +91,7 @@ export default async function PublicInvoicePage({
     const { data: b } = await admin
       .from("bookings")
       .select(
-        "reference, vat_rate, listing:listings ( vat_number, business_id )",
+        "reference, vat_rate, listing:properties ( vat_number, business_id )",
       )
       .eq("id", invoice.booking_id)
       .maybeSingle();

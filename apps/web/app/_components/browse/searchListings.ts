@@ -44,7 +44,7 @@ export type BrowseListing = {
   instant_booking: boolean;
   host: { display_name: string; is_verified: boolean } | unknown;
   photos: Array<{ url: string; sort_order: number }> | null;
-  listing_rooms: Array<{
+  property_rooms: Array<{
     base_price: number;
     is_active: boolean | null;
     deleted_at: string | null;
@@ -97,9 +97,9 @@ export async function searchListings(
   const hasFilters = where.length > 0 || type !== "" || guests != null;
 
   let query = supabase
-    .from("listings")
+    .from("properties")
     .select(
-      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, city, province, base_price, currency, max_guests, listing_type, accommodation_type, booking_mode, avg_rating, total_reviews, instant_booking, host:hosts!inner ( display_name, is_verified ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
       { count: "exact" },
     )
     .eq("is_published", true)

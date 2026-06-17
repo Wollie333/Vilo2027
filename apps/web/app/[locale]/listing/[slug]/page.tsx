@@ -154,7 +154,7 @@ async function loadListing(slug: string) {
   const supabase = createServerClient();
   // RLS `public_read_published` filters out unpublished + deleted listings.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       `
         id, slug, name, description,
@@ -191,19 +191,19 @@ async function loadListing(slug: string) {
     { data: poiRows },
   ] = await Promise.all([
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("id, url, sort_order, room_id")
       .eq("listing_id", listing.id)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("amenity_key")
       .eq("listing_id", listing.id),
     // Rooms are fetched for every mode now — they're descriptive on
     // whole-place listings (bedroom layout, beds, flags) and bookable
     // on per-room / flexible.
     supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select(
         "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, sort_order, is_active, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count, beds:room_beds ( bed_kind, quantity, sort_order )",
       )
@@ -212,7 +212,7 @@ async function loadListing(slug: string) {
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_seasonal_pricing")
+      .from("property_seasonal_pricing")
       .select(
         "id, label, start_date, end_date, adjustment_type, adjustment_value, room_id, priority, min_nights, is_active, created_at",
       )

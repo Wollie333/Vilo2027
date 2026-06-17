@@ -68,7 +68,7 @@ export default async function PortalLayout({
   let listingCount = 0;
   if (host?.id) {
     const { count } = await supabase
-      .from("listings")
+      .from("properties")
       .select("id", { count: "exact", head: true })
       .eq("host_id", host.id);
     listingCount = count ?? 0;

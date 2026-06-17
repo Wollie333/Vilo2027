@@ -1086,7 +1086,7 @@ export type Database = {
             foreignKeyName: "blocked_dates_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
@@ -1100,7 +1100,7 @@ export type Database = {
             foreignKeyName: "blocked_dates_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -1267,7 +1267,7 @@ export type Database = {
             foreignKeyName: "booking_rooms_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -1492,7 +1492,7 @@ export type Database = {
             foreignKeyName: "bookings_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
@@ -1862,7 +1862,7 @@ export type Database = {
             foreignKeyName: "conversations_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -2008,14 +2008,14 @@ export type Database = {
             foreignKeyName: "coupons_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "coupons_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -2237,7 +2237,7 @@ export type Database = {
             foreignKeyName: "directory_search_logs_clicked_listing_fkey"
             columns: ["clicked_listing"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -2351,7 +2351,7 @@ export type Database = {
             foreignKeyName: "featured_listings_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -3640,7 +3640,7 @@ export type Database = {
             foreignKeyName: "ical_feeds_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -3857,430 +3857,6 @@ export type Database = {
           },
         ]
       }
-      listing_addons: {
-        Row: {
-          addon_id: string
-          created_at: string
-          id: string
-          listing_id: string
-          room_id: string | null
-          unit_price_override: number | null
-        }
-        Insert: {
-          addon_id: string
-          created_at?: string
-          id?: string
-          listing_id: string
-          room_id?: string | null
-          unit_price_override?: number | null
-        }
-        Update: {
-          addon_id?: string
-          created_at?: string
-          id?: string
-          listing_id?: string
-          room_id?: string | null
-          unit_price_override?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_addons_addon_id_fkey"
-            columns: ["addon_id"]
-            isOneToOne: false
-            referencedRelation: "addons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_addons_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_addons_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_amenities: {
-        Row: {
-          amenity_key: string
-          amenity_label: string | null
-          catalog_id: string | null
-          id: string
-          listing_id: string
-          room_id: string | null
-        }
-        Insert: {
-          amenity_key: string
-          amenity_label?: string | null
-          catalog_id?: string | null
-          id?: string
-          listing_id: string
-          room_id?: string | null
-        }
-        Update: {
-          amenity_key?: string
-          amenity_label?: string | null
-          catalog_id?: string | null
-          id?: string
-          listing_id?: string
-          room_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_amenities_catalog_id_fkey"
-            columns: ["catalog_id"]
-            isOneToOne: false
-            referencedRelation: "amenity_catalog"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_amenities_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_amenities_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_photos: {
-        Row: {
-          caption: string | null
-          created_at: string
-          id: string
-          listing_id: string
-          room_id: string | null
-          sort_order: number
-          storage_path: string
-          url: string
-        }
-        Insert: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          listing_id: string
-          room_id?: string | null
-          sort_order?: number
-          storage_path: string
-          url: string
-        }
-        Update: {
-          caption?: string | null
-          created_at?: string
-          id?: string
-          listing_id?: string
-          room_id?: string | null
-          sort_order?: number
-          storage_path?: string
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_photos_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_photos_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_policies: {
-        Row: {
-          assigned_at: string
-          assigned_by: string | null
-          id: string
-          listing_id: string
-          policy_id: string
-          policy_type: string
-          room_id: string | null
-        }
-        Insert: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          listing_id: string
-          policy_id: string
-          policy_type: string
-          room_id?: string | null
-        }
-        Update: {
-          assigned_at?: string
-          assigned_by?: string | null
-          id?: string
-          listing_id?: string
-          policy_id?: string
-          policy_type?: string
-          room_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_policies_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_policies_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_policies_policy_id_fkey"
-            columns: ["policy_id"]
-            isOneToOne: false
-            referencedRelation: "policies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_policies_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_rooms: {
-        Row: {
-          allow_children: boolean
-          allow_infants: boolean
-          allow_pets: boolean
-          base_occupancy: number | null
-          base_price: number
-          bathrooms: number | null
-          bed_type: string | null
-          bedrooms: number | null
-          child_max_age: number
-          child_price: number
-          cleaning_fee: number
-          created_at: string
-          currency: string
-          deleted_at: string | null
-          description: string | null
-          experiences: string[]
-          extra_guest_price: number | null
-          featured_photo_id: string | null
-          floor_number: number | null
-          has_ensuite_bathroom: boolean
-          id: string
-          infant_max_age: number
-          infant_price: number
-          inventory_count: number
-          is_active: boolean
-          listing_id: string
-          max_guests: number
-          min_guests: number
-          min_nights: number
-          name: string
-          pet_fee: number
-          pets_allowed: boolean
-          price_per_person: number | null
-          pricing_mode: string
-          private_entrance: boolean
-          room_size_sqm: number | null
-          smoking_allowed: boolean
-          sort_order: number
-          updated_at: string
-          view_type: string | null
-          weekend_price: number | null
-          wheelchair_accessible: boolean
-        }
-        Insert: {
-          allow_children?: boolean
-          allow_infants?: boolean
-          allow_pets?: boolean
-          base_occupancy?: number | null
-          base_price: number
-          bathrooms?: number | null
-          bed_type?: string | null
-          bedrooms?: number | null
-          child_max_age?: number
-          child_price?: number
-          cleaning_fee?: number
-          created_at?: string
-          currency?: string
-          deleted_at?: string | null
-          description?: string | null
-          experiences?: string[]
-          extra_guest_price?: number | null
-          featured_photo_id?: string | null
-          floor_number?: number | null
-          has_ensuite_bathroom?: boolean
-          id?: string
-          infant_max_age?: number
-          infant_price?: number
-          inventory_count?: number
-          is_active?: boolean
-          listing_id: string
-          max_guests?: number
-          min_guests?: number
-          min_nights?: number
-          name: string
-          pet_fee?: number
-          pets_allowed?: boolean
-          price_per_person?: number | null
-          pricing_mode?: string
-          private_entrance?: boolean
-          room_size_sqm?: number | null
-          smoking_allowed?: boolean
-          sort_order?: number
-          updated_at?: string
-          view_type?: string | null
-          weekend_price?: number | null
-          wheelchair_accessible?: boolean
-        }
-        Update: {
-          allow_children?: boolean
-          allow_infants?: boolean
-          allow_pets?: boolean
-          base_occupancy?: number | null
-          base_price?: number
-          bathrooms?: number | null
-          bed_type?: string | null
-          bedrooms?: number | null
-          child_max_age?: number
-          child_price?: number
-          cleaning_fee?: number
-          created_at?: string
-          currency?: string
-          deleted_at?: string | null
-          description?: string | null
-          experiences?: string[]
-          extra_guest_price?: number | null
-          featured_photo_id?: string | null
-          floor_number?: number | null
-          has_ensuite_bathroom?: boolean
-          id?: string
-          infant_max_age?: number
-          infant_price?: number
-          inventory_count?: number
-          is_active?: boolean
-          listing_id?: string
-          max_guests?: number
-          min_guests?: number
-          min_nights?: number
-          name?: string
-          pet_fee?: number
-          pets_allowed?: boolean
-          price_per_person?: number | null
-          pricing_mode?: string
-          private_entrance?: boolean
-          room_size_sqm?: number | null
-          smoking_allowed?: boolean
-          sort_order?: number
-          updated_at?: string
-          view_type?: string | null
-          weekend_price?: number | null
-          wheelchair_accessible?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_rooms_featured_photo_id_fkey"
-            columns: ["featured_photo_id"]
-            isOneToOne: false
-            referencedRelation: "listing_photos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_rooms_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listing_seasonal_pricing: {
-        Row: {
-          adjustment_type: string
-          adjustment_value: number
-          created_at: string
-          currency: string
-          end_date: string
-          id: string
-          is_active: boolean
-          label: string
-          listing_id: string
-          min_nights: number | null
-          price: number | null
-          priority: number
-          room_id: string | null
-          start_date: string
-          updated_at: string
-        }
-        Insert: {
-          adjustment_type?: string
-          adjustment_value: number
-          created_at?: string
-          currency?: string
-          end_date: string
-          id?: string
-          is_active?: boolean
-          label: string
-          listing_id: string
-          min_nights?: number | null
-          price?: number | null
-          priority?: number
-          room_id?: string | null
-          start_date: string
-          updated_at?: string
-        }
-        Update: {
-          adjustment_type?: string
-          adjustment_value?: number
-          created_at?: string
-          currency?: string
-          end_date?: string
-          id?: string
-          is_active?: boolean
-          label?: string
-          listing_id?: string
-          min_nights?: number | null
-          price?: number | null
-          priority?: number
-          room_id?: string | null
-          start_date?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listing_seasonal_pricing_listing_id_fkey"
-            columns: ["listing_id"]
-            isOneToOne: false
-            referencedRelation: "listings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listing_seasonal_pricing_room_id_fkey"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "listing_rooms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       listing_view_events: {
         Row: {
           country: string | null
@@ -4323,7 +3899,7 @@ export type Database = {
             foreignKeyName: "listing_view_events_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
           {
@@ -4331,260 +3907,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      listings: {
-        Row: {
-          accepts_eft: boolean
-          accepts_paypal: boolean
-          accepts_paystack: boolean
-          accommodation_type: string | null
-          address_line1: string | null
-          address_line2: string | null
-          allow_children: boolean
-          allow_infants: boolean
-          allow_pets: boolean
-          avg_rating: number | null
-          base_price: number | null
-          bathrooms: number | null
-          bedrooms: number | null
-          booking_mode: string
-          business_id: string
-          cancellation_policy: string
-          cancellation_policy_label: string | null
-          category_id: string | null
-          check_in_time: string | null
-          check_out_time: string | null
-          child_max_age: number
-          child_price: number
-          city: string | null
-          cleaning_fee: number | null
-          country: string
-          created_at: string
-          currency: string
-          deleted_at: string | null
-          description: string | null
-          duration_minutes: number | null
-          experience_type: string | null
-          featured_review_id: string | null
-          host_id: string
-          house_rules: string | null
-          id: string
-          infant_max_age: number
-          infant_price: number
-          instant_booking: boolean
-          is_featured: boolean
-          is_non_refundable: boolean
-          is_published: boolean
-          is_suspended: boolean
-          latitude: number | null
-          listing_type: string
-          location: unknown
-          longitude: number | null
-          max_guests: number | null
-          max_nights: number | null
-          max_participants: number | null
-          meeting_point: string | null
-          min_nights: number | null
-          min_participants: number | null
-          monthly_discount_pct: number | null
-          name: string
-          pet_fee: number
-          postal_code: string | null
-          private_group_price: number | null
-          province: string | null
-          published_at: string | null
-          room_config: Json | null
-          schedule: Json | null
-          search_vector: unknown
-          slug: string | null
-          total_bookings: number
-          total_reviews: number
-          updated_at: string
-          vat_number: string | null
-          vat_rate: number
-          weekend_price: number | null
-          weekly_discount_pct: number | null
-          what_to_bring: string | null
-          whole_listing_discount_pct: number | null
-        }
-        Insert: {
-          accepts_eft?: boolean
-          accepts_paypal?: boolean
-          accepts_paystack?: boolean
-          accommodation_type?: string | null
-          address_line1?: string | null
-          address_line2?: string | null
-          allow_children?: boolean
-          allow_infants?: boolean
-          allow_pets?: boolean
-          avg_rating?: number | null
-          base_price?: number | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          booking_mode?: string
-          business_id: string
-          cancellation_policy?: string
-          cancellation_policy_label?: string | null
-          category_id?: string | null
-          check_in_time?: string | null
-          check_out_time?: string | null
-          child_max_age?: number
-          child_price?: number
-          city?: string | null
-          cleaning_fee?: number | null
-          country?: string
-          created_at?: string
-          currency?: string
-          deleted_at?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          experience_type?: string | null
-          featured_review_id?: string | null
-          host_id: string
-          house_rules?: string | null
-          id?: string
-          infant_max_age?: number
-          infant_price?: number
-          instant_booking?: boolean
-          is_featured?: boolean
-          is_non_refundable?: boolean
-          is_published?: boolean
-          is_suspended?: boolean
-          latitude?: number | null
-          listing_type: string
-          location?: unknown
-          longitude?: number | null
-          max_guests?: number | null
-          max_nights?: number | null
-          max_participants?: number | null
-          meeting_point?: string | null
-          min_nights?: number | null
-          min_participants?: number | null
-          monthly_discount_pct?: number | null
-          name: string
-          pet_fee?: number
-          postal_code?: string | null
-          private_group_price?: number | null
-          province?: string | null
-          published_at?: string | null
-          room_config?: Json | null
-          schedule?: Json | null
-          search_vector?: unknown
-          slug?: string | null
-          total_bookings?: number
-          total_reviews?: number
-          updated_at?: string
-          vat_number?: string | null
-          vat_rate?: number
-          weekend_price?: number | null
-          weekly_discount_pct?: number | null
-          what_to_bring?: string | null
-          whole_listing_discount_pct?: number | null
-        }
-        Update: {
-          accepts_eft?: boolean
-          accepts_paypal?: boolean
-          accepts_paystack?: boolean
-          accommodation_type?: string | null
-          address_line1?: string | null
-          address_line2?: string | null
-          allow_children?: boolean
-          allow_infants?: boolean
-          allow_pets?: boolean
-          avg_rating?: number | null
-          base_price?: number | null
-          bathrooms?: number | null
-          bedrooms?: number | null
-          booking_mode?: string
-          business_id?: string
-          cancellation_policy?: string
-          cancellation_policy_label?: string | null
-          category_id?: string | null
-          check_in_time?: string | null
-          check_out_time?: string | null
-          child_max_age?: number
-          child_price?: number
-          city?: string | null
-          cleaning_fee?: number | null
-          country?: string
-          created_at?: string
-          currency?: string
-          deleted_at?: string | null
-          description?: string | null
-          duration_minutes?: number | null
-          experience_type?: string | null
-          featured_review_id?: string | null
-          host_id?: string
-          house_rules?: string | null
-          id?: string
-          infant_max_age?: number
-          infant_price?: number
-          instant_booking?: boolean
-          is_featured?: boolean
-          is_non_refundable?: boolean
-          is_published?: boolean
-          is_suspended?: boolean
-          latitude?: number | null
-          listing_type?: string
-          location?: unknown
-          longitude?: number | null
-          max_guests?: number | null
-          max_nights?: number | null
-          max_participants?: number | null
-          meeting_point?: string | null
-          min_nights?: number | null
-          min_participants?: number | null
-          monthly_discount_pct?: number | null
-          name?: string
-          pet_fee?: number
-          postal_code?: string | null
-          private_group_price?: number | null
-          province?: string | null
-          published_at?: string | null
-          room_config?: Json | null
-          schedule?: Json | null
-          search_vector?: unknown
-          slug?: string | null
-          total_bookings?: number
-          total_reviews?: number
-          updated_at?: string
-          vat_number?: string | null
-          vat_rate?: number
-          weekend_price?: number | null
-          weekly_discount_pct?: number | null
-          what_to_bring?: string | null
-          whole_listing_discount_pct?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "listings_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listings_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "property_categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listings_featured_review_id_fkey"
-            columns: ["featured_review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listings_host_id_fkey"
-            columns: ["host_id"]
-            isOneToOne: false
-            referencedRelation: "hosts"
             referencedColumns: ["id"]
           },
         ]
@@ -6118,6 +5440,260 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          accepts_eft: boolean
+          accepts_paypal: boolean
+          accepts_paystack: boolean
+          accommodation_type: string | null
+          address_line1: string | null
+          address_line2: string | null
+          allow_children: boolean
+          allow_infants: boolean
+          allow_pets: boolean
+          avg_rating: number | null
+          base_price: number | null
+          bathrooms: number | null
+          bedrooms: number | null
+          booking_mode: string
+          business_id: string
+          cancellation_policy: string
+          cancellation_policy_label: string | null
+          category_id: string | null
+          check_in_time: string | null
+          check_out_time: string | null
+          child_max_age: number
+          child_price: number
+          city: string | null
+          cleaning_fee: number | null
+          country: string
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          experience_type: string | null
+          featured_review_id: string | null
+          host_id: string
+          house_rules: string | null
+          id: string
+          infant_max_age: number
+          infant_price: number
+          instant_booking: boolean
+          is_featured: boolean
+          is_non_refundable: boolean
+          is_published: boolean
+          is_suspended: boolean
+          latitude: number | null
+          listing_type: string
+          location: unknown
+          longitude: number | null
+          max_guests: number | null
+          max_nights: number | null
+          max_participants: number | null
+          meeting_point: string | null
+          min_nights: number | null
+          min_participants: number | null
+          monthly_discount_pct: number | null
+          name: string
+          pet_fee: number
+          postal_code: string | null
+          private_group_price: number | null
+          province: string | null
+          published_at: string | null
+          room_config: Json | null
+          schedule: Json | null
+          search_vector: unknown
+          slug: string | null
+          total_bookings: number
+          total_reviews: number
+          updated_at: string
+          vat_number: string | null
+          vat_rate: number
+          weekend_price: number | null
+          weekly_discount_pct: number | null
+          what_to_bring: string | null
+          whole_listing_discount_pct: number | null
+        }
+        Insert: {
+          accepts_eft?: boolean
+          accepts_paypal?: boolean
+          accepts_paystack?: boolean
+          accommodation_type?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
+          avg_rating?: number | null
+          base_price?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          booking_mode?: string
+          business_id: string
+          cancellation_policy?: string
+          cancellation_policy_label?: string | null
+          category_id?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          child_max_age?: number
+          child_price?: number
+          city?: string | null
+          cleaning_fee?: number | null
+          country?: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          experience_type?: string | null
+          featured_review_id?: string | null
+          host_id: string
+          house_rules?: string | null
+          id?: string
+          infant_max_age?: number
+          infant_price?: number
+          instant_booking?: boolean
+          is_featured?: boolean
+          is_non_refundable?: boolean
+          is_published?: boolean
+          is_suspended?: boolean
+          latitude?: number | null
+          listing_type: string
+          location?: unknown
+          longitude?: number | null
+          max_guests?: number | null
+          max_nights?: number | null
+          max_participants?: number | null
+          meeting_point?: string | null
+          min_nights?: number | null
+          min_participants?: number | null
+          monthly_discount_pct?: number | null
+          name: string
+          pet_fee?: number
+          postal_code?: string | null
+          private_group_price?: number | null
+          province?: string | null
+          published_at?: string | null
+          room_config?: Json | null
+          schedule?: Json | null
+          search_vector?: unknown
+          slug?: string | null
+          total_bookings?: number
+          total_reviews?: number
+          updated_at?: string
+          vat_number?: string | null
+          vat_rate?: number
+          weekend_price?: number | null
+          weekly_discount_pct?: number | null
+          what_to_bring?: string | null
+          whole_listing_discount_pct?: number | null
+        }
+        Update: {
+          accepts_eft?: boolean
+          accepts_paypal?: boolean
+          accepts_paystack?: boolean
+          accommodation_type?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
+          avg_rating?: number | null
+          base_price?: number | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          booking_mode?: string
+          business_id?: string
+          cancellation_policy?: string
+          cancellation_policy_label?: string | null
+          category_id?: string | null
+          check_in_time?: string | null
+          check_out_time?: string | null
+          child_max_age?: number
+          child_price?: number
+          city?: string | null
+          cleaning_fee?: number | null
+          country?: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          experience_type?: string | null
+          featured_review_id?: string | null
+          host_id?: string
+          house_rules?: string | null
+          id?: string
+          infant_max_age?: number
+          infant_price?: number
+          instant_booking?: boolean
+          is_featured?: boolean
+          is_non_refundable?: boolean
+          is_published?: boolean
+          is_suspended?: boolean
+          latitude?: number | null
+          listing_type?: string
+          location?: unknown
+          longitude?: number | null
+          max_guests?: number | null
+          max_nights?: number | null
+          max_participants?: number | null
+          meeting_point?: string | null
+          min_nights?: number | null
+          min_participants?: number | null
+          monthly_discount_pct?: number | null
+          name?: string
+          pet_fee?: number
+          postal_code?: string | null
+          private_group_price?: number | null
+          province?: string | null
+          published_at?: string | null
+          room_config?: Json | null
+          schedule?: Json | null
+          search_vector?: unknown
+          slug?: string | null
+          total_bookings?: number
+          total_reviews?: number
+          updated_at?: string
+          vat_number?: string | null
+          vat_rate?: number
+          weekend_price?: number | null
+          weekly_discount_pct?: number | null
+          what_to_bring?: string | null
+          whole_listing_discount_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "property_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_featured_review_id_fkey"
+            columns: ["featured_review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_access: {
         Row: {
           check_in_instructions: string | null
@@ -6157,7 +5733,105 @@ export type Database = {
             foreignKeyName: "listing_access_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
-            referencedRelation: "listings"
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_addons: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          listing_id: string
+          room_id: string | null
+          unit_price_override: number | null
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          room_id?: string | null
+          unit_price_override?: number | null
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          room_id?: string | null
+          unit_price_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_addons_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_addons_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_amenities: {
+        Row: {
+          amenity_key: string
+          amenity_label: string | null
+          catalog_id: string | null
+          id: string
+          listing_id: string
+          room_id: string | null
+        }
+        Insert: {
+          amenity_key: string
+          amenity_label?: string | null
+          catalog_id?: string | null
+          id?: string
+          listing_id: string
+          room_id?: string | null
+        }
+        Update: {
+          amenity_key?: string
+          amenity_label?: string | null
+          catalog_id?: string | null
+          id?: string
+          listing_id?: string
+          room_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_amenities_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "amenity_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_amenities_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_amenities_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -6257,7 +5931,7 @@ export type Database = {
             foreignKeyName: "listing_counters_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -6304,7 +5978,55 @@ export type Database = {
             foreignKeyName: "listing_local_picks_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          listing_id: string
+          room_id: string | null
+          sort_order: number
+          storage_path: string
+          url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+          room_id?: string | null
+          sort_order?: number
+          storage_path: string
+          url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+          room_id?: string | null
+          sort_order?: number
+          storage_path?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_photos_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_photos_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -6342,7 +6064,66 @@ export type Database = {
             foreignKeyName: "listing_points_of_interest_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_policies: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          listing_id: string
+          policy_id: string
+          policy_type: string
+          room_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          listing_id: string
+          policy_id: string
+          policy_type: string
+          room_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          listing_id?: string
+          policy_id?: string
+          policy_type?: string
+          room_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_policies_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_policies_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_policies_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_policies_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -6383,7 +6164,7 @@ export type Database = {
             foreignKeyName: "listing_rankings_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: true
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -6421,7 +6202,7 @@ export type Database = {
             foreignKeyName: "listing_review_themes_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -6465,7 +6246,226 @@ export type Database = {
             foreignKeyName: "listing_room_access_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: true
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_rooms: {
+        Row: {
+          allow_children: boolean
+          allow_infants: boolean
+          allow_pets: boolean
+          base_occupancy: number | null
+          base_price: number
+          bathrooms: number | null
+          bed_type: string | null
+          bedrooms: number | null
+          child_max_age: number
+          child_price: number
+          cleaning_fee: number
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          experiences: string[]
+          extra_guest_price: number | null
+          featured_photo_id: string | null
+          floor_number: number | null
+          has_ensuite_bathroom: boolean
+          id: string
+          infant_max_age: number
+          infant_price: number
+          inventory_count: number
+          is_active: boolean
+          listing_id: string
+          max_guests: number
+          min_guests: number
+          min_nights: number
+          name: string
+          pet_fee: number
+          pets_allowed: boolean
+          price_per_person: number | null
+          pricing_mode: string
+          private_entrance: boolean
+          room_size_sqm: number | null
+          smoking_allowed: boolean
+          sort_order: number
+          updated_at: string
+          view_type: string | null
+          weekend_price: number | null
+          wheelchair_accessible: boolean
+        }
+        Insert: {
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
+          base_occupancy?: number | null
+          base_price: number
+          bathrooms?: number | null
+          bed_type?: string | null
+          bedrooms?: number | null
+          child_max_age?: number
+          child_price?: number
+          cleaning_fee?: number
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          experiences?: string[]
+          extra_guest_price?: number | null
+          featured_photo_id?: string | null
+          floor_number?: number | null
+          has_ensuite_bathroom?: boolean
+          id?: string
+          infant_max_age?: number
+          infant_price?: number
+          inventory_count?: number
+          is_active?: boolean
+          listing_id: string
+          max_guests?: number
+          min_guests?: number
+          min_nights?: number
+          name: string
+          pet_fee?: number
+          pets_allowed?: boolean
+          price_per_person?: number | null
+          pricing_mode?: string
+          private_entrance?: boolean
+          room_size_sqm?: number | null
+          smoking_allowed?: boolean
+          sort_order?: number
+          updated_at?: string
+          view_type?: string | null
+          weekend_price?: number | null
+          wheelchair_accessible?: boolean
+        }
+        Update: {
+          allow_children?: boolean
+          allow_infants?: boolean
+          allow_pets?: boolean
+          base_occupancy?: number | null
+          base_price?: number
+          bathrooms?: number | null
+          bed_type?: string | null
+          bedrooms?: number | null
+          child_max_age?: number
+          child_price?: number
+          cleaning_fee?: number
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          experiences?: string[]
+          extra_guest_price?: number | null
+          featured_photo_id?: string | null
+          floor_number?: number | null
+          has_ensuite_bathroom?: boolean
+          id?: string
+          infant_max_age?: number
+          infant_price?: number
+          inventory_count?: number
+          is_active?: boolean
+          listing_id?: string
+          max_guests?: number
+          min_guests?: number
+          min_nights?: number
+          name?: string
+          pet_fee?: number
+          pets_allowed?: boolean
+          price_per_person?: number | null
+          pricing_mode?: string
+          private_entrance?: boolean
+          room_size_sqm?: number | null
+          smoking_allowed?: boolean
+          sort_order?: number
+          updated_at?: string
+          view_type?: string | null
+          weekend_price?: number | null
+          wheelchair_accessible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_rooms_featured_photo_id_fkey"
+            columns: ["featured_photo_id"]
+            isOneToOne: false
+            referencedRelation: "property_photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_rooms_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_seasonal_pricing: {
+        Row: {
+          adjustment_type: string
+          adjustment_value: number
+          created_at: string
+          currency: string
+          end_date: string
+          id: string
+          is_active: boolean
+          label: string
+          listing_id: string
+          min_nights: number | null
+          price: number | null
+          priority: number
+          room_id: string | null
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          adjustment_type?: string
+          adjustment_value: number
+          created_at?: string
+          currency?: string
+          end_date: string
+          id?: string
+          is_active?: boolean
+          label: string
+          listing_id: string
+          min_nights?: number | null
+          price?: number | null
+          priority?: number
+          room_id?: string | null
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          adjustment_type?: string
+          adjustment_value?: number
+          created_at?: string
+          currency?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          listing_id?: string
+          min_nights?: number | null
+          price?: number | null
+          priority?: number
+          room_id?: string | null
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_seasonal_pricing_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listing_seasonal_pricing_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -6641,7 +6641,7 @@ export type Database = {
             foreignKeyName: "quote_rooms_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -6888,7 +6888,7 @@ export type Database = {
             foreignKeyName: "quotes_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -7535,7 +7535,7 @@ export type Database = {
             foreignKeyName: "reviews_listing_id_fkey"
             columns: ["listing_id"]
             isOneToOne: false
-            referencedRelation: "listings"
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]
@@ -7573,7 +7573,7 @@ export type Database = {
             foreignKeyName: "room_beds_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
-            referencedRelation: "listing_rooms"
+            referencedRelation: "property_rooms"
             referencedColumns: ["id"]
           },
         ]
@@ -8747,10 +8747,9 @@ export type Database = {
         Args: { p_listing_id: string; p_month: number; p_year: number }
         Returns: string[]
       }
-      get_listing_policy_summary: {
-        Args: { p_listing_id: string; p_room_id?: string }
-        Returns: Json
-      }
+      get_listing_policy_summary:
+        | { Args: { p_listing_id: string }; Returns: Json }
+        | { Args: { p_listing_id: string; p_room_id?: string }; Returns: Json }
       get_min_nights_for_stay: {
         Args: {
           p_check_in: string

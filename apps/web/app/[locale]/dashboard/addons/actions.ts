@@ -65,7 +65,7 @@ async function assertListingOwnership(
 ): Promise<boolean> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id")
     .eq("id", listingId)
     .eq("host_id", hostId)
@@ -511,7 +511,7 @@ export async function setListingAddonAction(
   // Passing null = disable on this listing — wipe every scope row for this pair.
   if (input === null) {
     const { error } = await supabase
-      .from("listing_addons")
+      .from("property_addons")
       .delete()
       .eq("listing_id", listingId)
       .eq("addon_id", addonId);
@@ -528,12 +528,12 @@ export async function setListingAddonAction(
   // Single-scope semantics: an addon is either listing-wide OR scoped to one
   // room at a time per listing. Wipe other scopes for this pair before insert.
   await supabase
-    .from("listing_addons")
+    .from("property_addons")
     .delete()
     .eq("listing_id", listingId)
     .eq("addon_id", addonId);
 
-  const { error } = await supabase.from("listing_addons").insert({
+  const { error } = await supabase.from("property_addons").insert({
     listing_id: listingId,
     addon_id: addonId,
     room_id: parsed.data.room_id,
@@ -548,7 +548,7 @@ export async function setListingAddonAction(
 }
 
 /** Multi-room availability control used by the add-on editor.
- * Replaces every `listing_addons` scope row for (listing, addon) with the new
+ * Replaces every `property_addons` scope row for (listing, addon) with the new
  * selection: off = no rows, all = one listing-wide row (room_id null), rooms =
  * one row per valid room. Distinct from `setListingAddonAction`, which keeps the
  * single-scope (one room OR listing-wide) semantics the listing editor relies on. */
@@ -576,7 +576,7 @@ export async function setAddonListingRoomsAction(
 
   // Always start from a clean slate for this (listing, addon) pair.
   const { error: delErr } = await supabase
-    .from("listing_addons")
+    .from("property_addons")
     .delete()
     .eq("listing_id", listingId)
     .eq("addon_id", addonId);
@@ -590,7 +590,7 @@ export async function setAddonListingRoomsAction(
   }
 
   if (selection.mode === "all") {
-    const { error } = await supabase.from("listing_addons").insert({
+    const { error } = await supabase.from("property_addons").insert({
       listing_id: listingId,
       addon_id: addonId,
       room_id: null,
@@ -607,7 +607,7 @@ export async function setAddonListingRoomsAction(
   let validIds: string[] = [];
   if (requested.length > 0) {
     const { data: rooms } = await supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id")
       .in("id", requested)
       .eq("listing_id", listingId)
@@ -622,7 +622,7 @@ export async function setAddonListingRoomsAction(
     return { ok: true };
   }
 
-  const { error } = await supabase.from("listing_addons").insert(
+  const { error } = await supabase.from("property_addons").insert(
     validIds.map((roomId) => ({
       listing_id: listingId,
       addon_id: addonId,

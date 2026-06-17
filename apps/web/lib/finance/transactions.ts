@@ -483,7 +483,7 @@ export async function fetchHostTransactions(
     const businessByBooking = new Map<string, string | null>();
     const { data: bkBiz } = await admin
       .from("bookings")
-      .select("id, listing:listings ( business_id )")
+      .select("id, listing:properties ( business_id )")
       .in("id", txnBookingIds);
     for (const row of bkBiz ?? []) {
       const l = one((row as { listing?: unknown }).listing) as {

@@ -40,7 +40,7 @@ export async function createListingAction(
 
   // host_manage_own_listings RLS lets the user-bound client insert.
   const { data: listing, error } = await supabase
-    .from("listings")
+    .from("properties")
     .insert({
       host_id: host.id,
       listing_type: "accommodation",

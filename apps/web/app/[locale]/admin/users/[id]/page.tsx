@@ -77,7 +77,7 @@ export default async function AdminUserDetailPage({
     service
       .from("bookings")
       .select(
-        "id, reference, status, check_in, check_out, total_amount, currency, created_at, listing:listings ( name )",
+        "id, reference, status, check_in, check_out, total_amount, currency, created_at, listing:properties ( name )",
       )
       .eq("guest_id", user.id)
       .order("created_at", { ascending: false })
@@ -134,7 +134,7 @@ export default async function AdminUserDetailPage({
       { data: grGiven },
     ] = await Promise.all([
       service
-        .from("listings")
+        .from("properties")
         .select(
           "id, name, city, province, is_published, base_price, currency, slug",
           {
@@ -154,7 +154,7 @@ export default async function AdminUserDetailPage({
       service
         .from("bookings")
         .select(
-          "id, reference, status, check_in, check_out, total_amount, currency, created_at, listing:listings ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+          "id, reference, status, check_in, check_out, total_amount, currency, created_at, listing:properties ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
         )
         .eq("host_id", host.id)
         .order("created_at", { ascending: false })
@@ -162,7 +162,7 @@ export default async function AdminUserDetailPage({
       service
         .from("reviews")
         .select(
-          "id, rating, body, created_at, is_published, host_response, listing:listings!reviews_listing_id_fkey ( name ), guest:user_profiles!reviews_guest_id_fkey ( full_name )",
+          "id, rating, body, created_at, is_published, host_response, listing:properties!reviews_listing_id_fkey ( name ), guest:user_profiles!reviews_guest_id_fkey ( full_name )",
         )
         .eq("host_id", host.id)
         .order("created_at", { ascending: false })
@@ -266,13 +266,13 @@ export default async function AdminUserDetailPage({
     const [{ data: laRows }, { data: lpRows }] = await Promise.all([
       addonIds.length
         ? service
-            .from("listing_addons")
+            .from("property_addons")
             .select("addon_id")
             .in("addon_id", addonIds)
         : Promise.resolve({ data: [] as { addon_id: string }[] }),
       policyIds.length
         ? service
-            .from("listing_policies")
+            .from("property_policies")
             .select("policy_id")
             .in("policy_id", policyIds)
         : Promise.resolve({ data: [] as { policy_id: string }[] }),
@@ -334,7 +334,7 @@ export default async function AdminUserDetailPage({
   const { data: revWritten } = await service
     .from("reviews")
     .select(
-      "id, rating, body, created_at, is_published, host_response, listing:listings!reviews_listing_id_fkey ( name ), host:hosts ( display_name )",
+      "id, rating, body, created_at, is_published, host_response, listing:properties!reviews_listing_id_fkey ( name ), host:hosts ( display_name )",
     )
     .eq("guest_id", user.id)
     .order("created_at", { ascending: false })

@@ -76,7 +76,7 @@ export default async function AddonsPage() {
   const addonIds = (rows ?? []).map((r) => r.id);
   const { data: laRows } = addonIds.length
     ? await supabase
-        .from("listing_addons")
+        .from("property_addons")
         .select("addon_id, listing_id")
         .in("addon_id", addonIds)
     : { data: [] as { addon_id: string; listing_id: string }[] };

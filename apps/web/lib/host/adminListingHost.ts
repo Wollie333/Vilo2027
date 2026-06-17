@@ -34,7 +34,7 @@ export async function resolveListingHostContext(
 
   const admin = createAdminClient();
   const { data: listing } = await admin
-    .from("listings")
+    .from("properties")
     .select("host_id, host:hosts!inner ( user_id )")
     .eq("id", listingId)
     .maybeSingle();

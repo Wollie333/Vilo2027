@@ -62,7 +62,7 @@ async function loadBookingBundle(
   const [{ data: listing }, { data: host }, { data: guestUser }] =
     await Promise.all([
       supabase
-        .from("listings")
+        .from("properties")
         .select("id, name, slug")
         .eq("id", booking.listing_id)
         .maybeSingle(),

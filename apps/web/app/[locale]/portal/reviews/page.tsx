@@ -37,7 +37,7 @@ export default async function PortalReviewsPage() {
     .select(
       `
       id, reference, check_in, check_out, session_date, status,
-      listing:listings ( name ),
+      listing:properties ( name ),
       host:hosts ( display_name )
     `,
     )

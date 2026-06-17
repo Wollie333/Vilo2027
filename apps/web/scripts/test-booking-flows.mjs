@@ -384,7 +384,7 @@ async function main() {
   console.log("\nJourney F — rooms-scope booking blocks the room");
   {
     const { data: room } = await db
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id, base_price, cleaning_fee")
       .eq("listing_id", LISTING_B)
       .is("deleted_at", null)
@@ -654,7 +654,7 @@ async function main() {
       .eq("booking_id", conv.id);
     check("I5 pending→confirm blocks the calendar", blkConv === 3, `got ${blkConv}`);
     // The convert path calls snapshot_booking_policies (best-effort). Row count
-    // depends on whether the listing has assigned policies in listing_policies;
+    // depends on whether the listing has assigned policies in property_policies;
     // the demo listing carries a cancellation_policy enum but no join rows, so we
     // assert the snapshot call itself succeeds rather than a specific row count.
     check("I6 convert snapshots policies without error", !snapErr, snapErr?.message);
@@ -901,13 +901,13 @@ async function main() {
   console.log("\nJourney O — catalog add-on links back for thumbnail/description");
   {
     const { data: la } = await db
-      .from("listing_addons")
+      .from("property_addons")
       .select("addon_id")
       .eq("listing_id", LISTING_A)
       .limit(1)
       .maybeSingle();
     if (!la?.addon_id) {
-      check("O0 demo catalog add-on present", false, "no listing_addons on LISTING_A");
+      check("O0 demo catalog add-on present", false, "no property_addons on LISTING_A");
     } else {
       const q = await insertQuote();
       await db.from("quote_addons").insert([
@@ -951,7 +951,7 @@ async function main() {
   console.log("\nJourney P — rooms quote → convert → invoice + room blocks");
   {
     const { data: room } = await db
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id, bed_type")
       .eq("listing_id", LISTING_B)
       .is("deleted_at", null)
@@ -1036,17 +1036,17 @@ async function main() {
       // The room-detail join the quote page relies on resolves.
       const { data: rj } = await db
         .from("quote_rooms")
-        .select("room:listing_rooms ( name, bed_type )")
+        .select("room:property_rooms ( name, bed_type )")
         .eq("quote_id", q.id)
         .maybeSingle();
       const rjRoom = Array.isArray(rj?.room) ? rj.room[0] : rj?.room;
-      check("P6 quote_rooms → listing_rooms join resolves name/bed", !!rjRoom?.name);
+      check("P6 quote_rooms → property_rooms join resolves name/bed", !!rjRoom?.name);
       // The EXACT embed the quote detail page uses — a wrong FK hint here would
       // 500 the live page for any room quote.
       const { error: fpErr } = await db
         .from("quote_rooms")
         .select(
-          "room:listing_rooms ( name, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
+          "room:property_rooms ( name, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
         )
         .eq("quote_id", q.id);
       check("P7 featured_photo embed (quote detail) is valid", !fpErr, fpErr?.message);

@@ -16,10 +16,12 @@
 > Ledger/booking core is NOT touched. Each phase: migration → `db push --linked` → gen types
 > → code sweep → `pnpm build`+`pnpm lint`+query-sweep → commit → (optionally start fresh session).
 >
-> **Status:** R0 done (inventory); R1 done (8 leaf tables `listing_*→property_*`,
-> commit `ca78d20`; `listing_view_events` deferred to R3). Next: **R2 — core tables**
-> (`listings→properties` + core children `listing_rooms/photos/amenities/seasonal_pricing/
-> policies/addons`; recreate pricing/policy/availability fns; sweep `.from()`/embeds/types).
+> **Status:** R0 done (inventory); R1 done (8 leaf tables, commit `ca78d20`); R2 done
+> (7 core tables `listings→properties` + core children; migration
+> `20260617000200_rename_r2_core_tables.sql`; 30 fns recreated; 112 code files + 4
+> scripts swept; type-check/lint green; live verify green). Next: **R3 —
+> `listing_id → property_id` columns** (+ `listing_type`, `clicked_listing`, rename
+> `listing_view_events` table+col, recreate the analytics RPC suite once for columns).
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

@@ -62,7 +62,7 @@ export default async function SetupPage({
   // Primary listing — oldest one, the one seeded during onboarding. If a
   // host somehow has zero listings, we send them through /listings/new.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "id, name, slug, listing_type, category_id, accommodation_type, description, base_price, weekend_price, cleaning_fee, currency, max_guests, bedrooms, bathrooms, check_in_time, check_out_time, cancellation_policy, house_rules, is_published, booking_mode, address_line1, address_line2, city, province, postal_code, latitude, longitude",
     )
@@ -98,13 +98,13 @@ export default async function SetupPage({
     .maybeSingle();
 
   const { data: photos } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .select("id, url, sort_order")
     .eq("listing_id", listing.id)
     .order("sort_order", { ascending: true });
 
   const { data: rooms } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, bed_type, view_type, is_active, featured_photo_id",
     )
@@ -114,7 +114,7 @@ export default async function SetupPage({
 
   // Per-room photos (for the card thumbnail + count).
   const { data: roomPhotos } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .select("id, url, room_id, sort_order")
     .eq("listing_id", listing.id)
     .not("room_id", "is", null)
@@ -124,7 +124,7 @@ export default async function SetupPage({
   const [amenityGroups, { data: amenityRows }] = await Promise.all([
     getAmenityCatalog(),
     supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("id, amenity_key, room_id")
       .eq("listing_id", listing.id),
   ]);
@@ -172,7 +172,7 @@ export default async function SetupPage({
             .in("policy_id", policyIds)
             .eq("locale", "en"),
           supabase
-            .from("listing_policies")
+            .from("property_policies")
             .select("policy_type, policy_id")
             .eq("listing_id", listing.id)
             .is("room_id", null),

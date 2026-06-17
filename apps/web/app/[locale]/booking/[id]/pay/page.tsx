@@ -26,7 +26,7 @@ export default async function BookingPayPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, guest_id, reference, status, payment_status, total_amount, deposit_amount, currency, check_in, check_out, listing:listings ( name, host_id )",
+      "id, guest_id, reference, status, payment_status, total_amount, deposit_amount, currency, check_in, check_out, listing:properties ( name, host_id )",
     )
     .eq("id", params.id)
     .maybeSingle();

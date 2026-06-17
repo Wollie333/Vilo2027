@@ -62,7 +62,7 @@ export async function computeStayPricing(
   }
 
   const { data: listing } = await admin
-    .from("listings")
+    .from("properties")
     .select(
       "id, host_id, base_price, weekend_price, cleaning_fee, currency, min_nights, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
@@ -93,7 +93,7 @@ export async function computeStayPricing(
       return { ok: false, error: "Pick at least one room to price." };
     }
     const { data: roomRows } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .select(
         "id, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
@@ -130,7 +130,7 @@ export async function computeStayPricing(
       guests: Math.max(1, guestsByRoom.get(r.id) ?? 1),
     }));
     const { count: activeRoomCount } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id", { count: "exact", head: true })
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -160,7 +160,7 @@ export async function computeStayPricing(
   }
 
   const { data: seasonalRows } = await admin
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )

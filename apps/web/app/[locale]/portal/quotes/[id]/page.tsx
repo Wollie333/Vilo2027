@@ -43,7 +43,7 @@ export default async function PortalQuotePage({
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until, conversation_id,
-      listing:listings ( name )
+      listing:properties ( name )
     `,
     )
     .eq("id", params.id)

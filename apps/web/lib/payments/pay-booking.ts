@@ -298,7 +298,7 @@ async function postPaymentConfirmedCard(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, reference, host_id, guest_id, listing_id, quote_id, listing:listings ( name )",
+      "id, reference, host_id, guest_id, listing_id, quote_id, listing:properties ( name )",
     )
     .eq("id", bookingId)
     .maybeSingle();

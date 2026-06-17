@@ -30,7 +30,7 @@ async function assertListingOwnership(
 ): Promise<boolean> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id")
     .eq("id", listingId)
     .eq("host_id", hostId)
@@ -44,7 +44,7 @@ async function assertRoomBelongsToListing(
 ): Promise<boolean> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select("id")
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -58,8 +58,8 @@ async function assertRuleOwnership(
 ): Promise<{ ok: true; listingId: string } | { ok: false }> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listing_seasonal_pricing")
-    .select("listing_id, listings!inner(host_id)")
+    .from("property_seasonal_pricing")
+    .select("listing_id, listings:properties!inner(host_id)")
     .eq("id", ruleId)
     .maybeSingle();
   const row = data as {
@@ -98,7 +98,7 @@ export async function createSeasonalRuleAction(
 
   const supabase = createServerClient();
   const { data: row, error } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .insert({
       listing_id: v.listing_id,
       room_id: v.room_id,
@@ -157,7 +157,7 @@ export async function updateSeasonalRuleAction(
 
   const supabase = createServerClient();
   const { error } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .update({
       room_id: v.room_id,
       label: v.label,
@@ -190,7 +190,7 @@ export async function deleteSeasonalRuleAction(
 
   const supabase = createServerClient();
   const { error } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .delete()
     .eq("id", ruleId);
   if (error) return { ok: false, error: "Could not delete rule." };
@@ -240,7 +240,7 @@ export async function copySeasonalRulesToListingAction(
 
   const supabase = createServerClient();
   const { data: source } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .select(
       "label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
     )
@@ -256,7 +256,7 @@ export async function copySeasonalRulesToListingAction(
   }
 
   const { data: inserted, error } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .insert(
       rows.map((r) => ({
         listing_id: toListingId,
@@ -315,7 +315,7 @@ export async function toggleSeasonalRuleActiveAction(
 
   const supabase = createServerClient();
   const { error } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .update({ is_active: isActive })
     .eq("id", ruleId);
   if (error) return { ok: false, error: "Could not update rule." };
@@ -425,7 +425,7 @@ export async function createSeasonalRuleForListingAction(
   const v = parsed.data;
 
   const { data: row, error } = await ctx.db
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .insert({
       listing_id: listingId,
       room_id: null,
@@ -477,7 +477,7 @@ export async function updateSeasonalRuleForListingAction(
   const v = parsed.data;
 
   const { data: row, error } = await ctx.db
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .update({
       label: v.label,
       start_date: v.start_date,
@@ -512,7 +512,7 @@ export async function deleteSeasonalRuleForListingAction(
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { error } = await ctx.db
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .delete()
     .eq("id", ruleId)
     .eq("listing_id", listingId);
@@ -535,7 +535,7 @@ export async function toggleSeasonalRuleForListingAction(
   if (!ctx.ok) return { ok: false, error: ctx.error };
 
   const { error } = await ctx.db
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .update({ is_active: isActive })
     .eq("id", ruleId)
     .eq("listing_id", listingId);

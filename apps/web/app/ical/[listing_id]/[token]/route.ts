@@ -34,7 +34,7 @@ export async function GET(
   const supabase = createAdminClient();
 
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name, deleted_at")
     .eq("id", listingId)
     .maybeSingle();
@@ -49,7 +49,7 @@ export async function GET(
 
   const { data: blocks } = await supabase
     .from("blocked_dates")
-    .select("date, booking_id, reason, room_id, room:listing_rooms ( name )")
+    .select("date, booking_id, reason, room_id, room:property_rooms ( name )")
     .eq("listing_id", listingId)
     .gte("date", today.toISOString().slice(0, 10))
     .lte("date", horizon.toISOString().slice(0, 10))

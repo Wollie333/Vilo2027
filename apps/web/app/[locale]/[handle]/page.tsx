@@ -86,7 +86,7 @@ type Listing = {
   bathrooms: number | null;
   is_featured: boolean;
   photos: Array<{ url: string; sort_order: number }> | null;
-  listing_rooms: Array<{
+  property_rooms: Array<{
     base_price: number;
     is_active: boolean | null;
     deleted_at: string | null;
@@ -98,7 +98,7 @@ function typeLabel(l: Pick<Listing, "accommodation_type">) {
 }
 
 function priceForListing(
-  l: Pick<Listing, "base_price" | "booking_mode" | "listing_rooms">,
+  l: Pick<Listing, "base_price" | "booking_mode" | "property_rooms">,
 ): {
   amount: number | null;
   fromLabel: boolean;
@@ -169,9 +169,9 @@ async function loadHost(handle: string) {
 
   // Public published listings + their hero photo.
   const { data: listings } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
-      "id, slug, name, accommodation_type, city, province, base_price, currency, booking_mode, avg_rating, total_reviews, max_guests, bedrooms, bathrooms, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+      "id, slug, name, accommodation_type, city, province, base_price, currency, booking_mode, avg_rating, total_reviews, max_guests, bedrooms, bathrooms, is_featured, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
     )
     .eq("host_id", host.id)
     .eq("is_published", true)

@@ -18,7 +18,7 @@ export async function loadQuoteFormListings(
   excludeQuoteId?: string | null,
 ): Promise<QuoteFormListing[]> {
   const { data: listings } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests, allow_children, allow_infants, allow_pets",
     )
@@ -37,22 +37,22 @@ export async function loadQuoteFormListings(
     { data: blocks },
   ] = await Promise.all([
     supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select(
-        "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, allow_children, allow_infants, allow_pets, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url )",
+        "id, listing_id, name, base_price, cleaning_fee, max_guests, base_occupancy, bed_type, allow_children, allow_infants, allow_pets, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url )",
       )
       .in("listing_id", listingIds)
       .is("deleted_at", null)
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_addons")
+      .from("property_addons")
       .select(
         "listing_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, is_active )",
       )
       .in("listing_id", listingIds),
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("listing_id, url, sort_order, room_id")
       .in("listing_id", listingIds)
       .is("room_id", null)

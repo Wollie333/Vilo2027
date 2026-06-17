@@ -90,7 +90,7 @@ export default async function ClaimPage({
     const { data: conv } = await supabase
       .from("conversations")
       .select(
-        "id, host:hosts ( display_name ), listing:listings ( id, name, city, province, bedrooms, bathrooms, max_guests )",
+        "id, host:hosts ( display_name ), listing:properties ( id, name, city, province, bedrooms, bathrooms, max_guests )",
       )
       .eq("id", conversationId)
       .eq("guest_id", user.id)
@@ -129,7 +129,7 @@ export default async function ClaimPage({
           .maybeSingle(),
         listing?.id
           ? admin
-              .from("listing_photos")
+              .from("property_photos")
               .select("url")
               .eq("listing_id", listing.id)
               .order("sort_order", { ascending: true })

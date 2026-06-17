@@ -419,7 +419,7 @@ export function AmenitiesEditor({
 
                 <FieldLabel
                   label="Slug"
-                  hint="Stable key — matches listing_amenities.amenity_key. Auto-generated from the label if blank."
+                  hint="Stable key — matches property_amenities.amenity_key. Auto-generated from the label if blank."
                 >
                   <Input
                     value={editing.slug}

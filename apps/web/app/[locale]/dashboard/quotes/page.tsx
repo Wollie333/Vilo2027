@@ -51,7 +51,7 @@ export default async function QuotesListPage({
   let query = supabase
     .from("quotes")
     .select(
-      "id, quote_number, guest_name, guest_email, check_in, check_out, total_amount, currency, status, created_at, listing:listings ( name )",
+      "id, quote_number, guest_name, guest_email, check_in, check_out, total_amount, currency, status, created_at, listing:properties ( name )",
     )
     .eq("host_id", myHostId)
     .is("deleted_at", null)

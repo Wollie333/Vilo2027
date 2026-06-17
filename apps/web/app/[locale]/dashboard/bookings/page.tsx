@@ -38,7 +38,7 @@ function dts(s: string): number {
 type RawListing = {
   id: string;
   name: string;
-  listing_photos: { url: string; sort_order: number }[] | null;
+  property_photos: { url: string; sort_order: number }[] | null;
 };
 type RawGuest = {
   full_name: string | null;
@@ -88,13 +88,13 @@ export default async function BookingsListPage() {
   const [{ count: listingCountRaw }, { data }] = myHostId
     ? await Promise.all([
         supabase
-          .from("listings")
+          .from("properties")
           .select("id", { count: "exact", head: true })
           .eq("host_id", myHostId),
         supabase
           .from("bookings")
           .select(
-            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, checked_in_at, checked_out_at, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:listings!inner ( id, name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
+            "id, reference, status, payment_status, scope, origin, channel, guest_id, guest_name, guest_email, guest_phone, check_in, check_out, checked_in_at, checked_out_at, nights, guests_count, guests_breakdown, total_amount, currency, created_at, listing:properties!inner ( id, name, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, phone, avatar_url )",
           )
           .eq("host_id", myHostId)
           .order("created_at", { ascending: false })
@@ -116,7 +116,7 @@ export default async function BookingsListPage() {
   }
 
   const rows: BookingRow[] = raw.map((b) => {
-    const photos = b.listing.listing_photos ?? [];
+    const photos = b.listing.property_photos ?? [];
     const thumb =
       photos.length > 0
         ? [...photos].sort((a, c) => a.sort_order - c.sort_order)[0].url

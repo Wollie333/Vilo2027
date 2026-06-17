@@ -44,7 +44,7 @@ export default async function AdminHostDetailPage({
         .eq("id", host.user_id)
         .maybeSingle(),
       service
-        .from("listings")
+        .from("properties")
         .select("id", { count: "exact", head: true })
         .eq("host_id", host.id)
         .is("deleted_at", null),

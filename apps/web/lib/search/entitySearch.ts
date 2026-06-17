@@ -24,7 +24,7 @@ export async function searchEntities(rawQuery: string): Promise<SearchResult> {
 
   const [listings, bookings, reviews, refunds, addons] = await Promise.all([
     supabase
-      .from("listings")
+      .from("properties")
       .select("id, name, city")
       .or(`name.ilike.${ilike},city.ilike.${ilike}`)
       .is("deleted_at", null)
@@ -40,7 +40,7 @@ export async function searchEntities(rawQuery: string): Promise<SearchResult> {
     supabase
       .from("reviews")
       .select(
-        "id, body, rating, listing_id, listings!reviews_listing_id_fkey(name)",
+        "id, body, rating, listing_id, listings:properties!reviews_listing_id_fkey(name)",
       )
       .ilike("body", ilike)
       .limit(PER_KIND_LIMIT),

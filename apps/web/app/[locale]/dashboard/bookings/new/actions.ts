@@ -73,7 +73,7 @@ export async function createManualBookingAction(
   }
 
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, host_id, currency")
     .eq("id", data.listing_id)
     .maybeSingle();
@@ -143,7 +143,7 @@ export async function createManualBookingAction(
   >();
   if (configuredIds.length > 0) {
     const { data: rows } = await supabase
-      .from("listing_addons")
+      .from("property_addons")
       .select(
         "addon_id, unit_price_override, addons!inner ( name, unit_price, pricing_model )",
       )

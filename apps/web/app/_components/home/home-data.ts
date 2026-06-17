@@ -91,7 +91,7 @@ function heroPhoto(photos: PhotoRow[] | null): string | null {
 function listingAmount(l: {
   booking_mode: string | null;
   base_price: number | null;
-  listing_rooms: RoomRow[] | null;
+  property_rooms: RoomRow[] | null;
 }): number | null {
   return l.base_price != null ? Number(l.base_price) : null;
 }
@@ -111,11 +111,11 @@ type ListingCardRow = {
   instant_booking: boolean | null;
   is_featured: boolean | null;
   photos: PhotoRow[] | null;
-  listing_rooms: RoomRow[] | null;
+  property_rooms: RoomRow[] | null;
 };
 
 const LISTING_CARD_SELECT =
-  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )";
+  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, is_featured, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
 
 function toListingCard(l: ListingCardRow): HomeListingCard {
   const location = [l.city, l.province].filter(Boolean).join(" · ");
@@ -197,7 +197,7 @@ export async function getHomeData(): Promise<HomeData> {
     await Promise.all([
       // Featured listings (hand-picked by admin).
       supabase
-        .from("listings")
+        .from("properties")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
         .eq("listing_type", "accommodation")
@@ -207,7 +207,7 @@ export async function getHomeData(): Promise<HomeData> {
         .limit(8),
       // Fallback pool — top-rated then newest — used if too few are featured.
       supabase
-        .from("listings")
+        .from("properties")
         .select(LISTING_CARD_SELECT)
         .eq("is_published", true)
         .eq("listing_type", "accommodation")
@@ -217,9 +217,9 @@ export async function getHomeData(): Promise<HomeData> {
         .limit(8),
       // Aggregation pool — destinations, provinces, hosts, category rollup.
       supabase
-        .from("listings")
+        .from("properties")
         .select(
-          "city, province, category_id, base_price, currency, booking_mode, host:hosts!inner ( display_name ), photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )",
+          "city, province, category_id, base_price, currency, booking_mode, host:hosts!inner ( display_name ), photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )",
         )
         .eq("is_published", true)
         .eq("listing_type", "accommodation")
@@ -227,7 +227,7 @@ export async function getHomeData(): Promise<HomeData> {
         .limit(1000),
       // Exact published-listing count for the hero + "show all" CTA.
       supabase
-        .from("listings")
+        .from("properties")
         .select("id", { count: "exact", head: true })
         .eq("is_published", true)
         .eq("listing_type", "accommodation")
@@ -236,7 +236,7 @@ export async function getHomeData(): Promise<HomeData> {
       supabase
         .from("reviews")
         .select(
-          "id, body, created_at, listing:listings!reviews_listing_id_fkey ( name )",
+          "id, body, created_at, listing:properties!reviews_listing_id_fkey ( name )",
         )
         .eq("is_published", true)
         .eq("flagged", false)
@@ -265,7 +265,7 @@ export async function getHomeData(): Promise<HomeData> {
     booking_mode: string | null;
     host: { display_name: string } | null;
     photos: PhotoRow[] | null;
-    listing_rooms: RoomRow[] | null;
+    property_rooms: RoomRow[] | null;
   };
   const aggRows = (aggRes.data ?? []) as unknown as AggRow[];
 

@@ -77,7 +77,7 @@ export async function getListingBusinessId(
   listingId: string,
 ): Promise<string | null> {
   const { data } = await supabase
-    .from("listings")
+    .from("properties")
     .select("business_id")
     .eq("id", listingId)
     .maybeSingle();

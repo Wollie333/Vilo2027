@@ -79,7 +79,7 @@ function priceForWhole(group: SeasonGroup): number | null {
 }
 
 /**
- * Rates & seasonal pricing — fully data-driven from listing_seasonal_pricing.
+ * Rates & seasonal pricing — fully data-driven from property_seasonal_pricing.
  * Columns are the host's own season labels (not fixed Off/Std/Peak); the
  * "Standard" column is the room/listing base price. Server component.
  */

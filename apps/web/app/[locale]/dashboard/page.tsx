@@ -134,7 +134,7 @@ export default async function DashboardPage({
   // ── Setup not 100% → onboarding view only (dashboard unlocks at 100%). ──
   if (!setupComplete) {
     const { data: anyListing } = await supabase
-      .from("listings")
+      .from("properties")
       .select("id")
       .eq("host_id", host.id)
       .is("deleted_at", null)
@@ -218,7 +218,7 @@ export default async function DashboardPage({
       supabase
         .from("bookings")
         .select(
-          "id, check_in, check_out, nights, guests_count, total_amount, currency, status, guest_name, guest_email, listing:listings!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
+          "id, check_in, check_out, nights, guests_count, total_amount, currency, status, guest_name, guest_email, listing:properties!inner ( name ), guest:user_profiles!bookings_guest_id_fkey ( full_name )",
         )
         .eq("host_id", host.id)
         .in("status", ["confirmed", "checked_in"])
@@ -240,7 +240,7 @@ export default async function DashboardPage({
     ),
     throwOnError(
       supabase
-        .from("listings")
+        .from("properties")
         .select("id, name, city, max_guests, is_published")
         .eq("host_id", host.id)
         .is("deleted_at", null)

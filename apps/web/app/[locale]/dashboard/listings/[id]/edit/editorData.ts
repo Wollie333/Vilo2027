@@ -61,7 +61,7 @@ export async function loadListingEditorData(
   listingId: string,
 ): Promise<ListingEditorData | null> {
   const { data: listing } = await db
-    .from("listings")
+    .from("properties")
     .select(
       [
         "id",
@@ -121,16 +121,16 @@ export async function loadListingEditorData(
     { data: seasonalRows },
   ] = await Promise.all([
     db
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("id, amenity_key, amenity_label, room_id")
       .eq("listing_id", listingId),
     db
-      .from("listing_photos")
+      .from("property_photos")
       .select("id, url, sort_order, room_id")
       .eq("listing_id", listingId)
       .order("sort_order", { ascending: true }),
     db
-      .from("listing_rooms")
+      .from("property_rooms")
       .select(
         "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, beds:room_beds ( bed_kind, quantity, sleeps, sort_order )",
       )
@@ -146,7 +146,7 @@ export async function loadListingEditorData(
       .eq("is_active", true)
       .order("sort_order", { ascending: true }),
     db
-      .from("listing_addons")
+      .from("property_addons")
       .select("addon_id, room_id, unit_price_override")
       .eq("listing_id", listingId),
     db
@@ -159,7 +159,7 @@ export async function loadListingEditorData(
       .order("type", { ascending: true })
       .order("created_at", { ascending: true }),
     db
-      .from("listing_policies")
+      .from("property_policies")
       .select("policy_id, policy_type, room_id")
       .eq("listing_id", listingId),
     db
@@ -177,7 +177,7 @@ export async function loadListingEditorData(
     // Listing-wide seasonal rules (room-scoped rules are managed in the
     // dedicated seasonal-pricing page; the editor section is listing-wide).
     db
-      .from("listing_seasonal_pricing")
+      .from("property_seasonal_pricing")
       .select(
         "id, label, start_date, end_date, adjustment_type, adjustment_value, currency, min_nights, priority, is_active",
       )

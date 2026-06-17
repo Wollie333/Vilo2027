@@ -51,7 +51,7 @@ export async function fetchReviewActivity(
     .from("bookings")
     .select(
       `id, reference, guest_name, check_in, check_out, checked_out_at,
-       listing:listings ( name ),
+       listing:properties ( name ),
        reviews ( rating, created_at, host_response ),
        review_request_queue ( sent_at, send_at )`,
     )

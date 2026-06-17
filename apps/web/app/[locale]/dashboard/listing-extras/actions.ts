@@ -120,7 +120,7 @@ export async function suggestNearbyPlacesAction(
 
   // RLS scopes this to listings the signed-in host can read.
   const { data: listing, error: listingErr } = await supabase
-    .from("listings")
+    .from("properties")
     .select("latitude, longitude")
     .eq("id", listingId)
     .maybeSingle();

@@ -60,9 +60,9 @@ export default async function SeasonalPricingPage() {
       p_feature_key: "seasonal_pricing",
     }),
     supabase
-      .from("listings")
+      .from("properties")
       .select(
-        "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:listing_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
+        "id, name, slug, booking_mode, base_price, weekend_price, cleaning_fee, currency, min_nights, rooms:property_rooms ( id, name, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, deleted_at )",
       )
       .eq("host_id", host.id)
       .is("deleted_at", null)
@@ -74,7 +74,7 @@ export default async function SeasonalPricingPage() {
   const hostListingIds = (listingsRaw ?? []).map((l) => l.id);
   const { data: rulesRaw } = hostListingIds.length
     ? await supabase
-        .from("listing_seasonal_pricing")
+        .from("property_seasonal_pricing")
         .select(
           "id, listing_id, room_id, label, start_date, end_date, adjustment_type, adjustment_value, price, currency, min_nights, priority, is_active",
         )

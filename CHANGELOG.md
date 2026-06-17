@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-17 — Rename R2: core tables `listings → properties` (+ core children)
+
+### Changed
+- **Renamed the 7 core tables** (migration
+  `20260617000200_rename_r2_core_tables.sql`): `listings` → `properties` and
+  `listing_{rooms,photos,amenities,seasonal_pricing,policies,addons}` →
+  `property_*`. Second green checkpoint of the `listings → properties` rename
+  (see `RENAME_LISTINGS_TO_PROPERTIES.md`). Table NAMES only — `listing_id`
+  columns, `listing_type`, `clicked_listing` and the channel tables
+  (`listing_view_events`, `featured_listings`, `directory_search_logs`) stay
+  until R3. FKs/indexes/triggers/sequences/RLS all follow the rename
+  automatically — including cross-table RLS policies/views that reference a
+  renamed table in a subquery (their expressions are OID-referenced parse trees,
+  not text), so none were recreated.
+- **Recreated 30 functions** whose PL/pgSQL/SQL bodies name a renamed table
+  (function bodies are late-bound text and break on rename) — found by parsing
+  every `CREATE FUNCTION` body across the migration history and swapping only the
+  7 table tokens. Kept the `policies` catalog table, all `listing_id` columns and
+  every RPC/param name (`p_listing_id`, `resolve_listing_policy_id`, …) intact so
+  `.rpc()` callers keep working. `app_purge_user_account` updated to delete
+  `properties`.
+- **Code sweep** — codemod over 886 files → **112 app files + 4 scripts** changed:
+  `.from()` table names, PostgREST embeds (un-aliased `listings(` embeds aliased
+  back as `listings:properties(...)` to preserve JS result keys), child embeds +
+  their property-access keys. Reverted 5 prose false-positives (incl. user-facing
+  Terms copy) and 2 hand-written-type index refs. Regenerated
+  `database.types.ts`. `pnpm type-check` + `pnpm lint` green (only the 2
+  pre-existing reports `<img>` warnings). Live verify: 7 tables resolve, old names
+  gone, 17 recreated RPCs callable.
+
 ## 2026-06-17 — Rename R1: leaf tables `listing_* → property_*`
 
 ### Changed

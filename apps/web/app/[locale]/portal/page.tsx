@@ -51,7 +51,7 @@ export default async function PortalOverviewPage() {
     supabase
       .from("bookings")
       .select(
-        "id, reference, status, check_in, check_out, session_date, listing:listings(name)",
+        "id, reference, status, check_in, check_out, session_date, listing:properties(name)",
       )
       .eq("guest_id", user.id)
       .is("deleted_at", null)
@@ -79,7 +79,7 @@ export default async function PortalOverviewPage() {
     // Recent completed stays → "Book again" quick links.
     supabase
       .from("bookings")
-      .select("id, guests_count, listing:listings(name, slug)")
+      .select("id, guests_count, listing:properties(name, slug)")
       .eq("guest_id", user.id)
       .is("deleted_at", null)
       .in("status", ["completed", "checked_out"])

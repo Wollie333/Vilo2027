@@ -1,6 +1,6 @@
 // Enum-ish lists for the per-room drill-in editor. Plain strings so they can
-// be stored in `listing_rooms.bed_type` / `listing_rooms.view_type` /
-// `listing_rooms.experiences[]` without extra mapping.
+// be stored in `property_rooms.bed_type` / `property_rooms.view_type` /
+// `property_rooms.experiences[]` without extra mapping.
 
 export const BED_TYPES: string[] = [
   "King",

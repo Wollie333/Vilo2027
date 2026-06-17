@@ -79,7 +79,7 @@ async function loadRefundBundle(
   if (booking) {
     const [{ data: l }, { data: h }, { data: g }] = await Promise.all([
       supabase
-        .from("listings")
+        .from("properties")
         .select("name")
         .eq("id", booking.listing_id)
         .maybeSingle(),

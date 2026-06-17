@@ -26,13 +26,13 @@ Goal: logical naming before the website build sits on top of it.
 ## Table rename map
 | Current table | Action | New name | Phase |
 |---|---|---|---|
-| `listings` | RENAME | `properties` | R2 |
-| `listing_rooms` | RENAME | `property_rooms` | R2 |
-| `listing_photos` | RENAME | `property_photos` | R2 |
-| `listing_amenities` | RENAME | `property_amenities` | R2 |
-| `listing_seasonal_pricing` | RENAME | `property_seasonal_pricing` | R2 |
-| `listing_policies` | RENAME | `property_policies` | R2 |
-| `listing_addons` | RENAME | `property_addons` | R2 |
+| `listings` | RENAME ✅ | `properties` | R2 (done) |
+| `listing_rooms` | RENAME ✅ | `property_rooms` | R2 (done) |
+| `listing_photos` | RENAME ✅ | `property_photos` | R2 (done) |
+| `listing_amenities` | RENAME ✅ | `property_amenities` | R2 (done) |
+| `listing_seasonal_pricing` | RENAME ✅ | `property_seasonal_pricing` | R2 (done) |
+| `listing_policies` | RENAME ✅ | `property_policies` | R2 (done) |
+| `listing_addons` | RENAME ✅ | `property_addons` | R2 (done) |
 | `listing_rankings` | RENAME | `property_rankings` | R1 |
 | `listing_points_of_interest` | RENAME | `property_points_of_interest` | R1 |
 | `listing_review_themes` | RENAME | `property_review_themes` | R1 |
@@ -108,7 +108,7 @@ Recreate in the phase that renames the objects the body touches. Known universe:
 ## Per-phase checklist (each: migration → `db push --linked` → gen types → sweep → `pnpm build` + `pnpm lint` + query-sweep → commit)
 - [ ] **R0** Inventory doc (this file) committed.
 - [x] **R1** Leaf tables renamed + isolated fns recreated + code swept. Green. Commit.
-- [ ] **R2** Core tables renamed + core fns recreated + `.from()`/embeds/types swept. Green. Commit.
+- [x] **R2** Core tables renamed + core fns recreated + `.from()`/embeds/types swept. Green. Commit.
 - [ ] **R3** `listing_id → property_id` (+ listing_type etc.) + fns recreated + code swept. Green. Commit.
 - [ ] **R4** Routes + i18n labels. Green. Commit.
 - [ ] Run `apps/web/scripts/verify-policy-resolver.mjs` + a query-sweep after R2/R3.
@@ -138,3 +138,27 @@ node apps/web/scripts/verify-policy-resolver.mjs      # + query sweep after R2/R
   `<img>` warnings in untouched reports components); live-DB sweep on all 8 tables OK.
   **`listing_view_events` deferred to R3** (analytics-suite entanglement — see note above).
   Next: **R2 — core tables** (`listings`→`properties` + core children).
+- **R2 (done):** migration `20260617000200_rename_r2_core_tables.sql` renamed the 7
+  core tables (`listings`→`properties`; `listing_{rooms,photos,amenities,
+  seasonal_pricing,policies,addons}`→`property_*`). FKs/indexes/triggers/sequences
+  /RLS policies all followed the rename automatically — **including cross-table RLS
+  policies/views that reference a renamed table in a subquery** (their expressions
+  are stored as OID-referenced parse trees, not text), so none were recreated.
+  Recreated **30 functions** whose PL/pgSQL/SQL bodies name a renamed table
+  (function bodies are late-bound text and DO break) — discovered by introspecting
+  every `CREATE FUNCTION` body across the migration history (slice→dollar-body
+  parse), swapping ONLY the 7 table tokens and keeping `listing_id` columns, the
+  `policies` catalog table, channel tables (`listing_view_events`,
+  `featured_listings`) and all RPC/param names. `app_purge_user_account` updated
+  (`DELETE FROM listings`→`properties`). Pushed; types regenerated (`properties`
+  key present, old keys gone). **Code sweep:** codemod over 886 files → 112 changed
+  + 2 `.mjs` scripts (`seed-demo`, `test-booking-flows`) + `verify-policy-resolver`/
+  `verify-reviews`: `.from()` table names, PostgREST embeds (un-aliased `listings(`
+  embeds aliased back as `listings:properties(...)` to preserve result keys; 5 prose
+  false-positives reverted incl. user-facing Terms text), child embeds + their
+  property-access keys, and 2 generated-type index refs reverted (hand-written
+  types still key `listings`). `pnpm type-check` + `pnpm lint` green (only the 2
+  pre-existing `<img>` warnings); live verify: 7 tables resolve / old names gone /
+  17 recreated RPCs callable. Next: **R3 — `listing_id → property_id` columns**
+  (+ `listing_type`, `clicked_listing`, rename `listing_view_events` table+col,
+  recreate analytics suite once for the column change).

@@ -24,7 +24,7 @@ export default async function PortalInboxLayout({
       `
       id, status, is_enquiry, unread_guest,
       last_message_preview, last_message_at,
-      listing:listings ( name ),
+      listing:properties ( name ),
       host:hosts ( display_name, avatar_url )
     `,
     )

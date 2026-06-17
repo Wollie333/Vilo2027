@@ -136,7 +136,7 @@ export async function createEnquiry(
   const admin = createAdminClient();
 
   const { data: listing } = await admin
-    .from("listings")
+    .from("properties")
     .select(
       "id, host_id, business_id, name, currency, is_published, is_suspended, deleted_at, cancellation_policy, cancellation_policy_label",
     )

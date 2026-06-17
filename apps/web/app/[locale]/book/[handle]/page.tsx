@@ -53,9 +53,9 @@ export default async function DirectBookingPage({
   if (!host) notFound();
 
   const { data: rows } = await admin
-    .from("listings")
+    .from("properties")
     .select(
-      "slug, name, city, province, base_price, currency, is_featured, photos:listing_photos ( url, sort_order )",
+      "slug, name, city, province, base_price, currency, is_featured, photos:property_photos ( url, sort_order )",
     )
     .eq("host_id", host.id)
     .eq("is_published", true)

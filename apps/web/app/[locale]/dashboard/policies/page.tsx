@@ -83,7 +83,7 @@ export default async function PoliciesPage() {
             .eq("locale", "en")
         : Promise.resolve({ data: [] as never[] }),
       supabase
-        .from("listings")
+        .from("properties")
         .select("id")
         .eq("host_id", host.id)
         .is("deleted_at", null),
@@ -94,7 +94,7 @@ export default async function PoliciesPage() {
   const [{ data: rooms }, { data: assignments }] = await Promise.all([
     listingIds.length
       ? supabase
-          .from("listing_rooms")
+          .from("property_rooms")
           .select("id, listing_id")
           .in("listing_id", listingIds)
           .eq("is_active", true)
@@ -102,7 +102,7 @@ export default async function PoliciesPage() {
       : Promise.resolve({ data: [] as { id: string; listing_id: string }[] }),
     listingIds.length
       ? supabase
-          .from("listing_policies")
+          .from("property_policies")
           .select("listing_id, room_id, policy_id, policy_type")
           .in("listing_id", listingIds)
       : Promise.resolve({

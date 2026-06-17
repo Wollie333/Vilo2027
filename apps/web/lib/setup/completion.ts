@@ -39,7 +39,7 @@ export type SetupCompletionInput = {
   roomCount: number;
   /**
    * A refund (cancellation) policy is assigned to the setup listing
-   * listing-wide (via listing_policies). Preferred over the legacy enum, which
+   * listing-wide (via property_policies). Preferred over the legacy enum, which
    * is only synced for the locked presets — custom policies wouldn't set it.
    */
   hasCancellationPolicy?: boolean;
@@ -73,7 +73,7 @@ export function computeSetupCompletion(
   const roomsDone = input.roomCount > 0;
 
   // Policies = a refund policy is set for the listing. With the Policy Manager,
-  // refund terms are reusable policies assigned via listing_policies; the
+  // refund terms are reusable policies assigned via property_policies; the
   // legacy enum is only a fallback (synced for presets, not custom policies).
   // Both a refund policy AND house rules must be attached before publishing.
   const policies = Boolean(

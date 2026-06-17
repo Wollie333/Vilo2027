@@ -59,9 +59,9 @@ export default async function CouponsPage() {
         .eq("host_id", host.id)
         .order("created_at", { ascending: false }),
       supabase
-        .from("listings")
+        .from("properties")
         .select(
-          "id, name, currency, rooms:listing_rooms ( id, name, is_active, deleted_at, sort_order )",
+          "id, name, currency, rooms:property_rooms ( id, name, is_active, deleted_at, sort_order )",
         )
         .eq("host_id", host.id)
         .is("deleted_at", null)

@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 type RawListing = {
   name: string;
   business_id: string | null;
-  listing_photos: { url: string; sort_order: number }[] | null;
+  property_photos: { url: string; sort_order: number }[] | null;
 };
 type RawBooking = {
   id: string;
@@ -104,7 +104,7 @@ export default async function GuestRecordPage({
   let bookingQuery = supabase
     .from("bookings")
     .select(
-      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:listings ( name, business_id, listing_photos ( url, sort_order ) )",
+      "id, reference, status, check_in, check_out, nights, guests_count, total_amount, balance_due, currency, channel, created_at, special_requests, pay_token, payment_status, listing:properties ( name, business_id, property_photos ( url, sort_order ) )",
     )
     .eq("host_id", host.id)
     .is("deleted_at", null)
@@ -175,7 +175,7 @@ export default async function GuestRecordPage({
   }
 
   const bookings: BookingItem[] = bookingsRaw.map((b) => {
-    const photos = b.listing?.listing_photos ?? [];
+    const photos = b.listing?.property_photos ?? [];
     const thumb =
       photos.length > 0
         ? [...photos].sort((a, c) => a.sort_order - c.sort_order)[0].url
@@ -228,7 +228,7 @@ export default async function GuestRecordPage({
 
   // Listing id → name map (for reviews + quotes that reference a listing directly).
   const { data: listingRows } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name, featured_review_id")
     .eq("host_id", host.id);
   const listingNames = new Map<string, string>(

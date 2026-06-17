@@ -21,7 +21,7 @@ async function assertListingOwnership(
 
   // RLS will already filter this; the explicit check produces a clean error.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, host:hosts!inner ( user_id )")
     .eq("id", listingId)
     .maybeSingle();

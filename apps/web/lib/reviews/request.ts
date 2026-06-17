@@ -41,7 +41,7 @@ export async function sendReviewRequest(
     .select(
       `id, status, payment_status, guest_id, guest_name, guest_email,
        host_id, listing_id, quote_id, reference, deleted_at,
-       listing:listings ( name ),
+       listing:properties ( name ),
        host:hosts ( display_name )`,
     )
     .eq("id", bookingId)

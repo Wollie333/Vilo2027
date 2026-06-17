@@ -67,7 +67,7 @@ export default async function PortalQuotesPage() {
   const { data: quotes } = await createAdminClient()
     .from("quotes")
     .select(
-      "id, quote_number, status, check_in, check_out, total_amount, currency, valid_until, created_at, listing:listings(name)",
+      "id, quote_number, status, check_in, check_out, total_amount, currency, valid_until, created_at, listing:properties(name)",
     )
     .is("deleted_at", null)
     .or(ors.join(","))

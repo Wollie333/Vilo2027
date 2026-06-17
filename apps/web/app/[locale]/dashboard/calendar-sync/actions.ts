@@ -27,7 +27,7 @@ async function assertOwnsListing(
   if (!user) return { ok: false, error: "Not signed in." };
 
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, host:hosts!inner ( user_id )")
     .eq("id", listingId)
     .maybeSingle();

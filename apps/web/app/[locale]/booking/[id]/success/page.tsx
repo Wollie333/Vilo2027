@@ -94,7 +94,7 @@ export default async function BookingSuccessPage({
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:listings!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
+      "id, reference, status, payment_status, payment_method, scope, check_in, check_out, nights, guests_count, base_amount, cleaning_fee, total_amount, currency, special_requests, additional_guests, listing:properties!inner ( id, host_id, business_id, name, slug, city, province, accommodation_type, address_line1, address_line2, postal_code, check_in_time, check_out_time, avg_rating, total_reviews )",
     )
     .eq("id", params.id)
     .maybeSingle();
@@ -174,7 +174,7 @@ export default async function BookingSuccessPage({
     supabase
       .from("booking_rooms")
       .select(
-        "room_id, base_amount, room:listing_rooms ( id, name, max_guests, view_type, has_ensuite_bathroom, private_entrance, pets_allowed )",
+        "room_id, base_amount, room:property_rooms ( id, name, max_guests, view_type, has_ensuite_bathroom, private_entrance, pets_allowed )",
       )
       .eq("booking_id", booking.id),
     supabase
@@ -183,7 +183,7 @@ export default async function BookingSuccessPage({
       .eq("booking_id", booking.id)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("room_id, url, sort_order")
       .eq("listing_id", listing.id)
       .order("sort_order", { ascending: true }),

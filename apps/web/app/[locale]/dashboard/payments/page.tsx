@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 // Nested shapes returned by the Supabase join.
 type RawListing = {
   name: string;
-  listing_photos: { url: string; sort_order: number }[] | null;
+  property_photos: { url: string; sort_order: number }[] | null;
 };
 type RawBooking = {
   id: string;
@@ -60,7 +60,7 @@ export default async function PaymentsPage() {
     supabase
       .from("payments")
       .select(
-        "id, amount, currency, method, status, kind, voided_at, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:listings!inner ( name, listing_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
+        "id, amount, currency, method, status, kind, voided_at, provider_reference, refunded_amount, captured_at, created_at, booking:bookings!inner ( id, reference, guest_name, guest_email, listing:properties!inner ( name, property_photos ( url, sort_order ) ), guest:user_profiles!bookings_guest_id_fkey ( full_name, email, avatar_url ) )",
       )
       .eq("booking.host_id", myHostId)
       .order("created_at", { ascending: false })
@@ -72,7 +72,7 @@ export default async function PaymentsPage() {
 
   const rows: PaymentRow[] = raw.map((p) => {
     const b = p.booking;
-    const photos = b.listing.listing_photos ?? [];
+    const photos = b.listing.property_photos ?? [];
     const thumb =
       photos.length > 0
         ? [...photos].sort((a, c) => a.sort_order - c.sort_order)[0].url

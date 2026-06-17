@@ -224,17 +224,17 @@ export default async function PortalTripDetailPage({
       special_requests, host_message, created_at, confirmed_at,
       guest_name, guest_email, guest_phone, additional_guests,
       has_open_refund,
-      listing:listings (
+      listing:properties (
         id, name, slug, city, province, address_line1, address_line2,
         postal_code, latitude, longitude, check_in_time, check_out_time,
         house_rules, max_guests, accommodation_type, listing_type,
         avg_rating, total_reviews,
-        photos:listing_photos ( url, sort_order ),
-        amenities:listing_amenities ( amenity_key, amenity_label ),
+        photos:property_photos ( url, sort_order ),
+        amenities:property_amenities ( amenity_key, amenity_label ),
         local_picks:property_local_picks ( category, title, blurb, image_path, distance_label, sort_order )
       ),
       host:hosts ( handle, display_name, avatar_url, is_superhost, avg_rating, response_rate, languages_spoken, created_at ),
-      booking_rooms ( room:listing_rooms ( id, name ) )
+      booking_rooms ( room:property_rooms ( id, name ) )
     `,
     )
     .eq("id", params.id)
@@ -401,7 +401,7 @@ export default async function PortalTripDetailPage({
   if (listing?.id) {
     const admin = createAdminClient();
     const { data: linkRows } = await admin
-      .from("listing_addons")
+      .from("property_addons")
       .select(
         "unit_price_override, addon:addons!inner ( id, name, unit_price, description, is_active )",
       )

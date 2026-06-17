@@ -135,7 +135,7 @@ const reviewRequestResolver: EmailResolver = async (refs, ctx) => {
 
   const [{ data: listing }, host, guestUser] = await Promise.all([
     ctx.supabase
-      .from("listings")
+      .from("properties")
       .select("name")
       .eq("id", booking.listing_id)
       .maybeSingle(),
@@ -181,7 +181,7 @@ const newReviewHostResolver: EmailResolver = async (refs, ctx) => {
             .maybeSingle()
         : Promise.resolve({ data: null }),
       ctx.supabase
-        .from("listings")
+        .from("properties")
         .select("name")
         .eq("id", review.listing_id)
         .maybeSingle(),

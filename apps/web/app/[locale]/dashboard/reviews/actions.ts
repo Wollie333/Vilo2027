@@ -120,7 +120,7 @@ export async function toggleFeaturedReviewAction(
   }
 
   let update = supabase
-    .from("listings")
+    .from("properties")
     .update({ featured_review_id: featured ? reviewId : null })
     .eq("id", review.listing_id)
     .eq("host_id", host.id);

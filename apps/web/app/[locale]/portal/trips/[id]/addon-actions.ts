@@ -60,7 +60,7 @@ export async function addGuestBookingAddonAction(input: {
 
   // It must actually be offered on this listing (whole-listing scope).
   const { data: link } = await admin
-    .from("listing_addons")
+    .from("property_addons")
     .select("unit_price_override")
     .eq("listing_id", booking.listing_id)
     .eq("addon_id", addon.id)

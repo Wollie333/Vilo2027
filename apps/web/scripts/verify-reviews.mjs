@@ -25,7 +25,7 @@ const checks = [
     ).eq("is_published", true).limit(1)],
   ["dashboard reviews embed", () =>
     sb.from("reviews").select(
-      "id, rating, host_response, flagged, listing:listings ( id, name ), booking:bookings ( id, nights, guest_name ), guest:user_profiles!reviews_guest_id_fkey ( full_name ), photos:review_photos ( storage_path, sort_order )",
+      "id, rating, host_response, flagged, listing:properties ( id, name ), booking:bookings ( id, nights, guest_name ), guest:user_profiles!reviews_guest_id_fkey ( full_name ), photos:review_photos ( storage_path, sort_order )",
     ).limit(1)],
   ["storage bucket review-photos", async () => {
     const { data, error } = await sb.storage.getBucket("review-photos");

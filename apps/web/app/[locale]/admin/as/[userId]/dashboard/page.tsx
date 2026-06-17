@@ -29,7 +29,7 @@ export default async function ImpersonatedDashboardPage({
   if (host) {
     const [listingsRes, bookingsRes] = await Promise.all([
       service
-        .from("listings")
+        .from("properties")
         .select("id", { count: "exact", head: true })
         .eq("host_id", host.id)
         .is("deleted_at", null),

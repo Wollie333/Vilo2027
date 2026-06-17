@@ -45,7 +45,7 @@ export async function SettingsProfileHeader() {
       : Promise.resolve({ data: null as { plan: string } | null }),
     host
       ? supabase
-          .from("listings")
+          .from("properties")
           .select("id", { count: "exact", head: true })
           .eq("host_id", host.id)
           .is("deleted_at", null)

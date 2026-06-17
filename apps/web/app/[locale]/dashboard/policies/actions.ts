@@ -442,12 +442,12 @@ export async function deletePolicyAction(
 
   const supabase = createServerClient();
 
-  // listing_policies.policy_id and policy_snapshots.policy_id are ON DELETE
+  // property_policies.policy_id and policy_snapshots.policy_id are ON DELETE
   // RESTRICT, so a referenced policy is archived rather than hard-deleted.
   const [{ count: assignedCount }, { count: snapshotCount }] =
     await Promise.all([
       supabase
-        .from("listing_policies")
+        .from("property_policies")
         .select("id", { count: "exact", head: true })
         .eq("policy_id", policyId),
       supabase
@@ -517,8 +517,8 @@ export async function getPolicyRetirementInfoAction(
 
   // Listing assignments (listing-wide + per-room) with listing names.
   const { data: lpRows } = await supabase
-    .from("listing_policies")
-    .select("listing_id, room_id, listings!inner(name)")
+    .from("property_policies")
+    .select("listing_id, room_id, listings:properties!inner(name)")
     .eq("policy_id", policyId);
 
   const assignments = (
@@ -615,12 +615,12 @@ export async function retirePolicyAction(
   // 1. Reassign or clear the listing assignments.
   if (replacement) {
     const { error } = await supabase
-      .from("listing_policies")
+      .from("property_policies")
       .update({ policy_id: replacement.id })
       .eq("policy_id", policyId);
     if (error) return { ok: false, error: "Could not reassign listings." };
   } else {
-    await supabase.from("listing_policies").delete().eq("policy_id", policyId);
+    await supabase.from("property_policies").delete().eq("policy_id", policyId);
   }
 
   // 2. Clear the default flag on the retiring policy; promote the replacement
@@ -845,7 +845,7 @@ export async function setListingPolicyAction(
   // Clear the matching scope.
   const clearScope = async () => {
     let q = supabase
-      .from("listing_policies")
+      .from("property_policies")
       .delete()
       .eq("listing_id", listingId)
       .eq("policy_type", policyType);
@@ -876,7 +876,7 @@ export async function setListingPolicyAction(
 
   // Replace the scope row (delete then insert — NULL-safe across both indexes).
   await clearScope();
-  const { error } = await supabase.from("listing_policies").insert({
+  const { error } = await supabase.from("property_policies").insert({
     listing_id: listingId,
     policy_id: policyId,
     policy_type: policyType,
@@ -891,7 +891,7 @@ export async function setListingPolicyAction(
   if (policyType === "cancellation" && roomId === null && policy.preset) {
     if (["flexible", "moderate", "strict"].includes(policy.preset)) {
       await supabase
-        .from("listings")
+        .from("properties")
         .update({ cancellation_policy: policy.preset })
         .eq("id", listingId);
     }

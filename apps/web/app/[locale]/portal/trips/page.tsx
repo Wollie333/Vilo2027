@@ -89,9 +89,9 @@ export default async function PortalTripsPage() {
           id, reference, status,
           check_in, check_out, nights,
           guests_count, total_amount, refund_total, currency, scope,
-          listing:listings ( name, slug, city, province, accommodation_type, listing_type, photos:listing_photos ( url, sort_order ) ),
+          listing:properties ( name, slug, city, province, accommodation_type, listing_type, photos:property_photos ( url, sort_order ) ),
           host:hosts ( display_name, avatar_url ),
-          booking_rooms ( room:listing_rooms ( name ) )
+          booking_rooms ( room:property_rooms ( name ) )
         `,
         )
         .eq("guest_id", user.id)

@@ -335,7 +335,7 @@ export async function fetchGettingStartedState(
   let setupHasCancellation = false;
   if (hostId) {
     const { data: firstL } = await supabase
-      .from("listings")
+      .from("properties")
       .select(
         "id, name, is_published, listing_type, booking_mode, base_price, max_guests, cancellation_policy, check_in_time, check_out_time",
       )
@@ -366,11 +366,11 @@ export async function fetchGettingStartedState(
       // reflects "added photos / rooms", which the old predicate ignored.
       const [{ count: photoCount }, { count: roomCount }] = await Promise.all([
         supabase
-          .from("listing_photos")
+          .from("property_photos")
           .select("id", { count: "exact", head: true })
           .eq("listing_id", row.id),
         supabase
-          .from("listing_rooms")
+          .from("property_rooms")
           .select("id", { count: "exact", head: true })
           .eq("listing_id", row.id)
           .is("deleted_at", null)
@@ -380,9 +380,9 @@ export async function fetchGettingStartedState(
       setupRoomCount = roomCount ?? 0;
 
       // A refund policy assigned listing-wide marks the Policies step done —
-      // mirrors the wizard, which reads listing_policies the same way.
+      // mirrors the wizard, which reads property_policies the same way.
       const { count: cancellationCount } = await supabase
-        .from("listing_policies")
+        .from("property_policies")
         .select("id", { count: "exact", head: true })
         .eq("listing_id", row.id)
         .eq("policy_type", "cancellation")
@@ -391,7 +391,7 @@ export async function fetchGettingStartedState(
     }
 
     const { data: listings } = await supabase
-      .from("listings")
+      .from("properties")
       .select("id, is_published")
       .eq("host_id", hostId)
       .is("deleted_at", null);

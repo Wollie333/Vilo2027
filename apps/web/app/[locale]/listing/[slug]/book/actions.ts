@@ -197,7 +197,7 @@ export async function validateCouponAction(
   const v = parsed.data;
   const admin = createAdminClient();
   const { data: listing } = await admin
-    .from("listings")
+    .from("properties")
     .select("id, host_id")
     .eq("id", v.listing_id)
     .maybeSingle();
@@ -251,7 +251,7 @@ export async function createBookingAction(
 
   // 2. Fetch listing — public RLS read of a published listing.
   const { data: listing } = await userClient
-    .from("listings")
+    .from("properties")
     .select(
       "id, host_id, name, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, is_published, booking_mode, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
@@ -329,7 +329,7 @@ export async function createBookingAction(
 
     // 5a. Validate every room_id belongs to this listing + is bookable.
     const { data: roomRows } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .select(
         "id, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
       )
@@ -440,7 +440,7 @@ export async function createBookingAction(
     // Whole-listing combo: did the guest take every active room? Compare the
     // selection against the listing's full active-room count.
     const { count: activeRoomCount } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id", { count: "exact", head: true })
       .eq("listing_id", listing.id)
       .is("deleted_at", null)
@@ -529,7 +529,7 @@ export async function createBookingAction(
             .filter((id): id is string => id !== null)
         : [];
     const { data: eligibleAddonRows } = await admin
-      .from("listing_addons")
+      .from("property_addons")
       .select(
         "addon_id, room_id, unit_price_override, addons!inner ( id, name, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )
@@ -641,7 +641,7 @@ export async function createBookingAction(
     // so the charged total matches the quoted total to the cent, and it never
     // trusts a client-sent price.
     const { data: seasonalRows } = await admin
-      .from("listing_seasonal_pricing")
+      .from("property_seasonal_pricing")
       .select(
         "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
       )

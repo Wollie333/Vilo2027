@@ -30,7 +30,7 @@ export default async function AdminEditListingPage({
 
   // Keep the URL honest: the listing must belong to the user in the path.
   const { data: owner } = await service
-    .from("listings")
+    .from("properties")
     .select("name, host:hosts!inner ( user_id )")
     .eq("id", params.listingId)
     .maybeSingle();

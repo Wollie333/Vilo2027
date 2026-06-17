@@ -34,7 +34,7 @@ export default async function ListingExtrasPage() {
   // listing (and their extras below). The explicit host_id filter keeps the
   // portfolio private — never remove it. (Same fix as rooms/listings/seasonal.)
   const { data: listingsRaw } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name, latitude, longitude")
     .eq("host_id", host.id)
     .is("deleted_at", null)

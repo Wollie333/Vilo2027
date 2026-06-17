@@ -198,9 +198,9 @@ export default async function ListingsPage({
   ] = host
     ? await Promise.all([
         supabase
-          .from("listings")
+          .from("properties")
           .select(
-            "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:listing_photos ( url, sort_order ), rooms:listing_rooms ( id )",
+            "id, name, slug, listing_type, accommodation_type, city, province, description, base_price, currency, is_published, is_suspended, is_featured, avg_rating, total_reviews, total_bookings, created_at, photos:property_photos ( url, sort_order ), rooms:property_rooms ( id )",
           )
           .eq("host_id", host.id)
           .eq("listing_type", "accommodation")

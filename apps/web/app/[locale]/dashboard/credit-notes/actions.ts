@@ -61,7 +61,7 @@ export async function createCreditNoteAction(input: {
   if (invoice.booking_id) {
     const { data: bk } = await supabase
       .from("bookings")
-      .select("listing:listings ( business_id )")
+      .select("listing:properties ( business_id )")
       .eq("id", invoice.booking_id)
       .maybeSingle();
     const l = Array.isArray(bk?.listing) ? bk?.listing[0] : bk?.listing;

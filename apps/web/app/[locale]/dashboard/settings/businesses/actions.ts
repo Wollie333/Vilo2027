@@ -167,7 +167,7 @@ export async function archiveBusinessAction(
   // A listing must always point to a live business — block archiving while any
   // listing is still assigned here.
   const { count } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id", { count: "exact", head: true })
     .eq("business_id", businessId)
     .is("deleted_at", null);

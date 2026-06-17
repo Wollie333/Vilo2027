@@ -23,7 +23,7 @@ async function assertListingOwnership(
 ): Promise<boolean> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id")
     .eq("id", listingId)
     .eq("host_id", hostId)
@@ -37,7 +37,7 @@ async function assertRoomBelongsToListing(
 ): Promise<boolean> {
   const supabase = createServerClient();
   const { data } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select("id")
     .eq("id", roomId)
     .eq("listing_id", listingId)

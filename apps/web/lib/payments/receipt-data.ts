@@ -66,7 +66,7 @@ export async function getReceiptByToken(
   const { data: b } = await admin
     .from("bookings")
     .select(
-      "id, host_id, reference, balance_due, check_in, check_out, guest_id, guest_name, guest_email, guest_phone, listing:listings ( name, business_id )",
+      "id, host_id, reference, balance_due, check_in, check_out, guest_id, guest_name, guest_email, guest_phone, listing:properties ( name, business_id )",
     )
     .eq("id", p.booking_id)
     .maybeSingle();

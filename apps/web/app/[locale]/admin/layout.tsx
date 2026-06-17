@@ -75,7 +75,7 @@ export default async function AdminLayout({
   let listingCount = 0;
   if (hostRow?.id) {
     const { count } = await supabase
-      .from("listings")
+      .from("properties")
       .select("id", { count: "exact", head: true })
       .eq("host_id", hostRow.id);
     listingCount = count ?? 0;

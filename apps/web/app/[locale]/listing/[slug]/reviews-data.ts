@@ -116,7 +116,7 @@ export async function loadListingReviews(
         .eq("listing_id", listingId)
         .order("sort_order", { ascending: true }),
       supabase
-        .from("listings")
+        .from("properties")
         .select("featured_review_id")
         .eq("id", listingId)
         .maybeSingle(),

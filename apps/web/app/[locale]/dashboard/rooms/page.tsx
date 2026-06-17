@@ -159,9 +159,9 @@ export default async function RoomsPage({
 
   const { data: listings } = host
     ? await supabase
-        .from("listings")
+        .from("properties")
         .select(
-          "id, name, slug, booking_mode, is_published, city, province, deleted_at, listing_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:listing_rooms ( id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sleeps, sort_order ), photos:listing_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:listing_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
+          "id, name, slug, booking_mode, is_published, city, province, deleted_at, property_photos!listing_photos_listing_id_fkey ( url, sort_order, room_id ), rooms:property_rooms ( id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, sort_order, is_active, deleted_at, room_size_sqm, bed_type, view_type, experiences, has_ensuite_bathroom, smoking_allowed, pets_allowed, wheelchair_accessible, private_entrance, floor_number, inventory_count, pricing_mode, price_per_person, base_occupancy, extra_guest_price, featured_photo_id, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url ), beds:room_beds ( bed_kind, quantity, sleeps, sort_order ), photos:property_photos!listing_photos_room_id_fkey ( id, url, sort_order ), amenities:property_amenities!listing_amenities_room_id_fkey ( amenity_key ) )",
         )
         .eq("host_id", host.id)
         .is("deleted_at", null)
@@ -252,7 +252,7 @@ export default async function RoomsPage({
       });
 
     const listingPhotos =
-      (l.listing_photos as Array<{
+      (l.property_photos as Array<{
         url: string;
         sort_order: number;
         room_id: string | null;

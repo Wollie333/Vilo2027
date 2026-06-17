@@ -38,7 +38,7 @@ export default async function EditRoomPage({
 
   // RLS host_manage_own_listings filters to listings the host owns.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name, slug, currency")
     .eq("id", params.id)
     .eq("host_id", myHostId)
@@ -48,7 +48,7 @@ export default async function EditRoomPage({
 
   // RLS host_manage_own_rooms — same gate.
   const { data: room } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "id, listing_id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, currency, sort_order, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets, has_ensuite_bathroom, inventory_count",
     )
@@ -66,13 +66,13 @@ export default async function EditRoomPage({
     { data: accessRow },
   ] = await Promise.all([
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("id, url, sort_order")
       .eq("listing_id", params.id)
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("amenity_key")
       .eq("listing_id", params.id)
       .eq("room_id", params.roomId),

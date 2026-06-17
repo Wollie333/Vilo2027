@@ -23,7 +23,7 @@ export async function initializePayByTokenAction(
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, reference, scope, status, payment_status, total_amount, deposit_amount, currency, guest_id, guest_email, listing_id, listing:listings ( name, host_id )",
+      "id, reference, scope, status, payment_status, total_amount, deposit_amount, currency, guest_id, guest_email, listing_id, listing:properties ( name, host_id )",
     )
     .eq("pay_token", token)
     .maybeSingle();

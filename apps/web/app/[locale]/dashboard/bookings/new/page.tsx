@@ -48,7 +48,7 @@ export default async function NewBookingPage({
   // Manual booking entry is shaped for stays (check-in / check-out / nights).
   const { data: listingRows } = host
     ? await supabase
-        .from("listings")
+        .from("properties")
         .select(
           "id, name, booking_mode, base_price, cleaning_fee, currency, city, max_guests",
         )
@@ -72,12 +72,12 @@ export default async function NewBookingPage({
   ] = listingIds.length
     ? await Promise.all([
         supabase
-          .from("listing_photos")
+          .from("property_photos")
           .select("id, listing_id, room_id, url, sort_order")
           .in("listing_id", listingIds)
           .order("sort_order", { ascending: true }),
         supabase
-          .from("listing_rooms")
+          .from("property_rooms")
           .select(
             "id, listing_id, name, base_price, cleaning_fee, max_guests, bed_type, view_type, has_ensuite_bathroom, featured_photo_id, sort_order, pricing_mode, price_per_person",
           )
@@ -86,7 +86,7 @@ export default async function NewBookingPage({
           .is("deleted_at", null)
           .order("sort_order", { ascending: true }),
         supabase
-          .from("listing_addons")
+          .from("property_addons")
           .select(
             "id, listing_id, addon_id, unit_price_override, addons!inner ( name, description, unit_price, currency, pricing_model, min_quantity, max_quantity, is_required, is_active )",
           )

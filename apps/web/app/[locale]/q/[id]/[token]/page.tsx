@@ -68,7 +68,7 @@ export default async function PublicQuotePage({
       check_in, check_out, headcount,
       base_amount, cleaning_fee, addons_total, total_amount, currency,
       notes, valid_until,
-      listing:listings ( name, business_id )
+      listing:properties ( name, business_id )
     `,
     )
     .eq("id", params.id)

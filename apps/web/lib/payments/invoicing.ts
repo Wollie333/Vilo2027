@@ -38,7 +38,7 @@ export async function createAddonInvoice(
   const { data: booking } = await admin
     .from("bookings")
     .select(
-      "id, host_id, guest_id, guest_name, guest_email, guest_phone, currency, check_in, check_out, listing:listings ( name, business_id )",
+      "id, host_id, guest_id, guest_name, guest_email, guest_phone, currency, check_in, check_out, listing:properties ( name, business_id )",
     )
     .eq("id", args.bookingId)
     .maybeSingle();

@@ -30,7 +30,7 @@ export default async function BookingFailedPage({
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, reference, status, listing:listings!inner ( name, slug )")
+    .select("id, reference, status, listing:properties!inner ( name, slug )")
     .eq("id", params.id)
     .maybeSingle();
 

@@ -44,7 +44,7 @@ export default async function GuestThreadPage({
       `
       id, guest_id, host_last_seen_at,
       host:hosts ( display_name, avatar_url ),
-      listing:listings ( name )
+      listing:properties ( name )
     `,
     )
     .eq("id", params.id)

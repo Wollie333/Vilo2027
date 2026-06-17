@@ -78,7 +78,7 @@ export default async function AddonEditorPage({
   // ----- Availability: published listings, their active rooms, and the
   // current assignment rows for this add-on. -----
   const { data: listingRows } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name")
     .eq("host_id", host.id)
     .eq("is_published", true)
@@ -89,7 +89,7 @@ export default async function AddonEditorPage({
 
   const { data: roomRows } = listingIds.length
     ? await supabase
-        .from("listing_rooms")
+        .from("property_rooms")
         .select("id, name, listing_id")
         .in("listing_id", listingIds)
         .eq("is_active", true)
@@ -98,7 +98,7 @@ export default async function AddonEditorPage({
     : { data: [] as { id: string; name: string; listing_id: string }[] };
 
   const { data: assignmentRows } = await supabase
-    .from("listing_addons")
+    .from("property_addons")
     .select("listing_id, room_id")
     .eq("addon_id", params.id);
 

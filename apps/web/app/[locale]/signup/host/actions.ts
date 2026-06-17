@@ -288,7 +288,7 @@ export async function finalizeOnboardingAction(
     .eq("host_id", host.id)
     .eq("is_default", true);
 
-  const { error: listingErr } = await admin.from("listings").insert({
+  const { error: listingErr } = await admin.from("properties").insert({
     host_id: host.id,
     listing_type: "accommodation",
     category_id: d.category_id ?? null,

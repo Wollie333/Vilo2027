@@ -122,7 +122,7 @@ export default async function RefundsPage({
       id, status, requested_amount, approved_amount, currency, reason,
       reason_detail, host_note, decline_reason, created_at, actioned_at,
       initiated_by, is_manual, policy_entitlement, refund_method,
-      booking:bookings ( id, reference, check_in, check_out, listing:listings ( name ) ),
+      booking:bookings ( id, reference, check_in, check_out, listing:properties ( name ) ),
       guest:user_profiles!refund_requests_guest_id_fkey ( full_name, email ),
       payment:payments!refund_requests_payment_id_fkey ( method )
     `,

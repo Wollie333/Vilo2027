@@ -25,7 +25,7 @@ type Filters = {
 const SELECT = `
   id, host_id, rating, body, flagged, flagged_reason, is_published, admin_decision,
   created_at, publish_at,
-  listing:listings!reviews_listing_id_fkey ( name ),
+  listing:properties!reviews_listing_id_fkey ( name ),
   host:hosts ( handle, display_name ),
   booking:bookings ( guest_name ),
   photos:review_photos ( storage_path, sort_order )

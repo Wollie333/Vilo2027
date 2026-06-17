@@ -47,7 +47,7 @@ export async function fetchRequestableReviews(
     .select(
       `id, reference, guest_name, guest_email, guest_phone, guest_id,
        check_in, check_out, nights,
-       listing:listings ( name ),
+       listing:properties ( name ),
        reviews ( id ),
        review_request_queue ( sent_at )`,
     )

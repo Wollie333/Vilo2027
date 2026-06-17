@@ -60,7 +60,7 @@ async function assertOwnership(
   // Service role so we can read the owner even when the caller isn't the owner.
   const admin = createAdminClient();
   const { data: listing } = await admin
-    .from("listings")
+    .from("properties")
     .select("id, host:hosts!inner ( user_id )")
     .eq("id", listingId)
     .maybeSingle();
@@ -146,7 +146,7 @@ export async function saveListingPatchAction(
 
   const supabase = own.db;
   const { error } = await supabase
-    .from("listings")
+    .from("properties")
     .update(patch)
     .eq("id", listingId);
   if (error) {
@@ -170,7 +170,7 @@ export async function assignListingBusinessAction(
 
   const supabase = own.db;
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select("host_id")
     .eq("id", listingId)
     .maybeSingle();
@@ -186,7 +186,7 @@ export async function assignListingBusinessAction(
   if (!biz) return { ok: false, error: "That business isn't available." };
 
   const { error } = await supabase
-    .from("listings")
+    .from("properties")
     .update({ business_id: businessId })
     .eq("id", listingId);
   if (error) return { ok: false, error: "Could not assign the business." };
@@ -313,7 +313,7 @@ export async function replaceAmenitiesAction(
   // Preserve per-amenity room assignments across re-saves by snapshotting
   // the existing key → room_id map before wiping.
   const { data: existing } = await supabase
-    .from("listing_amenities")
+    .from("property_amenities")
     .select("amenity_key, room_id")
     .eq("listing_id", listingId);
   const roomByKey = new Map<string, string | null>(
@@ -321,7 +321,7 @@ export async function replaceAmenitiesAction(
   );
 
   const { error: delErr } = await supabase
-    .from("listing_amenities")
+    .from("property_amenities")
     .delete()
     .eq("listing_id", listingId);
   if (delErr) {
@@ -335,7 +335,7 @@ export async function replaceAmenitiesAction(
       room_id: roomByKey.get(key) ?? null,
     }));
     const { error: insErr } = await supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .insert(rows);
     if (insErr) {
       return { ok: false, error: "Could not save amenities." };
@@ -343,7 +343,7 @@ export async function replaceAmenitiesAction(
   }
 
   const { data: fresh } = await supabase
-    .from("listing_amenities")
+    .from("property_amenities")
     .select("id, amenity_key, amenity_label, room_id")
     .eq("listing_id", listingId);
 
@@ -377,7 +377,7 @@ export async function createListingPhotoUploadUrl(
   if (roomId) {
     const supabase = own.db;
     const { data: room } = await supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id")
       .eq("id", roomId)
       .eq("listing_id", listingId)
@@ -423,7 +423,7 @@ export async function registerListingPhotoAction(
 
   if (roomId) {
     const { data: room } = await supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id")
       .eq("id", roomId)
       .eq("listing_id", listingId)
@@ -439,12 +439,12 @@ export async function registerListingPhotoAction(
     .getPublicUrl(storagePath);
 
   const { count } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .select("id", { count: "exact", head: true })
     .eq("listing_id", listingId);
 
   const { data: row, error: rowErr } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .insert({
       listing_id: listingId,
       storage_path: storagePath,
@@ -475,7 +475,7 @@ export async function deleteListingPhotoAction(
 
   const supabase = own.db;
   const { data: photo, error: fetchErr } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .select("storage_path")
     .eq("id", photoId)
     .eq("listing_id", listingId)
@@ -485,7 +485,7 @@ export async function deleteListingPhotoAction(
   }
 
   const { error: delRowErr } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .delete()
     .eq("id", photoId);
   if (delRowErr) {
@@ -522,7 +522,7 @@ export async function reorderListingPhotosAction(
   const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase
-        .from("listing_photos")
+        .from("property_photos")
         .update({ sort_order: index })
         .eq("id", id)
         .eq("listing_id", listingId),
@@ -563,7 +563,7 @@ export async function softDeleteListingAction(
   }
 
   const { error } = await supabase
-    .from("listings")
+    .from("properties")
     .update({
       deleted_at: new Date().toISOString(),
       is_published: false,
@@ -589,7 +589,7 @@ export async function togglePublishAction(
 
   if (!publish) {
     const { error } = await supabase
-      .from("listings")
+      .from("properties")
       .update({ is_published: false })
       .eq("id", listingId);
     if (error) {
@@ -602,7 +602,7 @@ export async function togglePublishAction(
 
   // Publishing — minimum bookable fields + a resolvable public slug.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "name, base_price, max_guests, slug, host_id, listing_type, booking_mode, cancellation_policy, check_in_time, check_out_time",
     )
@@ -639,17 +639,17 @@ export async function togglePublishAction(
     // The DB trigger trg_listing_requires_bank enforces the same at the DB layer.
     hostHasValidEft(listing.host_id),
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("id", { count: "exact", head: true })
       .eq("listing_id", listingId),
     supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id", { count: "exact", head: true })
       .eq("listing_id", listingId)
       .is("deleted_at", null)
       .eq("is_active", true),
     supabase
-      .from("listing_policies")
+      .from("property_policies")
       .select("id", { count: "exact", head: true })
       .eq("listing_id", listingId)
       .eq("policy_type", "cancellation")
@@ -697,7 +697,7 @@ export async function togglePublishAction(
         .slice(0, 60) || "listing";
     slug = base;
     const { data: clash } = await supabase
-      .from("listings")
+      .from("properties")
       .select("id")
       .eq("slug", slug)
       .neq("id", listingId)
@@ -706,7 +706,7 @@ export async function togglePublishAction(
   }
 
   const { error } = await supabase
-    .from("listings")
+    .from("properties")
     .update({
       is_published: true,
       published_at: new Date().toISOString(),
@@ -743,7 +743,7 @@ export async function setBookingModeAction(
   // flexible mode with zero rooms is simply not bookable as rooms until the
   // host adds one — a soft constraint the host resolves organically.
   const { error } = await supabase
-    .from("listings")
+    .from("properties")
     .update({ booking_mode: parsed.data.booking_mode })
     .eq("id", listingId);
   if (error) {
@@ -764,7 +764,7 @@ async function recomputeListingFromRooms(
   listingId: string,
 ): Promise<void> {
   const { data: rooms } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "base_price, price_per_person, pricing_mode, max_guests, bedrooms, bathrooms",
     )
@@ -784,7 +784,7 @@ async function recomputeListingFromRooms(
   const sum = (key: "max_guests" | "bedrooms" | "bathrooms") =>
     rooms.reduce((acc, r) => acc + (Number(r[key]) || 0), 0);
   await supabase
-    .from("listings")
+    .from("properties")
     .update({
       base_price: prices.length ? Math.min(...prices) : null,
       max_guests: sum("max_guests") || null,
@@ -816,7 +816,7 @@ export async function createRoomAction(
 
   // Sort_order = current max + 1 so new rooms append to the bottom.
   const { data: existing } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select("sort_order")
     .eq("listing_id", listingId)
     .is("deleted_at", null)
@@ -826,7 +826,7 @@ export async function createRoomAction(
   const nextSort = (existing?.sort_order ?? -1) + 1;
 
   const { data: room, error } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .insert({
       listing_id: listingId,
       name: parsed.data.name,
@@ -887,7 +887,7 @@ export async function updateRoomAction(
 
   const supabase = own.db;
   const { error } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .update(parsed.data)
     .eq("id", roomId)
     .eq("listing_id", listingId);
@@ -920,7 +920,7 @@ export async function updateRoomAccessAction(
   const supabase = own.db;
   // Confirm the room belongs to this listing before writing access for it.
   const { data: room } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select("id")
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -995,7 +995,7 @@ export async function fetchRoomEditorDataAction(
 
   const supabase = own.db;
   const { data: room } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "id, name, description, bedrooms, bathrooms, max_guests, min_guests, min_nights, base_price, weekend_price, cleaning_fee, is_active, room_size_sqm, bed_type, view_type, experiences, featured_photo_id, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, infant_max_age, child_max_age, allow_children, allow_infants, allow_pets",
     )
@@ -1008,13 +1008,13 @@ export async function fetchRoomEditorDataAction(
   const [{ data: photoRows }, { data: amenityRows }, { data: bedRows }] =
     await Promise.all([
       supabase
-        .from("listing_photos")
+        .from("property_photos")
         .select("id, url, sort_order")
         .eq("listing_id", listingId)
         .eq("room_id", roomId)
         .order("sort_order", { ascending: true }),
       supabase
-        .from("listing_amenities")
+        .from("property_amenities")
         .select("amenity_key")
         .eq("listing_id", listingId)
         .eq("room_id", roomId),
@@ -1111,7 +1111,7 @@ export async function deleteRoomAction(
   }
 
   const { error } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .update({ deleted_at: new Date().toISOString(), is_active: false })
     .eq("id", roomId)
     .eq("listing_id", listingId);
@@ -1135,7 +1135,7 @@ export async function assignPhotoToRoomAction(
 
   const supabase = own.db;
   const { error } = await supabase
-    .from("listing_photos")
+    .from("property_photos")
     .update({ room_id: roomId })
     .eq("id", photoId)
     .eq("listing_id", listingId);
@@ -1156,7 +1156,7 @@ export async function assignAmenityToRoomAction(
 
   const supabase = own.db;
   const { error } = await supabase
-    .from("listing_amenities")
+    .from("property_amenities")
     .update({ room_id: roomId })
     .eq("id", amenityId)
     .eq("listing_id", listingId);
@@ -1181,7 +1181,7 @@ export async function setRoomFeaturedPhotoAction(
 
   if (photoId) {
     const { data: photo } = await supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("id")
       .eq("id", photoId)
       .eq("listing_id", listingId)
@@ -1196,7 +1196,7 @@ export async function setRoomFeaturedPhotoAction(
   }
 
   const { error } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .update({ featured_photo_id: photoId })
     .eq("id", roomId)
     .eq("listing_id", listingId);
@@ -1222,14 +1222,14 @@ export async function setRoomAmenityAction(
 
   if (on) {
     const { data: existing } = await supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("id")
       .eq("listing_id", listingId)
       .eq("room_id", roomId)
       .eq("amenity_key", amenityKey)
       .maybeSingle();
     if (!existing) {
-      const { error } = await supabase.from("listing_amenities").insert({
+      const { error } = await supabase.from("property_amenities").insert({
         listing_id: listingId,
         room_id: roomId,
         amenity_key: amenityKey,
@@ -1240,7 +1240,7 @@ export async function setRoomAmenityAction(
     }
   } else {
     const { error } = await supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .delete()
       .eq("listing_id", listingId)
       .eq("room_id", roomId)
@@ -1276,7 +1276,7 @@ export async function setRoomBedsAction(
   // Confirm the room belongs to the listing (defence in depth — RLS would
   // already deny cross-host writes).
   const { data: roomRow } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select("id")
     .eq("id", roomId)
     .eq("listing_id", listingId)
@@ -1323,7 +1323,7 @@ export async function setRoomBedsAction(
   // Capacity is the single source of truth — derived strictly from beds.
   const derivedCapacity = roomCapacityFromBeds(parsed.data);
   await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .update({
       bed_type: summary,
       ...(derivedCapacity > 0 ? { max_guests: derivedCapacity } : {}),

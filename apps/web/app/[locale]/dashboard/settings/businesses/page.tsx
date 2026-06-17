@@ -50,7 +50,7 @@ export default async function BusinessesSettingsPage() {
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: true }),
     supabase
-      .from("listings")
+      .from("properties")
       .select("business_id")
       .eq("host_id", host.id)
       .is("deleted_at", null),

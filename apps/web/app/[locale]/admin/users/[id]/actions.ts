@@ -708,7 +708,7 @@ export const adminDeleteAddonAction = withAdminAudit<
       throw new Error("Invalid input.");
     }
     // Detach from any listings first (FK), then remove the catalog row.
-    await service.from("listing_addons").delete().eq("addon_id", args.addonId);
+    await service.from("property_addons").delete().eq("addon_id", args.addonId);
     const { error } = await service
       .from("addons")
       .delete()
@@ -821,11 +821,11 @@ export const adminDeletePolicyAction = withAdminAudit<
     getTargetId: (a) => a.policyId,
   },
   async (args, service) => {
-    // listing_policies / policy_snapshots are ON DELETE RESTRICT — a referenced
+    // property_policies / policy_snapshots are ON DELETE RESTRICT — a referenced
     // policy is archived (soft) rather than hard-deleted.
     const [{ count: assigned }, { count: snapshots }] = await Promise.all([
       service
-        .from("listing_policies")
+        .from("property_policies")
         .select("id", { count: "exact", head: true })
         .eq("policy_id", args.policyId),
       service

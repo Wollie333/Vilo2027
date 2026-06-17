@@ -19,7 +19,7 @@ type Row = {
   total_reviews: number | null;
   instant_booking: boolean | null;
   photos: { url: string; sort_order: number }[] | null;
-  listing_rooms:
+  property_rooms:
     | {
         base_price: number | null;
         is_active: boolean | null;
@@ -43,7 +43,7 @@ function amount(l: Row): number | null {
 }
 
 const SELECT =
-  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, photos:listing_photos ( url, sort_order ), listing_rooms ( base_price, is_active, deleted_at )";
+  "slug, name, city, province, base_price, currency, max_guests, bedrooms, booking_mode, avg_rating, total_reviews, instant_booking, photos:property_photos ( url, sort_order ), property_rooms ( base_price, is_active, deleted_at )";
 
 /**
  * "Similar stays" — other published listings in the same province (same-city
@@ -63,7 +63,7 @@ export async function SimilarListings({
   const supabase = createServerClient();
 
   let query = supabase
-    .from("listings")
+    .from("properties")
     .select(SELECT)
     .eq("is_published", true)
     .neq("slug", currentSlug)

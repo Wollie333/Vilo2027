@@ -68,7 +68,7 @@ export default async function ReviewSubmissionPage({
     .select(
       `
       id, status, check_in, check_out, nights, guest_name, checked_out_at,
-      listing:listings ( name, slug ),
+      listing:properties ( name, slug ),
       host:hosts ( display_name )
     `,
     )

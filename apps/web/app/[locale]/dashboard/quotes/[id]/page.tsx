@@ -127,7 +127,7 @@ export default async function QuoteDetailPage({
       notes, accept_token, valid_until,
       sent_at, accepted_at, declined_at, converted_at, converted_booking_id,
       created_at,
-      listing:listings ( id, name, slug, city, province, listing_photos ( url, sort_order ) )
+      listing:properties ( id, name, slug, city, province, property_photos ( url, sort_order ) )
     `,
     )
     .eq("id", params.id)
@@ -154,7 +154,7 @@ export default async function QuoteDetailPage({
     supabase
       .from("quote_rooms")
       .select(
-        "room_id, base_amount, cleaning_fee, room:listing_rooms ( name, description, bed_type, room_size_sqm, max_guests, featured_photo:listing_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
+        "room_id, base_amount, cleaning_fee, room:property_rooms ( name, description, bed_type, room_size_sqm, max_guests, featured_photo:property_photos!listing_rooms_featured_photo_id_fkey ( url ) )",
       )
       .eq("quote_id", params.id),
     supabase
@@ -229,13 +229,13 @@ export default async function QuoteDetailPage({
       slug: string | null;
       city: string | null;
       province: string | null;
-      listing_photos: { url: string | null; sort_order: number }[] | null;
+      property_photos: { url: string | null; sort_order: number }[] | null;
     } | null,
   );
   const listingName = listing?.name;
   const coverPhoto =
     richRooms.find((r) => r.imageUrl)?.imageUrl ??
-    (listing?.listing_photos ?? [])
+    (listing?.property_photos ?? [])
       .filter((p) => p.url)
       .slice()
       .sort((a, b) => a.sort_order - b.sort_order)[0]?.url ??

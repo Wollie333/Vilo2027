@@ -98,7 +98,7 @@ export default async function BookingPage({
 
   // Public read of a published listing.
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "id, host_id, business_id, slug, name, city, province, base_price, weekend_price, cleaning_fee, currency, max_guests, min_nights, cancellation_policy, instant_booking, booking_mode, listing_type, accommodation_type, avg_rating, total_reviews, whole_listing_discount_pct, weekly_discount_pct, monthly_discount_pct, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets",
     )
@@ -120,7 +120,7 @@ export default async function BookingPage({
 
   // ── Load every active room so the guest can pick on this page ──
   const { data: roomRows } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "id, name, base_price, weekend_price, cleaning_fee, max_guests, min_guests, min_nights, pricing_mode, price_per_person, base_occupancy, extra_guest_price, child_price, infant_price, pet_fee, allow_children, allow_infants, allow_pets, view_type, has_ensuite_bathroom, private_entrance, pets_allowed",
     )
@@ -154,7 +154,7 @@ export default async function BookingPage({
             }[],
           }),
       supabase
-        .from("listing_photos")
+        .from("property_photos")
         .select("room_id, url, sort_order")
         .eq("listing_id", listing.id)
         .order("sort_order", { ascending: true }),
@@ -210,7 +210,7 @@ export default async function BookingPage({
   // form, so load them all (not just the requested range) and let the engine
   // resolve per night. Matches what createBookingAction charges with.
   const { data: seasonalRows } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )
@@ -297,7 +297,7 @@ export default async function BookingPage({
   let availableAddons: AvailableAddon[] = [];
   {
     const { data: addonJoinRows } = await supabase
-      .from("listing_addons")
+      .from("property_addons")
       .select(
         "addon_id, room_id, unit_price_override, addons!inner ( id, name, description, image_path, pricing_model, unit_price, currency, min_quantity, max_quantity, allow_custom_quantity, stock_quantity, is_required, is_active, lead_time_days )",
       )

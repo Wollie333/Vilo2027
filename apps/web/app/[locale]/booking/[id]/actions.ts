@@ -29,7 +29,7 @@ export async function initializePaymentForBookingAction(
   const { data: booking } = await supabase
     .from("bookings")
     .select(
-      "id, guest_id, listing_id, reference, scope, status, payment_status, total_amount, deposit_amount, currency, listing:listings ( name, host_id )",
+      "id, guest_id, listing_id, reference, scope, status, payment_status, total_amount, deposit_amount, currency, listing:properties ( name, host_id )",
     )
     .eq("id", bookingId)
     .maybeSingle();

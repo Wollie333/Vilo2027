@@ -41,7 +41,7 @@ export default async function PublicRoomPage({
 
   // Public read of the published listing (RLS allows anon read of published).
   const { data: listing } = await supabase
-    .from("listings")
+    .from("properties")
     .select(
       "id, slug, name, city, province, currency, booking_mode, instant_booking, is_published, min_nights, weekly_discount_pct, monthly_discount_pct",
     )
@@ -53,7 +53,7 @@ export default async function PublicRoomPage({
   // Active seasonal rules for this listing (listing-wide + this room) so the
   // single-room estimate matches what the booking action charges.
   const { data: seasonalRows } = await supabase
-    .from("listing_seasonal_pricing")
+    .from("property_seasonal_pricing")
     .select(
       "room_id, start_date, end_date, adjustment_type, adjustment_value, label, priority, min_nights, is_active, created_at",
     )
@@ -77,7 +77,7 @@ export default async function PublicRoomPage({
     }));
 
   const { data: room } = await supabase
-    .from("listing_rooms")
+    .from("property_rooms")
     .select(
       "id, name, description, bedrooms, bathrooms, max_guests, base_price, weekend_price, cleaning_fee, pricing_mode, price_per_person, base_occupancy, extra_guest_price, room_size_sqm, view_type, has_ensuite_bathroom, pets_allowed, wheelchair_accessible, private_entrance, smoking_allowed, floor_number, inventory_count",
     )
@@ -96,13 +96,13 @@ export default async function PublicRoomPage({
     { data: roomOrderRows },
   ] = await Promise.all([
     supabase
-      .from("listing_photos")
+      .from("property_photos")
       .select("id, url, sort_order")
       .eq("listing_id", listing.id)
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_amenities")
+      .from("property_amenities")
       .select("amenity_key")
       .eq("listing_id", listing.id)
       .eq("room_id", params.roomId),
@@ -112,7 +112,7 @@ export default async function PublicRoomPage({
       .eq("room_id", params.roomId)
       .order("sort_order", { ascending: true }),
     supabase
-      .from("listing_rooms")
+      .from("property_rooms")
       .select("id")
       .eq("listing_id", listing.id)
       .is("deleted_at", null)

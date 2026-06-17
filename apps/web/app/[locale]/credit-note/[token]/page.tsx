@@ -39,7 +39,7 @@ export default async function PublicCreditNotePage({
   const { data: cn } = await admin
     .from("credit_notes")
     .select(
-      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number ), booking:bookings ( listing:listings ( business_id ) )",
+      "credit_note_number, status, issued_at, currency, total_amount, reason, host_id, guest_snapshot, line_items, hosted_token, invoice:invoices!inner ( invoice_number ), booking:bookings ( listing:properties ( business_id ) )",
     )
     .eq("hosted_token", params.token)
     .maybeSingle();

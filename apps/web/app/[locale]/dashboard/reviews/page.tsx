@@ -176,7 +176,7 @@ export default async function ReviewsPage({
     baseCountQuery().not("host_response", "is", null),
     baseCountQuery().eq("flagged", true),
     supabase
-      .from("listings")
+      .from("properties")
       .select("id, name, avg_rating, total_reviews, featured_review_id")
       .eq("host_id", host.id)
       .is("deleted_at", null)
@@ -228,7 +228,7 @@ export default async function ReviewsPage({
     .select(
       `
       id, rating, body, host_response, host_responded_at, flagged, created_at,
-      listing:listings!reviews_listing_id_fkey ( id, name ),
+      listing:properties!reviews_listing_id_fkey ( id, name ),
       booking:bookings ( id, check_in, check_out, nights, guest_name ),
       guest:user_profiles!reviews_guest_id_fkey ( full_name ),
       photos:review_photos ( storage_path, sort_order )

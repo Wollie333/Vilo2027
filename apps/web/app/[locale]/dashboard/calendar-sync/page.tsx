@@ -49,7 +49,7 @@ export default async function CalendarSyncPage() {
   }
 
   const { data: listings } = await supabase
-    .from("listings")
+    .from("properties")
     .select("id, name")
     .eq("host_id", host.id)
     .is("deleted_at", null)

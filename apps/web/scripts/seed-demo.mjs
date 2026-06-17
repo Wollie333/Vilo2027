@@ -289,7 +289,7 @@ async function main() {
   ]);
 
   // 4. Photos
-  await up("listing_photos", [
+  await up("property_photos", [
     {
       id: PHOTO_A,
       listing_id: LISTING_A,
@@ -309,7 +309,7 @@ async function main() {
   ]);
 
   // 5. Amenities
-  await up("listing_amenities", [
+  await up("property_amenities", [
     { id: "0ad00000-0000-4000-8000-00000000a001", listing_id: LISTING_A, amenity_key: "wifi" },
     { id: "0ad00000-0000-4000-8000-00000000a002", listing_id: LISTING_A, amenity_key: "kitchen" },
     { id: "0ad00000-0000-4000-8000-00000000a003", listing_id: LISTING_A, amenity_key: "sea_view" },
@@ -320,7 +320,7 @@ async function main() {
   ]);
 
   // 6. Rooms (for the flexible listing B)
-  await up("listing_rooms", [
+  await up("property_rooms", [
     {
       id: ROOM_1,
       listing_id: LISTING_B,
@@ -354,7 +354,7 @@ async function main() {
   ]);
 
   // 7. Seasonal pricing (listing A)
-  await up("listing_seasonal_pricing", [
+  await up("property_seasonal_pricing", [
     {
       id: SEASON_1,
       listing_id: LISTING_A,
@@ -387,7 +387,7 @@ async function main() {
       currency: "ZAR",
     },
   ]);
-  await up("listing_addons", [
+  await up("property_addons", [
     { id: LISTING_ADDON_1, listing_id: LISTING_A, addon_id: ADDON_1 },
   ]);
 
@@ -621,7 +621,7 @@ async function main() {
   }
 
   // Gallery photos for LISTING_B (cover PHOTO_B already exists at sort 0).
-  await up("listing_photos", [
+  await up("property_photos", [
     { id: "0a666666-6666-4666-8666-6666666666b1", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g1.jpg`, url: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=1200", sort_order: 1, caption: "Vineyard suite" },
     { id: "0a666666-6666-4666-8666-6666666666b2", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g2.jpg`, url: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200", sort_order: 2, caption: "Lounge" },
     { id: "0a666666-6666-4666-8666-6666666666b3", listing_id: LISTING_B, storage_path: `listing-photos/${LISTING_B}/g3.jpg`, url: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200", sort_order: 3, caption: "Kitchen" },
@@ -635,18 +635,18 @@ async function main() {
   // quote line items) show a thumbnail, bed type and m².
   {
     const { error: e1 } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .update({ featured_photo_id: "0a666666-6666-4666-8666-66666666f6c1", room_size_sqm: 22 })
       .eq("id", ROOM_1);
     const { error: e2 } = await admin
-      .from("listing_rooms")
+      .from("property_rooms")
       .update({ featured_photo_id: "0a666666-6666-4666-8666-66666666f6c2", room_size_sqm: 30 })
       .eq("id", ROOM_2);
     if (e1 || e2) throw new Error(`set room featured photos: ${(e1 ?? e2).message}`);
   }
 
   // More amenities for LISTING_B.
-  await up("listing_amenities", [
+  await up("property_amenities", [
     { id: "0ad00000-0000-4000-8000-00000000b004", listing_id: LISTING_B, amenity_key: "parking" },
     { id: "0ad00000-0000-4000-8000-00000000b005", listing_id: LISTING_B, amenity_key: "kitchen" },
     { id: "0ad00000-0000-4000-8000-00000000b006", listing_id: LISTING_B, amenity_key: "air_conditioning" },
@@ -656,7 +656,7 @@ async function main() {
   ]);
 
   // Seasonal pricing tiers for LISTING_B (listing-wide).
-  await up("listing_seasonal_pricing", [
+  await up("property_seasonal_pricing", [
     { id: "0a555555-5555-4555-8555-5555555555b1", listing_id: LISTING_B, label: "Winter off-peak", start_date: "2026-05-01", end_date: "2026-08-31", adjustment_type: "absolute", adjustment_value: 1900, priority: 1 },
     { id: "0a555555-5555-4555-8555-5555555555b2", listing_id: LISTING_B, label: "Festive peak", start_date: "2026-12-15", end_date: "2027-01-10", adjustment_type: "absolute", adjustment_value: 3200, min_nights: 4, priority: 10 },
   ]);
