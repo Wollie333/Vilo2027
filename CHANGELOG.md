@@ -24,6 +24,13 @@
 - **Relationships tab → filterable cards** (`?tab=relationships`). Each travelled-
   with guest is a two-column card showing avatar (resolved from the linked
   account), name, email, phone and connection date, with search + sort controls.
+- **Referrals tab → affiliate dashboard** (`?tab=referrals`). KPI strip (link
+  views, signups, pending, earned, available, paid out) over a standard table of
+  referred users (name + email, signup date, product, plan, commission) with
+  search/sort and a commission + available-balance footer. A **Pay out** button
+  records an immediate EFT/Paystack payout via the canonical
+  `create_affiliate_payout` + `settle_affiliate_payout` RPCs (new audited
+  `adminPayoutAffiliate` action — no forked money maths).
 
 ---
 

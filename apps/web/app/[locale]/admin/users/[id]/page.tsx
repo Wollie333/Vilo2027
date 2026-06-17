@@ -5,6 +5,7 @@ import {
   getActiveSupportGrant,
   getLatestSupportGrant,
 } from "@/lib/admin/supportGrant";
+import { getAffiliateBalance } from "@/lib/affiliate/balance";
 import { fetchViloLedger } from "@/lib/billing/vilo-ledger";
 import { fetchHostTransactions, txnStats } from "@/lib/finance/transactions";
 import { getAllPlans } from "@/lib/plans/getPlans";
@@ -398,6 +399,7 @@ export default async function AdminUserDetailPage({
     })),
     relationships: relationshipBundle,
     affiliateSlug: referralBundle.slug,
+    affiliateStats: referralBundle.stats,
     referrals: referralBundle.referrals,
     dataRequests: (dataReqRows ?? []).map((d) => ({
       id: d.id,
@@ -516,20 +518,47 @@ const PAID_PLANS = new Set(["basic", "pro", "business"]);
 async function loadReferrals(
   service: ReturnType<typeof createAdminClient>,
   userId: string,
-): Promise<{ slug: string | null; referrals: UserRecordData["referrals"] }> {
+): Promise<{
+  slug: string | null;
+  stats: UserRecordData["affiliateStats"];
+  referrals: UserRecordData["referrals"];
+}> {
   const { data: account } = await service
     .from("affiliate_accounts")
-    .select("id, slug, currency")
+    .select("id, slug, currency, status, default_payout_method")
     .eq("user_id", userId)
     .maybeSingle();
-  if (!account) return { slug: null, referrals: [] };
+  if (!account) return { slug: null, stats: null, referrals: [] };
 
-  const { data: refs } = await service
-    .from("affiliate_referrals")
-    .select("id, referred_user_id, bound_at")
-    .eq("affiliate_id", account.id)
-    .order("bound_at", { ascending: false });
-  if (!refs || refs.length === 0) return { slug: account.slug, referrals: [] };
+  const [{ data: refs }, { count: clicks }, balance] = await Promise.all([
+    service
+      .from("affiliate_referrals")
+      .select("id, referred_user_id, bound_at")
+      .eq("affiliate_id", account.id)
+      .order("bound_at", { ascending: false }),
+    service
+      .from("affiliate_clicks")
+      .select("id", { count: "exact", head: true })
+      .eq("affiliate_id", account.id),
+    getAffiliateBalance(service, account.id).catch(() => null),
+  ]);
+
+  const stats: UserRecordData["affiliateStats"] = {
+    accountId: account.id,
+    currency: account.currency,
+    status: account.status ?? "active",
+    defaultMethod: account.default_payout_method ?? null,
+    clicks: clicks ?? 0,
+    signups: refs?.length ?? 0,
+    pending: balance?.pending ?? 0,
+    earned: balance?.lifetime ?? 0,
+    available: balance?.available ?? 0,
+    paid: balance?.paid ?? 0,
+  };
+
+  if (!refs || refs.length === 0) {
+    return { slug: account.slug, stats, referrals: [] };
+  }
 
   const referredIds = refs.map((r) => r.referred_user_id);
   const [{ data: profiles }, { data: hosts }, { data: commissions }] =
@@ -551,14 +580,26 @@ async function loadReferrals(
   const { data: subs } = hostIds.length
     ? await service
         .from("subscriptions")
-        .select("host_id, plan, status")
+        .select("host_id, plan, status, product_id")
         .in("host_id", hostIds)
     : {
-        data: [] as { host_id: string; plan: string | null; status: string }[],
+        data: [] as {
+          host_id: string;
+          plan: string | null;
+          status: string;
+          product_id: string | null;
+        }[],
       };
-  const planByHost = new Map(
-    (subs ?? []).map((s) => [s.host_id, { plan: s.plan, status: s.status }]),
-  );
+  const subByHost = new Map((subs ?? []).map((s) => [s.host_id, s]));
+
+  // Resolve the actual product name each referred host's subscription points to.
+  const productIds = [
+    ...new Set((subs ?? []).map((s) => s.product_id).filter(Boolean)),
+  ] as string[];
+  const { data: products } = productIds.length
+    ? await service.from("products").select("id, name").in("id", productIds)
+    : { data: [] as { id: string; name: string }[] };
+  const productNameById = new Map((products ?? []).map((p) => [p.id, p.name]));
 
   const commByReferral = new Map<string, number>();
   for (const c of commissions ?? []) {
@@ -572,7 +613,7 @@ async function loadReferrals(
   const referrals = refs.map((r) => {
     const profile = profileById.get(r.referred_user_id);
     const hostId = hostByUser.get(r.referred_user_id);
-    const sub = hostId ? planByHost.get(hostId) : undefined;
+    const sub = hostId ? subByHost.get(hostId) : undefined;
     const isPaid =
       !!sub &&
       sub.plan != null &&
@@ -583,17 +624,21 @@ async function loadReferrals(
       : hostId
         ? "Free"
         : "Guest";
+    const productName =
+      (sub?.product_id ? productNameById.get(sub.product_id) : null) ||
+      (hostId ? `${plan} plan` : "No subscription");
     return {
       id: r.id,
       userId: r.referred_user_id,
       name: profile?.full_name || "Unnamed",
       email: profile?.email ?? null,
       plan,
+      productName,
       commission: Number(commByReferral.get(r.id) ?? 0),
       currency: account.currency,
       joinedAt: r.bound_at,
     };
   });
 
-  return { slug: account.slug, referrals };
+  return { slug: account.slug, stats, referrals };
 }

@@ -473,6 +473,86 @@ export const adminUpdateBusinessAction = withAdminAudit<
   },
 );
 
+// ─── Pay an affiliate out immediately (admin) ────────────────────────
+// Reuses the canonical money RPCs: create_affiliate_payout claims cleared
+// commission + applies the per-method fee/threshold, then settle_affiliate_payout
+// marks it paid. Never forks the payout maths (single source of truth).
+const PAYOUT_ERRORS: Record<string, string> = {
+  not_found: "This user has no affiliate account.",
+  suspended: "The affiliate account is suspended.",
+  bad_method: "Choose a valid payout method.",
+  no_method: "Add payout details for this method first.",
+  nothing_to_pay: "There is no cleared commission to pay out yet.",
+  below_threshold: "The cleared balance is below the payout threshold.",
+};
+
+const payoutSchema = z.object({
+  affiliateId: z.string().uuid(),
+  method: z.enum(["eft", "paystack"]),
+  reference: z.string().trim().max(120).optional(),
+  reason: z.string().optional(),
+});
+
+export const adminPayoutAffiliateAction = withAdminAudit<
+  z.infer<typeof payoutSchema>,
+  { ok: true; net: number }
+>(
+  {
+    permissionKey: "subscriptions.edit",
+    actionName: "affiliate.admin_payout",
+    targetType: "affiliate",
+    getTargetId: (a) => a.affiliateId,
+  },
+  async (args, service) => {
+    const parsed = payoutSchema.safeParse(args);
+    if (!parsed.success) throw new Error("Invalid payout request.");
+    const { affiliateId, method, reference } = parsed.data;
+    const admin = await requirePermission("subscriptions.edit");
+
+    const { data: created, error: cErr } = await service.rpc(
+      "create_affiliate_payout",
+      { p_affiliate_id: affiliateId, p_method: method },
+    );
+    if (cErr) throw new Error(cErr.message);
+    const c = created as {
+      ok: boolean;
+      error?: string;
+      payout_id?: string;
+      net?: number;
+    };
+    if (!c?.ok || !c.payout_id) {
+      throw new Error(
+        PAYOUT_ERRORS[c?.error ?? ""] ?? "Could not create the payout.",
+      );
+    }
+
+    const { data: settled, error: sErr } = await service.rpc(
+      "settle_affiliate_payout",
+      {
+        p_payout_id: c.payout_id,
+        p_action: "paid",
+        p_admin: admin.userId,
+        p_reference: reference ?? null,
+        p_reason: null,
+      },
+    );
+    if (sErr) throw new Error(sErr.message);
+    const s = settled as { ok: boolean; error?: string };
+    if (!s?.ok) {
+      throw new Error(
+        s?.error ?? "Created the payout but couldn't mark it paid.",
+      );
+    }
+
+    revalidatePath(`/admin/users`);
+    revalidatePath("/admin/affiliates");
+    return {
+      result: { ok: true, net: c.net ?? 0 },
+      after: { payoutId: c.payout_id, method, reference: reference ?? null },
+    };
+  },
+);
+
 // ─── Thin client wrappers (return {ok,error} instead of redirect-throw) ───
 type Res = { ok: true } | { ok: false; error: string };
 async function wrap(fn: () => Promise<unknown>): Promise<Res> {
@@ -550,6 +630,19 @@ export async function adminUpdateBusiness(input: {
       input as Parameters<typeof adminUpdateBusinessAction>[0],
     ),
   );
+}
+
+export async function adminPayoutAffiliate(input: {
+  affiliateId: string;
+  method: "eft" | "paystack";
+  reference?: string;
+}): Promise<{ ok: true; net: number } | { ok: false; error: string }> {
+  try {
+    const r = await adminPayoutAffiliateAction(input);
+    return { ok: true, net: r.net };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed." };
+  }
 }
 
 export async function adminUpdateSubscription(input: {

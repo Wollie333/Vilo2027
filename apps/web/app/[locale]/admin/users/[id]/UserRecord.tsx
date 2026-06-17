@@ -53,6 +53,7 @@ import type { Txn } from "@/lib/finance/transactions";
 
 import {
   addAdminUserNote,
+  adminPayoutAffiliate,
   adminUpdateBusiness,
   adminUpdateSubscription,
   setUserProduct,
@@ -228,11 +229,24 @@ export type UserRecordData = {
     name: string;
     email: string | null;
     plan: string;
+    productName: string;
     commission: number;
     currency: string;
     joinedAt: string;
   }[];
   affiliateSlug: string | null;
+  affiliateStats: {
+    accountId: string;
+    currency: string;
+    status: string;
+    defaultMethod: string | null;
+    clicks: number;
+    signups: number;
+    pending: number;
+    earned: number;
+    available: number;
+    paid: number;
+  } | null;
   dataRequests: {
     id: string;
     type: string;
@@ -1994,41 +2008,302 @@ function RelationshipsPanel({ data }: { data: UserRecordData }) {
 }
 
 function ReferralsPanel({ data }: { data: UserRecordData }) {
-  if (data.referrals.length === 0) {
+  const router = useRouter();
+  const stats = data.affiliateStats;
+  const [payout, setPayout] = useState(false);
+  const [q, setQ] = useState("");
+  const [sort, setSort] = useState("recent");
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let out = data.referrals.filter((r) => {
+      if (!needle) return true;
+      return [r.name, r.email, r.productName, r.plan]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    });
+    out = [...out].sort((a, b) => {
+      if (sort === "name") return a.name.localeCompare(b.name);
+      if (sort === "commission") return b.commission - a.commission;
+      return a.joinedAt < b.joinedAt ? 1 : -1; // recent
+    });
+    return out;
+  }, [data.referrals, q, sort]);
+
+  const currency = stats?.currency ?? data.referrals[0]?.currency ?? "ZAR";
+  const totalCommission = filtered.reduce((s, r) => s + r.commission, 0);
+
+  if (!stats && !data.affiliateSlug) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white px-6 py-12 text-center">
         <Gift className="mx-auto h-6 w-6 text-brand-line" />
         <p className="mt-3 text-[13px] text-brand-mute">
-          {data.affiliateSlug
-            ? "No referrals yet. People this affiliate brings to Vilo will appear here."
-            : "This user isn't an affiliate yet. When they refer others, the people they bring to Vilo will appear here."}
+          This user isn&apos;t an affiliate yet. When they refer others, the
+          people they bring to Vilo will appear here.
         </p>
       </div>
     );
   }
 
+  const columns: AdminColumn<UserRecordData["referrals"][number]>[] = [
+    {
+      header: "Referred user",
+      cell: (r) => (
+        <Link href={`/admin/users/${r.userId}`} className="group block min-w-0">
+          <div className="truncate font-medium text-brand-ink group-hover:text-brand-primary">
+            {r.name}
+          </div>
+          <div className="truncate font-mono text-[11px] text-brand-mute">
+            {r.email ?? "No email"}
+          </div>
+        </Link>
+      ),
+    },
+    {
+      header: "Signed up",
+      cell: (r) => (
+        <span className="text-[12px] text-brand-mute">
+          {fmtDate(r.joinedAt)}
+        </span>
+      ),
+    },
+    {
+      header: "Product",
+      cell: (r) => (
+        <span className="text-[12.5px] text-brand-ink">{r.productName}</span>
+      ),
+    },
+    {
+      header: "Plan",
+      cell: (r) => (
+        <span className="inline-flex items-center rounded-pill border border-brand-line bg-brand-light px-2 py-0.5 text-[11px] font-semibold capitalize text-brand-mute">
+          {r.plan}
+        </span>
+      ),
+    },
+    {
+      header: "Commission",
+      align: "right",
+      cell: (r) => (
+        <span className="font-display text-[13px] font-bold tabular-nums text-brand-ink">
+          {formatMoney(r.commission, r.currency)}
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <Section
-      icon={Gift}
-      title={
-        data.affiliateSlug
-          ? `Referrals via /r/${data.affiliateSlug}`
-          : "Referrals"
-      }
-      count={data.referrals.length}
-      empty="No referrals yet."
-    >
-      {data.referrals.map((r) => (
-        <RowLink
-          key={r.id}
-          href={`/admin/users/${r.userId}`}
-          primary={r.name}
-          secondary={`${r.email ?? "No email"} · joined ${fmtDate(r.joinedAt)}`}
-          amount={formatMoney(r.commission, r.currency)}
-          status={r.plan}
+    <div className="space-y-5">
+      {/* Affiliate header + payout */}
+      <section className="overflow-hidden rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Gift className="h-4 w-4 text-brand-mute" />
+            <div>
+              <div className="font-display text-[15px] font-bold text-brand-ink">
+                Affiliate programme
+              </div>
+              {data.affiliateSlug ? (
+                <div className="mt-0.5 font-mono text-[12px] text-brand-mute">
+                  /r/{data.affiliateSlug}
+                  {stats && stats.status !== "active"
+                    ? ` · ${stats.status}`
+                    : ""}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          {stats ? (
+            <button
+              type="button"
+              onClick={() => setPayout(true)}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary"
+            >
+              <CreditCard className="h-4 w-4" /> Pay out
+            </button>
+          ) : null}
+        </div>
+
+        {stats ? (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <MiniKpi label="Link views" value={String(stats.clicks)} />
+            <MiniKpi label="Signups" value={String(stats.signups)} />
+            <MiniKpi
+              label="Pending"
+              value={formatMoney(stats.pending, currency)}
+            />
+            <MiniKpi
+              label="Earned"
+              value={formatMoney(stats.earned, currency)}
+            />
+            <MiniKpi
+              label="Available"
+              value={formatMoney(stats.available, currency)}
+            />
+            <MiniKpi
+              label="Paid out"
+              value={formatMoney(stats.paid, currency)}
+            />
+          </div>
+        ) : null}
+      </section>
+
+      {/* Referred users */}
+      <div>
+        <div className="mb-2 flex items-center gap-2">
+          <Users className="h-4 w-4 text-brand-mute" />
+          <h3 className="font-display text-[15px] font-bold text-brand-ink">
+            Referred users
+          </h3>
+          <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+            {data.referrals.length}
+          </span>
+        </div>
+        <AdminTable
+          columns={columns}
+          rows={filtered}
+          getKey={(r) => r.id}
+          empty="No referrals yet. People this affiliate brings to Vilo appear here."
+          toolbar={
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+                <Search className="h-4 w-4 text-brand-mute" />
+                <input
+                  type="search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search referred users…"
+                  className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+                />
+              </div>
+              <FilterSelect value={sort} onChange={setSort}>
+                <option value="recent">Most recent</option>
+                <option value="commission">Highest commission</option>
+                <option value="name">Name (A–Z)</option>
+              </FilterSelect>
+            </div>
+          }
+          footer={
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] tabular-nums text-brand-mute">
+              <span>
+                Showing {filtered.length} of {data.referrals.length}
+              </span>
+              <span>
+                Commission shown:{" "}
+                <span className="font-semibold text-brand-ink">
+                  {formatMoney(totalCommission, currency)}
+                </span>
+                {stats ? (
+                  <>
+                    {" "}
+                    · Available to pay out:{" "}
+                    <span className="font-semibold text-brand-ink">
+                      {formatMoney(stats.available, currency)}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+            </div>
+          }
         />
-      ))}
-    </Section>
+      </div>
+
+      {stats ? (
+        <AffiliatePayoutModal
+          open={payout}
+          affiliateId={stats.accountId}
+          available={stats.available}
+          currency={currency}
+          defaultMethod={stats.defaultMethod}
+          onClose={() => setPayout(false)}
+          onDone={() => {
+            setPayout(false);
+            router.refresh();
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function AffiliatePayoutModal({
+  open,
+  affiliateId,
+  available,
+  currency,
+  defaultMethod,
+  onClose,
+  onDone,
+}: {
+  open: boolean;
+  affiliateId: string;
+  available: number;
+  currency: string;
+  defaultMethod: string | null;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const [method, setMethod] = useState<"eft" | "paystack">(
+    defaultMethod === "paystack" ? "paystack" : "eft",
+  );
+  const [reference, setReference] = useState("");
+
+  const run = () =>
+    start(async () => {
+      const r = await adminPayoutAffiliate({
+        affiliateId,
+        method,
+        reference: reference.trim() || undefined,
+      });
+      if (r.ok) {
+        toast.success(
+          `Payout recorded — ${formatMoney(r.net, currency)} paid.`,
+        );
+        onDone();
+      } else toast.error(r.error);
+    });
+
+  return (
+    <FormModal
+      open={open}
+      onOpenChange={(o) => (o ? null : onClose())}
+      title="Pay out affiliate"
+      description="Claims the cleared, available commission into a payout and marks it paid immediately. The per-method fee is applied automatically."
+    >
+      <div className="space-y-4">
+        <div className="rounded-card border border-brand-line bg-brand-light/40 px-4 py-2.5 text-[12.5px] text-brand-ink">
+          Available to pay out:{" "}
+          <span className="font-semibold">
+            {formatMoney(available, currency)}
+          </span>
+        </div>
+        <Lbl label="Method">
+          <Select
+            value={method}
+            onChange={(e) => setMethod(e.target.value as "eft" | "paystack")}
+          >
+            <option value="eft">EFT (bank transfer)</option>
+            <option value="paystack">Paystack</option>
+          </Select>
+        </Lbl>
+        <Lbl label="Reference (optional)">
+          <Input
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="e.g. bank payment ref"
+          />
+        </Lbl>
+      </div>
+      <FormModalFooter>
+        <FormModalCancel onClick={onClose} />
+        <Button disabled={pending || available <= 0} onClick={run}>
+          {pending ? "Paying…" : "Pay out now"}
+        </Button>
+      </FormModalFooter>
+    </FormModal>
   );
 }
 
