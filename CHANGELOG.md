@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-17 — Product-driven gating consolidation + guest transactions/reviews
+
+### Built
+- **Product-driven feature gating.** `check_feature_permission` now resolves
+  scopes/limits from the admin-created PRODUCT a host bought, via
+  `subscriptions.product_id` → `product_features` (order: override → product →
+  plan → default; additive fallback to `plan_features`). Removed the hardcoded
+  `free/basic/pro/business` gate so any admin-created subscription product
+  activates and grants its features. Every subscription create/update path now
+  records `product_id`: `activateMappedPlan`, both Paystack webhook paths, signup
+  buy-first, and admin set-product. `plan` is kept a valid `plans.key` for legacy
+  reads. Migration `20260617000030_product_feature_gating.sql` (applied + verified
+  live via `scripts/verify-product-gating.mjs`).
+- **Test/live tag on subscription revenue.** Subscription checkout + webhook
+  renewals now tag `platform_ledger.environment` from the active Paystack key, so
+  test-key purchases stay out of live KPIs (matches the product flow).
+- **Unified admin user-record dossier** (products & subscription, Vilo account
+  ledger, referrals/commission, business details) reading real DB data; documented
+  **BUSINESS_PRINCIPLES #4** (every transaction is assigned to a business and
+  backed by a financial document).
+- **Guest transaction history tab** (`/portal/settings/transactions`) — extracted
+  the host transaction view into a shared `ViloTransactionHistory` component
+  (RLS-scoped) reused by both host + guest, with downloadable invoices.
+- **Guest "Create review" picker** on `/portal/reviews` — modal lists the guest's
+  review-eligible stays (canonical rule: completed + paid + not yet reviewed) and
+  routes into the existing tokenised `/review/[bookingId]` flow.
+
+### Ops
+- Redeployed `paystack-webhook`. Reconciled a phantom migration history row
+  (`20260617000010`, pushed by a concurrent agent, in no git commit) via
+  `migration repair --status reverted` before applying the real migration.
+
+### Follow-ups
+- Signup still uses the hardcoded `PLANS` mirror (`signup/host/schemas.ts`) — DB-wire
+  it to products to fully retire hardcoded plans (P1.7).
+
 ## 2026-06-17 — Admin-editable affiliate terms + filterable Bookings/Activity tabs
 
 ### Built
