@@ -49,7 +49,7 @@ const MAIN: GmailNavItem[] = [
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarIcon },
   {
     href: "/dashboard/properties",
-    label: "Listings",
+    label: "Properties",
     icon: HomeIcon,
     match: "prefix",
   },
@@ -202,7 +202,7 @@ export function Sidebar({
             hostDisplayName={host?.display_name ?? null}
             hostBlurb={
               host
-                ? `${host.listingCount} ${host.listingCount === 1 ? "listing" : "listings"} · ${planLabel}`
+                ? `${host.listingCount} ${host.listingCount === 1 ? "property" : "properties"} · ${planLabel}`
                 : null
             }
           />

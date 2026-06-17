@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-17 — Rename R4: routes + i18n labels (`listing → property`)
+
+### Changed
+- **Final checkpoint of the `listings → properties` rename — routes + labels, no DB
+  migration** (see `RENAME_LISTINGS_TO_PROPERTIES.md`). `typedRoutes` is off, so stale
+  path strings are runtime 404s rather than build errors — every reference was swept by
+  hand and verified (0 route strings remain).
+- **Route folders renamed** (`git mv`) + all path-string & import references updated:
+  `app/[locale]/listing/[slug] → property/[slug]` (+ `book/`, `rooms/[roomId]`);
+  `dashboard/listings → dashboard/properties` (incl. relative `../listings/[id]/edit/*`
+  imports from `dashboard/rooms` + `dashboard/setup`); `admin/listings → admin/properties`
+  and `admin/users/[id]/listings/[listingId] → properties/[propertyId]`
+  (`params.listingId → params.propertyId`); `app/ical/[listing_id] → [property_id]`
+  (`params.listing_id → params.property_id`).
+- **i18n labels** — `messages/en.json` app-UI value swaps (`booking.listing` →
+  "Property"; `businesses.*` subtitle/count/hints; dashboard tour copy); `messages/af.json`
+  `businesses.*` → "eiendomme"; `fr/de/pt.json` are empty stubs. Host sidebar nav item
+  "Listings" → "Properties" + footer count badge.
+
+### Kept / deferred
+- Kept: `components/listing/` dir, `dashboard/listing-extras` route (website §5 folds it
+  later), the `listing` i18n namespace key, `p_listing_id` RPC args, `reviews_listing_id_fkey`
+  constraint names, and marketing copy (incl. FAQ about other-platform listings).
+- Deferred to the website-build §5 IA pass: the ~50 *hardcoded* (non-i18n) "Listing"
+  page headings/labels across host + admin — to be extracted to i18n during that pass.
+- **R0–R4 physical rename is complete.** Next: the website build (Property + Channels CMS).
+
+---
+
 ## 2026-06-17 — Rename R3: columns `listing_id → property_id` (+ `listing_type`, view events)
 
 ### Changed

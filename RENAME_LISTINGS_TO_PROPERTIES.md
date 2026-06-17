@@ -110,7 +110,7 @@ Recreate in the phase that renames the objects the body touches. Known universe:
 - [x] **R1** Leaf tables renamed + isolated fns recreated + code swept. Green. Commit.
 - [x] **R2** Core tables renamed + core fns recreated + `.from()`/embeds/types swept. Green. Commit.
 - [x] **R3** `listing_id → property_id` (+ listing_type etc.) + fns recreated + code swept. Green. Commit.
-- [ ] **R4** Routes + i18n labels. Green. Commit.
+- [x] **R4** Routes + i18n labels. Green. Commit (`852bfea` routes).
 - [ ] Run `apps/web/scripts/verify-policy-resolver.mjs` + a query-sweep after R2/R3.
 
 ## Verification commands
@@ -199,3 +199,38 @@ node apps/web/scripts/verify-policy-resolver.mjs      # + query sweep after R2/R
   `eft_banking_details.business_id` not-null failure (multi-business build, not R3).
   Next: **R4 — routes + i18n labels** (`/listing/[slug]`, `/dashboard/listings`,
   iCal `[listing_id]` folder, "Listing" → "Property" copy).
+- **R4 (done):** **No DB migration** — routes + labels only. Renamed route folders
+  (`git mv`) + swept every path-string & import reference (typedRoutes is OFF, so
+  stale path strings are runtime 404s, not build errors — swept exhaustively by hand):
+  (a) `app/[locale]/listing/[slug]` → `property/[slug]` (+ `book/`, `rooms/[roomId]`);
+  (b) `app/[locale]/dashboard/listings` → `dashboard/properties` (also fixed relative
+  imports `../listings/[id]/edit/*` from `dashboard/rooms` + `dashboard/setup`, and
+  alias imports from `components/listing/*`); (c) `app/[locale]/admin/listings` →
+  `admin/properties` and `admin/users/[id]/listings/[listingId]` →
+  `properties/[propertyId]` (param key `params.listingId` → `params.propertyId`);
+  (d) `app/ical/[listing_id]` → `[property_id]` (route param key
+  `params.listing_id` → `params.property_id`; no export-URL builder exists in code yet).
+  Commit `852bfea` (routes). **i18n (commit pending):** `messages/en.json` value swaps
+  for the **app-UI** Property concept — `booking.listing` "Listing"→"Property", the
+  `businesses.*` block (subtitle/listingsCount/currencyHint/archiveConfirmBody),
+  dashboard tour `calendarBody`/`listingsBody`; `messages/af.json` `businesses.*`
+  "lysadvertensies"→"eiendomme" (its `booking.listing` was already "Eiendom");
+  `fr/de/pt.json` are 18-line stubs (no content — nothing to change). Host sidebar nav
+  item relabelled "Listings"→"Properties" + the footer count badge (they point at the
+  renamed route). Build + lint green (only the 2 pre-existing `<img>` warnings); 0
+  remaining route strings anywhere.
+  **KEPT (internal labels / not routes / channel wording):** `components/listing/`
+  component dir; `dashboard/listing-extras` route (plan §5 folds it into the per-Property
+  editor later); the `listing` i18n namespace KEY (callers use `useTranslations("listing")`
+  — internal id like `p_listing_id`); `p_listing_id` RPC args; `reviews_listing_id_fkey`
+  / `listing_photos_*_fkey` FK constraint NAMES (R3 kept them, cosmetic); landing/marketing
+  copy ("not a listing buried in a marketplace", "Add your listing", FAQ "existing
+  listings" which means Airbnb/Booking.com listings) — a separate marketing-copy concern.
+  **DEFERRED to the website-build §5 IA pass:** the ~50 *hardcoded* (non-i18n) user-facing
+  "Listing/Listing-wide/Listing basics" page headings, table column labels and error
+  strings across host + admin pages. §5 restructures the sidebar/headings anyway and the
+  right move is to *extract* those to i18n (per RULES §10), not hardcoded-swap them now.
+  **The 5-checkpoint physical rename (R0–R4) is COMPLETE.** Next: the **website build**
+  (plan `~/.claude/plans/ok-it-has-come-spicy-snail.md` §1+) — Property+Channels, per-business
+  `host_websites` CMS, subdomains/custom domains, sidebar/IA restructure (§5, incl. the
+  deferred label sweep), product gating.

@@ -26,10 +26,18 @@
 > 36 fns recreated by mechanical swap; 104 source files + edge fn swept;
 > `20260617000400` drops a stale pre-SSOT `get_listing_policy_summary(uuid)` overload;
 > build + type-check + lint green; verify-policy-resolver + 13 RPCs live-green;
-> `track-listing-view` edge fn redeployed + smoke-tested green).
-> Next: **R4 — routes + i18n labels** (`/listing/[slug]`,
-> `/dashboard/listings`, iCal `[listing_id]` folder, "Listing"→"Property" copy), then
-> the website build.
+> `track-listing-view` edge fn redeployed + smoke-tested green). **R4 done** — routes +
+> i18n labels, **no DB migration**: route folders renamed (`listing/[slug]`→`property/[slug]`,
+> `dashboard/listings`→`dashboard/properties`, `admin/listings`→`admin/properties` +
+> `[listingId]`→`[propertyId]`, iCal `[listing_id]`→`[property_id]`) with every path-string
+> + import swept (typedRoutes OFF → swept by hand); `messages/en.json` + `af.json` app-UI
+> "Listing"→"Property" value swaps (fr/de/pt are empty stubs); host sidebar item
+> "Listings"→"Properties". Build+lint green; 0 route strings remain. Commit `852bfea`
+> (routes) + i18n commit. **Deferred to website §5:** the ~50 *hardcoded* "Listing" page
+> headings/labels (extract to i18n during the IA pass, don't hardcoded-swap now).
+> **The R0–R4 physical rename is COMPLETE.** Next: **the website build** (plan §1+) —
+> Property+Channels, per-business `host_websites` CMS, subdomains/custom domains,
+> sidebar/IA restructure (§5), product gating. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
