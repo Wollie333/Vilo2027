@@ -89,11 +89,21 @@
 > vilo.site`, add wildcard `*.vilo.site` DNS + Vercel project domain (the on-switch + DNS are
 > external; code is ready and inert until then). Shell `<html lang>` is `en` for tenants (site
 > language still drives content via business default_language) — refine later if wanted.
-> **Next: W6 — create-site flow + builder shell** (plan §8.6): `/dashboard/website` create CTA
-> (`createWebsiteAction`: derive+reserved-check subdomain via `RESERVED_SUBDOMAINS`, seed home/about
-> pages + flagship `website_properties`/`website_rooms` sync) + tabbed `[websiteId]` layout +
-> disabled Publish; replace the W2 ComingSoon placeholder. ALSO build the deferred-from-W2
-> **business/website switcher** here (its first consumer). Fresh session per phase.
+> **W6 (create-site flow + builder shell, plan §8.6) DONE** (commit `8161446`): replaced the W2
+> ComingSoon placeholder. `/dashboard/website` landing (dark hero + per-business create/manage;
+> single business w/ site → editor). `createWebsiteAction` (subdomain reserved-check via shared
+> `RESERVED_SUBDOMAINS`, one-site-per-business + global subdomain uniqueness, seeds starter Home+About
+> pages + syncs properties/rooms as visible channel membership). `lib/website/subdomain.ts`+tests
+> (`deriveSubdomain`/`validateSubdomain`→error codes). `[websiteId]` editor shell: `layout` (name +
+> address + Preview `?site=&preview=1` + disabled Publish + tab bar Overview-live / rest "coming soon")
+> + Overview (checklist + counts) + `loadWebsiteEditorData` (owner-scoped). New `website` i18n
+> namespace (52 keys); help migration `20260617000600`. build+lint+type-check green; vitest 54/54.
+> **STILL DEFERRED:** the business/website switcher (kept deferred — the per-business create/manage
+> cards already handle multi-business; revisit if the editing flow needs a global active-business).
+> **Next: W7 — Brand & Theme tabs** (plan §8.7): `[websiteId]/brand` + `theme` routes (Storage
+> uploads to `website-assets` via the registerListingPhoto browser→Storage pattern; preset/accent/
+> font/radius writing `host_websites.brand`/`theme`); the preview (`?site=&preview=1`) reflects them.
+> Wire the WebsiteTabs Brand+Theme tabs live. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

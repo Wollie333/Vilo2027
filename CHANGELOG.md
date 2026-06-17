@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 6: create-site flow + builder shell
+
+### Added
+- **Hosts can now create + manage a website** (plan §8.6) — replaces the W2
+  `ComingSoon` placeholder at `/dashboard/website`.
+- Landing page: dark hero + a card per business (single business with a site →
+  straight to its editor). `createWebsiteAction` validates the subdomain
+  (reserved-checked via the shared `RESERVED_SUBDOMAINS`), enforces
+  one-site-per-business + global subdomain uniqueness, then **seeds a starter
+  Home + About page** and syncs the business's properties + rooms as the initial
+  visible channel membership.
+- `lib/website/subdomain.ts` (+ tests): `deriveSubdomain` (slugify a business
+  name) + `validateSubdomain` (length/charset/reserved → stable error codes).
+- `/dashboard/website/[websiteId]` editor shell: `layout` with site name +
+  address + Preview link (`?site=&preview=1`) + a disabled Publish button + a tab
+  bar (Overview live; Brand/Theme/Pages/Rooms/Blog/Domain/SEO shown as
+  "coming soon"). Overview = set-up checklist + page/property/room/post counts.
+  `loadWebsiteEditorData` (owner-scoped).
+- i18n: new `website` namespace in `en.json` (52 keys). Help article migration
+  `20260617000600_help_website_builder` (RULES §9).
+
+### Verification
+- `pnpm build` + `pnpm lint` + `pnpm type-check` green; **vitest 54/54** (10 new,
+  incl. the subdomain helper).
+
+---
+
 ## 2026-06-17 — Website CMS Phase 5: middleware host routing
 
 ### Added
