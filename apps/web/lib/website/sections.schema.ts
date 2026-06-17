@@ -1,0 +1,222 @@
+// Shared Zod contract for Website CMS page sections.
+//
+// This is the single source of truth for the section unit (plan §1). It is
+// imported by the builder (validate edits), the renderer (read props safely)
+// and the publish action (validate draft before snapshotting). One schema, no
+// divergence.
+//
+// Co-located in apps/web (not packages/schemas) because all three consumers
+// live in the web app; the mobile app never renders host websites. Promote to a
+// workspace package only if a second app ever needs it.
+//
+// Two kinds of section, baked into the schema:
+//   • FREE-FORM   — stores its own text/media (hero, intro, cta, values,
+//                   host_bio, faq, rich_text, highlights). props carry content.
+//   • AUTO-POPULATE — stores only CONFIG; reads live data at render time from
+//                   properties / property_rooms / reviews / POIs (gallery,
+//                   rooms_preview, location, reviews, blog_preview). Never
+//                   duplicates Property data, so the site is never stale.
+import { z } from "zod";
+
+// ── Section type catalog ──────────────────────────────────────
+export const SECTION_TYPES = [
+  "hero",
+  "intro",
+  "highlights",
+  "gallery",
+  "rooms_preview",
+  "location",
+  "reviews",
+  "cta",
+  "host_bio",
+  "values",
+  "blog_preview",
+  "rich_text",
+  "faq",
+] as const;
+export type SectionType = (typeof SECTION_TYPES)[number];
+
+/** Sections that pull live data at render time (props are config only). */
+export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
+  "gallery",
+  "rooms_preview",
+  "location",
+  "reviews",
+  "blog_preview",
+]);
+
+export function isAutoPopulate(type: SectionType): boolean {
+  return AUTO_POPULATE_SECTIONS.has(type);
+}
+
+// ── Shared prop fragments ─────────────────────────────────────
+const heading = z.string().max(200).optional();
+const gridLayout = z.enum(["grid", "list", "carousel"]).optional();
+
+// ── Per-type props ────────────────────────────────────────────
+const heroProps = z.object({
+  headline: z.string().max(200),
+  subheadline: z.string().max(400).optional(),
+  image_path: z.string().optional(),
+  cta_label: z.string().max(60).optional(),
+  cta_href: z.string().max(500).optional(),
+  align: z.enum(["left", "center"]).default("center"),
+});
+
+const introProps = z.object({
+  heading,
+  body: z.string().max(4000),
+});
+
+const highlightsProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        icon: z.string().max(60).optional(),
+        title: z.string().max(120),
+        body: z.string().max(600).optional(),
+      }),
+    )
+    .max(12)
+    .default([]),
+});
+
+const galleryProps = z.object({
+  heading,
+  layout: gridLayout,
+  max: z.number().int().min(1).max(60).default(12),
+});
+
+const roomsPreviewProps = z.object({
+  heading,
+  layout: gridLayout,
+  max: z.number().int().min(1).max(60).default(6),
+  ctaLabel: z.string().max(60).optional(),
+});
+
+const locationProps = z.object({
+  heading,
+  show_map: z.boolean().default(true),
+});
+
+const reviewsProps = z.object({
+  heading,
+  max: z.number().int().min(1).max(30).default(6),
+});
+
+const ctaProps = z.object({
+  heading: z.string().max(200),
+  body: z.string().max(600).optional(),
+  button_label: z.string().max(60),
+  button_href: z.string().max(500),
+});
+
+const hostBioProps = z.object({
+  heading,
+  name: z.string().max(120).optional(),
+  body: z.string().max(4000),
+  photo_path: z.string().optional(),
+});
+
+const valuesProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        title: z.string().max(120),
+        body: z.string().max(600).optional(),
+      }),
+    )
+    .max(12)
+    .default([]),
+});
+
+const blogPreviewProps = z.object({
+  heading,
+  max: z.number().int().min(1).max(12).default(3),
+});
+
+const richTextProps = z.object({
+  html: z.string().max(50000),
+});
+
+const faqProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        q: z.string().max(300),
+        a: z.string().max(2000),
+      }),
+    )
+    .max(40)
+    .default([]),
+});
+
+// ── Section discriminated union ───────────────────────────────
+const sectionBase = {
+  id: z.string().uuid(),
+  enabled: z.boolean().default(true),
+};
+
+export const sectionSchema = z.discriminatedUnion("type", [
+  z.object({ ...sectionBase, type: z.literal("hero"), props: heroProps }),
+  z.object({ ...sectionBase, type: z.literal("intro"), props: introProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("highlights"),
+    props: highlightsProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("gallery"), props: galleryProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("rooms_preview"),
+    props: roomsPreviewProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("location"),
+    props: locationProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("reviews"), props: reviewsProps }),
+  z.object({ ...sectionBase, type: z.literal("cta"), props: ctaProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("host_bio"),
+    props: hostBioProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("values"), props: valuesProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("blog_preview"),
+    props: blogPreviewProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("rich_text"),
+    props: richTextProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("faq"), props: faqProps }),
+]);
+
+export type WebsiteSection = z.infer<typeof sectionSchema>;
+
+/** A page's section list (the `draft_sections` / `published_sections` JSONB). */
+export const sectionsSchema = z.array(sectionSchema).max(40);
+export type WebsiteSections = z.infer<typeof sectionsSchema>;
+
+/**
+ * Parse an unknown JSONB value (from the DB) into a validated section array,
+ * dropping anything malformed rather than throwing — the renderer must stay
+ * resilient to partially-saved drafts.
+ */
+export function parseSectionsLoose(value: unknown): WebsiteSections {
+  if (!Array.isArray(value)) return [];
+  const out: WebsiteSections = [];
+  for (const raw of value) {
+    const parsed = sectionSchema.safeParse(raw);
+    if (parsed.success) out.push(parsed.data);
+  }
+  return out;
+}

@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 1: data foundation
+
+### Added
+- **First phase of the Website CMS build** (plan `ok-it-has-come-spicy-snail.md` §1) —
+  the additive table set for per-business hosted micro-sites. Nothing financial touched;
+  Website is a publication channel on top of the existing Property + booking engine.
+- Migration `20260617000500_website_foundation.sql`: `host_websites` (1 per business —
+  subdomain/custom-domain/brand/theme/seo/settings + draft-vs-`published_snapshot` chrome),
+  `website_pages` (twin `draft_sections`/`published_sections` JSONB), `website_properties`
+  + `website_rooms` (channel membership + cosmetic display overrides), `website_blog_categories`
+  /`website_blog_posts`, and INSERT-only `website_domain_events`. All owner-RLS via
+  `get_my_host_id()` + super-admin; the public renderer reads via the service-role admin
+  client (no anon read policies — avoids leaking drafts that share rows with published data).
+- Public `website-assets` storage bucket + host-scoped upload/delete object policies
+  (folder = `{website_id}`), mirroring `listing-photos`.
+- `plan_features` seed for the new gating keys (`website_builder`, `website_blog`,
+  `website_custom_domain`, `custom_website_design`) — open on every plan pre-MVP.
+- `apps/web/lib/products/features.ts`: same 4 keys added to `CANONICAL_PRODUCT_FEATURES`
+  so the admin product editor surfaces them.
+- `apps/web/lib/website/sections.schema.ts`: the shared Zod discriminated union for page
+  sections (13 types; free-form vs auto-populate distinction; `parseSectionsLoose`).
+  Co-located in `apps/web` (all consumers live there) rather than a new `packages/schemas`
+  workspace package, to avoid a pnpm-install step that would risk the green build.
+- `scripts/verify-website-foundation.mjs` — live-DB sweep (all tables/columns/embeds +
+  bucket + seed); 🎉 green.
+
+### Verification
+- `supabase db push --linked` applied; types regenerated (`--linked`, no stderr pipe).
+- `pnpm type-check` + `pnpm lint` + `pnpm build` green (only the 2 pre-existing `<img>`
+  warnings in untouched reports components). Live verify 🎉 green (16 seed rows, bucket public).
+
+---
+
 ## 2026-06-17 — Rename R4: routes + i18n labels (`listing → property`)
 
 ### Changed

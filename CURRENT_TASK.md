@@ -35,9 +35,21 @@
 > "Listings"→"Properties". Build+lint green; 0 route strings remain. Commit `852bfea`
 > (routes) + i18n commit. **Deferred to website §5:** the ~50 *hardcoded* "Listing" page
 > headings/labels (extract to i18n during the IA pass, don't hardcoded-swap now).
-> **The R0–R4 physical rename is COMPLETE.** Next: **the website build** (plan §1+) —
-> Property+Channels, per-business `host_websites` CMS, subdomains/custom domains,
-> sidebar/IA restructure (§5), product gating. Fresh session per phase.
+> **The R0–R4 physical rename is COMPLETE.** **Website build STARTED** (plan §8 — 15
+> phases). **W1 (Data foundation) DONE** — migration `20260617000500_website_foundation.sql`
+> created 7 additive tables (`host_websites`, `website_pages`, `website_properties`,
+> `website_rooms`, `website_blog_categories`, `website_blog_posts`, INSERT-only
+> `website_domain_events`) + owner/admin RLS + `update_updated_at` triggers + public
+> `website-assets` bucket & host-scoped object policies + `plan_features` seed (4 new
+> keys × 4 plans, open pre-MVP). Added the 4 keys to `lib/products/features.ts` and the
+> shared Zod section union at `apps/web/lib/website/sections.schema.ts` (co-located, NOT
+> `packages/schemas`, to avoid a pnpm-install risk — deviation noted). Pushed; types
+> regenerated; build+lint+type-check green; `scripts/verify-website-foundation.mjs` 🎉.
+> **Naming note:** channel table is `website_properties(property_id)` (authored post-rename).
+> **Next: W2 — IA restructure** (plan §5): re-author `Sidebar.tsx` groups
+> (Operations/Properties/Channels/Finances/Insights), relabel Listings→Properties via i18n,
+> fold rooms/seasonal/policies rows into the per-Property editor, add the gated **Website**
+> row, and add a business/website switcher to the top slot. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

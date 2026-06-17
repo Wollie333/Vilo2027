@@ -44,6 +44,19 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
     scope: "toggle",
   },
   { key: "custom_profile_url", label: "Custom host page URL", scope: "toggle" },
+  // Website channel
+  { key: "website_builder", label: "Website builder", scope: "toggle" },
+  { key: "website_blog", label: "Website blog", scope: "toggle" },
+  {
+    key: "website_custom_domain",
+    label: "Custom domain",
+    scope: "per_business",
+  },
+  {
+    key: "custom_website_design",
+    label: "Done-for-you website design",
+    scope: "toggle",
+  },
   // Engagement
   { key: "inbox_messages", label: "Inbox", scope: "toggle" },
   { key: "reviews_respond", label: "Respond to reviews", scope: "toggle" },

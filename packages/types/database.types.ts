@@ -3503,6 +3503,84 @@ export type Database = {
           },
         ]
       }
+      host_websites: {
+        Row: {
+          brand: Json
+          business_id: string
+          created_at: string
+          custom_domain: string | null
+          deleted_at: string | null
+          domain_status: string
+          host_id: string
+          id: string
+          published_at: string | null
+          published_snapshot: Json | null
+          seo: Json
+          settings: Json
+          ssl_status: string
+          status: string
+          subdomain: string
+          theme: Json
+          updated_at: string
+          verification_token: string | null
+        }
+        Insert: {
+          brand?: Json
+          business_id: string
+          created_at?: string
+          custom_domain?: string | null
+          deleted_at?: string | null
+          domain_status?: string
+          host_id: string
+          id?: string
+          published_at?: string | null
+          published_snapshot?: Json | null
+          seo?: Json
+          settings?: Json
+          ssl_status?: string
+          status?: string
+          subdomain: string
+          theme?: Json
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Update: {
+          brand?: Json
+          business_id?: string
+          created_at?: string
+          custom_domain?: string | null
+          deleted_at?: string | null
+          domain_status?: string
+          host_id?: string
+          id?: string
+          published_at?: string | null
+          published_snapshot?: Json | null
+          seo?: Json
+          settings?: Json
+          ssl_status?: string
+          status?: string
+          subdomain?: string
+          theme?: Json
+          updated_at?: string
+          verification_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "host_websites_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_websites_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hosts: {
         Row: {
           avatar_url: string | null
@@ -8158,6 +8236,297 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_blog_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_blog_categories_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_blog_posts: {
+        Row: {
+          author_name: string | null
+          body_html: string | null
+          category_id: string | null
+          cover_path: string | null
+          created_at: string
+          deleted_at: string | null
+          excerpt: string | null
+          id: string
+          publish_at: string | null
+          seo: Json
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+          website_id: string
+        }
+        Insert: {
+          author_name?: string | null
+          body_html?: string | null
+          category_id?: string | null
+          cover_path?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          excerpt?: string | null
+          id?: string
+          publish_at?: string | null
+          seo?: Json
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+          website_id: string
+        }
+        Update: {
+          author_name?: string | null
+          body_html?: string | null
+          category_id?: string | null
+          cover_path?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          excerpt?: string | null
+          id?: string
+          publish_at?: string | null
+          seo?: Json
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "website_blog_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_blog_posts_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_domain_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_domain_events_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_pages: {
+        Row: {
+          created_at: string
+          draft_sections: Json
+          id: string
+          kind: string
+          nav_label: string | null
+          nav_order: number
+          published_sections: Json
+          seo_overrides: Json
+          show_in_nav: boolean
+          slug: string
+          title: string | null
+          updated_at: string
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          draft_sections?: Json
+          id?: string
+          kind?: string
+          nav_label?: string | null
+          nav_order?: number
+          published_sections?: Json
+          seo_overrides?: Json
+          show_in_nav?: boolean
+          slug: string
+          title?: string | null
+          updated_at?: string
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          draft_sections?: Json
+          id?: string
+          kind?: string
+          nav_label?: string | null
+          nav_order?: number
+          published_sections?: Json
+          seo_overrides?: Json
+          show_in_nav?: boolean
+          slug?: string
+          title?: string | null
+          updated_at?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_pages_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_properties: {
+        Row: {
+          created_at: string
+          display_overrides: Json
+          id: string
+          is_visible: boolean
+          property_id: string
+          sort_order: number
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_overrides?: Json
+          id?: string
+          is_visible?: boolean
+          property_id: string
+          sort_order?: number
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          display_overrides?: Json
+          id?: string
+          is_visible?: boolean
+          property_id?: string
+          sort_order?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_properties_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_properties_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_rooms: {
+        Row: {
+          created_at: string
+          display_currency: string | null
+          display_desc: string | null
+          display_name: string | null
+          display_price: number | null
+          id: string
+          is_visible: boolean
+          room_id: string
+          sort_order: number
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_currency?: string | null
+          display_desc?: string | null
+          display_name?: string | null
+          display_price?: number | null
+          id?: string
+          is_visible?: boolean
+          room_id: string
+          sort_order?: number
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          display_currency?: string | null
+          display_desc?: string | null
+          display_name?: string | null
+          display_price?: number | null
+          id?: string
+          is_visible?: boolean
+          room_id?: string
+          sort_order?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_rooms_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_rooms_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
             referencedColumns: ["id"]
           },
         ]
