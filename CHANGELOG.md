@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 4: public site routes + loadSitePage
+
+### Added
+- **Published tenant micro-sites now render** (plan §8.4). `lib/site/loadSitePage.ts`
+  — service-role data assembly (no `next/headers`, so verify scripts can call it):
+  `resolveSiteRef` (`?site` test param or `x-vilo-site-host` header), `loadSiteContext`
+  (resolve by subdomain/custom-domain; brand/theme/nav from live columns;
+  published-only unless `preview`), `loadSitePage` (page by path; published-vs-draft
+  sections; auto-populate data for gallery/rooms/location/reviews/blog across the
+  site's visible properties), `loadSiteBlogPost`. Booking CTAs deep-link the existing
+  engine (`/{locale}/property/{slug}/book`).
+- Routes under `app/[locale]/site/*`: home, `[...slug]`, `blog/[postSlug]`, host-aware
+  `sitemap.xml` + `robots.txt`, `not-found`. All `force-dynamic`. `SitePageView` shares
+  the themed frame (`SiteThemeRoot` › `SiteChrome` › `SectionRenderer`) + a public-bucket
+  asset resolver. Testable now via `/<locale>/site?site=<subdomain>`.
+- `scripts/verify-website-site-loader.mjs` — query/embed sweep + seeds a demo site and
+  replicates resolution (🎉 green: resolved site, 5 sections, assembled data).
+
+### Notes / deviations
+- **Mounted under `[locale]/site/`, not a standalone `(site)` root group.** Two Next.js
+  facts forced this: (a) `_`-prefixed folders (the plan's `__site`) are **non-routable**
+  (private), and (b) a second route-group root layout can't coexist with the non-grouped
+  `[locale]` root that already owns `<html>`. Tenant sites stay visually isolated via
+  `SiteThemeRoot`'s scoped `--site-*` vars. **W5 middleware** rewrites tenant hosts →
+  `/<locale>/site/<path>` (revisit the standalone-shell purity then if wanted).
+- `published_snapshot` fast-path for chrome deferred to the publish workflow (W10);
+  chrome currently reads live `host_websites` columns.
+
+### Verification
+- `pnpm type-check` + `pnpm lint` + `pnpm build` green (5 `[locale]/site/*` routes
+  registered); live loader verify 🎉 green.
+
+---
+
 ## 2026-06-17 — Website CMS Phase 3: shared section components + renderer
 
 ### Added

@@ -66,11 +66,23 @@
 > an `asset` path→URL resolver to hero/host_bio). Pure presentational, no fetching, read
 > `--site-*` only. Temp harness at `dashboard/website/preview` (sample data + preset
 > switcher; sample sections validated through W1 `sectionsSchema`). Build+lint+type-check
-> green. **Next: W4 — public `(site)` route group** (plan §8.4): `app/(site)/` +
-> `lib/site/loadSitePage.ts` (resolve website by host header / temporary `?site=<sub>`;
-> chrome from `published_snapshot`; published_sections public / draft in preview; wire the
-> auto-populate loaders reusing `firstPhotoByRoom`/`loadListingReviews`/POIs) + blog +
-> sitemap/robots, testable on the app domain via `?site=`. Fresh session per phase.
+> green. **W4 (public site routes + loadSitePage, plan §8.4) DONE** (commit `8f66b7f`):
+> `lib/site/loadSitePage.ts` (service-role; `resolveSiteRef` ?site/host-header,
+> `loadSiteContext` brand/theme/nav + published-only-unless-preview, `loadSitePage`
+> page-by-path + published/draft sections + auto-populate data for gallery/rooms/location/
+> reviews/blog, `loadSiteBlogPost`) + routes under **`app/[locale]/site/*`** (home,
+> `[...slug]`, `blog/[postSlug]`, host-aware `sitemap.xml`+`robots.txt`, `not-found`;
+> all force-dynamic) + `SitePageView` (shared frame + public-bucket asset resolver).
+> Testable via `/<locale>/site?site=<sub>`. `scripts/verify-website-site-loader.mjs` 🎉.
+> **KEY DEVIATION:** mounted under `[locale]/site/` NOT a `(site)` root group — `_`-prefixed
+> folders (`__site`) are non-routable in Next, and a 2nd route-group root layout can't
+> coexist with the non-grouped `[locale]` root. Booking CTAs deep-link the engine. Chrome
+> reads live columns (published_snapshot fast-path → W10).
+> **Next: W5 — middleware host routing + wildcard** (plan §8.5): host classifier in
+> `middleware.ts` (APP_HOSTS allowlist runs FIRST, unchanged for app domains; else rewrite
+> tenant host → `/<defaultLocale>/site/<path>` + set `x-vilo-site-host`), `RESERVED` subs
+> module, `NEXT_PUBLIC_ROOT_DOMAIN`, wildcard `*.vilo.site` DNS + Vercel domain, and an
+> AUTOMATED TEST that the app domain still routes through next-intl/session. Fresh session.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
