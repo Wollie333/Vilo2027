@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-17 — Website CMS Phase 2: channel-based sidebar IA
+
+### Changed
+- **Re-authored the host sidebar into the channel-based information architecture**
+  (plan §5) — `app/[locale]/dashboard/_components/Sidebar.tsx`, config-only
+  (`GmailNav` already supports collapsible labelled sections + badges):
+  - Always-open daily driver (Overview · Calendar · Bookings · Inbox · Guests),
+    then collapsible **Properties** (Properties · Reviews), **Channels**
+    (Website · Calendar sync · OTA channels), **Finances**, **Insights**
+    (Reports · Coupons · Affiliates).
+  - New gated **Website** row under Channels (NEW badge) → `/dashboard/website`,
+    with a `ComingSoon` placeholder page so the route resolves until the builder
+    ships (§8.6+).
+  - Folded rows removed from nav — Rooms, Seasonal pricing, Listing extras,
+    Add-ons, per-property Policies — they already exist as tabs in the
+    per-Property editor (`RoomsTab`/`PricingTab`/`AddonsTab`/`PoliciesTab`).
+  - Account-level **Policies** + **Staff** kept reachable in the footer (not
+    orphaned); "Channels" relabelled "OTA channels".
+
+### Deferred
+- **Business/website switcher** in the top slot (plan §5) → deferred to W6: its
+  first real consumer is the per-business Website builder, so building the
+  `vilo_active_business` cookie now would be a no-op control (every view is still
+  all-businesses; Ledger/Guest-record use a per-page `?business=` selector).
+- Nesting Policies/Staff as **Settings tabs** (needs a route move) and the ~50
+  **hardcoded "Listing" page headings** → i18n extraction (plan §5 IA label sweep).
+
+### Verification
+- `pnpm type-check` + `pnpm lint` + `pnpm build` green (only the 2 pre-existing
+  `<img>` warnings).
+
+---
+
 ## 2026-06-17 — Website CMS Phase 1: data foundation
 
 ### Added

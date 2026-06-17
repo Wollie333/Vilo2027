@@ -46,10 +46,22 @@
 > `packages/schemas`, to avoid a pnpm-install risk — deviation noted). Pushed; types
 > regenerated; build+lint+type-check green; `scripts/verify-website-foundation.mjs` 🎉.
 > **Naming note:** channel table is `website_properties(property_id)` (authored post-rename).
-> **Next: W2 — IA restructure** (plan §5): re-author `Sidebar.tsx` groups
-> (Operations/Properties/Channels/Finances/Insights), relabel Listings→Properties via i18n,
-> fold rooms/seasonal/policies rows into the per-Property editor, add the gated **Website**
-> row, and add a business/website switcher to the top slot. Fresh session per phase.
+> **W2 (Sidebar IA, plan §5) DONE** (commit `1770a98`) — config-only re-author of
+> `dashboard/_components/Sidebar.tsx` into 5 groups: always-open daily driver
+> (Overview/Calendar/Bookings/Inbox/Guests) + collapsible Properties/Channels/Finances/
+> Insights. New gated **Website** row (NEW badge) → `/dashboard/website` + a `ComingSoon`
+> placeholder page (replaced in W6). Folded rows removed (Rooms/Seasonal/Listing-extras/
+> Add-ons/per-property Policies — already editor tabs); account Policies+Staff kept in
+> footer; "Channels"→"OTA channels"; Affiliates under Insights. Build+lint+type-check green.
+> **Deferred:** (a) business/website switcher → W6 (first consumer is the per-business site;
+> a `vilo_active_business` cookie now would be a no-op — views are all-businesses, Ledger/
+> Guest-record use `?business=`); (b) Policies/Staff as Settings tabs (route move); (c) the
+> ~50 hardcoded "Listing" headings → i18n sweep.
+> **Next: W3 — shared section components + renderer** (plan §8.3): build
+> `components/site/*` (Hero/Intro/Highlights/Gallery/RoomsPreview/Location/Reviews/Cta/
+> HostBio/Values/BlogPreview/RichText/Faq), `SectionRenderer`, `SiteThemeRoot`, `SiteChrome`,
+> `lib/site/themes.ts`, against the Zod schema from W1 (`lib/website/sections.schema.ts`);
+> verify via a temp preview route. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
