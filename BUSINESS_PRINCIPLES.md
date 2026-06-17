@@ -161,3 +161,47 @@ their cashflow; Vilo owns the identity graph and the software.
    `startBookingPayment`. Never reimplement ledger maths elsewhere.
 3. **Vilo's keys are for Vilo's own revenue only** (host subscriptions), never for
    moving a guest's booking payment.
+
+---
+
+## Principle #4 — Every transaction is assigned to a business and documented
+
+**Date:** 2026-06-16
+**Status:** Active
+
+### The principle
+
+**No money ever moves on Vilo without two things being true: (1) it is assigned
+to a business, and (2) it is backed by a financial document** — a receipt, an
+invoice, a credit note, or a refund note. This holds for **every** transaction
+between **every** party: guest ↔ host, host ↔ Vilo, and any other money movement
+the platform records. There is no such thing as an unassigned or undocumented
+transaction.
+
+### Why this matters
+
+This is the financial backbone of the platform. A transaction that isn't tied to
+a business can't be reconciled, taxed, audited, or reported on — it's orphaned
+money. A transaction without a document can't be proven to either party or to a
+regulator. Together these two rules make Vilo's money **provably correct,
+attributable, and auditable** end to end, which underpins every other financial
+principle (#2 transparency, #3 not holding host money) and protects both the host
+and the platform legally.
+
+### The rules (what must always be true)
+
+1. **Always assigned to a business.** Every transaction record carries a
+   `business_id`. A transaction with a null/unknown business is invalid — it must
+   never be written, settled, or reported.
+2. **Always documented.** Every transaction produces exactly one of: a **receipt**
+   (payment received), an **invoice** (amount owed), a **credit note** (amount
+   credited), or a **refund note** (money returned). No document → not a valid
+   transaction.
+3. **Universal — no exceptions by party.** This applies to all flows: guest paying
+   a host, host paying Vilo for a subscription or service, store-credit movements,
+   add-on invoices, refunds, and any Vilo ↔ user charge. Vilo's own charges to
+   users are documented exactly like host ↔ guest money.
+4. **Document follows the money, not the other way around.** The financial
+   document is generated as part of recording the transaction (same flow, same
+   source of truth) — never bolted on afterwards or reconstructed. The ledger and
+   its documents are one consistent record.
