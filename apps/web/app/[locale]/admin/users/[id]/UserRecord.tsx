@@ -1399,6 +1399,170 @@ function SubStatusPill({ status }: { status: string }) {
   );
 }
 
+function StatusPill({ status }: { status: string }) {
+  const good = ["confirmed", "checked_in", "completed", "paid"].includes(
+    status,
+  );
+  const bad = ["cancelled", "declined", "expired", "no_show"].includes(status);
+  const cls = good
+    ? "bg-status-confirmed/10 text-status-confirmed"
+    : bad
+      ? "bg-status-cancelled/10 text-status-cancelled"
+      : "bg-status-pending/10 text-status-pending";
+  return (
+    <span
+      className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[11px] font-semibold capitalize ${cls}`}
+    >
+      {status.replace(/_/g, " ")}
+    </span>
+  );
+}
+
+// One filterable standard table of bookings (guest- or host-side).
+function BookingsTable({
+  title,
+  rows,
+  showCounterparty,
+  counterpartyHeader,
+  empty,
+}: {
+  title: string;
+  rows: BookingLite[];
+  showCounterparty: boolean;
+  counterpartyHeader: string;
+  empty: string;
+}) {
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("recent");
+
+  const statuses = useMemo(
+    () => [...new Set(rows.map((r) => r.status))].sort(),
+    [rows],
+  );
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    let out = rows.filter((r) => {
+      if (status !== "all" && r.status !== status) return false;
+      if (needle) {
+        const hay = [r.listingName, r.reference, r.counterparty]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+    out = [...out].sort((a, b) => {
+      if (sort === "amount") return b.total - a.total;
+      const da = a.checkIn ?? "";
+      const db = b.checkIn ?? "";
+      if (sort === "oldest") return da < db ? -1 : 1;
+      return da < db ? 1 : -1; // recent
+    });
+    return out;
+  }, [rows, q, status, sort]);
+
+  const columns: AdminColumn<BookingLite>[] = [
+    {
+      header: "Listing",
+      cell: (b) => (
+        <div className="min-w-0">
+          <div className="truncate font-medium text-brand-ink">
+            {b.listingName}
+          </div>
+          <div className="truncate font-mono text-[11px] text-brand-mute">
+            {b.reference}
+          </div>
+        </div>
+      ),
+    },
+    ...(showCounterparty
+      ? [
+          {
+            header: counterpartyHeader,
+            cell: (b: BookingLite) => (
+              <span className="text-[12.5px] text-brand-ink">
+                {b.counterparty || "—"}
+              </span>
+            ),
+          },
+        ]
+      : []),
+    {
+      header: "Dates",
+      cell: (b) => (
+        <span className="text-[12px] text-brand-mute">
+          {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
+        </span>
+      ),
+    },
+    {
+      header: "Total",
+      align: "right",
+      cell: (b) => (
+        <span className="font-display text-[13px] font-bold tabular-nums text-brand-ink">
+          {formatMoney(b.total, b.currency)}
+        </span>
+      ),
+    },
+    { header: "Status", cell: (b) => <StatusPill status={b.status} /> },
+  ];
+
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <Calendar className="h-4 w-4 text-brand-mute" />
+        <h3 className="font-display text-[15px] font-bold text-brand-ink">
+          {title}
+        </h3>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {rows.length}
+        </span>
+      </div>
+      <AdminTable
+        columns={columns}
+        rows={filtered}
+        getKey={(b) => b.id}
+        empty={empty}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+              <Search className="h-4 w-4 text-brand-mute" />
+              <input
+                type="search"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search listing, reference or guest…"
+                className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+              />
+            </div>
+            <FilterSelect value={status} onChange={setStatus}>
+              <option value="all">Any status</option>
+              {statuses.map((s) => (
+                <option key={s} value={s}>
+                  {s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect value={sort} onChange={setSort}>
+              <option value="recent">Newest stay</option>
+              <option value="oldest">Oldest stay</option>
+              <option value="amount">Highest value</option>
+            </FilterSelect>
+          </div>
+        }
+        footer={
+          <div className="text-[12px] tabular-nums text-brand-mute">
+            Showing {filtered.length} of {rows.length}
+          </div>
+        }
+      />
+    </div>
+  );
+}
+
 function BookingsPanel({
   data,
   onRequestSupport,
@@ -1407,47 +1571,27 @@ function BookingsPanel({
   onRequestSupport: () => void;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SupportBanner
         support={data.support}
         isHost={!!data.host}
         onRequest={onRequestSupport}
       />
-      <Section
-        icon={Calendar}
+      <BookingsTable
         title="As guest"
-        count={data.bookingsAsGuest.length}
+        rows={data.bookingsAsGuest}
+        showCounterparty={false}
+        counterpartyHeader="Guest"
         empty="No bookings as a guest."
-      >
-        {data.bookingsAsGuest.map((b) => (
-          <RowLink
-            key={b.id}
-            href={`/dashboard/bookings/${b.id}`}
-            primary={b.listingName}
-            secondary={`${b.reference} · ${fmtDate(b.checkIn)} → ${fmtDate(b.checkOut)}`}
-            amount={formatMoney(b.total, b.currency)}
-            status={b.status}
-          />
-        ))}
-      </Section>
+      />
       {data.host ? (
-        <Section
-          icon={Calendar}
+        <BookingsTable
           title="As host"
-          count={data.bookingsAsHost.length}
+          rows={data.bookingsAsHost}
+          showCounterparty
+          counterpartyHeader="Guest"
           empty="No bookings hosted yet."
-        >
-          {data.bookingsAsHost.map((b) => (
-            <RowLink
-              key={b.id}
-              href={`/dashboard/bookings/${b.id}`}
-              primary={b.listingName}
-              secondary={`${b.reference} · ${b.counterparty ?? ""} · ${fmtDate(b.checkIn)}`}
-              amount={formatMoney(b.total, b.currency)}
-              status={b.status}
-            />
-          ))}
-        </Section>
+        />
       ) : null}
     </div>
   );
@@ -2462,39 +2606,105 @@ function ActivityPanel({ data }: { data: UserRecordData }) {
   }
   items.sort((x, y) => (x.date < y.date ? 1 : -1));
 
+  return <ActivityList items={items} />;
+}
+
+const ACTIVITY_TONES: { key: ActivityTone | "all"; label: string }[] = [
+  { key: "all", label: "All activity" },
+  { key: "edit", label: "Staff edits" },
+  { key: "booking", label: "Bookings" },
+  { key: "review", label: "Reviews" },
+  { key: "data", label: "Data requests" },
+  { key: "support", label: "Support access" },
+];
+
+function ActivityList({ items }: { items: ActivityItem[] }) {
+  const [q, setQ] = useState("");
+  const [tone, setTone] = useState<ActivityTone | "all">("all");
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return items.filter((it) => {
+      if (tone !== "all" && it.tone !== tone) return false;
+      if (needle) {
+        const hay = [it.what, it.who, it.detail]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        if (!hay.includes(needle)) return false;
+      }
+      return true;
+    });
+  }, [items, q, tone]);
+
   return (
-    <Section
-      icon={Calendar}
-      title="Activity & history"
-      count={items.length}
-      empty="No recorded activity."
-    >
-      {items.slice(0, 80).map((it) => (
-        <div
-          key={it.id}
-          className="flex items-start gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
-        >
-          <ActivityDot tone={it.tone} />
-          <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-brand-ink">
-              {it.what}
-            </div>
-            <div className="mt-0.5 text-[11.5px] text-brand-mute">
-              by <span className="font-medium text-brand-ink">{it.who}</span>
-              {it.detail ? ` · ${it.detail}` : ""}
-            </div>
-          </div>
-          <div className="shrink-0 text-right">
-            <div className="text-[11.5px] font-medium text-brand-ink">
-              {fmtDate(it.date)}
-            </div>
-            <div className="text-[10.5px] text-brand-mute">
-              {fmtTime(it.date)}
-            </div>
-          </div>
+    <div className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card">
+      <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3.5">
+        <Calendar className="h-4 w-4 text-brand-mute" />
+        <span className="font-display text-[15px] font-bold text-brand-ink">
+          Activity &amp; history
+        </span>
+        <span className="rounded-pill border border-brand-line bg-brand-light px-1.5 py-px text-[10.5px] tabular-nums text-brand-mute">
+          {items.length}
+        </span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2 border-b border-brand-line bg-[#FBFDFC] px-4 py-2.5">
+        <div className="flex h-9 min-w-[200px] flex-1 items-center gap-2 rounded-pill border border-transparent bg-white px-3 ring-1 ring-brand-line focus-within:border-brand-primary focus-within:ring-brand-primary/30">
+          <Search className="h-4 w-4 text-brand-mute" />
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search activity…"
+            className="w-full bg-transparent text-[13px] text-brand-ink outline-none placeholder:text-brand-mute"
+          />
         </div>
-      ))}
-    </Section>
+        <FilterSelect
+          value={tone}
+          onChange={(v) => setTone(v as ActivityTone | "all")}
+        >
+          {ACTIVITY_TONES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </FilterSelect>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="px-5 py-10 text-center text-sm text-brand-mute">
+          No activity matches this filter.
+        </p>
+      ) : (
+        filtered.slice(0, 120).map((it) => (
+          <div
+            key={it.id}
+            className="flex items-start gap-3 border-t border-brand-line px-5 py-3 first:border-t-0"
+          >
+            <ActivityDot tone={it.tone} />
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold text-brand-ink">
+                {it.what}
+              </div>
+              <div className="mt-0.5 text-[11.5px] text-brand-mute">
+                by <span className="font-medium text-brand-ink">{it.who}</span>
+                {it.detail ? ` · ${it.detail}` : ""}
+              </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="text-[11.5px] font-medium text-brand-ink">
+                {fmtDate(it.date)}
+              </div>
+              <div className="text-[10.5px] text-brand-mute">
+                {fmtTime(it.date)}
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+      <div className="border-t border-brand-line bg-[#FBFDFC] px-4 py-3 text-[12px] tabular-nums text-brand-mute">
+        Showing {Math.min(filtered.length, 120)} of {items.length}
+      </div>
+    </div>
   );
 }
 
