@@ -11,13 +11,20 @@ import { InboxAvatar } from "./InboxAvatar";
 // `ConversationRow`. Keeping both here means the list looks identical in both
 // apps from one source.
 
-export type ChatChipTone = "amber" | "green" | "red" | "indigo" | "neutral";
+export type ChatChipTone =
+  | "amber"
+  | "green"
+  | "red"
+  | "indigo"
+  | "sky"
+  | "neutral";
 
 const CHIP_TONES: Record<ChatChipTone, string> = {
   amber: "border-[#FCE9B6] bg-[#FFFBEB] text-[#B45309]",
   green: "border-[#C7F0DC] bg-[#ECFDF5] text-[#047857]",
   red: "border-[#FBD5D5] bg-[#FEF2F2] text-[#DC2626]",
   indigo: "border-[#D7DBFB] bg-[#EEF0FF] text-[#4F46E5]",
+  sky: "border-[#BAE6FD] bg-[#ECFAFF] text-[#0369A1]",
   neutral: "border-brand-line bg-brand-light text-brand-mute",
 };
 
@@ -26,6 +33,7 @@ const CHIP_DOTS: Record<ChatChipTone, string> = {
   green: "bg-[#10B981]",
   red: "bg-[#EF4444]",
   indigo: "bg-[#6366F1]",
+  sky: "bg-[#0EA5E9]",
   neutral: "",
 };
 

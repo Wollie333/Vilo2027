@@ -94,7 +94,7 @@ export default async function InboxPage({
     .from("conversations")
     .select(
       `
-        id, status, is_enquiry, unread_host, pinned,
+        id, status, is_enquiry, source, unread_host, pinned,
         last_message_at, last_message_preview, created_at,
         property_id,
         guest:user_profiles!conversations_guest_id_fkey ( id, full_name, email, avatar_url ),
@@ -112,6 +112,7 @@ export default async function InboxPage({
     id: string;
     status: string;
     is_enquiry: boolean;
+    source: string | null;
     unread_host: number;
     pinned: boolean;
     last_message_at: string | null;
@@ -140,6 +141,7 @@ export default async function InboxPage({
     id: c.id,
     status: c.status as "open" | "resolved" | "archived",
     isEnquiry: c.is_enquiry,
+    source: c.source,
     unreadCount: c.unread_host ?? 0,
     pinned: c.pinned ?? false,
     lastMessageAt: c.last_message_at,

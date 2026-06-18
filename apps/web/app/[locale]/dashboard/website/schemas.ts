@@ -179,3 +179,23 @@ export const seoSchema = z.object({
 });
 
 export type SeoInput = z.infer<typeof seoSchema>;
+
+// --- Settings (Phase 5) ---
+
+// Site-wide settings stored in host_websites.settings jsonb. First occupant: the
+// contact-form enquiry email — when enabled, a website contact-form submission is
+// also emailed to `enquiryEmailTo` (the submission always lands in the inbox
+// regardless). An empty/disabled address simply means inbox-only.
+export const websiteSettingsSchema = z.object({
+  websiteId: z.string().uuid(),
+  enquiryEmailEnabled: z.boolean().default(false),
+  enquiryEmailTo: z
+    .string()
+    .trim()
+    .max(160)
+    .email("invalid_email")
+    .or(z.literal(""))
+    .default(""),
+});
+
+export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;

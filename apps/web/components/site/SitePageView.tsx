@@ -46,6 +46,8 @@ export async function SitePageView({
           sections={result.sections}
           data={result.data}
           asset={siteAsset}
+          websiteId={ctx.websiteId}
+          interactive={!ctx.preview}
         />
       </SiteChrome>
     </SiteThemeRoot>

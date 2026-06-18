@@ -51,6 +51,7 @@ export type ConversationRow = {
   id: string;
   status: "open" | "resolved" | "archived";
   isEnquiry: boolean;
+  source: string | null;
   unreadCount: number;
   pinned: boolean;
   lastMessageAt: string | null;
@@ -130,10 +131,13 @@ function fmtDate(iso: string | null): string {
 // Status chip for a conversation row / thread header.
 function chipFor(c: {
   isEnquiry: boolean;
+  source: string | null;
   status: string;
   bookingStatus: string | null;
 }): { tone: ChatChipTone; label: string } | null {
   if (c.status === "archived") return { tone: "neutral", label: "Archived" };
+  // A website contact-form enquiry — distinct sky chip from a quote enquiry.
+  if (c.source === "website") return { tone: "sky", label: "Website" };
   if (c.isEnquiry) return { tone: "amber", label: "Enquiry" };
   switch (c.bookingStatus) {
     case "confirmed":

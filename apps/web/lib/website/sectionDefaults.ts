@@ -178,6 +178,20 @@ export function newSection(type: SectionType): WebsiteSection {
           items: [{ q: "Is there Wi-Fi?", a: "Yes — free, uncapped." }],
         },
       };
+    case "contact_form":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Get in touch",
+          body: "Have a question? Send us a message and we'll reply soon.",
+          submit_label: "Send message",
+          success_message:
+            "Thanks — your message is on its way. We'll be in touch soon.",
+          show_phone: true,
+        },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

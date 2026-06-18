@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { bindAffiliateReferral } from "@/lib/affiliate/attribution";
+import { findOrCreateLeadIdentity } from "@/lib/enquiry/lead-identity";
 import { upsertHostContact } from "@/lib/guests/contacts";
 import { isSelfRecipient } from "@/lib/host/self";
 import type { StayPricingResult } from "@/lib/pricing/quote";
@@ -198,43 +198,17 @@ export async function createEnquiry(
   if (contact?.blocked)
     return { ok: true, data: { isLead: false, email: emailLc } };
 
-  // Find-or-create the guest. A new one is a passwordless lead (is_lead=true)
-  // — NOT signed in; they can claim the account later by setting a password.
-  let guestId: string;
-  let isLead = false;
-  const { data: existingProfile } = await admin
-    .from("user_profiles")
-    .select("id, is_lead")
-    .ilike("email", emailLc)
-    .maybeSingle();
-  if (existingProfile) {
-    guestId = existingProfile.id;
-    isLead = existingProfile.is_lead ?? false;
-  } else {
-    const { data: created, error: createErr } =
-      await admin.auth.admin.createUser({
-        email: emailLc,
-        email_confirm: true,
-        user_metadata: { full_name: d.guest_name },
-      });
-    if (createErr || !created.user) {
-      return { ok: false, error: "Could not start your request. Try again." };
-    }
-    guestId = created.user.id;
-    isLead = true;
-    await admin
-      .from("user_profiles")
-      .update({
-        full_name: d.guest_name,
-        phone: d.guest_phone || null,
-        role: "guest",
-        is_lead: true,
-      })
-      .eq("id", guestId);
-    // A newly-minted lead is also a new Vilo account — attribute it to a
-    // referring affiliate if a vilo_ref cookie is set on this request.
-    await bindAffiliateReferral(guestId);
+  // Find-or-create the guest (the shared SSOT — a new one is a passwordless lead
+  // they can claim later by setting a password; reused by the website enquiry).
+  const identity = await findOrCreateLeadIdentity(admin, {
+    email: emailLc,
+    name: d.guest_name,
+    phone: d.guest_phone || null,
+  });
+  if (!identity) {
+    return { ok: false, error: "Could not start your request. Try again." };
   }
+  const { guestId, isLead } = identity;
 
   // Upsert the host's contact row through the one canonical writer (find-or-
   // update by email, back-fill guest_id, never duplicate). Fill-only so a lead's

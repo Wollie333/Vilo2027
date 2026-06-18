@@ -1780,6 +1780,7 @@ export type Database = {
           pinned: boolean
           pipeline_stage: string | null
           property_id: string | null
+          source: string | null
           status: string
           unread_guest: number
           unread_host: number
@@ -1802,6 +1803,7 @@ export type Database = {
           pinned?: boolean
           pipeline_stage?: string | null
           property_id?: string | null
+          source?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number
@@ -1824,6 +1826,7 @@ export type Database = {
           pinned?: boolean
           pipeline_stage?: string | null
           property_id?: string | null
+          source?: string | null
           status?: string
           unread_guest?: number
           unread_host?: number

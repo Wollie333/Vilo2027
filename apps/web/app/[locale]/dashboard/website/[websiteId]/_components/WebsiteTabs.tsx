@@ -14,6 +14,7 @@ const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabBlog", seg: "blog" },
   { key: "tabDomain", seg: "domain" },
   { key: "tabSeo", seg: "seo" },
+  { key: "tabSettings", seg: "settings" },
 ];
 
 const SOON_TABS: string[] = [];

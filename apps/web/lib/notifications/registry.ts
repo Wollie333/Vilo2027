@@ -81,6 +81,12 @@ export type QuoteRequestRefs = {
   listing_name?: string;
 };
 
+export type WebsiteEnquiryRefs = {
+  conversation_id: string;
+  guest_first_name?: string;
+  site_name?: string;
+};
+
 export type ICalRefs = {
   property_id: string;
   feed_label: string;
@@ -653,6 +659,31 @@ export const NOTIFICATION_REGISTRY = {
     }),
     dedupeKey: (r) => `quote_request:${r.conversation_id}`,
   } satisfies EventBuilder<QuoteRequestRefs>,
+
+  // ─── Website enquiries (host) — a website contact-form submission
+  website_enquiry_host: {
+    category: "quote_requests",
+    feature: "message",
+    severity: "high",
+    push: (r) => ({
+      title: "New website enquiry",
+      body: clip(
+        `${r.guest_first_name ?? "Someone"} sent a message${r.site_name ? ` via ${r.site_name}` : ""}`,
+      ),
+      data: link("/dashboard/inbox", {
+        f: "enquiries",
+        c: r.conversation_id,
+      }),
+      sound: "default",
+      priority: "high",
+    }),
+    inApp: (r) => ({
+      title: "New website enquiry",
+      body: `${r.guest_first_name ?? "Someone"}${r.site_name ? ` · ${r.site_name}` : ""}`,
+      link: `/dashboard/inbox?f=enquiries&c=${r.conversation_id}`,
+    }),
+    dedupeKey: (r) => `website_enquiry:${r.conversation_id}`,
+  } satisfies EventBuilder<WebsiteEnquiryRefs>,
 
   // ─── Messages
   new_message: {

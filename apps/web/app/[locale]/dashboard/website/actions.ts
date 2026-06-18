@@ -28,6 +28,7 @@ import {
   saveWebsiteRoomsSchema,
   seoSchema,
   themeSchema,
+  websiteSettingsSchema,
   type BrandInput,
   type ConnectDomainInput,
   type CreateWebsiteInput,
@@ -37,6 +38,7 @@ import {
   type SaveWebsiteRoomsInput,
   type SeoInput,
   type ThemeInput,
+  type WebsiteSettingsInput,
 } from "./schemas";
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
@@ -1252,6 +1254,52 @@ export async function saveSeoAction(input: SeoInput): Promise<ActionResult> {
   if (!res.ok) return res;
 
   revalidatePath(`/dashboard/website/${websiteId}/seo`);
+  return { ok: true };
+}
+
+// ============================================================
+// Phase 5 — Settings tab (site-wide settings in `settings` jsonb)
+// ============================================================
+
+/**
+ * Save site-wide settings. First occupant: the contact-form enquiry email — when
+ * enabled with an address, a website contact-form submission is also emailed
+ * there (it always lands in the inbox regardless). Merged into the existing
+ * `settings` jsonb so domain/canonical-host keys are preserved.
+ */
+export async function saveWebsiteSettingsAction(
+  input: WebsiteSettingsInput,
+): Promise<ActionResult> {
+  const parsed = websiteSettingsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, enquiryEmailEnabled, enquiryEmailTo } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("settings")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const settings = {
+    ...((row?.settings ?? {}) as Record<string, unknown>),
+    enquiry: {
+      emailEnabled: enquiryEmailEnabled,
+      emailTo: enquiryEmailTo.trim().toLowerCase(),
+    },
+  };
+
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ settings })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/settings`);
   return { ok: true };
 }
 

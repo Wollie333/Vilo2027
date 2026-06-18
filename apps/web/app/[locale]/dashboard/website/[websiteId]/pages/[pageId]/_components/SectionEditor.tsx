@@ -362,6 +362,48 @@ export function SectionEditor({
       );
     }
 
+    case "contact_form": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={600}
+            rows={2}
+          />
+          <ToggleField
+            label={t("fldContactShowPhone")}
+            checked={p.show_phone}
+            onChange={(v) => set({ show_phone: v })}
+          />
+          <TextField
+            label={t("fldContactSubmitLabel")}
+            value={p.submit_label}
+            onChange={(v) => set({ submit_label: v })}
+            maxLength={60}
+          />
+          <TextArea
+            label={t("fldContactSuccess")}
+            value={p.success_message}
+            onChange={(v) => set({ success_message: v })}
+            maxLength={300}
+            rows={2}
+          />
+          <LiveNote>{t("contactFormNote")}</LiveNote>
+        </div>
+      );
+    }
+
     case "cta": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>

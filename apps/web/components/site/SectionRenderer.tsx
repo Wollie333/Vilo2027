@@ -21,6 +21,7 @@ import { ValuesSection } from "./sections/ValuesSection";
 import { BlogPreviewSection } from "./sections/BlogPreviewSection";
 import { RichTextSection } from "./sections/RichTextSection";
 import { FaqSection } from "./sections/FaqSection";
+import { ContactFormSection } from "./sections/ContactFormSection";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -33,10 +34,16 @@ export function SectionRenderer({
   sections,
   data,
   asset,
+  websiteId,
+  interactive = false,
 }: {
   sections: WebsiteSection[];
   data?: SiteData;
   asset?: SiteAssetResolver;
+  /** Live website id — lets the contact form resolve the host on submit. */
+  websiteId?: string;
+  /** True on the public site (forms submit); false in the builder preview. */
+  interactive?: boolean;
 }) {
   return (
     <>
@@ -48,6 +55,8 @@ export function SectionRenderer({
             section={section}
             data={data}
             asset={asset}
+            websiteId={websiteId}
+            interactive={interactive}
           />
         ))}
     </>
@@ -58,10 +67,14 @@ function SectionSwitch({
   section,
   data,
   asset,
+  websiteId,
+  interactive,
 }: {
   section: WebsiteSection;
   data?: SiteData;
   asset?: SiteAssetResolver;
+  websiteId?: string;
+  interactive?: boolean;
 }) {
   switch (section.type) {
     case "hero":
@@ -121,6 +134,14 @@ function SectionSwitch({
       return <RichTextSection props={section.props} />;
     case "faq":
       return <FaqSection props={section.props} />;
+    case "contact_form":
+      return (
+        <ContactFormSection
+          props={section.props}
+          websiteId={websiteId}
+          interactive={interactive}
+        />
+      );
     default:
       return null;
   }

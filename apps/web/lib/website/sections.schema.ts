@@ -36,6 +36,7 @@ export const SECTION_TYPES = [
   "blog_preview",
   "rich_text",
   "faq",
+  "contact_form",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -191,6 +192,21 @@ const faqProps = z.object({
     .default([]),
 });
 
+// Lead-capture form. Free-form CONFIG only — a submission is not stored in the
+// section; it opens a "Website Enquiry" in the host inbox (see
+// lib/website/createWebsiteEnquiry.ts). The form posts the live website id so the
+// host is resolved server-side; never trusts anything client-supplied.
+const contactFormProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+  submit_label: z.string().max(60).default("Send message"),
+  success_message: z
+    .string()
+    .max(300)
+    .default("Thanks — your message is on its way. We'll be in touch soon."),
+  show_phone: z.boolean().default(true),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -238,6 +254,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     props: richTextProps,
   }),
   z.object({ ...sectionBase, type: z.literal("faq"), props: faqProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("contact_form"),
+    props: contactFormProps,
+  }),
 ]);
 
 export type WebsiteSection = z.infer<typeof sectionSchema>;
