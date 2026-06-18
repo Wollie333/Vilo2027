@@ -26,6 +26,7 @@ const NAV = [
   { href: "#types", key: "propertyTypes" },
   { href: "#deals", key: "deals" },
   { href: "/booking-management", key: "forHosts" },
+  { href: "/launch", key: "launch" },
 ] as const;
 
 type Session = {
