@@ -11,7 +11,6 @@ import {
   Gavel,
   Home,
   KeyRound,
-  LayoutTemplate,
   Lock,
   LogIn,
   LogOut,
@@ -187,6 +186,18 @@ export function PolicyLibrary({
   const activeCount = initial.filter((p) => p.status === "active").length;
   const draftCount = initial.filter((p) => p.status === "draft").length;
 
+  // Most-recently-updated policy → the dark "Last updated" stat cell.
+  const lastUpdated = useMemo(() => {
+    if (initial.length === 0) return { date: "—", hint: "No policies yet" };
+    const latest = [...initial].sort((a, b) =>
+      b.updatedAt.localeCompare(a.updatedAt),
+    )[0];
+    return {
+      date: fmtDate(latest.updatedAt),
+      hint: `${latest.name} · v${latest.version}`,
+    };
+  }, [initial]);
+
   // counts per filter bucket for the chips
   const bucketCounts = useMemo(() => {
     const m = new Map<FilterKey, number>();
@@ -232,103 +243,78 @@ export function PolicyLibrary({
 
   return (
     <div className="space-y-6">
-      {/* ============ DARK HERO ============ */}
-      <section
-        className="relative overflow-hidden rounded-card shadow-peek"
-        style={{
-          backgroundImage:
-            "linear-gradient(145deg, #030806 0%, #0a1510 50%, #051209 100%)",
-        }}
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-primary/20 blur-3xl"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -left-24 bottom-0 h-56 w-56 rounded-full bg-brand-secondary/40 blur-3xl"
-        />
-        <div className="relative px-6 py-7 md:px-8 md:py-8">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-xl">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
-                  Rules &amp; terms
-                </span>
-                {coverage.fullyCovered ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary/15 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-primary backdrop-blur">
-                    <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                    All rooms covered
-                  </span>
-                ) : null}
-              </div>
-              <h1 className="mt-4 font-display text-[30px] font-extrabold leading-tight tracking-tight text-white md:text-[36px]">
-                Policies
-              </h1>
-              <p className="mt-2.5 text-[14px] leading-relaxed text-white/65 md:text-[15px]">
-                Set the cancellation terms, house rules and booking conditions
-                guests agree to. Build them once, assign them to any listing,
-                and we snapshot them onto every booking.
-              </p>
-              <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                <CreateMenu onPick={openCreate}>
-                  <span className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-secondary shadow-glow transition hover:bg-brand-accent">
-                    <Plus className="h-4 w-4" /> New policy
-                  </span>
-                </CreateMenu>
-                <button
-                  type="button"
-                  onClick={() => openCreate("cancellation")}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] border border-white/20 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
-                >
-                  <LayoutTemplate className="h-4 w-4" /> Use a preset
-                </button>
-              </div>
-            </div>
-
-            {/* stat strip */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-5">
-              <Stat label="Active" value={activeCount} hint="live" accent />
-              <Stat
-                label="Assigned"
-                value={
-                  coverage.roomsTotal
-                    ? `${coverage.roomsWithCancellation}/${coverage.roomsTotal}`
-                    : "—"
-                }
-                hint="rooms"
-              />
-              <Stat label="Drafts" value={draftCount} hint="unpublished" />
-            </div>
-          </div>
+      {/* ============ HEADER ============ */}
+      <section className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0">
+          <h1 className="font-display text-[22px] font-extrabold leading-none tracking-tight text-brand-ink">
+            Policies
+          </h1>
+          <p className="mt-1.5 text-[13px] text-brand-mute">
+            Cancellation terms, house rules &amp; booking conditions guests
+            agree to — assigned to your listings and snapshotted onto every
+            booking.
+          </p>
+        </div>
+        <div className="ml-auto">
+          <CreateMenu onPick={openCreate}>
+            <span className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-brand-primary px-4 text-[13px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary">
+              <Plus className="h-4 w-4" /> New policy
+            </span>
+          </CreateMenu>
         </div>
       </section>
 
-      {/* ============ COMPLIANCE BANNER ============ */}
+      {/* ============ STAT BAND ============ */}
+      <section className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-brand-line bg-brand-line sm:grid-cols-4">
+        <StatCell
+          label="Active policies"
+          value={activeCount}
+          hint="Live on listings"
+          hintDot
+        />
+        <StatCell
+          label="Rooms covered"
+          value={
+            coverage.roomsTotal
+              ? `${coverage.roomsWithCancellation}/${coverage.roomsTotal}`
+              : "—"
+          }
+          hint="Cancellation"
+        />
+        <StatCell label="Drafts" value={draftCount} hint="Unpublished" />
+        <StatCell
+          dark
+          label="Last updated"
+          value={lastUpdated.date}
+          hint={lastUpdated.hint}
+        />
+      </section>
+
+      {/* ============ COVERAGE BANNER ============ */}
       {coverage.fullyCovered ? (
-        <section className="flex items-center gap-3 rounded-card border border-brand-primary/30 bg-brand-accent/40 px-5 py-3.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white text-brand-secondary">
+        <section className="flex items-center gap-3.5 rounded-card border border-brand-primary/30 bg-brand-light px-5 py-3.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-brand-secondary shadow-card">
             <ShieldCheck className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-brand-ink">
+            <div className="text-[13.5px] font-semibold text-brand-ink">
               Every room has a cancellation policy &amp; house rules assigned
             </div>
-            <div className="text-[11.5px] text-brand-mute">
+            <div className="mt-0.5 text-[12px] text-brand-mute">
               Your listings are ready to take bookings.
             </div>
           </div>
         </section>
       ) : coverage.roomsTotal > 0 ? (
-        <section className="flex items-center gap-3 rounded-card border border-status-pending/30 bg-status-pending/10 px-5 py-3.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-white text-status-pending">
+        <section className="flex items-center gap-3.5 rounded-card border border-status-pending/30 bg-status-pending/10 px-5 py-3.5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-status-pending shadow-card">
             <ShieldAlert className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-semibold text-brand-ink">
+            <div className="text-[13.5px] font-semibold text-brand-ink">
               Some rooms still need a policy assigned
             </div>
-            <div className="text-[11.5px] text-brand-mute">
+            <div className="mt-0.5 text-[12px] text-brand-mute">
               {coverage.roomsWithCancellation}/{coverage.roomsTotal} rooms have
               a cancellation policy · {coverage.roomsWithHouseRules}/
               {coverage.roomsTotal} have house rules. Assign them from each
@@ -339,8 +325,8 @@ export function PolicyLibrary({
       ) : null}
 
       {/* ============ FILTER BAR ============ */}
-      <section className="sticky top-16 z-20 rounded-card border border-brand-line bg-white/95 shadow-card backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+      <section>
+        <div className="flex flex-wrap items-center gap-2">
           <div className="hscroll flex items-center gap-1.5 overflow-x-auto">
             {FILTERS.map((f) => {
               const count = bucketCounts.get(f.key) ?? 0;
@@ -436,28 +422,52 @@ export function PolicyLibrary({
   );
 }
 
-function Stat({
+// One cell of the stat band. `dark` renders the brand-secondary "Last updated"
+// cell; the rest are light. `hintDot` shows the green "live" dot.
+function StatCell({
   label,
   value,
   hint,
-  accent,
+  dark,
+  hintDot,
 }: {
   label: string;
   value: number | string;
   hint: string;
-  accent?: boolean;
+  dark?: boolean;
+  hintDot?: boolean;
 }) {
+  if (dark) {
+    return (
+      <div className="bg-brand-secondary p-4">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-white/70">
+          {label}
+        </div>
+        <div className="num mt-1.5 font-display text-[18px] font-bold leading-none text-white">
+          {value}
+        </div>
+        <div className="mt-1 truncate text-[11px] text-brand-accent">
+          {hint}
+        </div>
+      </div>
+    );
+  }
   return (
-    <div>
-      <div className="text-[9.5px] font-semibold uppercase tracking-wider text-brand-accent/60">
+    <div className="bg-[#FAFCFB] p-4">
+      <div className="text-[10px] font-bold uppercase tracking-[0.08em] text-brand-mute">
         {label}
       </div>
-      <div className="num mt-1 font-display text-2xl font-bold text-white">
+      <div className="num mt-1.5 font-display text-[22px] font-bold leading-none text-brand-ink">
         {value}
       </div>
       <div
-        className={`text-[10px] ${accent ? "text-brand-primary" : "text-brand-accent/60"}`}
+        className={`mt-1 inline-flex items-center gap-1 text-[11px] ${
+          hintDot ? "font-medium text-status-confirmed" : "text-brand-mute"
+        }`}
       >
+        {hintDot ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-status-confirmed" />
+        ) : null}
         {hint}
       </div>
     </div>
