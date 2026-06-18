@@ -11,6 +11,7 @@ import {
   Tags,
   Ticket,
   Users,
+  Wallet,
 } from "lucide-react-native";
 
 import { Avatar, Card, Icon, ScreenHeader } from "@/components/ui";
@@ -92,6 +93,11 @@ export default function HostMore() {
           icon={Ticket}
           label={t("host.coupons.title")}
           onPress={() => router.push("/(host)/coupons")}
+        />
+        <MenuRow
+          icon={Wallet}
+          label={t("host.finance.title")}
+          onPress={() => router.push("/(host)/finance")}
         />
         <MenuRow
           icon={Users}

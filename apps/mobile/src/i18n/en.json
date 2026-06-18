@@ -227,6 +227,23 @@
       "type_check_in_out": "Check-in & check-out",
       "emptyTitle": "No policies yet",
       "emptyMessage": "Create policies on the web app, then assign them here."
+    },
+    "finance": {
+      "title": "Finance",
+      "subtitle": "Your cash position & payments",
+      "netCash": "Net cash collected",
+      "collected": "Collected",
+      "refunded": "Refunded",
+      "outstanding": "Outstanding",
+      "transactions": "Recent payments",
+      "emptyTitle": "No payments yet",
+      "emptyMessage": "Payments on your bookings will appear here.",
+      "kind_deposit": "Deposit",
+      "kind_balance": "Balance",
+      "kind_addon": "Add-on",
+      "kind_payment": "Payment",
+      "kind_refund": "Refund",
+      "kind_credit": "Credit"
     }
   }
 }
