@@ -250,11 +250,48 @@
 > (same public loader/renderer). Threaded through `RoomCard`/`RoomsPreviewData`, the
 > publish snapshot (`SnapshotRoom`+`propertyOverrides`), `loadSitePage` assembly,
 > `RoomsPreviewSection`, save action + loader. Booking untouched (cosmetic only).
-> Migration `…001500` + help `…001600`. **NEXT: Phase 8 (Blog — categories counts/slugs,
-> missing-SEO warning + search, scheduled publishing cron, featured/related posts, author
-> profiles, richer editor, RSS + blog index)**, then 9 SEO, 10 website-native booking flow
-> [LAST big one], 11 installable theme catalog. **WORKFLOW: commit on branch + merge/push
-> to `main` after EACH phase (founder 2026-06-18).** Fresh session per phase; build+lint green.
+> Migration `…001500` + help `…001600`.
+> **Phase 8 (Blog) IN PROGRESS — Commit A (dashboard) DONE + committed/pushed (`c786cbd`,
+> branch only — NOT on main yet since the phase is incomplete).** Migration
+> `20260618001700_website_blog_phase8.sql` added `website_blog_posts.featured` +
+> `author_bio` + `author_avatar_path` (status CHECK already allowed 'scheduled'; publish_at
+> already existed) — PUSHED + types regenerated. Commit A shipped: featured pin (star) +
+> status filter + search + missing-SEO badge + category counts/slugs in `BlogManager`;
+> `setBlogFeaturedAction`; `saveBlogPostAction` now persists featured/author_bio/
+> author_avatar_path + handles status='scheduled' (validates publishAt) + `deriveExcerpt`
+> auto-excerpt; `saveBlogPostSchema` extended (status enum +scheduled, featured, publishAt,
+> authorBio, authorAvatarPath); `PostEditor` adds Scheduled status + datetime-local picker +
+> featured toggle + author avatar/bio + reading-time; loaders return the new fields. tsc +
+> lint GREEN, **`pnpm build` GREEN** (had to bump heap: `cd apps/web &&
+> NODE_OPTIONS=--max-old-space-size=6144 pnpm build` — the default heap OOM-crashed the
+> build worker with exit 134, an env memory issue not a code error; use the bumped heap).
+> **Phase 8 Commit B (REMAINING — public + cron), all designed, not built:**
+> (1) **Blog index page** `app/[locale]/site/blog/page.tsx` (themed list, featured-first; new
+> loader `loadSiteBlogIndex(ctx)`); add a "View all" link on `BlogPreviewSection` → `/blog`.
+> (2) **Featured-first ordering** in the `blog_preview` assembly (`lib/site/loadSitePage.ts`
+> ~line 664: add `.order('featured',{ascending:false})` before publish_at; select `featured`).
+> (3) **Related posts** on the post detail (`loadSiteBlogPost` → also return same-category
+> published siblings, limit 3; render at bottom of `site/blog/[postSlug]/page.tsx`).
+> (4) **Author profile** on the post detail — `loadSiteBlogPost` return `authorBio` +
+> `authorAvatarUrl` (select `author_bio,author_avatar_path`); render an author card.
+> (5) **RSS feed** `app/[locale]/site/feed.xml/route.ts` (published posts XML). Wire tenant-host
+> routing: extend `isSeoFile` in `lib/site/host.ts` to include `/feed.xml` + add `/feed.xml`
+> to `middleware.ts` matcher. Test via `/en/site/feed.xml?site=<sub>`.
+> (6) **Scheduled-publish cron** — worker route `app/api/blog-publish/route.ts` (auth via
+> `EMAIL_WORKER_SECRET`, timing-safe; find status='scheduled' AND publish_at<=now() AND
+> deleted_at null → set status='published'; batch 50) + cron migration mirroring
+> `20260618000000_website_domain_poll_cron.sql` (pg_cron every 5 min, Vault secrets
+> `blog_publish_url` + `email_worker_secret`, fail-soft). NOTE: blog posts render LIVE
+> (not from the publish snapshot), so flipping status='published' shows them immediately —
+> no website re-publish needed. **OPS TODO (founder): register Vault `blog_publish_url`.**
+> (7) Help migration `…001800`-ish refresh of `website-blog`; +i18n keys for index/related/author.
+> After Commit B: build green → commit on branch → **fast-forward `main` + push** (phase done).
+> **DEFERRED in Phase 8 (note to founder):** inline image/gallery embeds in the post body
+> (the RichTextEditor is shared with listings — left untouched to avoid risk; quote/blockquote
+> already supported); author is per-post (avatar/bio on the post) rather than a reusable
+> author table. **THEN: 9 SEO, 10 website-native booking flow [LAST big one], 11 theme catalog.**
+> **WORKFLOW: commit on branch + fast-forward/push `main` after EACH completed phase (founder
+> 2026-06-18).** Fresh session per phase; build+lint green each commit.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

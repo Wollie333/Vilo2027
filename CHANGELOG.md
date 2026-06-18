@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 8: Blog (Commit A — dashboard, WIP)
+
+### Added (dashboard half)
+- **Featured posts** — `website_blog_posts.featured`; pin/unpin a hero post from the list
+  (star toggle, `setBlogFeaturedAction`), featured-first ordering in the list.
+- **Post search + status filter** (All / Live / Scheduled / Drafts) and a **"No SEO"**
+  warning badge on posts missing a meta title/description.
+- **Category counts + slugs** shown inline in the categories editor.
+- **Scheduled publishing (editor side)** — a Scheduled status + datetime picker; the
+  status CHECK already allowed `scheduled` (the cron worker that flips it is Commit B).
+- **Author profile fields** — `author_bio` + `author_avatar_path` (avatar upload + bio).
+- **Reading time** estimate + **auto-excerpt** (derived from the body when left blank).
+- Migration `…001700` (featured + author_bio + author_avatar_path + scheduled index).
+
+### Remaining (Commit B — public + cron, next session)
+- Public blog index page (`/site/blog`) + RSS `feed.xml`, related posts + author card on
+  the post page, featured-first in `blog_preview`, and the scheduled-publish cron worker.
+  See `CURRENT_TASK.md` for the full checklist. NOT yet on `main` (phase incomplete).
+
+### Note
+- `pnpm build` needs a bumped heap here (`NODE_OPTIONS=--max-old-space-size=6144`) — the
+  default OOM-crashes the build worker (env memory, not a code issue).
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 7: Rooms tab
 
 ### Added
