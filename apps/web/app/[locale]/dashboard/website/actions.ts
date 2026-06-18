@@ -1061,7 +1061,7 @@ export async function saveWebsiteRoomsAction(
 ): Promise<ActionResult> {
   const parsed = saveWebsiteRoomsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, rooms } = parsed.data;
+  const { websiteId, rooms, properties } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
@@ -1102,6 +1102,8 @@ export async function saveWebsiteRoomsAction(
     website_id: websiteId,
     room_id: r.roomId,
     is_visible: r.isVisible,
+    featured: r.featured,
+    badge: r.badge.trim() || null,
     display_name: r.displayName.trim() || null,
     display_price: r.displayPrice ? Number(r.displayPrice) : null,
     display_currency: r.displayCurrency.trim().toUpperCase() || null,
@@ -1114,6 +1116,35 @@ export async function saveWebsiteRoomsAction(
       .from("website_rooms")
       .upsert(payload, { onConflict: "website_id,room_id" });
     if (error) return { ok: false, error: "save_failed" };
+  }
+
+  // Per-property display overrides (group heading/intro/hero). Validate every
+  // property belongs to this website's business before writing (anti-tamper).
+  if (properties.length > 0) {
+    const propIds = properties.map((p) => p.propertyId);
+    const { data: ownedProps } = await supabase
+      .from("properties")
+      .select("id")
+      .in("id", propIds)
+      .eq("business_id", site.business_id)
+      .is("deleted_at", null);
+    const ownedSet = new Set((ownedProps ?? []).map((p) => p.id));
+    if (propIds.some((id) => !ownedSet.has(id))) {
+      return { ok: false, error: "invalid" };
+    }
+    for (const p of properties) {
+      const overrides = {
+        heading: p.heading.trim() || undefined,
+        intro: p.intro.trim() || undefined,
+        hero_path: p.heroPath.trim() || undefined,
+      };
+      const { error } = await supabase
+        .from("website_properties")
+        .update({ display_overrides: overrides })
+        .eq("website_id", websiteId)
+        .eq("property_id", p.propertyId);
+      if (error) return { ok: false, error: "save_failed" };
+    }
   }
 
   revalidatePath(`/dashboard/website/${websiteId}/rooms`);

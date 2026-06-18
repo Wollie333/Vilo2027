@@ -8573,11 +8573,13 @@ export type Database = {
       }
       website_rooms: {
         Row: {
+          badge: string | null
           created_at: string
           display_currency: string | null
           display_desc: string | null
           display_name: string | null
           display_price: number | null
+          featured: boolean
           id: string
           is_visible: boolean
           room_id: string
@@ -8585,11 +8587,13 @@ export type Database = {
           website_id: string
         }
         Insert: {
+          badge?: string | null
           created_at?: string
           display_currency?: string | null
           display_desc?: string | null
           display_name?: string | null
           display_price?: number | null
+          featured?: boolean
           id?: string
           is_visible?: boolean
           room_id: string
@@ -8597,11 +8601,13 @@ export type Database = {
           website_id: string
         }
         Update: {
+          badge?: string | null
           created_at?: string
           display_currency?: string | null
           display_desc?: string | null
           display_name?: string | null
           display_price?: number | null
+          featured?: boolean
           id?: string
           is_visible?: boolean
           room_id?: string

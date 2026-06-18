@@ -2,6 +2,7 @@ import "server-only";
 
 import { pageHref } from "@/lib/site/loadSitePage";
 import type {
+  PropertyOverride,
   PublishSnapshot,
   SiteNavItem,
   SnapshotRoom,
@@ -37,6 +38,8 @@ function normaliseRooms(
     | Array<{
         room_id: string;
         is_visible: boolean | null;
+        featured?: boolean | null;
+        badge?: string | null;
         display_name: string | null;
         display_price: number | string | null;
         display_currency: string | null;
@@ -50,6 +53,8 @@ function normaliseRooms(
     .map((r) => ({
       room_id: r.room_id,
       is_visible: r.is_visible ?? true,
+      featured: r.featured ?? false,
+      badge: r.badge ?? null,
       display_name: r.display_name,
       display_price: r.display_price == null ? null : Number(r.display_price),
       display_currency: r.display_currency,
@@ -85,14 +90,14 @@ export async function buildWebsiteSnapshot(
         .order("nav_order", { ascending: true }),
       sb
         .from("website_properties")
-        .select("property_id, sort_order")
+        .select("property_id, sort_order, display_overrides")
         .eq("website_id", websiteId)
         .eq("is_visible", true)
         .order("sort_order", { ascending: true }),
       sb
         .from("website_rooms")
         .select(
-          "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order",
+          "room_id, is_visible, featured, badge, display_name, display_price, display_currency, display_desc, sort_order",
         )
         .eq("website_id", websiteId)
         .order("sort_order", { ascending: true }),
@@ -103,6 +108,20 @@ export async function buildWebsiteSnapshot(
     href: pageHref(p.kind, p.slug),
   }));
 
+  // Freeze non-empty per-property overrides keyed by property id.
+  const propertyOverrides: Record<string, PropertyOverride> = {};
+  for (const p of props ?? []) {
+    const ov = (p.display_overrides ?? {}) as PropertyOverride;
+    const clean: PropertyOverride = {
+      heading: ov.heading?.trim() || undefined,
+      intro: ov.intro?.trim() || undefined,
+      hero_path: ov.hero_path?.trim() || undefined,
+    };
+    if (clean.heading || clean.intro || clean.hero_path) {
+      propertyOverrides[p.property_id] = clean;
+    }
+  }
+
   return {
     brand: (site?.brand ?? {}) as Record<string, unknown>,
     theme: (site?.theme ?? {}) as Record<string, unknown>,
@@ -110,6 +129,7 @@ export async function buildWebsiteSnapshot(
     nav,
     propertyIds: (props ?? []).map((p) => p.property_id),
     rooms: normaliseRooms(rooms),
+    propertyOverrides,
   };
 }
 

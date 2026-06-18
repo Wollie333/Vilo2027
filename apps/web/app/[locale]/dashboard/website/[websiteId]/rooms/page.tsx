@@ -19,15 +19,19 @@ export default async function WebsiteRoomsPage({
   if (!data) notFound();
 
   return (
-    <div className="max-w-2xl">
-      <header className="mb-5">
+    <div>
+      <header className="mb-5 max-w-2xl">
         <h2 className="font-display text-lg font-bold text-brand-ink">
           {t("roomsHeading")}
         </h2>
         <p className="mt-1 text-sm text-brand-mute">{t("roomsSub")}</p>
       </header>
 
-      <RoomsManager websiteId={websiteId} initialProperties={data.properties} />
+      <RoomsManager
+        websiteId={websiteId}
+        initialProperties={data.properties}
+        preview={data.preview}
+      />
     </div>
   );
 }

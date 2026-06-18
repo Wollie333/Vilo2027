@@ -107,9 +107,11 @@ export function SiteButton({
 export function Card({
   children,
   className = "",
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <div
@@ -117,6 +119,7 @@ export function Card({
         background: "var(--site-surface)",
         borderColor: "var(--site-line)",
         borderRadius: "var(--site-radius)",
+        ...style,
       }}
       className={`overflow-hidden border ${className}`}
     >

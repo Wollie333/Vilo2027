@@ -24,9 +24,11 @@ import type {
   BlogCard,
   GalleryImage,
   Poi,
+  PropertyOverride,
   PublishSnapshot,
   ReviewCard,
   RoomCard,
+  RoomGroup,
   SiteBrand,
   SiteData,
   SiteDataByType,
@@ -54,6 +56,8 @@ export type SiteContext = {
    * in preview / legacy mode, where the rooms assembly reads `website_rooms` live.
    */
   publishedRoomRows: SnapshotRoom[] | null;
+  /** Frozen per-property rooms-section overrides; null in preview (read live). */
+  publishedPropertyOverrides: Record<string, PropertyOverride> | null;
 };
 
 export type SitePageMeta = {
@@ -157,11 +161,13 @@ export async function loadSiteContext(
   let nav: SiteNavItem[];
   let propertyIds: string[];
   let publishedRoomRows: SnapshotRoom[] | null;
+  let publishedPropertyOverrides: Record<string, PropertyOverride> | null;
 
   if (snap) {
     nav = snap.nav ?? [];
     propertyIds = snap.propertyIds ?? [];
     publishedRoomRows = snap.rooms ?? [];
+    publishedPropertyOverrides = snap.propertyOverrides ?? {};
   } else {
     const [{ data: pageRows }, { data: memberRows }] = await Promise.all([
       sb
@@ -183,6 +189,7 @@ export async function loadSiteContext(
     }));
     propertyIds = (memberRows ?? []).map((m) => m.property_id);
     publishedRoomRows = null;
+    publishedPropertyOverrides = null;
   }
 
   return {
@@ -197,6 +204,7 @@ export async function loadSiteContext(
     nav,
     propertyIds,
     publishedRoomRows,
+    publishedPropertyOverrides,
   };
 }
 
@@ -452,7 +460,7 @@ export async function assembleSiteDataByType(
         const { data: wr } = await sb
           .from("website_rooms")
           .select(
-            "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order",
+            "room_id, is_visible, featured, badge, display_name, display_price, display_currency, display_desc, sort_order",
           )
           .eq("website_id", ctx.websiteId)
           .eq("is_visible", true)
@@ -460,6 +468,8 @@ export async function assembleSiteDataByType(
         overrideRows = (wr ?? []).map((r) => ({
           room_id: (r as { room_id: string }).room_id,
           is_visible: true,
+          featured: (r as { featured: boolean | null }).featured ?? false,
+          badge: (r as { badge: string | null }).badge,
           display_name: (r as { display_name: string | null }).display_name,
           display_price: (r as { display_price: number | string | null })
             .display_price as number | null,
@@ -476,11 +486,27 @@ export async function assembleSiteDataByType(
         return;
       }
 
+      // Per-property group overrides: from the snapshot (published) or live.
+      let propOverrides: Record<string, PropertyOverride> = {};
+      if (ctx.publishedPropertyOverrides) {
+        propOverrides = ctx.publishedPropertyOverrides;
+      } else {
+        const { data: wp } = await sb
+          .from("website_properties")
+          .select("property_id, display_overrides")
+          .eq("website_id", ctx.websiteId);
+        for (const p of wp ?? []) {
+          propOverrides[(p as { property_id: string }).property_id] = ((
+            p as { display_overrides: PropertyOverride | null }
+          ).display_overrides ?? {}) as PropertyOverride;
+        }
+      }
+
       const [{ data: prRows }, { data: rphotos }] = await Promise.all([
         sb
           .from("property_rooms")
           .select(
-            "id, name, description, base_price, currency, property_id, is_active, deleted_at",
+            "id, name, description, base_price, currency, property_id, is_active, deleted_at, max_guests, bedrooms, bed_type, has_ensuite_bathroom",
           )
           .in("id", roomIds),
         sb
@@ -500,6 +526,7 @@ export async function assembleSiteDataByType(
           photoByRoom.set(rid, (p as { url: string }).url);
       }
 
+      const usedProps = new Set<string>();
       const rooms: RoomCard[] = overrideRows
         .map((ov): RoomCard | null => {
           const room = roomById.get(ov.room_id) as {
@@ -511,10 +538,24 @@ export async function assembleSiteDataByType(
             property_id: string;
             is_active: boolean | null;
             deleted_at: string | null;
+            max_guests: number | null;
+            bedrooms: number | null;
+            bed_type: string | null;
+            has_ensuite_bathroom: boolean | null;
           } | null;
           if (!room || room.is_active === false || room.deleted_at) return null;
+          usedProps.add(room.property_id);
           const slug = slugByProperty.get(room.property_id) ?? "";
           const price = ov.display_price ?? room.base_price;
+          // A few facts derived from the live room (cosmetic — no booking impact).
+          const facts: string[] = [];
+          if (room.max_guests) facts.push(`Sleeps ${room.max_guests}`);
+          if (room.bedrooms)
+            facts.push(
+              `${room.bedrooms} ${room.bedrooms === 1 ? "bed" : "beds"}`,
+            );
+          if (room.bed_type) facts.push(room.bed_type);
+          if (room.has_ensuite_bathroom) facts.push("Ensuite");
           return {
             id: room.id,
             name: ov.display_name?.trim() || room.name,
@@ -523,11 +564,36 @@ export async function assembleSiteDataByType(
             description: ov.display_desc?.trim() || room.description,
             imageUrl: photoByRoom.get(room.id) ?? null,
             bookHref: bookHref(ctx.locale, slug, room.id),
+            featured: ov.featured ?? false,
+            badge: ov.badge?.trim() || null,
+            facts,
+            propertyId: room.property_id,
           };
         })
         .filter((r): r is RoomCard => r !== null);
 
-      out.rooms_preview = { rooms };
+      // Build per-property group headers (only for properties that have rooms
+      // shown AND a non-empty override). Hero path → public URL.
+      const groups: Record<string, RoomGroup> = {};
+      for (const pid of usedProps) {
+        const ov = propOverrides[pid];
+        const heading = ov?.heading?.trim();
+        const intro = ov?.intro?.trim();
+        const hero = ov?.hero_path?.trim();
+        if (heading || intro || hero) {
+          groups[pid] = {
+            propertyId: pid,
+            heading: heading || undefined,
+            intro: intro || undefined,
+            heroUrl: hero ? (websiteAssetUrl(hero) ?? null) : null,
+          };
+        }
+      }
+
+      out.rooms_preview = {
+        rooms,
+        groups: Object.keys(groups).length > 0 ? groups : undefined,
+      };
     })(),
 
     // LOCATION — the primary visible property's address + POIs.

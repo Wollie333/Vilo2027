@@ -243,9 +243,18 @@
 > per-page nav label + show/hide-in-nav (`savePagesAction`, live on Publish), delete
 > (Home protected), per-page SEO overrides card (`savePageSeoAction` → `seo_overrides`,
 > already consumed by the public metadata SSOT). Migration `…001400` (help).
-> **NEXT: Phase 7 (Rooms tab — live preview, DnD, property display_overrides, featured/
-> badges, amenities)**, then 8 Blog, 9 SEO, 10 website-native booking flow [LAST big one],
-> 11 installable theme catalog. Fresh session per phase; build+lint green each commit.
+> **Phase 7 (Rooms tab) DONE** — DnD room ordering, feature-a-room + custom badge
+> (`website_rooms.featured`+`badge`), auto room facts (sleeps/beds/ensuite from
+> property_rooms), per-property group headers (wired the unused
+> `website_properties.display_overrides`: heading/intro/hero), and a live preview pane
+> (same public loader/renderer). Threaded through `RoomCard`/`RoomsPreviewData`, the
+> publish snapshot (`SnapshotRoom`+`propertyOverrides`), `loadSitePage` assembly,
+> `RoomsPreviewSection`, save action + loader. Booking untouched (cosmetic only).
+> Migration `…001500` + help `…001600`. **NEXT: Phase 8 (Blog — categories counts/slugs,
+> missing-SEO warning + search, scheduled publishing cron, featured/related posts, author
+> profiles, richer editor, RSS + blog index)**, then 9 SEO, 10 website-native booking flow
+> [LAST big one], 11 installable theme catalog. **WORKFLOW: commit on branch + merge/push
+> to `main` after EACH phase (founder 2026-06-18).** Fresh session per phase; build+lint green.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

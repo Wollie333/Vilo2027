@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 7: Rooms tab
+
+### Added
+- **Drag-and-drop room ordering** (within each property) replacing up/down arrows.
+- **Feature a room + custom badge** — `website_rooms.featured` + `badge` (cosmetic);
+  featured cards get a highlight ring + a badge pill on the public site.
+- **Room facts** — cards now show auto-derived facts (Sleeps N, beds, bed type,
+  ensuite) pulled from the live `property_rooms`.
+- **Per-property group headers** — wire the unused `website_properties.display_overrides`
+  (heading / intro / hero image) so a multi-property rooms page reads as distinct stays.
+- **Live preview pane** — the Rooms tab renders the real rooms section through the same
+  public loader/renderer; refreshes on Save, goes live on Publish.
+
+### Plumbing
+- Threaded featured/badge/facts/group-overrides through the section data SSOT
+  (`RoomCard`/`RoomsPreviewData`), the publish snapshot (`SnapshotRoom` +
+  `propertyOverrides`), `buildWebsiteSnapshot`, `loadSitePage` assembly,
+  `RoomsPreviewSection`, `saveWebsiteRoomsAction` and `loadRoomsEditor`. Booking
+  untouched — all additions are cosmetic; the engine still re-prices server-side.
+- Migration `…001500` (`website_rooms.featured` + `badge`); help `…001600`.
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 6: Multi-page & nav
 
 ### Added

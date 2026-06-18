@@ -94,6 +94,8 @@ export type SaveDraftSectionsInput = z.infer<typeof saveDraftSectionsSchema>;
 export const websiteRoomSchema = z.object({
   roomId: z.string().uuid(),
   isVisible: z.boolean(),
+  featured: z.boolean().default(false),
+  badge: z.string().trim().max(40).default(""),
   displayName: z.string().trim().max(120).default(""),
   displayPrice: z
     .string()
@@ -105,10 +107,20 @@ export const websiteRoomSchema = z.object({
   displayDesc: z.string().trim().max(600).default(""),
 });
 
+// Per-property display overrides (Phase 7) → website_properties.display_overrides
+// jsonb. Blank values inherit (no group header for that property).
+export const websitePropertyOverrideSchema = z.object({
+  propertyId: z.string().uuid(),
+  heading: z.string().trim().max(120).default(""),
+  intro: z.string().trim().max(600).default(""),
+  heroPath: z.string().trim().max(500).default(""),
+});
+
 export const saveWebsiteRoomsSchema = z.object({
   websiteId: z.string().uuid(),
   // Rooms in their final display order — sort_order is derived from the index.
   rooms: z.array(websiteRoomSchema).max(500),
+  properties: z.array(websitePropertyOverrideSchema).max(100).default([]),
 });
 
 export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;

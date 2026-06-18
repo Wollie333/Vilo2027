@@ -1,6 +1,13 @@
 import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
+import {
+  assembleSiteDataByType,
+  loadSiteContext,
+  type SiteContext,
+} from "@/lib/site/loadSitePage";
+import type { SiteDataByType } from "@/lib/site/types";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type RoomEditorRow = {
@@ -14,6 +21,8 @@ export type RoomEditorRow = {
   /** Override row state (defaults applied when no website_rooms row exists yet). */
   inSite: boolean;
   isVisible: boolean;
+  featured: boolean;
+  badge: string;
   displayName: string;
   displayPrice: string; // "" = inherit the base price
   displayCurrency: string; // "" = inherit the base currency
@@ -24,6 +33,8 @@ export type RoomEditorRow = {
 export type RoomsEditorProperty = {
   id: string;
   name: string;
+  /** Per-property group override (heading/intro/hero) for the rooms section. */
+  override: { heading: string; intro: string; heroPath: string };
   rooms: RoomEditorRow[];
 };
 
@@ -31,15 +42,22 @@ export type RoomsEditorData = {
   websiteId: string;
   subdomain: string;
   properties: RoomsEditorProperty[];
+  /** Site chrome + assembled rooms data for the live preview pane. */
+  preview: {
+    brand: SiteContext["brand"];
+    theme: SiteContext["theme"];
+    nav: SiteContext["nav"];
+    dataByType: Partial<SiteDataByType>;
+  };
 };
 
 /**
- * Owner-scoped load of the website's rooms for the Rooms tab (W9). Lists every
- * non-deleted room across the business's properties, joined to its
- * `website_rooms` override (visibility + cosmetic display overrides). Rooms with
- * no override row yet are surfaced as hidden so the host can opt them in (or hit
- * "Sync" to pull all rooms in at once). Returns null when the website isn't owned
- * by the signed-in host.
+ * Owner-scoped load of the website's rooms for the Rooms tab (W9 + Phase 7).
+ * Lists every non-deleted room across the business's properties joined to its
+ * `website_rooms` override (visibility + cosmetic overrides + featured/badge),
+ * plus each property's group override, plus an assembled rooms-section preview
+ * (through the SAME public loader, so the preview matches the live site).
+ * Returns null when the website isn't owned by the signed-in host.
  */
 export async function loadRoomsEditor(
   websiteId: string,
@@ -66,11 +84,27 @@ export async function loadRoomsEditor(
   const properties = propertyRows ?? [];
   const propertyIds = properties.map((p) => p.id);
 
+  const emptyPreview = {
+    brand: { name: site.subdomain } as SiteContext["brand"],
+    theme: {} as SiteContext["theme"],
+    nav: [] as SiteContext["nav"],
+    dataByType: {} as Partial<SiteDataByType>,
+  };
+
   if (propertyIds.length === 0) {
-    return { websiteId, subdomain: site.subdomain, properties: [] };
+    return {
+      websiteId,
+      subdomain: site.subdomain,
+      properties: [],
+      preview: emptyPreview,
+    };
   }
 
-  const [{ data: roomRows }, { data: overrideRows }] = await Promise.all([
+  const [
+    { data: roomRows },
+    { data: overrideRows },
+    { data: propOverrideRows },
+  ] = await Promise.all([
     supabase
       .from("property_rooms")
       .select(
@@ -82,13 +116,27 @@ export async function loadRoomsEditor(
     supabase
       .from("website_rooms")
       .select(
-        "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order",
+        "room_id, is_visible, featured, badge, display_name, display_price, display_currency, display_desc, sort_order",
       )
+      .eq("website_id", site.id),
+    supabase
+      .from("website_properties")
+      .select("property_id, display_overrides")
       .eq("website_id", site.id),
   ]);
 
   const overrideByRoom = new Map(
     (overrideRows ?? []).map((o) => [o.room_id, o]),
+  );
+  const propOverrideById = new Map(
+    (propOverrideRows ?? []).map((p) => [
+      p.property_id,
+      (p.display_overrides ?? {}) as {
+        heading?: string;
+        intro?: string;
+        hero_path?: string;
+      },
+    ]),
   );
 
   const roomsByProperty = new Map<string, RoomEditorRow[]>();
@@ -103,6 +151,8 @@ export async function loadRoomsEditor(
       isActive: room.is_active,
       inSite: !!ov,
       isVisible: ov ? ov.is_visible : false,
+      featured: ov?.featured ?? false,
+      badge: ov?.badge ?? "",
       displayName: ov?.display_name ?? "",
       displayPrice:
         ov?.display_price == null ? "" : String(Number(ov.display_price)),
@@ -116,14 +166,40 @@ export async function loadRoomsEditor(
   }
 
   const grouped: RoomsEditorProperty[] = properties
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      rooms: (roomsByProperty.get(p.id) ?? []).sort(
-        (a, b) => a.sortOrder - b.sortOrder,
-      ),
-    }))
+    .map((p) => {
+      const ov = propOverrideById.get(p.id) ?? {};
+      return {
+        id: p.id,
+        name: p.name,
+        override: {
+          heading: ov.heading ?? "",
+          intro: ov.intro ?? "",
+          heroPath: ov.hero_path ?? "",
+        },
+        rooms: (roomsByProperty.get(p.id) ?? []).sort(
+          (a, b) => a.sortOrder - b.sortOrder,
+        ),
+      };
+    })
     .filter((p) => p.rooms.length > 0);
 
-  return { websiteId, subdomain: site.subdomain, properties: grouped };
+  // Assemble the rooms-section preview through the public loader (preview mode),
+  // so it renders exactly like the live site from the current saved state.
+  let preview = emptyPreview;
+  const ctx = await loadSiteContext(site.subdomain, { preview: true });
+  if (ctx) {
+    const dataByType = await assembleSiteDataByType(
+      createAdminClient(),
+      ctx,
+      new Set(["rooms_preview"]),
+    );
+    preview = {
+      brand: ctx.brand,
+      theme: ctx.theme,
+      nav: ctx.nav,
+      dataByType,
+    };
+  }
+
+  return { websiteId, subdomain: site.subdomain, properties: grouped, preview };
 }

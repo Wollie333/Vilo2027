@@ -47,8 +47,25 @@ export type RoomCard = {
   description?: string | null;
   imageUrl?: string | null;
   bookHref: string; // absolute deep-link into the existing booking engine
+  featured?: boolean;
+  badge?: string | null;
+  /** Short facts derived from the room (e.g. "Sleeps 4", "2 beds", "Ensuite"). */
+  facts?: string[];
+  /** The property this room belongs to (drives optional group headers). */
+  propertyId?: string;
 };
-export type RoomsPreviewData = { rooms: RoomCard[] };
+/** Optional per-property group header for the rooms section (heading/intro/hero). */
+export type RoomGroup = {
+  propertyId: string;
+  heading?: string;
+  intro?: string;
+  heroUrl?: string | null;
+};
+export type RoomsPreviewData = {
+  rooms: RoomCard[];
+  /** Per-property group meta, keyed by property id (only set when overrides exist). */
+  groups?: Record<string, RoomGroup>;
+};
 
 export type Poi = {
   name: string;
@@ -105,11 +122,20 @@ export type SiteData = Record<string, SiteSectionDatum>;
 export type SnapshotRoom = {
   room_id: string;
   is_visible: boolean;
+  featured: boolean;
+  badge: string | null;
   display_name: string | null;
   display_price: number | null;
   display_currency: string | null;
   display_desc: string | null;
   sort_order: number;
+};
+
+/** Per-property group overrides on the rooms section (heading/intro/hero). */
+export type PropertyOverride = {
+  heading?: string;
+  intro?: string;
+  hero_path?: string;
 };
 
 /**
@@ -125,6 +151,8 @@ export type PublishSnapshot = {
   nav: SiteNavItem[];
   propertyIds: string[];
   rooms: SnapshotRoom[];
+  /** Per-property rooms-section overrides, keyed by property id. */
+  propertyOverrides?: Record<string, PropertyOverride>;
 };
 
 export type SiteAssetResolver = (
