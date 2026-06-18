@@ -154,6 +154,35 @@
       "deleteTitle": "Delete this add-on?",
       "deleteBody": "This can't be undone.",
       "deleteError": "Couldn't delete — it may be in use on a booking."
+    },
+    "coupons": {
+      "title": "Coupons",
+      "subtitle": "Discount codes for your guests",
+      "new": "New coupon",
+      "active": "Active",
+      "hidden": "Inactive",
+      "used": "{{n}} used",
+      "emptyTitle": "No coupons yet",
+      "emptyMessage": "Create a discount code guests can apply at checkout."
+    },
+    "couponEdit": {
+      "title": "Edit coupon",
+      "newTitle": "New coupon",
+      "code": "Code",
+      "type": "Discount",
+      "percent": "Percent",
+      "fixed": "Fixed amount",
+      "value": "Value",
+      "minSpend": "Min spend",
+      "maxRedemptions": "Usage limit",
+      "unlimited": "Unlimited",
+      "description": "Description",
+      "visibility": "Status",
+      "codeRequired": "Please enter a coupon code.",
+      "saveError": "Couldn't save — that code may already exist.",
+      "delete": "Delete coupon",
+      "deleteTitle": "Delete this coupon?",
+      "deleteBody": "This can't be undone."
     }
   }
 }

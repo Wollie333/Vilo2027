@@ -9,6 +9,7 @@ import {
   Settings,
   Star,
   Tags,
+  Ticket,
   Users,
 } from "lucide-react-native";
 
@@ -86,6 +87,11 @@ export default function HostMore() {
           icon={Tags}
           label={t("host.addons.title")}
           onPress={() => router.push("/(host)/addons")}
+        />
+        <MenuRow
+          icon={Ticket}
+          label={t("host.coupons.title")}
+          onPress={() => router.push("/(host)/coupons")}
         />
         <MenuRow
           icon={Users}
