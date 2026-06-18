@@ -7,8 +7,14 @@
 
 > **SPECIALS RESUME ANCHOR (multi-session).** Plan: `~/.claude/plans/ok-so-i-need-tender-sphinx.md`.
 > Memory: `project_specials_feature`. Phases: **S0 schema DONE** (migration `…002000_specials_foundation.sql`
-> pushed; types regenerated; `tsc` green) → **NEXT S1** host CRUD at `dashboard/specials` (sidebar:
-> Properties › under Policies) → S2 pricing (`lib/specials/pricing.ts`) → S3 booking wiring
+> pushed; types regenerated; `tsc` green) → **S1 host CRUD DONE** (Properties › Specials sidebar row
+> under Policies; `/dashboard/specials` list w/ dark hero + status/used-quantity/featured/visibility +
+> row menu; `new` + `[id]/edit` wizard `_components/SpecialEditor.tsx` over all sections; `actions.ts`
+> create/update/setStatus/delete + addon reconcile + ownership checks; `lib/specials/categories.ts` +
+> `schemas.ts`; hero image reuses W8 website-assets upload when the business has a website; pre-MVP gate
+> open, help+i18n deferred to S7; code-only, no migration; type-check+lint+build green) → **NEXT S2**
+> pricing (`lib/specials/pricing.ts`: flat + per-night synthetic max-priority absolute rule so seasonal
+> never leaks + savings `was_price` compute; unit-test seasonal-skip + flat invariance) → S3 booking wiring
 > (`/special/[slug]/book`, both entry points) → S4 `/specials` directory → S5 website specials page +
 > `specials_preview` section → S6 reporting → S7 gating/help/i18n. Fresh session per phase; commit each.
 

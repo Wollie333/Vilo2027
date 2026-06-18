@@ -22,6 +22,7 @@ import {
   ScrollText,
   Settings,
   ShieldCheck,
+  Sparkles,
   Star,
   Ticket,
   UserCog,
@@ -70,6 +71,12 @@ const PROPERTIES: GmailNavItem[] = [
     href: "/dashboard/policies",
     label: "Policies",
     icon: ShieldCheck,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/specials",
+    label: "Specials",
+    icon: Sparkles,
     match: "prefix",
   },
   {

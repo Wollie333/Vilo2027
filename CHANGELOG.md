@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-06-18 — Specials · S1 (host CRUD)
+
+Properties › **Specials** — the host create/edit/manage surface. Builds on S0's schema;
+no DB migration (code-only). Not yet publicly exposed (directory + booking are S3/S4).
+
+### Added
+- **Sidebar** — new **Specials** row under Policies in the Properties group (`Sparkles`).
+- **`/dashboard/specials`** list (`page.tsx` + `SpecialsList.tsx`) — dark hero + New-special
+  CTA; per-deal cards with status pill, `used / quantity` (sold-out flag), featured star,
+  price + dates summary, visibility chips (Directory / Website / Link-only), and a row menu
+  (Edit, Activate/Pause, Archive, Delete-with-confirm via the canonical `Modal`).
+- **`/dashboard/specials/new`** + **`/[id]/edit`** — the RHF-style wizard
+  (`_components/SpecialEditor.tsx`) sectioned into Property+room → Dates (fixed/flexible) →
+  Price (flat/per-night + max guests, charged in the property's currency) → Availability
+  (quantity + go-live/book-by) → Add-ons (per add-on compulsory vs optional + price
+  override) → Merchandising (curated categories, custom tags, badge, featured) →
+  Presentation (title, description, hero image) → Cancellation policy override → Visibility.
+  Self-contained dashboard form primitives in `_components/fields.tsx` (incl. a `HeroImageField`
+  that uploads browser→Storage into the business's `website-assets` folder, reusing the W8
+  upload + MediaLibrary infra; shown only when the deal's business has a website).
+- **Server Actions** (`actions.ts`) — `createSpecialAction` (derives business_id + currency
+  from the chosen property; unique per-host slug from the title), `updateSpecialAction`
+  (slug immutable for link stability), `setSpecialStatusAction` (draft/active/paused/archived),
+  `deleteSpecialAction` (soft-delete). All `requireHost`-scoped with property/room/add-on/
+  policy ownership checks; `special_addons` reconciled (delete-all + insert) on save.
+- **`lib/specials/categories.ts`** — curated category constant (8 keys + labels, the future
+  directory filter) and `schemas.ts` (Zod `specialInputSchema` mirroring the S0 CHECKs).
+
+### Notes
+- Pre-MVP feature gate short-circuits to open (AGENT_RULES §3.4); real `check_feature_permission`
+  gate + help article + full i18n land in S7 (strings hardcoded per the dashboard-editor convention).
+- Savings badge (`was_price`/`savings_*`) stays null until S2 pricing computes it.
+- `pnpm type-check` + `pnpm lint` + `pnpm build` (heap `--max-old-space-size=6144`) green.
+- Next: **S2** pricing (`lib/specials/pricing.ts`) — flat + per-night synthetic-rule + savings.
+
 ## 2026-06-18 — Specials · S0 (schema foundation)
 
 New MVP feature (founder-sanctioned exception to the feature freeze). A **Special** is a
