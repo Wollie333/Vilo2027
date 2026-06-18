@@ -1,7 +1,9 @@
-// Cross-platform build wrapper: runs `next build` with a larger V8 heap so the
-// build worker doesn't OOM-crash (exit 134) on memory-tighter machines. No new
-// dependency (avoids needing cross-env for Windows). Appending our flag to any
-// existing NODE_OPTIONS is safe — Node takes the last --max-old-space-size.
+// OPT-IN local build (`pnpm build:local`) — runs `next build` with a larger V8
+// heap so the build worker doesn't OOM-crash (exit 134) on memory-tighter
+// machines. The default `build` script stays plain `next build` so Vercel/CI is
+// unaffected (this wrapper as the default build command broke the Vercel build).
+// No new dependency (avoids needing cross-env for Windows). Appending our flag to
+// any existing NODE_OPTIONS is safe — Node takes the last --max-old-space-size.
 import { spawnSync } from "node:child_process";
 
 const HEAP = "--max-old-space-size=6144";
