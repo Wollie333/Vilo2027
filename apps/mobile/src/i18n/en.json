@@ -125,6 +125,35 @@
       "responsePlaceholder": "Write a public reply…",
       "emptyTitle": "No reviews yet",
       "emptyMessage": "Reviews from your guests will appear here."
+    },
+    "addons": {
+      "title": "Add-ons",
+      "subtitle": "Extras guests can add to a booking",
+      "new": "New add-on",
+      "active": "Active",
+      "hidden": "Hidden",
+      "emptyTitle": "No add-ons yet",
+      "emptyMessage": "Create extras like breakfast, transfers or late checkout.",
+      "pm_per_stay": "Per stay",
+      "pm_per_night": "Per night",
+      "pm_per_guest": "Per guest",
+      "pm_per_guest_per_night": "Per guest / night",
+      "pm_per_couple": "Per couple"
+    },
+    "addonEdit": {
+      "title": "Edit add-on",
+      "newTitle": "New add-on",
+      "name": "Name",
+      "description": "Description",
+      "price": "Price",
+      "category": "Category",
+      "pricingModel": "Charged",
+      "visibility": "Visibility",
+      "nameRequired": "Please enter a name.",
+      "delete": "Delete add-on",
+      "deleteTitle": "Delete this add-on?",
+      "deleteBody": "This can't be undone.",
+      "deleteError": "Couldn't delete — it may be in use on a booking."
     }
   }
 }
