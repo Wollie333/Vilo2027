@@ -168,6 +168,74 @@ export function useUpdateHostProfile(hostId: string | undefined) {
   });
 }
 
+// ── Reviews (host responses) ──────────────────────────────────────────
+// Reviews are immutable once published (a DB trigger protects the content);
+// the host may only append/edit their public response. Scoped by host_id.
+
+export type HostReview = {
+  id: string;
+  rating: number;
+  body: string | null;
+  created_at: string;
+  trip_type: string | null;
+  host_response: string | null;
+  host_responded_at: string | null;
+};
+
+async function fetchHostReviews(hostId: string): Promise<HostReview[]> {
+  const { data, error } = await supabase
+    .from("reviews")
+    .select(
+      "id, rating, body, created_at, trip_type, host_response, host_responded_at",
+    )
+    .eq("host_id", hostId)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  return (data ?? []) as HostReview[];
+}
+
+export const reviewKeys = {
+  list: (hostId: string | undefined) => ["host", "reviews", hostId] as const,
+};
+
+/** Published reviews across the host's properties. */
+export function useHostReviews(hostId: string | undefined) {
+  return useQuery({
+    queryKey: reviewKeys.list(hostId),
+    queryFn: () => fetchHostReviews(hostId as string),
+    enabled: !!hostId,
+  });
+}
+
+/** Write (or edit) the host's public response to a review. RLS-scoped. */
+export function useRespondToReview(hostId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      reviewId,
+      response,
+    }: {
+      reviewId: string;
+      response: string;
+    }) => {
+      const trimmed = response.trim();
+      const { error } = await supabase
+        .from("reviews")
+        .update({
+          host_response: trimmed || null,
+          host_responded_at: trimmed ? new Date().toISOString() : null,
+        })
+        .eq("id", reviewId)
+        .eq("host_id", hostId ?? "");
+      if (error) throw error;
+    },
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: reviewKeys.list(hostId) }),
+  });
+}
+
 // ── Rooms ────────────────────────────────────────────────────────────
 // A property's rooms. Host-scoped via an inner join on the owning property so
 // a host only ever sees/edits rooms under their own properties.

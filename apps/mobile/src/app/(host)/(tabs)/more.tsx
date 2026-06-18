@@ -7,6 +7,7 @@ import {
   Luggage,
   LogOut,
   Settings,
+  Star,
   Users,
 } from "lucide-react-native";
 
@@ -84,6 +85,11 @@ export default function HostMore() {
           icon={Users}
           label="Guests"
           onPress={() => router.push("/(host)/guests")}
+        />
+        <MenuRow
+          icon={Star}
+          label={t("host.reviews.title")}
+          onPress={() => router.push("/(host)/reviews")}
         />
         <MenuRow
           icon={Bell}

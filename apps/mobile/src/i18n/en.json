@@ -115,6 +115,16 @@
       "bio": "About you",
       "website": "Website",
       "nameRequired": "Please enter a display name."
+    },
+    "reviews": {
+      "title": "Reviews",
+      "subtitle": "Guest reviews & your responses",
+      "respond": "Respond",
+      "editResponse": "Edit response",
+      "yourResponse": "Your response",
+      "responsePlaceholder": "Write a public reply…",
+      "emptyTitle": "No reviews yet",
+      "emptyMessage": "Reviews from your guests will appear here."
     }
   }
 }

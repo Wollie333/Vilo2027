@@ -18,6 +18,7 @@ export default function HostLayout() {
       <Stack.Screen name="property/[id]" />
       <Stack.Screen name="rooms/[propertyId]" />
       <Stack.Screen name="room/[id]" />
+      <Stack.Screen name="reviews" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="notifications" />
     </Stack>
