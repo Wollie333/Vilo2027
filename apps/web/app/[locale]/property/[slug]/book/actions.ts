@@ -4,8 +4,12 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import {
+  persistBookingAndPay,
+  type BookingAddonRow,
+  type RedeemStep,
+} from "@/lib/bookings/persist";
 import { getLegalDocuments } from "@/lib/legal";
-import { startBookingPayment } from "@/lib/payments/pay-booking";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
@@ -510,17 +514,6 @@ export async function createBookingAction(
     addon_id: string;
     sort_order: number;
   }> = [];
-  // Stock we've already taken — released if the booking unwinds before payment.
-  const reservedAddons: { addonId: string; qty: number }[] = [];
-  const releaseReserved = async () => {
-    for (const r of reservedAddons) {
-      await admin.rpc("release_addon_stock", {
-        p_addon_id: r.addonId,
-        p_qty: r.qty,
-      });
-    }
-  };
-
   {
     const roomIdScope =
       d.scope === "rooms"
@@ -797,9 +790,65 @@ export async function createBookingAction(
   // record), alongside the explicit acknowledgement.
   const legal = await getLegalDocuments();
 
-  const { data: booking, error: bookingErr } = await admin
-    .from("bookings")
-    .insert({
+  // Coupon redemption is run atomically right after the booking row is created
+  // (enforces total + per-guest caps); a race that exhausts the coupon rolls the
+  // booking back. No rollback callback — coupon_redemptions FK the booking and
+  // cascade on delete.
+  const redeem: RedeemStep | undefined = couponId
+    ? {
+        claim: async (bookingId) => {
+          const { data: redeemed, error: redeemErr } = await admin.rpc(
+            "redeem_coupon",
+            {
+              p_coupon_id: couponId,
+              p_booking_id: bookingId,
+              p_guest_id: user.id,
+              p_amount: couponDiscount,
+              p_currency: listing.currency,
+            },
+          );
+          if (redeemErr || redeemed !== true) {
+            return {
+              ok: false,
+              error:
+                "Sorry — that coupon was just fully redeemed. Try without it.",
+            };
+          }
+          return { ok: true };
+        },
+      }
+    : undefined;
+
+  // Age/pet charges are non-catalog booking_addons (no stock); catalog add-ons
+  // reserve live inventory.
+  const addons: BookingAddonRow[] = [
+    ...ageLines.map((a, i) => ({
+      addon_id: null,
+      label: a.label,
+      quantity: a.quantity,
+      unit_price: a.unitPrice,
+      currency: listing.currency,
+      is_required: false,
+      subtotal: a.subtotal,
+      sort_order: 100 + i,
+    })),
+    ...addonInserts.map((a) => ({
+      addon_id: a.addon_id,
+      label: a.label,
+      quantity: a.quantity,
+      unit_price: a.unit_price,
+      pricing_model: a.pricing_model,
+      currency: a.currency,
+      is_required: a.is_required,
+      subtotal: a.subtotal,
+      sort_order: a.sort_order,
+      reserve: true,
+    })),
+  ];
+
+  const result = await persistBookingAndPay({
+    admin,
+    bookingInsert: {
       property_id: listing.id,
       host_id: listing.host_id,
       guest_id: user.id,
@@ -839,144 +888,12 @@ export async function createBookingAction(
       policy_acknowledged_at: new Date().toISOString(),
       accepted_terms_version: legal.booking_terms.version,
       accepted_privacy_version: legal.privacy.version,
-    })
-    .select("id, reference")
-    .single();
-  if (bookingErr || !booking) {
-    return { ok: false, error: "Could not start your booking. Try again." };
-  }
-
-  // 6-coupon. Atomically record the redemption (enforces total + per-guest
-  // caps). A race that exhausts the coupon rolls the whole booking back.
-  if (couponId) {
-    const { data: redeemed, error: redeemErr } = await admin.rpc(
-      "redeem_coupon",
-      {
-        p_coupon_id: couponId,
-        p_booking_id: booking.id,
-        p_guest_id: user.id,
-        p_amount: couponDiscount,
-        p_currency: listing.currency,
-      },
-    );
-    if (redeemErr || redeemed !== true) {
-      await admin.from("bookings").delete().eq("id", booking.id);
-      return {
-        ok: false,
-        error: "Sorry — that coupon was just fully redeemed. Try without it.",
-      };
-    }
-  }
-
-  // 6a. Insert booking_rooms join rows when scope=rooms.
-  if (d.scope === "rooms" && roomRowsForBooking.length > 0) {
-    const { error: brErr } = await admin.from("booking_rooms").insert(
-      roomRowsForBooking.map((r) => ({
-        booking_id: booking.id,
-        room_id: r.room_id,
-        base_amount: r.base_amount,
-        cleaning_fee: r.cleaning_fee,
-      })),
-    );
-    if (brErr) {
-      await admin.from("bookings").delete().eq("id", booking.id);
-      return { ok: false, error: "Could not save room selection. Try again." };
-    }
-  }
-
-  // 6a-ii. Age/pet charges as booking_addons (no catalog stock to reserve).
-  // These flow into the invoice's line items + subtotal automatically.
-  if (ageLines.length > 0) {
-    const { error: ageErr } = await admin.from("booking_addons").insert(
-      ageLines.map((a, i) => ({
-        booking_id: booking.id,
-        addon_id: null,
-        label: a.label,
-        quantity: a.quantity,
-        unit_price: a.unitPrice,
-        currency: listing.currency,
-        is_required: false,
-        subtotal: a.subtotal,
-        sort_order: 100 + i,
-      })),
-    );
-    if (ageErr) {
-      await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
-      await admin.from("bookings").delete().eq("id", booking.id);
-      return { ok: false, error: "Could not save guest charges. Try again." };
-    }
-  }
-
-  // 6b. Insert booking_addons rows (catalog-linked + auto-required).
-  if (addonInserts.length > 0) {
-    const { error: addonErr } = await admin.from("booking_addons").insert(
-      addonInserts.map((a) => ({
-        booking_id: booking.id,
-        addon_id: a.addon_id,
-        label: a.label,
-        quantity: a.quantity,
-        unit_price: a.unit_price,
-        pricing_model: a.pricing_model,
-        currency: a.currency,
-        is_required: a.is_required,
-        subtotal: a.subtotal,
-        sort_order: a.sort_order,
-      })),
-    );
-    if (addonErr) {
-      await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
-      await admin.from("bookings").delete().eq("id", booking.id);
-      return { ok: false, error: "Could not save add-ons. Try again." };
-    }
-
-    // 6b-i. Reserve live inventory atomically. Sorted by addon_id to keep the
-    // lock order stable across concurrent checkouts. A shortfall (someone took
-    // the last unit) rolls the whole booking back.
-    const toReserve = [...addonInserts].sort((x, y) =>
-      x.addon_id.localeCompare(y.addon_id),
-    );
-    for (const a of toReserve) {
-      const { data: reserved, error: resErr } = await admin.rpc(
-        "reserve_addon_stock",
-        { p_addon_id: a.addon_id, p_qty: a.quantity },
-      );
-      if (resErr || reserved !== true) {
-        await releaseReserved();
-        await admin
-          .from("booking_addons")
-          .delete()
-          .eq("booking_id", booking.id);
-        await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
-        await admin.from("bookings").delete().eq("id", booking.id);
-        return {
-          ok: false,
-          error: `Sorry — “${a.label}” just sold out. Adjust your add-ons and try again.`,
-        };
-      }
-      reservedAddons.push({ addonId: a.addon_id, qty: a.quantity });
-    }
-  }
-
-  // 6c. Freeze the listing's assigned policies onto the booking so later edits
-  // never change the guest's agreed terms. calculate_policy_refund_amount reads
-  // these snapshots. Best-effort — a missing snapshot shouldn't block payment.
-  await admin.rpc("snapshot_booking_policies", {
-    p_booking_id: booking.id,
-    p_listing_id: listing.id,
-  });
-
-  // 7. Take payment through the ONE canonical path. startBookingPayment is the
-  // single source of truth for charging a booking (the guest pay page and the
-  // host pay-link use it too): it creates the pending payment row, initialises
-  // Paystack on the HOST's own account (Vilo takes 0%), falls back to the host's
-  // EFT when there's no usable card rail, and returns where to send the guest.
-  // Keeping ONE payment path here — instead of a second inline Paystack init —
-  // means `origin`/method is just data on the booking, not a forked code path.
-  const origin = headers().get("origin") ?? "";
-  const pay = await startBookingPayment({
-    booking: {
-      id: booking.id,
-      reference: booking.reference,
+    },
+    redeem,
+    bookingRooms: d.scope === "rooms" ? roomRowsForBooking : [],
+    addons,
+    policy: { listingId: listing.id },
+    payable: {
       scope: d.scope,
       status: isEft ? "pending_eft" : "pending",
       payment_status: "pending",
@@ -988,25 +905,20 @@ export async function createBookingAction(
       listing_name: listing.name,
       host_id: listing.host_id,
     },
-    method: d.payment_method,
-    amount: "full",
-    email: user.email,
-    origin,
-    returnTo: `/booking/${booking.id}/success`,
+    payment: {
+      method: d.payment_method,
+      amount: "full",
+      email: user.email,
+      origin: headers().get("origin") ?? "",
+      returnTo: (bookingId) => `/booking/${bookingId}/success`,
+    },
   });
 
-  if (!pay.ok) {
-    // Provider unreachable AND the host has no EFT rail to fall back to
-    // (startBookingPayment already switches to EFT when one exists). Unwind the
-    // whole booking rather than leave it stranded.
-    await releaseReserved();
-    await admin.from("booking_addons").delete().eq("booking_id", booking.id);
-    await admin.from("booking_rooms").delete().eq("booking_id", booking.id);
-    await admin.from("bookings").delete().eq("id", booking.id);
-    return { ok: false, error: pay.error };
+  if (!result.ok) {
+    return { ok: false, error: result.error };
   }
 
   // Card → Paystack checkout URL; EFT (chosen or fallback) → the success page,
   // which shows the awaiting-transfer state + the host's banking details.
-  redirect(pay.redirectTo);
+  redirect(result.redirectTo);
 }

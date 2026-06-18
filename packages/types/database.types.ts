@@ -9616,6 +9616,7 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: undefined
       }
+      release_special: { Args: { p_special_id: string }; Returns: undefined }
       reserve_addon_stock: {
         Args: { p_addon_id: string; p_qty: number }
         Returns: boolean
@@ -9666,7 +9667,11 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       snapshot_booking_policies: {
-        Args: { p_booking_id: string; p_listing_id: string }
+        Args: {
+          p_booking_id: string
+          p_listing_id: string
+          p_special_cancellation_policy_id?: string
+        }
         Returns: undefined
       }
       st_3dclosestpoint: {

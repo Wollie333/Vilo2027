@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-19 — Specials · S3 (booking wiring)
+
+A booked special is now a real `bookings` row carrying `special_id` /
+`booked_via` / `origin='special_booked'`, so date-blocking, the payment ledger,
+Paystack settlement and policy snapshots all work unchanged. Pricing is the
+authoritative `priceSpecialStay()` (never trusts the client). One migration.
+
+### Added
+- **`lib/bookings/persist.ts`** — the SINGLE persistence tail shared by the guest
+  checkout and the special checkout: insert booking → atomic redemption claim
+  (coupon / special) → `booking_rooms` + `booking_addons` (reserving live stock)
+  → `snapshot_booking_policies` → `startBookingPayment`, with one reverse-order
+  unwind stack that rolls the whole thing back on any post-insert failure.
+- **`app/[locale]/special/[slug]/book/`** — the special checkout:
+  - `actions.ts` → `createSpecialBookingAction`: loads + date/quantity/availability-
+    guards the special, resolves dates (fixed = forced, flexible = validated inside
+    the window + min/max nights), bundles compulsory + guest-selected optional
+    add-ons, prices via `priceSpecialStay`, then persists + pays via the shared
+    tail. Atomic `redeem_special` claim with a `release_special` rollback (a bare
+    DELETE doesn't fire `on_booking_cancelled`).
+  - `page.tsx` + `SpecialBookingForm.tsx` — public booking page (both entry points:
+    `?via=platform` / `?via=website`), inline guest-account creation, optional
+    add-on upsells, advisory estimate, card/EFT, savings + scarcity surfaced.
+- **Migration `20260619000000`** — `snapshot_booking_policies` gains an optional
+  special cancellation override (precedence: special → room → listing → host
+  default; 2-arg callers unchanged via a defaulted 3rd param) + `release_special()`,
+  the race-safe inverse of `redeem_special`.
+
+### Changed
+- **`createBookingAction`** (property checkout) refactored onto the shared
+  `persistBookingAndPay` tail — behaviour preserved exactly (coupon redemption,
+  age extras, room/add-on snapshot, stock reserve, EFT fallback).
+
 ## 2026-06-18 — Specials · S2 (pricing & savings)
 
 The pricing SSOT for specials — flat + per-night, the savings badge, and unit

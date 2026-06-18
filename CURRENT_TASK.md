@@ -21,10 +21,10 @@
 > whole) + real seasonal rules + compulsory add-ons, picks shadow dates [fixed=exact, flexible=min_nights
 > from window_start], best-effort nulls; wired into create/update actions → stores `was_price`/
 > `savings_amount`/`savings_pct`. 10 vitest green [seasonal-skip + flat invariance + savings]; tsc+lint
-> +build green; code-only, no migration) → **NEXT S3** booking wiring
+> +build green; code-only, no migration) → **S3 booking wiring DONE 2026-06-19**
 > (`createSpecialBookingAction` + `/special/[slug]/book`, both entry points `booked_via`; extract shared
 > persistence tail to `lib/bookings/persist.ts`; `redeem_special` atomic + rollback ladder; reuse
-> `priceSpecialStay` as the authoritative price) → S4 `/specials` directory → S5 website specials page +
+> `priceSpecialStay` as the authoritative price): shared tail `lib/bookings/persist.ts` `persistBookingAndPay` (insert → atomic redeem claim [coupon/special] → booking_rooms+addons[+stock reserve] → snapshot_booking_policies → startBookingPayment, one reverse unwind); **`createBookingAction` refactored onto it, behaviour preserved**; new `special/[slug]/book/` (`createSpecialBookingAction` + `schemas.ts` + `page.tsx` + `SpecialBookingForm.tsx`, both entry points `?via=platform|website`); `redeem_special` claim + `release_special` rollback; migration `20260619000000` (snapshot special-cancellation override + `release_special`); pushed+types regen; tsc+lint green on my files. **Branch had concurrent parallel-agent website WIP in the working tree — staged ONLY my S3 paths.** → **NEXT S4** `/specials` directory (+ shared `special/[slug]/page.tsx` detail; slug is per-host-unique, book page takes earliest active match — revisit if collisions) → S5 website specials page +
 > `specials_preview` section → S6 reporting → S7 gating/help/i18n. Fresh session per phase; commit each.
 
 ---
