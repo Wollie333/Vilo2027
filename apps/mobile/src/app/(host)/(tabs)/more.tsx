@@ -1,5 +1,12 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { ChevronRight, Luggage, LogOut } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import {
+  Bell,
+  ChevronRight,
+  Luggage,
+  LogOut,
+  Users,
+} from "lucide-react-native";
 
 import { Avatar, Card, Icon, ScreenHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -7,7 +14,32 @@ import { useAppStore } from "@/stores/app-store";
 import { brand } from "@/theme/tokens";
 import { t } from "@/i18n";
 
+function MenuRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: typeof Bell;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable onPress={onPress}>
+      <Card padded className="flex-row items-center gap-3">
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-light">
+          <Icon icon={icon} size={20} color={brand.primary} />
+        </View>
+        <Text className="flex-1 font-display text-[15px] text-brand-ink">
+          {label}
+        </Text>
+        <Icon icon={ChevronRight} size={20} color={brand.mute} />
+      </Card>
+    </Pressable>
+  );
+}
+
 export default function HostMore() {
+  const router = useRouter();
   const { host, profile, session, signOut } = useAuth();
   const setActiveRole = useAppStore((s) => s.setActiveRole);
 
@@ -40,6 +72,17 @@ export default function HostMore() {
             </View>
           </View>
         </Card>
+
+        <MenuRow
+          icon={Users}
+          label="Guests"
+          onPress={() => router.push("/(host)/guests")}
+        />
+        <MenuRow
+          icon={Bell}
+          label="Notifications"
+          onPress={() => router.push("/(host)/notifications")}
+        />
 
         <Pressable onPress={() => setActiveRole("guest")}>
           <Card padded className="flex-row items-center gap-3">

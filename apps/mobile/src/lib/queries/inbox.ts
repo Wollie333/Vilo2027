@@ -46,6 +46,42 @@ export function useConversations(guestId: string | undefined) {
   });
 }
 
+export type HostConversation = {
+  id: string;
+  status: string;
+  pinned: boolean;
+  last_message_at: string | null;
+  last_message_preview: string | null;
+  unread_host: number;
+  user_profiles: { full_name: string | null; avatar_url: string | null } | null;
+  properties: { name: string } | null;
+};
+
+// Pin the guest FK explicitly — conversations also has assigned_to → user_profiles.
+const HOST_CONVERSATION_SELECT =
+  "id, status, pinned, last_message_at, last_message_preview, unread_host, user_profiles!guest_id(full_name, avatar_url), properties(name)";
+
+async function fetchHostConversations(
+  hostId: string,
+): Promise<HostConversation[]> {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select(HOST_CONVERSATION_SELECT)
+    .eq("host_id", hostId)
+    .order("last_message_at", { ascending: false, nullsFirst: false });
+  if (error) throw error;
+  return (data ?? []) as HostConversation[];
+}
+
+/** Host's conversations (host Inbox), keyed on hosts.id. */
+export function useHostConversations(hostId: string | undefined) {
+  return useQuery({
+    queryKey: ["host", "conversations", hostId],
+    queryFn: () => fetchHostConversations(hostId as string),
+    enabled: !!hostId,
+  });
+}
+
 async function fetchMessages(conversationId: string): Promise<Message[]> {
   const { data, error } = await supabase
     .from("messages")
@@ -67,7 +103,7 @@ export function useMessages(conversationId: string | undefined) {
 }
 
 /** Send a message — direct insert (RLS-scoped). Web sees it instantly via the same table. */
-export function useSendMessage(conversationId: string) {
+export function useSendMessage(conversationId: string, role: "guest" | "host") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -81,13 +117,16 @@ export function useSendMessage(conversationId: string) {
         conversation_id: conversationId,
         sender_id: senderId,
         body,
-        read_by_guest: true,
+        // Mark read for the sender's own side.
+        read_by_guest: role === "guest",
+        read_by_host: role === "host",
       });
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["messages", conversationId] });
       qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["host", "conversations"] });
     },
   });
 }
