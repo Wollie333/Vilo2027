@@ -145,6 +145,29 @@ export function useUpdateProperty(hostId: string | undefined, id: string) {
   });
 }
 
+// ── Host profile (Settings) ───────────────────────────────────────────
+// The host's own public-facing profile fields. RLS lets a host edit only their
+// own row. Banking / payout config is intentionally NOT exposed on mobile.
+
+export type HostProfilePatch = {
+  display_name?: string;
+  bio?: string | null;
+  website_url?: string | null;
+};
+
+/** Live update of the host's public profile. RLS scopes to the owner. */
+export function useUpdateHostProfile(hostId: string | undefined) {
+  return useMutation({
+    mutationFn: async (patch: HostProfilePatch) => {
+      const { error } = await supabase
+        .from("hosts")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", hostId ?? "");
+      if (error) throw error;
+    },
+  });
+}
+
 // ── Rooms ────────────────────────────────────────────────────────────
 // A property's rooms. Host-scoped via an inner join on the owning property so
 // a host only ever sees/edits rooms under their own properties.

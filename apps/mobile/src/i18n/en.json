@@ -106,6 +106,15 @@
       "inventory": "Units available",
       "visibility": "Visibility",
       "nameRequired": "Please enter a room name."
+    },
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Your public host profile",
+      "displayName": "Display name",
+      "handle": "Handle",
+      "bio": "About you",
+      "website": "Website",
+      "nameRequired": "Please enter a display name."
     }
   }
 }

@@ -6,6 +6,7 @@ import {
   Home,
   Luggage,
   LogOut,
+  Settings,
   Users,
 } from "lucide-react-native";
 
@@ -88,6 +89,11 @@ export default function HostMore() {
           icon={Bell}
           label="Notifications"
           onPress={() => router.push("/(host)/notifications")}
+        />
+        <MenuRow
+          icon={Settings}
+          label={t("host.settings.title")}
+          onPress={() => router.push("/(host)/settings")}
         />
 
         <Pressable onPress={() => setActiveRole("guest")}>
