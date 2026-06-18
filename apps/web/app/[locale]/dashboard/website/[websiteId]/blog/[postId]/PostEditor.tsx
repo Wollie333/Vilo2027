@@ -9,12 +9,15 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import {
+  createWebsiteAssetUploadUrl,
   deleteBlogPostAction,
   saveBlogPostAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
 import { modal } from "@/components/ui/modal-host";
 import { slugify } from "@/lib/help/slug";
+import { createClient } from "@/lib/supabase/client";
+import { websiteAssetUrl } from "@/lib/website/assets";
 
 import type { BlogPostEditorData } from "./loadBlogPost";
 import {
@@ -51,11 +54,13 @@ export function PostEditor({
   websiteId,
   subdomain,
   categories,
+  authors,
   initialPost,
 }: {
   websiteId: string;
   subdomain: string;
   categories: Array<{ id: string; name: string }>;
+  authors: BlogPostEditorData["authors"];
   initialPost: Post;
 }) {
   const t = useTranslations("website");
@@ -74,6 +79,31 @@ export function PostEditor({
 
   const slugPlaceholder = slugify(post.title) || "post";
   const previewHref = `/site/blog/${savedSlug}?site=${subdomain}&preview=1`;
+
+  // Upload a body image browser→Storage and return its public URL (for the editor).
+  async function uploadBodyImage(file: File): Promise<string | null> {
+    if (file.size > 6 * 1024 * 1024) {
+      toast.error(t("imageSizeError"));
+      return null;
+    }
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const ticket = await createWebsiteAssetUploadUrl(websiteId, ext);
+    if (!ticket.ok) {
+      toast.error(t("imageUploadError"));
+      return null;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.storage
+      .from("website-assets")
+      .uploadToSignedUrl(ticket.data.path, ticket.data.token, file, {
+        contentType: file.type || "image/jpeg",
+      });
+    if (error) {
+      toast.error(t("imageUploadError"));
+      return null;
+    }
+    return websiteAssetUrl(ticket.data.path) ?? null;
+  }
 
   function onSave() {
     if (!post.title.trim()) {
@@ -99,9 +129,7 @@ export function PostEditor({
         coverPath: post.coverPath,
         excerpt: post.excerpt,
         bodyHtml: post.bodyHtml,
-        authorName: post.authorName,
-        authorBio: post.authorBio,
-        authorAvatarPath: post.authorAvatarPath,
+        authorId: post.authorId,
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
       });
@@ -193,6 +221,7 @@ export function PostEditor({
               value={post.bodyHtml}
               onChange={(html) => patch({ bodyHtml: html })}
               placeholder={t("blogBodyPlaceholder")}
+              onImageUpload={uploadBodyImage}
             />
           </div>
         </div>
@@ -257,26 +286,20 @@ export function PostEditor({
               maxLength={80}
               hint={t("blogSlugHint")}
             />
-            <TextField
+            <SelectField
               label={t("blogAuthor")}
-              value={post.authorName}
-              onChange={(v) => patch({ authorName: v })}
-              maxLength={120}
+              value={post.authorId}
+              onChange={(v) => patch({ authorId: v })}
+              options={[
+                { value: "", label: t("blogNoAuthor") },
+                ...authors.map((a) => ({ value: a.id, label: a.name })),
+              ]}
             />
-            <ImageField
-              label={t("blogAuthorAvatar")}
-              websiteId={websiteId}
-              path={post.authorAvatarPath || undefined}
-              onChange={(p) => patch({ authorAvatarPath: p ?? "" })}
-            />
-            <TextArea
-              label={t("blogAuthorBio")}
-              value={post.authorBio}
-              onChange={(v) => patch({ authorBio: v })}
-              maxLength={600}
-              rows={2}
-              hint={t("blogAuthorBioHint")}
-            />
+            {authors.length === 0 ? (
+              <p className="text-[12px] text-brand-mute">
+                {t("blogNoAuthorsHint")}
+              </p>
+            ) : null}
           </section>
 
           <section className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">

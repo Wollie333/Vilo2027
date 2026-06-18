@@ -8287,6 +8287,44 @@ export type Database = {
           },
         ]
       }
+      website_blog_authors: {
+        Row: {
+          avatar_path: string | null
+          bio: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          website_id: string
+        }
+        Insert: {
+          avatar_path?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          website_id: string
+        }
+        Update: {
+          avatar_path?: string | null
+          bio?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_blog_authors_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_blog_categories: {
         Row: {
           created_at: string
@@ -8324,8 +8362,7 @@ export type Database = {
       }
       website_blog_posts: {
         Row: {
-          author_avatar_path: string | null
-          author_bio: string | null
+          author_id: string | null
           author_name: string | null
           body_html: string | null
           category_id: string | null
@@ -8344,8 +8381,7 @@ export type Database = {
           website_id: string
         }
         Insert: {
-          author_avatar_path?: string | null
-          author_bio?: string | null
+          author_id?: string | null
           author_name?: string | null
           body_html?: string | null
           category_id?: string | null
@@ -8364,8 +8400,7 @@ export type Database = {
           website_id: string
         }
         Update: {
-          author_avatar_path?: string | null
-          author_bio?: string | null
+          author_id?: string | null
           author_name?: string | null
           body_html?: string | null
           category_id?: string | null
@@ -8384,6 +8419,13 @@ export type Database = {
           website_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "website_blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "website_blog_authors"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "website_blog_posts_category_id_fkey"
             columns: ["category_id"]

@@ -19,6 +19,7 @@ export default async function WebsiteBlogPostPage({
       websiteId={websiteId}
       subdomain={data.subdomain}
       categories={data.categories}
+      authors={data.authors}
       initialPost={data.post}
     />
   );

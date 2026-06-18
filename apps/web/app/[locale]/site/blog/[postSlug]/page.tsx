@@ -100,11 +100,47 @@ export default async function SiteBlogPostPage({
           ) : null}
           <div
             style={{ color: "var(--site-ink)" }}
-            className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
+            className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:rounded [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
             // body_html is sanitised in loadSiteBlogPost
             // eslint-disable-next-line react/no-danger
             dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
           />
+
+          {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
+            <div
+              style={{
+                borderColor: "var(--site-line)",
+                background: "var(--site-surface)",
+                borderRadius: "var(--site-radius)",
+              }}
+              className="mt-12 flex items-start gap-4 border p-5"
+            >
+              {post.authorAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={post.authorAvatarUrl}
+                  alt={post.authorName}
+                  className="h-14 w-14 shrink-0 rounded-full object-cover"
+                />
+              ) : null}
+              <div>
+                <p
+                  style={{ color: "var(--site-ink)" }}
+                  className="font-semibold"
+                >
+                  {post.authorName}
+                </p>
+                {post.authorBio ? (
+                  <p
+                    style={{ color: "var(--site-mute)" }}
+                    className="mt-1 text-sm leading-relaxed"
+                  >
+                    {post.authorBio}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </article>
       </SiteChrome>
     </SiteThemeRoot>

@@ -31,6 +31,7 @@ export default async function WebsiteBlogPage({
         websiteId={websiteId}
         initialPosts={data.posts}
         initialCategories={data.categories}
+        initialAuthors={data.authors}
       />
     </div>
   );

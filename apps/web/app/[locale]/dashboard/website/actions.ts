@@ -26,6 +26,7 @@ import {
   saveBlogPostSchema,
   saveDraftSectionsSchema,
   createPageSchema,
+  saveBlogAuthorsSchema,
   savePageSeoSchema,
   savePagesSchema,
   saveWebsiteRoomsSchema,
@@ -36,6 +37,7 @@ import {
   type ConnectDomainInput,
   type CreatePageInput,
   type CreateWebsiteInput,
+  type SaveBlogAuthorsInput,
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
   type SaveDraftSectionsInput,
@@ -1289,9 +1291,7 @@ export async function saveBlogPostAction(
     coverPath,
     excerpt,
     bodyHtml,
-    authorName,
-    authorBio,
-    authorAvatarPath,
+    authorId,
     seoTitle,
     seoDescription,
   } = parsed.data;
@@ -1320,6 +1320,17 @@ export async function saveBlogPostAction(
       .eq("website_id", websiteId)
       .maybeSingle();
     if (!cat) return { ok: false, error: "invalid" };
+  }
+
+  // An author, if set, must belong to this website (anti-tamper).
+  if (authorId) {
+    const { data: author } = await supabase
+      .from("website_blog_authors")
+      .select("id")
+      .eq("id", authorId)
+      .eq("website_id", websiteId)
+      .maybeSingle();
+    if (!author) return { ok: false, error: "invalid" };
   }
 
   const desiredSlug = slugify(slug || title);
@@ -1362,9 +1373,7 @@ export async function saveBlogPostAction(
       cover_path: coverPath || null,
       excerpt: finalExcerpt || null,
       body_html: bodyHtml || null,
-      author_name: authorName || null,
-      author_bio: authorBio || null,
-      author_avatar_path: authorAvatarPath || null,
+      author_id: authorId || null,
       seo: {
         title: seoTitle || undefined,
         description: seoDescription || undefined,
@@ -1408,6 +1417,66 @@ export async function setBlogFeaturedAction(
     .eq("id", postId)
     .eq("website_id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
+  return { ok: true };
+}
+
+/**
+ * Reconcile a site's reusable blog authors: upsert the submitted set (existing
+ * rows by id, new rows inserted) and delete any author the host removed. Posts
+ * referencing a deleted author are set author-less by the FK's ON DELETE SET NULL.
+ */
+export async function saveBlogAuthorsAction(
+  input: SaveBlogAuthorsInput,
+): Promise<ActionResult> {
+  const parsed = saveBlogAuthorsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, authors } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: existing } = await supabase
+    .from("website_blog_authors")
+    .select("id")
+    .eq("website_id", websiteId);
+  const existingIds = new Set((existing ?? []).map((a) => a.id));
+
+  const keptIds = new Set(
+    authors.map((a) => a.id).filter((id): id is string => Boolean(id)),
+  );
+  const toDelete = [...existingIds].filter((id) => !keptIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("website_blog_authors").delete().in("id", toDelete);
+  }
+
+  let order = 0;
+  for (const a of authors) {
+    const row = {
+      name: a.name,
+      avatar_path: a.avatarPath.trim() || null,
+      bio: a.bio.trim() || null,
+      sort_order: order,
+    };
+    if (a.id && existingIds.has(a.id)) {
+      const { error } = await supabase
+        .from("website_blog_authors")
+        .update(row)
+        .eq("id", a.id)
+        .eq("website_id", websiteId);
+      if (error) return { ok: false, error: "save_failed" };
+    } else {
+      const { error } = await supabase
+        .from("website_blog_authors")
+        .insert({ website_id: websiteId, ...row });
+      if (error) return { ok: false, error: "save_failed" };
+    }
+    order += 1;
+  }
 
   revalidatePath(`/dashboard/website/${websiteId}/blog`);
   return { ok: true };

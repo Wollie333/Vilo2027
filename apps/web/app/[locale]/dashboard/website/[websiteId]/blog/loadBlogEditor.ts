@@ -24,10 +24,18 @@ export type BlogPostRow = {
   updatedAt: string;
 };
 
+export type BlogAuthorRow = {
+  id: string;
+  name: string;
+  avatarPath: string;
+  bio: string;
+};
+
 export type BlogEditorData = {
   websiteId: string;
   subdomain: string;
   categories: BlogCategoryStat[];
+  authors: BlogAuthorRow[];
   posts: BlogPostRow[];
 };
 
@@ -51,22 +59,35 @@ export async function loadBlogEditor(
     .maybeSingle();
   if (!site) return null;
 
-  const [{ data: cats }, { data: posts }] = await Promise.all([
-    supabase
-      .from("website_blog_categories")
-      .select("id, name, slug")
-      .eq("website_id", site.id)
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("website_blog_posts")
-      .select(
-        "id, title, slug, status, featured, seo, publish_at, updated_at, category:website_blog_categories ( id, name )",
-      )
-      .eq("website_id", site.id)
-      .is("deleted_at", null)
-      .order("featured", { ascending: false })
-      .order("updated_at", { ascending: false }),
-  ]);
+  const [{ data: cats }, { data: authorRows }, { data: posts }] =
+    await Promise.all([
+      supabase
+        .from("website_blog_categories")
+        .select("id, name, slug")
+        .eq("website_id", site.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("website_blog_authors")
+        .select("id, name, avatar_path, bio")
+        .eq("website_id", site.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("website_blog_posts")
+        .select(
+          "id, title, slug, status, featured, seo, publish_at, updated_at, category:website_blog_categories ( id, name )",
+        )
+        .eq("website_id", site.id)
+        .is("deleted_at", null)
+        .order("featured", { ascending: false })
+        .order("updated_at", { ascending: false }),
+    ]);
+
+  const authors: BlogAuthorRow[] = (authorRows ?? []).map((a) => ({
+    id: a.id,
+    name: a.name,
+    avatarPath: a.avatar_path ?? "",
+    bio: a.bio ?? "",
+  }));
 
   const postRows: BlogPostRow[] = (posts ?? []).map((p) => {
     const category = p.category as unknown as {
@@ -105,6 +126,7 @@ export async function loadBlogEditor(
     websiteId: site.id,
     subdomain: site.subdomain,
     categories,
+    authors,
     posts: postRows,
   };
 }

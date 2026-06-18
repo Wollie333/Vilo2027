@@ -9,6 +9,7 @@ import {
   Star,
   Tag,
   Trash2,
+  UserRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
@@ -20,14 +21,21 @@ import { useTranslations } from "next-intl";
 import {
   createBlogPostAction,
   deleteBlogPostAction,
+  saveBlogAuthorsAction,
   saveBlogCategoriesAction,
   setBlogFeaturedAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import { modal } from "@/components/ui/modal-host";
 
-import type { BlogCategoryStat, BlogPostRow } from "./loadBlogEditor";
+import type {
+  BlogAuthorRow,
+  BlogCategoryStat,
+  BlogPostRow,
+} from "./loadBlogEditor";
 import {
+  ImageField,
   ItemListEditor,
+  TextArea,
   TextField,
 } from "../pages/[pageId]/_components/fields";
 
@@ -37,10 +45,12 @@ export function BlogManager({
   websiteId,
   initialPosts,
   initialCategories,
+  initialAuthors,
 }: {
   websiteId: string;
   initialPosts: BlogPostRow[];
   initialCategories: BlogCategoryStat[];
+  initialAuthors: BlogAuthorRow[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -48,6 +58,8 @@ export function BlogManager({
   const [posts, setPosts] = useState<BlogPostRow[]>(initialPosts);
   const [categories, setCategories] =
     useState<BlogCategoryStat[]>(initialCategories);
+  const [authors, setAuthors] = useState<BlogAuthorRow[]>(initialAuthors);
+  const [savingAuthors, startSaveAuthors] = useTransition();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [creating, startCreate] = useTransition();
@@ -114,6 +126,33 @@ export function BlogManager({
         return;
       }
       toast.success(t("blogCategoriesSaved"));
+      router.refresh();
+    });
+  }
+
+  const authorsDirty =
+    JSON.stringify(authors) !== JSON.stringify(initialAuthors);
+
+  function onSaveAuthors() {
+    if (authors.some((a) => !a.name.trim())) {
+      toast.error(t("blogAuthorNameRequired"));
+      return;
+    }
+    startSaveAuthors(async () => {
+      const res = await saveBlogAuthorsAction({
+        websiteId,
+        authors: authors.map((a) => ({
+          id: a.id || undefined,
+          name: a.name,
+          avatarPath: a.avatarPath,
+          bio: a.bio,
+        })),
+      });
+      if (!res.ok) {
+        toast.error(t("saveError"));
+        return;
+      }
+      toast.success(t("blogAuthorsSaved"));
       router.refresh();
     });
   }
@@ -308,6 +347,70 @@ export function BlogManager({
             className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
           >
             {savingCats ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {t("saveChanges")}
+          </button>
+        </div>
+      </section>
+
+      {/* Authors */}
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="mb-1 flex items-center gap-2">
+          <UserRound className="h-4 w-4 text-brand-secondary" />
+          <h3 className="font-display text-base font-bold text-brand-ink">
+            {t("blogAuthorsTitle")}
+          </h3>
+        </div>
+        <p className="mb-4 text-[13px] text-brand-mute">
+          {t("blogAuthorsSub")}
+        </p>
+
+        <ItemListEditor<BlogAuthorRow>
+          label=""
+          items={authors}
+          onChange={setAuthors}
+          blank={() => ({ id: "", name: "", avatarPath: "", bio: "" })}
+          addLabel={t("blogAddAuthor")}
+          max={50}
+          renderItem={(item, patch) => (
+            <>
+              <TextField
+                label={t("blogAuthorName")}
+                value={item.name}
+                onChange={(v) => patch({ name: v })}
+                maxLength={120}
+              />
+              <ImageField
+                label={t("blogAuthorAvatar")}
+                websiteId={websiteId}
+                path={item.avatarPath || undefined}
+                onChange={(p) => patch({ avatarPath: p ?? "" })}
+              />
+              <TextArea
+                label={t("blogAuthorBio")}
+                value={item.bio}
+                onChange={(v) => patch({ bio: v })}
+                maxLength={600}
+                rows={2}
+              />
+            </>
+          )}
+        />
+
+        <div className="mt-4 flex items-center justify-end gap-3">
+          {authorsDirty ? (
+            <span className="text-[12.5px] text-brand-mute">
+              {t("roomsUnsaved")}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onSaveAuthors}
+            disabled={savingAuthors || !authorsDirty}
+            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            {savingAuthors ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
             {t("saveChanges")}
           </button>
         </div>

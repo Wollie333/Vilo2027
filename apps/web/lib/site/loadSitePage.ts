@@ -704,13 +704,15 @@ export async function loadSiteBlogPost(
   coverUrl: string | null;
   date: string | null;
   authorName: string | null;
+  authorBio: string | null;
+  authorAvatarUrl: string | null;
   excerpt: string | null;
 } | null> {
   const sb = createAdminClient();
   let q = sb
     .from("website_blog_posts")
     .select(
-      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at",
+      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at, author:website_blog_authors ( name, avatar_path, bio )",
     )
     .eq("website_id", ctx.websiteId)
     .eq("slug", postSlug);
@@ -723,6 +725,11 @@ export async function loadSiteBlogPost(
     created_at: string;
     author_name: string | null;
     excerpt: string | null;
+    author: {
+      name: string | null;
+      avatar_path: string | null;
+      bio: string | null;
+    } | null;
   }>();
   if (!post) return null;
   return {
@@ -730,7 +737,11 @@ export async function loadSiteBlogPost(
     bodyHtml: sanitiseListingHtml(post.body_html ?? ""),
     coverUrl: post.cover_path,
     date: (post.publish_at ?? post.created_at)?.slice(0, 10) ?? null,
-    authorName: post.author_name,
+    // Reusable author profile (Phase 8) wins; fall back to the legacy free-text name.
+    authorName: post.author?.name ?? post.author_name,
+    authorBio: post.author?.bio ?? null,
+    authorAvatarUrl:
+      websiteAssetUrl(post.author?.avatar_path ?? undefined) ?? null,
     excerpt: post.excerpt,
   };
 }

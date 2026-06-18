@@ -31,14 +31,19 @@ const ALLOWED_TAGS = [
   "code",
   "pre",
   "hr",
+  // Blog post bodies can embed uploaded images (Phase 8). `src` is restricted to
+  // http(s) below, so no javascript:/data: vectors slip through. Listing
+  // descriptions never produce <img> (no image button), so this is additive.
+  "img",
 ];
 
 export function sanitiseListingHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: ALLOWED_TAGS,
-    allowedAttributes: {},
+    allowedAttributes: { img: ["src", "alt"] },
     disallowedTagsMode: "discard",
     allowedSchemes: [],
+    allowedSchemesByTag: { img: ["http", "https"] },
   });
 }
 

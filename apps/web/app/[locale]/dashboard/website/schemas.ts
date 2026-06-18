@@ -159,14 +159,29 @@ export const saveBlogPostSchema = z.object({
   coverPath: z.string().trim().max(500).default(""),
   excerpt: z.string().trim().max(300).default(""),
   bodyHtml: z.string().max(50000).default(""),
-  authorName: z.string().trim().max(120).default(""),
-  authorBio: z.string().trim().max(600).default(""),
-  authorAvatarPath: z.string().trim().max(500).default(""),
+  // Reusable author profile (website_blog_authors row), or "" for none.
+  authorId: z.string().uuid().or(z.literal("")).default(""),
   seoTitle: z.string().trim().max(70).default(""),
   seoDescription: z.string().trim().max(200).default(""),
 });
 
 export type SaveBlogPostInput = z.infer<typeof saveBlogPostSchema>;
+
+// Reusable blog authors (Phase 8) — reconciled like categories. `id` present for
+// existing rows, absent for new ones (the action assigns it).
+export const blogAuthorSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(1, "required").max(120),
+  avatarPath: z.string().trim().max(500).default(""),
+  bio: z.string().trim().max(600).default(""),
+});
+
+export const saveBlogAuthorsSchema = z.object({
+  websiteId: z.string().uuid(),
+  authors: z.array(blogAuthorSchema).max(50),
+});
+
+export type SaveBlogAuthorsInput = z.infer<typeof saveBlogAuthorsSchema>;
 
 // --- Custom domain (W13) ---
 

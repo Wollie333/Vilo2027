@@ -3,10 +3,18 @@ import "server-only";
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
+export type BlogAuthorRow = {
+  id: string;
+  name: string;
+  avatarPath: string;
+  bio: string;
+};
+
 export type BlogPostEditorData = {
   websiteId: string;
   subdomain: string;
   categories: Array<{ id: string; name: string }>;
+  authors: BlogAuthorRow[];
   post: {
     id: string;
     title: string;
@@ -15,12 +23,10 @@ export type BlogPostEditorData = {
     featured: boolean;
     publishAt: string;
     categoryId: string;
+    authorId: string;
     coverPath: string;
     excerpt: string;
     bodyHtml: string;
-    authorName: string;
-    authorBio: string;
-    authorAvatarPath: string;
     seoTitle: string;
     seoDescription: string;
   };
@@ -47,22 +53,29 @@ export async function loadBlogPost(
     .maybeSingle();
   if (!site) return null;
 
-  const [{ data: post }, { data: cats }] = await Promise.all([
-    supabase
-      .from("website_blog_posts")
-      .select(
-        "id, title, slug, status, featured, publish_at, category_id, cover_path, excerpt, body_html, author_name, author_bio, author_avatar_path, seo",
-      )
-      .eq("id", postId)
-      .eq("website_id", site.id)
-      .is("deleted_at", null)
-      .maybeSingle(),
-    supabase
-      .from("website_blog_categories")
-      .select("id, name")
-      .eq("website_id", site.id)
-      .order("sort_order", { ascending: true }),
-  ]);
+  const [{ data: post }, { data: cats }, { data: authors }] = await Promise.all(
+    [
+      supabase
+        .from("website_blog_posts")
+        .select(
+          "id, title, slug, status, featured, publish_at, category_id, author_id, cover_path, excerpt, body_html, seo",
+        )
+        .eq("id", postId)
+        .eq("website_id", site.id)
+        .is("deleted_at", null)
+        .maybeSingle(),
+      supabase
+        .from("website_blog_categories")
+        .select("id, name")
+        .eq("website_id", site.id)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("website_blog_authors")
+        .select("id, name, avatar_path, bio")
+        .eq("website_id", site.id)
+        .order("sort_order", { ascending: true }),
+    ],
+  );
   if (!post) return null;
 
   const seo = (post.seo ?? {}) as { title?: string; description?: string };
@@ -71,6 +84,12 @@ export async function loadBlogPost(
     websiteId: site.id,
     subdomain: site.subdomain,
     categories: (cats ?? []).map((c) => ({ id: c.id, name: c.name })),
+    authors: (authors ?? []).map((a) => ({
+      id: a.id,
+      name: a.name,
+      avatarPath: a.avatar_path ?? "",
+      bio: a.bio ?? "",
+    })),
     post: {
       id: post.id,
       title: post.title,
@@ -79,12 +98,10 @@ export async function loadBlogPost(
       featured: post.featured ?? false,
       publishAt: post.publish_at ?? "",
       categoryId: post.category_id ?? "",
+      authorId: post.author_id ?? "",
       coverPath: post.cover_path ?? "",
       excerpt: post.excerpt ?? "",
       bodyHtml: post.body_html ?? "",
-      authorName: post.author_name ?? "",
-      authorBio: post.author_bio ?? "",
-      authorAvatarPath: post.author_avatar_path ?? "",
       seoTitle: seo.title ?? "",
       seoDescription: seo.description ?? "",
     },
