@@ -46,7 +46,9 @@ function RootNavigator() {
     // for-hosts is a public marketing page; allow signed-in users to view it.
     if (session && inAuth && !segments.includes("for-hosts")) {
       router.replace(
-        activeRole === "host" ? "/(host)/overview" : "/(guest)/(tabs)/home",
+        activeRole === "host"
+          ? "/(host)/(tabs)/overview"
+          : "/(guest)/(tabs)/home",
       );
     }
   }, [session, loading, activeRole, segments, router]);
@@ -56,7 +58,7 @@ function RootNavigator() {
     if (loading || !session) return;
     const group = segments[0];
     if (activeRole === "host" && group === "(guest)")
-      router.replace("/(host)/overview");
+      router.replace("/(host)/(tabs)/overview");
     if (activeRole === "guest" && group === "(host)")
       router.replace("/(guest)/(tabs)/home");
   }, [activeRole, loading, session, segments, router]);

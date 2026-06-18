@@ -1,72 +1,17 @@
-import { Tabs } from "expo-router";
-import {
-  Calendar,
-  CalendarCheck,
-  LayoutDashboard,
-  MessageCircle,
-  Menu,
-} from "lucide-react-native";
+import { Stack } from "expo-router";
 
-import { Icon } from "@/components/ui";
-import { brand } from "@/theme/tokens";
-import { t } from "@/i18n";
-
-export default function HostTabsLayout() {
+// Host surface: the tab bar lives in (tabs); detail screens are pushed over it.
+export default function HostLayout() {
   return (
-    <Tabs
+    <Stack
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: brand.primary,
-        tabBarInactiveTintColor: brand.mute,
-        tabBarStyle: { borderTopColor: brand.line, backgroundColor: "#fff" },
-        tabBarLabelStyle: { fontFamily: "Inter_600SemiBold", fontSize: 10.5 },
+        contentStyle: { backgroundColor: "#fff" },
       }}
     >
-      <Tabs.Screen
-        name="overview"
-        options={{
-          title: t("host.tabs.overview"),
-          tabBarIcon: ({ color }) => (
-            <Icon icon={LayoutDashboard} size={22} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: t("host.tabs.bookings"),
-          tabBarIcon: ({ color }) => (
-            <Icon icon={CalendarCheck} size={22} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          title: t("host.tabs.calendar"),
-          tabBarIcon: ({ color }) => (
-            <Icon icon={Calendar} size={22} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="inbox"
-        options={{
-          title: t("host.tabs.inbox"),
-          tabBarIcon: ({ color }) => (
-            <Icon icon={MessageCircle} size={22} color={color as string} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="more"
-        options={{
-          title: t("host.tabs.more"),
-          tabBarIcon: ({ color }) => (
-            <Icon icon={Menu} size={22} color={color as string} />
-          ),
-        }}
-      />
-    </Tabs>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="booking/[id]" />
+      <Stack.Screen name="notifications" />
+    </Stack>
   );
 }
