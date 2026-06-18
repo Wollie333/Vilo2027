@@ -5,6 +5,45 @@
 
 ---
 
+## 2026-06-18 — Specials · S2 (pricing & savings)
+
+The pricing SSOT for specials — flat + per-night, the savings badge, and unit
+tests. Code-only, no DB migration. Reuses the canonical pricing engine; never
+forks it.
+
+### Added
+- **`lib/specials/pricing.ts`** — pure, server-and-test-safe pricing module:
+  - `priceSpecialStay()` returns the same `PriceBreakdown` shape as `priceStay`.
+    **Flat** → `flatSpecialBreakdown()`: an all-in package total (occupancy /
+    seasonal / weekend / separate cleaning all ignored) with compulsory + selected
+    optional add-ons on top — no abuse of `priceStay`. **Per-night** → calls
+    `priceStay` with **only** `syntheticPerNightRule()` (an absolute, max-priority,
+    full-span seasonal rule) so seasonal/weekend can never leak in, while extra-
+    guest occupancy fees, cleaning, and add-ons all flow normally.
+  - `specialSavings(was, special)` — the badge maths (nulls when no genuine saving).
+  - `priceSpecialWithSavings()` — prices the special AND its real-seasonal shadow
+    in one call and derives the saving.
+- **`dashboard/specials/_lib/savings.ts`** — `computeSpecialSavings()`: server
+  helper that builds the priceable unit (room or whole-property at the deal's guest
+  cap), loads the property's **real** seasonal rules (shadow only) + the compulsory
+  add-ons' catalog prices, picks the representative stay (fixed = exact dates;
+  flexible = `min_nights` from `window_start`), and returns the savings. Best-effort
+  — incomplete inputs or no saving return nulls (badge hidden), never blocking a save.
+
+### Changed
+- **`dashboard/specials/actions.ts`** — `createSpecialAction` + `updateSpecialAction`
+  now compute and persist `was_price` / `savings_amount` / `savings_pct` on the row,
+  so the directory/website/detail surfaces (S4/S5) read the badge straight off it.
+
+### Tests
+- **`lib/specials/pricing.test.ts`** — 10 vitest cases: per-night special ignores a
+  real seasonal window; occupancy preserved on `per_room_plus_extra`; flat special is
+  occupancy-invariant + all-in; compulsory add-ons fold in; savings amount/pct + the
+  "hide when not cheaper" rule; full special-vs-shadow comparison. All green.
+- `tsc`, `eslint`, and `pnpm build` (heap 6144) green.
+
+---
+
 ## 2026-06-18 — Specials · S1 (host CRUD)
 
 Properties › **Specials** — the host create/edit/manage surface. Builds on S0's schema;

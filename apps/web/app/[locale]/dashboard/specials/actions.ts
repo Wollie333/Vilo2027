@@ -6,6 +6,7 @@ import { requireHost as getHost } from "@/lib/host/current";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { computeSpecialSavings } from "./_lib/savings";
 import { specialInputSchema, type SpecialInput } from "./schemas";
 
 export type ActionResult<T = undefined> =
@@ -230,9 +231,19 @@ export async function createSpecialAction(
     new Set((existing ?? []).map((r) => r.slug)),
   );
 
+  // Savings badge — priced server-side now so the directory/website/detail
+  // surfaces (S4/S5) read it straight off the row. Best-effort (nulls = no badge).
+  const savings = await computeSpecialSavings(v, targets.target.currency);
+
   const { data, error } = await supabase
     .from("specials")
-    .insert({ ...specialRow(v, host.hostId, targets.target), slug })
+    .insert({
+      ...specialRow(v, host.hostId, targets.target),
+      slug,
+      was_price: savings.wasPrice,
+      savings_amount: savings.savingsAmount,
+      savings_pct: savings.savingsPct,
+    })
     .select("id")
     .single();
   if (error || !data) {
@@ -271,9 +282,16 @@ export async function updateSpecialAction(
     targets.target,
   );
   void _host;
+  // Re-price the savings badge — pricing or date inputs may have changed.
+  const savings = await computeSpecialSavings(v, targets.target.currency);
   const { error } = await supabase
     .from("specials")
-    .update(patch)
+    .update({
+      ...patch,
+      was_price: savings.wasPrice,
+      savings_amount: savings.savingsAmount,
+      savings_pct: savings.savingsPct,
+    })
     .eq("id", specialId)
     .eq("host_id", host.hostId)
     .is("deleted_at", null);

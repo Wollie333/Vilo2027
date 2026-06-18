@@ -12,10 +12,19 @@
 > row menu; `new` + `[id]/edit` wizard `_components/SpecialEditor.tsx` over all sections; `actions.ts`
 > create/update/setStatus/delete + addon reconcile + ownership checks; `lib/specials/categories.ts` +
 > `schemas.ts`; hero image reuses W8 website-assets upload when the business has a website; pre-MVP gate
-> open, help+i18n deferred to S7; code-only, no migration; type-check+lint+build green) → **NEXT S2**
-> pricing (`lib/specials/pricing.ts`: flat + per-night synthetic max-priority absolute rule so seasonal
-> never leaks + savings `was_price` compute; unit-test seasonal-skip + flat invariance) → S3 booking wiring
-> (`/special/[slug]/book`, both entry points) → S4 `/specials` directory → S5 website specials page +
+> open, help+i18n deferred to S7; code-only, no migration; type-check+lint+build green) → **S2 pricing
+> DONE** (pure SSOT `lib/specials/pricing.ts`: `priceSpecialStay` [flat → synthetic `flatSpecialBreakdown`
+> all-in package, no separate cleaning, occupancy-invariant; per-night → `priceStay` with ONLY the
+> `syntheticPerNightRule` absolute max-priority full-span rule so seasonal/weekend never leak while
+> occupancy + cleaning + add-ons flow] + `specialSavings` + `priceSpecialWithSavings` [special vs real-
+> seasonal shadow]; server helper `specials/_lib/savings.ts` `computeSpecialSavings` loads unit (room/
+> whole) + real seasonal rules + compulsory add-ons, picks shadow dates [fixed=exact, flexible=min_nights
+> from window_start], best-effort nulls; wired into create/update actions → stores `was_price`/
+> `savings_amount`/`savings_pct`. 10 vitest green [seasonal-skip + flat invariance + savings]; tsc+lint
+> +build green; code-only, no migration) → **NEXT S3** booking wiring
+> (`createSpecialBookingAction` + `/special/[slug]/book`, both entry points `booked_via`; extract shared
+> persistence tail to `lib/bookings/persist.ts`; `redeem_special` atomic + rollback ladder; reuse
+> `priceSpecialStay` as the authoritative price) → S4 `/specials` directory → S5 website specials page +
 > `specials_preview` section → S6 reporting → S7 gating/help/i18n. Fresh session per phase; commit each.
 
 ---
