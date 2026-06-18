@@ -67,15 +67,15 @@ const PROPERTIES: GmailNavItem[] = [
   },
   { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
   {
-    href: "/dashboard/addons",
-    label: "Add-ons",
-    icon: PackagePlus,
-    match: "prefix",
-  },
-  {
     href: "/dashboard/policies",
     label: "Policies",
     icon: ShieldCheck,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/addons",
+    label: "Add-ons",
+    icon: PackagePlus,
     match: "prefix",
   },
   { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
