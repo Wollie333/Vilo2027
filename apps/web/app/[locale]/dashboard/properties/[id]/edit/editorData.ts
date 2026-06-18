@@ -50,6 +50,18 @@ export type ListingEditorData = {
     blurb: string;
     distance_label: string;
   }[];
+  // W12 — per-property publication channels. Directory = `listing.is_published`
+  // (read from `listing` directly); website = membership on the owning
+  // business's site (null when the business has no website yet).
+  channels: {
+    hasBusiness: boolean;
+    website: {
+      websiteId: string;
+      subdomain: string;
+      status: "draft" | "published" | "unpublished";
+      isVisible: boolean;
+    } | null;
+  };
 };
 
 // Single source of truth for the listing-editor payload. Shared by the host
@@ -321,6 +333,34 @@ export async function loadListingEditorData(
     id: b.id,
     name: b.trading_name || b.legal_name || "Untitled business",
   }));
+
+  // W12 — resolve the Website channel for this property: does the owning
+  // business have a site, and is this property visible on it? Directory is just
+  // `listing.is_published` (already loaded). Both channels are independent.
+  let channelWebsite: ListingEditorData["channels"]["website"] = null;
+  if (listing.business_id) {
+    const { data: site } = await db
+      .from("host_websites")
+      .select("id, subdomain, status")
+      .eq("business_id", listing.business_id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (site) {
+      const { data: membership } = await db
+        .from("website_properties")
+        .select("is_visible")
+        .eq("website_id", site.id)
+        .eq("property_id", listingId)
+        .maybeSingle();
+      channelWebsite = {
+        websiteId: site.id,
+        subdomain: site.subdomain,
+        status: site.status as "draft" | "published" | "unpublished",
+        // No membership row yet ⇒ not on the site (sync/create seeds rows).
+        isVisible: membership?.is_visible ?? false,
+      };
+    }
+  }
   // Picker only renders leaves (skip the Accommodation root).
   const categoryLeaves = categoryLeavesAll
     .filter((c) => c.parent_id !== null)
@@ -347,5 +387,9 @@ export async function loadListingEditorData(
     businesses,
     access,
     localPicks,
+    channels: {
+      hasBusiness: Boolean(listing.business_id),
+      website: channelWebsite,
+    },
   };
 }

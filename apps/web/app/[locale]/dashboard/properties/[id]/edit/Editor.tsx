@@ -12,6 +12,7 @@ import {
   ListChecks,
   MapPin,
   PackagePlus,
+  Radio,
   Receipt,
   Settings as SettingsIcon,
   type LucideIcon,
@@ -31,6 +32,7 @@ import {
 } from "./tabs/AddonsTab";
 import { AmenitiesTab } from "./tabs/AmenitiesTab";
 import { BasicTab } from "./tabs/BasicTab";
+import { ChannelsTab } from "./tabs/ChannelsTab";
 import { DangerTab } from "./tabs/DangerTab";
 import { GuestAccessTab, type AccessInitial } from "./tabs/GuestAccessTab";
 import { LocationTab } from "./tabs/LocationTab";
@@ -43,6 +45,7 @@ import {
 import { PricingTab } from "./tabs/PricingTab";
 import { RoomsTab } from "./tabs/RoomsTab";
 import { SettingsTab } from "./tabs/SettingsTab";
+import type { ListingEditorData } from "./editorData";
 import type { LocalPickInput } from "./schemas";
 
 export type EditorListing = {
@@ -166,6 +169,7 @@ type TabKey =
   | "policies"
   | "access"
   | "settings"
+  | "channels"
   | "danger";
 
 type TabDef = { key: TabKey; label: string; icon: LucideIcon };
@@ -181,6 +185,7 @@ const ACCOMMODATION_TABS: TabDef[] = [
   { key: "policies", label: "Policies", icon: CalendarClock },
   { key: "access", label: "Guest access", icon: KeyRound },
   { key: "settings", label: "Booking settings", icon: SettingsIcon },
+  { key: "channels", label: "Channels", icon: Radio },
   { key: "danger", label: "Danger zone", icon: AlertTriangle },
 ];
 
@@ -227,6 +232,10 @@ const PANEL_META: Record<TabKey, { title: string; desc: string }> = {
     title: "Booking settings",
     desc: "How guests can reserve this place.",
   },
+  channels: {
+    title: "Channels",
+    desc: "Where this property is published — the Vilo directory and your website.",
+  },
   danger: {
     title: "Danger zone",
     desc: "Unpublish or archive this listing.",
@@ -248,6 +257,7 @@ export function Editor({
   businesses,
   access,
   localPicks,
+  channels,
   initialTab,
   autoCreateRoom = false,
 }: {
@@ -265,6 +275,7 @@ export function Editor({
   businesses: { id: string; name: string }[];
   access: AccessInitial | null;
   localPicks: LocalPickInput[];
+  channels: ListingEditorData["channels"];
   /** Deep-link the editor to a tab (e.g. ?tab=rooms). Falls back to Basic info. */
   initialTab?: string;
   /** ?add=1 on the rooms tab — auto-open a fresh room form. */
@@ -565,6 +576,16 @@ export function Editor({
             />
           ) : null}
           {active === "settings" ? <SettingsTab listing={listing} /> : null}
+          {active === "channels" ? (
+            <ChannelsTab
+              listingId={listing.id}
+              slug={listing.slug}
+              isPublished={isPublished}
+              publishPending={publishPending}
+              onToggleDirectory={togglePublish}
+              channels={channels}
+            />
+          ) : null}
           {active === "danger" ? (
             <DangerTab listingId={listing.id} listingName={listing.name} />
           ) : null}

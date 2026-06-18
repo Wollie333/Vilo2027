@@ -199,11 +199,21 @@
 > table from W1). Help migrations `20260618000100` (custom-domain) + `20260618000200` (seo); +~70
 > `website` i18n keys (en). build+lint+type-check green; `scripts/verify-website-domain-seo.mjs` 🎉.
 > **All editor tabs are now live.**
-> **Next: W12 — Per-property Channels control** (plan §8 item 11): directory/website show-toggles on
-> the property editor (reuse `togglePublishAction` for directory; upsert/delete `website_properties`
-> for website) — the last website feature phase. _(Then W15 = flip gating live, plan §8 item 15 /
-> §7 — replace the pre-MVP `assertWebsiteFeature` short-circuit with the RPC result.)_ Fresh session
-> per phase.
+> **W12 (Per-property Channels control, plan §8 item 11) DONE** (commit pending): new **Channels**
+> tab on the property editor (`properties/[id]/edit`) with two independent switches — **Vilo
+> Directory** (reuses `togglePublishAction` → `properties.is_published`; directory state lifted so the
+> tab + header toggle stay in sync) and **Your website** (new `setWebsiteChannelAction` upserts
+> `is_visible` on the business's `website_properties` row, insert-if-missing, hide keeps overrides;
+> handles no-business / no-website-yet). `loadListingEditorData` now returns `channels`
+> (business→`host_websites`→`website_properties.is_visible`). Booking untouched (both channels
+> deep-link the same re-pricing checkout). Help `20260618000300` (`property-channels`). New tab uses
+> the editor's existing hardcoded-strings convention (editor i18n sweep still deferred).
+> build+lint green; help migration pushed. **Also (founder side-note):** folded the account-level
+> **Policy library** out of the sidebar footer into the **Properties** group (page unchanged, nav
+> move only; per-property assignment already lives in the editor's Policies tab).
+> **Next: W15 — flip gating live** (plan §8 item 15 / §7): replace the pre-MVP `assertWebsiteFeature`
+> /`assertFeatureEnabled` short-circuits with the `check_feature_permission` RPC result (UI + action
+> layers). The last website phase. Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

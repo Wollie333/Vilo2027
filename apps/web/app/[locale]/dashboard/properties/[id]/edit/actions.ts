@@ -723,6 +723,65 @@ export async function togglePublishAction(
   return { ok: true };
 }
 
+// W12 — the Website publication channel for one property. Toggles `is_visible`
+// on the `website_properties` membership row for the property's owning
+// business's site (insert if it doesn't exist yet). Independent of the Directory
+// channel (`is_published`). Cosmetic only — booking always re-prices via the
+// engine, so this never touches the ledger. Hiding keeps the row (and its
+// display overrides + sort order) so re-showing restores prior customisation.
+export async function setWebsiteChannelAction(
+  listingId: string,
+  visible: boolean,
+): Promise<ActionResult> {
+  const own = await assertOwnership(listingId);
+  if (!own.ok) return own;
+
+  const supabase = own.db;
+
+  const { data: listing } = await supabase
+    .from("properties")
+    .select("business_id")
+    .eq("id", listingId)
+    .maybeSingle();
+  if (!listing) return { ok: false, error: "Listing not found." };
+  if (!listing.business_id) {
+    return {
+      ok: false,
+      error: "Attach this property to a business before publishing a website.",
+    };
+  }
+
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("id")
+    .eq("business_id", listing.business_id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!site) {
+    return {
+      ok: false,
+      error: "This business doesn't have a website yet.",
+    };
+  }
+
+  // Upsert keyed on the (website_id, property_id) unique constraint so an
+  // existing membership row keeps its sort order + display overrides.
+  const { error } = await supabase.from("website_properties").upsert(
+    {
+      website_id: site.id,
+      property_id: listingId,
+      is_visible: visible,
+    },
+    { onConflict: "website_id,property_id" },
+  );
+  if (error) {
+    return { ok: false, error: "Could not update the website channel." };
+  }
+
+  revalidatePath(`/dashboard/properties/${listingId}/edit`);
+  return { ok: true };
+}
+
 // ─── Booking mode + rooms ────────────────────────────────────────
 
 export async function setBookingModeAction(

@@ -39,10 +39,11 @@ import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 // Channel-based IA (plan §5). Five groups: an always-open daily-driver block,
 // then collapsible PROPERTIES / CHANNELS / FINANCES / INSIGHTS. Each per-Property
 // editor still has its own Rooms/Pricing/Add-ons/Policies tabs, but Rooms,
-// Add-ons and Coupons also get top-level PROPERTIES rows (their `/dashboard/*`
-// pages are cross-property libraries the host manages directly). Seasonal
-// pricing + per-property Policies stay editor-only. Account-level Policies +
-// Staff stay reachable in the footer until nested as Settings tabs.
+// Add-ons, Coupons and the Policy library also get top-level PROPERTIES rows
+// (their `/dashboard/*` pages are cross-property libraries the host manages
+// directly). Seasonal pricing stays editor-only. The account-level Policy
+// library now lives under PROPERTIES (folded out of the footer); Staff stays in
+// the footer until nested as a Settings tab.
 
 const DAILY: GmailNavItem[] = [
   {
@@ -69,6 +70,12 @@ const PROPERTIES: GmailNavItem[] = [
     href: "/dashboard/addons",
     label: "Add-ons",
     icon: PackagePlus,
+    match: "prefix",
+  },
+  {
+    href: "/dashboard/policies",
+    label: "Policies",
+    icon: ShieldCheck,
     match: "prefix",
   },
   { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
@@ -134,12 +141,6 @@ const INSIGHTS: GmailNavItem[] = [
 ];
 
 const FOOTER: GmailNavItem[] = [
-  {
-    href: "/dashboard/policies",
-    label: "Policies",
-    icon: ShieldCheck,
-    match: "prefix",
-  },
   { href: "/dashboard/staff", label: "Staff", icon: UserCog },
   {
     href: "/dashboard/settings",

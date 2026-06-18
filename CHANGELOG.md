@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phase 12: Per-property Channels control (+ Policies IA)
+
+### Added (W12 — Channels)
+- **Channels tab** on the property editor (`properties/[id]/edit`). Two
+  independent publication switches for the same Property:
+  - **Vilo Directory** → reuses the existing `togglePublishAction`
+    (`properties.is_published`); state is lifted so the tab switch and the
+    editor header's publish toggle stay in sync.
+  - **Your website** → new `setWebsiteChannelAction` upserts `is_visible` on the
+    owning business's `website_properties` membership row (insert if missing;
+    hiding keeps the row so sort order + display overrides survive). Handles the
+    no-business and no-website-yet states with guidance + a create link.
+- `loadListingEditorData` now resolves the website channel (business →
+  `host_websites` → `website_properties.is_visible`) and returns `channels`.
+- Booking engine untouched — both channels deep-link the same checkout, which
+  re-prices server-side (ledger invariant intact).
+- Help article `property-channels` (`20260618000300`); category `listings`.
+
+### Changed (Policies IA — founder request)
+- Folded the account-level **Policy library** out of the sidebar footer into the
+  **Properties** group (alongside Rooms / Add-ons), since per-property policy
+  assignment already lives in the editor's Policies tab. Page unchanged; nav move
+  only. Footer now holds Staff / Settings / Help.
+
+### Notes
+- New tab follows the property editor's existing hardcoded-strings convention
+  (the whole editor's i18n sweep is deferred per `CURRENT_TASK.md`).
+- All editor + channel tabs now live; **W15** (flip gating live) is the last
+  website phase remaining.
+
 ## 2026-06-18 — Website CMS Phases 13 + 14: Custom domain + SSL, SEO
 
 ### Added (W13 — Custom domain + SSL)
