@@ -59,7 +59,11 @@ export default async function SiteBlogPostPage({
 
   return (
     <SiteThemeRoot theme={ctx.theme}>
-      <SiteChrome brand={ctx.brand} nav={ctx.nav}>
+      <SiteChrome
+        brand={ctx.brand}
+        nav={ctx.nav}
+        analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+      >
         <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
           <a
             href="/"

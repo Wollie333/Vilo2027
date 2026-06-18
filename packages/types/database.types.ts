@@ -8240,6 +8240,50 @@ export type Database = {
           },
         ]
       }
+      website_analytics_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device: string | null
+          event: string
+          id: string
+          path: string
+          referrer_host: string | null
+          session_id: string | null
+          website_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          id?: string
+          path?: string
+          referrer_host?: string | null
+          session_id?: string | null
+          website_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          id?: string
+          path?: string
+          referrer_host?: string | null
+          session_id?: string | null
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analytics_events_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_blog_categories: {
         Row: {
           created_at: string

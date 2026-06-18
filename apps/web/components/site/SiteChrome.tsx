@@ -2,26 +2,36 @@ import type { ReactNode } from "react";
 
 import type { SiteBrand, SiteNavItem } from "@/lib/site/types";
 
+import { SiteAnalytics } from "./SiteAnalytics";
+
 /**
  * Header + footer for a tenant micro-site, themed off `--site-*` vars. Pure
  * presentational; nav links are plain anchors (the site is its own host, not the
  * app's i18n router). An optional Book CTA deep-links into the booking engine.
+ *
+ * When `analyticsWebsiteId` is set (public render, never preview) a cookieless
+ * pageview beacon is mounted (Phase 0A).
  */
 export function SiteChrome({
   brand,
   nav,
   bookHref,
+  analyticsWebsiteId,
   children,
 }: {
   brand: SiteBrand;
   nav: SiteNavItem[];
   bookHref?: string;
+  analyticsWebsiteId?: string;
   children: ReactNode;
 }) {
   const year = "©"; // year stamped by the caller if needed; avoid Date in render
 
   return (
     <div className="flex min-h-screen flex-col">
+      {analyticsWebsiteId ? (
+        <SiteAnalytics websiteId={analyticsWebsiteId} />
+      ) : null}
       <header
         style={{
           background: "var(--site-surface)",
@@ -67,6 +77,7 @@ export function SiteChrome({
           {bookHref ? (
             <a
               href={bookHref}
+              data-vilo-book
               style={{
                 background: "var(--site-accent)",
                 color: "var(--site-accent-ink)",

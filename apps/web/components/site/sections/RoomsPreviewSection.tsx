@@ -91,6 +91,7 @@ export function RoomsPreviewSection({
                     )}
                     <a
                       href={room.bookHref}
+                      data-vilo-book
                       style={{
                         background: "var(--site-accent)",
                         color: "var(--site-accent-ink)",

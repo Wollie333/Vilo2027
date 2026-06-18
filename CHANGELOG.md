@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 0A: first-party website analytics
+
+First foundation phase of the enterprise CMS build-out (one phase per tab, plan in
+`.claude/plans/`). Website traffic is tracked as a **separate, additional** metric set —
+NOT merged into the existing property/OTA analytics (`property_view_events`); it has its
+own table, pipeline, and (Phase 1) surface in the Website → Overview tab.
+
+### Added
+- **`website_analytics_events`** table (migration `20260618000600`) — INSERT-only,
+  cookieless (`pageview` / `booking_click` / `outbound`), RLS owner+admin read,
+  service-role insert. Daily-rotating session hash, no PII, honours DNT.
+- **`/api/site-track`** beacon route — derives device/country/session server-side,
+  best-effort insert, always 204 (never breaks a page load).
+- **`<SiteAnalytics>`** client beacon — fires a pageview on mount and a
+  `booking_click` via event delegation on `[data-vilo-book]` anchors (header CTA +
+  room cards). Mounted by `SiteChrome` only on public render (never in preview).
+- **`lib/website/analytics.ts → loadWebsiteAnalytics()`** — aggregates visitors,
+  pageviews, booking-click conversion, pages/visit, vs-previous deltas, daily trend,
+  top pages, traffic sources, and device split (consumed by Phase 1 Overview).
+
 ## 2026-06-18 — Website CMS Phase 15: Flip feature gating live (website build complete)
 
 ### Changed (W15 — gating)

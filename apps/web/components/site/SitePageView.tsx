@@ -37,7 +37,11 @@ export async function SitePageView({
 
   return (
     <SiteThemeRoot theme={ctx.theme}>
-      <SiteChrome brand={ctx.brand} nav={ctx.nav}>
+      <SiteChrome
+        brand={ctx.brand}
+        nav={ctx.nav}
+        analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+      >
         <SectionRenderer
           sections={result.sections}
           data={result.data}
