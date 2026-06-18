@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 4: Domain tab
+
+### Added
+- **Editable subdomain** — rename the free Vilo address with validation
+  (reserved + global uniqueness) via new `saveSubdomainAction`.
+- **Connection stepper** — 4-step visual progress (domain added → DNS detected →
+  DNS verified → SSL issued) mirroring `domain_status`/`ssl_status`.
+- **Email-on-verified** — `pollWebsiteDomain` now sends a best-effort "your
+  domain is live" email (via `sendTransactionalEmail`) to the site owner on first
+  reaching active (inert until Vercel secrets are set).
+- **Preferred (canonical) host** — apex vs www choice stored in
+  `settings.canonicalHost` via `setCanonicalHostAction` (Vercel enforces the
+  redirect at platform level).
+- `loadDomainData` returns `canonicalHost`; help article `website-domain` refreshed.
+
+### Note
+- Vercel activation (live connect/verify/SSL) still needs founder secrets
+  (`VERCEL_TOKEN`/`VERCEL_PROJECT_ID`); all code ships and lights up once set.
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 3: Theme tab
 
 ### Added

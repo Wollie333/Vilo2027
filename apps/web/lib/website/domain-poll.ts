@@ -1,5 +1,6 @@
 import "server-only";
 
+import { sendTransactionalEmail } from "@/lib/email/send";
 import type { createAdminClient } from "@/lib/supabase/admin";
 import type { createServerClient } from "@/lib/supabase/server";
 import {
@@ -108,10 +109,11 @@ export async function pollWebsiteDomain(
     }
   }
 
-  // Event on first reaching active.
+  // Event + owner email on first reaching active.
   if (domainStatus === "active" && site.domain_status !== "active") {
     await appendEvent(sb, site.id, "verified", { domain });
     await appendEvent(sb, site.id, "ssl_issued", { domain });
+    await notifyDomainLive(sb, site.id, domain);
   }
 
   await persist(sb, site, domainStatus, sslStatus, verification);
@@ -140,6 +142,56 @@ async function persist(
       settings,
     })
     .eq("id", site.id);
+}
+
+/**
+ * Best-effort "your custom domain is live" email to the site owner when a domain
+ * first goes active. Resolves the owner via host_websites→hosts→user_profiles;
+ * never throws (analytics/domain polling must not break on a mail failure).
+ */
+async function notifyDomainLive(
+  sb: Db,
+  websiteId: string,
+  domain: string,
+): Promise<void> {
+  try {
+    const { data: siteRow } = await sb
+      .from("host_websites")
+      .select("subdomain, brand, host_id")
+      .eq("id", websiteId)
+      .maybeSingle();
+    if (!siteRow?.host_id) return;
+
+    const { data: hostRow } = await sb
+      .from("hosts")
+      .select("user_id")
+      .eq("id", siteRow.host_id)
+      .maybeSingle();
+    if (!hostRow?.user_id) return;
+
+    const { data: prof } = await sb
+      .from("user_profiles")
+      .select("email")
+      .eq("id", hostRow.user_id)
+      .maybeSingle();
+    const email = prof?.email;
+    if (!email) return;
+
+    const siteName =
+      (siteRow.brand as { name?: string } | null)?.name?.trim() ||
+      siteRow.subdomain;
+
+    await sendTransactionalEmail({
+      to: email,
+      subject: `Your domain ${domain} is live`,
+      html:
+        `<p>Good news — <strong>${domain}</strong> is now connected to ${siteName} ` +
+        `and secured with HTTPS.</p>` +
+        `<p>Your website is live at <a href="https://${domain}">https://${domain}</a>.</p>`,
+    });
+  } catch {
+    // best-effort — swallow.
+  }
 }
 
 async function appendEvent(

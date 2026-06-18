@@ -1396,3 +1396,111 @@ export async function deleteWebsiteMediaAction(
     .eq("path", storagePath);
   return { ok: true };
 }
+
+// ============================================================
+// Phase 4 — Domain tab: editable subdomain + canonical host
+// ============================================================
+
+/** Rename the site's free subdomain (validated + globally unique). */
+export async function saveSubdomainAction(
+  websiteId: string,
+  subdomain: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const next = subdomain.trim().toLowerCase();
+  const err = validateSubdomain(next);
+  if (err) return { ok: false, error: err };
+
+  if (next !== own.subdomain) {
+    // Uniqueness is global: check via the admin client so a clash owned by a
+    // DIFFERENT host (invisible to this host's RLS) is still caught with a
+    // friendly message. The DB UNIQUE constraint is the real guard regardless.
+    const { data: taken } = await createAdminClient()
+      .from("host_websites")
+      .select("id")
+      .eq("subdomain", next)
+      .neq("id", websiteId)
+      .maybeSingle();
+    if (taken) return { ok: false, error: "subdomain_taken" };
+  }
+
+  const { error } = await createServerClient()
+    .from("host_websites")
+    .update({ subdomain: next })
+    .eq("id", websiteId);
+  if (error) {
+    // 23505 = unique violation (lost a race / RLS-hidden clash).
+    if (error.code === "23505") return { ok: false, error: "subdomain_taken" };
+    return { ok: false, error: "save_failed" };
+  }
+
+  revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  revalidatePath(`/dashboard/website/${websiteId}`);
+  return { ok: true };
+}
+
+/**
+ * Live availability check for the subdomain edit field (debounced from the UI).
+ * Owner-checked; admin client so cross-host clashes are seen. Returns a reason
+ * code (i18n key suffix) when unavailable.
+ */
+export async function checkSubdomainAvailabilityAction(
+  websiteId: string,
+  subdomain: string,
+): Promise<
+  | { ok: true; available: boolean; reason?: string }
+  | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return { ok: false, error: own.error };
+
+  const next = subdomain.trim().toLowerCase();
+  const err = validateSubdomain(next);
+  if (err) return { ok: true, available: false, reason: err };
+  if (next === own.subdomain) return { ok: true, available: true };
+
+  const { data: taken } = await createAdminClient()
+    .from("host_websites")
+    .select("id")
+    .eq("subdomain", next)
+    .neq("id", websiteId)
+    .maybeSingle();
+  return taken
+    ? { ok: true, available: false, reason: "subdomain_taken" }
+    : { ok: true, available: true };
+}
+
+/** Set the preferred canonical host for a custom domain ("apex" | "www"). */
+export async function setCanonicalHostAction(
+  websiteId: string,
+  canonical: "apex" | "www",
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (canonical !== "apex" && canonical !== "www") {
+    return { ok: false, error: "invalid" };
+  }
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("settings")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const settings = {
+    ...((row?.settings ?? {}) as Record<string, unknown>),
+    canonicalHost: canonical,
+  };
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ settings })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  return { ok: true };
+}

@@ -5,6 +5,7 @@ import {
   Copy,
   Globe,
   Loader2,
+  Pencil,
   RefreshCw,
   ShieldCheck,
   Trash2,
@@ -19,6 +20,8 @@ import {
   connectCustomDomainAction,
   refreshCustomDomainAction,
   removeCustomDomainAction,
+  saveSubdomainAction,
+  setCanonicalHostAction,
 } from "@/app/[locale]/dashboard/website/actions";
 
 import type { DomainData } from "./loadDomainData";
@@ -32,6 +35,11 @@ const ERR_KEY: Record<string, string> = {
   domain_not_configured: "domErrNotConfigured",
   vercel_failed: "domErrVercel",
   no_domain: "errGeneric",
+  too_short: "errTooShort",
+  too_long: "errTooLong",
+  invalid_chars: "errInvalidChars",
+  reserved: "errReserved",
+  subdomain_taken: "errSubdomainTaken",
 };
 
 const STATUS_TONE: Record<string, string> = {
@@ -84,11 +92,44 @@ export function DomainManager({ data }: { data: DomainData }) {
   const router = useRouter();
   const [domain, setDomain] = useState("");
   const [busy, start] = useTransition();
+  const [editingSub, setEditingSub] = useState(false);
+  const [sub, setSub] = useState(data.subdomain);
 
   function showError(code: string) {
     const key = ERR_KEY[code];
     toast.error(key ? t(key) : t("errGeneric"));
   }
+
+  function onSaveSubdomain() {
+    start(async () => {
+      const res = await saveSubdomainAction(data.websiteId, sub);
+      if (!res.ok) return showError(res.error);
+      toast.success(t("domSubdomainSaved"));
+      setEditingSub(false);
+      router.refresh();
+    });
+  }
+
+  function onSetCanonical(canonical: "apex" | "www") {
+    start(async () => {
+      const res = await setCanonicalHostAction(data.websiteId, canonical);
+      if (!res.ok) return showError(res.error);
+      toast.success(t("domCanonicalSaved"));
+      router.refresh();
+    });
+  }
+
+  // Connection stepper state (mirrors domain_status / ssl_status).
+  const steps = [
+    { key: "domStepAdded", done: Boolean(data.customDomain) },
+    {
+      key: "domStepRecords",
+      done: data.domainStatus === "verifying" || data.domainStatus === "active",
+    },
+    { key: "domStepVerified", done: data.domainStatus === "active" },
+    { key: "domStepSsl", done: data.sslStatus === "active" },
+  ];
+  const firstPending = steps.findIndex((s) => !s.done);
 
   function onConnect() {
     start(async () => {
@@ -123,15 +164,70 @@ export function DomainManager({ data }: { data: DomainData }) {
 
   return (
     <div className="space-y-6">
-      {/* Free subdomain — always available */}
+      {/* Free subdomain — always available, editable */}
       <section className="rounded-card border border-brand-line bg-white p-6 shadow-card">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
           <Globe className="h-4 w-4 text-brand-mute" />
           {t("domFreeAddress")}
         </h3>
-        <p className="mt-2 font-mono text-[13px] text-brand-ink">
-          {data.subdomain}.{data.rootDomain}
-        </p>
+        {editingSub ? (
+          <div className="mt-3">
+            <div className="flex items-stretch">
+              <input
+                value={sub}
+                onChange={(e) =>
+                  setSub(e.target.value.toLowerCase().replace(/\s+/g, ""))
+                }
+                spellCheck={false}
+                autoCapitalize="none"
+                className="w-full min-w-0 rounded-l-[10px] border border-brand-line bg-white px-3 py-2 font-mono text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+              />
+              <span className="inline-flex items-center rounded-r-[10px] border border-l-0 border-brand-line bg-brand-light/60 px-3 font-mono text-[13px] text-brand-mute">
+                .{data.rootDomain}
+              </span>
+            </div>
+            <p className="mt-1 text-[12px] text-brand-mute">
+              {t("domSubdomainHint")}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onSaveSubdomain}
+                disabled={
+                  busy || sub.trim().length < 3 || sub === data.subdomain
+                }
+                className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-3.5 py-2 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                {t("domSubdomainSave")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSub(data.subdomain);
+                  setEditingSub(false);
+                }}
+                className="rounded-[10px] px-3 py-2 text-[13px] font-medium text-brand-mute hover:text-brand-ink"
+              >
+                {t("cancel")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="font-mono text-[13px] text-brand-ink">
+              {data.subdomain}.{data.rootDomain}
+            </p>
+            <button
+              type="button"
+              onClick={() => setEditingSub(true)}
+              className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[12.5px] font-medium text-brand-ink transition hover:bg-brand-light"
+            >
+              <Pencil className="h-3.5 w-3.5 text-brand-mute" />
+              {t("domSubdomainEdit")}
+            </button>
+          </div>
+        )}
         <p className="mt-1 text-[12.5px] text-brand-mute">{t("domFreeHint")}</p>
       </section>
 
@@ -224,6 +320,79 @@ export function DomainManager({ data }: { data: DomainData }) {
                 {t("domActiveHint")}
               </p>
             )}
+
+            {/* Connection stepper */}
+            <div className="mt-5 border-t border-brand-line pt-4">
+              <div className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+                {t("domStepsTitle")}
+              </div>
+              <ol className="grid gap-3 sm:grid-cols-4">
+                {steps.map((s, i) => {
+                  const current = i === firstPending;
+                  return (
+                    <li
+                      key={s.key}
+                      className="flex items-center gap-2 sm:block"
+                    >
+                      <span
+                        className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                          s.done
+                            ? "bg-brand-primary text-white"
+                            : current
+                              ? "border border-amber-300 bg-amber-50 text-amber-600"
+                              : "border border-brand-line bg-brand-light text-brand-mute"
+                        }`}
+                      >
+                        {s.done ? (
+                          <Check className="h-4 w-4" strokeWidth={3} />
+                        ) : current ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <span className="text-[12px] font-bold">{i + 1}</span>
+                        )}
+                      </span>
+                      <span
+                        className={`text-[12.5px] font-semibold sm:mt-2 sm:block ${
+                          s.done ? "text-brand-ink" : "text-brand-mute"
+                        }`}
+                      >
+                        {t(s.key)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+
+            {/* Canonical host preference */}
+            <div className="mt-5 border-t border-brand-line pt-4">
+              <div className="text-sm font-semibold text-brand-ink">
+                {t("domCanonicalTitle")}
+              </div>
+              <p className="mt-0.5 text-[12.5px] text-brand-mute">
+                {t("domCanonicalSub")}
+              </p>
+              <div className="mt-2 inline-flex rounded-pill border border-brand-line bg-brand-light/60 p-0.5 text-[12.5px] font-semibold">
+                {(["apex", "www"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => onSetCanonical(c)}
+                    className={`rounded-pill px-3 py-1.5 transition ${
+                      data.canonicalHost === c
+                        ? "bg-white text-brand-secondary shadow-sm"
+                        : "text-brand-mute hover:text-brand-ink"
+                    }`}
+                  >
+                    {t(c === "apex" ? "domCanonicalApex" : "domCanonicalWww")}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-[12px] text-brand-mute">
+                {t("domCanonicalHint")}
+              </p>
+            </div>
           </section>
 
           {/* DNS records */}
