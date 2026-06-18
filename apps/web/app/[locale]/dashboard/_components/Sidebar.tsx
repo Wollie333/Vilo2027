@@ -88,7 +88,6 @@ const CHANNELS: GmailNavItem[] = [
     label: "Website",
     icon: Globe,
     match: "prefix",
-    badge: { text: "NEW", tone: "count" },
   },
   { href: "/dashboard/calendar-sync", label: "Calendar sync", icon: RotateCw },
   {
@@ -163,6 +162,7 @@ export function Sidebar({
   canAdmin = false,
   inboxUnread = 0,
   guestCount = 0,
+  canWebsite = false,
 }: {
   host: { display_name: string; handle: string; listingCount: number } | null;
   plan: string | null;
@@ -170,6 +170,7 @@ export function Sidebar({
   canAdmin?: boolean;
   inboxUnread?: number;
   guestCount?: number;
+  canWebsite?: boolean;
 }) {
   const planLabel =
     plan === "free"
@@ -191,10 +192,23 @@ export function Sidebar({
     return item;
   });
 
+  // W15 — the Website row carries a PRO badge until the host's plan grants the
+  // builder (page + actions enforce the gate). Entitled hosts see NEW instead.
+  const channelItems = CHANNELS.map((item) =>
+    item.href === "/dashboard/website"
+      ? {
+          ...item,
+          badge: canWebsite
+            ? { text: "NEW", tone: "count" as const }
+            : { text: "PRO", tone: "pro" as const },
+        }
+      : item,
+  );
+
   const sections: GmailNavSection[] = [
     { items: dailyItems },
     { label: "Properties", items: PROPERTIES, collapsible: true },
-    { label: "Channels", items: CHANNELS, collapsible: true },
+    { label: "Channels", items: channelItems, collapsible: true },
     { label: "Finances", items: FINANCES, collapsible: true },
     { label: "Insights", items: INSIGHTS, collapsible: true },
   ];

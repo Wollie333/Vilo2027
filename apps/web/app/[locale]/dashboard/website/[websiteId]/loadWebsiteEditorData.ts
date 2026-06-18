@@ -6,6 +6,7 @@ import { computeWebsiteDirty } from "@/lib/website/publish";
 
 export type WebsiteEditorData = {
   id: string;
+  hostId: string;
   businessId: string;
   subdomain: string;
   customDomain: string | null;
@@ -87,6 +88,7 @@ export async function loadWebsiteEditorData(
 
   return {
     id: site.id,
+    hostId,
     businessId: site.business_id,
     subdomain: site.subdomain,
     customDomain: site.custom_domain,

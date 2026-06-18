@@ -211,9 +211,21 @@
 > build+lint green; help migration pushed. **Also (founder side-note):** folded the account-level
 > **Policy library** out of the sidebar footer into the **Properties** group (page unchanged, nav
 > move only; per-property assignment already lives in the editor's Policies tab).
-> **Next: W15 — flip gating live** (plan §8 item 15 / §7): replace the pre-MVP `assertWebsiteFeature`
-> /`assertFeatureEnabled` short-circuits with the `check_feature_permission` RPC result (UI + action
-> layers). The last website phase. Fresh session per phase.
+> **W15 (Flip gating live, plan §8 item 15 / §7) DONE** (commit pending): the pre-MVP open-on-free
+> short-circuit is removed — gating is now enforced via `check_feature_permission`. New SSOT
+> `lib/products/featureGate.ts` (`hostHasFeature`, fail-closed). **Action layer:** website/CMS
+> `assertWebsiteFeature(hostId, key)` now calls the RPC — `website_builder` master gate, blog actions
+> check `website_blog`, custom-domain checks `website_custom_domain`, `createWebsiteAction` gated too;
+> property editor `togglePublishAction` gated on `directory_listing` (publish-on only; un-publish
+> always allowed) and `setWebsiteChannelAction` on `website_builder` (show-on only; hide always
+> allowed). **UI layer:** dashboard layout resolves `website_builder` → Sidebar Website row badge
+> flips NEW↔PRO; `/dashboard/website` landing + `[websiteId]` editor layout render the shared
+> `WebsiteLocked` upgrade card when not entitled (`loadWebsiteEditorData` now returns `hostId`).
+> **Effective gate:** all five keys are seeded `true` on every plan AND on the default products, so
+> the real test is "active/trialing subscription?" — a host with one keeps full access; one with no
+> active subscription is locked out (the accepted trade-off). **NO DB migration** (code-only).
+> +3 `website` i18n keys (en: lockedTitle/Body/Cta). tsc + lint green. **The website build (W1–W15)
+> is COMPLETE.**
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

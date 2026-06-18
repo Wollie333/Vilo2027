@@ -4,10 +4,12 @@ import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 import { deriveSubdomain } from "@/lib/website/subdomain";
 
 import { CreateWebsiteCard } from "./_components/CreateWebsiteCard";
+import { WebsiteLocked } from "./_components/WebsiteLocked";
 
 export const dynamic = "force-dynamic";
 
@@ -39,8 +41,9 @@ export default async function WebsiteLandingPage() {
     .maybeSingle();
   if (!host) redirect("/dashboard");
 
-  const [t, { data: bizRows }] = await Promise.all([
+  const [t, canWebsite, { data: bizRows }] = await Promise.all([
     getTranslations("website"),
+    hostHasFeature(host.id, "website_builder"),
     supabase
       .from("businesses")
       .select("id, trading_name")
@@ -48,6 +51,17 @@ export default async function WebsiteLandingPage() {
       .eq("is_archived", false)
       .order("is_default", { ascending: false }),
   ]);
+
+  // W15 — gate the whole builder surface. A host without `website_builder`
+  // sees the upgrade card instead of any create/manage affordance.
+  if (!canWebsite) {
+    return (
+      <div className="space-y-6">
+        <WebsiteHero title={t("heading")} subtitle={t("subheading")} />
+        <WebsiteLocked />
+      </div>
+    );
+  }
 
   const businesses = (bizRows ?? []) as Biz[];
   const businessIds = businesses.map((b) => b.id);

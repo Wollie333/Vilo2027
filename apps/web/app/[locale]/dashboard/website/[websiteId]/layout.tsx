@@ -4,9 +4,12 @@ import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { hostHasFeature } from "@/lib/products/featureGate";
+
 import { loadWebsiteEditorData } from "./loadWebsiteEditorData";
 import { PublishBar } from "./_components/PublishBar";
 import { WebsiteTabs } from "./_components/WebsiteTabs";
+import { WebsiteLocked } from "../_components/WebsiteLocked";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,12 @@ export default async function WebsiteEditorLayout({
     loadWebsiteEditorData(websiteId),
   ]);
   if (!data) notFound();
+
+  // W15 — protect deep links into the editor: a host whose plan no longer
+  // grants the builder sees the upgrade card, not the (gated, write-locked) tabs.
+  if (!(await hostHasFeature(data.hostId, "website_builder"))) {
+    return <WebsiteLocked />;
+  }
 
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
   const name = data.brand.name?.trim() || data.businessName || data.subdomain;

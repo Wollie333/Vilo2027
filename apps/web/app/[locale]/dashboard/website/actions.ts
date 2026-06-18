@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireHost } from "@/lib/host/current";
+import { hostHasFeature } from "@/lib/products/featureGate";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -39,11 +40,18 @@ import {
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
-// Pre-MVP: every website/CMS feature is open on every plan so the founder can
-// smoke-test (AGENT_RULES.md §3.4). Restore check_feature_permission before
-// Phase 3 — the plan_features rows + product wiring are already in place.
-async function assertWebsiteFeature(): Promise<boolean> {
-  return true;
+// W15 — feature gating is LIVE. Website/CMS actions require the host's plan to
+// grant the relevant capability via `check_feature_permission` (the pre-MVP
+// open-on-free short-circuit was removed). `website_builder` is the master gate;
+// blog actions check `website_blog` and the custom-domain action checks
+// `website_custom_domain`. plan_features still seeds these on every plan, so any
+// host on an active/trialing subscription keeps access; one with no active
+// subscription is locked out (fail-closed via hostHasFeature).
+async function assertWebsiteFeature(
+  hostId: string,
+  featureKey: string = "website_builder",
+): Promise<boolean> {
+  return hostHasFeature(hostId, featureKey);
 }
 
 /**
@@ -169,6 +177,8 @@ export async function createWebsiteAction(
 
   const host = await requireHost();
   if (!host.ok) return host;
+  if (!(await assertWebsiteFeature(host.hostId)))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
 
@@ -312,7 +322,8 @@ export async function saveBrandAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const res = await patchSiteJson(websiteId, "brand", {
     name: name.trim(),
@@ -334,7 +345,8 @@ export async function saveThemeAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const res = await patchSiteJson(websiteId, "theme", {
     preset,
@@ -361,7 +373,8 @@ export async function createWebsiteLogoUploadUrl(
 ): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const safeExt =
     (ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
@@ -382,7 +395,8 @@ export async function registerWebsiteLogoAction(
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   if (!storagePath.startsWith(`${websiteId}/`)) {
     return { ok: false, error: "invalid_path" };
@@ -415,7 +429,8 @@ export async function saveDraftSectionsAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   // Page must belong to this (owner-verified) website.
@@ -450,7 +465,8 @@ export async function createWebsiteAssetUploadUrl(
 ): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const safeExt =
     (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
@@ -510,7 +526,8 @@ export async function syncWebsiteRoomsAction(
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const { data: site } = await supabase
@@ -604,7 +621,8 @@ export async function publishWebsiteAction(
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
 
@@ -676,7 +694,8 @@ export async function saveWebsiteRoomsAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const { data: site } = await supabase
@@ -749,7 +768,8 @@ export async function saveBlogCategoriesAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const { data: existing } = await supabase
@@ -822,7 +842,8 @@ export async function createBlogPostAction(
 ): Promise<CreateResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const slug = await uniquePostSlug(supabase, websiteId, "untitled-post");
@@ -871,7 +892,8 @@ export async function saveBlogPostAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const { data: post } = await supabase
@@ -941,7 +963,8 @@ export async function deleteBlogPostAction(
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
   const { error } = await supabase
@@ -984,7 +1007,8 @@ export async function connectCustomDomainAction(
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId, "website_custom_domain")))
+    return { ok: false, error: "locked" };
 
   const domain = normaliseDomain(parsed.data.domain);
   const domainErr = validateDomain(domain);
@@ -1014,13 +1038,11 @@ export async function connectCustomDomainAction(
       ssl_status: "pending",
     })
     .eq("id", websiteId);
-  await admin
-    .from("website_domain_events")
-    .insert({
-      website_id: websiteId,
-      event: "domain_added",
-      detail: { domain },
-    });
+  await admin.from("website_domain_events").insert({
+    website_id: websiteId,
+    event: "domain_added",
+    detail: { domain },
+  });
 
   // Refine status + capture challenge records straight away.
   const { data: site } = await admin
@@ -1126,7 +1148,8 @@ export async function saveSeoAction(input: SeoInput): Promise<ActionResult> {
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
-  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
 
   if (ogImagePath && !ogImagePath.startsWith(`${websiteId}/`)) {
     return { ok: false, error: "invalid_path" };

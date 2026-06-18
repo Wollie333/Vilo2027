@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phase 15: Flip feature gating live (website build complete)
+
+### Changed (W15 — gating)
+- Removed the pre-MVP open-on-free short-circuit for the website/CMS channel.
+  Gating is now enforced through the canonical `check_feature_permission` RPC.
+- New SSOT `lib/products/featureGate.ts → hostHasFeature(hostId, key)` —
+  fail-closed (defaults to deny on any miss/error).
+- **Action layer:** `assertWebsiteFeature(hostId, key)` in
+  `dashboard/website/actions.ts` now calls the RPC — `website_builder` is the
+  master gate, blog actions check `website_blog`, the custom-domain action
+  checks `website_custom_domain`, and `createWebsiteAction` is gated too.
+  Property editor: `togglePublishAction` gated on `directory_listing`
+  (publish-on only; un-publishing always allowed) and `setWebsiteChannelAction`
+  on `website_builder` (show-on only; hiding always allowed).
+- **UI layer:** the dashboard layout resolves `website_builder` and the
+  Sidebar's Website row badge flips NEW↔PRO; the `/dashboard/website` landing
+  page and the `[websiteId]` editor layout render a shared `WebsiteLocked`
+  upgrade card when the host isn't entitled. `loadWebsiteEditorData` now
+  returns `hostId`.
+- **Effective gate:** all five channel keys (`directory_listing`,
+  `website_builder`, `website_blog`, `website_custom_domain`,
+  `custom_website_design`) are seeded `is_enabled=true` on every plan and on the
+  default products, so the practical test is whether the host has an
+  active/trialing subscription — one without is locked out (accepted trade-off).
+- No DB migration (code-only). +3 `website` i18n keys (en). `tsc` + `lint`
+  green. **Website build W1–W15 is complete.**
+
+---
+
 ## 2026-06-18 — Website CMS Phase 12: Per-property Channels control (+ Policies IA)
 
 ### Added (W12 — Channels)

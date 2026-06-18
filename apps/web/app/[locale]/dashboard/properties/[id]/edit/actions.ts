@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 
 import { hostHasValidEft } from "@/lib/payments/eft";
+import { hostHasFeature } from "@/lib/products/featureGate";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { computeSetupCompletion } from "@/lib/setup/completion";
@@ -609,6 +610,17 @@ export async function togglePublishAction(
     .eq("id", listingId)
     .single();
   if (!listing) return { ok: false, error: "Listing not found." };
+
+  // W15 — directory publication is a gated channel. Going live requires the
+  // owner's plan to grant `directory_listing` (un-publishing is always allowed
+  // so a downgraded host can still pull a property from the directory).
+  if (!(await hostHasFeature(listing.host_id, "directory_listing"))) {
+    return {
+      ok: false,
+      error: "Listing in the Vilo directory isn't available on your plan.",
+    };
+  }
+
   if (
     !listing.name ||
     listing.base_price == null ||
@@ -740,10 +752,20 @@ export async function setWebsiteChannelAction(
 
   const { data: listing } = await supabase
     .from("properties")
-    .select("business_id")
+    .select("business_id, host_id")
     .eq("id", listingId)
     .maybeSingle();
   if (!listing) return { ok: false, error: "Listing not found." };
+
+  // W15 — the website channel is gated. Showing a property on the site requires
+  // the owner's plan to grant `website_builder` (hiding is always allowed).
+  if (visible && !(await hostHasFeature(listing.host_id, "website_builder"))) {
+    return {
+      ok: false,
+      error: "A website isn't available on your plan.",
+    };
+  }
+
   if (!listing.business_id) {
     return {
       ok: false,

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppHeader } from "@/app/_components/AppHeader";
 import { ClassicShellFrame } from "@/app/_components/ClassicShellFrame";
 import { BroadcastBanner } from "@/app/_components/BroadcastBanner";
+import { hostHasFeature } from "@/lib/products/featureGate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { AvatarMenu } from "./_components/AvatarMenu";
@@ -69,6 +70,8 @@ export default async function DashboardLayout({
   let plan: string | null = null;
   let inboxUnread = 0;
   let guestCount = 0;
+  // W15 — gate the Channels → Website sidebar row on the live entitlement.
+  let canWebsite = false;
 
   if (host) {
     const [
@@ -76,6 +79,7 @@ export default async function DashboardLayout({
       { data: subscription },
       { count: unread },
       { data: guestSummary },
+      websiteEnabled,
     ] = await Promise.all([
       supabase
         .from("properties")
@@ -92,12 +96,14 @@ export default async function DashboardLayout({
         .eq("host_id", host.id)
         .gt("unread_host", 0),
       supabase.rpc("fetch_host_guests_summary", { p_host_id: host.id }),
+      hostHasFeature(host.id, "website_builder"),
     ]);
     listingCount = count ?? 0;
     plan = subscription?.plan ?? null;
     inboxUnread = unread ?? 0;
     guestCount =
       (guestSummary as { total_count?: number } | null)?.total_count ?? 0;
+    canWebsite = websiteEnabled;
   }
 
   // canHost for the workspace switcher: true if they have a hosts row OR
@@ -158,6 +164,7 @@ export default async function DashboardLayout({
             canAdmin={isPlatformStaff}
             inboxUnread={inboxUnread}
             guestCount={guestCount}
+            canWebsite={canWebsite}
           />
         }
         banner={<BroadcastBanner />}
