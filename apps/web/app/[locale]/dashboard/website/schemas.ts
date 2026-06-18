@@ -127,7 +127,7 @@ export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;
 
 // --- Blog (W11) ---
 
-export const BLOG_POST_STATUSES = ["draft", "published"] as const;
+export const BLOG_POST_STATUSES = ["draft", "published", "scheduled"] as const;
 
 // One category as edited in the list — `id` is present for existing rows, absent
 // for newly-added ones (the action assigns it). Slug is derived from the name.
@@ -153,10 +153,15 @@ export const saveBlogPostSchema = z.object({
   slug: z.string().trim().toLowerCase().max(80).default(""),
   categoryId: z.string().uuid().or(z.literal("")).default(""),
   status: z.enum(BLOG_POST_STATUSES),
+  featured: z.boolean().default(false),
+  // ISO datetime for a scheduled post (the cron worker publishes it at this time).
+  publishAt: z.string().trim().max(40).default(""),
   coverPath: z.string().trim().max(500).default(""),
   excerpt: z.string().trim().max(300).default(""),
   bodyHtml: z.string().max(50000).default(""),
   authorName: z.string().trim().max(120).default(""),
+  authorBio: z.string().trim().max(600).default(""),
+  authorAvatarPath: z.string().trim().max(500).default(""),
   seoTitle: z.string().trim().max(70).default(""),
   seoDescription: z.string().trim().max(200).default(""),
 });

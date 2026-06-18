@@ -22,9 +22,30 @@ import {
   SelectField,
   TextArea,
   TextField,
+  ToggleField,
 } from "../../pages/[pageId]/_components/fields";
 
 type Post = BlogPostEditorData["post"];
+
+/** ISO → the value shape a <input type="datetime-local"> expects (local time). */
+function isoToLocalInput(iso: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
+}
+
+function readingMinutes(html: string): number {
+  const words = html
+    .replace(/<[^>]+>/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
 
 export function PostEditor({
   websiteId,
@@ -60,17 +81,27 @@ export function PostEditor({
       return;
     }
     startSave(async () => {
+      const status =
+        post.status === "published"
+          ? "published"
+          : post.status === "scheduled"
+            ? "scheduled"
+            : "draft";
       const res = await saveBlogPostAction({
         websiteId,
         postId: post.id,
         title: post.title,
         slug: post.slug,
         categoryId: post.categoryId,
-        status: post.status === "published" ? "published" : "draft",
+        status,
+        featured: post.featured,
+        publishAt: post.publishAt,
         coverPath: post.coverPath,
         excerpt: post.excerpt,
         bodyHtml: post.bodyHtml,
         authorName: post.authorName,
+        authorBio: post.authorBio,
+        authorAvatarPath: post.authorAvatarPath,
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
       });
@@ -148,9 +179,16 @@ export function PostEditor({
             className="w-full rounded-[10px] border border-brand-line bg-white px-4 py-3 font-display text-xl font-bold text-brand-ink outline-none transition focus:border-brand-primary"
           />
           <div>
-            <span className="mb-1.5 block text-[13px] font-semibold text-brand-ink">
-              {t("blogBody")}
-            </span>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[13px] font-semibold text-brand-ink">
+                {t("blogBody")}
+              </span>
+              <span className="text-[12px] text-brand-mute">
+                {t("blogReadingTime", {
+                  minutes: readingMinutes(post.bodyHtml),
+                })}
+              </span>
+            </div>
             <RichTextEditor
               value={post.bodyHtml}
               onChange={(html) => patch({ bodyHtml: html })}
@@ -167,12 +205,40 @@ export function PostEditor({
             </h3>
             <SelectField
               label={t("blogStatus")}
-              value={post.status === "published" ? "published" : "draft"}
+              value={post.status}
               onChange={(v) => patch({ status: v })}
               options={[
                 { value: "draft", label: t("blogStatusDraft") },
                 { value: "published", label: t("blogStatusPublished") },
+                { value: "scheduled", label: t("blogStatusScheduled") },
               ]}
+            />
+            {post.status === "scheduled" ? (
+              <label className="block">
+                <span className="block text-[13px] font-semibold text-brand-ink">
+                  {t("blogScheduleFor")}
+                </span>
+                <input
+                  type="datetime-local"
+                  value={isoToLocalInput(post.publishAt)}
+                  onChange={(e) =>
+                    patch({
+                      publishAt: e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : "",
+                    })
+                  }
+                  className="mt-1.5 w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
+                />
+                <span className="mt-1 block text-[12px] text-brand-mute">
+                  {t("blogScheduleHint")}
+                </span>
+              </label>
+            ) : null}
+            <ToggleField
+              label={t("blogFeature")}
+              checked={post.featured}
+              onChange={(v) => patch({ featured: v })}
             />
             <SelectField
               label={t("blogCategory")}
@@ -196,6 +262,20 @@ export function PostEditor({
               value={post.authorName}
               onChange={(v) => patch({ authorName: v })}
               maxLength={120}
+            />
+            <ImageField
+              label={t("blogAuthorAvatar")}
+              websiteId={websiteId}
+              path={post.authorAvatarPath || undefined}
+              onChange={(p) => patch({ authorAvatarPath: p ?? "" })}
+            />
+            <TextArea
+              label={t("blogAuthorBio")}
+              value={post.authorBio}
+              onChange={(v) => patch({ authorBio: v })}
+              maxLength={600}
+              rows={2}
+              hint={t("blogAuthorBioHint")}
             />
           </section>
 

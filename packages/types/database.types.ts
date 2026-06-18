@@ -8324,6 +8324,8 @@ export type Database = {
       }
       website_blog_posts: {
         Row: {
+          author_avatar_path: string | null
+          author_bio: string | null
           author_name: string | null
           body_html: string | null
           category_id: string | null
@@ -8331,6 +8333,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           excerpt: string | null
+          featured: boolean
           id: string
           publish_at: string | null
           seo: Json
@@ -8341,6 +8344,8 @@ export type Database = {
           website_id: string
         }
         Insert: {
+          author_avatar_path?: string | null
+          author_bio?: string | null
           author_name?: string | null
           body_html?: string | null
           category_id?: string | null
@@ -8348,6 +8353,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           excerpt?: string | null
+          featured?: boolean
           id?: string
           publish_at?: string | null
           seo?: Json
@@ -8358,6 +8364,8 @@ export type Database = {
           website_id: string
         }
         Update: {
+          author_avatar_path?: string | null
+          author_bio?: string | null
           author_name?: string | null
           body_html?: string | null
           category_id?: string | null
@@ -8365,6 +8373,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           excerpt?: string | null
+          featured?: boolean
           id?: string
           publish_at?: string | null
           seo?: Json

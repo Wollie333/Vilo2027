@@ -12,11 +12,15 @@ export type BlogPostEditorData = {
     title: string;
     slug: string;
     status: string;
+    featured: boolean;
+    publishAt: string;
     categoryId: string;
     coverPath: string;
     excerpt: string;
     bodyHtml: string;
     authorName: string;
+    authorBio: string;
+    authorAvatarPath: string;
     seoTitle: string;
     seoDescription: string;
   };
@@ -47,7 +51,7 @@ export async function loadBlogPost(
     supabase
       .from("website_blog_posts")
       .select(
-        "id, title, slug, status, category_id, cover_path, excerpt, body_html, author_name, seo",
+        "id, title, slug, status, featured, publish_at, category_id, cover_path, excerpt, body_html, author_name, author_bio, author_avatar_path, seo",
       )
       .eq("id", postId)
       .eq("website_id", site.id)
@@ -72,11 +76,15 @@ export async function loadBlogPost(
       title: post.title,
       slug: post.slug,
       status: post.status,
+      featured: post.featured ?? false,
+      publishAt: post.publish_at ?? "",
       categoryId: post.category_id ?? "",
       coverPath: post.cover_path ?? "",
       excerpt: post.excerpt ?? "",
       bodyHtml: post.body_html ?? "",
       authorName: post.author_name ?? "",
+      authorBio: post.author_bio ?? "",
+      authorAvatarPath: post.author_avatar_path ?? "",
       seoTitle: seo.title ?? "",
       seoDescription: seo.description ?? "",
     },

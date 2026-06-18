@@ -5,6 +5,8 @@ import {
   Loader2,
   Newspaper,
   Plus,
+  Search,
+  Star,
   Tag,
   Trash2,
 } from "lucide-react";
@@ -19,14 +21,17 @@ import {
   createBlogPostAction,
   deleteBlogPostAction,
   saveBlogCategoriesAction,
+  setBlogFeaturedAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import { modal } from "@/components/ui/modal-host";
 
-import type { BlogCategoryRow, BlogPostRow } from "./loadBlogEditor";
+import type { BlogCategoryStat, BlogPostRow } from "./loadBlogEditor";
 import {
   ItemListEditor,
   TextField,
 } from "../pages/[pageId]/_components/fields";
+
+type Filter = "all" | "published" | "draft" | "scheduled";
 
 export function BlogManager({
   websiteId,
@@ -35,21 +40,39 @@ export function BlogManager({
 }: {
   websiteId: string;
   initialPosts: BlogPostRow[];
-  initialCategories: BlogCategoryRow[];
+  initialCategories: BlogCategoryStat[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
 
+  const [posts, setPosts] = useState<BlogPostRow[]>(initialPosts);
   const [categories, setCategories] =
-    useState<BlogCategoryRow[]>(initialCategories);
+    useState<BlogCategoryStat[]>(initialCategories);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const [creating, startCreate] = useTransition();
   const [savingCats, startSaveCats] = useTransition();
 
   const initialCatsJson = useMemo(
-    () => JSON.stringify(initialCategories),
+    () =>
+      JSON.stringify(
+        initialCategories.map((c) => ({ id: c.id, name: c.name })),
+      ),
     [initialCategories],
   );
-  const catsDirty = JSON.stringify(categories) !== initialCatsJson;
+  const catsDirty =
+    JSON.stringify(categories.map((c) => ({ id: c.id, name: c.name }))) !==
+    initialCatsJson;
+
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return posts.filter((p) => {
+      if (filter !== "all" && p.status !== filter) return false;
+      if (q && !p.title.toLowerCase().includes(q) && !p.slug.includes(q))
+        return false;
+      return true;
+    });
+  }, [posts, query, filter]);
 
   function onNewPost() {
     startCreate(async () => {
@@ -60,6 +83,21 @@ export function BlogManager({
       }
       router.push(`/dashboard/website/${websiteId}/blog/${res.id}`);
     });
+  }
+
+  async function onToggleFeatured(post: BlogPostRow) {
+    const next = !post.featured;
+    setPosts((ps) =>
+      ps.map((p) => (p.id === post.id ? { ...p, featured: next } : p)),
+    );
+    const res = await setBlogFeaturedAction(websiteId, post.id, next);
+    if (!res.ok) {
+      // revert on failure
+      setPosts((ps) =>
+        ps.map((p) => (p.id === post.id ? { ...p, featured: !next } : p)),
+      );
+      toast.error(t("saveError"));
+    }
   }
 
   function onSaveCategories() {
@@ -92,17 +130,20 @@ export function BlogManager({
       toast.error(t("saveError"));
       return;
     }
+    setPosts((ps) => ps.filter((p) => p.id !== post.id));
     toast.success(t("blogPostDeleted"));
     router.refresh();
   }
+
+  const FILTERS: Filter[] = ["all", "published", "scheduled", "draft"];
 
   return (
     <div className="space-y-8">
       {/* Posts */}
       <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <p className="text-[13px] text-brand-mute">
-            {t("blogPostCount", { count: initialPosts.length })}
+            {t("blogPostCount", { count: posts.length })}
           </p>
           <button
             type="button"
@@ -119,31 +160,82 @@ export function BlogManager({
           </button>
         </div>
 
-        {initialPosts.length === 0 ? (
+        {posts.length > 0 ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 items-center gap-2 rounded-[10px] border border-brand-line bg-white px-3 py-2">
+              <Search className="h-4 w-4 text-brand-mute" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("blogSearch")}
+                className="min-w-0 flex-1 bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-mute"
+              />
+            </div>
+            <div className="inline-flex rounded-[10px] border border-brand-line bg-white p-0.5">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setFilter(f)}
+                  className={`rounded-[8px] px-2.5 py-1.5 text-[12.5px] font-semibold capitalize transition ${
+                    filter === f
+                      ? "bg-brand-primary text-white"
+                      : "text-brand-mute hover:text-brand-ink"
+                  }`}
+                >
+                  {t(`blogFilter_${f}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {posts.length === 0 ? (
           <div className="rounded-card border border-dashed border-brand-line bg-brand-light/30 p-8 text-center">
             <Newspaper className="mx-auto h-6 w-6 text-brand-mute/50" />
             <p className="mt-2 text-sm text-brand-mute">{t("blogEmpty")}</p>
           </div>
+        ) : shown.length === 0 ? (
+          <p className="rounded-card border border-dashed border-brand-line bg-brand-light/30 px-4 py-6 text-center text-sm text-brand-mute">
+            {t("blogNoMatches")}
+          </p>
         ) : (
           <ul className="space-y-2.5">
-            {initialPosts.map((post) => (
+            {shown.map((post) => (
               <li
                 key={post.id}
                 className="flex items-center gap-3 rounded-card border border-brand-line bg-white p-4 transition hover:border-brand-mute hover:shadow-card"
               >
+                <button
+                  type="button"
+                  onClick={() => onToggleFeatured(post)}
+                  title={post.featured ? t("blogUnfeature") : t("blogFeature")}
+                  className={`shrink-0 rounded p-1 transition ${
+                    post.featured
+                      ? "text-amber-500"
+                      : "text-brand-mute/50 hover:text-brand-mute"
+                  }`}
+                >
+                  <Star
+                    className="h-4 w-4"
+                    fill={post.featured ? "currentColor" : "none"}
+                  />
+                </button>
                 <Link
                   href={`/dashboard/website/${websiteId}/blog/${post.id}`}
                   className="flex min-w-0 flex-1 items-center gap-3"
                 >
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
-                    <Newspaper className="h-5 w-5" />
-                  </span>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-semibold text-brand-ink">
                         {post.title}
                       </span>
                       <StatusPill status={post.status} t={t} />
+                      {!post.hasSeo ? (
+                        <span className="rounded-pill bg-amber-50 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-amber-700">
+                          {t("blogNoSeo")}
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-0.5 truncate text-[12.5px] text-brand-mute">
                       {post.categoryName
@@ -151,6 +243,7 @@ export function BlogManager({
                         : `/blog/${post.slug}`}
                     </div>
                   </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-brand-mute" />
                 </Link>
                 <button
                   type="button"
@@ -160,14 +253,6 @@ export function BlogManager({
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-                <Link
-                  href={`/dashboard/website/${websiteId}/blog/${post.id}`}
-                  className="text-brand-mute"
-                  aria-hidden
-                  tabIndex={-1}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
               </li>
             ))}
           </ul>
@@ -186,20 +271,27 @@ export function BlogManager({
           {t("blogCategoriesSub")}
         </p>
 
-        <ItemListEditor<BlogCategoryRow>
+        <ItemListEditor<BlogCategoryStat>
           label=""
           items={categories}
           onChange={setCategories}
-          blank={() => ({ id: "", name: "" })}
+          blank={() => ({ id: "", name: "", slug: "", count: 0 })}
           addLabel={t("blogAddCategory")}
           max={30}
           renderItem={(item, patch) => (
-            <TextField
-              label={t("blogCategoryName")}
-              value={item.name}
-              onChange={(v) => patch({ name: v })}
-              maxLength={60}
-            />
+            <>
+              <TextField
+                label={t("blogCategoryName")}
+                value={item.name}
+                onChange={(v) => patch({ name: v })}
+                maxLength={60}
+              />
+              {item.slug ? (
+                <p className="text-[11.5px] text-brand-mute">
+                  /{item.slug} · {t("blogCategoryCount", { count: item.count })}
+                </p>
+              ) : null}
+            </>
           )}
         />
 
@@ -231,16 +323,23 @@ function StatusPill({
   status: string;
   t: ReturnType<typeof useTranslations>;
 }) {
-  const published = status === "published";
+  const tone =
+    status === "published"
+      ? "bg-brand-accent text-brand-secondary"
+      : status === "scheduled"
+        ? "bg-sky-50 text-sky-700"
+        : "bg-brand-light text-brand-mute";
+  const label =
+    status === "published"
+      ? t("publishedBadge")
+      : status === "scheduled"
+        ? t("blogStatusScheduledBadge")
+        : t("draftBadge");
   return (
     <span
-      className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
-        published
-          ? "bg-brand-accent text-brand-secondary"
-          : "bg-brand-light text-brand-mute"
-      }`}
+      className={`shrink-0 rounded-pill px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${tone}`}
     >
-      {published ? t("publishedBadge") : t("draftBadge")}
+      {label}
     </span>
   );
 }

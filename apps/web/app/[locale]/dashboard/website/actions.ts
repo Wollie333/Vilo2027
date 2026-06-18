@@ -1284,10 +1284,14 @@ export async function saveBlogPostAction(
     slug,
     categoryId,
     status,
+    featured,
+    publishAt: publishAtInput,
     coverPath,
     excerpt,
     bodyHtml,
     authorName,
+    authorBio,
+    authorAvatarPath,
     seoTitle,
     seoDescription,
   } = parsed.data;
@@ -1326,11 +1330,25 @@ export async function saveBlogPostAction(
     postId,
   );
 
-  // Stamp publish_at the first time the post is published.
-  const publishAt =
-    status === "published" && !post.publish_at
-      ? new Date().toISOString()
-      : post.publish_at;
+  // publish_at resolution:
+  //   • scheduled → the chosen future time (validated); the cron worker flips it
+  //     to 'published' once it's due.
+  //   • published → stamp now() on first publish, else keep the existing time.
+  //   • draft     → keep whatever was there.
+  let publishAt: string | null = post.publish_at;
+  if (status === "scheduled") {
+    const when = new Date(publishAtInput);
+    if (!publishAtInput || Number.isNaN(when.getTime())) {
+      return { ok: false, error: "invalid_schedule" };
+    }
+    publishAt = when.toISOString();
+  } else if (status === "published" && !post.publish_at) {
+    publishAt = new Date().toISOString();
+  }
+
+  // Auto-excerpt: if the host left it blank, derive one from the body so blog
+  // previews + search snippets aren't empty.
+  const finalExcerpt = excerpt.trim() || deriveExcerpt(bodyHtml);
 
   const { error } = await supabase
     .from("website_blog_posts")
@@ -1339,11 +1357,14 @@ export async function saveBlogPostAction(
       slug: finalSlug,
       category_id: categoryId || null,
       status,
+      featured,
       publish_at: publishAt,
       cover_path: coverPath || null,
-      excerpt: excerpt || null,
+      excerpt: finalExcerpt || null,
       body_html: bodyHtml || null,
       author_name: authorName || null,
+      author_bio: authorBio || null,
+      author_avatar_path: authorAvatarPath || null,
       seo: {
         title: seoTitle || undefined,
         description: seoDescription || undefined,
@@ -1355,6 +1376,40 @@ export async function saveBlogPostAction(
 
   revalidatePath(`/dashboard/website/${websiteId}/blog`);
   revalidatePath(`/dashboard/website/${websiteId}/blog/${postId}`);
+  return { ok: true };
+}
+
+/** Strip HTML + collapse whitespace into a ~160-char plain-text excerpt. */
+function deriveExcerpt(html: string): string {
+  const text = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= 160) return text;
+  return text.slice(0, 157).trimEnd() + "…";
+}
+
+/** Pin/unpin a post as the blog hero (quick toggle from the list). */
+export async function setBlogFeaturedAction(
+  websiteId: string,
+  postId: string,
+  featured: boolean,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId, "website_blog")))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("website_blog_posts")
+    .update({ featured })
+    .eq("id", postId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
   return { ok: true };
 }
 

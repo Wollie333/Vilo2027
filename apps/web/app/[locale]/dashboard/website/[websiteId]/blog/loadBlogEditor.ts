@@ -4,12 +4,20 @@ import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
 
 export type BlogCategoryRow = { id: string; name: string };
+export type BlogCategoryStat = {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+};
 
 export type BlogPostRow = {
   id: string;
   title: string;
   slug: string;
   status: string;
+  featured: boolean;
+  hasSeo: boolean;
   categoryId: string | null;
   categoryName: string | null;
   publishAt: string | null;
@@ -19,7 +27,7 @@ export type BlogPostRow = {
 export type BlogEditorData = {
   websiteId: string;
   subdomain: string;
-  categories: BlogCategoryRow[];
+  categories: BlogCategoryStat[];
   posts: BlogPostRow[];
 };
 
@@ -46,40 +54,52 @@ export async function loadBlogEditor(
   const [{ data: cats }, { data: posts }] = await Promise.all([
     supabase
       .from("website_blog_categories")
-      .select("id, name")
+      .select("id, name, slug")
       .eq("website_id", site.id)
       .order("sort_order", { ascending: true }),
     supabase
       .from("website_blog_posts")
       .select(
-        "id, title, slug, status, publish_at, updated_at, category:website_blog_categories ( id, name )",
+        "id, title, slug, status, featured, seo, publish_at, updated_at, category:website_blog_categories ( id, name )",
       )
       .eq("website_id", site.id)
       .is("deleted_at", null)
+      .order("featured", { ascending: false })
       .order("updated_at", { ascending: false }),
   ]);
-
-  const categories: BlogCategoryRow[] = (cats ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
-  }));
 
   const postRows: BlogPostRow[] = (posts ?? []).map((p) => {
     const category = p.category as unknown as {
       id: string;
       name: string;
     } | null;
+    const seo = (p.seo ?? {}) as { title?: string; description?: string };
     return {
       id: p.id,
       title: p.title,
       slug: p.slug,
       status: p.status,
+      featured: p.featured ?? false,
+      hasSeo: Boolean(seo.title?.trim() || seo.description?.trim()),
       categoryId: category?.id ?? null,
       categoryName: category?.name ?? null,
       publishAt: p.publish_at,
       updatedAt: p.updated_at,
     };
   });
+
+  // Per-category post counts (active posts only).
+  const countByCat = new Map<string, number>();
+  for (const p of postRows) {
+    if (p.categoryId)
+      countByCat.set(p.categoryId, (countByCat.get(p.categoryId) ?? 0) + 1);
+  }
+  const categories: BlogCategoryStat[] = (cats ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    count: countByCat.get(c.id) ?? 0,
+  }));
 
   return {
     websiteId: site.id,
