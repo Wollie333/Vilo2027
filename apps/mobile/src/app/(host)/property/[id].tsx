@@ -9,7 +9,12 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BedDouble, CalendarRange, ChevronRight } from "lucide-react-native";
+import {
+  BedDouble,
+  CalendarRange,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react-native";
 
 import { Button, Icon, ScreenHeader, Skeleton } from "@/components/ui";
 import { brand } from "@/theme/tokens";
@@ -193,6 +198,24 @@ function PropertyForm({
         </View>
         <Text className="flex-1 font-display text-[15px] text-brand-ink">
           {t("host.seasons.manage")}
+        </Text>
+        <Icon icon={ChevronRight} size={20} color={brand.mute} />
+      </Pressable>
+
+      <Pressable
+        onPress={() =>
+          router.push({
+            pathname: "/(host)/policies/[propertyId]",
+            params: { propertyId: property.id },
+          })
+        }
+        className="flex-row items-center gap-3 rounded-card border border-brand-line p-3.5 active:bg-brand-light"
+      >
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-light">
+          <Icon icon={ShieldCheck} size={20} color={brand.primary} />
+        </View>
+        <Text className="flex-1 font-display text-[15px] text-brand-ink">
+          {t("host.policies.manage")}
         </Text>
         <Icon icon={ChevronRight} size={20} color={brand.mute} />
       </Pressable>
