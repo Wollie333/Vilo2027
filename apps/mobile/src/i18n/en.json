@@ -183,6 +183,37 @@
       "delete": "Delete coupon",
       "deleteTitle": "Delete this coupon?",
       "deleteBody": "This can't be undone."
+    },
+    "seasons": {
+      "title": "Seasonal pricing",
+      "subtitle": "Adjust rates for date ranges",
+      "manage": "Seasonal pricing",
+      "new": "New season",
+      "active": "Active",
+      "hidden": "Inactive",
+      "emptyTitle": "No seasonal rates yet",
+      "emptyMessage": "Raise or lower rates for peak periods and holidays."
+    },
+    "seasonEdit": {
+      "title": "Edit season",
+      "newTitle": "New season",
+      "label": "Name",
+      "labelPlaceholder": "Festive season",
+      "startDate": "Start (YYYY-MM-DD)",
+      "endDate": "End (YYYY-MM-DD)",
+      "adjustmentType": "Adjustment",
+      "absolute": "Set price",
+      "percent": "Percent",
+      "valueAbsolute": "Nightly price",
+      "valuePercent": "Change (%)",
+      "visibility": "Status",
+      "labelRequired": "Please name this season.",
+      "dateInvalid": "Enter dates as YYYY-MM-DD.",
+      "dateOrder": "End date must be on or after the start date.",
+      "valueInvalid": "Enter a valid amount.",
+      "delete": "Delete season",
+      "deleteTitle": "Delete this season?",
+      "deleteBody": "This can't be undone."
     }
   }
 }

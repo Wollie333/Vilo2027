@@ -23,6 +23,8 @@ export default function HostLayout() {
       <Stack.Screen name="addon/[id]" />
       <Stack.Screen name="coupons" />
       <Stack.Screen name="coupon/[id]" />
+      <Stack.Screen name="seasonal/[propertyId]" />
+      <Stack.Screen name="season/[id]" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="notifications" />
     </Stack>
