@@ -5,6 +5,54 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phases 13 + 14: Custom domain + SSL, SEO
+
+### Added (W13 — Custom domain + SSL)
+- **Domain tab** (now live in `WebsiteTabs`) → `[websiteId]/domain`. Shows the
+  free `<sub>.vilo.site` address plus a connect-your-own-domain flow with
+  status + SSL pills, a copyable DNS-records table, Refresh + Disconnect, and a
+  domain-events activity log. **Inert until the founder wires the Vercel
+  secrets** (`vercelConfigured()` → false disables connect + explains why).
+- **Libs:** `lib/website/domain.ts` (pure domain validation + DNS-record
+  builders — apex `A 76.76.21.21`, subdomain `CNAME cname.vercel-dns.com`, plus
+  `_vercel` TXT challenges), `vercel.ts` (Vercel Domains API wrapper, server-only),
+  `domain-poll.ts` (`pollWebsiteDomain` SSOT shared by the manual Refresh action
+  and the cron worker; maps verify/config → `pending`→`verifying`→`active`/`error`
+  + SSL and appends `website_domain_events`).
+- **Actions** `connect/refresh/removeCustomDomainAction` — owner-checked, then
+  domain writes go through the admin client (the INSERT-only events table has no
+  authenticated INSERT policy). Global custom-domain uniqueness enforced.
+- **Worker + cron:** `/api/website-domain-poll` (bearer reuses
+  `EMAIL_WORKER_SECRET`) drains domains stuck in pending/verifying;
+  `poll-website-domains` pg_cron every 2 min (`20260618000000`, Vault
+  `website_domain_poll_url`, fail-soft).
+- Ops docs: `WEBSITE_HOSTING.md` (full custom-domain setup) + `ENV_VARS.md`
+  (`VERCEL_TOKEN`/`VERCEL_PROJECT_ID`/`VERCEL_TEAM_ID`). Help article
+  `website-custom-domain` (`20260618000100`).
+
+### Added (W14 — SEO tab + Overview)
+- **SEO tab** (now live) → `[websiteId]/seo`. `saveSeoAction` writes
+  `host_websites.seo` (title, description, OG image, GSC token, robots-index +
+  sitemap toggles). `SeoForm` has a Google-style SERP preview, an OG-image
+  upload (reuses the W8 `ImageField`) and the indexing controls.
+- **Metadata SSOT:** `SiteContext.seo` (snapshot → live) + `loadSiteMeta` →
+  `lib/site/metadata.ts` `siteMetadata()`, wired into `generateMetadata` on the
+  public site home / `[...slug]` / `blog/[postSlug]` routes (page `seo_overrides`
+  → site SEO → brand fallback; Open Graph + Twitter cards; GSC `verification.google`;
+  a preview render is never indexed). `robots.txt` now honours `robots_index` and
+  `sitemap.xml` honours `sitemap_enabled`.
+- Overview set-up checklist gains a "search engine details" step. Help article
+  `website-seo` (`20260618000200`).
+
+### Notes
+- No DB schema change (domain/SEO columns + `website_domain_events` from W1).
+  +~70 `website` i18n keys (en). `pnpm build` + `pnpm lint` + `type-check`
+  green; `scripts/verify-website-domain-seo.mjs` 🎉. All editor tabs now live.
+- **Ops TODO (founder):** set the 3 Vercel env vars + register the Vault
+  `website_domain_poll_url` to switch custom domains on.
+
+---
+
 ## 2026-06-18 — Website CMS Phase 11: Blog
 
 ### Added

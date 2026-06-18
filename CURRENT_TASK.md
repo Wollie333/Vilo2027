@@ -174,10 +174,36 @@
 > Help migration `20260617001100` pushed; +~40 `website` i18n keys (en). build+lint+type-check
 > green; `scripts/verify-website-blog.mjs` 🎉. **DEFERRED:** post scheduling (`status='scheduled'`
 > + cron flip) — UI ships Draft/Published only so every state works without a worker.
-> **Next: W13 — Custom domain + SSL** (plan §8 item 13): `website-domain-connect` (Vercel Domains
-> API) + DNS-records UI + `website-domain-poll` Edge Fn + pg_cron + status UI; needs new secrets
-> (`VERCEL_TOKEN`/`VERCEL_PROJECT_ID`/`VERCEL_TEAM_ID`). _(Plan §8 item 11 "per-property Channels
-> control" + the SEO tab §8 item 14 also remain.)_ Fresh session per phase.
+> **W13 (Custom domain + SSL, plan §8 item 13) DONE** (commit `221ba1c`): Domain tab now live →
+> `[websiteId]/domain`. **Inert until the founder sets the Vercel secrets** (mirrors the W5
+> on-switch): `vercelConfigured()` false ⇒ UI says "not available yet", connect disabled.
+> `lib/website/domain.ts` (pure validate + DNS-record builders: apex `A 76.76.21.21` / subdomain
+> `CNAME cname.vercel-dns.com` + `_vercel` TXT), `vercel.ts` (Domains API wrapper, server-only,
+> reads `VERCEL_TOKEN`/`VERCEL_PROJECT_ID`/`VERCEL_TEAM_ID`), `domain-poll.ts` (**`pollWebsiteDomain`
+> SSOT**: verify→config → `pending`→`verifying`→`active`/`error` + SSL, appends
+> `website_domain_events`). `connect/refresh/removeCustomDomainAction` (owner-checked, then write
+> via the **admin client** — events have no authenticated INSERT policy). `DomainManager` island:
+> status + SSL pills, DNS-records table w/ copy, Refresh + Disconnect, activity log. Worker
+> `/api/website-domain-poll` (reuses `EMAIL_WORKER_SECRET`) + `poll-website-domains` pg_cron every
+> 2 min (migration `20260618000000`, Vault `website_domain_poll_url`, fail-soft). **OPS TODO
+> (founder):** set the 3 Vercel env vars + register the Vault worker URL — see `WEBSITE_HOSTING.md`
+> (now documents the full setup) + `ENV_VARS.md`. **W14 (SEO tab + Overview, plan §8 item 14) DONE**
+> (same commit): SEO tab → `[websiteId]/seo`. `saveSeoAction` → `host_websites.seo` jsonb
+> (title/description/og_image_path/gsc_token/robots_index/sitemap_enabled; OG image uploads via the
+> W8 `ImageField`). **KEY:** `SiteContext.seo` (snapshot→live) + new **`loadSiteMeta` SSOT** →
+> `lib/site/metadata.ts` `siteMetadata()` wired into `generateMetadata` on the site home/`[...slug]`/
+> `blog/[postSlug]` routes (page `seo_overrides` → site `seo` → brand; OG/Twitter cards; GSC
+> `verification.google`; preview never indexed). `robots.txt` honours `robots_index`; `sitemap.xml`
+> honours `sitemap_enabled`. `SeoForm` (Google SERP preview, OG upload, index toggles) + Overview
+> checklist gains a "search engine details" step. **NO DB schema change** (domain/seo cols + events
+> table from W1). Help migrations `20260618000100` (custom-domain) + `20260618000200` (seo); +~70
+> `website` i18n keys (en). build+lint+type-check green; `scripts/verify-website-domain-seo.mjs` 🎉.
+> **All editor tabs are now live.**
+> **Next: W12 — Per-property Channels control** (plan §8 item 11): directory/website show-toggles on
+> the property editor (reuse `togglePublishAction` for directory; upsert/delete `website_properties`
+> for website) — the last website feature phase. _(Then W15 = flip gating live, plan §8 item 15 /
+> §7 — replace the pre-MVP `assertWebsiteFeature` short-circuit with the RPC result.)_ Fresh session
+> per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
