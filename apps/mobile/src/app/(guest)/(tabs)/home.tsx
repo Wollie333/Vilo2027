@@ -70,7 +70,10 @@ export default function GuestHome() {
               </Text>
             </View>
             <View className="flex-row items-center gap-2">
-              <Pressable className="h-10 w-10 items-center justify-center rounded-full border border-brand-line active:bg-brand-light">
+              <Pressable
+                onPress={() => router.push("/(guest)/notifications")}
+                className="h-10 w-10 items-center justify-center rounded-full border border-brand-line active:bg-brand-light"
+              >
                 <Icon icon={Bell} size={19} color={brand.ink} />
               </Pressable>
               <Avatar

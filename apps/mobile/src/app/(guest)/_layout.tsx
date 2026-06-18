@@ -14,6 +14,9 @@ export default function GuestLayout() {
       <Stack.Screen name="checkout" />
       <Stack.Screen name="booking-confirmed" />
       <Stack.Screen name="trip/[id]" />
+      <Stack.Screen name="chat/[id]" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="profile" />
     </Stack>
   );
 }

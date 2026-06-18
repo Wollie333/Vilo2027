@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -32,6 +33,8 @@ type AuthContextValue = {
     fullName: string,
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  /** Re-fetch profile + host record for the current session. */
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -44,27 +47,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setActiveRole = useAppStore((s) => s.setActiveRole);
 
   // Load profile + host record for the signed-in user.
-  async function hydrate(currentSession: Session | null) {
-    if (!currentSession) {
-      setProfile(null);
-      setHost(null);
-      return;
-    }
-    const userId = currentSession.user.id;
-    const [{ data: profileRow }, { data: hostRow }] = await Promise.all([
-      supabase.from("user_profiles").select("*").eq("id", userId).maybeSingle(),
-      supabase
-        .from("hosts")
-        .select("*")
-        .eq("user_id", userId)
-        .is("deleted_at", null)
-        .maybeSingle(),
-    ]);
-    setProfile(profileRow ?? null);
-    setHost(hostRow ?? null);
-    // Default the surface to host for host accounts; guests stay on guest.
-    if (hostRow) setActiveRole("host");
-  }
+  const hydrate = useCallback(
+    async function hydrate(currentSession: Session | null) {
+      if (!currentSession) {
+        setProfile(null);
+        setHost(null);
+        return;
+      }
+      const userId = currentSession.user.id;
+      const [{ data: profileRow }, { data: hostRow }] = await Promise.all([
+        supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("hosts")
+          .select("*")
+          .eq("user_id", userId)
+          .is("deleted_at", null)
+          .maybeSingle(),
+      ]);
+      setProfile(profileRow ?? null);
+      setHost(hostRow ?? null);
+      // Default the surface to host for host accounts; guests stay on guest.
+      if (hostRow) setActiveRole("host");
+    },
+    [setActiveRole],
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -116,8 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
       },
+      refreshProfile: async () => {
+        await hydrate(session);
+      },
     }),
-    [session, profile, host, loading],
+    [session, profile, host, loading, hydrate],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

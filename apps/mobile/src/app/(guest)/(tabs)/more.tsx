@@ -1,5 +1,12 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { ChevronRight, House, LogOut } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import {
+  Bell,
+  ChevronRight,
+  House,
+  LogOut,
+  UserPen,
+} from "lucide-react-native";
 
 import { Avatar, Card, Icon, ScreenHeader } from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -8,6 +15,7 @@ import { brand } from "@/theme/tokens";
 import { t } from "@/i18n";
 
 export default function GuestMore() {
+  const router = useRouter();
   const { profile, session, isHost, signOut } = useAuth();
   const setActiveRole = useAppStore((s) => s.setActiveRole);
 
@@ -35,6 +43,30 @@ export default function GuestMore() {
             </View>
           </View>
         </Card>
+
+        <Pressable onPress={() => router.push("/(guest)/profile")}>
+          <Card padded className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-light">
+              <Icon icon={UserPen} size={20} color={brand.primary} />
+            </View>
+            <Text className="flex-1 font-display text-[15px] text-brand-ink">
+              Edit profile
+            </Text>
+            <Icon icon={ChevronRight} size={20} color={brand.mute} />
+          </Card>
+        </Pressable>
+
+        <Pressable onPress={() => router.push("/(guest)/notifications")}>
+          <Card padded className="flex-row items-center gap-3">
+            <View className="h-10 w-10 items-center justify-center rounded-full bg-brand-light">
+              <Icon icon={Bell} size={20} color={brand.primary} />
+            </View>
+            <Text className="flex-1 font-display text-[15px] text-brand-ink">
+              Notifications
+            </Text>
+            <Icon icon={ChevronRight} size={20} color={brand.mute} />
+          </Card>
+        </Pressable>
 
         {isHost ? (
           <Pressable onPress={() => setActiveRole("host")}>
