@@ -144,3 +144,115 @@ export function useUpdateProperty(hostId: string | undefined, id: string) {
     },
   });
 }
+
+// ── Rooms ────────────────────────────────────────────────────────────
+// A property's rooms. Host-scoped via an inner join on the owning property so
+// a host only ever sees/edits rooms under their own properties.
+
+export type HostRoom = {
+  id: string;
+  property_id: string;
+  name: string;
+  description: string | null;
+  base_price: number;
+  currency: string;
+  max_guests: number;
+  bed_type: string | null;
+  inventory_count: number;
+  is_active: boolean;
+  sort_order: number;
+};
+
+const ROOM_SELECT =
+  "id, property_id, name, description, base_price, currency, max_guests, bed_type, inventory_count, is_active, sort_order, properties!inner(host_id)";
+
+export const roomKeys = {
+  list: (propertyId: string | undefined) =>
+    ["host", "catalogue", "rooms", propertyId] as const,
+  detail: (id: string | undefined) =>
+    ["host", "catalogue", "room", id] as const,
+};
+
+async function fetchRooms(
+  hostId: string,
+  propertyId: string,
+): Promise<HostRoom[]> {
+  const { data, error } = await supabase
+    .from("property_rooms")
+    .select(ROOM_SELECT)
+    .eq("property_id", propertyId)
+    .eq("properties.host_id", hostId)
+    .is("deleted_at", null)
+    .order("sort_order");
+  if (error) throw error;
+  // The inner `properties` join is only a host-ownership filter; ignore it.
+  return (data ?? []) as unknown as HostRoom[];
+}
+
+/** Rooms under one of the host's properties. */
+export function useHostRooms(
+  hostId: string | undefined,
+  propertyId: string | undefined,
+) {
+  return useQuery({
+    queryKey: roomKeys.list(propertyId),
+    queryFn: () => fetchRooms(hostId as string, propertyId as string),
+    enabled: !!hostId && !!propertyId,
+  });
+}
+
+async function fetchRoom(hostId: string, id: string): Promise<HostRoom | null> {
+  const { data, error } = await supabase
+    .from("property_rooms")
+    .select(ROOM_SELECT)
+    .eq("id", id)
+    .eq("properties.host_id", hostId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? (data as unknown as HostRoom) : null;
+}
+
+export function useEditableRoom(
+  hostId: string | undefined,
+  id: string | undefined,
+) {
+  return useQuery({
+    queryKey: roomKeys.detail(id),
+    queryFn: () => fetchRoom(hostId as string, id as string),
+    enabled: !!hostId && !!id,
+  });
+}
+
+export type RoomPatch = {
+  name?: string;
+  description?: string | null;
+  base_price?: number;
+  max_guests?: number;
+  bed_type?: string | null;
+  inventory_count?: number;
+  is_active?: boolean;
+};
+
+/** Live update of a room's descriptive fields. RLS enforces host ownership. */
+export function useUpdateRoom(
+  hostId: string | undefined,
+  propertyId: string,
+  roomId: string,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: RoomPatch) => {
+      const { error } = await supabase
+        .from("property_rooms")
+        .update({ ...patch, updated_at: new Date().toISOString() })
+        .eq("id", roomId)
+        .eq("property_id", propertyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: roomKeys.detail(roomId) });
+      qc.invalidateQueries({ queryKey: roomKeys.list(propertyId) });
+    },
+  });
+}

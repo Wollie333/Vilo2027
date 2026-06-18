@@ -84,6 +84,28 @@
       "checkOut": "Check-out time",
       "houseRules": "House rules",
       "nameRequired": "Please enter a property name."
+    },
+    "rooms": {
+      "title": "Rooms",
+      "subtitle": "Rates, occupancy & availability",
+      "manage": "Manage rooms",
+      "active": "Active",
+      "hidden": "Hidden",
+      "sleeps": "Sleeps {{n}}",
+      "units": "{{n}} units",
+      "emptyTitle": "No rooms yet",
+      "emptyMessage": "Rooms you add on the web app appear here to manage."
+    },
+    "roomEdit": {
+      "title": "Edit room",
+      "name": "Room name",
+      "description": "Description",
+      "basePrice": "Price per night",
+      "maxGuests": "Max guests",
+      "bedType": "Bed type",
+      "inventory": "Units available",
+      "visibility": "Visibility",
+      "nameRequired": "Please enter a room name."
     }
   }
 }
