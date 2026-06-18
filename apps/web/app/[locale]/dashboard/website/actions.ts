@@ -319,18 +319,103 @@ export async function saveBrandAction(
 ): Promise<ActionResult> {
   const parsed = brandSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, name, tagline } = parsed.data;
+  const {
+    websiteId,
+    name,
+    tagline,
+    logoStyle,
+    contactEmail,
+    contactPhone,
+    socials,
+  } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
+  // Drop empty social URLs so the footer only renders the ones that are set.
+  const cleanSocials = Object.fromEntries(
+    Object.entries(socials).filter(([, v]) => v && v.trim()),
+  );
+
   const res = await patchSiteJson(websiteId, "brand", {
     name: name.trim(),
     tagline: tagline.trim(),
+    logo_style: logoStyle,
+    contact: {
+      email: contactEmail.trim() || undefined,
+      phone: contactPhone.trim() || undefined,
+    },
+    socials: cleanSocials,
   });
   if (!res.ok) return res;
+
+  revalidatePath(`/dashboard/website/${websiteId}/brand`);
+  return { ok: true };
+}
+
+// ── Favicon (browser-tab icon) — mirrors the logo upload flow ──
+export async function createWebsiteFaviconUploadUrl(
+  websiteId: string,
+  ext: string,
+): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const safeExt =
+    (ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = `${websiteId}/favicon-${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("website-assets")
+    .createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "upload_start_failed" };
+  return { ok: true, data: { path, token: data.token } };
+}
+
+/** Record an uploaded favicon path on the site brand (or pick one from library). */
+export async function registerWebsiteFaviconAction(
+  websiteId: string,
+  storagePath: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!storagePath.startsWith(`${websiteId}/`)) {
+    return { ok: false, error: "invalid_path" };
+  }
+  const res = await patchSiteJson(websiteId, "brand", {
+    favicon_path: storagePath,
+  });
+  if (!res.ok) return res;
+  revalidatePath(`/dashboard/website/${websiteId}/brand`);
+  return { ok: true };
+}
+
+/** Remove the favicon from the brand (object stays in the media library). */
+export async function removeWebsiteFaviconAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data: row } = await supabase
+    .from("host_websites")
+    .select("brand")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const brand = { ...((row?.brand ?? {}) as Record<string, unknown>) };
+  delete brand.favicon_path;
+
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ brand })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
   return { ok: true };

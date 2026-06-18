@@ -134,6 +134,10 @@ export async function loadSiteContext(
     string,
     unknown
   >;
+  const contact = (brandJson.contact ?? {}) as {
+    email?: string;
+    phone?: string;
+  };
   const brand: SiteBrand = {
     name:
       (brandJson.name as string)?.trim() ||
@@ -141,6 +145,11 @@ export async function loadSiteContext(
       site.subdomain,
     tagline: (brandJson.tagline as string) ?? null,
     logoUrl: websiteAssetUrl(brandJson.logo_path as string | undefined),
+    faviconUrl: websiteAssetUrl(brandJson.favicon_path as string | undefined),
+    logoStyle: (brandJson.logo_style as SiteBrand["logoStyle"]) || "mark",
+    contactEmail: contact.email?.trim() || null,
+    contactPhone: contact.phone?.trim() || null,
+    socials: (brandJson.socials ?? undefined) as SiteBrand["socials"],
   };
   const theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
   const seo = (snap?.seo ?? site.seo ?? {}) as Record<string, unknown>;
@@ -205,6 +214,7 @@ export async function loadSiteMeta(
   title: string;
   description?: string;
   ogImageUrl?: string;
+  faviconUrl?: string;
   robotsIndex: boolean;
   gscToken?: string;
 } | null> {
@@ -251,6 +261,7 @@ export async function loadSiteMeta(
     description: pageDesc || siteDesc,
     ogImageUrl:
       websiteAssetUrl(seo.og_image_path) ?? ctx.brand.logoUrl ?? undefined,
+    faviconUrl: ctx.brand.faviconUrl ?? undefined,
     // Default to indexable; only false when the host opts out AND it's published.
     robotsIndex: seo.robots_index !== false,
     gscToken: seo.gsc_token?.trim() || undefined,

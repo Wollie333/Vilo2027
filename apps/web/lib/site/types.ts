@@ -7,10 +7,27 @@
 // their own `props` and ignore this map.
 import type { SectionType } from "@/lib/website/sections.schema";
 
+export type SiteLogoStyle = "wordmark" | "mark" | "icon";
+
+export type SiteSocials = {
+  instagram?: string | null;
+  facebook?: string | null;
+  x?: string | null;
+  youtube?: string | null;
+  linkedin?: string | null;
+  website?: string | null;
+};
+
 export type SiteBrand = {
   name: string;
   tagline?: string | null;
   logoUrl?: string | null;
+  faviconUrl?: string | null;
+  /** How the logo renders in chrome: wordmark (name), mark (logo+name), icon. */
+  logoStyle?: SiteLogoStyle;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  socials?: SiteSocials;
 };
 
 export type SiteNavItem = {

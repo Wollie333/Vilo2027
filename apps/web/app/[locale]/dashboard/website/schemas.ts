@@ -16,10 +16,27 @@ export type CreateWebsiteInput = z.infer<typeof createWebsiteSchema>;
 
 // --- Brand & Theme (W7) ---
 
+export const LOGO_STYLES = ["wordmark", "mark", "icon"] as const;
+
+const socialUrl = z.string().trim().max(300).optional();
+
 export const brandSchema = z.object({
   websiteId: z.string().uuid(),
   name: z.string().trim().max(120).default(""),
   tagline: z.string().trim().max(200).default(""),
+  logoStyle: z.enum(LOGO_STYLES).default("mark"),
+  contactEmail: z.string().trim().max(160).default(""),
+  contactPhone: z.string().trim().max(60).default(""),
+  socials: z
+    .object({
+      instagram: socialUrl,
+      facebook: socialUrl,
+      x: socialUrl,
+      youtube: socialUrl,
+      linkedin: socialUrl,
+      website: socialUrl,
+    })
+    .default({}),
 });
 
 export type BrandInput = z.infer<typeof brandSchema>;

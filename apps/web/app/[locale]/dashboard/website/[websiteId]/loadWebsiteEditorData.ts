@@ -12,7 +12,15 @@ export type WebsiteEditorData = {
   customDomain: string | null;
   status: "draft" | "published" | "unpublished";
   publishedAt: string | null;
-  brand: { name?: string; tagline?: string; logo_path?: string };
+  brand: {
+    name?: string;
+    tagline?: string;
+    logo_path?: string;
+    favicon_path?: string;
+    logo_style?: "wordmark" | "mark" | "icon";
+    contact?: { email?: string; phone?: string };
+    socials?: Record<string, string>;
+  };
   theme: { preset?: string; accent?: string; font?: string; radius?: string };
   seo: {
     title?: string;

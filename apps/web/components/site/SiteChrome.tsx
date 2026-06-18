@@ -1,8 +1,75 @@
+import {
+  Facebook,
+  Globe,
+  Instagram,
+  Linkedin,
+  Mail,
+  Phone,
+  Twitter,
+  Youtube,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import type { SiteBrand, SiteNavItem } from "@/lib/site/types";
 
 import { SiteAnalytics } from "./SiteAnalytics";
+
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  facebook: Facebook,
+  x: Twitter,
+  youtube: Youtube,
+  linkedin: Linkedin,
+  website: Globe,
+} as const;
+
+/** Logo per chosen style: wordmark (name), icon (mark only), mark (logo+name). */
+function BrandLogo({ brand }: { brand: SiteBrand }) {
+  const style = brand.logoStyle ?? "mark";
+  const initial = (brand.name || "·").trim().charAt(0).toUpperCase();
+  const nameEl = (
+    <span
+      style={{
+        fontFamily: "var(--site-font-heading)",
+        color: "var(--site-ink)",
+      }}
+      className="truncate text-lg font-semibold tracking-tight"
+    >
+      {brand.name}
+    </span>
+  );
+
+  if (style === "wordmark") return nameEl;
+
+  const markEl = brand.logoUrl ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={brand.logoUrl}
+      alt={brand.name}
+      className="h-8 w-auto max-w-[160px] object-contain"
+    />
+  ) : (
+    <span
+      style={{
+        background: "var(--site-accent)",
+        color: "var(--site-accent-ink)",
+        borderRadius: "var(--site-radius)",
+      }}
+      className="flex h-8 w-8 items-center justify-center text-sm font-bold"
+    >
+      {initial}
+    </span>
+  );
+
+  if (style === "icon") return markEl;
+  // "mark" — logo/mark + name
+  return (
+    <span className="flex items-center gap-2.5">
+      {markEl}
+      {nameEl}
+    </span>
+  );
+}
 
 /**
  * Header + footer for a tenant micro-site, themed off `--site-*` vars. Pure
@@ -41,24 +108,7 @@ export function SiteChrome({
       >
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
           <a href="/" className="flex min-w-0 items-center gap-2.5">
-            {brand.logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={brand.logoUrl}
-                alt={brand.name}
-                className="h-8 w-auto max-w-[160px] object-contain"
-              />
-            ) : (
-              <span
-                style={{
-                  fontFamily: "var(--site-font-heading)",
-                  color: "var(--site-ink)",
-                }}
-                className="truncate text-lg font-semibold tracking-tight"
-              >
-                {brand.name}
-              </span>
-            )}
+            <BrandLogo brand={brand} />
           </a>
 
           <nav className="hidden items-center gap-6 md:flex">
@@ -124,6 +174,58 @@ export function SiteChrome({
               ))}
             </nav>
           ) : null}
+
+          {brand.contactEmail || brand.contactPhone ? (
+            <div
+              style={{ color: "var(--site-mute)" }}
+              className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm"
+            >
+              {brand.contactEmail ? (
+                <a
+                  href={`mailto:${brand.contactEmail}`}
+                  className="inline-flex items-center gap-1.5 transition-colors hover:opacity-80"
+                >
+                  <Mail className="h-3.5 w-3.5" />
+                  {brand.contactEmail}
+                </a>
+              ) : null}
+              {brand.contactPhone ? (
+                <a
+                  href={`tel:${brand.contactPhone}`}
+                  className="inline-flex items-center gap-1.5 transition-colors hover:opacity-80"
+                >
+                  <Phone className="h-3.5 w-3.5" />
+                  {brand.contactPhone}
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
+          {brand.socials ? (
+            <div className="flex items-center justify-center gap-3">
+              {(
+                Object.keys(SOCIAL_ICONS) as Array<keyof typeof SOCIAL_ICONS>
+              ).map((key) => {
+                const url = brand.socials?.[key];
+                if (!url) return null;
+                const Icon = SOCIAL_ICONS[key];
+                return (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer me"
+                    aria-label={key}
+                    style={{ color: "var(--site-mute)" }}
+                    className="transition-colors hover:opacity-80"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </a>
+                );
+              })}
+            </div>
+          ) : null}
+
           <span style={{ color: "var(--site-mute)" }} className="text-xs">
             {year} {brand.name}
           </span>

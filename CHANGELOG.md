@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 2: Brand tab
+
+Rebuilt Logo & Brand into a full identity editor with a live header/footer preview.
+
+### Added
+- **Logo style** selector (wordmark / logo+name / icon-only) — wires the existing
+  `brand.logo_style`; `SiteChrome` now renders per style (with an initial-letter
+  fallback mark when no logo).
+- **Favicon** upload + library + remove (`brand.favicon_path`); rendered in the
+  public `<head>` via `loadSiteMeta` → `siteMetadata` `icons`.
+- **Contact & social** — contact email/phone + Instagram/Facebook/X/YouTube/
+  LinkedIn/website links, stored in `brand.{contact,socials}` and rendered in the
+  `SiteChrome` footer (only the ones set).
+- **Live brand preview** — reuses the real `SiteThemeRoot` + `SiteChrome`
+  (preview === public), updating as you type.
+- **Media library** "Choose from library" on both logo and favicon.
+- New favicon actions (`createWebsiteFaviconUploadUrl`, `register…`, `remove…`),
+  extended `brandSchema` + `saveBrandAction`, `SiteBrand` type
+  (logoStyle/faviconUrl/contact/socials); help article `website-brand` refreshed.
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 1: Overview tab
 
 Rebuilt the Website → Overview tab into a real dashboard, consuming the Phase 0A
