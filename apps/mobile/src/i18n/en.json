@@ -244,6 +244,18 @@
       "kind_payment": "Payment",
       "kind_refund": "Refund",
       "kind_credit": "Credit"
+    },
+    "reports": {
+      "title": "Reports",
+      "subtitle": "Revenue & booking performance",
+      "revenue": "Confirmed revenue",
+      "thisMonth": "This month",
+      "vsLastMonth": "vs last month",
+      "nights": "Nights booked",
+      "byMonth": "Revenue by month",
+      "byStatus": "Bookings by status",
+      "emptyTitle": "No data yet",
+      "emptyMessage": "Once you have bookings, your reports appear here."
     }
   }
 }

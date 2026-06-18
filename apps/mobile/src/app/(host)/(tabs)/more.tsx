@@ -1,6 +1,7 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
+  BarChart3,
   Bell,
   ChevronRight,
   Home,
@@ -98,6 +99,11 @@ export default function HostMore() {
           icon={Wallet}
           label={t("host.finance.title")}
           onPress={() => router.push("/(host)/finance")}
+        />
+        <MenuRow
+          icon={BarChart3}
+          label={t("host.reports.title")}
+          onPress={() => router.push("/(host)/reports")}
         />
         <MenuRow
           icon={Users}

@@ -27,6 +27,7 @@ export default function HostLayout() {
       <Stack.Screen name="season/[id]" />
       <Stack.Screen name="policies/[propertyId]" />
       <Stack.Screen name="finance" />
+      <Stack.Screen name="reports" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="notifications" />
     </Stack>
