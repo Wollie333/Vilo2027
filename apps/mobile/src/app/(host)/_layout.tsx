@@ -14,6 +14,8 @@ export default function HostLayout() {
       <Stack.Screen name="chat/[id]" />
       <Stack.Screen name="guests" />
       <Stack.Screen name="guest/[id]" />
+      <Stack.Screen name="properties" />
+      <Stack.Screen name="property/[id]" />
       <Stack.Screen name="notifications" />
     </Stack>
   );

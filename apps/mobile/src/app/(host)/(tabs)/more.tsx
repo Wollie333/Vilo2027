@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import {
   Bell,
   ChevronRight,
+  Home,
   Luggage,
   LogOut,
   Users,
@@ -73,6 +74,11 @@ export default function HostMore() {
           </View>
         </Card>
 
+        <MenuRow
+          icon={Home}
+          label={t("host.properties.title")}
+          onPress={() => router.push("/(host)/properties")}
+        />
         <MenuRow
           icon={Users}
           label="Guests"
