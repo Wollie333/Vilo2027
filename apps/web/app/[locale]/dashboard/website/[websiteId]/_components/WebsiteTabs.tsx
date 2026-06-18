@@ -4,9 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 
-// Editor tab bar. Overview/Brand/Theme/Pages/Rooms/Blog are live (W6–W11); the
-// rest are shown as disabled "coming soon" tabs so the shell reads as the full
-// builder it will become (Domain → W13, SEO → W14).
+// Editor tab bar. All tabs are now live (W6–W14).
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabOverview", seg: "" },
   { key: "tabBrand", seg: "brand" },
@@ -14,9 +12,11 @@ const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabPages", seg: "pages" },
   { key: "tabRooms", seg: "rooms" },
   { key: "tabBlog", seg: "blog" },
+  { key: "tabDomain", seg: "domain" },
+  { key: "tabSeo", seg: "seo" },
 ];
 
-const SOON_TABS = ["tabDomain", "tabSeo"];
+const SOON_TABS: string[] = [];
 
 export function WebsiteTabs({ websiteId }: { websiteId: string }) {
   const t = useTranslations("website");

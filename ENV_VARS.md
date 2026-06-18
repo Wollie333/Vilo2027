@@ -53,9 +53,20 @@ platform behaves exactly as before. When set:
 - Local dev: set it (e.g. `vilo.site`) and visit `<sub>.localhost:3000`.
 
 ### `VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`
-Server/Edge-only credentials for the custom-domain connect + verification flow
-(Vercel Domains API), used by the `website-domain-connect`/`website-domain-poll`
-work (later phase). Not needed for subdomain-only hosting.
+Server-only credentials for the custom-domain connect + verification flow
+(Vercel Domains API), used by the Domain tab actions + the
+`/api/website-domain-poll` worker (W13). **The whole custom-domain feature is
+inert until these are set** — `vercelConfigured()` returns false, the connect
+button is disabled and the UI says custom domains aren't available yet.
+- `VERCEL_TOKEN` — a Vercel access token (Account/Team Settings → Tokens).
+  NEVER expose to the client.
+- `VERCEL_PROJECT_ID` — the project the tenant domains attach to.
+- `VERCEL_TEAM_ID` — required when the project lives under a Vercel team
+  (appended as `?teamId=` to every API call); omit for a personal account.
+
+Also register the poll-worker URL in Vault (`website_domain_poll_url`); the cron
+bearer reuses `email_worker_secret`. Not needed for subdomain-only hosting. See
+`WEBSITE_HOSTING.md` for the full one-time setup.
 
 ---
 

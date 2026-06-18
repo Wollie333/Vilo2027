@@ -1,10 +1,27 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SitePageView } from "@/components/site/SitePageView";
 import { resolveSiteRef } from "@/lib/site/loadSitePage";
+import { siteMetadata } from "@/lib/site/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ site?: string; preview?: string }>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  const h = await headers();
+  return siteMetadata({
+    host: h.get("x-vilo-site-host"),
+    siteParam: sp?.site,
+    pathSlug: [],
+    preview: sp?.preview === "1",
+  });
+}
 
 // Tenant site home. The W5 middleware rewrites a tenant request to
 // /<locale>/site (locale = the business default_language) and sets the

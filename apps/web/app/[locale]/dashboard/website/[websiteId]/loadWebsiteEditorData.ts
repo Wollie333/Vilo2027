@@ -13,6 +13,14 @@ export type WebsiteEditorData = {
   publishedAt: string | null;
   brand: { name?: string; tagline?: string; logo_path?: string };
   theme: { preset?: string; accent?: string; font?: string; radius?: string };
+  seo: {
+    title?: string;
+    description?: string;
+    og_image_path?: string;
+    gsc_token?: string;
+    robots_index?: boolean;
+    sitemap_enabled?: boolean;
+  };
   businessName: string | null;
   counts: { pages: number; properties: number; rooms: number; posts: number };
   /** True when the live draft differs from what's published (or never published). */
@@ -33,7 +41,7 @@ export async function loadWebsiteEditorData(
   const { data: site } = await supabase
     .from("host_websites")
     .select(
-      "id, business_id, subdomain, custom_domain, status, published_at, brand, theme, business:businesses ( trading_name )",
+      "id, business_id, subdomain, custom_domain, status, published_at, brand, theme, seo, business:businesses ( trading_name )",
     )
     .eq("id", websiteId)
     .eq("host_id", hostId)
@@ -72,6 +80,7 @@ export async function loadWebsiteEditorData(
 
   const brand = (site.brand ?? {}) as WebsiteEditorData["brand"];
   const theme = (site.theme ?? {}) as WebsiteEditorData["theme"];
+  const seo = (site.seo ?? {}) as WebsiteEditorData["seo"];
   const business = site.business as unknown as {
     trading_name: string | null;
   } | null;
@@ -85,6 +94,7 @@ export async function loadWebsiteEditorData(
     publishedAt: site.published_at,
     brand,
     theme,
+    seo,
     businessName: business?.trading_name ?? null,
     counts: {
       pages: pages ?? 0,

@@ -126,3 +126,32 @@ export const saveBlogPostSchema = z.object({
 });
 
 export type SaveBlogPostInput = z.infer<typeof saveBlogPostSchema>;
+
+// --- Custom domain (W13) ---
+
+// `domain` is validated/normalised in the action via lib/website/domain.ts; the
+// schema only guards the shape so a malformed payload fails fast.
+export const connectDomainSchema = z.object({
+  websiteId: z.string().uuid(),
+  domain: z.string().trim().min(3).max(253),
+});
+
+export type ConnectDomainInput = z.infer<typeof connectDomainSchema>;
+
+// --- SEO (W14) ---
+
+// `seo` jsonb on host_websites. og_image_path is a website-assets storage path
+// (uploaded browser→Storage, like the logo). robots_index/sitemap_enabled
+// default to true (a published site is indexable + has a sitemap unless the
+// host opts out). gsc_token is the Google Search Console verification token.
+export const seoSchema = z.object({
+  websiteId: z.string().uuid(),
+  title: z.string().trim().max(70).default(""),
+  description: z.string().trim().max(200).default(""),
+  ogImagePath: z.string().trim().max(500).default(""),
+  gscToken: z.string().trim().max(120).default(""),
+  robotsIndex: z.boolean().default(true),
+  sitemapEnabled: z.boolean().default(true),
+});
+
+export type SeoInput = z.infer<typeof seoSchema>;

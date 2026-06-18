@@ -16,6 +16,12 @@ export async function GET(request: Request) {
   const ctx = await loadSiteContext(ref, { preview: false });
   if (!ctx) return new Response("Not found", { status: 404 });
 
+  // Honour the host's "generate a sitemap" toggle (default on).
+  const seo = ctx.seo as { sitemap_enabled?: boolean };
+  if (seo.sitemap_enabled === false) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const sb = createAdminClient();
   const [{ data: pages }, { data: posts }] = await Promise.all([
     sb

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -9,8 +10,27 @@ import {
   loadSiteContext,
   resolveSiteRef,
 } from "@/lib/site/loadSitePage";
+import { siteMetadata } from "@/lib/site/metadata";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ postSlug: string }>;
+  searchParams: Promise<{ site?: string; preview?: string }>;
+}): Promise<Metadata> {
+  const { postSlug } = await params;
+  const sp = await searchParams;
+  const h = await headers();
+  return siteMetadata({
+    host: h.get("x-vilo-site-host"),
+    siteParam: sp?.site,
+    postSlug,
+    preview: sp?.preview === "1",
+  });
+}
 
 export default async function SiteBlogPostPage({
   params,

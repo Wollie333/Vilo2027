@@ -6,23 +6,34 @@ import { requireHost } from "@/lib/host/current";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { normaliseDomain, validateDomain } from "@/lib/website/domain";
+import { pollWebsiteDomain } from "@/lib/website/domain-poll";
 import { buildWebsiteSnapshot } from "@/lib/website/publish";
 import { validateSubdomain } from "@/lib/website/subdomain";
+import {
+  addDomainToProject,
+  removeDomainFromProject,
+  vercelConfigured,
+} from "@/lib/website/vercel";
 
 import {
   brandSchema,
+  connectDomainSchema,
   createWebsiteSchema,
   saveBlogCategoriesSchema,
   saveBlogPostSchema,
   saveDraftSectionsSchema,
   saveWebsiteRoomsSchema,
+  seoSchema,
   themeSchema,
   type BrandInput,
+  type ConnectDomainInput,
   type CreateWebsiteInput,
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
   type SaveDraftSectionsInput,
   type SaveWebsiteRoomsInput,
+  type SeoInput,
   type ThemeInput,
 } from "./schemas";
 
@@ -269,23 +280,23 @@ export async function createWebsiteAction(
 // W7 — Brand & Theme
 // ============================================================
 
-/** Patch the `brand`/`theme` jsonb on a website, merging over what's stored. */
+/** Patch a `brand`/`theme`/`seo` jsonb column on a website, merging over stored. */
 async function patchSiteJson(
   websiteId: string,
-  column: "brand" | "theme",
+  column: "brand" | "theme" | "seo",
   patch: Record<string, unknown>,
 ): Promise<ActionResult> {
   const supabase = createServerClient();
   const { data: row } = await supabase
     .from("host_websites")
-    .select("brand, theme")
+    .select("brand, theme, seo")
     .eq("id", websiteId)
     .maybeSingle();
   const current = (row?.[column] ?? {}) as Record<string, unknown>;
   const merged = { ...current, ...patch };
   const { error } = await supabase
     .from("host_websites")
-    .update(column === "brand" ? { brand: merged } : { theme: merged })
+    .update({ [column]: merged })
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
   return { ok: true };
@@ -770,14 +781,12 @@ export async function saveBlogCategoriesAction(
         .eq("website_id", websiteId);
       if (error) return { ok: false, error: "save_failed" };
     } else {
-      const { error } = await supabase
-        .from("website_blog_categories")
-        .insert({
-          website_id: websiteId,
-          name: cat.name,
-          slug,
-          sort_order: order,
-        });
+      const { error } = await supabase.from("website_blog_categories").insert({
+        website_id: websiteId,
+        name: cat.name,
+        slug,
+        sort_order: order,
+      });
       if (error) return { ok: false, error: "save_failed" };
     }
     order += 1;
@@ -943,5 +952,196 @@ export async function deleteBlogPostAction(
   if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/blog`);
+  return { ok: true };
+}
+
+// ============================================================
+// W13 — Custom domain + SSL
+// ============================================================
+// Domain writes (host_websites cols + the INSERT-only website_domain_events) go
+// through the ADMIN client: events have no authenticated INSERT policy (only the
+// service role appends them). Each action is owner-checked FIRST, so the admin
+// write is gated by the same ownership guard as every other website mutation.
+
+const domainSelect =
+  "id, custom_domain, domain_status, ssl_status, settings" as const;
+
+/**
+ * Connect a custom domain: validate + ensure global uniqueness, add it to the
+ * Vercel project, persist the pending state + ownership challenges, then poll
+ * once so the host immediately sees accurate status + DNS records.
+ *
+ * Inert until the Vercel secrets are set (`vercelConfigured()` → false): returns
+ * `domain_not_configured` so the UI explains the one-time ops step. See
+ * WEBSITE_HOSTING.md.
+ */
+export async function connectCustomDomainAction(
+  input: ConnectDomainInput,
+): Promise<ActionResult> {
+  const parsed = connectDomainSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const domain = normaliseDomain(parsed.data.domain);
+  const domainErr = validateDomain(domain);
+  if (domainErr) return { ok: false, error: domainErr };
+
+  const admin = createAdminClient();
+
+  // Globally unique across all sites.
+  const { data: clash } = await admin
+    .from("host_websites")
+    .select("id")
+    .eq("custom_domain", domain)
+    .neq("id", websiteId)
+    .maybeSingle();
+  if (clash) return { ok: false, error: "domain_taken" };
+
+  if (!vercelConfigured()) return { ok: false, error: "domain_not_configured" };
+
+  const add = await addDomainToProject(domain);
+  if (!add.ok) return { ok: false, error: "vercel_failed" };
+
+  await admin
+    .from("host_websites")
+    .update({
+      custom_domain: domain,
+      domain_status: "pending",
+      ssl_status: "pending",
+    })
+    .eq("id", websiteId);
+  await admin
+    .from("website_domain_events")
+    .insert({
+      website_id: websiteId,
+      event: "domain_added",
+      detail: { domain },
+    });
+
+  // Refine status + capture challenge records straight away.
+  const { data: site } = await admin
+    .from("host_websites")
+    .select(domainSelect)
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (site) await pollWebsiteDomain(admin, site);
+
+  revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  return { ok: true };
+}
+
+/** Re-check a connected domain's verification/SSL status against Vercel now. */
+export async function refreshCustomDomainAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const admin = createAdminClient();
+  const { data: site } = await admin
+    .from("host_websites")
+    .select(domainSelect)
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (!site || !site.custom_domain) return { ok: false, error: "no_domain" };
+
+  const res = await pollWebsiteDomain(admin, site);
+  if (res.notConfigured) return { ok: false, error: "domain_not_configured" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  return { ok: true };
+}
+
+/** Disconnect the custom domain (detach from Vercel + clear the stored state). */
+export async function removeCustomDomainAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const admin = createAdminClient();
+  const { data: site } = await admin
+    .from("host_websites")
+    .select("id, custom_domain, settings")
+    .eq("id", websiteId)
+    .maybeSingle();
+  if (!site) return { ok: false, error: "not_found" };
+  if (!site.custom_domain) return { ok: true };
+
+  if (vercelConfigured()) {
+    // Best-effort detach; clearing our side proceeds regardless.
+    await removeDomainFromProject(site.custom_domain);
+  }
+
+  const settings = { ...((site.settings ?? {}) as Record<string, unknown>) };
+  delete settings.domainChallenges;
+
+  const { error } = await admin
+    .from("host_websites")
+    .update({
+      custom_domain: null,
+      domain_status: "none",
+      ssl_status: "none",
+      verification_token: null,
+      settings,
+    })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  await admin.from("website_domain_events").insert({
+    website_id: websiteId,
+    event: "removed",
+    detail: { domain: site.custom_domain },
+  });
+
+  revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  return { ok: true };
+}
+
+// ============================================================
+// W14 — SEO
+// ============================================================
+
+/**
+ * Save the site-level SEO config (title/description/OG image/robots/sitemap/GSC)
+ * into `host_websites.seo`. The public renderer reads this (frozen into the
+ * publish snapshot at publish time) for page metadata, robots.txt + sitemap.xml.
+ */
+export async function saveSeoAction(input: SeoInput): Promise<ActionResult> {
+  const parsed = seoSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const {
+    websiteId,
+    title,
+    description,
+    ogImagePath,
+    gscToken,
+    robotsIndex,
+    sitemapEnabled,
+  } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  if (ogImagePath && !ogImagePath.startsWith(`${websiteId}/`)) {
+    return { ok: false, error: "invalid_path" };
+  }
+
+  const res = await patchSiteJson(websiteId, "seo", {
+    title: title.trim() || undefined,
+    description: description.trim() || undefined,
+    og_image_path: ogImagePath || undefined,
+    gsc_token: gscToken.trim() || undefined,
+    robots_index: robotsIndex,
+    sitemap_enabled: sitemapEnabled,
+  });
+  if (!res.ok) return res;
+
+  revalidatePath(`/dashboard/website/${websiteId}/seo`);
   return { ok: true };
 }

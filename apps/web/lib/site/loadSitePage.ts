@@ -44,6 +44,8 @@ export type SiteContext = {
   locale: string; // business default_language (drives booking deep-link locale)
   brand: SiteBrand;
   theme: SiteThemeConfig;
+  /** Site-level SEO config (title/description/og_image_path/robots/sitemap/gsc). */
+  seo: Record<string, unknown>;
   nav: SiteNavItem[];
   /** Ordered, visible property ids for this site (channel membership). */
   propertyIds: string[];
@@ -98,7 +100,7 @@ export async function loadSiteContext(
   const { data: site } = await sb
     .from("host_websites")
     .select(
-      "id, business_id, status, subdomain, custom_domain, brand, theme, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
+      "id, business_id, status, subdomain, custom_domain, brand, theme, seo, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
     )
     .or(`subdomain.eq.${ref},custom_domain.eq.${ref}`)
     .is("deleted_at", null)
@@ -110,6 +112,7 @@ export async function loadSiteContext(
       custom_domain: string | null;
       brand: Record<string, unknown> | null;
       theme: Record<string, unknown> | null;
+      seo: Record<string, unknown> | null;
       published_snapshot: PublishSnapshot | null;
       business: {
         default_language: string | null;
@@ -140,6 +143,7 @@ export async function loadSiteContext(
     logoUrl: websiteAssetUrl(brandJson.logo_path as string | undefined),
   };
   const theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
+  const seo = (snap?.seo ?? site.seo ?? {}) as Record<string, unknown>;
 
   let nav: SiteNavItem[];
   let propertyIds: string[];
@@ -180,9 +184,76 @@ export async function loadSiteContext(
     locale: site.business?.default_language || "en",
     brand,
     theme,
+    seo,
     nav,
     propertyIds,
     publishedRoomRows,
+  };
+}
+
+/**
+ * Resolve page metadata (title/description/OG image/index flag) for a site path
+ * — the SSOT for the route `generateMetadata` functions. Page-level
+ * `seo_overrides` win over the site-level `seo`, which falls back to the brand
+ * name/tagline. Returns null when the site (non-preview) isn't resolvable.
+ */
+export async function loadSiteMeta(
+  ref: string,
+  pathSlug: string[],
+  opts: { preview?: boolean; postSlug?: string } = {},
+): Promise<{
+  title: string;
+  description?: string;
+  ogImageUrl?: string;
+  robotsIndex: boolean;
+  gscToken?: string;
+} | null> {
+  const ctx = await loadSiteContext(ref, { preview: opts.preview });
+  if (!ctx) return null;
+
+  const seo = ctx.seo as {
+    title?: string;
+    description?: string;
+    og_image_path?: string;
+    gsc_token?: string;
+    robots_index?: boolean;
+  };
+  const siteTitle = seo.title?.trim() || ctx.brand.name;
+  const siteDesc = seo.description?.trim() || ctx.brand.tagline || undefined;
+
+  let pageTitle: string | null = null;
+  let pageDesc: string | undefined;
+
+  if (opts.postSlug) {
+    const post = await loadSiteBlogPost(ctx, opts.postSlug);
+    if (post) {
+      pageTitle = post.title;
+      pageDesc = post.excerpt ?? undefined;
+    }
+  } else {
+    const result = await loadSitePage(ctx, pathSlug);
+    if (result) {
+      const ov = result.page.seoOverrides as {
+        title?: string;
+        description?: string;
+      };
+      pageTitle = ov.title?.trim() || result.page.title?.trim() || null;
+      pageDesc = ov.description?.trim() || undefined;
+    }
+  }
+
+  const isHome = pathSlug.length === 0 && !opts.postSlug;
+  const title =
+    isHome || !pageTitle ? siteTitle : `${pageTitle} · ${siteTitle}`;
+
+  return {
+    title,
+    description: pageDesc || siteDesc,
+    ogImageUrl:
+      websiteAssetUrl(seo.og_image_path) ?? ctx.brand.logoUrl ?? undefined,
+    // Default to indexable; only false when the host opts out AND it's published.
+    robotsIndex: seo.robots_index !== false,
+    gscToken: seo.gsc_token?.trim() || undefined,
   };
 }
 

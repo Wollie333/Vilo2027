@@ -64,13 +64,44 @@ docs, status, assets, cdn, static, vilo` + the locale codes (`en, af, fr, de, pt
    `http://<sub>.localhost:3000` (modern browsers resolve `*.localhost` to
    loopback automatically).
 
-## Custom domains (later phase — §13)
+## Custom domains (§13 — BUILT, inert until secrets are set)
 
-Connecting a guest-supplied apex/CNAME domain uses the Vercel Domains API
-(`VERCEL_TOKEN` / `VERCEL_PROJECT_ID` / `VERCEL_TEAM_ID`) via
-`website-domain-connect` + a `website-domain-poll` Edge Function + pg_cron, with
-status tracked in `host_websites.domain_status` / `ssl_status` and the
-`website_domain_events` audit table. Not required for subdomain-only hosting.
+A host connects their own domain on the website editor's **Domain** tab. The
+flow uses the Vercel Domains API and is **inert until the founder wires the
+secrets** — `vercelConfigured()` is false without them, so the UI shows
+"Custom domains aren't available just yet" and the connect button is disabled.
+
+**Code map:**
+- `apps/web/lib/website/domain.ts` — pure validation + DNS-record builders.
+- `apps/web/lib/website/vercel.ts` — Vercel Domains API wrapper (server-only).
+- `apps/web/lib/website/domain-poll.ts` — `pollWebsiteDomain` SSOT (shared by
+  the manual Refresh action + the cron worker).
+- Actions in `dashboard/website/actions.ts`: `connectCustomDomainAction`,
+  `refreshCustomDomainAction`, `removeCustomDomainAction` (owner-checked, then
+  write via the admin client — `website_domain_events` is service-role-insert).
+- `app/api/website-domain-poll/route.ts` — bearer worker (reuses
+  `EMAIL_WORKER_SECRET`), polls domains stuck in `pending`/`verifying`.
+- `migrations/20260618000000_website_domain_poll_cron.sql` — `poll-website-domains`
+  pg_cron (every 2 min, Vault `website_domain_poll_url` + `email_worker_secret`).
+
+State lives in `host_websites.custom_domain` / `domain_status` (`none → pending
+→ verifying → active`/`error`) / `ssl_status`, with Vercel's TXT challenges
+cached in `settings.domainChallenges` and an audit trail in `website_domain_events`.
+
+**One-time ops to turn it on:**
+1. Create a Vercel access token; note the project id + team id.
+2. Set env (Vercel, all environments) + `.env.local`:
+   `VERCEL_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID`.
+3. Register the poll-worker URL in Vault (Dashboard → SQL Editor):
+   `SELECT vault.create_secret('https://<app-host>/api/website-domain-poll',
+   'website_domain_poll_url', 'Custom-domain poll worker URL');`
+   (the bearer reuses the existing `email_worker_secret`).
+4. Confirm the Vercel plan allows the expected custom-domain volume (fallback:
+   Cloudflare for SaaS).
+
+DNS the host adds at their registrar: apex → `A 76.76.21.21`; subdomain →
+`CNAME cname.vercel-dns.com`; plus any `_vercel` TXT challenge shown. Vercel
+issues SSL automatically once the domain verifies.
 
 ## Testing without the middleware (pre-DNS)
 

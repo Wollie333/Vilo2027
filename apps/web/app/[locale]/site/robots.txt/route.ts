@@ -12,8 +12,18 @@ export async function GET(request: Request) {
   });
 
   const ctx = ref ? await loadSiteContext(ref, { preview: false }) : null;
-  const body = ctx
-    ? `User-agent: *\nAllow: /\nSitemap: ${url.origin}/sitemap.xml\n`
+  const seo = (ctx?.seo ?? {}) as {
+    robots_index?: boolean;
+    sitemap_enabled?: boolean;
+  };
+  // Indexable unless the site is unresolved or the host opted out of indexing.
+  const indexable = Boolean(ctx) && seo.robots_index !== false;
+  const sitemapLine =
+    indexable && seo.sitemap_enabled !== false
+      ? `Sitemap: ${url.origin}/sitemap.xml\n`
+      : "";
+  const body = indexable
+    ? `User-agent: *\nAllow: /\n${sitemapLine}`
     : `User-agent: *\nDisallow: /\n`;
 
   return new Response(body, {

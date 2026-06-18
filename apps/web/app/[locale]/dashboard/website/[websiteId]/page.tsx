@@ -71,6 +71,7 @@ export default async function WebsiteOverviewPage({
     { key: "stepThemeTitle", done: Boolean(data.theme.accent) },
     { key: "stepPagesTitle", done: data.counts.pages > 0 },
     { key: "stepRoomsTitle", done: data.counts.rooms > 0 },
+    { key: "stepSeoTitle", done: Boolean(data.seo.title) },
     { key: "stepPublishTitle", done: data.status === "published" },
   ];
 
