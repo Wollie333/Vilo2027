@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phase 11: Blog
+
+### Added
+- **Blog tab** (now live in `WebsiteTabs`) → `[websiteId]/blog`. A posts list
+  (status pill, category, slug, delete) with a **New post** action and an inline
+  **Categories** editor. `loadBlogEditor` (owner-scoped; posts ⨝ category, newest
+  first).
+- **Full-screen post editor** → `blog/[postId]` (`loadBlogPost` + `PostEditor`
+  island): title, body via the reused `RichTextEditor` (Tiptap), cover image
+  (browser→Storage via `createWebsiteAssetUploadUrl` + `ImageField`), excerpt,
+  author, category/status pickers, editable URL slug, and a compact SERP preview
+  with meta title/description (stored in `website_blog_posts.seo`).
+- **Server actions** — `createBlogPostAction` (seeds a unique-slug draft, returns
+  id), `saveBlogPostAction` (per-website-unique slug derivation, stamps
+  `publish_at` on first publish, anti-tamper category check), `deleteBlogPostAction`
+  (soft delete), `saveBlogCategoriesAction` (reconcile upsert + delete; posts in a
+  removed category fall back to uncategorised via the FK's ON DELETE SET NULL).
+  Slugs reuse `lib/help/slug.ts` (`slugify`/`uniqueSlug`). All owner-checked +
+  pre-MVP feature short-circuit (AGENT_RULES §3.4).
+- New `website` blog i18n keys (en); help article `website-blog`
+  (`20260617001100_help_website_blog.sql`). Probe:
+  `scripts/verify-website-blog.mjs` (🎉).
+
+### Changed
+- **Blog preview cover images now resolve.** `loadSitePage` runs the
+  `blog_preview` section's `cover_path` through `websiteAssetUrl` (was passing the
+  raw storage path), matching how the brand logo + blog detail cover resolve.
+
+### Notes
+- **NO DB schema change** — the blog tables (`website_blog_posts`,
+  `website_blog_categories`) + RLS shipped in the W1 foundation migration; the
+  public blog routes + `blog_preview` data assembly shipped in W4. This phase is
+  the host-facing CMS for them. Build + lint + typecheck green.
+- Post **scheduling** (`status='scheduled'` + a cron flip) is deferred — the UI
+  ships Draft/Published only so every state is fully functional without a worker.
+
 ## 2026-06-18 — Website CMS Phase 10: Publish workflow
 
 ### Added

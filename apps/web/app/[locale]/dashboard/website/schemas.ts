@@ -88,3 +88,41 @@ export const saveWebsiteRoomsSchema = z.object({
 });
 
 export type SaveWebsiteRoomsInput = z.infer<typeof saveWebsiteRoomsSchema>;
+
+// --- Blog (W11) ---
+
+export const BLOG_POST_STATUSES = ["draft", "published"] as const;
+
+// One category as edited in the list — `id` is present for existing rows, absent
+// for newly-added ones (the action assigns it). Slug is derived from the name.
+export const blogCategorySchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(1, "required").max(60),
+});
+
+export const saveBlogCategoriesSchema = z.object({
+  websiteId: z.string().uuid(),
+  categories: z.array(blogCategorySchema).max(30),
+});
+
+export type SaveBlogCategoriesInput = z.infer<typeof saveBlogCategoriesSchema>;
+
+// A blog post's editable fields. `slug` may be blank — the action derives it from
+// the title and guarantees per-website uniqueness. `status` is independent of the
+// site publish (a post goes live the moment it's published, plan §1).
+export const saveBlogPostSchema = z.object({
+  websiteId: z.string().uuid(),
+  postId: z.string().uuid(),
+  title: z.string().trim().min(1, "required").max(200),
+  slug: z.string().trim().toLowerCase().max(80).default(""),
+  categoryId: z.string().uuid().or(z.literal("")).default(""),
+  status: z.enum(BLOG_POST_STATUSES),
+  coverPath: z.string().trim().max(500).default(""),
+  excerpt: z.string().trim().max(300).default(""),
+  bodyHtml: z.string().max(50000).default(""),
+  authorName: z.string().trim().max(120).default(""),
+  seoTitle: z.string().trim().max(70).default(""),
+  seoDescription: z.string().trim().max(200).default(""),
+});
+
+export type SaveBlogPostInput = z.infer<typeof saveBlogPostSchema>;

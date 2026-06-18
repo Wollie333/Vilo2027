@@ -159,9 +159,25 @@
 > server-side). `pageHref` exported for snapshot nav SSOT. **NO DB schema change** (publish cols from
 > W1). Help migration `20260617001000` pushed; +21 `website` i18n keys (en). build+lint+type-check
 > green; `scripts/verify-website-publish.mjs` 🎉.
-> **Next: W11 — Blog** (plan §8 item 11 / route `[websiteId]/blog`): list + full-screen post editor
-> over `website_blog_posts` + `website_blog_categories`, gated `website_blog`, publish-aware. Fresh
-> session per phase.
+> **W11 (Blog, plan §8 item 12) DONE** (commit pending): Blog tab now live in `WebsiteTabs` →
+> `[websiteId]/blog`. List (status pill / category / slug / delete) + **New post** + inline
+> **Categories** editor (`loadBlogEditor`; posts ⨝ category). Full-screen `blog/[postId]` editor
+> (`loadBlogPost` + `PostEditor`): title, body via reused `RichTextEditor` (Tiptap), cover
+> image (browser→Storage via `createWebsiteAssetUploadUrl`+`ImageField`), excerpt, author,
+> category/status pickers, editable URL slug, compact SERP preview (meta title/desc → `seo` jsonb).
+> Actions: `createBlogPostAction` (unique-slug draft, returns id), `saveBlogPostAction` (unique
+> slug, stamps `publish_at` on first publish, anti-tamper category), `deleteBlogPostAction` (soft),
+> `saveBlogCategoriesAction` (reconcile upsert+delete; FK SET NULL keeps posts). Slugs reuse
+> `lib/help/slug.ts`. All owner-checked + pre-MVP feature short-circuit (§3.4). **KEY FIX:**
+> `loadSitePage` now resolves the `blog_preview` cover via `websiteAssetUrl` (was raw path).
+> **NO DB schema change** (blog tables + RLS from W1; public routes + blog_preview data from W4).
+> Help migration `20260617001100` pushed; +~40 `website` i18n keys (en). build+lint+type-check
+> green; `scripts/verify-website-blog.mjs` 🎉. **DEFERRED:** post scheduling (`status='scheduled'`
+> + cron flip) — UI ships Draft/Published only so every state works without a worker.
+> **Next: W13 — Custom domain + SSL** (plan §8 item 13): `website-domain-connect` (Vercel Domains
+> API) + DNS-records UI + `website-domain-poll` Edge Fn + pg_cron + status UI; needs new secrets
+> (`VERCEL_TOKEN`/`VERCEL_PROJECT_ID`/`VERCEL_TEAM_ID`). _(Plan §8 item 11 "per-property Channels
+> control" + the SEO tab §8 item 14 also remain.)_ Fresh session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

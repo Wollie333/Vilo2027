@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireHost } from "@/lib/host/current";
+import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { buildWebsiteSnapshot } from "@/lib/website/publish";
@@ -11,11 +12,15 @@ import { validateSubdomain } from "@/lib/website/subdomain";
 import {
   brandSchema,
   createWebsiteSchema,
+  saveBlogCategoriesSchema,
+  saveBlogPostSchema,
   saveDraftSectionsSchema,
   saveWebsiteRoomsSchema,
   themeSchema,
   type BrandInput,
   type CreateWebsiteInput,
+  type SaveBlogCategoriesInput,
+  type SaveBlogPostInput,
   type SaveDraftSectionsInput,
   type SaveWebsiteRoomsInput,
   type ThemeInput,
@@ -711,5 +716,232 @@ export async function saveWebsiteRoomsAction(
   }
 
   revalidatePath(`/dashboard/website/${websiteId}/rooms`);
+  return { ok: true };
+}
+
+// ============================================================
+// W11 — Blog (categories + posts)
+// ============================================================
+
+/**
+ * Reconcile a site's blog categories: upsert the submitted set (existing rows by
+ * id, new rows inserted with a derived unique slug) and delete any category the
+ * host removed. Posts in a deleted category are set category-less by the FK's
+ * ON DELETE SET NULL, so nothing is orphaned.
+ */
+export async function saveBlogCategoriesAction(
+  input: SaveBlogCategoriesInput,
+): Promise<ActionResult> {
+  const parsed = saveBlogCategoriesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, categories } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: existing } = await supabase
+    .from("website_blog_categories")
+    .select("id")
+    .eq("website_id", websiteId);
+  const existingIds = new Set((existing ?? []).map((c) => c.id));
+
+  // Delete the categories the host removed.
+  const keptIds = new Set(
+    categories.map((c) => c.id).filter((id): id is string => Boolean(id)),
+  );
+  const toDelete = [...existingIds].filter((id) => !keptIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("website_blog_categories").delete().in("id", toDelete);
+  }
+
+  // Upsert kept + new, deriving a unique slug per category.
+  const usedSlugs = new Set<string>();
+  let order = 0;
+  for (const cat of categories) {
+    const slug = uniqueSlug(cat.name, usedSlugs);
+    usedSlugs.add(slug);
+    if (cat.id && existingIds.has(cat.id)) {
+      const { error } = await supabase
+        .from("website_blog_categories")
+        .update({ name: cat.name, slug, sort_order: order })
+        .eq("id", cat.id)
+        .eq("website_id", websiteId);
+      if (error) return { ok: false, error: "save_failed" };
+    } else {
+      const { error } = await supabase
+        .from("website_blog_categories")
+        .insert({
+          website_id: websiteId,
+          name: cat.name,
+          slug,
+          sort_order: order,
+        });
+      if (error) return { ok: false, error: "save_failed" };
+    }
+    order += 1;
+  }
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
+  return { ok: true };
+}
+
+/** Compute a per-website-unique post slug, optionally excluding one post. */
+async function uniquePostSlug(
+  supabase: ReturnType<typeof createServerClient>,
+  websiteId: string,
+  desired: string,
+  excludePostId?: string,
+): Promise<string> {
+  let query = supabase
+    .from("website_blog_posts")
+    .select("slug")
+    .eq("website_id", websiteId);
+  if (excludePostId) query = query.neq("id", excludePostId);
+  const { data: rows } = await query;
+  const taken = new Set((rows ?? []).map((r) => r.slug));
+  return uniqueSlug(desired || "post", taken);
+}
+
+/**
+ * Create a blank draft post and return its id so the caller can open the editor.
+ * Seeds a unique placeholder slug; the host renames it (and the slug) on save.
+ */
+export async function createBlogPostAction(
+  websiteId: string,
+): Promise<CreateResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const slug = await uniquePostSlug(supabase, websiteId, "untitled-post");
+
+  const { data: post, error } = await supabase
+    .from("website_blog_posts")
+    .insert({
+      website_id: websiteId,
+      title: "Untitled post",
+      slug,
+      status: "draft",
+    })
+    .select("id")
+    .single();
+  if (error || !post) return { ok: false, error: "create_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
+  return { ok: true, id: post.id };
+}
+
+/**
+ * Save a post's content + publication state. Validates the post belongs to the
+ * owner's website, derives a unique slug (from the host's slug or the title), and
+ * stamps `publish_at` the first time a post is published. Body HTML is stored raw
+ * and sanitised at render time (loadSiteBlogPost → sanitiseListingHtml).
+ */
+export async function saveBlogPostAction(
+  input: SaveBlogPostInput,
+): Promise<ActionResult> {
+  const parsed = saveBlogPostSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const {
+    websiteId,
+    postId,
+    title,
+    slug,
+    categoryId,
+    status,
+    coverPath,
+    excerpt,
+    bodyHtml,
+    authorName,
+    seoTitle,
+    seoDescription,
+  } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: post } = await supabase
+    .from("website_blog_posts")
+    .select("id, publish_at")
+    .eq("id", postId)
+    .eq("website_id", websiteId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (!post) return { ok: false, error: "not_found" };
+
+  // A category, if set, must belong to this website (anti-tamper).
+  if (categoryId) {
+    const { data: cat } = await supabase
+      .from("website_blog_categories")
+      .select("id")
+      .eq("id", categoryId)
+      .eq("website_id", websiteId)
+      .maybeSingle();
+    if (!cat) return { ok: false, error: "invalid" };
+  }
+
+  const desiredSlug = slugify(slug || title);
+  const finalSlug = await uniquePostSlug(
+    supabase,
+    websiteId,
+    desiredSlug,
+    postId,
+  );
+
+  // Stamp publish_at the first time the post is published.
+  const publishAt =
+    status === "published" && !post.publish_at
+      ? new Date().toISOString()
+      : post.publish_at;
+
+  const { error } = await supabase
+    .from("website_blog_posts")
+    .update({
+      title,
+      slug: finalSlug,
+      category_id: categoryId || null,
+      status,
+      publish_at: publishAt,
+      cover_path: coverPath || null,
+      excerpt: excerpt || null,
+      body_html: bodyHtml || null,
+      author_name: authorName || null,
+      seo: {
+        title: seoTitle || undefined,
+        description: seoDescription || undefined,
+      },
+    })
+    .eq("id", postId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
+  revalidatePath(`/dashboard/website/${websiteId}/blog/${postId}`);
+  return { ok: true };
+}
+
+/** Soft-delete a blog post (keeps it out of the list + the public site). */
+export async function deleteBlogPostAction(
+  websiteId: string,
+  postId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("website_blog_posts")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", postId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/blog`);
   return { ok: true };
 }

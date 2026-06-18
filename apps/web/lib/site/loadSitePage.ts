@@ -535,7 +535,7 @@ export async function assembleSiteDataByType(
           title: row.title,
           href: `/blog/${row.slug}`,
           excerpt: row.excerpt,
-          coverUrl: row.cover_path,
+          coverUrl: websiteAssetUrl(row.cover_path ?? undefined) ?? null,
           date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
         };
       });
