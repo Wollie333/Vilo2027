@@ -25,16 +25,22 @@ import {
   saveBlogCategoriesSchema,
   saveBlogPostSchema,
   saveDraftSectionsSchema,
+  createPageSchema,
+  savePageSeoSchema,
+  savePagesSchema,
   saveWebsiteRoomsSchema,
   seoSchema,
   themeSchema,
   websiteSettingsSchema,
   type BrandInput,
   type ConnectDomainInput,
+  type CreatePageInput,
   type CreateWebsiteInput,
   type SaveBlogCategoriesInput,
   type SaveBlogPostInput,
   type SaveDraftSectionsInput,
+  type SavePageSeoInput,
+  type SavePagesInput,
   type SaveWebsiteRoomsInput,
   type SeoInput,
   type ThemeInput,
@@ -601,6 +607,221 @@ export async function duplicatePageAction(
 
   revalidatePath(`/dashboard/website/${websiteId}/pages`);
   return { ok: true, id: page.id };
+}
+
+// ============================================================
+// Phase 6 — Multi-page management (custom pages + nav)
+// ============================================================
+
+/** Starter sections for a new page, by template — so it never starts empty. */
+function templatePageSections(template: string, title: string) {
+  switch (template) {
+    case "about":
+      return [
+        {
+          id: uuid(),
+          type: "intro",
+          enabled: true,
+          props: {
+            heading: "Our story",
+            body: "Share who you are, why you host, and what guests can expect.",
+          },
+        },
+        {
+          id: uuid(),
+          type: "host_bio",
+          enabled: true,
+          props: {
+            heading: "Meet your host",
+            body: "A few warm lines about you and your team.",
+          },
+        },
+      ];
+    case "contact":
+      return [
+        {
+          id: uuid(),
+          type: "intro",
+          enabled: true,
+          props: {
+            heading: title,
+            body: "We'd love to hear from you.",
+          },
+        },
+        {
+          id: uuid(),
+          type: "contact_form",
+          enabled: true,
+          props: {
+            heading: "Get in touch",
+            body: "Send us a message and we'll reply soon.",
+            submit_label: "Send message",
+            success_message:
+              "Thanks — your message is on its way. We'll be in touch soon.",
+            show_phone: true,
+          },
+        },
+      ];
+    default:
+      return [
+        {
+          id: uuid(),
+          type: "intro",
+          enabled: true,
+          props: { heading: title, body: "Add your content here." },
+        },
+      ];
+  }
+}
+
+/** Create a new custom page (optionally from a starter template) + open it. */
+export async function createPageAction(
+  input: CreatePageInput,
+): Promise<CreateResult> {
+  const parsed = createPageSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, title, template } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: rows } = await supabase
+    .from("website_pages")
+    .select("slug, nav_order")
+    .eq("website_id", websiteId);
+  const taken = new Set((rows ?? []).map((r) => r.slug));
+  const slug = uniqueSlug(title || "page", taken);
+  const nextOrder =
+    Math.max(0, ...(rows ?? []).map((r) => r.nav_order ?? 0)) + 1;
+
+  const { data: page, error } = await supabase
+    .from("website_pages")
+    .insert({
+      website_id: websiteId,
+      kind: "custom",
+      slug,
+      title,
+      nav_label: title,
+      nav_order: nextOrder,
+      show_in_nav: true,
+      draft_sections: templatePageSections(template, title),
+      published_sections: [],
+    })
+    .select("id")
+    .single();
+  if (error || !page) return { ok: false, error: "create_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages`);
+  return { ok: true, id: page.id };
+}
+
+/** Delete a custom page. The Home page is protected (it anchors the site). */
+export async function deletePageAction(
+  websiteId: string,
+  pageId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: page } = await supabase
+    .from("website_pages")
+    .select("kind")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!page) return { ok: false, error: "not_found" };
+  if (page.kind === "home") return { ok: false, error: "cannot_delete_home" };
+
+  const { error } = await supabase
+    .from("website_pages")
+    .delete()
+    .eq("id", pageId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "delete_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages`);
+  return { ok: true };
+}
+
+/**
+ * Persist nav state for all pages — label, show-in-nav, and order (nav_order is
+ * the array index, so the host's reorder sticks). Each update is scoped to the
+ * owner's website. Changes appear on the public nav after Publish.
+ */
+export async function savePagesAction(
+  input: SavePagesInput,
+): Promise<ActionResult> {
+  const parsed = savePagesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, pages } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  for (let i = 0; i < pages.length; i += 1) {
+    const p = pages[i];
+    const { error } = await supabase
+      .from("website_pages")
+      .update({
+        nav_label: p.navLabel.trim() || null,
+        show_in_nav: p.showInNav,
+        nav_order: i,
+      })
+      .eq("id", p.id)
+      .eq("website_id", websiteId);
+    if (error) return { ok: false, error: "save_failed" };
+  }
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages`);
+  return { ok: true };
+}
+
+/** Save a page's SEO title/description overrides into website_pages.seo_overrides. */
+export async function savePageSeoAction(
+  input: SavePageSeoInput,
+): Promise<ActionResult> {
+  const parsed = savePageSeoSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, pageId, title, description } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: page } = await supabase
+    .from("website_pages")
+    .select("id, seo_overrides")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!page) return { ok: false, error: "not_found" };
+
+  const seo = {
+    ...((page.seo_overrides ?? {}) as Record<string, unknown>),
+    title: title.trim() || undefined,
+    description: description.trim() || undefined,
+  };
+
+  const { error } = await supabase
+    .from("website_pages")
+    .update({ seo_overrides: seo })
+    .eq("id", pageId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages/${pageId}`);
+  return { ok: true };
 }
 
 /**

@@ -238,9 +238,14 @@
 > **Settings tab** in `host_websites.settings` jsonb) — see [[project_website_contact_enquiry]];
 > (3) **@dnd-kit** drag-reorder + duplicate section/page; (4) **section library** modal +
 > **visual click-to-edit** (preview hotspots → FormModal). Migrations `…001200` (source col)
-> + `…001300` (help). **NEXT: Phase 6 (About / multi-page + nav management)**, then 7 Rooms,
-> 8 Blog, 9 SEO, 10 website-native booking flow [LAST big one], 11 installable theme catalog.
-> Fresh session per phase; build+lint green each commit.
+> + `…001300` (help). **Phase 6 (multi-page + nav) DONE** — Pages tab is now a full
+> manager (`PagesManager`): add-page w/ Blank/About/Contact templates, DnD reorder,
+> per-page nav label + show/hide-in-nav (`savePagesAction`, live on Publish), delete
+> (Home protected), per-page SEO overrides card (`savePageSeoAction` → `seo_overrides`,
+> already consumed by the public metadata SSOT). Migration `…001400` (help).
+> **NEXT: Phase 7 (Rooms tab — live preview, DnD, property display_overrides, featured/
+> badges, amenities)**, then 8 Blog, 9 SEO, 10 website-native booking flow [LAST big one],
+> 11 installable theme catalog. Fresh session per phase; build+lint green each commit.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 

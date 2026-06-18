@@ -18,7 +18,13 @@ import {
 export type PageBuilderData = {
   websiteId: string;
   subdomain: string;
-  page: { id: string; kind: string; slug: string; title: string | null };
+  page: {
+    id: string;
+    kind: string;
+    slug: string;
+    title: string | null;
+    seo: { title?: string; description?: string };
+  };
   sections: WebsiteSection[];
   /** Site chrome for the inline preview (same data the public site renders). */
   brand: SiteContext["brand"];
@@ -56,7 +62,7 @@ export async function loadPageBuilder(
   const admin = createAdminClient();
   const { data: pageRow } = await admin
     .from("website_pages")
-    .select("id, kind, slug, title, draft_sections")
+    .select("id, kind, slug, title, draft_sections, seo_overrides")
     .eq("id", pageId)
     .eq("website_id", websiteId)
     .maybeSingle<{
@@ -65,6 +71,7 @@ export async function loadPageBuilder(
       slug: string;
       title: string | null;
       draft_sections: unknown;
+      seo_overrides: { title?: string; description?: string } | null;
     }>();
   if (!pageRow) return null;
 
@@ -83,6 +90,10 @@ export async function loadPageBuilder(
       kind: pageRow.kind,
       slug: pageRow.slug,
       title: pageRow.title,
+      seo: {
+        title: pageRow.seo_overrides?.title,
+        description: pageRow.seo_overrides?.description,
+      },
     },
     sections,
     brand: ctx?.brand ?? { name: site.subdomain },

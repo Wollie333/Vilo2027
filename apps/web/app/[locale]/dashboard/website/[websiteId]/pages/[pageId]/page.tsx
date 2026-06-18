@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { loadPageBuilder } from "./loadPageBuilder";
+import { PageSeoCard } from "./_components/PageSeoCard";
 import { SectionBuilder } from "./_components/SectionBuilder";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,16 @@ export default async function WebsitePageBuilder({
           </h2>
         </div>
       </div>
+
+      <PageSeoCard
+        websiteId={websiteId}
+        pageId={pageId}
+        fallbackTitle={title}
+        initial={{
+          title: data.page.seo.title ?? "",
+          description: data.page.seo.description ?? "",
+        }}
+      />
 
       <SectionBuilder
         websiteId={websiteId}

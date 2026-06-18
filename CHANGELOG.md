@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 6: Multi-page & nav
+
+### Added
+- **Multi-page management** — the Pages tab is now a full manager: **Add page**
+  (with Blank / About / Contact starter templates), drag-to-reorder, per-page
+  **nav label**, **show/hide in nav**, duplicate and delete (Home is protected).
+  Nav order/labels/visibility persist via `savePagesAction` and go live on Publish.
+- **Per-page SEO overrides** — a collapsible **Page SEO** card in the builder edits
+  `website_pages.seo_overrides` (title + description); the public renderer already
+  prefers these over site-level SEO, so they take effect on publish.
+- New actions `createPageAction` (template-seeded), `deletePageAction` (Home guard),
+  `savePagesAction`, `savePageSeoAction`. Help article `website-pages` (`…001400`).
+- Folded the old single-purpose `DuplicatePageButton` into the new `PagesManager`.
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 5: Home page editor
 
 ### Added

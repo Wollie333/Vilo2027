@@ -199,3 +199,41 @@ export const websiteSettingsSchema = z.object({
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;
+
+// --- Multi-page management (Phase 6) ---
+
+export const PAGE_TEMPLATES = ["blank", "about", "contact"] as const;
+
+export const createPageSchema = z.object({
+  websiteId: z.string().uuid(),
+  title: z.string().trim().min(1, "required").max(120),
+  template: z.enum(PAGE_TEMPLATES).default("blank"),
+});
+
+export type CreatePageInput = z.infer<typeof createPageSchema>;
+
+// One page's nav state as edited in the manager — order is derived from the array
+// index, so a reorder persists. `navLabel` blank falls back to the page title.
+export const pageNavSchema = z.object({
+  id: z.string().uuid(),
+  navLabel: z.string().trim().max(60).default(""),
+  showInNav: z.boolean(),
+});
+
+export const savePagesSchema = z.object({
+  websiteId: z.string().uuid(),
+  pages: z.array(pageNavSchema).max(60),
+});
+
+export type SavePagesInput = z.infer<typeof savePagesSchema>;
+
+// Per-page SEO overrides (Phase 6) → website_pages.seo_overrides jsonb. Empty
+// strings mean "inherit the site-level SEO" and are stored as undefined.
+export const savePageSeoSchema = z.object({
+  websiteId: z.string().uuid(),
+  pageId: z.string().uuid(),
+  title: z.string().trim().max(70).default(""),
+  description: z.string().trim().max(200).default(""),
+});
+
+export type SavePageSeoInput = z.infer<typeof savePageSeoSchema>;
