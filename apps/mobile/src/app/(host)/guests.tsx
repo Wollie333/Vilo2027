@@ -7,6 +7,7 @@ import {
   Avatar,
   EmptyState,
   Icon,
+  pullRefresh,
   ScreenHeader,
   Skeleton,
   Tag,
@@ -18,7 +19,12 @@ import { brand } from "@/theme/tokens";
 export default function HostGuests() {
   const router = useRouter();
   const { host } = useAuth();
-  const { data: guests, isLoading } = useHostGuests(host?.id);
+  const {
+    data: guests,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useHostGuests(host?.id);
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
@@ -52,6 +58,10 @@ export default function HostGuests() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ paddingVertical: 8 }}
       >
         {isLoading ? (

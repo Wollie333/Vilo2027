@@ -7,6 +7,7 @@ import { Briefcase, MapPin } from "lucide-react-native";
 import {
   EmptyState,
   Icon,
+  pullRefresh,
   ScreenHeader,
   SegmentedControl,
   Skeleton,
@@ -29,7 +30,12 @@ const tabs: Segment<Tab>[] = [
 export default function GuestTrips() {
   const router = useRouter();
   const { session } = useAuth();
-  const { data: trips, isLoading } = useTrips(session?.user.id);
+  const {
+    data: trips,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useTrips(session?.user.id);
   const [tab, setTab] = useState<Tab>("upcoming");
 
   const filtered = useMemo(() => {
@@ -48,6 +54,10 @@ export default function GuestTrips() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ padding: 20, gap: 14 }}
       >
         {isLoading ? (

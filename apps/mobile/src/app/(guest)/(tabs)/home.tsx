@@ -11,7 +11,13 @@ import {
   SlidersHorizontal,
 } from "lucide-react-native";
 
-import { Avatar, Icon, Skeleton, EmptyState } from "@/components/ui";
+import {
+  Avatar,
+  Icon,
+  Skeleton,
+  EmptyState,
+  pullRefresh,
+} from "@/components/ui";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useDirectoryProperties } from "@/lib/queries/properties";
 import { useAuth } from "@/lib/auth/auth-provider";
@@ -29,7 +35,13 @@ export default function GuestHome() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile, session } = useAuth();
-  const { data: properties, isLoading, isError } = useDirectoryProperties();
+  const {
+    data: properties,
+    isLoading,
+    isError,
+    refetch,
+    isRefetching,
+  } = useDirectoryProperties();
 
   const firstName = (
     profile?.full_name ??
@@ -53,6 +65,10 @@ export default function GuestHome() {
     <View className="flex-1 bg-white">
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
       >
         {/* Header */}

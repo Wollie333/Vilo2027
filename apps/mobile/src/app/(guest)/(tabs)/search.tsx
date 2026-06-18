@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Search as SearchIcon, SearchX } from "lucide-react-native";
 
-import { EmptyState, Icon, Skeleton } from "@/components/ui";
+import { EmptyState, Icon, pullRefresh, Skeleton } from "@/components/ui";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useDirectoryProperties } from "@/lib/queries/properties";
 import { brand } from "@/theme/tokens";
@@ -12,7 +12,12 @@ import { brand } from "@/theme/tokens";
 export default function GuestSearch() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: properties, isLoading } = useDirectoryProperties();
+  const {
+    data: properties,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useDirectoryProperties();
   const [q, setQ] = useState("");
 
   const results = useMemo(() => {
@@ -53,6 +58,10 @@ export default function GuestSearch() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         keyboardShouldPersistTaps="handled"
       >

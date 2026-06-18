@@ -2,7 +2,13 @@ import { ScrollView, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { MessageCircle } from "lucide-react-native";
 
-import { Avatar, EmptyState, ScreenHeader, Skeleton } from "@/components/ui";
+import {
+  Avatar,
+  EmptyState,
+  pullRefresh,
+  ScreenHeader,
+  Skeleton,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
 import {
   useHostConversations,
@@ -23,13 +29,22 @@ function timeAgo(iso: string | null): string {
 export default function HostInbox() {
   const router = useRouter();
   const { host } = useAuth();
-  const { data: conversations, isLoading } = useHostConversations(host?.id);
+  const {
+    data: conversations,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useHostConversations(host?.id);
 
   return (
     <View className="flex-1 bg-white">
       <ScreenHeader title={t("host.tabs.inbox")} bordered />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ paddingVertical: 8 }}
       >
         {isLoading ? (

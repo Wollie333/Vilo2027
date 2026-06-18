@@ -6,6 +6,7 @@ import { CalendarCheck } from "lucide-react-native";
 import {
   Chip,
   EmptyState,
+  pullRefresh,
   ScreenHeader,
   Skeleton,
   Tag,
@@ -30,7 +31,12 @@ type FilterKey = (typeof FILTERS)[number]["key"];
 export default function HostBookings() {
   const router = useRouter();
   const { host } = useAuth();
-  const { data: bookings, isLoading } = useHostBookings(host?.id);
+  const {
+    data: bookings,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useHostBookings(host?.id);
   const [filter, setFilter] = useState<FilterKey>("all");
 
   const counts = useMemo(() => {
@@ -68,6 +74,10 @@ export default function HostBookings() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{ padding: 20, gap: 12 }}
       >
         {isLoading ? (

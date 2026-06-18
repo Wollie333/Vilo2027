@@ -1,7 +1,7 @@
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Bell } from "lucide-react-native";
 
-import { EmptyState, Skeleton } from "@/components/ui";
+import { EmptyState, pullRefresh, Skeleton } from "@/components/ui";
 import {
   useMarkNotificationRead,
   useNotifications,
@@ -23,7 +23,12 @@ function ago(iso: string): string {
 
 /** Shared in-app notifications list for both guest and host surfaces. */
 export function NotificationsView({ userId }: { userId: string | undefined }) {
-  const { data: items, isLoading } = useNotifications(userId);
+  const {
+    data: items,
+    isLoading,
+    refetch,
+    isRefetching,
+  } = useNotifications(userId);
   const markRead = useMarkNotificationRead(userId);
 
   if (isLoading) {
@@ -49,6 +54,10 @@ export function NotificationsView({ userId }: { userId: string | undefined }) {
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
+      refreshControl={pullRefresh({
+        refreshing: isRefetching,
+        onRefresh: refetch,
+      })}
       contentContainerStyle={{ padding: 16, gap: 10 }}
     >
       {items.map((n) => (
