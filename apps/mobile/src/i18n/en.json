@@ -1,0 +1,64 @@
+{
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "continue": "Continue",
+    "retry": "Retry",
+    "seeAll": "See all",
+    "loading": "Loading…",
+    "guest": "Guest",
+    "host": "Host"
+  },
+  "auth": {
+    "welcomeBack": "Welcome back",
+    "signInSubtitle": "Sign in to pick up trips, messages and saved stays.",
+    "createAccount": "Create your account",
+    "registerSubtitle": "Book direct, message hosts, and pay zero booking fees.",
+    "joiningAs": "I'm joining as",
+    "guestRoleNote": "Find and book verified stays across South Africa.",
+    "hostRoleNote": "List your place and manage bookings commission-free.",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
+    "orWithEmail": "or with email",
+    "orSignUpWithEmail": "or sign up with email",
+    "fullName": "Full name",
+    "email": "Email address",
+    "password": "Password",
+    "createPassword": "Create a password",
+    "rememberMe": "Remember me",
+    "forgot": "Forgot?",
+    "signIn": "Sign in",
+    "agreeTerms": "I agree to Vilo's Terms and Privacy Policy.",
+    "alreadyHaveAccount": "Already have an account?",
+    "newToVilo": "New to Vilo?",
+    "createAnAccount": "Create an account",
+    "signInLink": "Sign in",
+    "secure": "Secure",
+    "verifiedHosts": "Verified hosts",
+    "zeroFees": "0% fees"
+  },
+  "guest": {
+    "tabs": {
+      "home": "Home",
+      "search": "Search",
+      "trips": "Trips",
+      "inbox": "Inbox",
+      "more": "More"
+    },
+    "findYourNextStay": "Find your next stay",
+    "whereTo": "Where to?",
+    "trendingDestinations": "Trending destinations",
+    "featuredStays": "Featured stays"
+  },
+  "host": {
+    "tabs": {
+      "overview": "Overview",
+      "bookings": "Bookings",
+      "calendar": "Calendar",
+      "inbox": "Inbox",
+      "more": "More"
+    },
+    "upcomingStays": "Upcoming stays"
+  }
+}
