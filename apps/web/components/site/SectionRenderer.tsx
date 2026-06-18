@@ -8,7 +8,10 @@ import {
 import { HeroSection } from "./sections/HeroSection";
 import { IntroSection } from "./sections/IntroSection";
 import { HighlightsSection } from "./sections/HighlightsSection";
+import { StatsSection } from "./sections/StatsSection";
+import { LogosSection } from "./sections/LogosSection";
 import { GallerySection } from "./sections/GallerySection";
+import { MapSection } from "./sections/MapSection";
 import { RoomsPreviewSection } from "./sections/RoomsPreviewSection";
 import { LocationSection } from "./sections/LocationSection";
 import { ReviewsSection } from "./sections/ReviewsSection";
@@ -67,6 +70,12 @@ function SectionSwitch({
       return <IntroSection props={section.props} />;
     case "highlights":
       return <HighlightsSection props={section.props} />;
+    case "stats":
+      return <StatsSection props={section.props} />;
+    case "logos":
+      return <LogosSection props={section.props} asset={asset} />;
+    case "map":
+      return <MapSection props={section.props} />;
     case "gallery":
       return (
         <GallerySection

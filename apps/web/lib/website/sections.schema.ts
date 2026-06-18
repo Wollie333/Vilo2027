@@ -23,9 +23,12 @@ export const SECTION_TYPES = [
   "hero",
   "intro",
   "highlights",
+  "stats",
   "gallery",
+  "logos",
   "rooms_preview",
   "location",
+  "map",
   "reviews",
   "cta",
   "host_bio",
@@ -82,10 +85,44 @@ const highlightsProps = z.object({
     .default([]),
 });
 
+const statsProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        value: z.string().max(40),
+        label: z.string().max(120),
+      }),
+    )
+    .max(8)
+    .default([]),
+});
+
+const logosProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        image_path: z.string().max(500),
+        alt: z.string().max(120).optional(),
+        href: z.string().max(500).optional(),
+      }),
+    )
+    .max(16)
+    .default([]),
+});
+
 const galleryProps = z.object({
   heading,
   layout: gridLayout,
   max: z.number().int().min(1).max(60).default(12),
+});
+
+const mapProps = z.object({
+  heading,
+  address: z.string().max(300),
+  caption: z.string().max(300).optional(),
+  zoom: z.number().int().min(1).max(20).default(14),
 });
 
 const roomsPreviewProps = z.object({
@@ -168,7 +205,10 @@ export const sectionSchema = z.discriminatedUnion("type", [
     type: z.literal("highlights"),
     props: highlightsProps,
   }),
+  z.object({ ...sectionBase, type: z.literal("stats"), props: statsProps }),
+  z.object({ ...sectionBase, type: z.literal("logos"), props: logosProps }),
   z.object({ ...sectionBase, type: z.literal("gallery"), props: galleryProps }),
+  z.object({ ...sectionBase, type: z.literal("map"), props: mapProps }),
   z.object({
     ...sectionBase,
     type: z.literal("rooms_preview"),

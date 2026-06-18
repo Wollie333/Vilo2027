@@ -54,12 +54,45 @@ export function newSection(type: SectionType): WebsiteSection {
           ],
         },
       };
+    case "stats":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "By the numbers",
+          items: [
+            { value: "500+", label: "Happy guests" },
+            { value: "4.9", label: "Average rating" },
+            { value: "10 yrs", label: "Hosting experience" },
+          ],
+        },
+      };
+    case "logos":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "As featured in", items: [] },
+      };
     case "gallery":
       return {
         id,
         type,
         enabled: true,
         props: { heading: "Gallery", layout: "grid", max: 12 },
+      };
+    case "map":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: {
+          heading: "Find us",
+          address: "",
+          caption: "",
+          zoom: 14,
+        },
       };
     case "rooms_preview":
       return {

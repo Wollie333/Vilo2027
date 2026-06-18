@@ -158,6 +158,129 @@ export function SectionEditor({
       );
     }
 
+    case "stats": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldStats")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ value: "", label: "" })}
+            addLabel={t("addStat")}
+            max={8}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldStatValue")}
+                  value={item.value}
+                  onChange={(v) => patch({ value: v })}
+                  maxLength={40}
+                />
+                <TextField
+                  label={t("fldStatLabel")}
+                  value={item.label}
+                  onChange={(v) => patch({ label: v })}
+                  maxLength={120}
+                />
+              </>
+            )}
+          />
+        </div>
+      );
+    }
+
+    case "logos": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldLogos")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ image_path: "", alt: "", href: "" })}
+            addLabel={t("addLogo")}
+            max={16}
+            renderItem={(item, patch) => (
+              <>
+                <ImageField
+                  label={t("fldLogoImage")}
+                  websiteId={websiteId}
+                  path={item.image_path || undefined}
+                  onChange={(path) => patch({ image_path: path ?? "" })}
+                />
+                <TextField
+                  label={t("fldLogoAlt")}
+                  value={item.alt ?? ""}
+                  onChange={(v) => patch({ alt: v })}
+                  maxLength={120}
+                />
+                <TextField
+                  label={t("fldLogoHref")}
+                  value={item.href ?? ""}
+                  onChange={(v) => patch({ href: v })}
+                  maxLength={500}
+                  hint={t("fldCtaHrefHint")}
+                />
+              </>
+            )}
+          />
+        </div>
+      );
+    }
+
+    case "map": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextField
+            label={t("fldMapAddress")}
+            value={p.address}
+            onChange={(v) => set({ address: v })}
+            maxLength={300}
+            hint={t("fldMapAddressHint")}
+          />
+          <TextField
+            label={t("fldMapCaption")}
+            value={p.caption ?? ""}
+            onChange={(v) => set({ caption: v })}
+            maxLength={300}
+          />
+          <NumberField
+            label={t("fldMapZoom")}
+            value={p.zoom}
+            min={1}
+            max={20}
+            onChange={(v) => set({ zoom: v })}
+          />
+        </div>
+      );
+    }
+
     case "values": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>
