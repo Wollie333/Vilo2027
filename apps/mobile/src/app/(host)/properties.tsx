@@ -3,7 +3,13 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Home } from "lucide-react-native";
 
-import { EmptyState, ScreenHeader, Skeleton, Tag } from "@/components/ui";
+import {
+  EmptyState,
+  pullRefresh,
+  ScreenHeader,
+  Skeleton,
+  Tag,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
 import {
   catalogueCover,
@@ -17,7 +23,9 @@ export default function HostProperties() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostCatalogue(host?.id);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostCatalogue(
+    host?.id,
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -29,6 +37,10 @@ export default function HostProperties() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 12,

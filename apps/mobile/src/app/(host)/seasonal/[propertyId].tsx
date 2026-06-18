@@ -3,7 +3,14 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CalendarRange, Plus } from "lucide-react-native";
 
-import { EmptyState, Icon, ScreenHeader, Skeleton, Tag } from "@/components/ui";
+import {
+  EmptyState,
+  Icon,
+  pullRefresh,
+  ScreenHeader,
+  Skeleton,
+  Tag,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useHostSeasons, type HostSeason } from "@/lib/queries/host-seasons";
 import { formatMoney } from "@/lib/format";
@@ -15,7 +22,10 @@ export default function PropertySeasons() {
   const insets = useSafeAreaInsets();
   const { propertyId } = useLocalSearchParams<{ propertyId: string }>();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostSeasons(host?.id, propertyId);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostSeasons(
+    host?.id,
+    propertyId,
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -41,6 +51,10 @@ export default function PropertySeasons() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 12,

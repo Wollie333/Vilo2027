@@ -3,7 +3,14 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Plus, Ticket } from "lucide-react-native";
 
-import { EmptyState, Icon, ScreenHeader, Skeleton, Tag } from "@/components/ui";
+import {
+  EmptyState,
+  Icon,
+  pullRefresh,
+  ScreenHeader,
+  Skeleton,
+  Tag,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useHostCoupons, type HostCoupon } from "@/lib/queries/host-coupons";
 import { formatMoney } from "@/lib/format";
@@ -14,7 +21,9 @@ export default function HostCoupons() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostCoupons(host?.id);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostCoupons(
+    host?.id,
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -40,6 +49,10 @@ export default function HostCoupons() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 12,

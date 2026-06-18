@@ -6,6 +6,7 @@ import { BarChart3 } from "lucide-react-native";
 
 import {
   EmptyState,
+  pullRefresh,
   ScreenHeader,
   Skeleton,
   Tag,
@@ -21,7 +22,9 @@ export default function HostReports() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostBookings(host?.id);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostBookings(
+    host?.id,
+  );
 
   const reports = useMemo(() => deriveReports(data, new Date()), [data]);
   const ccy = reports.currency;
@@ -37,6 +40,10 @@ export default function HostReports() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 16,

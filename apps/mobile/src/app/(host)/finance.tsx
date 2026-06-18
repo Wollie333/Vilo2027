@@ -6,6 +6,7 @@ import { Wallet } from "lucide-react-native";
 
 import {
   EmptyState,
+  pullRefresh,
   ScreenHeader,
   Skeleton,
   Tag,
@@ -58,6 +59,13 @@ export default function HostFinance() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: payments.isRefetching || bookings.isRefetching,
+          onRefresh: () => {
+            payments.refetch();
+            bookings.refetch();
+          },
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 16,

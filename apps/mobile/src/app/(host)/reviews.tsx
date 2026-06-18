@@ -8,6 +8,7 @@ import {
   Button,
   EmptyState,
   Icon,
+  pullRefresh,
   ScreenHeader,
   Skeleton,
 } from "@/components/ui";
@@ -24,7 +25,9 @@ export default function HostReviews() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostReviews(host?.id);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostReviews(
+    host?.id,
+  );
 
   return (
     <View className="flex-1 bg-white">
@@ -36,6 +39,10 @@ export default function HostReviews() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 12,

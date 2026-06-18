@@ -3,7 +3,14 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Plus, Tags } from "lucide-react-native";
 
-import { EmptyState, Icon, ScreenHeader, Skeleton, Tag } from "@/components/ui";
+import {
+  EmptyState,
+  Icon,
+  pullRefresh,
+  ScreenHeader,
+  Skeleton,
+  Tag,
+} from "@/components/ui";
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useHostAddons, type HostAddon } from "@/lib/queries/host-addons";
 import { formatMoney } from "@/lib/format";
@@ -14,7 +21,9 @@ export default function HostAddons() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host } = useAuth();
-  const { data, isLoading, isError } = useHostAddons(host?.id);
+  const { data, isLoading, isError, refetch, isRefetching } = useHostAddons(
+    host?.id,
+  );
 
   function openNew() {
     router.push({ pathname: "/(host)/addon/[id]", params: { id: "new" } });
@@ -39,6 +48,10 @@ export default function HostAddons() {
       />
       <ScrollView
         className="flex-1"
+        refreshControl={pullRefresh({
+          refreshing: isRefetching,
+          onRefresh: refetch,
+        })}
         contentContainerStyle={{
           padding: 20,
           gap: 12,
