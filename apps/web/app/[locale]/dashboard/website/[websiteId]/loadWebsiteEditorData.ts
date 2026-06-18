@@ -2,6 +2,7 @@ import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
 import { createServerClient } from "@/lib/supabase/server";
+import { computeWebsiteDirty } from "@/lib/website/publish";
 
 export type WebsiteEditorData = {
   id: string;
@@ -14,6 +15,8 @@ export type WebsiteEditorData = {
   theme: { preset?: string; accent?: string; font?: string; radius?: string };
   businessName: string | null;
   counts: { pages: number; properties: number; rooms: number; posts: number };
+  /** True when the live draft differs from what's published (or never published). */
+  isDirty: boolean;
 };
 
 /**
@@ -43,6 +46,7 @@ export async function loadWebsiteEditorData(
     { count: properties },
     { count: rooms },
     { count: posts },
+    dirty,
   ] = await Promise.all([
     supabase
       .from("website_pages")
@@ -63,6 +67,7 @@ export async function loadWebsiteEditorData(
       .select("id", { count: "exact", head: true })
       .eq("website_id", site.id)
       .is("deleted_at", null),
+    computeWebsiteDirty(supabase, site.id),
   ]);
 
   const brand = (site.brand ?? {}) as WebsiteEditorData["brand"];
@@ -87,5 +92,6 @@ export async function loadWebsiteEditorData(
       rooms: rooms ?? 0,
       posts: posts ?? 0,
     },
+    isDirty: dirty.isDirty,
   };
 }

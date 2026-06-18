@@ -1,0 +1,162 @@
+import "server-only";
+
+import { pageHref } from "@/lib/site/loadSitePage";
+import type {
+  PublishSnapshot,
+  SiteNavItem,
+  SnapshotRoom,
+} from "@/lib/site/types";
+import type { createAdminClient } from "@/lib/supabase/admin";
+import type { createServerClient } from "@/lib/supabase/server";
+
+// Works with either the owner-scoped server client (publish action / dirty check
+// run by the host) or the service-role admin client.
+type Db =
+  | ReturnType<typeof createAdminClient>
+  | ReturnType<typeof createServerClient>;
+
+/**
+ * Deterministic JSON with recursively sorted object keys. Needed because Postgres
+ * `jsonb` does NOT preserve key order, so a freshly-built snapshot can't be
+ * compared to a read-back one with plain `JSON.stringify`.
+ */
+export function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  return `{${keys
+    .map((k) => `${JSON.stringify(k)}:${stableStringify(obj[k])}`)
+    .join(",")}}`;
+}
+
+function normaliseRooms(
+  rows:
+    | Array<{
+        room_id: string;
+        is_visible: boolean | null;
+        display_name: string | null;
+        display_price: number | string | null;
+        display_currency: string | null;
+        display_desc: string | null;
+        sort_order: number | null;
+      }>
+    | null
+    | undefined,
+): SnapshotRoom[] {
+  return (rows ?? [])
+    .map((r) => ({
+      room_id: r.room_id,
+      is_visible: r.is_visible ?? true,
+      display_name: r.display_name,
+      display_price: r.display_price == null ? null : Number(r.display_price),
+      display_currency: r.display_currency,
+      display_desc: r.display_desc,
+      sort_order: r.sort_order ?? 0,
+    }))
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+/**
+ * Capture the full public-render config for a website from its live (draft)
+ * state — the SSOT used by both {@link publishWebsiteAction} (frozen into
+ * `published_snapshot`) and {@link computeWebsiteDirty} (compared against it).
+ * Section content is NOT included here: pages carry their own draft/published
+ * twin columns, compared separately.
+ */
+export async function buildWebsiteSnapshot(
+  sb: Db,
+  websiteId: string,
+): Promise<PublishSnapshot> {
+  const [{ data: site }, { data: pages }, { data: props }, { data: rooms }] =
+    await Promise.all([
+      sb
+        .from("host_websites")
+        .select("brand, theme, seo")
+        .eq("id", websiteId)
+        .maybeSingle(),
+      sb
+        .from("website_pages")
+        .select("kind, slug, nav_label, title, nav_order, show_in_nav")
+        .eq("website_id", websiteId)
+        .eq("show_in_nav", true)
+        .order("nav_order", { ascending: true }),
+      sb
+        .from("website_properties")
+        .select("property_id, sort_order")
+        .eq("website_id", websiteId)
+        .eq("is_visible", true)
+        .order("sort_order", { ascending: true }),
+      sb
+        .from("website_rooms")
+        .select(
+          "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order",
+        )
+        .eq("website_id", websiteId)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+  const nav: SiteNavItem[] = (pages ?? []).map((p) => ({
+    label: p.nav_label?.trim() || p.title?.trim() || p.slug,
+    href: pageHref(p.kind, p.slug),
+  }));
+
+  return {
+    brand: (site?.brand ?? {}) as Record<string, unknown>,
+    theme: (site?.theme ?? {}) as Record<string, unknown>,
+    seo: (site?.seo ?? {}) as Record<string, unknown>,
+    nav,
+    propertyIds: (props ?? []).map((p) => p.property_id),
+    rooms: normaliseRooms(rooms),
+  };
+}
+
+export type WebsiteDirtyState = {
+  /** Has the site ever been published (and not later taken offline)? */
+  isPublished: boolean;
+  /** Are there unpublished changes (chrome, membership or page content)? */
+  isDirty: boolean;
+};
+
+/**
+ * Compare a website's live (draft) state to its last publish. A never-published
+ * or taken-offline site is always "dirty" (publishing it is the next action).
+ * Otherwise: chrome/membership diff (snapshot) OR any page whose draft sections
+ * differ from its published sections.
+ */
+export async function computeWebsiteDirty(
+  sb: Db,
+  websiteId: string,
+): Promise<WebsiteDirtyState> {
+  const { data: site } = await sb
+    .from("host_websites")
+    .select("status, published_snapshot")
+    .eq("id", websiteId)
+    .maybeSingle<{
+      status: string;
+      published_snapshot: PublishSnapshot | null;
+    }>();
+
+  if (!site || site.status !== "published" || !site.published_snapshot) {
+    return { isPublished: false, isDirty: true };
+  }
+
+  const current = await buildWebsiteSnapshot(sb, websiteId);
+  if (stableStringify(current) !== stableStringify(site.published_snapshot)) {
+    return { isPublished: true, isDirty: true };
+  }
+
+  const { data: pages } = await sb
+    .from("website_pages")
+    .select("draft_sections, published_sections")
+    .eq("website_id", websiteId);
+  const contentDirty = (pages ?? []).some(
+    (p) =>
+      stableStringify(p.draft_sections) !==
+      stableStringify(p.published_sections),
+  );
+
+  return { isPublished: true, isDirty: contentDirty };
+}

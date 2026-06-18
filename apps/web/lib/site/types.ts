@@ -83,6 +83,33 @@ export type SiteSectionDatum = {
 /** sectionId → live data for that section (only auto-populate sections appear). */
 export type SiteData = Record<string, SiteSectionDatum>;
 
+// ── Publish snapshot (W10) ───────────────────────────────────
+/** One room's published channel state, captured into the publish snapshot. */
+export type SnapshotRoom = {
+  room_id: string;
+  is_visible: boolean;
+  display_name: string | null;
+  display_price: number | null;
+  display_currency: string | null;
+  display_desc: string | null;
+  sort_order: number;
+};
+
+/**
+ * Frozen public-render config captured at publish time
+ * (`host_websites.published_snapshot`). The public renderer reads chrome +
+ * channel membership from here so unpublished edits never leak; preview mode
+ * keeps reading the live columns.
+ */
+export type PublishSnapshot = {
+  brand: Record<string, unknown>;
+  theme: Record<string, unknown>;
+  seo: Record<string, unknown>;
+  nav: SiteNavItem[];
+  propertyIds: string[];
+  rooms: SnapshotRoom[];
+};
+
 export type SiteAssetResolver = (
   path: string | null | undefined,
 ) => string | undefined;

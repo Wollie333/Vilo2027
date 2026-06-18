@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { loadWebsiteEditorData } from "./loadWebsiteEditorData";
+import { PublishBar } from "./_components/PublishBar";
 import { WebsiteTabs } from "./_components/WebsiteTabs";
 
 export const dynamic = "force-dynamic";
@@ -67,14 +68,11 @@ export default async function WebsiteEditorLayout({
             <ExternalLink className="h-4 w-4" />
             {t("previewCta")}
           </Link>
-          <button
-            type="button"
-            disabled
-            title={t("publishDisabledHint")}
-            className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white opacity-50"
-          >
-            {t("publishCta")}
-          </button>
+          <PublishBar
+            websiteId={websiteId}
+            status={data.status}
+            isDirty={data.isDirty}
+          />
         </div>
       </header>
 

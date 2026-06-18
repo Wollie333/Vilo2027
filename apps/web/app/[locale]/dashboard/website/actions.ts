@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireHost } from "@/lib/host/current";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { buildWebsiteSnapshot } from "@/lib/website/publish";
 import { validateSubdomain } from "@/lib/website/subdomain";
 
 import {
@@ -569,6 +570,78 @@ export async function syncWebsiteRoomsAction(
   }
 
   revalidatePath(`/dashboard/website/${websiteId}/rooms`);
+  return { ok: true };
+}
+
+// ============================================================
+// W10 — Publish workflow
+// ============================================================
+
+/**
+ * Publish the site: copy every page's draft sections to its published sections,
+ * freeze the public-render config (chrome + channel membership + room overrides)
+ * into `published_snapshot`, and mark the site `published`. The public renderer
+ * reads ONLY this frozen state, so unpublished edits never leak.
+ */
+export async function publishWebsiteAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature())) return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+
+  // Copy draft → published for every page. There's no SQL column-to-column copy
+  // via the JS client, so read the drafts and write them back (pages are few).
+  const { data: pages } = await supabase
+    .from("website_pages")
+    .select("id, draft_sections")
+    .eq("website_id", websiteId);
+  for (const page of pages ?? []) {
+    const { error: pageErr } = await supabase
+      .from("website_pages")
+      .update({ published_sections: page.draft_sections })
+      .eq("id", page.id)
+      .eq("website_id", websiteId);
+    if (pageErr) return { ok: false, error: "publish_failed" };
+  }
+
+  const snapshot = await buildWebsiteSnapshot(supabase, websiteId);
+
+  const { error } = await supabase
+    .from("host_websites")
+    .update({
+      published_snapshot: snapshot,
+      status: "published",
+      published_at: new Date().toISOString(),
+    })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "publish_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
+  return { ok: true };
+}
+
+/**
+ * Take the site offline. The public renderer 404s anything that isn't
+ * `published`, so this hides the site without discarding the draft or the last
+ * published snapshot — republishing brings it straight back.
+ */
+export async function unpublishWebsiteAction(
+  websiteId: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ status: "unpublished" })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
   return { ok: true };
 }
 

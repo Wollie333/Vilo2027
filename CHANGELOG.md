@@ -5,6 +5,37 @@
 
 ---
 
+## 2026-06-18 — Website CMS Phase 10: Publish workflow
+
+### Added
+- **Publish workflow** — a `PublishBar` in the editor header replaces the old
+  disabled button. `publishWebsiteAction` copies every page's `draft_sections`
+  to `published_sections`, freezes the public-render config (chrome + channel
+  membership + room overrides) into `host_websites.published_snapshot`, and sets
+  `status='published'` + `published_at`. `unpublishWebsiteAction` takes a live
+  site offline (keeps the draft + last snapshot; republish restores instantly).
+- **Dirty detection** — `lib/website/publish.ts` (`buildWebsiteSnapshot`,
+  `computeWebsiteDirty`, key-order-independent `stableStringify`). A site is
+  "dirty" when never published/offline, or when the live snapshot differs from
+  the published one, or any page's draft sections differ from its published
+  sections. Surfaced as the Publish button enabled state, a status pill in the
+  header, and a status banner on the Overview tab.
+
+### Changed
+- **Public renderer now reads published state only.** `loadSiteContext`
+  (non-preview) sources brand/theme/nav, visible property ids and room overrides
+  from `published_snapshot` instead of the live columns, so unpublished edits no
+  longer leak to visitors. Preview mode (and legacy published sites without a
+  snapshot) keep reading live columns + `draft_sections`. The rooms assembly was
+  refactored to resolve override rows from either source, joined to live
+  `property_rooms` for current price/photos. Booking still re-prices server-side.
+
+### Notes
+- No DB schema change (publish columns shipped in W1). Help migration
+  `20260617001000_help_website_publish.sql` (`website-publishing`). +21 `website`
+  i18n keys (en). `scripts/verify-website-publish.mjs` 🎉. build + lint +
+  type-check green.
+
 ## 2026-06-18 — Website CMS Phase 9: Rooms tab
 
 ### Added

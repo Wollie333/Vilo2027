@@ -5,10 +5,12 @@
 // `next/headers` so it can also run from verify scripts — the route files read
 // the host header / `?site` param and pass the ref + preview flag in.
 //
-// Chrome (brand/theme/nav) is read from the live `host_websites` columns for now;
-// the `published_snapshot` fast-path is wired in the publish workflow (W10). The
-// draft-vs-published split IS honoured here: `preview` selects draft_sections and
-// allows any status; public selects published_sections and requires published.
+// The draft-vs-published split is honoured throughout. PUBLIC (non-preview):
+// chrome (brand/theme/nav), channel membership and room overrides are read from
+// `host_websites.published_snapshot` (frozen at publish, W10), and pages render
+// `published_sections` — so unpublished edits never leak; a published site with
+// no snapshot yet (legacy) falls back to the live columns. PREVIEW: live columns
+// + `draft_sections`, allowing any status.
 import { sanitiseListingHtml } from "@/lib/sanitiseHtml";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
@@ -22,12 +24,14 @@ import type {
   BlogCard,
   GalleryImage,
   Poi,
+  PublishSnapshot,
   ReviewCard,
   RoomCard,
   SiteBrand,
   SiteData,
   SiteDataByType,
   SiteNavItem,
+  SnapshotRoom,
 } from "./types";
 
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
@@ -43,6 +47,11 @@ export type SiteContext = {
   nav: SiteNavItem[];
   /** Ordered, visible property ids for this site (channel membership). */
   propertyIds: string[];
+  /**
+   * Frozen room channel state to render from (the published snapshot). `null`
+   * in preview / legacy mode, where the rooms assembly reads `website_rooms` live.
+   */
+  publishedRoomRows: SnapshotRoom[] | null;
 };
 
 export type SitePageMeta = {
@@ -71,7 +80,7 @@ export function resolveSiteRef(input: {
   return null;
 }
 
-function pageHref(kind: string, slug: string): string {
+export function pageHref(kind: string, slug: string): string {
   return kind === "home" ? "/" : `/${slug}`;
 }
 
@@ -89,7 +98,7 @@ export async function loadSiteContext(
   const { data: site } = await sb
     .from("host_websites")
     .select(
-      "id, business_id, status, subdomain, custom_domain, brand, theme, deleted_at, business:businesses ( default_language, trading_name )",
+      "id, business_id, status, subdomain, custom_domain, brand, theme, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
     )
     .or(`subdomain.eq.${ref},custom_domain.eq.${ref}`)
     .is("deleted_at", null)
@@ -101,6 +110,7 @@ export async function loadSiteContext(
       custom_domain: string | null;
       brand: Record<string, unknown> | null;
       theme: Record<string, unknown> | null;
+      published_snapshot: PublishSnapshot | null;
       business: {
         default_language: string | null;
         trading_name: string | null;
@@ -110,7 +120,17 @@ export async function loadSiteContext(
   if (!site) return null;
   if (!preview && site.status !== "published") return null;
 
-  const brandJson = site.brand ?? {};
+  // Public render reads the frozen snapshot (so unpublished edits don't leak);
+  // preview — and legacy published sites with no snapshot yet — read live cols.
+  const snap =
+    !preview && site.status === "published" && site.published_snapshot
+      ? site.published_snapshot
+      : null;
+
+  const brandJson = (snap?.brand ?? site.brand ?? {}) as Record<
+    string,
+    unknown
+  >;
   const brand: SiteBrand = {
     name:
       (brandJson.name as string)?.trim() ||
@@ -119,26 +139,38 @@ export async function loadSiteContext(
     tagline: (brandJson.tagline as string) ?? null,
     logoUrl: websiteAssetUrl(brandJson.logo_path as string | undefined),
   };
+  const theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
 
-  const [{ data: pageRows }, { data: memberRows }] = await Promise.all([
-    sb
-      .from("website_pages")
-      .select("kind, slug, nav_label, title, nav_order, show_in_nav")
-      .eq("website_id", site.id)
-      .eq("show_in_nav", true)
-      .order("nav_order", { ascending: true }),
-    sb
-      .from("website_properties")
-      .select("property_id, sort_order")
-      .eq("website_id", site.id)
-      .eq("is_visible", true)
-      .order("sort_order", { ascending: true }),
-  ]);
+  let nav: SiteNavItem[];
+  let propertyIds: string[];
+  let publishedRoomRows: SnapshotRoom[] | null;
 
-  const nav: SiteNavItem[] = (pageRows ?? []).map((p) => ({
-    label: p.nav_label?.trim() || p.title?.trim() || p.slug,
-    href: pageHref(p.kind, p.slug),
-  }));
+  if (snap) {
+    nav = snap.nav ?? [];
+    propertyIds = snap.propertyIds ?? [];
+    publishedRoomRows = snap.rooms ?? [];
+  } else {
+    const [{ data: pageRows }, { data: memberRows }] = await Promise.all([
+      sb
+        .from("website_pages")
+        .select("kind, slug, nav_label, title, nav_order, show_in_nav")
+        .eq("website_id", site.id)
+        .eq("show_in_nav", true)
+        .order("nav_order", { ascending: true }),
+      sb
+        .from("website_properties")
+        .select("property_id, sort_order")
+        .eq("website_id", site.id)
+        .eq("is_visible", true)
+        .order("sort_order", { ascending: true }),
+    ]);
+    nav = (pageRows ?? []).map((p) => ({
+      label: p.nav_label?.trim() || p.title?.trim() || p.slug,
+      href: pageHref(p.kind, p.slug),
+    }));
+    propertyIds = (memberRows ?? []).map((m) => m.property_id);
+    publishedRoomRows = null;
+  }
 
   return {
     websiteId: site.id,
@@ -147,9 +179,10 @@ export async function loadSiteContext(
     preview,
     locale: site.business?.default_language || "en",
     brand,
-    theme: (site.theme ?? {}) as SiteThemeConfig,
+    theme,
     nav,
-    propertyIds: (memberRows ?? []).map((m) => m.property_id),
+    propertyIds,
+    publishedRoomRows,
   };
 }
 
@@ -321,38 +354,73 @@ export async function assembleSiteDataByType(
       out.gallery = { images };
     })(),
 
-    // ROOMS — website_rooms (visible) ⨝ property_rooms, with display overrides.
+    // ROOMS — visible website_rooms overrides ⨝ live property_rooms.
+    // Public render uses the frozen snapshot rows (ctx.publishedRoomRows);
+    // preview / legacy reads website_rooms live. Either way the live
+    // property_rooms supply current price/active state and photos.
     (async () => {
       if (!types.has("rooms_preview")) return;
-      const { data: wr } = await sb
-        .from("website_rooms")
-        .select(
-          "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order, room:property_rooms ( id, name, description, base_price, currency, property_id, is_active, deleted_at )",
-        )
-        .eq("website_id", ctx.websiteId)
-        .eq("is_visible", true)
-        .order("sort_order", { ascending: true });
 
-      const roomIds = (wr ?? [])
-        .map((r) => (r as { room_id: string }).room_id)
-        .filter(Boolean);
-      const photoByRoom = new Map<string, string>();
-      if (roomIds.length > 0) {
-        const { data: rphotos } = await sb
+      let overrideRows: SnapshotRoom[];
+      if (ctx.publishedRoomRows) {
+        overrideRows = ctx.publishedRoomRows
+          .filter((r) => r.is_visible)
+          .sort((a, b) => a.sort_order - b.sort_order);
+      } else {
+        const { data: wr } = await sb
+          .from("website_rooms")
+          .select(
+            "room_id, is_visible, display_name, display_price, display_currency, display_desc, sort_order",
+          )
+          .eq("website_id", ctx.websiteId)
+          .eq("is_visible", true)
+          .order("sort_order", { ascending: true });
+        overrideRows = (wr ?? []).map((r) => ({
+          room_id: (r as { room_id: string }).room_id,
+          is_visible: true,
+          display_name: (r as { display_name: string | null }).display_name,
+          display_price: (r as { display_price: number | string | null })
+            .display_price as number | null,
+          display_currency: (r as { display_currency: string | null })
+            .display_currency,
+          display_desc: (r as { display_desc: string | null }).display_desc,
+          sort_order: (r as { sort_order: number }).sort_order,
+        }));
+      }
+
+      const roomIds = overrideRows.map((r) => r.room_id).filter(Boolean);
+      if (roomIds.length === 0) {
+        out.rooms_preview = { rooms: [] };
+        return;
+      }
+
+      const [{ data: prRows }, { data: rphotos }] = await Promise.all([
+        sb
+          .from("property_rooms")
+          .select(
+            "id, name, description, base_price, currency, property_id, is_active, deleted_at",
+          )
+          .in("id", roomIds),
+        sb
           .from("property_photos")
           .select("url, room_id, sort_order")
           .in("room_id", roomIds)
-          .order("sort_order", { ascending: true });
-        for (const p of rphotos ?? []) {
-          const rid = (p as { room_id: string | null }).room_id;
-          if (rid && !photoByRoom.has(rid))
-            photoByRoom.set(rid, (p as { url: string }).url);
-        }
+          .order("sort_order", { ascending: true }),
+      ]);
+
+      const roomById = new Map(
+        (prRows ?? []).map((r) => [(r as { id: string }).id, r]),
+      );
+      const photoByRoom = new Map<string, string>();
+      for (const p of rphotos ?? []) {
+        const rid = (p as { room_id: string | null }).room_id;
+        if (rid && !photoByRoom.has(rid))
+          photoByRoom.set(rid, (p as { url: string }).url);
       }
 
-      const rooms: RoomCard[] = (wr ?? [])
-        .map((r): RoomCard | null => {
-          const room = (r as { room: unknown }).room as {
+      const rooms: RoomCard[] = overrideRows
+        .map((ov): RoomCard | null => {
+          const room = roomById.get(ov.room_id) as {
             id: string;
             name: string;
             description: string | null;
@@ -364,12 +432,6 @@ export async function assembleSiteDataByType(
           } | null;
           if (!room || room.is_active === false || room.deleted_at) return null;
           const slug = slugByProperty.get(room.property_id) ?? "";
-          const ov = r as {
-            display_name: string | null;
-            display_price: number | string | null;
-            display_desc: string | null;
-            display_currency: string | null;
-          };
           const price = ov.display_price ?? room.base_price;
           return {
             id: room.id,

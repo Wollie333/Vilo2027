@@ -143,9 +143,25 @@
 > per-room CTA already deep-links `/property/[slug]/book` (re-prices server-side). **NO DB schema
 > change** (cols from W1). Help migration `20260617000900` pushed; +~18 `website` i18n keys (en).
 > build+lint+type-check green; `scripts/verify-website-rooms.mjs` 🎉.
-> **Next: W10 — Publish workflow** (plan §8.10): `publishWebsiteAction` (twin-column copy +
-> `published_snapshot`) + dirty detection + "Publish changes" button + Overview status; public
-> reads published only. Fresh session per phase.
+> **W10 (Publish workflow, plan §8.10) DONE** (commit pending): the editor header `PublishBar`
+> island replaces the disabled button. `publishWebsiteAction` copies every page's `draft_sections`
+> → `published_sections` and freezes the public-render config (brand/theme/nav + visible property
+> ids + room overrides) into `host_websites.published_snapshot` + `status='published'` +
+> `published_at`; `unpublishWebsiteAction` takes a live site offline (keeps draft + snapshot).
+> **Dirty detection** = new `lib/website/publish.ts` (`buildWebsiteSnapshot`, `computeWebsiteDirty`,
+> key-order-independent `stableStringify` — jsonb doesn't preserve key order): dirty when
+> never-published/offline, or live snapshot ≠ published snapshot, or any page draft≠published
+> sections. Surfaced via Publish-button enabled state + header status pill + Overview status banner
+> (`loadWebsiteEditorData.isDirty`). **KEY CHANGE:** `loadSiteContext` non-preview now reads chrome +
+> membership + room overrides from `published_snapshot` (NOT live cols) so unpublished edits no longer
+> leak; preview + legacy-no-snapshot fall back to live. Rooms assembly refactored to take override
+> rows from either source ⨝ live `property_rooms` (price/photos stay live; booking re-prices
+> server-side). `pageHref` exported for snapshot nav SSOT. **NO DB schema change** (publish cols from
+> W1). Help migration `20260617001000` pushed; +21 `website` i18n keys (en). build+lint+type-check
+> green; `scripts/verify-website-publish.mjs` 🎉.
+> **Next: W11 — Blog** (plan §8 item 11 / route `[websiteId]/blog`): list + full-screen post editor
+> over `website_blog_posts` + `website_blog_categories`, gated `website_blog`, publish-aware. Fresh
+> session per phase.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
