@@ -1,9 +1,28 @@
 "use client";
 
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   ChevronDown,
+  Copy,
   Eye,
   EyeOff,
+  GripVertical,
   Loader2,
   Monitor,
   Plus,
@@ -102,6 +121,13 @@ export function SectionBuilder({
   const [saving, startSave] = useTransition();
   const previewRef = useRef<HTMLDivElement>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
   const previewData = useMemo(
     () => buildPreviewData(sections, dataByType),
     [sections, dataByType],
@@ -127,13 +153,24 @@ export function SectionBuilder({
     if (selectedId === id) setSelectedId(null);
   }
 
-  function move(id: string, dir: -1 | 1) {
+  function duplicateSection(id: string) {
     const i = sections.findIndex((s) => s.id === id);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= sections.length) return;
-    const next = [...sections];
-    [next[i], next[j]] = [next[j], next[i]];
-    mutate(next);
+    if (i < 0) return;
+    const copy = {
+      ...structuredClone(sections[i]),
+      id: crypto.randomUUID(),
+    } as WebsiteSection;
+    mutate([...sections.slice(0, i + 1), copy, ...sections.slice(i + 1)]);
+    setSelectedId(copy.id);
+  }
+
+  function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sections.findIndex((s) => s.id === active.id);
+    const newIndex = sections.findIndex((s) => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    mutate(arrayMove(sections, oldIndex, newIndex));
   }
 
   function addSection(type: SectionType) {
@@ -220,106 +257,34 @@ export function SectionBuilder({
             {t("noSections")}
           </p>
         ) : (
-          <ul className="space-y-2">
-            {sections.map((s, i) => {
-              const open = selectedId === s.id;
-              return (
-                <li
-                  key={s.id}
-                  className={`rounded-card border bg-white transition ${
-                    open
-                      ? "border-brand-primary shadow-card"
-                      : "border-brand-line"
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 px-2.5 py-2">
-                    <div className="flex flex-col">
-                      <button
-                        type="button"
-                        onClick={() => move(s.id, -1)}
-                        disabled={i === 0}
-                        className="text-brand-mute hover:text-brand-ink disabled:opacity-25"
-                        aria-label={t("moveUp")}
-                      >
-                        <ChevronDown className="h-3.5 w-3.5 rotate-180" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => move(s.id, 1)}
-                        disabled={i === sections.length - 1}
-                        className="text-brand-mute hover:text-brand-ink disabled:opacity-25"
-                        aria-label={t("moveDown")}
-                      >
-                        <ChevronDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(open ? null : s.id)}
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                    >
-                      <span
-                        className={`truncate text-sm font-semibold ${
-                          s.enabled
-                            ? "text-brand-ink"
-                            : "text-brand-mute line-through"
-                        }`}
-                      >
-                        {t(`sectionType_${s.type}`)}
-                      </span>
-                      {isAutoPopulate(s.type) ? (
-                        <span className="shrink-0 rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase text-brand-mute">
-                          {t("liveBadge")}
-                        </span>
-                      ) : null}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleEnabled(s.id)}
-                      title={s.enabled ? t("hideSection") : t("showSection")}
-                      className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-                    >
-                      {s.enabled ? (
-                        <Eye className="h-4 w-4" />
-                      ) : (
-                        <EyeOff className="h-4 w-4" />
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeSection(s.id)}
-                      title={t("deleteSection")}
-                      className="rounded p-1.5 text-brand-mute hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedId(open ? null : s.id)}
-                      aria-label={t("editSection")}
-                      className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-                    >
-                      <ChevronDown
-                        className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                  </div>
-
-                  {open ? (
-                    <div className="border-t border-brand-line px-3.5 py-4">
-                      <SectionEditor
-                        websiteId={websiteId}
-                        section={s}
-                        onChange={updateSection}
-                      />
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext
+              items={sections.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ul className="space-y-2">
+                {sections.map((s) => (
+                  <SortableSectionRow
+                    key={s.id}
+                    section={s}
+                    websiteId={websiteId}
+                    open={selectedId === s.id}
+                    onSelect={() =>
+                      setSelectedId(selectedId === s.id ? null : s.id)
+                    }
+                    onToggle={() => toggleEnabled(s.id)}
+                    onDuplicate={() => duplicateSection(s.id)}
+                    onRemove={() => removeSection(s.id)}
+                    onChange={updateSection}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -377,5 +342,134 @@ export function SectionBuilder({
         </div>
       </div>
     </div>
+  );
+}
+
+/** One draggable section row (grip handle = drag; keyboard-accessible via dnd-kit). */
+function SortableSectionRow({
+  section,
+  websiteId,
+  open,
+  onSelect,
+  onToggle,
+  onDuplicate,
+  onRemove,
+  onChange,
+}: {
+  section: WebsiteSection;
+  websiteId: string;
+  open: boolean;
+  onSelect: () => void;
+  onToggle: () => void;
+  onDuplicate: () => void;
+  onRemove: () => void;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 30 : undefined,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-card border bg-white transition ${
+        open ? "border-brand-primary shadow-card" : "border-brand-line"
+      } ${isDragging ? "shadow-lift" : ""}`}
+    >
+      <div className="flex items-center gap-1.5 px-2.5 py-2">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={t("dragToReorder")}
+          className="cursor-grab touch-none text-brand-mute/70 hover:text-brand-ink active:cursor-grabbing"
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <span
+            className={`truncate text-sm font-semibold ${
+              section.enabled
+                ? "text-brand-ink"
+                : "text-brand-mute line-through"
+            }`}
+          >
+            {t(`sectionType_${section.type}`)}
+          </span>
+          {isAutoPopulate(section.type) ? (
+            <span className="shrink-0 rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase text-brand-mute">
+              {t("liveBadge")}
+            </span>
+          ) : null}
+        </button>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          title={section.enabled ? t("hideSection") : t("showSection")}
+          className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+        >
+          {section.enabled ? (
+            <Eye className="h-4 w-4" />
+          ) : (
+            <EyeOff className="h-4 w-4" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onDuplicate}
+          title={t("duplicateSection")}
+          className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onRemove}
+          title={t("deleteSection")}
+          className="rounded p-1.5 text-brand-mute hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-label={t("editSection")}
+          className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+
+      {open ? (
+        <div className="border-t border-brand-line px-3.5 py-4">
+          <SectionEditor
+            websiteId={websiteId}
+            section={section}
+            onChange={onChange}
+          />
+        </div>
+      ) : null}
+    </li>
   );
 }

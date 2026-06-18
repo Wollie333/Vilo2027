@@ -542,6 +542,68 @@ export async function saveDraftSectionsAction(
 }
 
 /**
+ * Duplicate a page into a new custom page — copies its draft sections (with fresh
+ * section ids so ids never collide), derives a unique slug, and starts it hidden
+ * from the nav. Returns the new page id so the caller can open it.
+ */
+export async function duplicatePageAction(
+  websiteId: string,
+  pageId: string,
+): Promise<CreateResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: src } = await supabase
+    .from("website_pages")
+    .select("title, slug, nav_label, draft_sections")
+    .eq("id", pageId)
+    .eq("website_id", websiteId)
+    .maybeSingle();
+  if (!src) return { ok: false, error: "not_found" };
+
+  // Unique slug + next nav order within this site.
+  const { data: pageRows } = await supabase
+    .from("website_pages")
+    .select("slug, nav_order")
+    .eq("website_id", websiteId);
+  const taken = new Set((pageRows ?? []).map((r) => r.slug));
+  const newSlug = uniqueSlug(`${src.slug}-copy`, taken);
+  const nextOrder =
+    Math.max(0, ...(pageRows ?? []).map((r) => r.nav_order ?? 0)) + 1;
+
+  // Clone sections with fresh ids (unique per page).
+  const sections = Array.isArray(src.draft_sections) ? src.draft_sections : [];
+  const cloned = sections.map((s) =>
+    s && typeof s === "object"
+      ? { ...(s as Record<string, unknown>), id: uuid() }
+      : s,
+  );
+
+  const { data: page, error } = await supabase
+    .from("website_pages")
+    .insert({
+      website_id: websiteId,
+      kind: "custom",
+      slug: newSlug,
+      title: `${src.title ?? src.slug} (copy)`,
+      nav_label: src.nav_label,
+      nav_order: nextOrder,
+      show_in_nav: false,
+      draft_sections: cloned,
+      published_sections: [],
+    })
+    .select("id")
+    .single();
+  if (error || !page) return { ok: false, error: "create_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/pages`);
+  return { ok: true, id: page.id };
+}
+
+/**
  * Issue a signed upload URL for a section image (hero / host photo). Same direct
  * browser→Storage pattern as the logo; the returned path is stored into the
  * section's props and persisted on the next Save. Path is `{websiteId}/...` to

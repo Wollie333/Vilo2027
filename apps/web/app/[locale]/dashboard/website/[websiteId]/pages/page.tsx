@@ -3,6 +3,7 @@ import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { DuplicatePageButton } from "./DuplicatePageButton";
 import { loadPagesList } from "./loadPagesList";
 
 export const dynamic = "force-dynamic";
@@ -36,10 +37,10 @@ export default async function WebsitePagesList({
 
       <ul className="space-y-2.5">
         {pages.map((p) => (
-          <li key={p.id}>
+          <li key={p.id} className="flex items-center gap-2">
             <Link
               href={`/dashboard/website/${websiteId}/pages/${p.id}`}
-              className="flex items-center gap-3 rounded-card border border-brand-line bg-white p-4 transition hover:border-brand-mute hover:shadow-card"
+              className="flex flex-1 items-center gap-3 rounded-card border border-brand-line bg-white p-4 transition hover:border-brand-mute hover:shadow-card"
             >
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
                 <FileText className="h-5 w-5" />
@@ -62,6 +63,7 @@ export default async function WebsitePagesList({
               </div>
               <ChevronRight className="h-4 w-4 shrink-0 text-brand-mute" />
             </Link>
+            <DuplicatePageButton websiteId={websiteId} pageId={p.id} />
           </li>
         ))}
       </ul>
