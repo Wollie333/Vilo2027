@@ -167,7 +167,12 @@ export async function loadListingEditorData(
       .eq("host_id", listing.host_id)
       .eq("status", "active")
       .is("deleted_at", null)
-      .in("type", ["cancellation", "check_in_out", "house_rules"])
+      .in("type", [
+        "cancellation",
+        "check_in_out",
+        "house_rules",
+        "booking_terms",
+      ])
       .order("type", { ascending: true })
       .order("created_at", { ascending: true }),
     db

@@ -30,6 +30,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useBrandName } from "@/components/brand/BrandProvider";
+import { PolicyDialog } from "@/components/policy/PolicyDialog";
 import { formatMoney } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
@@ -197,6 +198,7 @@ export function BookingForm({
   currency,
   cancellationPolicy,
   cancellation,
+  bookingTerms,
   instantBooking,
   bookingMode,
   checkIn,
@@ -248,6 +250,10 @@ export function BookingForm({
     rules: { days_before: number; refund_percent: number; label: string }[];
     note: string | null;
   } | null;
+  // The host's own property Terms & Conditions (resolver: listing-wide → host
+  // default). Accepted at checkout ALONGSIDE Vilo's platform terms + snapshotted
+  // onto the booking. Null when the host has none.
+  bookingTerms: { name: string; bodyHtml: string | null } | null;
   instantBooking: boolean;
   bookingMode: string;
   checkIn: string;
@@ -1952,12 +1958,42 @@ export function BookingForm({
               />
               <span>
                 I understand the cancellation policy and refund schedule, and I
-                accept the{" "}
+                accept{" "}
+                {bookingTerms ? (
+                  <>
+                    {hostName ? `${hostName}’s ` : "the host’s "}
+                    <PolicyDialog
+                      data={{
+                        type: "booking_terms",
+                        name: bookingTerms.name,
+                        summary: null,
+                        isNonRefundable: false,
+                        rules: [],
+                        checkInTime: null,
+                        checkOutTime: null,
+                        bodyHtml: bookingTerms.bodyHtml,
+                      }}
+                      trigger={
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-brand-primary underline underline-offset-2"
+                        >
+                          terms &amp; conditions
+                        </button>
+                      }
+                    />
+                    {", as well as the "}
+                  </>
+                ) : (
+                  "the "
+                )}
                 <a
                   href="/terms"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-brand-primary underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   booking terms
                 </a>{" "}
@@ -1967,6 +2003,7 @@ export function BookingForm({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-brand-primary underline underline-offset-2"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   privacy notice
                 </a>

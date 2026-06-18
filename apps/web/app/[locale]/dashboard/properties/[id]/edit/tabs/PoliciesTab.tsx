@@ -38,6 +38,7 @@ const SECTION_BLURB: Partial<Record<PolicyType, string>> = {
   cancellation: "How much guests are refunded if they cancel.",
   check_in_out: "Check-in and check-out times for this listing.",
   house_rules: "The rules guests agree to when booking.",
+  booking_terms: "Your terms & conditions, accepted by guests at checkout.",
 };
 
 export function PoliciesTab({
@@ -59,7 +60,12 @@ export function PoliciesTab({
   } | null>(null);
   const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
 
-  const types: PolicyType[] = ["cancellation", "check_in_out", "house_rules"];
+  const types: PolicyType[] = [
+    "cancellation",
+    "check_in_out",
+    "house_rules",
+    "booking_terms",
+  ];
 
   const byType = useMemo(() => {
     const m = new Map<PolicyType, AvailablePolicy[]>();

@@ -8866,6 +8866,10 @@ export type Database = {
         Args: { p_booking_id: string }
         Returns: undefined
       }
+      ensure_host_booking_terms: {
+        Args: { p_host_id: string }
+        Returns: undefined
+      }
       ensure_host_default_policies: {
         Args: { p_host_id: string }
         Returns: undefined

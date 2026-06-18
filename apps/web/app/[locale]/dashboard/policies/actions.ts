@@ -206,9 +206,22 @@ async function applyPolicyUpdate(
   policyId: string,
   input: PolicyInput,
 ): Promise<ActionResult> {
+  // Terms & Conditions are a legal record — bump the version on every edit so
+  // each booking's snapshot pins exactly which wording the guest accepted.
+  let nextVersion: number | undefined;
+  if (input.type === "booking_terms") {
+    const { data: cur } = await db
+      .from("policies")
+      .select("version")
+      .eq("id", policyId)
+      .maybeSingle();
+    nextVersion = (cur?.version ?? 1) + 1;
+  }
+
   const core = {
     name: input.data.name,
     summary: input.data.summary ?? null,
+    ...(nextVersion !== undefined ? { version: nextVersion } : {}),
     ...(input.type === "cancellation"
       ? { is_non_refundable: input.data.is_non_refundable }
       : {}),

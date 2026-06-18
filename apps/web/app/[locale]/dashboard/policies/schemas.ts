@@ -1,12 +1,14 @@
 import { z } from "zod";
 
-// The host-managed, separately-assignable policy kinds. Booking terms + privacy
-// are NOT here: they are platform-wide, Vilo-authored documents (see
-// platform_settings.legal_* and /admin/platform/settings), not host-editable.
+// The host-managed, separately-assignable policy kinds. `booking_terms` is the
+// host's own property Terms & Conditions (accepted at checkout ALONGSIDE Vilo's
+// platform Terms). `privacy` is NOT here — it stays platform-wide, Vilo-authored
+// (see platform_settings.legal_* and /admin/platform/settings).
 export const POLICY_TYPES = [
   { value: "cancellation" as const, label: "Refund terms" },
   { value: "check_in_out" as const, label: "Check-in / Check-out" },
   { value: "house_rules" as const, label: "House rules" },
+  { value: "booking_terms" as const, label: "Terms & Conditions" },
 ];
 
 export const policyTypeSchema = z.enum([

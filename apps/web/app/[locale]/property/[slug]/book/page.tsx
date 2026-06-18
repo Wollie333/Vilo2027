@@ -377,6 +377,14 @@ export default async function BookingPage({
         note: note?.note ?? null,
       }
     : null;
+  // The host's own property Terms & Conditions (accepted alongside Vilo's
+  // platform terms; snapshotted onto the booking by snapshot_booking_policies).
+  const checkoutBookingTerms = policySummary.booking_terms
+    ? {
+        name: policySummary.booking_terms.name,
+        bodyHtml: policySummary.booking_terms.body_html ?? null,
+      }
+    : null;
 
   return (
     <div className="bg-white text-brand-ink">
@@ -407,6 +415,7 @@ export default async function BookingPage({
           currency={listing.currency}
           cancellationPolicy={listing.cancellation_policy}
           cancellation={checkoutCancellation}
+          bookingTerms={checkoutBookingTerms}
           instantBooking={listing.instant_booking}
           bookingMode={listing.booking_mode}
           checkIn={checkIn}

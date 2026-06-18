@@ -30,6 +30,9 @@ export type ListingPolicySummary = {
   cancellation?: PolicyCancellation;
   check_in_out?: PolicyContent;
   house_rules?: PolicyContent;
+  // The host's own property Terms & Conditions (resolver: room → listing-wide →
+  // host default). Surfaced at checkout alongside Vilo's platform terms.
+  booking_terms?: PolicyContent;
 };
 
 export async function getListingPolicySummary(
