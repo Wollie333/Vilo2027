@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 3: Theme tab
+
+### Added
+- **Visual preset cards** with a mini page mock + palette swatch row; new dark
+  **Nightfall** preset.
+- **Accent swatches** (curated quick colours) alongside the custom colour picker;
+  auto-readable on-accent ink.
+- **Typography cards** with live "Ag" samples; two new pairings — **grotesk**
+  (geometric) and **editorial** (serif) — using widely-available system stacks.
+- **Corners** as a segmented control; **Reset to preset**.
+- **Full-site live preview** — renders the host's REAL home page (chrome +
+  sections) and re-themes it instantly via live `--site-*` vars, with
+  desktop/phone toggle (server-renders once, client re-themes).
+- Extended `themes.ts` (Nightfall preset, grotesk/editorial fonts), `SITE_FONTS`/
+  `SITE_PRESET_NAMES`; help article `website-theme` refreshed.
+
+### Deferred
+- Per-section background controls (light/soft/dark band) move to **Phase 5** — they
+  are inherently per-section and belong in the section editor, not the global theme.
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 2: Brand tab
 
 Rebuilt Logo & Brand into a full identity editor with a live header/footer preview.

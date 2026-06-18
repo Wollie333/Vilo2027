@@ -41,7 +41,13 @@ export const brandSchema = z.object({
 
 export type BrandInput = z.infer<typeof brandSchema>;
 
-export const SITE_FONTS = ["sans", "serif", "elegant"] as const;
+export const SITE_FONTS = [
+  "sans",
+  "serif",
+  "elegant",
+  "grotesk",
+  "editorial",
+] as const;
 export const SITE_RADII = ["none", "sm", "md", "lg", "xl"] as const;
 export const SITE_PRESET_NAMES = [
   "classic",
@@ -49,6 +55,7 @@ export const SITE_PRESET_NAMES = [
   "coastal",
   "warm",
   "minimal",
+  "nightfall",
 ] as const;
 
 // Empty strings on accent/font/radius mean "inherit from the preset" — they are

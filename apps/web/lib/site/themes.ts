@@ -9,7 +9,7 @@
 // module resolves that config into a palette + font stack + radius and emits the
 // CSS-variable object. Pure data — safe to import in server or client.
 
-export type SiteFont = "sans" | "serif" | "elegant";
+export type SiteFont = "sans" | "serif" | "elegant" | "grotesk" | "editorial";
 export type SiteRadius = "none" | "sm" | "md" | "lg" | "xl";
 
 export type SitePalette = {
@@ -100,6 +100,20 @@ export const SITE_PRESETS = {
     font: "sans",
     radius: "none",
   },
+  nightfall: {
+    label: "Nightfall",
+    palette: {
+      bg: "#0E1116",
+      surface: "#171B22",
+      ink: "#F3EEE3",
+      mute: "#A0A7B2",
+      line: "#2A2F38",
+      accent: "#CBA653",
+      accentInk: "#14110D",
+    },
+    font: "elegant",
+    radius: "md",
+  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;
@@ -122,6 +136,18 @@ const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
     heading:
       '"Cormorant Garamond", Georgia, Cambria, "Times New Roman", ui-serif, serif',
     body: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  },
+  grotesk: {
+    // Geometric, slightly characterful sans (system fonts, no web-font load).
+    heading:
+      '"Trebuchet MS", "Avenir Next", "Segoe UI", Verdana, system-ui, sans-serif',
+    body: '"Segoe UI", "Avenir Next", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif',
+  },
+  editorial: {
+    // Classic editorial serif for both heading and body.
+    heading:
+      '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, "Times New Roman", ui-serif, serif',
+    body: '"Palatino Linotype", "Book Antiqua", Palatino, Georgia, ui-serif, serif',
   },
 };
 
