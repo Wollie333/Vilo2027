@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 0B: reusable media library
+
+Second foundation phase. A shared image browser so hosts reuse already-uploaded
+assets instead of re-uploading the same photo in every field.
+
+### Added
+- **`website_media`** table (migration `20260618000700`) — optional per-asset
+  metadata (alt text, dimensions, size, mime) keyed by storage path; RLS
+  owner+admin. The library uses the `website-assets/{websiteId}/` Storage folder
+  as the SSOT and LEFT-merges this metadata onto it.
+- **Media actions** in `dashboard/website/actions.ts`: `listWebsiteMediaAction`
+  (Storage list + alt merge), `createWebsiteMediaUploadUrl`,
+  `registerWebsiteMediaAction` (alt/dims upsert), `deleteWebsiteMediaAction`.
+- **`<MediaLibrary>`** modal (`components/website/MediaLibrary.tsx`) built on the
+  canonical `FormModal` shell — browse grid, search, upload-new, select, delete.
+- **`ImageField`** (shared section-image picker) gains a **Choose from library**
+  button. The bespoke logo/blog-cover/OG pickers get the same in Phases 2/8/9.
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 0A: first-party website analytics
 
 First foundation phase of the enterprise CMS build-out (one phase per tab, plan in

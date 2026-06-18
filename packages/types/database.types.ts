@@ -8420,6 +8420,53 @@ export type Database = {
           },
         ]
       }
+      website_media: {
+        Row: {
+          alt: string | null
+          created_at: string
+          height: number | null
+          id: string
+          mime: string | null
+          path: string
+          size_bytes: number | null
+          updated_at: string
+          website_id: string
+          width: number | null
+        }
+        Insert: {
+          alt?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          mime?: string | null
+          path: string
+          size_bytes?: number | null
+          updated_at?: string
+          website_id: string
+          width?: number | null
+        }
+        Update: {
+          alt?: string | null
+          created_at?: string
+          height?: number | null
+          id?: string
+          mime?: string | null
+          path?: string
+          size_bytes?: number | null
+          updated_at?: string
+          website_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_media_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_pages: {
         Row: {
           created_at: string

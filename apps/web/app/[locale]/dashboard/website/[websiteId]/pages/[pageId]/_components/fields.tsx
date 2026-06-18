@@ -1,12 +1,13 @@
 "use client";
 
-import { ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ImagePlus, Library, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
 
 import { createWebsiteAssetUploadUrl } from "@/app/[locale]/dashboard/website/actions";
+import { MediaLibrary } from "@/components/website/MediaLibrary";
 import { createClient } from "@/lib/supabase/client";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
@@ -221,6 +222,7 @@ export function ImageField({
   const t = useTranslations("website");
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const url = websiteAssetUrl(path);
 
   async function onPick(file: File) {
@@ -281,6 +283,15 @@ export function ImageField({
             )}
             {url ? t("imageReplace") : t("imageUpload")}
           </button>
+          <button
+            type="button"
+            disabled={uploading}
+            onClick={() => setLibraryOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-50"
+          >
+            <Library className="h-3.5 w-3.5" />
+            {t("mediaChooseFromLibrary")}
+          </button>
           {url ? (
             <button
               type="button"
@@ -303,6 +314,12 @@ export function ImageField({
           if (f) onPick(f);
           e.target.value = "";
         }}
+      />
+      <MediaLibrary
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        websiteId={websiteId}
+        onSelect={(p) => onChange(p)}
       />
     </Field>
   );

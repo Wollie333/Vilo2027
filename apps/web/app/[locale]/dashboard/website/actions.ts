@@ -7,6 +7,7 @@ import { hostHasFeature } from "@/lib/products/featureGate";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { websiteAssetUrl } from "@/lib/website/assets";
 import { normaliseDomain, validateDomain } from "@/lib/website/domain";
 import { pollWebsiteDomain } from "@/lib/website/domain-poll";
 import { buildWebsiteSnapshot } from "@/lib/website/publish";
@@ -1166,5 +1167,147 @@ export async function saveSeoAction(input: SeoInput): Promise<ActionResult> {
   if (!res.ok) return res;
 
   revalidatePath(`/dashboard/website/${websiteId}/seo`);
+  return { ok: true };
+}
+
+// ============================================================
+// Phase 0B — Reusable Media Library
+// ============================================================
+// The library browses the public `website-assets/{websiteId}/` folder (the SSOT
+// for what exists, however it was uploaded) and LEFT-merges optional metadata
+// (alt text) from `website_media`. Every image picker can open it to reuse an
+// already-uploaded asset instead of re-uploading.
+
+export type MediaItem = {
+  path: string;
+  url: string;
+  name: string;
+  size: number | null;
+  createdAt: string | null;
+  alt: string | null;
+};
+
+/** List every asset under this site's folder, newest first, with alt text. */
+export async function listWebsiteMediaAction(
+  websiteId: string,
+): Promise<{ ok: true; items: MediaItem[] } | { ok: false; error: string }> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const admin = createAdminClient();
+  const { data: objects, error } = await admin.storage
+    .from("website-assets")
+    .list(websiteId, {
+      limit: 500,
+      sortBy: { column: "created_at", order: "desc" },
+    });
+  if (error) return { ok: false, error: "list_failed" };
+
+  // Alt text keyed by path (owner-scoped via the server client / RLS).
+  const supabase = createServerClient();
+  const { data: metaRows } = await supabase
+    .from("website_media")
+    .select("path, alt")
+    .eq("website_id", websiteId);
+  const altByPath = new Map<string, string | null>(
+    (metaRows ?? []).map((r) => [r.path, r.alt]),
+  );
+
+  const items: MediaItem[] = (objects ?? [])
+    // Storage `list` can include a placeholder folder row with no id; skip it.
+    .filter((o) => o.id != null && !o.name.endsWith("/"))
+    .map((o) => {
+      const path = `${websiteId}/${o.name}`;
+      const size = (o.metadata as { size?: number } | null)?.size ?? null;
+      return {
+        path,
+        url: websiteAssetUrl(path) ?? "",
+        name: o.name,
+        size,
+        createdAt: o.created_at ?? null,
+        alt: altByPath.get(path) ?? null,
+      };
+    });
+
+  return { ok: true, items };
+}
+
+/** Signed URL for a library upload (mirrors the section-asset flow). */
+export async function createWebsiteMediaUploadUrl(
+  websiteId: string,
+  ext: string,
+): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const safeExt =
+    (ext || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${websiteId}/media-${crypto.randomUUID()}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("website-assets")
+    .createSignedUploadUrl(path);
+  if (error || !data) return { ok: false, error: "upload_start_failed" };
+  return { ok: true, data: { path, token: data.token } };
+}
+
+/** Upsert per-asset metadata (alt + dimensions) after an upload, or alt edits. */
+export async function registerWebsiteMediaAction(
+  websiteId: string,
+  storagePath: string,
+  meta: {
+    alt?: string;
+    width?: number;
+    height?: number;
+    size?: number;
+    mime?: string;
+  } = {},
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!storagePath.startsWith(`${websiteId}/`)) {
+    return { ok: false, error: "invalid_path" };
+  }
+
+  const supabase = createServerClient();
+  const { error } = await supabase.from("website_media").upsert(
+    {
+      website_id: websiteId,
+      path: storagePath,
+      alt: meta.alt?.trim() || null,
+      width: meta.width ?? null,
+      height: meta.height ?? null,
+      size_bytes: meta.size ?? null,
+      mime: meta.mime ?? null,
+    },
+    { onConflict: "website_id,path" },
+  );
+  if (error) return { ok: false, error: "save_failed" };
+  return { ok: true };
+}
+
+/** Delete an asset from Storage and drop its metadata row. */
+export async function deleteWebsiteMediaAction(
+  websiteId: string,
+  storagePath: string,
+): Promise<ActionResult> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!storagePath.startsWith(`${websiteId}/`)) {
+    return { ok: false, error: "invalid_path" };
+  }
+
+  await createAdminClient()
+    .storage.from("website-assets")
+    .remove([storagePath]);
+  const supabase = createServerClient();
+  await supabase
+    .from("website_media")
+    .delete()
+    .eq("website_id", websiteId)
+    .eq("path", storagePath);
   return { ok: true };
 }
