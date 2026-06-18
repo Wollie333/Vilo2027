@@ -18,11 +18,12 @@ export function ContactSupport({ contact }: Props) {
   return (
     <div
       id="contact"
-      className="relative scroll-mt-20 overflow-hidden rounded-card bg-brand-dark p-6 text-white lg:p-8"
+      className="relative scroll-mt-20 overflow-hidden rounded-card p-6 text-white lg:p-8"
+      style={{
+        background:
+          "radial-gradient(circle at 12% 0%, rgba(16,185,129,.16) 0, transparent 45%), radial-gradient(circle at 92% 120%, rgba(6,78,59,.12) 0, transparent 50%), #064E3B",
+      }}
     >
-      <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-brand-primary/25 blur-3xl" />
-      <div className="absolute -bottom-12 left-1/3 h-40 w-40 rounded-full bg-brand-primary/15 blur-3xl" />
-
       <div className="relative">
         <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white ring-1 ring-white/15 backdrop-blur">
           <Headphones className="h-3 w-3" /> Talk to a human
