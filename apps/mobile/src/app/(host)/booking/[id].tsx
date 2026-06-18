@@ -1,6 +1,13 @@
-import { ScrollView, Text, View } from "react-native";
+import { Alert, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { CalendarDays, Mail, Receipt, Users } from "lucide-react-native";
+import {
+  CalendarDays,
+  Check,
+  Mail,
+  Receipt,
+  Users,
+  X,
+} from "lucide-react-native";
 
 import {
   Button,
@@ -11,14 +18,40 @@ import {
   Tag,
   statusTone,
 } from "@/components/ui";
+import { useAuth } from "@/lib/auth/auth-provider";
 import { useHostBooking } from "@/lib/queries/host";
+import { useSetBookingStatus } from "@/lib/queries/host-booking-actions";
 import { brand } from "@/theme/tokens";
 import { formatDateRange, formatMoney } from "@/lib/format";
 
 export default function HostBookingDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { host } = useAuth();
   const { data: booking, isLoading, isError } = useHostBooking(id);
+  const setStatus = useSetBookingStatus(host?.id, id ?? "");
+
+  function onAccept() {
+    setStatus.mutate("confirmed", {
+      onError: () =>
+        Alert.alert("Couldn't accept", "Please refresh and try again."),
+    });
+  }
+
+  function onDecline() {
+    Alert.alert("Decline this booking?", "The guest will be notified.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Decline",
+        style: "destructive",
+        onPress: () =>
+          setStatus.mutate("declined", {
+            onError: () =>
+              Alert.alert("Couldn't decline", "Please refresh and try again."),
+          }),
+      },
+    ]);
+  }
 
   return (
     <View className="flex-1 bg-white">
@@ -77,12 +110,32 @@ export default function HostBookingDetail() {
             </Text>
           </View>
 
+          {/* Accept / decline — only while pending. Drives the same DB triggers
+              the web uses (calendar block on confirm, block release on decline). */}
+          {booking.status === "pending" ? (
+            <View className="gap-2.5">
+              <Button
+                label="Accept booking"
+                icon={Check}
+                onPress={onAccept}
+                loading={setStatus.isPending}
+              />
+              <Button
+                label="Decline"
+                variant="secondary"
+                icon={X}
+                onPress={onDecline}
+                disabled={setStatus.isPending}
+              />
+            </View>
+          ) : null}
+
           <Button label="Message guest" variant="secondary" />
 
-          {/* Confirm / decline / cancel / change dates run through shared Edge Functions (Phase 6). */}
+          {/* Cancel / reschedule / take payment run through shared Edge Functions (later Phase 6 chunks). */}
           <Text className="text-center font-sans text-[12px] text-brand-mute">
-            Confirming, declining and rescheduling arrive once the shared
-            booking functions land.
+            Rescheduling and taking payment arrive with the shared booking
+            functions.
           </Text>
         </ScrollView>
       )}
