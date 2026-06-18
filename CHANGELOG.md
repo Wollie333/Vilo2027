@@ -5,6 +5,38 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 5: Home page editor
+
+### Added
+- **New section types** — `stats` (by-the-numbers band), `logos` (partner strip),
+  `map` (keyless embed of any address) and `contact_form` (lead capture). Wired
+  through the shared section schema SSOT, renderer, defaults and per-type editor.
+- **Contact form → inbox "Website Enquiry"** — a submission opens (or reuses) an
+  enquiry conversation in the host inbox, built on the proven quote-enquiry
+  plumbing: `conversations.source='website'` + a `website_enquiry` system card +
+  a sky **"Website"** chip. The guest identity + Guests CRM record are minted via
+  the new shared `findOrCreateLeadIdentity` SSOT (reused by quote enquiries too —
+  never forked). New `createWebsiteEnquiry` core + `/api/website-enquiry` route +
+  `website_enquiry_host` notification.
+- **Website Settings tab** — site-wide settings home (in `host_websites.settings`
+  jsonb). First occupant: an **email-me-new-enquiries** toggle + address, so each
+  contact-form submission is also emailed to the host's chosen inbox.
+- **Drag-and-drop reorder** — `@dnd-kit` sortable (grip handle, keyboard + touch)
+  replaces the up/down arrows.
+- **Duplicate** — per-section duplicate (fresh id) + duplicate-page action (clones
+  a page into a hidden custom page with fresh section ids).
+- **Section library** — a richer "Add a section" modal: preview cards grouped by
+  purpose, each with an icon + description and a Live badge, replacing the dropdown.
+- **Visual click-to-edit** — a Visual mode toggles click-to-edit hotspots on the
+  live preview; clicking a section opens its editor in the canonical FormModal with
+  the preview updating live.
+
+### Database
+- Migration `…001200`: `conversations.source` column + index. Migration `…001300`:
+  help article `website-contact-form`. (`@dnd-kit/*` added to `apps/web`.)
+
+---
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 4: Domain tab
 
 ### Added

@@ -226,6 +226,21 @@
 > active subscription is locked out (the accepted trade-off). **NO DB migration** (code-only).
 > +3 `website` i18n keys (en: lockedTitle/Body/Cta). tsc + lint green. **The website build (W1–W15)
 > is COMPLETE.**
+>
+> **ENTERPRISE BUILD-OUT (2nd plan: `~/.claude/plans/so-based-on-th-harmonic-petal.md`).**
+> Tab-by-tab elevation of the CMS to enterprise grade, 11 phases. **Phases 0a/0b/1–4
+> DONE** (analytics pipeline, media library, Overview dashboard, Brand, Theme, Domain —
+> commits `4edb785`…`eb73a8c`). **Phase 5 (Home page editor) DONE** this session, 4 commits:
+> (1) `stats`/`logos`/`map` section types; (2) **contact form → inbox "Website Enquiry"**
+> (`conversations.source='website'` + `website_enquiry` system card + sky "Website" chip;
+> shared `findOrCreateLeadIdentity` SSOT reused by quote enquiries; `createWebsiteEnquiry`
+> + `/api/website-enquiry` + `website_enquiry_host` notif; optional host email via new
+> **Settings tab** in `host_websites.settings` jsonb) — see [[project_website_contact_enquiry]];
+> (3) **@dnd-kit** drag-reorder + duplicate section/page; (4) **section library** modal +
+> **visual click-to-edit** (preview hotspots → FormModal). Migrations `…001200` (source col)
+> + `…001300` (help). **NEXT: Phase 6 (About / multi-page + nav management)**, then 7 Rooms,
+> 8 Blog, 9 SEO, 10 website-native booking flow [LAST big one], 11 installable theme catalog.
+> Fresh session per phase; build+lint green each commit.
 
 _(Previous focus below — hardening features for MVP — remains valid context.)_
 
