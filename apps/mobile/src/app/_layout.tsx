@@ -44,7 +44,8 @@ function RootNavigator() {
       return;
     }
     // for-hosts is a public marketing page; allow signed-in users to view it.
-    if (session && inAuth && !segments.includes("for-hosts")) {
+    // (cast: expo-router's typed segments union doesn't include leaf names)
+    if (session && inAuth && !(segments as string[]).includes("for-hosts")) {
       router.replace(
         activeRole === "host"
           ? "/(host)/(tabs)/overview"
