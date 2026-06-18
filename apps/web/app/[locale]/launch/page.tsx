@@ -459,19 +459,19 @@ export default async function LaunchPage() {
                 </div>
               </div>
 
-              <div className="absolute -right-3 -top-5 w-[196px] rounded-2xl border border-white/15 bg-white/10 p-4 shadow-xl backdrop-blur-xl md:-right-9">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200/80">
+              <div className="absolute -right-3 -top-5 w-[196px] rounded-2xl border border-brand-line bg-white p-4 shadow-xl md:-right-9">
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-brand-primary">
                   {brand} kept in your pocket
                 </div>
-                <div className="num-display mt-1 font-display text-2xl font-extrabold text-white">
+                <div className="num-display mt-1 font-display text-2xl font-extrabold text-brand-dark">
                   R 2 847
                 </div>
-                <div className="mt-0.5 text-[10px] text-white/50">
+                <div className="mt-0.5 text-[10px] text-brand-mute">
                   commission saved · this month
                 </div>
-                <div className="mt-2 h-1 overflow-hidden rounded-pill bg-white/15">
+                <div className="mt-2 h-1 overflow-hidden rounded-pill bg-brand-accent">
                   <div
-                    className="h-full bg-emerald-400"
+                    className="h-full bg-brand-primary"
                     style={{ width: "78%" }}
                   />
                 </div>
