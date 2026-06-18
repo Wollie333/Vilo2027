@@ -2,7 +2,19 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Active focus:** **Website CMS pivot + `listings → properties` rename (Property + Channels model).**
+**Active focus:** **Specials feature** (host pre-packaged accommodation deals) — runs on the
+`feat/website-property-restructure` branch alongside the Website CMS work.
+
+> **SPECIALS RESUME ANCHOR (multi-session).** Plan: `~/.claude/plans/ok-so-i-need-tender-sphinx.md`.
+> Memory: `project_specials_feature`. Phases: **S0 schema DONE** (migration `…002000_specials_foundation.sql`
+> pushed; types regenerated; `tsc` green) → **NEXT S1** host CRUD at `dashboard/specials` (sidebar:
+> Properties › under Policies) → S2 pricing (`lib/specials/pricing.ts`) → S3 booking wiring
+> (`/special/[slug]/book`, both entry points) → S4 `/specials` directory → S5 website specials page +
+> `specials_preview` section → S6 reporting → S7 gating/help/i18n. Fresh session per phase; commit each.
+
+---
+
+**Prior focus (paused):** **Website CMS pivot + `listings → properties` rename (Property + Channels model).**
 
 > **RESUME ANCHOR (multi-session project).** Branch: `feat/website-property-restructure`.
 > Plan: `~/.claude/plans/ok-it-has-come-spicy-snail.md`. Rename checklist + progress log:

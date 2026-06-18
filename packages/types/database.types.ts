@@ -1282,6 +1282,7 @@ export type Database = {
           balance_due: number
           balance_due_date: string | null
           base_amount: number
+          booked_via: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -1328,6 +1329,7 @@ export type Database = {
           refund_total: number | null
           scope: string
           session_date: string | null
+          special_id: string | null
           special_requests: string | null
           status: string
           total_amount: number
@@ -1344,6 +1346,7 @@ export type Database = {
           balance_due?: number
           balance_due_date?: string | null
           base_amount: number
+          booked_via?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1390,6 +1393,7 @@ export type Database = {
           refund_total?: number | null
           scope?: string
           session_date?: string | null
+          special_id?: string | null
           special_requests?: string | null
           status?: string
           total_amount: number
@@ -1406,6 +1410,7 @@ export type Database = {
           balance_due?: number
           balance_due_date?: string | null
           base_amount?: number
+          booked_via?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -1452,6 +1457,7 @@ export type Database = {
           refund_total?: number | null
           scope?: string
           session_date?: string | null
+          special_id?: string | null
           special_requests?: string | null
           status?: string
           total_amount?: number
@@ -1500,6 +1506,13 @@ export type Database = {
             columns: ["quote_id"]
             isOneToOne: false
             referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_special_id_fkey"
+            columns: ["special_id"]
+            isOneToOne: false
+            referencedRelation: "specials"
             referencedColumns: ["id"]
           },
         ]
@@ -7745,6 +7758,213 @@ export type Database = {
         }
         Relationships: []
       }
+      special_addons: {
+        Row: {
+          addon_id: string
+          id: string
+          is_required: boolean
+          sort_order: number
+          special_id: string
+          unit_price_override: number | null
+        }
+        Insert: {
+          addon_id: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          special_id: string
+          unit_price_override?: number | null
+        }
+        Update: {
+          addon_id?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          special_id?: string
+          unit_price_override?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_addons_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "special_addons_special_id_fkey"
+            columns: ["special_id"]
+            isOneToOne: false
+            referencedRelation: "specials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      specials: {
+        Row: {
+          badge: string | null
+          book_by: string | null
+          business_id: string
+          cancellation_policy_id: string | null
+          categories: string[]
+          created_at: string
+          currency: string
+          custom_tags: string[]
+          date_mode: string
+          deleted_at: string | null
+          description: string | null
+          fixed_check_in: string | null
+          fixed_check_out: string | null
+          flat_total: number | null
+          go_live_at: string | null
+          hero_image_path: string | null
+          host_id: string
+          id: string
+          is_featured: boolean
+          max_guests: number | null
+          max_nights: number | null
+          min_nights: number | null
+          per_night_price: number | null
+          price_mode: string
+          property_id: string
+          quantity: number
+          redemptions_used: number
+          room_id: string | null
+          savings_amount: number | null
+          savings_pct: number | null
+          show_in_directory: boolean
+          show_on_website: boolean
+          slug: string
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+          was_price: number | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          badge?: string | null
+          book_by?: string | null
+          business_id: string
+          cancellation_policy_id?: string | null
+          categories?: string[]
+          created_at?: string
+          currency?: string
+          custom_tags?: string[]
+          date_mode: string
+          deleted_at?: string | null
+          description?: string | null
+          fixed_check_in?: string | null
+          fixed_check_out?: string | null
+          flat_total?: number | null
+          go_live_at?: string | null
+          hero_image_path?: string | null
+          host_id: string
+          id?: string
+          is_featured?: boolean
+          max_guests?: number | null
+          max_nights?: number | null
+          min_nights?: number | null
+          per_night_price?: number | null
+          price_mode: string
+          property_id: string
+          quantity?: number
+          redemptions_used?: number
+          room_id?: string | null
+          savings_amount?: number | null
+          savings_pct?: number | null
+          show_in_directory?: boolean
+          show_on_website?: boolean
+          slug: string
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+          was_price?: number | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          badge?: string | null
+          book_by?: string | null
+          business_id?: string
+          cancellation_policy_id?: string | null
+          categories?: string[]
+          created_at?: string
+          currency?: string
+          custom_tags?: string[]
+          date_mode?: string
+          deleted_at?: string | null
+          description?: string | null
+          fixed_check_in?: string | null
+          fixed_check_out?: string | null
+          flat_total?: number | null
+          go_live_at?: string | null
+          hero_image_path?: string | null
+          host_id?: string
+          id?: string
+          is_featured?: boolean
+          max_guests?: number | null
+          max_nights?: number | null
+          min_nights?: number | null
+          per_night_price?: number | null
+          price_mode?: string
+          property_id?: string
+          quantity?: number
+          redemptions_used?: number
+          room_id?: string | null
+          savings_amount?: number | null
+          savings_pct?: number | null
+          show_in_directory?: boolean
+          show_on_website?: boolean
+          slug?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+          was_price?: number | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "specials_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specials_cancellation_policy_id_fkey"
+            columns: ["cancellation_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specials_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specials_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "specials_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_invites: {
         Row: {
           accepted_at: string | null
@@ -9034,6 +9254,7 @@ export type Database = {
         Returns: undefined
       }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      expire_specials: { Args: never; Returns: number }
       fetch_channel_mix: {
         Args: {
           p_end_date: string
@@ -9386,6 +9607,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      redeem_special: { Args: { p_special_id: string }; Returns: boolean }
       release_addon_stock: {
         Args: { p_addon_id: string; p_qty: number }
         Returns: undefined

@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-18 — Specials · S0 (schema foundation)
+
+New MVP feature (founder-sanctioned exception to the feature freeze). A **Special** is a
+host-authored pre-packaged accommodation deal that books as a normal `bookings` row via a
+new `special_id` FK — so date-blocking, policy snapshots, the ledger and Paystack settle
+unchanged. Plan: `~/.claude/plans/ok-so-i-need-tender-sphinx.md`.
+
+### Added (migration `…002000_specials_foundation.sql`, schema-only)
+- **`specials`** table — per-special fixed/flexible dates, flat/per-night override price
+  (seasonal never applies), quantity cap + `redemptions_used`, full scheduling
+  (`go_live_at` visibility gate + `book_by` deadline), curated `categories[]` + free
+  `custom_tags[]`, `is_featured`/`sort_order`, savings badge (`was_price`/`savings_*`),
+  optional `cancellation_policy_id`, directory/website visibility toggles (both off +
+  active = unlisted/link-only), `draft|active|paused|expired|archived` lifecycle, soft
+  delete. Coherent-row CHECKs per date/price mode; per-host slug unique; GIN on categories.
+- **`special_addons`** — add-ons bundled onto a deal, each `is_required` (compulsory, in
+  the package price) or optional (checkout upsell).
+- **`bookings.special_id` + `booked_via`** (`platform|website`); `origin` CHECK extended
+  with `special_booked`.
+- **`redeem_special(p_special_id)`** — atomic, race-safe quantity-cap claim (row-locked
+  `UPDATE…WHERE redemptions_used < quantity…RETURNING`).
+- **`on_booking_cancelled()`** recreated to return a special's redemption on cancel — and
+  to use `NEW.property_id` (fixes a stale `NEW.listing_id` left after the R3 rename).
+- **`website_pages.kind`** CHECK extended with `specials`; **`expire_specials()`** lapse fn
+  (cron wired later; runtime queries also date-guard).
+- RLS: host owns own rows; public reads ACTIVE deals (incl. link-only). Types regenerated;
+  `tsc --noEmit` green. Next: S1 host CRUD under Properties › Specials.
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 8: Blog (Commit A — dashboard, WIP)
 
 ### Added (dashboard half)
