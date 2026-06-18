@@ -3,6 +3,7 @@
 import {
   BadgePercent,
   BarChart3,
+  BedDouble,
   Cable,
   CalendarCheck,
   Calendar as CalendarIcon,
@@ -14,6 +15,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   MessageSquare,
+  PackagePlus,
   Receipt,
   RotateCcw,
   RotateCw,
@@ -35,11 +37,12 @@ import {
 import { WorkspaceSwitcher } from "@/components/workspace/WorkspaceSwitcher";
 
 // Channel-based IA (plan §5). Five groups: an always-open daily-driver block,
-// then collapsible PROPERTIES / CHANNELS / FINANCES / INSIGHTS. Rooms, Seasonal
-// pricing, Add-ons and per-property Policies are folded into the per-Property
-// editor's tabs (Rooms/Pricing/Add-ons/Policies) so they no longer need their
-// own nav rows. Account-level Policies + Staff stay reachable in the footer
-// until they're nested as Settings tabs (route move — follow-up).
+// then collapsible PROPERTIES / CHANNELS / FINANCES / INSIGHTS. Each per-Property
+// editor still has its own Rooms/Pricing/Add-ons/Policies tabs, but Rooms,
+// Add-ons and Coupons also get top-level PROPERTIES rows (their `/dashboard/*`
+// pages are cross-property libraries the host manages directly). Seasonal
+// pricing + per-property Policies stay editor-only. Account-level Policies +
+// Staff stay reachable in the footer until nested as Settings tabs.
 
 const DAILY: GmailNavItem[] = [
   {
@@ -61,6 +64,14 @@ const PROPERTIES: GmailNavItem[] = [
     icon: HomeIcon,
     match: "prefix",
   },
+  { href: "/dashboard/rooms", label: "Rooms", icon: BedDouble },
+  {
+    href: "/dashboard/addons",
+    label: "Add-ons",
+    icon: PackagePlus,
+    match: "prefix",
+  },
+  { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
   { href: "/dashboard/reviews", label: "Reviews", icon: Star },
 ];
 
@@ -112,7 +123,6 @@ const FINANCES: GmailNavItem[] = [
 
 const INSIGHTS: GmailNavItem[] = [
   { href: "/dashboard/reports", label: "Reports", icon: BarChart3 },
-  { href: "/dashboard/coupons", label: "Coupons", icon: Ticket },
   // The affiliate programme lives in the universal portal area (open to every
   // user). Hosts reach it via this cross-workspace link.
   {
