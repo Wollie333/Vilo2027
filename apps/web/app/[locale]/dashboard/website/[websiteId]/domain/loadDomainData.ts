@@ -95,5 +95,6 @@ export async function loadDomainData(
     configured: vercelConfigured(),
     rootDomain: process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site",
     canonicalHost: settings.canonicalHost === "www" ? "www" : "apex",
+    canonicalApplicable,
   };
 }

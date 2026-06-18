@@ -364,35 +364,37 @@ export function DomainManager({ data }: { data: DomainData }) {
               </ol>
             </div>
 
-            {/* Canonical host preference */}
-            <div className="mt-5 border-t border-brand-line pt-4">
-              <div className="text-sm font-semibold text-brand-ink">
-                {t("domCanonicalTitle")}
+            {/* Canonical host preference (only for apex/www domains) */}
+            {data.canonicalApplicable ? (
+              <div className="mt-5 border-t border-brand-line pt-4">
+                <div className="text-sm font-semibold text-brand-ink">
+                  {t("domCanonicalTitle")}
+                </div>
+                <p className="mt-0.5 text-[12.5px] text-brand-mute">
+                  {t("domCanonicalSub")}
+                </p>
+                <div className="mt-2 inline-flex rounded-pill border border-brand-line bg-brand-light/60 p-0.5 text-[12.5px] font-semibold">
+                  {(["apex", "www"] as const).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => onSetCanonical(c)}
+                      className={`rounded-pill px-3 py-1.5 transition ${
+                        data.canonicalHost === c
+                          ? "bg-white text-brand-secondary shadow-sm"
+                          : "text-brand-mute hover:text-brand-ink"
+                      }`}
+                    >
+                      {t(c === "apex" ? "domCanonicalApex" : "domCanonicalWww")}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-[12px] text-brand-mute">
+                  {t("domCanonicalHint")}
+                </p>
               </div>
-              <p className="mt-0.5 text-[12.5px] text-brand-mute">
-                {t("domCanonicalSub")}
-              </p>
-              <div className="mt-2 inline-flex rounded-pill border border-brand-line bg-brand-light/60 p-0.5 text-[12.5px] font-semibold">
-                {(["apex", "www"] as const).map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => onSetCanonical(c)}
-                    className={`rounded-pill px-3 py-1.5 transition ${
-                      data.canonicalHost === c
-                        ? "bg-white text-brand-secondary shadow-sm"
-                        : "text-brand-mute hover:text-brand-ink"
-                    }`}
-                  >
-                    {t(c === "apex" ? "domCanonicalApex" : "domCanonicalWww")}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1.5 text-[12px] text-brand-mute">
-                {t("domCanonicalHint")}
-              </p>
-            </div>
+            ) : null}
           </section>
 
           {/* DNS records */}
