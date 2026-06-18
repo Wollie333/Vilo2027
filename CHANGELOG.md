@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-18 — Website CMS enterprise build-out · Phase 1: Overview tab
+
+Rebuilt the Website → Overview tab into a real dashboard, consuming the Phase 0A
+analytics (kept separate from property/OTA analytics).
+
+### Added
+- **Status hero** — live address with copy-link, Visit-site, Edit-pages; last-published / draft hint.
+- **Traffic dashboard** — visitor trend chart (`TrafficChart`, pure SVG), 7/30/90-day range tabs (`RangeTabs`), stat row (visitors, pageviews, booking clicks, booking-click rate) with vs-previous deltas.
+- **Top pages**, **traffic sources**, and a **device split** (desktop vs mobile), all from `loadWebsiteAnalytics`.
+- **Needs-attention panel** — deep-linked nudges (unpublished changes, unverified domain, posts missing SEO, hidden rooms, no SEO title).
+- **Smart set-up checklist** — every item now deep-links to its tab and auto-ticks from real data.
+- **Quick-links grid** to every tab.
+- `loadOverviewData` loader (analytics + needs-attention signals + public URL); Help Centre article `website-overview` (migration `20260618000800`).
+
 ## 2026-06-18 — Website CMS enterprise build-out · Phase 0B: reusable media library
 
 Second foundation phase. A shared image browser so hosts reuse already-uploaded
