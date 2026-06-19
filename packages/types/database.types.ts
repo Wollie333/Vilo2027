@@ -7800,6 +7800,47 @@ export type Database = {
           },
         ]
       }
+      special_view_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device: string | null
+          event: string
+          id: string
+          referrer_host: string | null
+          session_id: string | null
+          special_id: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          id?: string
+          referrer_host?: string | null
+          session_id?: string | null
+          special_id: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device?: string | null
+          event?: string
+          id?: string
+          referrer_host?: string | null
+          session_id?: string | null
+          special_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "special_view_events_special_id_fkey"
+            columns: ["special_id"]
+            isOneToOne: false
+            referencedRelation: "specials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       specials: {
         Row: {
           badge: string | null
