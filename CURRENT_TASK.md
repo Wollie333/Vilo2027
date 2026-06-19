@@ -85,7 +85,17 @@
 >   quantity), the two pricing modes (flat package vs per-night) + savings badge,
 >   visibility channels (directory + website section), redeem/release on booking,
 >   and the per-special report. SQL-only — no schema change, no type regen, no code.
-> - **S7c-1 i18n: dashboard CRUD** strings (S1 editor/list deferred all i18n) → en.json + t().
+> - **S7c-1 i18n: dashboard CRUD DONE 2026-06-19** — new `specials` namespace in
+>   `messages/en.json` (~150 keys); every hardcoded string in the S1 list
+>   (`page.tsx` server `generateMetadata`+`getTranslations`, async hero;
+>   `SpecialsList.tsx` client `useTranslations`, `STATUS_STYLE`→`STATUS_CLS`+i18n
+>   labels, plural `countLabel`, `t` threaded to card/chips) + editor
+>   (`SpecialEditor.tsx` all sections/fields/options/save-bar, category chips via
+>   `t(\`category_${key}\`)`, link-only note via `t.rich`; `fields.tsx`
+>   TagInput/HeroImageField; `EmptyProperties`) + new/edit `generateMetadata`. No
+>   string values changed; `lib/specials/categories.ts` English labels kept as the
+>   `specialCategoryLabel` fallback (public directory i18n = S7c-2). Code-only, no
+>   migration. tsc+lint+build green.
 > - **S7c-2 i18n: public** directory + shared detail + special booking flow.
 > - **S7c-3 i18n: website** section + report panel.
 > - **FIN** — full `pnpm build`+`pnpm lint` green, CHANGELOG, fast-forward `main` + push.

@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, Loader2, Save, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -40,6 +41,7 @@ export function SpecialEditor({
   initialStatus: SpecialInput["status"];
   data: SpecialEditorData;
 }) {
+  const t = useTranslations("specials");
   const router = useRouter();
   const [form, setForm] = useState<SpecialInput>(initialValues);
   const [pending, startTransition] = useTransition();
@@ -112,7 +114,7 @@ export function SpecialEditor({
 
   function submit(status: SpecialEditorStatus) {
     if (!form.property_id) {
-      toast.error("Pick a property first.");
+      toast.error(t("pickPropertyFirst"));
       return;
     }
     const payload: SpecialInput = { ...form, status };
@@ -122,7 +124,7 @@ export function SpecialEditor({
           ? await createSpecialAction(payload)
           : await updateSpecialAction(specialId as string, payload);
       if (res.ok) {
-        toast.success(mode === "create" ? "Special created" : "Changes saved");
+        toast.success(mode === "create" ? t("toastCreated") : t("toastSaved"));
         router.push("/dashboard/specials");
         router.refresh();
       } else {
@@ -133,18 +135,18 @@ export function SpecialEditor({
 
   const linkOnly = !form.show_in_directory && !form.show_on_website;
   const propertyOptions = [
-    { value: "", label: "Select a property…" },
+    { value: "", label: t("optSelectProperty") },
     ...data.properties.map((p) => ({ value: p.id, label: p.name })),
   ];
   const roomOptions = [
-    { value: "", label: "Whole property" },
+    { value: "", label: t("optWholeProperty") },
     ...(selectedProperty?.rooms ?? []).map((r) => ({
       value: r.id,
       label: r.name,
     })),
   ];
   const policyOptions = [
-    { value: "", label: "Inherit the property / room policy" },
+    { value: "", label: t("optInheritPolicy") },
     ...data.policies.map((p) => ({ value: p.id, label: p.name })),
   ];
 
@@ -160,54 +162,60 @@ export function SpecialEditor({
           className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-mute transition-colors hover:text-brand-ink"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to specials
+          {t("backToList")}
         </Link>
         <span className="rounded-pill bg-brand-light px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-          {mode === "create" ? "New special" : `Editing · ${initialStatus}`}
+          {mode === "create"
+            ? t("badgeNew")
+            : t("badgeEditing", { status: t(`status_${initialStatus}`) })}
         </span>
       </div>
 
       {/* Target ------------------------------------------------------ */}
-      <Section title="Property" subtitle="Which stay this deal sells.">
+      <Section title={t("secTargetTitle")} subtitle={t("secTargetSub")}>
         <SelectField
-          label="Property"
+          label={t("fldProperty")}
           value={form.property_id || ""}
           options={propertyOptions}
           onChange={onPickProperty}
         />
         <SelectField
-          label="Room"
+          label={t("fldRoom")}
           value={form.room_id ?? ""}
           options={roomOptions}
           onChange={(v) => set("room_id", v || null)}
-          hint="Whole property, or limit the deal to one room type."
+          hint={t("fldRoomHint")}
         />
       </Section>
 
       {/* Dates ------------------------------------------------------- */}
-      <Section title="Dates" subtitle="Fixed stay, or a flexible window.">
+      <Section title={t("secDatesTitle")} subtitle={t("secDatesSub")}>
         <SegmentField
-          label="Date treatment"
+          label={t("fldDateMode")}
           value={form.date_mode}
           onChange={(v) => set("date_mode", v)}
           options={[
-            { value: "fixed", label: "Fixed dates", hint: "One exact stay" },
+            {
+              value: "fixed",
+              label: t("dateFixed"),
+              hint: t("dateFixedHint"),
+            },
             {
               value: "flexible",
-              label: "Flexible window",
-              hint: "Guest picks within a window",
+              label: t("dateFlexible"),
+              hint: t("dateFlexibleHint"),
             },
           ]}
         />
         {form.date_mode === "fixed" ? (
           <div className="grid grid-cols-2 gap-3">
             <DateField
-              label="Check-in"
+              label={t("fldCheckIn")}
               value={form.fixed_check_in}
               onChange={(v) => set("fixed_check_in", v)}
             />
             <DateField
-              label="Check-out"
+              label={t("fldCheckOut")}
               value={form.fixed_check_out}
               min={form.fixed_check_in ?? undefined}
               onChange={(v) => set("fixed_check_out", v)}
@@ -217,12 +225,12 @@ export function SpecialEditor({
           <>
             <div className="grid grid-cols-2 gap-3">
               <DateField
-                label="Window opens"
+                label={t("fldWindowStart")}
                 value={form.window_start}
                 onChange={(v) => set("window_start", v)}
               />
               <DateField
-                label="Window closes"
+                label={t("fldWindowEnd")}
                 value={form.window_end}
                 min={form.window_start ?? undefined}
                 onChange={(v) => set("window_end", v)}
@@ -230,19 +238,19 @@ export function SpecialEditor({
             </div>
             <div className="grid grid-cols-2 gap-3">
               <NumberField
-                label="Min nights"
+                label={t("fldMinNights")}
                 value={form.min_nights}
                 min={1}
                 max={365}
                 onChange={(v) => set("min_nights", v)}
               />
               <NumberField
-                label="Max nights"
+                label={t("fldMaxNights")}
                 value={form.max_nights}
                 min={1}
                 max={365}
                 onChange={(v) => set("max_nights", v)}
-                hint="Leave blank for no maximum."
+                hint={t("fldMaxNightsHint")}
               />
             </div>
           </>
@@ -251,39 +259,39 @@ export function SpecialEditor({
 
       {/* Pricing ----------------------------------------------------- */}
       <Section
-        title="Price"
-        subtitle={`Overrides seasonal pricing. Charged in ${currency}.`}
+        title={t("secPriceTitle")}
+        subtitle={t("secPriceSub", { currency })}
       >
         <SegmentField
-          label="Pricing model"
+          label={t("fldPriceMode")}
           value={form.price_mode}
           onChange={(v) => set("price_mode", v)}
           options={[
             {
               value: "flat",
-              label: "Flat package",
-              hint: "One total, any occupancy",
+              label: t("priceFlat"),
+              hint: t("priceFlatHint"),
             },
             {
               value: "per_night",
-              label: "Per night",
-              hint: "Override nightly rate",
+              label: t("pricePerNightOpt"),
+              hint: t("pricePerNightHint"),
             },
           ]}
         />
         {form.price_mode === "flat" ? (
           <NumberField
-            label="Package total"
+            label={t("fldFlatTotal")}
             value={form.flat_total}
             min={0}
             step={0.01}
             prefix={currency}
             onChange={(v) => set("flat_total", v)}
-            hint="One flat price for the whole stay."
+            hint={t("fldFlatTotalHint")}
           />
         ) : (
           <NumberField
-            label="Price per night"
+            label={t("fldPerNight")}
             value={form.per_night_price}
             min={0}
             step={0.01}
@@ -292,50 +300,46 @@ export function SpecialEditor({
           />
         )}
         <NumberField
-          label="Max guests"
+          label={t("fldMaxGuests")}
           value={form.max_guests}
           min={1}
           max={100}
           onChange={(v) => set("max_guests", v)}
-          hint="Leave blank to inherit the room / property maximum."
+          hint={t("fldMaxGuestsHint")}
         />
       </Section>
 
       {/* Inventory + scheduling ------------------------------------- */}
-      <Section title="Availability" subtitle="How many, and when it runs.">
+      <Section title={t("secAvailTitle")} subtitle={t("secAvailSub")}>
         <NumberField
-          label="Quantity"
+          label={t("fldQuantity")}
           value={form.quantity}
           min={1}
           max={100000}
           onChange={(v) => set("quantity", v ?? 1)}
-          hint="How many times this deal can be booked before it sells out."
+          hint={t("fldQuantityHint")}
         />
         <div className="grid grid-cols-2 gap-3">
           <DateField
-            label="Go live on"
+            label={t("fldGoLive")}
             value={form.go_live_at}
             onChange={(v) => set("go_live_at", v)}
-            hint="Optional — hidden until this date."
+            hint={t("fldGoLiveHint")}
           />
           <DateField
-            label="Book by"
+            label={t("fldBookBy")}
             value={form.book_by}
             onChange={(v) => set("book_by", v)}
-            hint="Optional — booking deadline."
+            hint={t("fldBookByHint")}
           />
         </div>
       </Section>
 
       {/* Add-ons ----------------------------------------------------- */}
-      <Section
-        title="Add-ons"
-        subtitle="Bundle extras as compulsory (always included) or optional upsells."
-      >
+      <Section title={t("secAddonsTitle")} subtitle={t("secAddonsSub")}>
         {data.addons.length === 0 ? (
           <p className="rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3 py-2.5 text-[13px] text-brand-mute">
-            You have no add-ons yet. Create some under Properties → Add-ons to
-            bundle them onto a special.
+            {t("addonsEmpty")}
           </p>
         ) : (
           <div className="space-y-2">
@@ -367,15 +371,15 @@ export function SpecialEditor({
                   {selected ? (
                     <div className="mt-3 grid grid-cols-2 items-end gap-3 border-t border-brand-line/70 pt-3">
                       <ToggleField
-                        label="Compulsory"
-                        hint="Always in the package"
+                        label={t("fldRequired")}
+                        hint={t("fldRequiredHint")}
                         checked={selected.is_required}
                         onChange={(v) =>
                           patchAddon(addon.id, { is_required: v })
                         }
                       />
                       <NumberField
-                        label="Price override"
+                        label={t("fldPriceOverride")}
                         value={selected.unit_price_override}
                         min={0}
                         step={0.01}
@@ -394,16 +398,13 @@ export function SpecialEditor({
       </Section>
 
       {/* Merchandising ---------------------------------------------- */}
-      <Section
-        title="Merchandising"
-        subtitle="How the deal is categorised and surfaced."
-      >
+      <Section title={t("secMerchTitle")} subtitle={t("secMerchSub")}>
         <div>
           <span className="block text-[13px] font-semibold text-brand-ink">
-            Categories
+            {t("fldCategories")}
           </span>
           <span className="mt-0.5 block text-[12px] text-brand-mute">
-            Powers the /specials directory filter.
+            {t("fldCategoriesHint")}
           </span>
           <div className="mt-2 flex flex-wrap gap-2">
             {SPECIAL_CATEGORIES.map((c) => {
@@ -419,76 +420,72 @@ export function SpecialEditor({
                       : "border-brand-line bg-white text-brand-ink hover:border-brand-mute"
                   }`}
                 >
-                  {c.label}
+                  {t(`category_${c.key}`)}
                 </button>
               );
             })}
           </div>
         </div>
         <TagInput
-          label="Custom tags"
+          label={t("fldCustomTags")}
           value={form.custom_tags}
           onChange={(v) => set("custom_tags", v)}
-          hint="Your own free-form tags (shown on your website only)."
+          hint={t("fldCustomTagsHint")}
         />
         <TextField
-          label="Badge"
+          label={t("fldBadge")}
           value={form.badge ?? ""}
           onChange={(v) => set("badge", v || null)}
           maxLength={40}
-          placeholder="e.g. Winter escape"
-          hint="Optional ribbon shown on the deal card."
+          placeholder={t("fldBadgePlaceholder")}
+          hint={t("fldBadgeHint")}
         />
         <ToggleField
-          label="Feature this special"
-          hint="Pin it to the front of the directory and your website."
+          label={t("fldFeatured")}
+          hint={t("fldFeaturedHint")}
           checked={form.is_featured}
           onChange={(v) => set("is_featured", v)}
         />
       </Section>
 
       {/* Presentation ------------------------------------------------ */}
-      <Section title="Presentation" subtitle="What guests see.">
+      <Section title={t("secPresentTitle")} subtitle={t("secPresentSub")}>
         <TextField
-          label="Title"
+          label={t("fldTitle")}
           value={form.title}
           onChange={(v) => set("title", v)}
           maxLength={120}
-          placeholder="2 nights for the price of 1"
+          placeholder={t("fldTitlePlaceholder")}
         />
         <TextArea
-          label="Description"
+          label={t("fldDescription")}
           value={form.description ?? ""}
           onChange={(v) => set("description", v || null)}
           maxLength={2000}
           rows={4}
-          placeholder="What's included, why it's a deal…"
+          placeholder={t("fldDescriptionPlaceholder")}
         />
         {websiteId ? (
           <HeroImageField
-            label="Hero image"
+            label={t("fldHero")}
             websiteId={websiteId}
             path={form.hero_image_path}
             onChange={(p) => set("hero_image_path", p)}
-            hint="Shown on the deal card and detail page."
+            hint={t("fldHeroHint")}
           />
         ) : (
-          <Field label="Hero image" hint="Optional.">
+          <Field label={t("fldHero")} hint={t("fldHeroHintOptional")}>
             <p className="mt-1.5 rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3 py-2.5 text-[12.5px] text-brand-mute">
-              This property’s business needs a website before you can add a hero
-              image. The deal will use the property’s own photos until then.
+              {t("heroNoWebsite")}
             </p>
           </Field>
         )}
       </Section>
 
       {/* Policy ------------------------------------------------------ */}
-      <Section
-        title="Cancellation policy"
-        subtitle="By default a special inherits the property / room policy."
-      >
+      <Section title={t("secPolicyTitle")} subtitle={t("secPolicySub")}>
         <SelectField
-          label="Policy"
+          label={t("fldPolicy")}
           value={form.cancellation_policy_id ?? ""}
           options={policyOptions}
           onChange={(v) => set("cancellation_policy_id", v || null)}
@@ -496,23 +493,24 @@ export function SpecialEditor({
       </Section>
 
       {/* Visibility -------------------------------------------------- */}
-      <Section title="Where it shows" subtitle="Pick the surfaces.">
+      <Section title={t("secVisibilityTitle")} subtitle={t("secVisibilitySub")}>
         <ToggleField
-          label="Platform directory"
-          hint="List on the cross-host /specials page."
+          label={t("fldDirectory")}
+          hint={t("fldDirectoryHint")}
           checked={form.show_in_directory}
           onChange={(v) => set("show_in_directory", v)}
         />
         <ToggleField
-          label="Your website"
-          hint="Show on this business’s Vilo website."
+          label={t("fldWebsite")}
+          hint={t("fldWebsiteHint")}
           checked={form.show_on_website}
           onChange={(v) => set("show_on_website", v)}
         />
         {linkOnly ? (
           <p className="rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3 py-2.5 text-[12.5px] text-brand-mute">
-            With both off, the special is <strong>link-only</strong> — reachable
-            only by sharing its direct link.
+            {t.rich("linkOnlyNote", {
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
           </p>
         ) : null}
       </Section>
@@ -530,7 +528,7 @@ export function SpecialEditor({
           ) : (
             <Save className="h-4 w-4" />
           )}
-          Save as draft
+          {t("saveDraft")}
         </button>
         <button
           type="button"
@@ -544,8 +542,8 @@ export function SpecialEditor({
             <Sparkles className="h-4 w-4" />
           )}
           {mode === "edit" && initialStatus === "active"
-            ? "Save & keep live"
-            : "Save & publish"}
+            ? t("saveKeepLive")
+            : t("savePublish")}
         </button>
       </div>
     </div>
@@ -575,23 +573,23 @@ function Section({
 }
 
 function EmptyProperties() {
+  const t = useTranslations("specials");
   return (
     <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
       <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
         <Sparkles className="h-6 w-6" />
       </div>
       <h1 className="font-display text-lg font-bold text-brand-ink">
-        Add a property first
+        {t("noPropertyTitle")}
       </h1>
       <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-        A special is built on one of your properties. Create a property before
-        building a deal.
+        {t("noPropertyBody")}
       </p>
       <Link
         href="/dashboard/properties"
         className="mt-5 inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
       >
-        Go to properties
+        {t("noPropertyCta")}
       </Link>
     </div>
   );

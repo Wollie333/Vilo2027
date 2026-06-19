@@ -15,6 +15,7 @@ import {
   Store,
   Trash2,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +24,8 @@ import { Modal } from "@/components/ui/modal";
 import { formatMoney } from "@/lib/format";
 
 import { deleteSpecialAction, setSpecialStatusAction } from "./actions";
+
+type SpecialsT = ReturnType<typeof useTranslations>;
 
 export type SpecialStatus =
   | "draft"
@@ -53,12 +56,12 @@ export type SpecialRow = {
   propertyName: string;
 };
 
-const STATUS_STYLE: Record<SpecialStatus, { label: string; cls: string }> = {
-  draft: { label: "Draft", cls: "bg-brand-light text-brand-mute" },
-  active: { label: "Active", cls: "bg-green-100 text-green-700" },
-  paused: { label: "Paused", cls: "bg-amber-100 text-amber-700" },
-  expired: { label: "Expired", cls: "bg-red-100 text-red-700" },
-  archived: { label: "Archived", cls: "bg-brand-light text-brand-mute" },
+const STATUS_CLS: Record<SpecialStatus, string> = {
+  draft: "bg-brand-light text-brand-mute",
+  active: "bg-green-100 text-green-700",
+  paused: "bg-amber-100 text-amber-700",
+  expired: "bg-red-100 text-red-700",
+  archived: "bg-brand-light text-brand-mute",
 };
 
 function fmtDate(d: string | null): string {
@@ -71,6 +74,7 @@ function fmtDate(d: string | null): string {
 }
 
 export function SpecialsList({ specials }: { specials: SpecialRow[] }) {
+  const t = useTranslations("specials");
   if (specials.length === 0) {
     return (
       <div className="rounded-card border border-dashed border-brand-line bg-white p-12 text-center shadow-card">
@@ -78,17 +82,16 @@ export function SpecialsList({ specials }: { specials: SpecialRow[] }) {
           <Sparkles className="h-6 w-6" />
         </div>
         <h2 className="font-display text-lg font-bold text-brand-ink">
-          No specials yet
+          {t("emptyTitle")}
         </h2>
         <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-          Create a pre-packaged deal — pick a property, set your dates and a
-          fixed price, and choose where it shows.
+          {t("emptyBody")}
         </p>
         <Link
           href="/dashboard/specials/new"
           className="mt-5 inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
         >
-          Create your first special
+          {t("emptyCta")}
         </Link>
       </div>
     );
@@ -97,28 +100,32 @@ export function SpecialsList({ specials }: { specials: SpecialRow[] }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {specials.map((s) => (
-        <SpecialCard key={s.id} special={s} />
+        <SpecialCard key={s.id} special={s} t={t} />
       ))}
     </div>
   );
 }
 
-function SpecialCard({ special: s }: { special: SpecialRow }) {
+function SpecialCard({ special: s, t }: { special: SpecialRow; t: SpecialsT }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const status = STATUS_STYLE[s.status];
   const soldOut = s.redemptionsUsed >= s.quantity;
   const price =
     s.priceMode === "flat"
-      ? `${formatMoney(s.flatTotal, s.currency)} total`
-      : `${formatMoney(s.perNightPrice, s.currency)} / night`;
+      ? t("priceTotal", { amount: formatMoney(s.flatTotal, s.currency) })
+      : t("pricePerNight", {
+          amount: formatMoney(s.perNightPrice, s.currency),
+        });
   const dates =
     s.dateMode === "fixed"
       ? `${fmtDate(s.fixedCheckIn)} → ${fmtDate(s.fixedCheckOut)}`
-      : `${fmtDate(s.windowStart)} – ${fmtDate(s.windowEnd)} window`;
+      : t("datesWindow", {
+          start: fmtDate(s.windowStart),
+          end: fmtDate(s.windowEnd),
+        });
 
   function run(
     label: string,
@@ -131,7 +138,7 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
         toast.success(label);
         router.refresh();
       } else {
-        toast.error(res.error ?? "Something went wrong.");
+        toast.error(res.error ?? t("genericError"));
       }
     });
   }
@@ -154,9 +161,9 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span
-            className={`rounded-pill px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide ${status.cls}`}
+            className={`rounded-pill px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide ${STATUS_CLS[s.status]}`}
           >
-            {status.label}
+            {t(`status_${s.status}`)}
           </span>
           <div className="relative">
             <button
@@ -164,7 +171,7 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
               onClick={() => setMenuOpen((o) => !o)}
               disabled={pending}
               className="rounded-lg p-1.5 text-brand-mute transition-colors hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
-              aria-label="Special actions"
+              aria-label={t("actionsAria")}
             >
               <MoreHorizontal className="h-4 w-4" />
             </button>
@@ -178,19 +185,19 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
                   <MenuLink
                     href={`/dashboard/specials/${s.id}`}
                     icon={BarChart3}
-                    label="View report"
+                    label={t("menuReport")}
                   />
                   <MenuLink
                     href={`/dashboard/specials/${s.id}/edit`}
                     icon={Pencil}
-                    label="Edit"
+                    label={t("menuEdit")}
                   />
                   {s.status === "active" ? (
                     <MenuButton
                       icon={Pause}
-                      label="Pause"
+                      label={t("menuPause")}
                       onClick={() =>
-                        run("Special paused", () =>
+                        run(t("toastPaused"), () =>
                           setSpecialStatusAction(s.id, "paused"),
                         )
                       }
@@ -198,9 +205,9 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
                   ) : (
                     <MenuButton
                       icon={Play}
-                      label="Activate"
+                      label={t("menuActivate")}
                       onClick={() =>
-                        run("Special activated", () =>
+                        run(t("toastActivated"), () =>
                           setSpecialStatusAction(s.id, "active"),
                         )
                       }
@@ -209,9 +216,9 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
                   {s.status !== "archived" ? (
                     <MenuButton
                       icon={LayoutGrid}
-                      label="Archive"
+                      label={t("menuArchive")}
                       onClick={() =>
-                        run("Special archived", () =>
+                        run(t("toastArchived"), () =>
                           setSpecialStatusAction(s.id, "archived"),
                         )
                       }
@@ -219,7 +226,7 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
                   ) : null}
                   <MenuButton
                     icon={Trash2}
-                    label="Delete"
+                    label={t("menuDelete")}
                     danger
                     onClick={() => {
                       setMenuOpen(false);
@@ -234,20 +241,23 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-[13px]">
-        <Fact label="Price" value={price} />
-        <Fact label="Dates" value={dates} />
+        <Fact label={t("factPrice")} value={price} />
+        <Fact label={t("factDates")} value={dates} />
         <Fact
-          label="Redeemed"
+          label={t("factRedeemed")}
           value={
             <span
               className={soldOut ? "font-semibold text-red-600" : undefined}
             >
               {s.redemptionsUsed} / {s.quantity}
-              {soldOut ? " · sold out" : ""}
+              {soldOut ? ` · ${t("soldOut")}` : ""}
             </span>
           }
         />
-        <Fact label="Visible on" value={<VisibilityChips special={s} />} />
+        <Fact
+          label={t("factVisible")}
+          value={<VisibilityChips special={s} t={t} />}
+        />
       </div>
 
       <div className="mt-4 flex items-center gap-2 border-t border-brand-line pt-3">
@@ -256,19 +266,19 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
           className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
         >
           <BarChart3 className="h-3.5 w-3.5" />
-          Report
+          {t("report")}
         </Link>
         <Link
           href={`/dashboard/specials/${s.id}/edit`}
           className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
         >
           <Pencil className="h-3.5 w-3.5" />
-          Edit
+          {t("edit")}
         </Link>
         {s.status === "active" ? (
           <span className="inline-flex items-center gap-1 text-[12px] font-medium text-green-600">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Live
+            {t("live")}
           </span>
         ) : null}
       </div>
@@ -277,16 +287,16 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         intent="destructive"
-        title="Delete this special?"
-        description={`“${s.title}” will be removed from your specials. Existing bookings made from it are unaffected.`}
+        title={t("deleteTitle")}
+        description={t("deleteBody", { title: s.title })}
         actions={[
           {
-            label: "Delete",
+            label: t("delete"),
             kind: "danger",
             onClick: () =>
-              run("Special deleted", () => deleteSpecialAction(s.id)),
+              run(t("toastDeleted"), () => deleteSpecialAction(s.id)),
           },
-          { label: "Cancel", kind: "ghost" },
+          { label: t("cancel"), kind: "ghost" },
         ]}
       />
     </div>
@@ -304,12 +314,18 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function VisibilityChips({ special: s }: { special: SpecialRow }) {
+function VisibilityChips({
+  special: s,
+  t,
+}: {
+  special: SpecialRow;
+  t: SpecialsT;
+}) {
   const linkOnly = !s.showInDirectory && !s.showOnWebsite;
   if (linkOnly) {
     return (
       <span className="inline-flex items-center gap-1 text-brand-mute">
-        <Link2 className="h-3.5 w-3.5" /> Link only
+        <Link2 className="h-3.5 w-3.5" /> {t("chipLinkOnly")}
       </span>
     );
   }
@@ -317,12 +333,12 @@ function VisibilityChips({ special: s }: { special: SpecialRow }) {
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-0.5 text-brand-ink">
       {s.showInDirectory ? (
         <span className="inline-flex items-center gap-1">
-          <Store className="h-3.5 w-3.5" /> Directory
+          <Store className="h-3.5 w-3.5" /> {t("chipDirectory")}
         </span>
       ) : null}
       {s.showOnWebsite ? (
         <span className="inline-flex items-center gap-1">
-          <Globe className="h-3.5 w-3.5" /> Website
+          <Globe className="h-3.5 w-3.5" /> {t("chipWebsite")}
         </span>
       ) : null}
     </span>

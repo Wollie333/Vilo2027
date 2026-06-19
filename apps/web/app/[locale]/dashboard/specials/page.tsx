@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
 
 import { Sparkles, Plus } from "lucide-react";
@@ -9,11 +10,15 @@ import { createServerClient } from "@/lib/supabase/server";
 
 import { SpecialsList, type SpecialRow } from "./SpecialsList";
 
-export const metadata: Metadata = { title: "Specials" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("specials");
+  return { title: t("metaTitle") };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function SpecialsPage() {
+  const t = await getTranslations("specials");
   const supabase = createServerClient();
   const {
     data: { user },
@@ -34,10 +39,10 @@ export default async function SpecialsPage() {
           <Sparkles className="h-6 w-6" />
         </div>
         <h1 className="font-display text-lg font-bold text-brand-ink">
-          Create your host profile first
+          {t("noHostTitle")}
         </h1>
         <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-          Finish host onboarding before creating specials.
+          {t("noHostBody")}
         </p>
       </div>
     );
@@ -52,10 +57,10 @@ export default async function SpecialsPage() {
           <Sparkles className="h-6 w-6" />
         </div>
         <h1 className="font-display text-lg font-bold text-brand-ink">
-          Specials aren’t on your plan yet
+          {t("lockedTitle")}
         </h1>
         <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-          Upgrade your plan to create pre-packaged deals for your properties.
+          {t("lockedBody")}
         </p>
       </div>
     );
@@ -98,7 +103,7 @@ export default async function SpecialsPage() {
       windowEnd: r.window_end,
       showInDirectory: r.show_in_directory,
       showOnWebsite: r.show_on_website,
-      propertyName: prop?.name ?? "Property removed",
+      propertyName: prop?.name ?? t("propertyRemoved"),
     };
   });
 
@@ -110,7 +115,8 @@ export default async function SpecialsPage() {
   );
 }
 
-function SpecialsHero({ count }: { count: number }) {
+async function SpecialsHero({ count }: { count: number }) {
+  const t = await getTranslations("specials");
   return (
     <section
       className="relative overflow-hidden rounded-card border border-brand-line p-7 text-white shadow-card md:p-8"
@@ -127,15 +133,13 @@ function SpecialsHero({ count }: { count: number }) {
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
             <Sparkles className="h-3 w-3" />
-            Specials
+            {t("heroBadge")}
           </div>
           <h1 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight md:text-[34px]">
-            Pre-packaged deals
+            {t("heroTitle")}
           </h1>
           <p className="mt-2 text-[14px] leading-relaxed text-brand-accent/80">
-            Bundle a stay, date treatment and a price you fully control.
-            Specials book and settle exactly like a normal booking — they just
-            override your seasonal pricing.
+            {t("heroSubtitle")}
           </p>
         </div>
         <Link
@@ -143,12 +147,12 @@ function SpecialsHero({ count }: { count: number }) {
           className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-4 py-2.5 text-sm font-semibold text-brand-ink transition-colors hover:bg-brand-accent"
         >
           <Plus className="h-4 w-4" />
-          New special
+          {t("newCta")}
         </Link>
       </div>
       {count > 0 ? (
         <div className="relative mt-5 text-[12.5px] font-medium text-brand-accent/70">
-          {count} {count === 1 ? "special" : "specials"}
+          {t("countLabel", { count })}
         </div>
       ) : null}
     </section>

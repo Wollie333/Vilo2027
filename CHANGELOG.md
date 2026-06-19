@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-19 — Specials · S7c-1 (i18n: dashboard CRUD)
+
+Wires every hardcoded string in the Specials dashboard list + editor (S1, which
+deferred all i18n) through next-intl. Code-only — no migration, no schema change.
+
+### Added
+- **`specials` i18n namespace** in `messages/en.json` (~150 keys): hero/empty/
+  locked/no-host states, status labels, price/dates/visibility facts, row-menu +
+  toasts, the full editor (all section titles/subtitles, field labels + hints +
+  placeholders, segmented options, save-bar, category labels, link-only note via
+  `t.rich`), hero-image upload toasts/buttons, and the metadata titles.
+
+### Changed
+- **List** (`page.tsx`, `SpecialsList.tsx`) — `generateMetadata` + `getTranslations`
+  on the server page (hero now an async sub-component); `useTranslations("specials")`
+  in the client list. `STATUS_STYLE` split into `STATUS_CLS` + i18n'd labels
+  (`t(\`status_${...}\`)`); plural `countLabel`; `t` threaded to `SpecialCard`/
+  `VisibilityChips`.
+- **Editor** (`_components/SpecialEditor.tsx`, `_components/fields.tsx`) — all
+  strings via `useTranslations("specials")`; category chips use
+  `t(\`category_${key}\`)`; `EmptyProperties` + `TagInput` + `HeroImageField` each
+  pull their own hook. `lib/specials/categories.ts` English labels kept as the
+  fallback for `specialCategoryLabel` (the public directory's i18n is S7c-2).
+- **New/Edit pages** — static `metadata` → `generateMetadata` (`metaNew`/`metaEdit`).
+
+No string values changed (English output identical); af/de/fr/pt fall back to en
+until translated. tsc + lint + `pnpm build` green.
+
 ## 2026-06-19 — Specials · S7b (help article)
 
 Ships the Help Centre article for the Specials feature per RULES.md §9. SQL-only —

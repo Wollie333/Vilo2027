@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 
 import { requireHost } from "@/lib/host/current";
@@ -6,7 +7,10 @@ import { requireHost } from "@/lib/host/current";
 import { SpecialEditor } from "../../_components/SpecialEditor";
 import { loadSpecial, loadSpecialEditorData } from "../../_lib/load";
 
-export const metadata: Metadata = { title: "Edit special" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("specials");
+  return { title: t("metaEdit") };
+}
 
 export const dynamic = "force-dynamic";
 

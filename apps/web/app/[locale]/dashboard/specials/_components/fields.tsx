@@ -1,6 +1,7 @@
 "use client";
 
 import { ImagePlus, Library, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
@@ -305,6 +306,7 @@ export function TagInput({
   hint?: string;
   max?: number;
 }) {
+  const t = useTranslations("specials");
   const [draft, setDraft] = useState("");
   function commit() {
     const t = draft.trim().slice(0, 30);
@@ -342,7 +344,7 @@ export function TagInput({
             }
           }}
           onBlur={commit}
-          placeholder={value.length < max ? "Add a tag…" : ""}
+          placeholder={value.length < max ? t("tagPlaceholder") : ""}
           className="min-w-[80px] flex-1 bg-transparent px-1 text-sm text-brand-ink outline-none"
         />
       </div>
@@ -372,6 +374,7 @@ export function HeroImageField({
   onChange: (path: string | null) => void;
   hint?: string;
 }) {
+  const t = useTranslations("specials");
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -379,11 +382,11 @@ export function HeroImageField({
 
   async function onPick(file: File) {
     if (!ACCEPTED.includes(file.type)) {
-      toast.error("Use a PNG, JPG or WebP image.");
+      toast.error(t("heroImgError"));
       return;
     }
     if (file.size > MAX_BYTES) {
-      toast.error("Image must be 6 MB or smaller.");
+      toast.error(t("heroImgTooBig"));
       return;
     }
     setUploading(true);
@@ -391,7 +394,7 @@ export function HeroImageField({
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const ticket = await createWebsiteAssetUploadUrl(websiteId, ext);
       if (!ticket.ok) {
-        toast.error("Could not start the upload.");
+        toast.error(t("heroUploadStartError"));
         return;
       }
       const supabase = createClient();
@@ -401,7 +404,7 @@ export function HeroImageField({
           contentType: file.type || "image/jpeg",
         });
       if (error) {
-        toast.error("Upload failed. Try again.");
+        toast.error(t("heroUploadError"));
         return;
       }
       onChange(ticket.data.path);
@@ -433,7 +436,7 @@ export function HeroImageField({
             ) : (
               <ImagePlus className="h-3.5 w-3.5" />
             )}
-            {url ? "Replace" : "Upload"}
+            {url ? t("imgReplace") : t("imgUpload")}
           </button>
           <button
             type="button"
@@ -442,7 +445,7 @@ export function HeroImageField({
             className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-medium text-brand-ink transition-colors hover:bg-brand-light disabled:opacity-50"
           >
             <Library className="h-3.5 w-3.5" />
-            Library
+            {t("imgLibrary")}
           </button>
           {url ? (
             <button
