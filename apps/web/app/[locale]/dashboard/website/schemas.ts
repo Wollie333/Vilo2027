@@ -3,13 +3,33 @@ import { z } from "zod";
 import { sectionsSchema } from "@/lib/website/sections.schema";
 
 // Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
-// "preset:<slug>" id for the built-in presets (pre-migration fallback).
+// "preset:<slug>" id for the built-in presets (pre-migration fallback). `fresh`
+// forces a clean seed (ignoring any prior customised version of the theme) — the
+// "reset to default" path uses it.
 export const applyThemeSchema = z.object({
   websiteId: z.string().uuid(),
   themeId: z.string().trim().min(1).max(80),
+  fresh: z.boolean().default(false),
 });
 
-export type ApplyThemeInput = z.infer<typeof applyThemeSchema>;
+export type ApplyThemeInput = z.input<typeof applyThemeSchema>;
+
+// Restore points (Phase 2.5 — design safety net).
+export const saveRestorePointSchema = z.object({
+  websiteId: z.string().uuid(),
+  label: z.string().trim().max(80).default(""),
+});
+export type SaveRestorePointInput = z.infer<typeof saveRestorePointSchema>;
+
+export const restorePointIdSchema = z.object({
+  restorePointId: z.string().uuid(),
+});
+export type RestorePointIdInput = z.infer<typeof restorePointIdSchema>;
+
+export const resetToDefaultSchema = z.object({
+  websiteId: z.string().uuid(),
+});
+export type ResetToDefaultInput = z.infer<typeof resetToDefaultSchema>;
 
 export const createWebsiteSchema = z.object({
   businessId: z.string().uuid(),
