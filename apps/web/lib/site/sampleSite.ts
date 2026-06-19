@@ -4,13 +4,59 @@
 // shows live exactly as guests will see it. Pure data (schema-validated) — safe
 // to import in client or server.
 
-import type { SiteData, SiteNavItem } from "@/lib/site/types";
+import type {
+  GalleryData,
+  RoomsPreviewData,
+  SiteData,
+  SiteNavItem,
+} from "@/lib/site/types";
 import {
   sectionsSchema,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 
 const IMG = (seed: string) => `https://picsum.photos/seed/vilo-${seed}/900/700`;
+
+// Demo fillers for the Brand Studio preview when the host's real site has no
+// rooms / photos yet — so they can still design the brand against content.
+export const DEMO_ROOMS: RoomsPreviewData = {
+  rooms: [
+    {
+      id: "demo-r1",
+      name: "Garden Suite",
+      price: 1850,
+      currency: "ZAR",
+      description: "Sleeps 2 · private stoep · fireplace.",
+      imageUrl: IMG("dr1"),
+      bookHref: "#",
+    },
+    {
+      id: "demo-r2",
+      name: "Family Cottage",
+      price: 2200,
+      currency: "ZAR",
+      description: "Sleeps 4 · full kitchen · garden views.",
+      imageUrl: IMG("dr2"),
+      bookHref: "#",
+    },
+    {
+      id: "demo-r3",
+      name: "The Loft",
+      price: 1500,
+      currency: "ZAR",
+      description: "Sleeps 2 · cosy · pet friendly.",
+      imageUrl: IMG("dr3"),
+      bookHref: "#",
+    },
+  ],
+};
+
+export const DEMO_GALLERY: GalleryData = {
+  images: Array.from({ length: 6 }, (_, i) => ({
+    url: IMG(`dg${i}`),
+    caption: null,
+  })),
+};
 
 // Stable uuids per section (the schema requires id: uuid).
 const ID = {
@@ -107,6 +153,41 @@ export const SAMPLE_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
     props: { heading: "From the journal", max: 3 },
   },
 ]);
+
+// Sample "pages" for the preview page-tabs. Each reuses section blocks from
+// SAMPLE_SECTIONS (same ids → SAMPLE_DATA serves them all; pages render
+// separately so reuse is safe).
+const ofType = (...types: WebsiteSection["type"][]) =>
+  SAMPLE_SECTIONS.filter((s) => types.includes(s.type));
+
+export type SamplePage = {
+  key: string;
+  label: string;
+  path: string;
+  sections: WebsiteSection[];
+};
+
+export const SAMPLE_PAGES: SamplePage[] = [
+  { key: "home", label: "Home", path: "/", sections: SAMPLE_SECTIONS },
+  {
+    key: "rooms",
+    label: "Rooms",
+    path: "/rooms",
+    sections: ofType("rooms_preview", "gallery"),
+  },
+  {
+    key: "about",
+    label: "About",
+    path: "/about",
+    sections: ofType("host_bio", "highlights", "reviews"),
+  },
+  {
+    key: "journal",
+    label: "Journal",
+    path: "/journal",
+    sections: ofType("blog_preview"),
+  },
+];
 
 export const SAMPLE_DATA: SiteData = {
   [ID.gallery]: {

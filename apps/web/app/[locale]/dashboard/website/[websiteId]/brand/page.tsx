@@ -38,6 +38,8 @@ export default async function WebsiteBrandPage({
       websiteId={websiteId}
       initial={initial}
       fallbackName={fallbackName}
+      subdomain={data.subdomain}
+      liveHref={`/site?site=${data.subdomain}&preview=1`}
     />
   );
 }

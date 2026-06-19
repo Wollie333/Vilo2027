@@ -1,29 +1,29 @@
 "use client";
 
-import { ArrowLeft, Loader2, Monitor, Smartphone, Tablet } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Loader2,
+  Lock,
+  Monitor,
+  Palette,
+  RotateCw,
+  Smartphone,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { saveBrandStudioAction } from "@/app/[locale]/dashboard/website/actions";
 import { Link } from "@/i18n/navigation";
-import { SectionRenderer } from "@/components/site/SectionRenderer";
-import { SiteChrome } from "@/components/site/SiteChrome";
-import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-import {
-  SAMPLE_DATA,
-  SAMPLE_NAV,
-  SAMPLE_SECTIONS,
-} from "@/lib/site/sampleSite";
-import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 import {
   ButtonsSection,
-  ColoursSection,
+  ColourSection,
   IdentitySection,
   ImagesSection,
-  LogosSection,
+  SocialSection,
   TypographySection,
 } from "./_sections";
 import {
@@ -33,45 +33,74 @@ import {
   type StudioState,
 } from "./studio";
 
-type Device = "desktop" | "tablet" | "phone";
+type Device = "desktop" | "mobile";
+type PageTab = { key: string; label: string; path: string };
 
-const DEVICES: Array<{ key: Device; icon: typeof Monitor; labelKey: string }> =
-  [
-    { key: "desktop", icon: Monitor, labelKey: "deviceDesktop" },
-    { key: "tablet", icon: Tablet, labelKey: "deviceTablet" },
-    { key: "phone", icon: Smartphone, labelKey: "devicePhone" },
-  ];
+const ROOT_DOMAIN = "vilo.site";
 
-const DEVICE_W: Record<Device, string> = {
-  desktop: "max-w-full",
-  tablet: "max-w-[834px]",
-  phone: "max-w-[400px]",
-};
-
-/**
- * The Brand Studio — a full-screen focus editor that takes over the viewport
- * (covering the dashboard sidebar + website-editor tabs). LEFT: the six
- * `state`/`merge` control sections. RIGHT: a live, responsive preview of a
- * realistic sample site rendered through the SAME `components/site/*` renderer
- * the public site uses (preview === public), so every brand/theme/image change
- * shows instantly. Identity + design persist together via `saveBrandStudioAction`;
- * logos persist on upload inside LogosSection.
- */
 export function BrandStudio({
   websiteId,
   initial,
   fallbackName,
+  subdomain,
+  liveHref,
 }: {
   websiteId: string;
   initial: StudioState;
   fallbackName: string;
+  subdomain: string;
+  liveHref: string;
 }) {
   const t = useTranslations("website");
+  const locale = useLocale();
   const [state, setState] = useState<StudioState>(initial);
   const [device, setDevice] = useState<Device>("desktop");
+  const [page, setPage] = useState("home");
+  const [tabs, setTabs] = useState<PageTab[]>([]);
   const [saving, startSave] = useTransition();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Lock the page behind the overlay while the studio is open.
+  const merge = (patch: Partial<StudioState>) =>
+    setState((prev) => ({ ...prev, ...patch }));
+  const sectionProps = { websiteId, state, merge, fallbackName };
+
+  // Push the live draft theme/brand + selected page into the preview iframe.
+  const post = useCallback(() => {
+    iframeRef.current?.contentWindow?.postMessage(
+      {
+        source: "vilo-brand-studio",
+        theme: studioThemeConfig(state),
+        brand: studioBrand(state, fallbackName),
+        page,
+      },
+      window.location.origin,
+    );
+  }, [state, fallbackName, page]);
+
+  // Re-push on every change.
+  useEffect(() => {
+    post();
+  }, [post]);
+
+  // When the iframe reports ready, capture its page list and push current state.
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+      const d = e.data as {
+        source?: string;
+        type?: string;
+        pages?: PageTab[];
+      };
+      if (d?.source === "vilo-brand-preview" && d.type === "ready") {
+        if (d.pages?.length) setTabs(d.pages);
+        post();
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, [post]);
+
+  // Lock the page behind the overlay.
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -79,12 +108,6 @@ export function BrandStudio({
       document.body.style.overflow = prev;
     };
   }, []);
-
-  const merge = (patch: Partial<StudioState>) =>
-    setState((prev) => ({ ...prev, ...patch }));
-
-  const sectionProps = { websiteId, state, merge, fallbackName };
-  const themeCfg = studioThemeConfig(state);
 
   function onSave() {
     startSave(async () => {
@@ -99,87 +122,176 @@ export function BrandStudio({
     });
   }
 
+  const activePath = tabs.find((tab) => tab.key === page)?.path ?? "";
+
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-brand-light">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-white">
       {/* ── Top bar ─────────────────────────────────────── */}
-      <header className="flex items-center justify-between gap-3 border-b border-brand-line bg-white px-3 py-2.5 sm:px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href={`/dashboard/website/${websiteId}`}
-            className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("brandStudioBack")}</span>
-          </Link>
-          <span className="hidden h-5 w-px bg-brand-line sm:block" />
-          <h1 className="truncate font-display text-sm font-bold text-brand-ink">
-            {t("brandStudioTitle")}
-          </h1>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Responsive device toggle (preview pane width) */}
-          <div className="hidden items-center gap-0.5 rounded-[10px] border border-brand-line bg-brand-light p-0.5 md:inline-flex">
-            {DEVICES.map(({ key, icon: Icon, labelKey }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setDevice(key)}
-                title={t(labelKey)}
-                aria-label={t(labelKey)}
-                className={`rounded-[8px] p-1.5 transition ${
-                  device === key
-                    ? "bg-white text-brand-ink shadow-sm"
-                    : "text-brand-mute hover:text-brand-ink"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {t("saveChanges")}
-          </button>
-        </div>
+      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-brand-line bg-white px-4 lg:px-5">
+        <Link
+          href={`/dashboard/website/${websiteId}`}
+          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line px-2.5 py-1.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">{t("brandStudioBack")}</span>
+        </Link>
+        <span className="font-display text-[15px] font-extrabold tracking-tight text-brand-ink">
+          {t("brandStudioTitle")}
+        </span>
+        <div className="flex-1" />
+        <Link
+          href={liveHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+        >
+          <ExternalLink className="h-4 w-4 text-brand-mute" />
+          <span className="hidden sm:inline">{t("brandViewLive")}</span>
+        </Link>
       </header>
 
-      {/* ── Body: controls + live preview ───────────────── */}
-      <div className="min-h-0 flex-1 overflow-y-auto lg:grid lg:grid-cols-[380px_minmax(0,1fr)] lg:overflow-hidden">
-        {/* Controls */}
-        <div className="space-y-5 border-b border-brand-line bg-white px-4 py-5 lg:h-full lg:overflow-y-auto lg:border-b-0 lg:border-r">
-          <IdentitySection {...sectionProps} />
-          <LogosSection {...sectionProps} />
-          <ColoursSection {...sectionProps} />
-          <TypographySection {...sectionProps} />
-          <ButtonsSection {...sectionProps} />
-          <ImagesSection {...sectionProps} />
+      {/* ── Body ────────────────────────────────────────── */}
+      <div className="flex min-h-0 flex-1">
+        {/* Control rail */}
+        <div className="flex w-full max-w-[404px] shrink-0 flex-col border-r border-brand-line bg-white max-lg:max-w-[340px] max-md:hidden">
+          <div className="flex shrink-0 items-center gap-3 border-b border-brand-line px-5 py-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-brand-secondary text-white">
+              <Palette className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="font-display text-[18px] font-extrabold leading-none text-brand-ink">
+                {t("brandStudioTitle")}
+              </h1>
+              <div className="mt-1 truncate text-[12px] text-brand-mute">
+                {fallbackName}
+              </div>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <IdentitySection {...sectionProps} />
+            <ColourSection {...sectionProps} />
+            <TypographySection {...sectionProps} />
+            <ButtonsSection {...sectionProps} />
+            <ImagesSection {...sectionProps} />
+            <SocialSection {...sectionProps} />
+            <div className="h-2" />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3 border-t border-brand-line bg-white px-5 py-3.5">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-brand-mute">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              {t("brandStudioDraftHint")}
+            </span>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-5 py-2.5 text-[13.5px] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)] transition hover:bg-brand-secondary disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t("saveChanges")}
+            </button>
+          </div>
         </div>
 
-        {/* Live preview */}
-        <div className="bg-brand-light p-4 lg:h-full lg:overflow-y-auto lg:p-6">
-          <div
-            className={`mx-auto overflow-hidden rounded-card border border-brand-line bg-white shadow-card transition-[max-width] duration-300 ${DEVICE_W[device]}`}
-          >
-            <SiteThemeRoot theme={themeCfg}>
-              <SiteChrome
-                brand={studioBrand(state, fallbackName)}
-                nav={SAMPLE_NAV}
-                bookHref="#"
-                darkChrome={siteSurfaceIsDark(themeCfg)}
+        {/* Preview stage */}
+        <div
+          className="flex min-w-0 flex-1 flex-col bg-[#0A1510]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px,rgba(255,255,255,.045) 1px,transparent 0)",
+            backgroundSize: "22px 22px",
+          }}
+        >
+          {/* Browser chrome */}
+          <div className="flex h-[52px] shrink-0 items-center gap-3.5 border-b border-white/10 bg-[#0F1B16] px-4">
+            <div className="hidden gap-1.5 sm:flex">
+              <span className="h-[11px] w-[11px] rounded-full bg-[#FF5F57]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#FEBC2E]" />
+              <span className="h-[11px] w-[11px] rounded-full bg-[#28C840]" />
+            </div>
+            <div className="hidden min-w-0 items-center gap-2 rounded-pill bg-white/[0.06] px-3.5 py-1.5 text-[12.5px] text-white/60 md:flex">
+              <Lock className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="truncate font-mono text-[12px]">
+                {subdomain}.{ROOT_DOMAIN}
+                <span className="text-white/40">{activePath}</span>
+              </span>
+            </div>
+
+            {/* Page tabs */}
+            {tabs.length > 0 ? (
+              <div className="flex gap-1 rounded-[10px] bg-white/[0.06] p-[3px]">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setPage(tab.key)}
+                    className={`whitespace-nowrap rounded-[7px] px-3 py-1.5 text-[12.5px] font-semibold transition ${
+                      page === tab.key
+                        ? "bg-white/[0.14] text-white"
+                        : "text-white/60 hover:text-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="ml-auto flex items-center gap-2.5">
+              <div className="flex gap-[3px] rounded-[10px] bg-white/[0.06] p-[3px]">
+                {(
+                  [
+                    { key: "desktop", icon: Monitor },
+                    { key: "mobile", icon: Smartphone },
+                  ] as const
+                ).map(({ key, icon: Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setDevice(key)}
+                    title={
+                      key === "desktop" ? t("deviceDesktop") : t("devicePhone")
+                    }
+                    className={`flex h-[30px] w-[34px] items-center justify-center rounded-[7px] transition ${
+                      device === key
+                        ? "bg-white/[0.14] text-white"
+                        : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="h-[17px] w-[17px]" />
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => post()}
+                title={t("brandReloadPreview")}
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/10 hover:text-white"
               >
-                <SectionRenderer
-                  sections={SAMPLE_SECTIONS}
-                  data={SAMPLE_DATA}
-                />
-              </SiteChrome>
-            </SiteThemeRoot>
+                <RotateCw className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Device frame */}
+          <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto">
+            <div
+              className={
+                device === "mobile"
+                  ? "relative my-6 h-[calc(100%-48px)] w-[414px] shrink-0 overflow-hidden rounded-[30px] border-[9px] border-[#060d0a] bg-white shadow-[0_40px_90px_-30px_rgba(0,0,0,.7)]"
+                  : "h-full w-full bg-white"
+              }
+            >
+              <iframe
+                ref={iframeRef}
+                src={`/${locale}/brand-preview/${websiteId}`}
+                title={t("brandPreviewTitle")}
+                onLoad={post}
+                className="block h-full w-full border-0 bg-white"
+              />
+            </div>
           </div>
         </div>
       </div>
