@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   CheckCircle2,
   Globe,
   LayoutGrid,
@@ -175,6 +176,11 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
                 />
                 <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-card border border-brand-line bg-white py-1 shadow-lift">
                   <MenuLink
+                    href={`/dashboard/specials/${s.id}`}
+                    icon={BarChart3}
+                    label="View report"
+                  />
+                  <MenuLink
                     href={`/dashboard/specials/${s.id}/edit`}
                     icon={Pencil}
                     label="Edit"
@@ -245,6 +251,13 @@ function SpecialCard({ special: s }: { special: SpecialRow }) {
       </div>
 
       <div className="mt-4 flex items-center gap-2 border-t border-brand-line pt-3">
+        <Link
+          href={`/dashboard/specials/${s.id}`}
+          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+          Report
+        </Link>
         <Link
           href={`/dashboard/specials/${s.id}/edit`}
           className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-1.5 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-light"

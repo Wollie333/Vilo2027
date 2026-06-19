@@ -24,8 +24,36 @@
 > +build green; code-only, no migration) → **S3 booking wiring DONE 2026-06-19**
 > (`createSpecialBookingAction` + `/special/[slug]/book`, both entry points `booked_via`; extract shared
 > persistence tail to `lib/bookings/persist.ts`; `redeem_special` atomic + rollback ladder; reuse
-> `priceSpecialStay` as the authoritative price): shared tail `lib/bookings/persist.ts` `persistBookingAndPay` (insert → atomic redeem claim [coupon/special] → booking_rooms+addons[+stock reserve] → snapshot_booking_policies → startBookingPayment, one reverse unwind); **`createBookingAction` refactored onto it, behaviour preserved**; new `special/[slug]/book/` (`createSpecialBookingAction` + `schemas.ts` + `page.tsx` + `SpecialBookingForm.tsx`, both entry points `?via=platform|website`); `redeem_special` claim + `release_special` rollback; migration `20260619000000` (snapshot special-cancellation override + `release_special`); pushed+types regen; tsc+lint green on my files. **Branch had concurrent parallel-agent website WIP in the working tree — staged ONLY my S3 paths.** → **S4 platform directory DONE 2026-06-19** (commit `7f54a19`): cross-host `/specials` (`app/[locale]/specials/page.tsx` + `SpecialCard.tsx`; `lib/specials/directory.ts` `searchSpecials` — force-dynamic admin read, JS date/inventory guards [go_live/book_by/stay-end/sold-out], city·type·category filters, featured-first + pagination) + shared public `app/[locale]/special/[slug]/page.tsx` detail (slug per-host-unique → earliest active match; savings badge, scarcity, what's-included from compulsory add-ons, cancellation note via `getListingPolicySummary`, Book CTA → `/book?via=platform`). Reuses SiteHeader/Footer, Money, brand classes. tsc+lint+build green; routes registered. Staged only my 4 S4 paths. → **NEXT S5** website specials page +
-> `specials_preview` section → S6 reporting → S7 gating/help/i18n. Fresh session per phase; commit each.
+> `priceSpecialStay` as the authoritative price): shared tail `lib/bookings/persist.ts` `persistBookingAndPay` (insert → atomic redeem claim [coupon/special] → booking_rooms+addons[+stock reserve] → snapshot_booking_policies → startBookingPayment, one reverse unwind); **`createBookingAction` refactored onto it, behaviour preserved**; new `special/[slug]/book/` (`createSpecialBookingAction` + `schemas.ts` + `page.tsx` + `SpecialBookingForm.tsx`, both entry points `?via=platform|website`); `redeem_special` claim + `release_special` rollback; migration `20260619000000` (snapshot special-cancellation override + `release_special`); pushed+types regen; tsc+lint green on my files. **Branch had concurrent parallel-agent website WIP in the working tree — staged ONLY my S3 paths.** → **S4 platform directory DONE 2026-06-19** (commit `7f54a19`): cross-host `/specials` (`app/[locale]/specials/page.tsx` + `SpecialCard.tsx`; `lib/specials/directory.ts` `searchSpecials` — force-dynamic admin read, JS date/inventory guards [go_live/book_by/stay-end/sold-out], city·type·category filters, featured-first + pagination) + shared public `app/[locale]/special/[slug]/page.tsx` detail (slug per-host-unique → earliest active match; savings badge, scarcity, what's-included from compulsory add-ons, cancellation note via `getListingPolicySummary`, Book CTA → `/book?via=platform`). Reuses SiteHeader/Footer, Money, brand classes. tsc+lint+build green; routes registered. Staged only my 4 S4 paths.
+>
+> **PHASES RE-SPLIT INTO SINGLE-SESSION SUB-TASKS (founder 2026-06-19).** The remaining
+> S5/S6/S7 each bundled 2–4 independent things — now broken into smaller save points, one per
+> fresh session, build+commit each. Roadmap:
+> - **S6a per-special report panel DONE 2026-06-19** (built out of order, was uncommitted WIP;
+>   committed as a save point this session): `lib/specials/reporting.ts` `loadSpecialReport`
+>   (owner-scoped host_id+special_id; revenue over confirmed/checked_in/completed = canonical
+>   revenue set; booking funnel by status; sell-through vs quantity cap; recent 10) +
+>   `dashboard/specials/[id]/page.tsx` (dark-hero report: Revenue/Bookings/Redeemed/Savings KPIs +
+>   sell-through bar + funnel chips + recent bookings → booking record) + `SpecialsList.tsx`
+>   Report links (row menu + card). **View tracking deliberately deferred to S6b** — this panel
+>   only shows numbers it can stand behind (bookings/revenue/sell-through). code-only, no migration.
+> - **S5a (NEXT) website plumbing** — migration: extend `website_pages.kind` CHECK + add
+>   `'specials_preview'` to SECTION_TYPES + AUTO_POPULATE_SECTIONS in `sections.schema.ts` +
+>   `SpecialCard` to `lib/site/types.ts`. (migration file only — consolidation lane pushes.)
+> - **S5b website render** — `components/site/sections/SpecialsPreview.tsx` + register in
+>   SectionRenderer + `specials_preview` branch in `assembleSiteDataByType` (loadSitePage.ts,
+>   business's active+show_on_website specials → SpecialCard[], bookHref `?via=website`) + builder
+>   section editor support.
+> - **S6b view tracking + conversion** — `special_view`/`special_book_click` via `/api/site-track`
+>   beacon + track-listing-view pattern on the platform detail page; aggregate per special in
+>   `lib/website/analytics.ts`; add views + view→booking conversion to the S6a panel.
+> - **S7a feature gate** — gate at action + UI layer; open on `free` pre-MVP (AGENT_RULES §3.4).
+> - **S7b help article** — DB-backed help migration (`specials` article).
+> - **S7c-1 i18n: dashboard CRUD** strings (S1 editor/list deferred all i18n) → en.json + t().
+> - **S7c-2 i18n: public** directory + shared detail + special booking flow.
+> - **S7c-3 i18n: website** section + report panel.
+> - **FIN** — full `pnpm build`+`pnpm lint` green, CHANGELOG, fast-forward `main` + push.
+> Fresh session per sub-task; stage explicit paths only; build before each commit.
 
 ---
 
