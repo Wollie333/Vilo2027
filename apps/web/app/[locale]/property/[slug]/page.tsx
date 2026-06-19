@@ -23,7 +23,11 @@ import {
 } from "@/lib/policy/listing-summary";
 import { type SeasonalRule } from "@/lib/pricing";
 import { sanitiseListingHtml, stripHtml } from "@/lib/sanitiseHtml";
+import { loadPropertySpecials } from "@/lib/specials/directory";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+
+import { SpecialCard } from "@/app/[locale]/specials/SpecialCard";
 
 import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";
@@ -493,6 +497,27 @@ export default async function ListingDetailPage({
 
   const t = await getTranslations("listing");
 
+  // This property's active, bookable specials → a "Specials" tab/section.
+  const specials = await loadPropertySpecials(createAdminClient(), listing.id, {
+    name: listing.name,
+    city: listing.city,
+    province: listing.province,
+  });
+  const specialsNode =
+    specials.length > 0 ? (
+      <section id="sec-specials" className="border-b border-brand-line py-7">
+        <h3 className="font-display text-xl font-bold text-brand-ink">
+          {t("specialsTitle")}
+        </h3>
+        <p className="mt-1 text-sm text-brand-mute">{t("specialsSubtitle")}</p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {specials.map((s) => (
+            <SpecialCard key={s.id} special={s} />
+          ))}
+        </div>
+      </section>
+    ) : null;
+
   return (
     <div className="bg-white text-brand-ink">
       <SiteHeader />
@@ -566,6 +591,7 @@ export default async function ListingDetailPage({
           }
           reviewsNode={reviewsNode}
           locationNode={locationNode}
+          specialsNode={specialsNode}
           sidebarNode={
             <ReservePanel
               slug={listing.slug ?? params.slug}
@@ -642,6 +668,7 @@ async function ListingBody({
   calendarNode,
   reviewsNode,
   locationNode,
+  specialsNode,
   sidebarNode,
   quoteButton,
 }: {
@@ -655,6 +682,7 @@ async function ListingBody({
   calendarNode?: React.ReactNode;
   reviewsNode?: React.ReactNode;
   locationNode?: React.ReactNode;
+  specialsNode?: React.ReactNode;
   sidebarNode: React.ReactNode;
   quoteButton?: React.ReactNode;
 }) {
@@ -667,6 +695,7 @@ async function ListingBody({
     ...(listing.description ? [{ id: "sec-about", label: t("navAbout") }] : []),
     { id: "sec-amenities", label: t("navAmenities") },
     ...(showRoomsGrid ? [{ id: "sec-rooms", label: t("navRooms") }] : []),
+    ...(specialsNode ? [{ id: "sec-specials", label: t("navSpecials") }] : []),
     ...(ratesNode ? [{ id: "sec-rates", label: t("navRates") }] : []),
     ...(calendarNode ? [{ id: "sec-calendar", label: t("navCalendar") }] : []),
     ...(reviewsNode ? [{ id: "sec-reviews", label: t("navReviews") }] : []),
@@ -846,6 +875,9 @@ async function ListingBody({
               ) : null}
             </section>
           ) : null}
+
+          {/* SPECIALS — this property's pre-packaged deals */}
+          {specialsNode}
 
           {/* RATES & SEASONAL PRICING */}
           {ratesNode}

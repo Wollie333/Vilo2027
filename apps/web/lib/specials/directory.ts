@@ -131,6 +131,85 @@ function buildQueryString(
   return params.toString();
 }
 
+/**
+ * Active, bookable specials for a single property — powers the "Specials" tab
+ * on the public property page. Unlike the cross-host directory this ignores the
+ * `show_in_directory` / `show_on_website` channel flags (the property's own page
+ * is the canonical place to surface its deals), but applies the same live/
+ * inventory/date guards so only genuinely bookable specials show. Returns
+ * featured-first, then sort_order.
+ */
+export async function loadPropertySpecials(
+  admin: ReturnType<typeof createAdminClient>,
+  propertyId: string,
+  property: { name: string; city: string | null; province: string | null },
+): Promise<DirectorySpecial[]> {
+  const today = todayISO();
+  const { data } = await admin
+    .from("specials")
+    .select(
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_in, fixed_check_out, window_start, window_end, min_nights, max_nights, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, categories, is_featured, sort_order, property:properties!inner ( accommodation_type, photos:property_photos ( url, sort_order ) )",
+    )
+    .eq("property_id", propertyId)
+    .eq("status", "active")
+    .is("deleted_at", null);
+
+  const rows = (data ?? []) as unknown as SpecialRow[];
+  const out: DirectorySpecial[] = [];
+  for (const r of rows) {
+    if (r.go_live_at && r.go_live_at > today) continue;
+    if (r.book_by && r.book_by < today) continue;
+    const stayEnd = r.date_mode === "fixed" ? r.fixed_check_out : r.window_end;
+    if (stayEnd && stayEnd <= today) continue;
+    const remaining = Math.max(0, r.quantity - r.redemptions_used);
+    if (remaining <= 0) continue;
+
+    const prop = Array.isArray(r.property) ? r.property[0] : r.property;
+    const photos = prop?.photos ?? [];
+    const fallbackPhoto = [...photos].sort(
+      (a, b) => a.sort_order - b.sort_order,
+    )[0]?.url;
+    const heroUrl = websiteAssetUrl(r.hero_image_path) ?? fallbackPhoto ?? null;
+
+    out.push({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      description: r.description,
+      heroUrl,
+      badge: r.badge,
+      dateMode: r.date_mode === "flexible" ? "flexible" : "fixed",
+      fixedCheckIn: r.fixed_check_in,
+      fixedCheckOut: r.fixed_check_out,
+      windowStart: r.window_start,
+      windowEnd: r.window_end,
+      minNights: r.min_nights,
+      maxNights: r.max_nights,
+      priceMode: r.price_mode === "per_night" ? "per_night" : "flat",
+      flatTotal: r.flat_total == null ? null : Number(r.flat_total),
+      perNightPrice:
+        r.per_night_price == null ? null : Number(r.per_night_price),
+      currency: r.currency,
+      wasPrice: r.was_price == null ? null : Number(r.was_price),
+      savingsAmount: r.savings_amount == null ? null : Number(r.savings_amount),
+      savingsPct: r.savings_pct,
+      remaining,
+      categories: r.categories ?? [],
+      isFeatured: !!r.is_featured,
+      propertyName: property.name,
+      propertyCity: property.city,
+      propertyProvince: property.province,
+      accommodationType: prop?.accommodation_type ?? null,
+    });
+  }
+
+  out.sort((a, b) => {
+    if (a.isFeatured !== b.isFeatured) return a.isFeatured ? -1 : 1;
+    return 0;
+  });
+  return out;
+}
+
 /** Cross-host directory query + JS guards + filters + pagination. */
 export async function searchSpecials(
   admin: ReturnType<typeof createAdminClient>,
