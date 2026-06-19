@@ -16,6 +16,7 @@ import {
   Newspaper,
   Sparkles,
   Star,
+  Tag,
   Type,
   UserRound,
   type LucideIcon,
@@ -51,8 +52,7 @@ const ICONS: Record<SectionType, LucideIcon> = {
   rich_text: Type,
   faq: HelpCircle,
   contact_form: Mail,
-  // Plumbed in S5a; surfaced in the library (GROUPS) + rendered in S5b.
-  specials_preview: Sparkles,
+  specials_preview: Tag,
 };
 
 // Curated grouping for the library (thumbnail grid replaces the plain dropdown).
@@ -60,7 +60,13 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   { key: "catHero", types: ["hero", "intro"] },
   {
     key: "catShowcase",
-    types: ["gallery", "rooms_preview", "logos", "blog_preview"],
+    types: [
+      "gallery",
+      "rooms_preview",
+      "specials_preview",
+      "logos",
+      "blog_preview",
+    ],
   },
   {
     key: "catTrust",

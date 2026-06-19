@@ -34,6 +34,7 @@ import type {
   SiteDataByType,
   SiteNavItem,
   SnapshotRoom,
+  SpecialCard,
 } from "./types";
 
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
@@ -356,6 +357,132 @@ function bookHref(locale: string, slug: string, roomId?: string): string {
   return APP_URL ? `${APP_URL}${path}` : path;
 }
 
+/** Deep-link into the special booking flow, tagged as a website-channel booking. */
+function specialBookHref(locale: string, slug: string): string {
+  const path = `/${locale}/special/${slug}/book?via=website`;
+  return APP_URL ? `${APP_URL}${path}` : path;
+}
+
+type SpecialPreviewRow = {
+  id: string;
+  slug: string | null;
+  title: string;
+  description: string | null;
+  hero_image_path: string | null;
+  badge: string | null;
+  date_mode: string;
+  fixed_check_out: string | null;
+  window_end: string | null;
+  price_mode: string;
+  flat_total: number | null;
+  per_night_price: number | null;
+  currency: string;
+  quantity: number;
+  redemptions_used: number;
+  go_live_at: string | null;
+  book_by: string | null;
+  was_price: number | null;
+  savings_amount: number | null;
+  savings_pct: number | null;
+  is_featured: boolean | null;
+  sort_order: number | null;
+  property:
+    | {
+        deleted_at: string | null;
+        photos: Array<{ url: string; sort_order: number }> | null;
+      }
+    | Array<{
+        deleted_at: string | null;
+        photos: Array<{ url: string; sort_order: number }> | null;
+      }>
+    | null;
+};
+
+/**
+ * Active, website-opted-in specials for this site's business → SpecialCard[].
+ * Mirrors the cross-host directory's JS guards (live / still-bookable / not in
+ * the past / not sold out); the special's own `show_on_website` flag is the
+ * opt-in, so this is business-scoped and ignores property channel membership.
+ */
+async function loadSpecialsPreview(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["specials_preview"]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await sb
+    .from("specials")
+    .select(
+      "id, slug, title, description, hero_image_path, badge, date_mode, fixed_check_out, window_end, price_mode, flat_total, per_night_price, currency, quantity, redemptions_used, go_live_at, book_by, was_price, savings_amount, savings_pct, is_featured, sort_order, property:properties!inner ( deleted_at, photos:property_photos ( url, sort_order ) )",
+    )
+    .eq("business_id", ctx.businessId)
+    .eq("status", "active")
+    .eq("show_on_website", true)
+    .is("deleted_at", null);
+
+  const rows = (data ?? []) as unknown as SpecialPreviewRow[];
+  const mapped: Array<{ card: SpecialCard; featured: boolean; order: number }> =
+    [];
+  for (const r of rows) {
+    const property = Array.isArray(r.property) ? r.property[0] : r.property;
+    if (!property || property.deleted_at) continue;
+    if (!r.slug) continue;
+
+    // Date / inventory guards (mirror the directory + booking action predicates).
+    if (r.go_live_at && r.go_live_at > today) continue;
+    if (r.book_by && r.book_by < today) continue;
+    const stayEnd = r.date_mode === "fixed" ? r.fixed_check_out : r.window_end;
+    if (stayEnd && stayEnd <= today) continue;
+    const remaining = Math.max(0, r.quantity - r.redemptions_used);
+    if (remaining <= 0) continue;
+
+    const photos = property.photos ?? [];
+    const fallbackPhoto = [...photos].sort(
+      (a, b) => a.sort_order - b.sort_order,
+    )[0]?.url;
+    const imageUrl =
+      websiteAssetUrl(r.hero_image_path ?? undefined) ?? fallbackPhoto ?? null;
+    const priceMode = r.price_mode === "per_night" ? "per_night" : "flat";
+    const price =
+      priceMode === "flat"
+        ? r.flat_total == null
+          ? null
+          : Number(r.flat_total)
+        : r.per_night_price == null
+          ? null
+          : Number(r.per_night_price);
+
+    mapped.push({
+      featured: !!r.is_featured,
+      order: r.sort_order ?? 0,
+      card: {
+        id: r.id,
+        title: r.title,
+        slug: r.slug,
+        description: r.description,
+        imageUrl,
+        badge: r.badge,
+        priceMode,
+        price,
+        currency: r.currency,
+        wasPrice: r.was_price == null ? null : Number(r.was_price),
+        savingsAmount:
+          r.savings_amount == null ? null : Number(r.savings_amount),
+        savingsPct: r.savings_pct,
+        remaining,
+        bookHref: specialBookHref(ctx.locale, r.slug),
+      },
+    });
+  }
+
+  // Featured first, then host sort order, for a stable merchandised order.
+  mapped.sort((a, b) => {
+    if (a.featured !== b.featured) return a.featured ? -1 : 1;
+    return a.order - b.order;
+  });
+
+  return { specials: mapped.map((m) => m.card) };
+}
+
 /**
  * Build the SiteData map — one query batch per auto-populate section type present.
  * Resolves the live data once per TYPE (via {@link assembleSiteDataByType}) then
@@ -391,6 +518,13 @@ async function assembleSectionData(
         if (byType.blog_preview)
           data[s.id] = { type: "blog_preview", data: byType.blog_preview };
         break;
+      case "specials_preview":
+        if (byType.specials_preview)
+          data[s.id] = {
+            type: "specials_preview",
+            data: byType.specials_preview,
+          };
+        break;
       default:
         break;
     }
@@ -410,6 +544,14 @@ export async function assembleSiteDataByType(
   types: Set<SectionType>,
 ): Promise<Partial<SiteDataByType>> {
   const out: Partial<SiteDataByType> = {};
+
+  // SPECIALS — business-scoped: the special's own `show_on_website` flag governs
+  // (independent of property channel membership), so resolve it before the
+  // property-id guard that the other sections rely on.
+  if (types.has("specials_preview")) {
+    out.specials_preview = await loadSpecialsPreview(sb, ctx);
+  }
+
   const ids = ctx.propertyIds;
   if (ids.length === 0) return out;
 

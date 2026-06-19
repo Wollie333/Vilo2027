@@ -48,10 +48,19 @@
 >   **left out of library `GROUPS` (not yet pickable)** and **no SectionRenderer case / no
 >   `assembleSiteDataByType` branch** (both have safe defaults) — those are S5b. tsc+lint
 >   (my files) +build green. Staged only my 4 paths.
-> - **S5b (NEXT) website render** — `components/site/sections/SpecialsPreview.tsx` + register in
->   SectionRenderer + `specials_preview` branch in `assembleSiteDataByType` (loadSitePage.ts,
->   business's active+show_on_website specials → SpecialCard[], bookHref `?via=website`) + builder
->   section editor support.
+> - **S5b website render DONE 2026-06-19** (code-only, no migration): new
+>   `components/site/sections/SpecialsPreview.tsx` (themed `--site-*` card grid: hero/badge/
+>   savings-% chip, strike-through wasPrice, scarcity ≤5, Book CTA → `bookHref`) + registered the
+>   `specials_preview` case in `SectionRenderer`; `assembleSiteDataByType` now resolves
+>   `specials_preview` via new `loadSpecialsPreview(sb,ctx)` — **business-scoped** (the special's own
+>   `show_on_website` flag governs, so resolved BEFORE the propertyIds early-return; ignores channel
+>   membership), mirrors the directory JS guards (live/bookable/not-past/not-sold-out), hero falls back
+>   to the property's first photo, featured-first then sort_order, `bookHref` = `specialBookHref` →
+>   `/special/[slug]/book?via=website`; `assembleSectionData` fans it to section ids. Builder: added
+>   `specials_preview` to SectionLibrary `GROUPS` (catShowcase, Tag icon — now pickable) + a
+>   SectionEditor case (heading/layout/max/ctaLabel + LiveNote). +4 en.json keys
+>   (`sectionType_/sectionDesc_specials_preview`, `fldSpecialsCtaLabel`, `liveSpecials`). Specials
+>   render LIVE (not via the publish snapshot, like blog). type-check+lint+build green.
 > - **S6b view tracking + conversion** — `special_view`/`special_book_click` via `/api/site-track`
 >   beacon + track-listing-view pattern on the platform detail page; aggregate per special in
 >   `lib/website/analytics.ts`; add views + view→booking conversion to the S6a panel.
