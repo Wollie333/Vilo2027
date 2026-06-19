@@ -287,7 +287,7 @@ export default async function SitePreviewPage({
 }) {
   const sp = await searchParams;
   const theme: SiteThemeConfig = {
-    preset: sp.preset ?? "classic",
+    preset: sp.preset ?? "warm",
     accent: sp.accent || undefined,
   };
 

@@ -111,7 +111,11 @@ function BrandLogo({
 
 function Logo({ brand, dark }: { brand: SiteBrand; dark?: boolean }) {
   return (
-    <a href="/" className="flex min-w-0 items-center gap-2.5">
+    <a
+      href="/"
+      data-nav-page="home"
+      className="flex min-w-0 items-center gap-2.5"
+    >
       <BrandLogo brand={brand} dark={dark} />
     </a>
   );
@@ -134,6 +138,14 @@ function BookCta({ href }: { href: string }) {
   );
 }
 
+/** Convert an internal href like "/" or "/about" to a page key. */
+function hrefToPageKey(href: string): string {
+  if (href === "/" || href === "") return "home";
+  // Strip leading slash and hash fragments
+  const clean = href.replace(/^\//, "").split("#")[0];
+  return clean || "home";
+}
+
 function NavLinks({
   nav,
   className = "",
@@ -142,18 +154,24 @@ function NavLinks({
   className?: string;
 }) {
   if (nav.length === 0) return null;
+
   return (
     <nav className={className}>
-      {nav.map((item) => (
-        <a
-          key={item.href}
-          href={item.href}
-          style={{ color: "var(--site-mute)" }}
-          className="text-sm font-medium transition-colors hover:opacity-80"
-        >
-          {item.label}
-        </a>
-      ))}
+      {nav.map((item) => {
+        // Add data-nav-page for internal links so preview mode can intercept
+        const isExternal = item.href.startsWith("http");
+        return (
+          <a
+            key={item.href}
+            href={item.href}
+            data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
+            style={{ color: "var(--site-mute)" }}
+            className="text-sm font-medium transition-colors hover:opacity-80"
+          >
+            {item.label}
+          </a>
+        );
+      })}
     </nav>
   );
 }
@@ -348,6 +366,10 @@ function FooterInner({
  *
  * When `analyticsWebsiteId` is set (public render, never preview) a cookieless
  * pageview beacon is mounted (Phase 0A).
+ *
+ * Internal nav links include `data-nav-page` attributes with the page key,
+ * which the Brand Studio preview can intercept via event delegation to stay
+ * on the same URL while switching pages.
  */
 export function SiteChrome({
   brand,

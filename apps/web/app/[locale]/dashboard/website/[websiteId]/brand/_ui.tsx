@@ -3,8 +3,6 @@
 import { ChevronDown, Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
-import type { ThemeOption } from "@/lib/site/themes.server";
-
 // ── Design-language primitives for the Brand Studio control rail ──
 // Matches the Brand Studio mockup using the app's brand-* tokens (which already
 // resolve to the mockup's emerald palette).
@@ -172,52 +170,6 @@ export function Slider({
         {format ? format(value) : value}
         {suffix}
       </span>
-    </div>
-  );
-}
-
-/** Theme catalogue cards (3-up) — driven by the DB `site_themes` list. */
-export function ThemeCards({
-  themes,
-  activeSlug,
-  onSelect,
-}: {
-  themes: ThemeOption[];
-  activeSlug: string;
-  onSelect: (theme: ThemeOption) => void;
-}) {
-  return (
-    <div className="grid grid-cols-3 gap-2.5">
-      {themes.map((theme) => {
-        const p = theme.base.palette;
-        const on = activeSlug === theme.slug;
-        return (
-          <button
-            key={theme.id}
-            type="button"
-            onClick={() => onSelect(theme)}
-            className={`rounded-[14px] border-[1.5px] p-2.5 text-left transition ${
-              on
-                ? "border-brand-primary ring-[3px] ring-brand-primary/15"
-                : "border-brand-line hover:border-brand-primary/40"
-            }`}
-          >
-            <span className="mb-2 flex h-9 overflow-hidden rounded-[9px]">
-              {[p?.bg, p?.surface, p?.accent, p?.ink].map((c, i) => (
-                <span key={i} className="flex-1" style={{ background: c }} />
-              ))}
-            </span>
-            <span className="block text-[12.5px] font-bold leading-none text-brand-ink">
-              {theme.name}
-            </span>
-            {theme.isPremium ? (
-              <span className="mt-1 block text-[9px] font-bold uppercase tracking-wide text-brand-primary">
-                Premium
-              </span>
-            ) : null}
-          </button>
-        );
-      })}
     </div>
   );
 }

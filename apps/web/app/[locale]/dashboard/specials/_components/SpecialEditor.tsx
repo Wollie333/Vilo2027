@@ -24,10 +24,6 @@ import { toast } from "sonner";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
-import {
-  SPECIAL_CATEGORIES,
-  type SpecialCategoryKey,
-} from "@/lib/specials/categories";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { createSpecialAction, updateSpecialAction } from "../actions";
@@ -103,7 +99,7 @@ export function SpecialEditor({
     });
   }
 
-  function toggleCategory(key: SpecialCategoryKey) {
+  function toggleCategory(key: string) {
     setForm((f) => ({
       ...f,
       categories: f.categories.includes(key)
@@ -801,23 +797,29 @@ export function SpecialEditor({
                     {t("fldCategoriesHint")}
                   </span>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {SPECIAL_CATEGORIES.map((c) => {
-                      const on = form.categories.includes(c.key);
-                      return (
-                        <button
-                          type="button"
-                          key={c.key}
-                          onClick={() => toggleCategory(c.key)}
-                          className={`rounded-pill border px-3 py-1.5 text-[12.5px] font-medium transition ${
-                            on
-                              ? "border-brand-primary bg-brand-primary text-white"
-                              : "border-brand-line bg-white text-brand-ink hover:border-brand-mute"
-                          }`}
-                        >
-                          {t(`category_${c.key}`)}
-                        </button>
-                      );
-                    })}
+                    {data.categories.length === 0 ? (
+                      <p className="text-[12.5px] text-brand-mute">
+                        {t("noCategoriesAvailable")}
+                      </p>
+                    ) : (
+                      data.categories.map((c) => {
+                        const on = form.categories.includes(c.key);
+                        return (
+                          <button
+                            type="button"
+                            key={c.key}
+                            onClick={() => toggleCategory(c.key)}
+                            className={`rounded-pill border px-3 py-1.5 text-[12.5px] font-medium transition ${
+                              on
+                                ? "border-brand-primary bg-brand-primary text-white"
+                                : "border-brand-line bg-white text-brand-ink hover:border-brand-mute"
+                            }`}
+                          >
+                            {c.label}
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
                 <TagInput

@@ -7,11 +7,11 @@ import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { Link } from "@/i18n/navigation";
 import { getBrandName } from "@/lib/brand";
 import {
+  loadDealCategories,
   searchSpecials,
   SPECIAL_TYPE_LABEL,
   type SpecialsSearchParams,
 } from "@/lib/specials/directory";
-import { SPECIAL_CATEGORIES } from "@/lib/specials/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { SpecialCard } from "./SpecialCard";
@@ -45,9 +45,10 @@ export default async function SpecialsDirectoryPage({
   searchParams?: SpecialsSearchParams;
 }) {
   const admin = createAdminClient();
-  const [t, brandName] = await Promise.all([
+  const [t, brandName, dealCategories] = await Promise.all([
     getTranslations("specials"),
     getBrandName(),
+    loadDealCategories(admin),
   ]);
   const result = await searchSpecials(admin, searchParams, BASE_PATH);
   const { where, type, category } = result;
@@ -121,7 +122,7 @@ export default async function SpecialsDirectoryPage({
           >
             {t("dirFilterAll")}
           </Link>
-          {SPECIAL_CATEGORIES.map((c) => (
+          {dealCategories.map((c) => (
             <Link
               key={c.key}
               href={filterHref(current, {
@@ -133,7 +134,7 @@ export default async function SpecialsDirectoryPage({
                   : "border border-brand-line bg-white text-brand-mute hover:bg-brand-accent"
               }`}
             >
-              {t(`category_${c.key}`)}
+              {c.label}
             </Link>
           ))}
           <span className="mx-1 self-center text-brand-line">|</span>

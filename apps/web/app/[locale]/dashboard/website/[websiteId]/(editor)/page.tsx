@@ -21,10 +21,10 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import type { AnalyticsRange } from "@/lib/website/analytics";
 
-import { loadOverviewData } from "./loadOverviewData";
-import { CopyLinkButton } from "./_components/overview/CopyLinkButton";
-import { RangeTabs } from "./_components/overview/RangeTabs";
-import { TrafficChart } from "./_components/overview/TrafficChart";
+import { loadOverviewData } from "../loadOverviewData";
+import { CopyLinkButton } from "../_components/overview/CopyLinkButton";
+import { RangeTabs } from "../_components/overview/RangeTabs";
+import { TrafficChart } from "../_components/overview/TrafficChart";
 
 export const dynamic = "force-dynamic";
 

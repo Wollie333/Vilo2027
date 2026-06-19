@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { RecordTabs } from "@/app/[locale]/dashboard/_components/RecordTabs";
 
@@ -22,21 +23,33 @@ export function ReviewViewTabs({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
+  const [loadingTab, setLoadingTab] = useState<string | null>(null);
 
   function setView(key: string) {
-    if (key === "activity") {
-      router.push(`${pathname}?view=activity`);
-    } else if (key === "guest-ratings") {
-      router.push(`${pathname}?view=guest-ratings`);
-    } else {
-      router.push(pathname);
-    }
+    if (key === active) return; // Already on this tab
+    setLoadingTab(key);
+    startTransition(() => {
+      if (key === "activity") {
+        router.push(`${pathname}?view=activity`);
+      } else if (key === "guest-ratings") {
+        router.push(`${pathname}?view=guest-ratings`);
+      } else {
+        router.push(pathname);
+      }
+    });
+  }
+
+  // Clear loading state when active tab changes
+  if (loadingTab === active) {
+    setLoadingTab(null);
   }
 
   return (
     <RecordTabs
       active={active}
       onSelect={setView}
+      loadingKey={isPending ? loadingTab : null}
       tabs={[
         { key: "reviews", label: "Reviews", count: reviewCount },
         {

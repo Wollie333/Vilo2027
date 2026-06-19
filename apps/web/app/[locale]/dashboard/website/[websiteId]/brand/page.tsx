@@ -39,7 +39,7 @@ export default async function WebsiteBrandPage({
 
   // Resolve the active theme's base: the copied base on the saved theme, else the
   // catalogue theme matching its slug, else the first theme.
-  const presetSlug = (data.theme.preset as string | undefined) || "classic";
+  const presetSlug = (data.theme.preset as string | undefined) || "warm";
   const base: SitePreset =
     (data.theme.base as SitePreset | undefined) ??
     themes.find((t) => t.slug === presetSlug)?.base ??
@@ -51,10 +51,8 @@ export default async function WebsiteBrandPage({
     <BrandStudio
       websiteId={websiteId}
       initial={initial}
-      themes={themes}
       fallbackName={fallbackName}
       subdomain={data.subdomain}
-      liveHref={`/site?site=${data.subdomain}&preview=1`}
     />
   );
 }

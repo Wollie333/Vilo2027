@@ -27,11 +27,17 @@ export type EditorAddon = {
   currency: string;
 };
 export type EditorPolicy = { id: string; name: string };
+export type EditorCategory = {
+  key: string;
+  label: string;
+  icon: string | null;
+};
 
 export type SpecialEditorData = {
   properties: EditorProperty[];
   addons: EditorAddon[];
   policies: EditorPolicy[];
+  categories: EditorCategory[];
   /** business_id → host_websites.id (hero image uploads into that site's folder). */
   websiteByBusiness: Record<string, string>;
 };
@@ -45,6 +51,7 @@ export async function loadSpecialEditorData(
     { data: addons },
     { data: policies },
     { data: sites },
+    { data: categories },
   ] = await Promise.all([
     supabase
       .from("properties")
@@ -70,6 +77,13 @@ export async function loadSpecialEditorData(
       .from("host_websites")
       .select("id, business_id")
       .eq("host_id", hostId),
+    // Load active deal categories (admin-managed)
+    supabase
+      .from("special_categories")
+      .select("key, label, icon")
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const properties: EditorProperty[] = (props ?? []).map((p) => ({
@@ -107,10 +121,17 @@ export async function loadSpecialEditorData(
   const websiteByBusiness: Record<string, string> = {};
   for (const s of sites ?? []) websiteByBusiness[s.business_id] = s.id;
 
+  const editorCategories: EditorCategory[] = (categories ?? []).map((c) => ({
+    key: c.key,
+    label: c.label,
+    icon: c.icon,
+  }));
+
   return {
     properties,
     addons: editorAddons,
     policies: (policies ?? []).map((p) => ({ id: p.id, name: p.name })),
+    categories: editorCategories,
     websiteByBusiness,
   };
 }

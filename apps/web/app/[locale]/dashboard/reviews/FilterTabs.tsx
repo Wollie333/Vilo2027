@@ -1,7 +1,8 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
-import { useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
 
 type Tab = { key: string; label: string; count?: number };
 
@@ -13,6 +14,9 @@ export function FilterTabs({
   counts: { all: number; needsReply: number; replied: number; flagged: number };
 }) {
   const sp = useSearchParams();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [loadingTab, setLoadingTab] = useState<string | null>(null);
 
   function hrefFor(tabKey: string): string {
     const next = new URLSearchParams(sp.toString());
@@ -20,6 +24,23 @@ export function FilterTabs({
     else next.set("tab", tabKey);
     const qs = next.toString();
     return qs ? `/dashboard/reviews?${qs}` : "/dashboard/reviews";
+  }
+
+  function handleClick(e: React.MouseEvent, tabKey: string) {
+    e.preventDefault();
+    const isCurrentTab =
+      current === tabKey || (current === "" && tabKey === "all");
+    if (isCurrentTab) return;
+    setLoadingTab(tabKey);
+    startTransition(() => {
+      router.push(hrefFor(tabKey));
+    });
+  }
+
+  // Clear loading state when current tab changes
+  const effectiveCurrentKey = current || "all";
+  if (loadingTab === effectiveCurrentKey) {
+    setLoadingTab(null);
   }
 
   const tabs: Tab[] = [
@@ -34,16 +55,19 @@ export function FilterTabs({
       {tabs.map((t) => {
         const isActive =
           current === t.key || (current === "" && t.key === "all");
+        const isLoading = isPending && loadingTab === t.key;
         return (
-          <Link
+          <a
             key={t.key}
             href={hrefFor(t.key)}
+            onClick={(e) => handleClick(e, t.key)}
             className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 text-xs font-medium transition-colors ${
               isActive
                 ? "bg-brand-secondary text-white"
                 : "text-brand-mute hover:bg-brand-light hover:text-brand-ink"
-            }`}
+            } ${isLoading ? "pointer-events-none" : ""}`}
           >
+            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
             {t.label}
             {t.count != null && t.count > 0 ? (
               <span
@@ -54,7 +78,7 @@ export function FilterTabs({
                 {t.count}
               </span>
             ) : null}
-          </Link>
+          </a>
         );
       })}
     </div>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { loadWebsiteEditorData } from "../loadWebsiteEditorData";
+import { loadWebsiteEditorData } from "../../loadWebsiteEditorData";
 import { SeoForm } from "./SeoForm";
 
 export const dynamic = "force-dynamic";

@@ -56,12 +56,13 @@ export async function middleware(request: NextRequest) {
 export const config = {
   // Run on everything except Next internals and files with an extension
   // (assets, favicon). api/ical/etc. still match here and route to the
-  // Supabase-only branch above. sitemap.xml + robots.txt are listed explicitly
-  // so the host classifier can rewrite them on tenant hosts (and pass them
-  // through untouched on app hosts).
+  // Supabase-only branch above. sitemap.xml + robots.txt + feed.xml are listed
+  // explicitly so the host classifier can rewrite them on tenant hosts (and
+  // pass them through untouched on app hosts).
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
     "/sitemap.xml",
     "/robots.txt",
+    "/feed.xml",
   ],
 };

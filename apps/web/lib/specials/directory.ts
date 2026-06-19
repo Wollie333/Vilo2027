@@ -13,6 +13,30 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 
 export const SPECIALS_PAGE_SIZE = 24;
 
+/** A deal category for the public filter chips. */
+export type DealCategory = {
+  key: string;
+  label: string;
+  icon: string | null;
+};
+
+/** Load active deal categories for the public directory filter. */
+export async function loadDealCategories(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<DealCategory[]> {
+  const { data } = await admin
+    .from("special_categories")
+    .select("key, label, icon")
+    .eq("is_active", true)
+    .is("deleted_at", null)
+    .order("sort_order", { ascending: true });
+  return (data ?? []).map((c) => ({
+    key: c.key,
+    label: c.label,
+    icon: c.icon,
+  }));
+}
+
 // Mirrors BROWSE_TYPE_LABEL (app/_components/browse/searchListings.ts) — kept
 // local so the directory doesn't depend on the browse module.
 export const SPECIAL_TYPE_LABEL: Record<string, string> = {

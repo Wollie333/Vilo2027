@@ -92,5 +92,9 @@ export function siteRewritePath(pathname: string, locale: string): string {
 
 /** Bare-host SEO files that tenant sites serve from their per-site routes. */
 export function isSeoFile(pathname: string): boolean {
-  return pathname === "/sitemap.xml" || pathname === "/robots.txt";
+  return (
+    pathname === "/sitemap.xml" ||
+    pathname === "/robots.txt" ||
+    pathname === "/feed.xml"
+  );
 }

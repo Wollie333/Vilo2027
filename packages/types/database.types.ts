@@ -1033,6 +1033,7 @@ export type Database = {
           reason: string | null
           room_id: string | null
           source: string
+          special_id: string | null
         }
         Insert: {
           booking_id?: string | null
@@ -1046,6 +1047,7 @@ export type Database = {
           reason?: string | null
           room_id?: string | null
           source?: string
+          special_id?: string | null
         }
         Update: {
           booking_id?: string | null
@@ -1059,6 +1061,7 @@ export type Database = {
           reason?: string | null
           room_id?: string | null
           source?: string
+          special_id?: string | null
         }
         Relationships: [
           {
@@ -1101,6 +1104,13 @@ export type Database = {
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "property_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_dates_special_id_fkey"
+            columns: ["special_id"]
+            isOneToOne: false
+            referencedRelation: "specials"
             referencedColumns: ["id"]
           },
         ]
@@ -7867,6 +7877,57 @@ export type Database = {
           },
         ]
       }
+      special_categories: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          intro_markdown: string | null
+          is_active: boolean
+          key: string
+          label: string
+          meta_description: string | null
+          meta_title: string | null
+          og_image_url: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          intro_markdown?: string | null
+          is_active?: boolean
+          key: string
+          label: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          intro_markdown?: string | null
+          is_active?: boolean
+          key?: string
+          label?: string
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_url?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       special_view_events: {
         Row: {
           country: string | null
@@ -9281,6 +9342,16 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      block_special_dates: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_property_id: string
+          p_room_id: string
+          p_special_id: string
+        }
+        Returns: undefined
+      }
       booking_business_id: { Args: { p_booking_id: string }; Returns: string }
       broadcast_audience: {
         Args: { p_audience: string; p_host_id: string }
@@ -9654,6 +9725,15 @@ export type Database = {
       get_my_host_id: { Args: never; Returns: string }
       get_my_host_id_as_staff: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
+      get_special_booking_conflict: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_property_id: string
+          p_room_id: string
+        }
+        Returns: string
+      }
       gettransactionid: { Args: never; Returns: unknown }
       guest_gkey_for_email: { Args: { p_email: string }; Returns: string }
       has_admin_permission: { Args: { p_key: string }; Returns: boolean }
@@ -9763,6 +9843,10 @@ export type Database = {
         Returns: undefined
       }
       release_special: { Args: { p_special_id: string }; Returns: undefined }
+      release_special_dates: {
+        Args: { p_special_id: string }
+        Returns: undefined
+      }
       reserve_addon_stock: {
         Args: { p_addon_id: string; p_qty: number }
         Returns: boolean
@@ -9819,6 +9903,16 @@ export type Database = {
           p_special_cancellation_policy_id?: string
         }
         Returns: undefined
+      }
+      special_dates_available: {
+        Args: {
+          p_check_in: string
+          p_check_out: string
+          p_exclude_special_id?: string
+          p_property_id: string
+          p_room_id: string
+        }
+        Returns: boolean
       }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }

@@ -130,7 +130,7 @@ export default async function CalendarPage() {
           .gte("check_out", iso(winStart)),
         supabase
           .from("blocked_dates")
-          .select("property_id, date, reason, booking_id, room_id")
+          .select("property_id, date, reason, booking_id, room_id, special_id")
           .in("property_id", listingIds)
           .gte("date", iso(winStart))
           .lte("date", iso(winEnd)),
@@ -171,8 +171,10 @@ export default async function CalendarPage() {
         kind: blockKind(
           b.reason as string | null,
           b.booking_id as string | null,
+          (b.special_id as string | null) ?? null,
         ),
         source: blockSource(b.reason as string | null),
+        specialId: (b.special_id as string | null) ?? null,
       }));
 
       seasonal = (sp ?? [])

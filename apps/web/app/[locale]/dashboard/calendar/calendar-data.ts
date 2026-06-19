@@ -40,13 +40,19 @@ export type CalBooking = {
   coTime: string | null;
 };
 
-export type CalBlockKind = "manual" | "quote" | "booking" | "external";
+export type CalBlockKind =
+  | "manual"
+  | "quote"
+  | "booking"
+  | "external"
+  | "special";
 export type CalBlock = {
   listingId: string;
   date: string;
   roomId: string | null;
   kind: CalBlockKind;
   source: string | null; // e.g. "Airbnb" for external iCal blocks
+  specialId: string | null; // Set when block was created by a special/deal
 };
 
 export type SeasonalRange = {
@@ -156,8 +162,10 @@ export function mapOrigin(dbOrigin: string | null): CalOrigin {
 export function blockKind(
   reason: string | null,
   bookingId: string | null,
+  specialId: string | null,
 ): CalBlockKind {
   if (bookingId) return "booking";
+  if (specialId || reason === "special") return "special";
   if (reason === "quote_pending") return "quote";
   if (reason && reason.startsWith("ical")) return "external";
   return "manual";

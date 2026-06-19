@@ -36,6 +36,9 @@ export function isFullBleedRoute(pathname: string | null): boolean {
   // thread (/portal/inbox/<id>) is full-bleed too — the list lives in the
   // inbox layout and must fill the viewport alongside the conversation.
   if (pathname.startsWith("/portal/inbox/")) return true;
+  // Brand Studio is a two-pane editor (controls + preview) that needs full
+  // viewport height to render the live site preview.
+  if (/\/dashboard\/website\/[^/]+\/brand$/.test(pathname)) return true;
   return FULL_BLEED_ROUTES.has(pathname);
 }
 

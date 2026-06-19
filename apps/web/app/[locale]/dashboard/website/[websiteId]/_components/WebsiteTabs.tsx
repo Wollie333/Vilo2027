@@ -1,8 +1,10 @@
 "use client";
 
-import { Link } from "@/i18n/navigation";
+import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
+import { useState, useTransition } from "react";
 
 // Editor tab bar. All tabs are now live (W6–W14).
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
@@ -22,12 +24,30 @@ const SOON_TABS: string[] = [];
 export function WebsiteTabs({ websiteId }: { websiteId: string }) {
   const t = useTranslations("website");
   const pathname = usePathname();
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [loadingTab, setLoadingTab] = useState<string | null>(null);
   const base = `/dashboard/website/${websiteId}`;
 
   const isActive = (seg: string) =>
     seg
       ? pathname.includes(`/${seg}`)
       : pathname === base || pathname.endsWith(`/website/${websiteId}`);
+
+  function handleClick(e: React.MouseEvent, seg: string) {
+    e.preventDefault();
+    const href = seg ? `${base}/${seg}` : base;
+    if (isActive(seg)) return; // Already on this tab
+    setLoadingTab(seg);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
+  // Clear loading state when pathname changes
+  if (loadingTab && isActive(loadingTab)) {
+    setLoadingTab(null);
+  }
 
   return (
     <nav className="border-b border-brand-line">
@@ -37,22 +57,33 @@ export function WebsiteTabs({ websiteId }: { websiteId: string }) {
       >
         {LIVE_TABS.map((tab) => {
           const active = isActive(tab.seg);
+          const loading = loadingTab === tab.seg && isPending;
           return (
             <li key={tab.key} className="shrink-0">
-              <Link
+              <a
                 href={tab.seg ? `${base}/${tab.seg}` : base}
+                onClick={(e) => handleClick(e, tab.seg)}
                 aria-current={active ? "page" : undefined}
-                className={`relative block whitespace-nowrap py-3 text-[14px] font-semibold transition ${
+                className={`group relative block whitespace-nowrap py-3 text-[14px] font-semibold transition-colors ${
                   active
                     ? "text-brand-secondary"
                     : "text-brand-mute hover:text-brand-ink"
-                }`}
+                } ${loading ? "pointer-events-none" : ""}`}
               >
-                {t(tab.key)}
+                <span className="flex items-center gap-1.5">
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  {t(tab.key)}
+                </span>
+                {/* Active indicator */}
                 {active ? (
                   <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
-                ) : null}
-              </Link>
+                ) : (
+                  /* Hover indicator */
+                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-line opacity-0 transition-opacity group-hover:opacity-100" />
+                )}
+              </a>
             </li>
           );
         })}

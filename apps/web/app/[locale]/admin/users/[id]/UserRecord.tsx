@@ -377,13 +377,24 @@ export function UserRecord({ data }: { data: UserRecordData }) {
   const { user, host } = data;
   const rawTab = params.get("tab") ?? "overview";
   const tab = TAB_ALIASES[rawTab] ?? rawTab;
+  const [tabLoading, setTabLoading] = useState<string | null>(null);
+  const [isTabPending, startTabTransition] = useTransition();
 
   const setTab = (t: string) => {
-    const next = new URLSearchParams(params.toString());
-    if (t === "overview") next.delete("tab");
-    else next.set("tab", t);
-    router.push(`?${next.toString()}`);
+    if (t === tab) return; // Already on this tab
+    setTabLoading(t);
+    startTabTransition(() => {
+      const next = new URLSearchParams(params.toString());
+      if (t === "overview") next.delete("tab");
+      else next.set("tab", t);
+      router.push(`?${next.toString()}`);
+    });
   };
+
+  // Clear loading state when tab changes
+  if (tabLoading === tab) {
+    setTabLoading(null);
+  }
 
   const [dialog, setDialog] = useState<Dialog>(null);
   const [pending, start] = useTransition();
@@ -482,7 +493,12 @@ export function UserRecord({ data }: { data: UserRecordData }) {
 
         {/* Working column */}
         <div className="flex min-w-0 flex-col gap-5">
-          <RecordTabs active={tab} onSelect={setTab} tabs={tabs} />
+          <RecordTabs
+            active={tab}
+            onSelect={setTab}
+            tabs={tabs}
+            loadingKey={isTabPending ? tabLoading : null}
+          />
           <div>
             {tab === "overview" ? <OverviewPanel data={data} /> : null}
             {tab === "bookings" ? (

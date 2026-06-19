@@ -60,6 +60,7 @@ export const DEMO_GALLERY: GalleryData = {
 
 // Stable uuids per section (the schema requires id: uuid).
 const ID = {
+  // Home page
   hero: "b0000000-0000-4000-8000-000000000001",
   intro: "b0000000-0000-4000-8000-000000000002",
   highlights: "b0000000-0000-4000-8000-000000000003",
@@ -68,13 +69,35 @@ const ID = {
   hostBio: "b0000000-0000-4000-8000-000000000006",
   reviews: "b0000000-0000-4000-8000-000000000007",
   blog: "b0000000-0000-4000-8000-000000000008",
+  homeCta: "b0000000-0000-4000-8000-000000000009",
+  // About page
+  aboutIntro: "b0000000-0000-4000-8000-000000000010",
+  aboutHost: "b0000000-0000-4000-8000-000000000011",
+  aboutValues: "b0000000-0000-4000-8000-000000000012",
+  // Contact page
+  contactIntro: "b0000000-0000-4000-8000-000000000013",
+  contactForm: "b0000000-0000-4000-8000-000000000014",
+  contactLocation: "b0000000-0000-4000-8000-000000000015",
+  // Rooms page
+  roomsIntro: "b0000000-0000-4000-8000-000000000016",
+  roomsList: "b0000000-0000-4000-8000-000000000017",
+  roomsCta: "b0000000-0000-4000-8000-000000000018",
+  // Blog page
+  blogIntro: "b0000000-0000-4000-8000-000000000019",
+  blogList: "b0000000-0000-4000-8000-000000000020",
+  // Checkout page
+  checkoutIntro: "b0000000-0000-4000-8000-000000000021",
+  // Thank you page
+  thanksIntro: "b0000000-0000-4000-8000-000000000022",
+  thanksCta: "b0000000-0000-4000-8000-000000000023",
 } as const;
 
 export const SAMPLE_NAV: SiteNavItem[] = [
-  { label: "Home", href: "#" },
-  { label: "Rooms", href: "#rooms" },
-  { label: "Gallery", href: "#gallery" },
-  { label: "Journal", href: "#journal" },
+  { label: "Home", href: "/" },
+  { label: "About", href: "/about" },
+  { label: "Rooms", href: "/rooms" },
+  { label: "Contact", href: "/contact" },
+  { label: "Blog", href: "/blog" },
 ];
 
 export const SAMPLE_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
@@ -152,13 +175,167 @@ export const SAMPLE_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
     type: "blog_preview",
     props: { heading: "From the journal", max: 3 },
   },
+  {
+    id: ID.homeCta,
+    type: "cta",
+    props: {
+      heading: "Ready to book?",
+      body: "Reserve your dates directly — no booking fees.",
+      button_label: "Check availability",
+      button_href: "/rooms",
+    },
+  },
 ]);
 
-// Sample "pages" for the preview page-tabs. Each reuses section blocks from
-// SAMPLE_SECTIONS (same ids → SAMPLE_DATA serves them all; pages render
-// separately so reuse is safe).
-const ofType = (...types: WebsiteSection["type"][]) =>
-  SAMPLE_SECTIONS.filter((s) => types.includes(s.type));
+// Additional sections for other pages
+const ABOUT_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.aboutIntro,
+    type: "intro",
+    props: {
+      heading: "Our story",
+      body: "A quiet escape on the edge of the Karoo, where the pace slows and the sky stretches forever. We've been welcoming guests for nearly a decade.",
+    },
+  },
+  {
+    id: ID.aboutHost,
+    type: "host_bio",
+    props: {
+      heading: "Your hosts",
+      name: "Lerato & Sam",
+      body: "We've run Stillwater for nine years. Between us we know every walking trail, the best bakery, and exactly which cottage catches the morning sun.",
+      photo_path: IMG("host"),
+    },
+  },
+  {
+    id: ID.aboutValues,
+    type: "highlights",
+    props: {
+      heading: "What we stand for",
+      items: [
+        {
+          icon: "✦",
+          title: "Personal touch",
+          body: "Every stay feels like visiting friends.",
+        },
+        {
+          icon: "✦",
+          title: "Local roots",
+          body: "We know this area inside out.",
+        },
+        {
+          icon: "✦",
+          title: "Direct booking",
+          body: "No middlemen, no hidden fees.",
+        },
+      ],
+    },
+  },
+]);
+
+const CONTACT_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.contactIntro,
+    type: "intro",
+    props: {
+      heading: "Get in touch",
+      body: "Have a question about your stay? We'd love to hear from you.",
+    },
+  },
+  {
+    id: ID.contactForm,
+    type: "contact_form",
+    props: {
+      heading: "Send us a message",
+      body: "Fill in the form below and we'll get back to you as soon as possible.",
+      submit_label: "Send message",
+      show_phone: true,
+    },
+  },
+  {
+    id: ID.contactLocation,
+    type: "location",
+    props: { heading: "Find us", show_map: true },
+  },
+]);
+
+const ROOMS_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.roomsIntro,
+    type: "intro",
+    props: {
+      heading: "Our rooms",
+      body: "Find the perfect space for your stay. Each room is designed with comfort and character in mind.",
+    },
+  },
+  {
+    id: ID.roomsList,
+    type: "rooms_preview",
+    props: { heading: "", max: 20, layout: "list" },
+  },
+  {
+    id: ID.roomsCta,
+    type: "cta",
+    props: {
+      heading: "Need help choosing?",
+      body: "Get in touch and we'll help you find the perfect room for your needs.",
+      button_label: "Contact us",
+      button_href: "/contact",
+    },
+  },
+]);
+
+const BLOG_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.blogIntro,
+    type: "intro",
+    props: {
+      heading: "From the journal",
+      body: "Stories, tips, and updates from our corner of the world.",
+    },
+  },
+  {
+    id: ID.blogList,
+    type: "blog_preview",
+    props: { heading: "", max: 12 },
+  },
+]);
+
+const CHECKOUT_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.checkoutIntro,
+    type: "intro",
+    props: {
+      heading: "Complete your booking",
+      body: "You're almost there. Review your details and confirm your reservation.",
+    },
+  },
+]);
+
+const THANKYOU_SECTIONS: WebsiteSection[] = sectionsSchema.parse([
+  {
+    id: ID.thanksIntro,
+    type: "intro",
+    props: {
+      heading: "Thank you!",
+      body: "Your booking is confirmed. We've sent a confirmation email with all the details. We can't wait to welcome you.",
+    },
+  },
+  {
+    id: ID.thanksCta,
+    type: "cta",
+    props: {
+      heading: "Questions before your stay?",
+      body: "Feel free to reach out — we're here to help.",
+      button_label: "Contact us",
+      button_href: "/contact",
+    },
+  },
+]);
+
+// Sample "pages" for the preview page-tabs — all 7 required pages so the Brand
+// Studio preview shows the full site structure even when the host hasn't added
+// any real content yet.
 
 export type SamplePage = {
   key: string;
@@ -169,23 +346,26 @@ export type SamplePage = {
 
 export const SAMPLE_PAGES: SamplePage[] = [
   { key: "home", label: "Home", path: "/", sections: SAMPLE_SECTIONS },
+  { key: "about", label: "About", path: "/about", sections: ABOUT_SECTIONS },
   {
-    key: "rooms",
-    label: "Rooms",
-    path: "/rooms",
-    sections: ofType("rooms_preview", "gallery"),
+    key: "contact",
+    label: "Contact",
+    path: "/contact",
+    sections: CONTACT_SECTIONS,
+  },
+  { key: "rooms", label: "Rooms", path: "/rooms", sections: ROOMS_SECTIONS },
+  { key: "blog", label: "Blog", path: "/blog", sections: BLOG_SECTIONS },
+  {
+    key: "checkout",
+    label: "Book",
+    path: "/checkout",
+    sections: CHECKOUT_SECTIONS,
   },
   {
-    key: "about",
-    label: "About",
-    path: "/about",
-    sections: ofType("host_bio", "highlights", "reviews"),
-  },
-  {
-    key: "journal",
-    label: "Journal",
-    path: "/journal",
-    sections: ofType("blog_preview"),
+    key: "thank-you",
+    label: "Thank you",
+    path: "/thank-you",
+    sections: THANKYOU_SECTIONS,
   },
 ];
 
@@ -261,6 +441,70 @@ export const SAMPLE_DATA: SiteData = {
     },
   },
   [ID.blog]: {
+    type: "blog_preview",
+    data: {
+      posts: [
+        {
+          title: "Five walks within an hour",
+          href: "#",
+          excerpt: "From gentle riverside strolls to the Compassberg summit.",
+          coverUrl: IMG("b1"),
+          date: "Apr 2026",
+        },
+        {
+          title: "What to pack for the Karoo",
+          href: "#",
+          excerpt: "It's hot by day and properly cold by night.",
+          coverUrl: IMG("b2"),
+          date: "Mar 2026",
+        },
+        {
+          title: "Our favourite village suppers",
+          href: "#",
+          excerpt: "Where the locals actually eat.",
+          coverUrl: IMG("b3"),
+          date: "Feb 2026",
+        },
+      ],
+    },
+  },
+  // Rooms page list — reuses same demo rooms data
+  [ID.roomsList]: {
+    type: "rooms_preview",
+    data: {
+      rooms: [
+        {
+          id: "r1",
+          name: "Oak Cottage",
+          price: 1850,
+          currency: "ZAR",
+          description: "Sleeps 2 · own stoep · fireplace.",
+          imageUrl: IMG("r1"),
+          bookHref: "#",
+        },
+        {
+          id: "r2",
+          name: "Dam View",
+          price: 2200,
+          currency: "ZAR",
+          description: "Sleeps 4 · full kitchen · water views.",
+          imageUrl: IMG("r2"),
+          bookHref: "#",
+        },
+        {
+          id: "r3",
+          name: "The Loft",
+          price: 1500,
+          currency: "ZAR",
+          description: "Sleeps 2 · cosy · pet friendly.",
+          imageUrl: IMG("r3"),
+          bookHref: "#",
+        },
+      ],
+    },
+  },
+  // Blog page list — reuses same demo posts data
+  [ID.blogList]: {
     type: "blog_preview",
     data: {
       posts: [

@@ -45,7 +45,8 @@ type AuditTargetType =
   | "affiliate"
   | "affiliate_payout"
   | "affiliate_settings"
-  | "marketing_asset";
+  | "marketing_asset"
+  | "special_category";
 
 export type AuditConfig<TArgs> = {
   /** Permission key the caller must hold. */

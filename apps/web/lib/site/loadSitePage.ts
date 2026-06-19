@@ -816,15 +816,18 @@ export async function assembleSiteDataByType(
       out.reviews = { items, average, count };
     })(),
 
-    // BLOG — published posts for this site.
+    // BLOG — published posts for this site (featured-first, then recent).
     (async () => {
       if (!types.has("blog_preview")) return;
       const { data: posts } = await sb
         .from("website_blog_posts")
-        .select("title, slug, excerpt, cover_path, publish_at, created_at")
+        .select(
+          "title, slug, excerpt, cover_path, publish_at, created_at, featured",
+        )
         .eq("website_id", ctx.websiteId)
         .eq("status", "published")
         .is("deleted_at", null)
+        .order("featured", { ascending: false, nullsFirst: true })
         .order("publish_at", { ascending: false, nullsFirst: false })
         .limit(12);
       const cards: BlogCard[] = (posts ?? []).map((p) => {
@@ -901,4 +904,105 @@ export async function loadSiteBlogPost(
       websiteAssetUrl(post.author?.avatar_path ?? undefined) ?? null,
     excerpt: post.excerpt,
   };
+}
+
+export type BlogIndexPost = {
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  coverUrl: string | null;
+  date: string | null;
+  authorName: string | null;
+  featured: boolean;
+};
+
+/**
+ * Load all published blog posts for the site's blog index page (featured-first).
+ */
+export async function loadSiteBlogIndex(
+  ctx: SiteContext,
+): Promise<BlogIndexPost[]> {
+  const sb = createAdminClient();
+  const { data: posts } = await sb
+    .from("website_blog_posts")
+    .select(
+      "title, slug, excerpt, cover_path, publish_at, created_at, featured, author_name, author:website_blog_authors ( name )",
+    )
+    .eq("website_id", ctx.websiteId)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .order("featured", { ascending: false, nullsFirst: true })
+    .order("publish_at", { ascending: false, nullsFirst: false });
+
+  return (posts ?? []).map((p) => {
+    const row = p as {
+      title: string;
+      slug: string;
+      excerpt: string | null;
+      cover_path: string | null;
+      publish_at: string | null;
+      created_at: string;
+      featured: boolean | null;
+      author_name: string | null;
+      author: { name: string | null } | { name: string | null }[] | null;
+    };
+    // author may come back as array from the join
+    const authorObj = Array.isArray(row.author) ? row.author[0] : row.author;
+    return {
+      title: row.title,
+      slug: row.slug,
+      excerpt: row.excerpt,
+      coverUrl: websiteAssetUrl(row.cover_path ?? undefined) ?? null,
+      date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
+      authorName: authorObj?.name ?? row.author_name,
+      featured: row.featured ?? false,
+    };
+  });
+}
+
+export type RelatedPost = {
+  title: string;
+  slug: string;
+  coverUrl: string | null;
+};
+
+/**
+ * Load related posts for a blog post (same category, limit 3, excluding current).
+ */
+export async function loadRelatedPosts(
+  ctx: SiteContext,
+  postSlug: string,
+): Promise<RelatedPost[]> {
+  const sb = createAdminClient();
+
+  // First, get the current post's category
+  const { data: current } = await sb
+    .from("website_blog_posts")
+    .select("id, category_id")
+    .eq("website_id", ctx.websiteId)
+    .eq("slug", postSlug)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!current?.category_id) return [];
+
+  // Then fetch posts in the same category, excluding the current one
+  const { data: posts } = await sb
+    .from("website_blog_posts")
+    .select("title, slug, cover_path")
+    .eq("website_id", ctx.websiteId)
+    .eq("category_id", current.category_id)
+    .eq("status", "published")
+    .neq("id", current.id)
+    .is("deleted_at", null)
+    .order("featured", { ascending: false, nullsFirst: true })
+    .order("publish_at", { ascending: false, nullsFirst: false })
+    .limit(3);
+
+  return (posts ?? []).map((p) => ({
+    title: (p as { title: string }).title,
+    slug: (p as { slug: string }).slug,
+    coverUrl:
+      websiteAssetUrl((p as { cover_path: string | null }).cover_path) ?? null,
+  }));
 }

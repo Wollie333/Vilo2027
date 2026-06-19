@@ -312,6 +312,8 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const tab = params.get("tab") ?? "overview";
+  const [tabLoading, setTabLoading] = useState<string | null>(null);
+  const [isTabPending, startTabTransition] = useTransition();
   const [moreOpen, setMoreOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
@@ -374,11 +376,20 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
   }
 
   const setTab = (t: string) => {
-    const next = new URLSearchParams(params.toString());
-    if (t === "overview") next.delete("tab");
-    else next.set("tab", t);
-    router.push(`${pathname}?${next.toString()}`);
+    if (t === tab) return; // Already on this tab
+    setTabLoading(t);
+    startTabTransition(() => {
+      const next = new URLSearchParams(params.toString());
+      if (t === "overview") next.delete("tab");
+      else next.set("tab", t);
+      router.push(`${pathname}?${next.toString()}`);
+    });
   };
+
+  // Clear loading state when tab changes
+  if (tabLoading === tab) {
+    setTabLoading(null);
+  }
 
   const tag = STATUS_TAG[d.statusTone];
 
@@ -778,6 +789,7 @@ export function BookingDetail({ data: d }: { data: BookingDetailData }) {
         className="mt-6"
         active={tab}
         onSelect={setTab}
+        loadingKey={isTabPending ? tabLoading : null}
         tabs={TABS.map((t) => ({
           key: t.key,
           label: t.label,

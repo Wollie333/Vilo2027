@@ -50,7 +50,11 @@ import {
 import { createManualBookingAction } from "../bookings/new/actions";
 import type { ManualBookingInput } from "../quotes/schemas";
 
-import { setManualBlocksAction, toggleBlockedDateAction } from "./actions";
+import {
+  setManualBlocksAction,
+  toggleBlockedDateAction,
+  unblockSpecialDatesAction,
+} from "./actions";
 
 type Props = {
   listings: CalListing[];
@@ -62,11 +66,26 @@ type Props = {
   refMonth: number;
 };
 
-type BlockRange = { listingId: string; ci: string; co: string; label: string };
+type BlockRange = {
+  listingId: string;
+  ci: string;
+  co: string;
+  label: string;
+  specialId: string | null;
+  kind: CalBlock["kind"];
+};
 // A blocked span the host clicked — drives the unblock/create-booking modal.
-type BlockPick = { listingId: string; ci: string; co: string; label: string };
+type BlockPick = {
+  listingId: string;
+  ci: string;
+  co: string;
+  label: string;
+  specialId: string | null;
+  kind: CalBlock["kind"];
+};
 
 // Coalesce per-day blocked dates (non-booking) into contiguous ranges per listing.
+// For special blocks, keep them grouped by specialId to show as one range.
 function buildBlockRanges(blocks: CalBlock[]): BlockRange[] {
   const byListing = new Map<string, CalBlock[]>();
   for (const b of blocks) {
@@ -77,21 +96,34 @@ function buildBlockRanges(blocks: CalBlock[]): BlockRange[] {
   }
   const out: BlockRange[] = [];
   for (const [listingId, arr] of byListing) {
-    const dates = [...new Set(arr.map((b) => b.date))].sort();
-    const labelByDate = new Map(
-      arr.map((b) => [b.date, b.source ?? "Blocked"]),
-    );
-    let i = 0;
-    while (i < dates.length) {
-      let j = i;
-      while (j + 1 < dates.length && addDays(dates[j], 1) === dates[j + 1]) j++;
-      out.push({
-        listingId,
-        ci: dates[i],
-        co: addDays(dates[j], 1),
-        label: labelByDate.get(dates[i]) ?? "Blocked",
-      });
-      i = j + 1;
+    // Group blocks by specialId (null = manual/quote/external)
+    const bySpecial = new Map<string | null, CalBlock[]>();
+    for (const b of arr) {
+      const key = b.specialId;
+      const group = bySpecial.get(key) ?? [];
+      group.push(b);
+      bySpecial.set(key, group);
+    }
+
+    for (const [specialId, group] of bySpecial) {
+      const dates = [...new Set(group.map((b) => b.date))].sort();
+      const firstBlock = group.find((b) => b.date === dates[0])!;
+      const label = specialId ? "Deal dates" : (firstBlock.source ?? "Blocked");
+      let i = 0;
+      while (i < dates.length) {
+        let j = i;
+        while (j + 1 < dates.length && addDays(dates[j], 1) === dates[j + 1])
+          j++;
+        out.push({
+          listingId,
+          ci: dates[i],
+          co: addDays(dates[j], 1),
+          label,
+          specialId,
+          kind: firstBlock.kind,
+        });
+        i = j + 1;
+      }
     }
   }
   return out;
@@ -109,6 +141,8 @@ type WeekEvent = {
   booking?: CalBooking;
   label?: string;
   listingId?: string;
+  specialId?: string | null;
+  blockKind?: CalBlock["kind"];
 };
 
 const MAXLANE = 3;
@@ -412,6 +446,16 @@ export function CalendarWorkspace(props: Props) {
               />
               Blocked
             </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{
+                  background:
+                    "repeating-linear-gradient(45deg,#8B5CF6,#8B5CF6 3px,#A78BFA 3px,#A78BFA 6px)",
+                }}
+              />
+              Deal
+            </span>
             <span className="hidden items-center gap-1.5 sm:ml-auto sm:inline-flex">
               <CalendarPlus className="h-3.5 w-3.5 text-brand-primary" />
               Tap two days to block or book a range
@@ -663,10 +707,12 @@ function BlockedRangeModal({
   onCreateBooking: (b: BlockPick) => void;
 }) {
   const [pending, start] = useTransition();
+  const [confirmUnblockSpecial, setConfirmUnblockSpecial] = useState(false);
   const listing = block
     ? (listings.find((l) => l.id === block.listingId) ?? null)
     : null;
   const nights = block ? nightsBetween(block.ci, block.co) : 0;
+  const isSpecialBlock = block?.kind === "special" || block?.specialId;
 
   function unblock() {
     if (!block) return;
@@ -677,24 +723,59 @@ function BlockedRangeModal({
         toast.success("Those nights are open again.");
         onChanged();
         onOpenChange(false);
+      } else if ("specialId" in res && res.specialId) {
+        // This is a special block — prompt for confirmation
+        setConfirmUnblockSpecial(true);
       } else {
         toast.error(res.error);
       }
     });
   }
 
+  function confirmUnblock() {
+    if (!block?.specialId) return;
+    start(async () => {
+      const res = await unblockSpecialDatesAction(block.specialId!);
+      if (res.ok) {
+        toast.success(
+          res.specialPaused
+            ? "Dates opened — the deal is now paused and hidden from public."
+            : "Dates opened.",
+        );
+        onChanged();
+        setConfirmUnblockSpecial(false);
+        onOpenChange(false);
+      } else {
+        toast.error(res.error);
+      }
+    });
+  }
+
+  // Reset confirm state when modal closes
+  useEffect(() => {
+    if (!block) setConfirmUnblockSpecial(false);
+  }, [block]);
+
   return (
     <FormModal
       open={Boolean(block)}
       onOpenChange={onOpenChange}
       size="sm"
-      title="Blocked dates"
+      title={isSpecialBlock ? "Deal dates" : "Blocked dates"}
       description={listing?.name ?? undefined}
     >
       {block ? (
         <div className="space-y-3">
-          <div className="flex items-center gap-2.5 rounded-[12px] border border-brand-line bg-brand-light/50 px-4 py-3">
-            <Lock className="h-4 w-4 shrink-0 text-brand-mute" />
+          <div
+            className={`flex items-center gap-2.5 rounded-[12px] border px-4 py-3 ${
+              isSpecialBlock
+                ? "border-violet-200 bg-violet-50"
+                : "border-brand-line bg-brand-light/50"
+            }`}
+          >
+            <Lock
+              className={`h-4 w-4 shrink-0 ${isSpecialBlock ? "text-violet-500" : "text-brand-mute"}`}
+            />
             <div className="min-w-0">
               <div className="text-[13.5px] font-semibold text-brand-ink">
                 {fmtShort(block.ci)} → {fmtShort(block.co)}
@@ -704,37 +785,78 @@ function BlockedRangeModal({
               </div>
             </div>
           </div>
-          <p className="text-[12.5px] text-brand-mute">
-            Open these nights back up, or create a booking on them. Booked and
-            quote-held nights are never touched.
-          </p>
+
+          {confirmUnblockSpecial ? (
+            <div className="rounded-[12px] border border-amber-200 bg-amber-50 px-4 py-3">
+              <p className="text-[12.5px] font-medium text-amber-800">
+                Unblocking these dates will <strong>pause</strong> the deal and
+                hide it from the public. The deal will remain in your Specials
+                tab but will need to be re-activated.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setConfirmUnblockSpecial(false)}
+                  disabled={pending}
+                  className="rounded-pill border border-brand-line bg-white px-3 py-1.5 text-[12px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmUnblock}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-amber-600 px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-amber-700 disabled:opacity-60"
+                >
+                  {pending ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : null}
+                  Pause deal & unblock
+                </button>
+              </div>
+            </div>
+          ) : isSpecialBlock ? (
+            <p className="text-[12.5px] text-brand-mute">
+              These dates are reserved for an active deal. Unblocking them will
+              pause the deal and hide it from the public.
+            </p>
+          ) : (
+            <p className="text-[12.5px] text-brand-mute">
+              Open these nights back up, or create a booking on them. Booked and
+              quote-held nights are never touched.
+            </p>
+          )}
         </div>
       ) : null}
 
-      <FormModalFooter>
-        <FormModalCancel disabled={pending}>Close</FormModalCancel>
-        <button
-          type="button"
-          onClick={unblock}
-          disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
-        >
-          {pending ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
+      {!confirmUnblockSpecial && (
+        <FormModalFooter>
+          <FormModalCancel disabled={pending}>Close</FormModalCancel>
+          <button
+            type="button"
+            onClick={unblock}
+            disabled={pending}
+            className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-4 py-2 text-[13px] font-semibold text-brand-ink transition hover:bg-brand-light disabled:opacity-60"
+          >
+            {pending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <LockOpen className="h-3.5 w-3.5 text-brand-mute" />
+            )}
+            Unblock
+          </button>
+          {!isSpecialBlock && (
+            <button
+              type="button"
+              onClick={() => block && onCreateBooking(block)}
+              disabled={pending}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" /> Create booking
+            </button>
           )}
-          Unblock
-        </button>
-        <button
-          type="button"
-          onClick={() => block && onCreateBooking(block)}
-          disabled={pending}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-brand-secondary disabled:opacity-60"
-        >
-          <CalendarPlus className="h-3.5 w-3.5" /> Create booking
-        </button>
-      </FormModalFooter>
+        </FormModalFooter>
+      )}
     </FormModal>
   );
 }
@@ -815,6 +937,8 @@ function MonthView({
               co: r.co,
               label: r.label,
               listingId: r.listingId,
+              specialId: r.specialId,
+              blockKind: r.kind,
               s: 0,
               e: 0,
               startsHere: false,
@@ -937,14 +1061,21 @@ function MonthView({
                                 ci: e.ci,
                                 co: e.co,
                                 label: e.label ?? "Blocked",
+                                specialId: e.specialId ?? null,
+                                kind: e.blockKind ?? "manual",
                               })
                             }
                             className={`pointer-events-auto mx-0.5 flex h-[21px] w-[calc(100%-4px)] items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-md px-1.5 text-[11px] font-semibold text-white transition hover:brightness-110 ${e.startsHere ? "" : "rounded-l-none"} ${e.endsHere ? "" : "rounded-r-none"}`}
                             style={{
-                              background:
-                                "repeating-linear-gradient(45deg,#9CA3AF,#9CA3AF 5px,#aeb5bd 5px,#aeb5bd 10px)",
+                              background: e.specialId
+                                ? "repeating-linear-gradient(45deg,#8B5CF6,#8B5CF6 5px,#A78BFA 5px,#A78BFA 10px)"
+                                : "repeating-linear-gradient(45deg,#9CA3AF,#9CA3AF 5px,#aeb5bd 5px,#aeb5bd 10px)",
                             }}
-                            title={`${e.label} — click to unblock or book`}
+                            title={
+                              e.specialId
+                                ? `${e.label} — click to manage`
+                                : `${e.label} — click to unblock or book`
+                            }
                           >
                             <Lock className="h-3 w-3 shrink-0" />
                             <span className="truncate">{e.label}</span>
@@ -1130,14 +1261,16 @@ function TimelineView({
                 {blk.map((r, i) => {
                   const st = barStyle(r.ci, r.co);
                   if (!st) return null;
+                  const isSpecial = r.kind === "special" || r.specialId;
                   return (
                     <div
                       key={i}
                       className="absolute top-[11px] flex h-[42px] items-center gap-1.5 overflow-hidden rounded-[9px] px-2 text-[11.5px] font-semibold text-white"
                       style={{
                         ...st,
-                        background:
-                          "repeating-linear-gradient(45deg,#9CA3AF,#9CA3AF 6px,#aeb5bd 6px,#aeb5bd 12px)",
+                        background: isSpecial
+                          ? "repeating-linear-gradient(45deg,#8B5CF6,#8B5CF6 6px,#A78BFA 6px,#A78BFA 12px)"
+                          : "repeating-linear-gradient(45deg,#9CA3AF,#9CA3AF 6px,#aeb5bd 6px,#aeb5bd 12px)",
                       }}
                       title={r.label}
                     >

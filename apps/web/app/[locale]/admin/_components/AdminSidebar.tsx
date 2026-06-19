@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Sparkles,
   Star,
+  Tag,
   Users,
   Video,
   Wallet,
@@ -143,6 +144,12 @@ const PLATFORM: GmailNavItem[] = [
     href: "/admin/platform/categories",
     label: "Categories",
     icon: Layers,
+    match: "prefix",
+  },
+  {
+    href: "/admin/platform/deal-categories",
+    label: "Deal categories",
+    icon: Tag,
     match: "prefix",
   },
   {

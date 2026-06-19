@@ -15,9 +15,9 @@ import { toast } from "sonner";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { useSidebarToggle } from "@/app/_components/SidebarToggle";
 import { saveBrandStudioAction } from "@/app/[locale]/dashboard/website/actions";
 import { Link } from "@/i18n/navigation";
-import type { ThemeOption } from "@/lib/site/themes.server";
 
 import {
   ButtonsSection,
@@ -47,20 +47,17 @@ const ROOT_DOMAIN = "vilo.site";
 export function BrandStudio({
   websiteId,
   initial,
-  themes,
   fallbackName,
   subdomain,
-  liveHref,
 }: {
   websiteId: string;
   initial: StudioState;
-  themes: ThemeOption[];
   fallbackName: string;
   subdomain: string;
-  liveHref: string;
 }) {
   const t = useTranslations("website");
   const locale = useLocale();
+  const { setCollapsed } = useSidebarToggle();
   const [state, setState] = useState<StudioState>(initial);
   const [device, setDevice] = useState<Device>("desktop");
   const [page, setPage] = useState("home");
@@ -68,9 +65,14 @@ export function BrandStudio({
   const [saving, startSave] = useTransition();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Collapse the dashboard sidebar when Brand Studio mounts to maximize space.
+  useEffect(() => {
+    setCollapsed(true);
+  }, [setCollapsed]);
+
   const merge = (patch: Partial<StudioState>) =>
     setState((prev) => ({ ...prev, ...patch }));
-  const sectionProps = { websiteId, state, merge, fallbackName, themes };
+  const sectionProps = { websiteId, state, merge, fallbackName };
 
   // Push the live draft theme/brand + selected page into the preview iframe.
   const post = useCallback(() => {
@@ -91,6 +93,7 @@ export function BrandStudio({
   }, [post]);
 
   // When the iframe reports ready, capture its page list and push current state.
+  // Also handle "navigate" messages from the preview to switch pages.
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       if (e.origin !== window.location.origin) return;
@@ -98,24 +101,21 @@ export function BrandStudio({
         source?: string;
         type?: string;
         pages?: PageTab[];
+        page?: string;
       };
-      if (d?.source === "vilo-brand-preview" && d.type === "ready") {
-        if (d.pages?.length) setTabs(d.pages);
-        post();
+      if (d?.source === "vilo-brand-preview") {
+        if (d.type === "ready") {
+          if (d.pages?.length) setTabs(d.pages);
+          post();
+        } else if (d.type === "navigate" && d.page) {
+          // Preview iframe clicked a nav link — switch to that page
+          setPage(d.page);
+        }
       }
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, [post]);
-
-  // Lock the page behind the overlay.
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
 
   function onSave() {
     startSave(async () => {
@@ -133,36 +133,19 @@ export function BrandStudio({
   const activePath = tabs.find((tab) => tab.key === page)?.path ?? "";
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-white">
-      {/* ── Top bar ─────────────────────────────────────── */}
-      <header className="flex h-16 shrink-0 items-center gap-3 border-b border-brand-line bg-white px-4 lg:px-5">
-        <Link
-          href={`/dashboard/website/${websiteId}`}
-          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line px-2.5 py-1.5 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("brandStudioBack")}</span>
-        </Link>
-        <span className="font-display text-[15px] font-extrabold tracking-tight text-brand-ink">
-          {t("brandStudioTitle")}
-        </span>
-        <div className="flex-1" />
-        <Link
-          href={liveHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 rounded-pill border border-brand-line bg-white px-3.5 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
-        >
-          <ExternalLink className="h-4 w-4 text-brand-mute" />
-          <span className="hidden sm:inline">{t("brandViewLive")}</span>
-        </Link>
-      </header>
-
+    <div className="flex h-full flex-col overflow-hidden bg-white">
       {/* ── Body ────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1">
         {/* Control rail */}
         <div className="flex w-full max-w-[404px] shrink-0 flex-col border-r border-brand-line bg-white max-lg:max-w-[340px] max-md:hidden">
           <div className="flex shrink-0 items-center gap-3 border-b border-brand-line px-5 py-4">
+            <Link
+              href={`/dashboard/website/${websiteId}`}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-brand-light text-brand-mute transition hover:bg-brand-accent hover:text-brand-ink"
+              title={t("brandStudioBack")}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-brand-secondary text-white">
               <Palette className="h-5 w-5" />
             </span>
@@ -176,7 +159,7 @@ export function BrandStudio({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="thin-scroll min-h-0 flex-1 overflow-y-auto">
             <IdentitySection {...sectionProps} />
             <ColourSection {...sectionProps} />
             <TypographySection {...sectionProps} />
@@ -277,6 +260,15 @@ export function BrandStudio({
                   </button>
                 ))}
               </div>
+              <a
+                href={`/site?site=${subdomain}&preview=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t("brandViewLive")}
+                className="flex h-[30px] w-[30px] items-center justify-center rounded-[8px] text-white/55 transition hover:bg-white/10 hover:text-white"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
               <button
                 type="button"
                 onClick={() => post()}

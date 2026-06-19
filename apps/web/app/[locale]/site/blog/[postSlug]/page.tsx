@@ -6,6 +6,7 @@ import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
+  loadRelatedPosts,
   loadSiteBlogPost,
   loadSiteContext,
   resolveSiteRef,
@@ -53,7 +54,10 @@ export default async function SiteBlogPostPage({
   const ctx = await loadSiteContext(ref, { preview });
   if (!ctx) notFound();
 
-  const post = await loadSiteBlogPost(ctx, postSlug);
+  const [post, relatedPosts] = await Promise.all([
+    loadSiteBlogPost(ctx, postSlug),
+    loadRelatedPosts(ctx, postSlug),
+  ]);
   if (!post) notFound();
 
   const cover = siteAsset(post.coverUrl);
@@ -142,6 +146,59 @@ export default async function SiteBlogPostPage({
                     {post.authorBio}
                   </p>
                 ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {relatedPosts.length > 0 ? (
+            <div className="mt-16">
+              <h2
+                style={{
+                  fontFamily: "var(--site-font-heading)",
+                  color: "var(--site-ink)",
+                }}
+                className="text-xl font-semibold"
+              >
+                Related posts
+              </h2>
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                {relatedPosts.map((related) => (
+                  <a
+                    key={related.slug}
+                    href={`/blog/${related.slug}`}
+                    className="group block"
+                  >
+                    <article
+                      style={{
+                        background: "var(--site-surface)",
+                        borderColor: "var(--site-line)",
+                        borderRadius: "var(--site-radius)",
+                      }}
+                      className="flex h-full flex-col overflow-hidden border"
+                    >
+                      {related.coverUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={siteAsset(related.coverUrl) ?? related.coverUrl}
+                          alt={related.title}
+                          loading="lazy"
+                          className="aspect-[16/9] w-full object-cover"
+                        />
+                      ) : null}
+                      <div className="p-4">
+                        <h3
+                          style={{
+                            fontFamily: "var(--site-font-heading)",
+                            color: "var(--site-ink)",
+                          }}
+                          className="line-clamp-2 text-sm font-semibold transition-opacity group-hover:opacity-80"
+                        >
+                          {related.title}
+                        </h3>
+                      </div>
+                    </article>
+                  </a>
+                ))}
               </div>
             </div>
           ) : null}

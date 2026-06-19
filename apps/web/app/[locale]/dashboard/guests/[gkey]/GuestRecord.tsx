@@ -363,13 +363,24 @@ export function GuestRecord({
   const pathname = usePathname();
   const params = useSearchParams();
   const tab = params.get("tab") ?? "overview";
+  const [tabLoading, setTabLoading] = useState<string | null>(null);
+  const [isTabPending, startTabTransition] = useTransition();
 
   const setTab = (t: string) => {
-    const next = new URLSearchParams(params.toString());
-    if (t === "overview") next.delete("tab");
-    else next.set("tab", t);
-    router.push(`${pathname}?${next.toString()}`);
+    if (t === tab) return; // Already on this tab
+    setTabLoading(t);
+    startTabTransition(() => {
+      const next = new URLSearchParams(params.toString());
+      if (t === "overview") next.delete("tab");
+      else next.set("tab", t);
+      router.push(`${pathname}?${next.toString()}`);
+    });
   };
+
+  // Clear loading state when tab changes
+  if (tabLoading === tab) {
+    setTabLoading(null);
+  }
 
   // Business is a server-side scope (it changes the Finances rows + their
   // running balance), so it navigates with ?business=… and the page re-fetches.
@@ -480,6 +491,7 @@ export function GuestRecord({
           <RecordTabs
             active={tab}
             onSelect={setTab}
+            loadingKey={isTabPending ? tabLoading : null}
             tabs={TABS.map((t) => ({
               key: t.key,
               label: t.label,
