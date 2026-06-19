@@ -24,7 +24,7 @@ export async function SpecialCard({
 
   return (
     <Link
-      href={`/special/${s.slug}`}
+      href={`/deal/${s.slug}`}
       className="group flex flex-col overflow-hidden rounded-card"
     >
       <div className="relative aspect-[4/3] overflow-hidden rounded-card bg-brand-accent">

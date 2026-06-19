@@ -5,6 +5,41 @@
 
 ---
 
+## 2026-06-19 — Deals (public Specials) · listing-style detail + "Deals" rename
+
+Makes the public deal page browse like the rest of the site and splits the
+terminology: **public/guest-facing = "Deals", host/back-end = "Specials"**.
+Code-only — no migration, no schema change.
+
+### Added
+- **Listing-style deal detail** (`/deal/[slug]`, rewritten): breadcrumb back to
+  the property, header with badge/category chips + "Part of {property}" link +
+  **Share** button, photo gallery (reuses the property `PhotoGallery` —
+  room-scoped photos when the deal targets a room, else property photos, hero
+  first), a 4-tile stats grid (Guests / Nights / Save / Book by), sectioned body
+  (About · What's included · Dates · What this place offers via the property
+  `AmenitiesList` · Cancellation · "part of property" card · report), and a
+  sticky price/Book CTA panel — mirroring the individual room view.
+- **`ShareSpecialButton`** client component — copies the public `/deal/[slug]`
+  link with a toast (same pattern as the manager row-menu copy + `PaymentLinkCard`).
+- Manager **Copy share link** row-menu action (copies `/deal/[slug]`).
+
+### Changed
+- **Public routes renamed** `/(locale)/specials → /deals` and
+  `/(locale)/special/[slug] → /deal/[slug]` (+ `/book`); all card/book/share/nav
+  links, the directory `BASE_PATH`, and the website-section `bookHref`
+  (`lib/site/loadSitePage.ts`) updated. Host routes stay `/dashboard/specials`.
+- **Public copy → "Deals"** (en.json values only, keys unchanged): directory
+  title/badge/results/empty, the property-page tab (`navSpecials`/`specialsTitle`),
+  detail meta/back/badge/Book CTA, booking meta + sold-out. Host-side strings
+  keep "Specials".
+- Manager row menu now opens **upward** so it isn't clipped by the card's
+  `overflow-hidden`.
+
+### Notes
+- "Experiences" (tours/golf/hunting) stays a **separate post-MVP feature** that
+  reuses these primitives — not an overload of Specials (accommodation-only).
+
 ## 2026-06-19 — Specials · S7c-1 (i18n: dashboard CRUD)
 
 Wires every hardcoded string in the Specials dashboard list + editor (S1, which

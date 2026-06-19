@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-const BASE_PATH = "/specials";
+const BASE_PATH = "/deals";
 
 // Build a directory href that keeps the other active filters intact.
 function filterHref(
