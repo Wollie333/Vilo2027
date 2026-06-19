@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound, redirect } from "next/navigation";
 
 import {
@@ -24,7 +25,12 @@ import {
   type SpecialReport,
 } from "@/lib/specials/reporting";
 
-export const metadata: Metadata = { title: "Special report" };
+type SpecialsT = Awaited<ReturnType<typeof getTranslations>>;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("specials");
+  return { title: t("rpMetaTitle") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +47,16 @@ function humanise(status: string): string {
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+}
+
+/** Special lifecycle status → label (reuses the shared status_* keys). */
+function specialStatusLabel(t: SpecialsT, status: string): string {
+  return t.has(`status_${status}`) ? t(`status_${status}`) : humanise(status);
+}
+
+/** Booking status → label (rpStat_* with a humanised fallback for any unknown). */
+function bookingStatusLabel(t: SpecialsT, status: string): string {
+  return t.has(`rpStat_${status}`) ? t(`rpStat_${status}`) : humanise(status);
 }
 
 function fmtDate(d: string | null): string {
@@ -72,37 +88,40 @@ export default async function SpecialReportPage({
   const report = await loadSpecialReport(id, host.hostId);
   if (!report) notFound();
 
+  const t = await getTranslations("specials");
+
   const hasSavings =
     report.savingsAmount != null && report.savingsAmount > 0 ? true : false;
 
   return (
     <div className="space-y-6">
-      <Header report={report} />
+      <Header report={report} t={t} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi
           icon={ReceiptText}
-          label="Revenue"
+          label={t("rpKpiRevenue")}
           value={formatMoney(report.revenue, report.currency)}
-          sub={`${report.revenueBookings} confirmed ${
-            report.revenueBookings === 1 ? "booking" : "bookings"
-          }`}
+          sub={t("rpKpiRevenueSub", { count: report.revenueBookings })}
         />
         <Kpi
           icon={TicketCheck}
-          label="Bookings"
+          label={t("rpKpiBookings")}
           value={String(report.totalBookings)}
-          sub="all statuses"
+          sub={t("rpKpiBookingsSub")}
         />
         <Kpi
           icon={TrendingUp}
-          label="Redeemed"
+          label={t("rpKpiRedeemed")}
           value={`${report.redemptionsUsed} / ${report.quantity}`}
-          sub={`${report.sellThroughPct}% sell-through · ${report.remaining} left`}
+          sub={t("rpKpiRedeemedSub", {
+            pct: report.sellThroughPct,
+            remaining: report.remaining,
+          })}
         />
         <Kpi
           icon={Tag}
-          label="Savings"
+          label={t("rpKpiSavings")}
           value={
             hasSavings
               ? `${formatMoney(report.savingsAmount, report.currency)}`
@@ -110,21 +129,21 @@ export default async function SpecialReportPage({
           }
           sub={
             hasSavings && report.savingsPct != null
-              ? `${report.savingsPct}% vs ${formatMoney(
-                  report.wasPrice,
-                  report.currency,
-                )}`
-              : "no savings badge"
+              ? t("rpKpiSavingsSub", {
+                  pct: report.savingsPct,
+                  was: formatMoney(report.wasPrice, report.currency),
+                })
+              : t("rpKpiSavingsNone")
           }
         />
       </div>
 
-      <SellThrough report={report} />
+      <SellThrough report={report} t={t} />
 
       {report.byStatus.length > 0 ? (
         <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
           <h2 className="font-display text-sm font-bold text-brand-ink">
-            Booking funnel
+            {t("rpFunnel")}
           </h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {report.byStatus.map((s) => (
@@ -132,7 +151,7 @@ export default async function SpecialReportPage({
                 key={s.status}
                 className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-3 py-1 text-[12.5px] font-medium text-brand-ink"
               >
-                {humanise(s.status)}
+                {bookingStatusLabel(t, s.status)}
                 <span className="font-bold text-brand-primary">{s.count}</span>
               </span>
             ))}
@@ -140,53 +159,49 @@ export default async function SpecialReportPage({
         </section>
       ) : null}
 
-      <Traffic report={report} />
+      <Traffic report={report} t={t} />
 
-      <RecentBookings rows={report.recent} />
+      <RecentBookings rows={report.recent} t={t} />
 
       <p className="px-1 text-[12px] leading-relaxed text-brand-mute">
-        Views are cookieless visits to this special&apos;s public page. Booking,
-        revenue and sell-through count realised bookings against your quantity
-        cap.
+        {t("rpFootnote")}
       </p>
     </div>
   );
 }
 
-function Traffic({ report }: { report: SpecialReport }) {
+function Traffic({ report, t }: { report: SpecialReport; t: SpecialsT }) {
   return (
     <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-sm font-bold text-brand-ink">
-          Traffic &amp; conversion
+          {t("rpTraffic")}
         </h2>
         <span className="text-[12.5px] font-semibold text-brand-ink">
-          {report.viewToBookingPct}% view → booking
+          {t("rpViewToBooking", { pct: report.viewToBookingPct })}
         </span>
       </div>
       <div className="mt-3 grid gap-4 sm:grid-cols-3">
         <Stat
           icon={Eye}
-          label="Page views"
+          label={t("rpPageViews")}
           value={String(report.views)}
-          sub={`${report.uniqueViewers} unique ${
-            report.uniqueViewers === 1 ? "viewer" : "viewers"
-          }`}
+          sub={t("rpUniqueViewers", { count: report.uniqueViewers })}
         />
         <Stat
           icon={MousePointerClick}
-          label="Book clicks"
+          label={t("rpBookClicks")}
           value={String(report.bookClicks)}
-          sub="Book CTA taps"
+          sub={t("rpBookClicksSub")}
         />
         <Stat
           icon={Users}
-          label="Bookings"
+          label={t("rpBookingsStat")}
           value={String(report.totalBookings)}
           sub={
             report.uniqueViewers > 0
-              ? `${report.viewToBookingPct}% of viewers`
-              : "no views yet"
+              ? t("rpOfViewers", { pct: report.viewToBookingPct })
+              : t("rpNoViews")
           }
         />
       </div>
@@ -223,7 +238,7 @@ function Stat({
   );
 }
 
-function Header({ report }: { report: SpecialReport }) {
+function Header({ report, t }: { report: SpecialReport; t: SpecialsT }) {
   const statusCls = STATUS_STYLE[report.status] ?? STATUS_STYLE.draft;
   return (
     <section
@@ -243,13 +258,13 @@ function Header({ report }: { report: SpecialReport }) {
           className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-accent/70 transition-colors hover:text-brand-accent"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          All specials
+          {t("rpAllSpecials")}
         </Link>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-1.5 rounded-pill bg-white/10 px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wider text-brand-accent backdrop-blur">
               <Sparkles className="h-3 w-3" />
-              Special report
+              {t("rpBadge")}
             </div>
             <h1 className="mt-3 font-display text-2xl font-bold leading-tight tracking-tight md:text-3xl">
               {report.title}
@@ -262,14 +277,14 @@ function Header({ report }: { report: SpecialReport }) {
             <span
               className={`rounded-pill px-2.5 py-1 text-[10.5px] font-semibold uppercase tracking-wide ${statusCls}`}
             >
-              {humanise(report.status)}
+              {specialStatusLabel(t, report.status)}
             </span>
             <Link
               href={`/dashboard/specials/${report.id}/edit`}
               className="inline-flex items-center gap-1.5 rounded-[10px] bg-white px-3.5 py-2 text-[13px] font-semibold text-brand-ink transition-colors hover:bg-brand-accent"
             >
               <Pencil className="h-3.5 w-3.5" />
-              Edit
+              {t("rpEdit")}
             </Link>
           </div>
         </div>
@@ -305,22 +320,25 @@ function Kpi({
   );
 }
 
-function SellThrough({ report }: { report: SpecialReport }) {
+function SellThrough({ report, t }: { report: SpecialReport; t: SpecialsT }) {
   const width = Math.min(100, report.sellThroughPct);
   const soldOut = report.remaining <= 0;
   return (
     <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-sm font-bold text-brand-ink">
-          Sell-through
+          {t("rpSellThrough")}
         </h2>
         <span
           className={`text-[12.5px] font-semibold ${
             soldOut ? "text-red-600" : "text-brand-ink"
           }`}
         >
-          {report.redemptionsUsed} of {report.quantity} redeemed
-          {soldOut ? " · sold out" : ""}
+          {t("rpRedeemedOf", {
+            used: report.redemptionsUsed,
+            total: report.quantity,
+          })}
+          {soldOut ? t("rpSoldOut") : ""}
         </span>
       </div>
       <div className="mt-3 h-2.5 overflow-hidden rounded-pill bg-brand-light">
@@ -335,18 +353,24 @@ function SellThrough({ report }: { report: SpecialReport }) {
   );
 }
 
-function RecentBookings({ rows }: { rows: SpecialBookingRow[] }) {
+function RecentBookings({
+  rows,
+  t,
+}: {
+  rows: SpecialBookingRow[];
+  t: SpecialsT;
+}) {
   return (
     <section className="rounded-card border border-brand-line bg-white shadow-card">
       <div className="flex items-center gap-2 border-b border-brand-line px-5 py-4">
         <CalendarDays className="h-4 w-4 text-brand-mute" />
         <h2 className="font-display text-sm font-bold text-brand-ink">
-          Recent bookings
+          {t("rpRecent")}
         </h2>
       </div>
       {rows.length === 0 ? (
         <p className="px-5 py-8 text-center text-sm text-brand-mute">
-          No bookings from this special yet.
+          {t("rpRecentEmpty")}
         </p>
       ) : (
         <div className="divide-y divide-brand-line">
@@ -362,13 +386,13 @@ function RecentBookings({ rows }: { rows: SpecialBookingRow[] }) {
                 </div>
                 <div className="mt-0.5 text-[12px] text-brand-mute">
                   {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
-                  {b.bookedVia ? ` · via ${b.bookedVia}` : ""}
+                  {b.bookedVia ? t("rpVia", { via: b.bookedVia }) : ""}
                   {` · ${fmtDateTime(b.createdAt)}`}
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <span className="rounded-pill bg-brand-light px-2.5 py-0.5 text-[11px] font-medium text-brand-ink">
-                  {humanise(b.status)}
+                  {bookingStatusLabel(t, b.status)}
                 </span>
                 <span className="text-[13.5px] font-semibold text-brand-ink">
                   {formatMoney(b.totalAmount, b.currency)}
