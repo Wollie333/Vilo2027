@@ -132,8 +132,29 @@
 >   updated (host routes stay `/dashboard/specials`). (d) **Public copy → "Deals"**
 >   (en.json values only; host strings keep "Specials"). Build+lint green. Touched
 >   shared files (SiteHeader, loadSitePage, property page) — staged explicit paths.
-> - **S7c-3 i18n: website** section + report panel.
-> - **FIN** — full `pnpm build`+`pnpm lint` green, CHANGELOG, fast-forward `main` + push.
+> - **S7c-3 i18n: report panel DONE 2026-06-19** (commit `c6c3098`): every string
+>   in `dashboard/specials/[id]/page.tsx` wired through new `rp*` keys (KPIs,
+>   sell-through, funnel, traffic/conversion, recent bookings, footnote, header)
+>   + `rpStat_*` booking-status labels (humanise fallback); `generateMetadata`
+>   replaces the static title. **Website-section note:** the builder
+>   `SectionEditor`/`SectionLibrary` case was already i18n'd in S5b; the public
+>   `components/site/sections/SpecialsPreview.tsx` follows the site-section
+>   convention (hardcoded English like all 18 siblings — tenant hosts don't run
+>   next-intl), so nothing to do there. Code-only.
+> - **Public deal page redesign DONE 2026-06-19** (founder add-on; commits
+>   `3164d97` redesign + `025ac7a` rooms) — `/deal/[slug]` rebuilt to
+>   `C:\Users\Wollie\Downloads\Special Detail.html`, guest-facing: gallery-mosaic
+>   hero (reuses property `PhotoGallery`) + savings ribbon, sticky scrollspy
+>   subnav (new `_components/DealSubnav.tsx`), at-a-glance tiles + "Vilo charges
+>   hosts no fee" reassurance, "what you get" offer rows (price/savings/included),
+>   dates tiles, **"Rooms in this deal"** (single targeted room, or every active
+>   property_room for a whole-property deal — facts-only cards, no per-room price),
+>   amenities, "good to know" (cancellation + part-of-property + report), sticky
+>   deal-summary panel. All i18n via new `dd*` keys. build+lint green.
+> - **FIN (NEXT, not done)** — full `pnpm build`+`pnpm lint` green, CHANGELOG,
+>   fast-forward `main` + push. The S0–S7 build is COMPLETE on `agent-specials`;
+>   `main` is behind. Per LANE.md `main` is owned outside the specials lane —
+>   founder/head-dev does the FF + push. No migrations pending from the last commits.
 > Fresh session per sub-task; stage explicit paths only; build before each commit.
 
 ---
