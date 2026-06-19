@@ -11,7 +11,6 @@ export function HeroSection({
   asset?: SiteAssetResolver;
 }) {
   const bg = asset?.(props.image_path) ?? props.image_path ?? undefined;
-  const left = props.align === "left";
 
   return (
     <section
@@ -28,7 +27,8 @@ export function HeroSection({
       className="px-5 py-24 md:py-32"
     >
       <div
-        className={`mx-auto w-full max-w-4xl ${left ? "text-left" : "text-center"}`}
+        className="mx-auto w-full max-w-4xl"
+        style={{ textAlign: "var(--site-hero-align)" as "center" | "left" }}
       >
         <h1
           style={{
@@ -45,14 +45,15 @@ export function HeroSection({
         {props.subheadline ? (
           <p
             style={{ color: bg ? "rgba(255,255,255,0.9)" : "var(--site-mute)" }}
-            className={`mt-5 text-lg md:text-xl ${left ? "" : "mx-auto"} max-w-2xl`}
+            className="mt-5 text-lg md:text-xl"
           >
             {props.subheadline}
           </p>
         ) : null}
         {props.cta_label && props.cta_href ? (
           <div
-            className={`mt-8 flex ${left ? "justify-start" : "justify-center"}`}
+            className="mt-8 flex"
+            style={{ justifyContent: "var(--site-hero-justify)" }}
           >
             <a
               href={props.cta_href}

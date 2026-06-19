@@ -359,6 +359,7 @@ export async function saveBrandStudioAction(
   const brandRes = await patchSiteJson(d.websiteId, "brand", {
     name: d.name.trim(),
     tagline: d.tagline.trim(),
+    monogram: d.monogram.trim() || undefined,
     logo_style: d.logoStyle,
     logo_max_height: d.logoMaxHeight,
     contact: {
@@ -394,6 +395,15 @@ export async function saveBrandStudioAction(
       borderColor: d.image.borderColor || undefined,
       shadow: d.image.shadow,
     },
+    card: {
+      style: d.card.style,
+      radius: d.card.radius,
+      shadow: d.card.shadow,
+      ratio: d.card.ratio,
+    },
+    heroLayout: d.heroLayout,
+    social: { shape: d.social.shape, style: d.social.style },
+    iconColor: d.iconColor || undefined,
   });
   if (!themeRes.ok) return themeRes;
 

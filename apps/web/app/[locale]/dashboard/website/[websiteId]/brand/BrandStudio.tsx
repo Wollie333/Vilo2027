@@ -20,7 +20,10 @@ import { Link } from "@/i18n/navigation";
 
 import {
   ButtonsSection,
+  CardsSection,
   ColourSection,
+  HomepageSection,
+  IconsSection,
   IdentitySection,
   ImagesSection,
   SocialSection,
@@ -173,7 +176,10 @@ export function BrandStudio({
             <ColourSection {...sectionProps} />
             <TypographySection {...sectionProps} />
             <ButtonsSection {...sectionProps} />
+            <IconsSection {...sectionProps} />
             <ImagesSection {...sectionProps} />
+            <CardsSection {...sectionProps} />
+            <HomepageSection {...sectionProps} />
             <SocialSection {...sectionProps} />
             <div className="h-2" />
           </div>

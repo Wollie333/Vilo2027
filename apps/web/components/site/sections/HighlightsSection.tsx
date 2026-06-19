@@ -16,7 +16,7 @@ export function HighlightsSection({ props }: { props: Props }) {
           <Card key={i} className="p-6">
             {item.icon ? (
               <div
-                style={{ color: "var(--site-accent)" }}
+                style={{ color: "var(--site-icon-color)" }}
                 className="mb-3 text-2xl"
                 aria-hidden
               >

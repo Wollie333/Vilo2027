@@ -256,6 +256,28 @@ export const TYPE_DEFAULTS = {
   bodyTracking: 0,
 } as const;
 
+// ── Stage 2 controls: cards, hero layout, social, feature icons ──
+export type SiteCardStyle = "elevated" | "bordered" | "flat";
+export type SiteCardRatio = "4:3" | "16:9" | "1:1" | "3:2";
+export type SiteHeroLayout = "center" | "left";
+export type SiteSocialShape = "round" | "square";
+export type SiteSocialStyle = "filled" | "outline" | "plain";
+
+export type SiteCard = {
+  style?: SiteCardStyle;
+  radius?: number; // px; absent ⇒ inherit --site-radius
+  shadow?: SiteShadow;
+  ratio?: SiteCardRatio;
+};
+export type SiteSocial = { shape?: SiteSocialShape; style?: SiteSocialStyle };
+
+const CARD_RATIO: Record<SiteCardRatio, string> = {
+  "4:3": "4 / 3",
+  "16:9": "16 / 9",
+  "1:1": "1 / 1",
+  "3:2": "3 / 2",
+};
+
 export type SiteThemeConfig = {
   preset?: string;
   colors?: SiteColors;
@@ -264,6 +286,10 @@ export type SiteThemeConfig = {
   radius?: SiteRadius;
   buttonStyle?: SiteButtonStyle;
   image?: SiteImageStyle;
+  card?: SiteCard;
+  heroLayout?: SiteHeroLayout;
+  social?: SiteSocial;
+  iconColor?: string; // feature-icon colour; absent ⇒ accent
   // Legacy flat keys (pre-Brand-Studio dev rows). Read as a fallback so old
   // themes keep rendering without a data migration.
   accent?: string;
@@ -356,6 +382,30 @@ export function buildSiteVars(
       : "none";
   const imgShadow = SITE_SHADOWS[img.shadow ?? "none"];
 
+  // --- Cards ---
+  const card = theme?.card ?? {};
+  const cardRadius =
+    typeof card.radius === "number" ? px(card.radius) : "var(--site-radius)";
+  const cardShadow = SITE_SHADOWS[card.shadow ?? "none"];
+  const cardBorder =
+    card.style === "flat" ? "none" : "1px solid var(--site-line)";
+  const cardRatio = CARD_RATIO[card.ratio ?? "4:3"];
+
+  // --- Hero layout / feature icons / social ---
+  const heroLeft = theme?.heroLayout === "left";
+  const iconColor = (theme?.iconColor || "").trim() || accent;
+  const social = theme?.social ?? {};
+  const socStyle = social.style ?? "plain";
+  const socBg = socStyle === "filled" ? accent : "transparent";
+  const socFg =
+    socStyle === "filled"
+      ? accentInk
+      : socStyle === "outline"
+        ? accent
+        : "var(--site-mute)";
+  const socBorder = socStyle === "outline" ? `1px solid ${accent}` : "none";
+  const socRadius = social.shape === "square" ? "var(--site-radius)" : "9999px";
+
   return {
     "--site-bg": c.bg || preset.palette.bg,
     "--site-surface": c.surface || preset.palette.surface,
@@ -394,6 +444,20 @@ export function buildSiteVars(
     "--site-img-radius": imgRadius,
     "--site-img-border": imgBorder,
     "--site-img-shadow": imgShadow,
+
+    "--site-card-radius": cardRadius,
+    "--site-card-shadow": cardShadow,
+    "--site-card-border": cardBorder,
+    "--site-card-ratio": cardRatio,
+
+    "--site-hero-align": heroLeft ? "left" : "center",
+    "--site-hero-justify": heroLeft ? "flex-start" : "center",
+    "--site-icon-color": iconColor,
+
+    "--site-social-bg": socBg,
+    "--site-social-fg": socFg,
+    "--site-social-border": socBorder,
+    "--site-social-radius": socRadius,
   } as React.CSSProperties;
 }
 
