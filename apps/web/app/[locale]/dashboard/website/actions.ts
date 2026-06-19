@@ -350,6 +350,12 @@ export async function saveBrandStudioAction(
     Object.entries(d.colors).filter(([, v]) => v && v.trim()),
   );
 
+  // Type sizes: keep only the pinned per-element overrides (drop nulls so an
+  // un-pinned element keeps inheriting the modular base × scale).
+  const cleanSizes = Object.fromEntries(
+    Object.entries(d.type.sizes).filter(([, v]) => typeof v === "number"),
+  );
+
   const brandRes = await patchSiteJson(d.websiteId, "brand", {
     name: d.name.trim(),
     tagline: d.tagline.trim(),
@@ -378,9 +384,16 @@ export async function saveBrandStudioAction(
       bodyLeading: d.type.bodyLeading,
       headingTracking: d.type.headingTracking,
       bodyTracking: d.type.bodyTracking,
+      sizes: cleanSizes,
     },
     radius: d.radius || undefined,
     buttonStyle: d.buttonStyle,
+    image: {
+      radius: d.image.radius,
+      borderWidth: d.image.borderWidth,
+      borderColor: d.image.borderColor || undefined,
+      shadow: d.image.shadow,
+    },
   });
   if (!themeRes.ok) return themeRes;
 

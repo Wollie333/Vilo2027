@@ -161,6 +161,27 @@ const RADIUS_REM: Record<SiteRadius, string> = {
 
 export type SiteButtonStyle = "solid" | "outline";
 
+// Image styling (Brand Studio "Images" section) — applied to standalone site
+// images (gallery, host photo, property hero) via `--site-img-*`. `radius`
+// absent ⇒ inherit the theme corner radius; `borderWidth` 0/absent ⇒ no border;
+// `borderColor` absent ⇒ the theme line colour; `shadow` is a named preset.
+export type SiteShadow = "none" | "sm" | "md" | "lg" | "xl";
+
+export type SiteImageStyle = {
+  radius?: number; // px
+  borderWidth?: number; // px
+  borderColor?: string; // hex
+  shadow?: SiteShadow;
+};
+
+export const SITE_SHADOWS: Record<SiteShadow, string> = {
+  none: "none",
+  sm: "0 1px 2px rgba(16,24,40,0.06), 0 1px 1px rgba(16,24,40,0.04)",
+  md: "0 6px 16px rgba(16,24,40,0.10)",
+  lg: "0 14px 32px rgba(16,24,40,0.14)",
+  xl: "0 26px 56px rgba(16,24,40,0.20)",
+};
+
 /** Per-role colour overrides — each blank/absent value inherits the preset. */
 export type SiteColors = {
   bg?: string;
@@ -170,6 +191,22 @@ export type SiteColors = {
   line?: string;
   accent?: string;
   secondary?: string;
+};
+
+/**
+ * Per-element font-size overrides (px). Each absent value falls back to the
+ * modular scale derived from `baseSize` × `scale`, so a host can either drive
+ * everything from base+ratio OR pin an exact size per element.
+ */
+export type SiteTypeSizes = {
+  h1?: number;
+  h2?: number;
+  h3?: number;
+  h4?: number;
+  h5?: number;
+  h6?: number;
+  body?: number;
+  accent?: number; // small / eyebrow / label text
 };
 
 /** Typography overrides — each absent value falls back to a hard default below. */
@@ -184,7 +221,26 @@ export type SiteType = {
   bodyLeading?: number;
   headingTracking?: number; // em, -0.05..0.1
   bodyTracking?: number;
+  sizes?: SiteTypeSizes; // per-element px overrides (absent ⇒ modular default)
 };
+
+/** Modular-scale font sizes (px) derived from base + ratio. SSOT for defaults. */
+export function modularSizes(
+  base: number,
+  ratio: number,
+): Record<keyof SiteTypeSizes, number> {
+  const r = ratio;
+  return {
+    h1: base * r * r * r * r,
+    h2: base * r * r * r,
+    h3: base * r * r,
+    h4: base * r,
+    h5: base * Math.sqrt(r),
+    h6: base,
+    body: base,
+    accent: base / r,
+  };
+}
 
 // Hard defaults for the type system (used when neither the override nor the
 // preset supplies a value). The preset only owns the font *family*; everything
@@ -207,6 +263,7 @@ export type SiteThemeConfig = {
   type?: SiteType;
   radius?: SiteRadius;
   buttonStyle?: SiteButtonStyle;
+  image?: SiteImageStyle;
   // Legacy flat keys (pre-Brand-Studio dev rows). Read as a fallback so old
   // themes keep rendering without a data migration.
   accent?: string;
@@ -281,9 +338,23 @@ export function buildSiteVars(
   const headingStack = FONT_STACKS[headingFont].heading;
   const bodyStack = FONT_STACKS[bodyFont].body;
 
-  // --- Typography scale (modular: base × ratio^step) ---
+  // --- Typography scale (modular base × ratio^step + per-element overrides) ---
   const base = clampNum(ty.baseSize ?? TYPE_DEFAULTS.baseSize, 12, 22);
   const r = clampNum(ty.scale ?? TYPE_DEFAULTS.scale, 1, 1.6);
+  const derived = modularSizes(base, r);
+  const sz = ty.sizes ?? {};
+  const size = (k: keyof SiteTypeSizes) =>
+    px(typeof sz[k] === "number" ? (sz[k] as number) : derived[k]);
+
+  // --- Images ---
+  const img = theme?.image ?? {};
+  const imgRadius =
+    typeof img.radius === "number" ? px(img.radius) : "var(--site-radius)";
+  const imgBorder =
+    typeof img.borderWidth === "number" && img.borderWidth > 0
+      ? `${img.borderWidth}px solid ${img.borderColor || "var(--site-line)"}`
+      : "none";
+  const imgShadow = SITE_SHADOWS[img.shadow ?? "none"];
 
   return {
     "--site-bg": c.bg || preset.palette.bg,
@@ -310,12 +381,19 @@ export function buildSiteVars(
     "--site-tracking-heading": `${ty.headingTracking ?? TYPE_DEFAULTS.headingTracking}em`,
     "--site-tracking-body": `${ty.bodyTracking ?? TYPE_DEFAULTS.bodyTracking}em`,
 
-    "--site-text-sm": px(base / r),
-    "--site-text-base": px(base),
-    "--site-h4": px(base * r),
-    "--site-h3": px(base * r * r),
-    "--site-h2": px(base * r * r * r),
-    "--site-h1": px(base * r * r * r * r),
+    "--site-text-sm": size("accent"),
+    "--site-text-accent": size("accent"),
+    "--site-text-base": size("body"),
+    "--site-h6": size("h6"),
+    "--site-h5": size("h5"),
+    "--site-h4": size("h4"),
+    "--site-h3": size("h3"),
+    "--site-h2": size("h2"),
+    "--site-h1": size("h1"),
+
+    "--site-img-radius": imgRadius,
+    "--site-img-border": imgBorder,
+    "--site-img-shadow": imgShadow,
   } as React.CSSProperties;
 }
 

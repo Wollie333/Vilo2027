@@ -9,12 +9,18 @@ import {
   type SiteFont,
   type SitePresetKey,
   type SiteRadius,
+  type SiteShadow,
   type SiteThemeConfig,
 } from "@/lib/site/themes";
 import type { SiteBrand, SiteLogoStyle } from "@/lib/site/types";
 
 import type { WebsiteEditorData } from "../loadWebsiteEditorData";
-import type { BrandAssetSlot, BrandStudioInput } from "../../schemas";
+import {
+  SIZE_KEYS,
+  type BrandAssetSlot,
+  type BrandStudioInput,
+  type SizeKey,
+} from "../../schemas";
 
 export const SOCIAL_KEYS = [
   "instagram",
@@ -37,6 +43,16 @@ export type StudioColors = {
   secondary: string;
 };
 
+// Per-element font sizes (px); null = inherit the modular base × scale.
+export type StudioSizes = Record<SizeKey, number | null>;
+
+export type StudioImage = {
+  radius: number; // px
+  borderWidth: number; // px
+  borderColor: string; // "" = inherit the line colour
+  shadow: SiteShadow;
+};
+
 export type StudioType = {
   headingFont: SiteFont | ""; // "" = inherit preset family
   bodyFont: SiteFont | "";
@@ -48,7 +64,10 @@ export type StudioType = {
   bodyLeading: number;
   headingTracking: number;
   bodyTracking: number;
+  sizes: StudioSizes;
 };
+
+const SHADOWS: SiteShadow[] = ["none", "sm", "md", "lg", "xl"];
 
 export type StudioState = {
   // Identity
@@ -68,6 +87,7 @@ export type StudioState = {
   type: StudioType;
   radius: SiteRadius | "";
   buttonStyle: SiteButtonStyle;
+  image: StudioImage;
 };
 
 const PRESET_KEYS: SitePresetKey[] = [
@@ -117,6 +137,16 @@ export function deriveStudioState(
   const ty = theme.type ?? {};
   const legacyFont = asFont(theme.font);
 
+  const sizesIn = (ty.sizes ?? {}) as Record<string, unknown>;
+  const sizes = Object.fromEntries(
+    SIZE_KEYS.map((k) => [
+      k,
+      typeof sizesIn[k] === "number" ? (sizesIn[k] as number) : null,
+    ]),
+  ) as StudioSizes;
+
+  const im = (theme.image ?? {}) as Record<string, unknown>;
+
   const socials = Object.fromEntries(
     SOCIAL_KEYS.map((k) => [k, brand.socials?.[k] ?? ""]),
   ) as Record<SocialKey, string>;
@@ -155,9 +185,18 @@ export function deriveStudioState(
       bodyLeading: num(ty.bodyLeading, TYPE_DEFAULTS.bodyLeading),
       headingTracking: num(ty.headingTracking, TYPE_DEFAULTS.headingTracking),
       bodyTracking: num(ty.bodyTracking, TYPE_DEFAULTS.bodyTracking),
+      sizes,
     },
     radius: asRadius(theme.radius),
     buttonStyle: theme.buttonStyle === "outline" ? "outline" : "solid",
+    image: {
+      radius: num(im.radius, 12),
+      borderWidth: num(im.borderWidth, 0),
+      borderColor: hex(im.borderColor),
+      shadow: SHADOWS.includes(im.shadow as SiteShadow)
+        ? (im.shadow as SiteShadow)
+        : "none",
+    },
   };
 }
 
@@ -165,6 +204,10 @@ export function deriveStudioState(
 export function studioThemeConfig(state: StudioState): SiteThemeConfig {
   const colors = Object.fromEntries(
     Object.entries(state.colors).filter(([, v]) => v),
+  );
+  // Only the pinned per-element sizes (drop nulls → inherit the modular scale).
+  const sizes = Object.fromEntries(
+    Object.entries(state.type.sizes).filter(([, v]) => typeof v === "number"),
   );
   return {
     preset: state.preset,
@@ -181,9 +224,16 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
       bodyLeading: state.type.bodyLeading,
       headingTracking: state.type.headingTracking,
       bodyTracking: state.type.bodyTracking,
+      sizes,
     },
     radius: state.radius || undefined,
     buttonStyle: state.buttonStyle,
+    image: {
+      radius: state.image.radius,
+      borderWidth: state.image.borderWidth,
+      borderColor: state.image.borderColor || undefined,
+      shadow: state.image.shadow,
+    },
   };
 }
 
@@ -228,5 +278,6 @@ export function studioToSaveInput(
     type: state.type,
     radius: state.radius,
     buttonStyle: state.buttonStyle,
+    image: state.image,
   };
 }

@@ -4,6 +4,14 @@ import type { CSSProperties, ReactNode } from "react";
 // come from the scoped `--site-*` CSS vars (set by <SiteThemeRoot>), never the
 // app's brand-* tokens, so each tenant site themes independently.
 
+// Shared styling for standalone site images (gallery, host photo, property
+// hero) — driven by the Brand Studio "Images" controls via `--site-img-*`.
+export const siteImageStyle: CSSProperties = {
+  borderRadius: "var(--site-img-radius)",
+  border: "var(--site-img-border)",
+  boxShadow: "var(--site-img-shadow)",
+};
+
 export function SectionShell({
   children,
   surface = false,

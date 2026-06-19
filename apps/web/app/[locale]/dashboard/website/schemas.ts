@@ -90,6 +90,44 @@ export const siteColorsSchema = z
     secondary: "",
   });
 
+// Per-element font-size overrides (px). `null` = inherit the modular scale
+// (baseSize × scale). Each element can be pinned to an exact size.
+export const SIZE_KEYS = [
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "body",
+  "accent",
+] as const;
+export type SizeKey = (typeof SIZE_KEYS)[number];
+
+const sizeOverride = z.number().int().min(8).max(200).nullable().default(null);
+
+export const siteSizesSchema = z
+  .object({
+    h1: sizeOverride,
+    h2: sizeOverride,
+    h3: sizeOverride,
+    h4: sizeOverride,
+    h5: sizeOverride,
+    h6: sizeOverride,
+    body: sizeOverride,
+    accent: sizeOverride,
+  })
+  .default({
+    h1: null,
+    h2: null,
+    h3: null,
+    h4: null,
+    h5: null,
+    h6: null,
+    body: null,
+    accent: null,
+  });
+
 // Typography overrides. Fonts blank = inherit preset family; the numeric fields
 // always carry a concrete (bounded) value defaulting to the type system defaults.
 export const siteTypeSchema = z
@@ -104,6 +142,7 @@ export const siteTypeSchema = z
     bodyLeading: z.number().min(1).max(2).default(1.6),
     headingTracking: z.number().min(-0.05).max(0.1).default(-0.01),
     bodyTracking: z.number().min(-0.05).max(0.1).default(0),
+    sizes: siteSizesSchema,
   })
   // Zod 4: full literal default (mirrors the per-field defaults above).
   .default({
@@ -117,7 +156,31 @@ export const siteTypeSchema = z
     bodyLeading: 1.6,
     headingTracking: -0.01,
     bodyTracking: 0,
+    sizes: {
+      h1: null,
+      h2: null,
+      h3: null,
+      h4: null,
+      h5: null,
+      h6: null,
+      body: null,
+      accent: null,
+    },
   });
+
+// Image styling (Brand Studio "Images" section) → theme.image jsonb.
+export const SITE_SHADOW_NAMES = ["none", "sm", "md", "lg", "xl"] as const;
+
+export const imageStyleSchema = z
+  .object({
+    radius: z.number().int().min(0).max(48).default(12),
+    borderWidth: z.number().int().min(0).max(12).default(0),
+    borderColor: hexOrEmpty,
+    shadow: z.enum(SITE_SHADOW_NAMES).default("none"),
+  })
+  .default({ radius: 12, borderWidth: 0, borderColor: "", shadow: "none" });
+
+export type ImageStyleInput = z.infer<typeof imageStyleSchema>;
 
 // One Brand Studio save — patches the brand (identity) + theme (design) columns.
 // Asset paths (logos/favicons) persist on upload via the asset actions, not here.
@@ -155,6 +218,7 @@ export const brandStudioSchema = z.object({
   type: siteTypeSchema,
   radius: z.enum(SITE_RADII).or(z.literal("")).default(""),
   buttonStyle: z.enum(SITE_BUTTON_STYLES).default("solid"),
+  image: imageStyleSchema,
 });
 
 export type BrandStudioInput = z.infer<typeof brandStudioSchema>;

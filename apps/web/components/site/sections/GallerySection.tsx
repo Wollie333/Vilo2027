@@ -1,7 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { GalleryData } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted } from "./_shared";
+import { SectionShell, SectionHeading, Muted, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "gallery" }>["props"];
 
@@ -38,7 +38,7 @@ export function GallerySection({
               src={img.url}
               alt={img.caption ?? ""}
               loading="lazy"
-              style={{ borderRadius: "var(--site-radius)" }}
+              style={siteImageStyle}
               className="aspect-[4/3] w-full object-cover"
             />
           ))}

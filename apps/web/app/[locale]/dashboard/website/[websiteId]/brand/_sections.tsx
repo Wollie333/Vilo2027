@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, RotateCcw } from "lucide-react";
 
 import { useTranslations } from "next-intl";
 
@@ -8,11 +8,16 @@ import {
   SITE_PRESETS,
   SITE_PRESET_KEYS,
   buildSiteVars,
+  modularSizes,
   type SiteFont,
   type SitePresetKey,
   type SiteRadius,
+  type SiteShadow,
 } from "@/lib/site/themes";
 import type { SiteLogoStyle } from "@/lib/site/types";
+import { siteImageStyle } from "@/components/site/sections/_shared";
+
+import type { SizeKey } from "../../schemas";
 
 import {
   AssetUploader,
@@ -432,12 +437,83 @@ function FontSelect({
   );
 }
 
+const SIZE_ROWS: Array<{ key: SizeKey; labelKey: string }> = [
+  { key: "h1", labelKey: "brandSizeH1" },
+  { key: "h2", labelKey: "brandSizeH2" },
+  { key: "h3", labelKey: "brandSizeH3" },
+  { key: "h4", labelKey: "brandSizeH4" },
+  { key: "h5", labelKey: "brandSizeH5" },
+  { key: "h6", labelKey: "brandSizeH6" },
+  { key: "body", labelKey: "brandSizeBody" },
+  { key: "accent", labelKey: "brandSizeAccent" },
+];
+
+// One per-element size row: slider over the effective size, with an Auto state
+// (inherit the modular scale) and a reset-to-Auto affordance once pinned.
+function SizeRow({
+  label,
+  value,
+  derived,
+  onSet,
+}: {
+  label: string;
+  value: number | null;
+  derived: number;
+  onSet: (v: number | null) => void;
+}) {
+  const t = useTranslations("website");
+  const effective = value ?? Math.round(derived);
+  const auto = value == null;
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px] font-semibold text-brand-ink">
+          {label}
+        </span>
+        {auto ? (
+          <button
+            type="button"
+            onClick={() => onSet(Math.round(derived))}
+            className="text-[11.5px] font-medium text-brand-mute hover:text-brand-ink"
+          >
+            {Math.round(derived)}px · {t("brandSizeAuto")}
+          </button>
+        ) : (
+          <span className="flex items-center gap-2">
+            <span className="text-[12px] font-medium tabular-nums text-brand-ink">
+              {effective}px
+            </span>
+            <button
+              type="button"
+              onClick={() => onSet(null)}
+              className="inline-flex items-center gap-1 text-[11.5px] font-medium text-brand-primary hover:underline"
+            >
+              <RotateCcw className="h-3 w-3" />
+              {t("brandSizeReset")}
+            </button>
+          </span>
+        )}
+      </div>
+      <input
+        type="range"
+        min={8}
+        max={200}
+        step={1}
+        value={effective}
+        onChange={(e) => onSet(Number(e.target.value))}
+        className="mt-1.5 w-full accent-brand-primary"
+      />
+    </div>
+  );
+}
+
 export function TypographySection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const ty = state.type;
   const setType = (patch: Partial<StudioState["type"]>) =>
     merge({ type: { ...ty, ...patch } });
   const vars = buildSiteVars(studioThemeConfig(state));
+  const derived = modularSizes(ty.baseSize, ty.scale);
 
   const weightOpts = [300, 400, 500, 600, 700, 800];
 
@@ -560,6 +636,21 @@ export function TypographySection({ state, merge }: SectionProps) {
         </StudioCard>
       </div>
 
+      {/* Per-element sizes — H1–H6, body and accent text */}
+      <StudioCard title={t("brandSizesTitle")} hint={t("brandSizesSub")}>
+        <div className="space-y-4">
+          {SIZE_ROWS.map((row) => (
+            <SizeRow
+              key={row.key}
+              label={t(row.labelKey)}
+              value={ty.sizes[row.key]}
+              derived={derived[row.key]}
+              onSet={(v) => setType({ sizes: { ...ty.sizes, [row.key]: v } })}
+            />
+          ))}
+        </div>
+      </StudioCard>
+
       {/* Live type specimen */}
       <StudioCard title={t("brandSpecimenTitle")}>
         <div
@@ -653,6 +744,85 @@ export function ButtonsSection({ state, merge }: SectionProps) {
               {t("brandButtonPreview")}
             </span>
           </div>
+        </div>
+      </StudioCard>
+    </div>
+  );
+}
+
+// ── Images ────────────────────────────────────────────────
+const SHADOW_OPTS: Array<{ value: SiteShadow; labelKey: string }> = [
+  { value: "none", labelKey: "shadowNone" },
+  { value: "sm", labelKey: "shadowSm" },
+  { value: "md", labelKey: "shadowMd" },
+  { value: "lg", labelKey: "shadowLg" },
+  { value: "xl", labelKey: "shadowXl" },
+];
+
+export function ImagesSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  const img = state.image;
+  const presetLine = SITE_PRESETS[state.preset].palette.line;
+  const setImg = (patch: Partial<StudioState["image"]>) =>
+    merge({ image: { ...img, ...patch } });
+
+  return (
+    <div className="space-y-5">
+      <StudioCard title={t("brandImagesTitle")} hint={t("brandImagesSub")}>
+        <div className="space-y-5">
+          {/* Live sample — themed by the current image vars */}
+          <div
+            style={buildSiteVars(studioThemeConfig(state))}
+            className="flex items-center justify-center rounded-[12px] border border-brand-line bg-brand-light/50 p-6"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://picsum.photos/seed/vilo-imgstyle/480/320"
+              alt=""
+              style={siteImageStyle}
+              className="h-32 w-48 object-cover"
+            />
+          </div>
+
+          <RangeRow
+            label={t("brandImageRadius")}
+            value={img.radius}
+            min={0}
+            max={48}
+            step={1}
+            suffix="px"
+            onChange={(v) => setImg({ radius: v })}
+          />
+          <RangeRow
+            label={t("brandImageBorderWidth")}
+            value={img.borderWidth}
+            min={0}
+            max={12}
+            step={1}
+            suffix="px"
+            onChange={(v) => setImg({ borderWidth: v })}
+          />
+          {img.borderWidth > 0 ? (
+            <ColorField
+              label={t("brandImageBorderColor")}
+              value={img.borderColor}
+              inheritedHex={presetLine}
+              palette={state.palette}
+              onChange={(hex) => setImg({ borderColor: hex })}
+            />
+          ) : null}
+          <Field label={t("brandImageShadow")}>
+            <div className="mt-2">
+              <Segmented
+                value={img.shadow}
+                options={SHADOW_OPTS.map((o) => ({
+                  value: o.value,
+                  label: t(o.labelKey),
+                }))}
+                onChange={(v) => setImg({ shadow: v })}
+              />
+            </div>
+          </Field>
         </div>
       </StudioCard>
     </div>

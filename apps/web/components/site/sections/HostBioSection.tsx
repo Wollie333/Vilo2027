@@ -1,7 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading } from "./_shared";
+import { SectionShell, SectionHeading, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "host_bio" }>["props"];
 
@@ -25,7 +25,7 @@ export function HostBioSection({
           <img
             src={photo}
             alt={props.name ?? "Host"}
-            style={{ borderRadius: "var(--site-radius)" }}
+            style={siteImageStyle}
             className="h-40 w-40 shrink-0 object-cover"
           />
         ) : null}

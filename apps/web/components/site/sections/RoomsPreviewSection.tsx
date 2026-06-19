@@ -4,7 +4,13 @@ import type {
   RoomsPreviewData,
 } from "@/lib/site/types";
 
-import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
+import {
+  SectionShell,
+  SectionHeading,
+  Muted,
+  Card,
+  siteImageStyle,
+} from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "rooms_preview" }>["props"];
 
@@ -182,7 +188,7 @@ export function RoomsPreviewSection({
                         src={g.heroUrl}
                         alt={g.heading ?? ""}
                         loading="lazy"
-                        style={{ borderRadius: "var(--site-radius)" }}
+                        style={siteImageStyle}
                         className="mb-5 aspect-[16/6] w-full object-cover"
                       />
                     ) : null}
