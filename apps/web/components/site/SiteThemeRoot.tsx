@@ -26,6 +26,10 @@ export function SiteThemeRoot({
         background: "var(--site-bg)",
         color: "var(--site-ink)",
         fontFamily: "var(--site-font-body)",
+        fontWeight: "var(--site-weight-body)" as unknown as number,
+        fontSize: "var(--site-text-base)",
+        lineHeight: "var(--site-leading-body)" as unknown as number,
+        letterSpacing: "var(--site-tracking-body)",
       }}
       className={className}
     >

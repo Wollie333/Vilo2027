@@ -33,9 +33,12 @@ export function HeroSection({
         <h1
           style={{
             fontFamily: "var(--site-font-heading)",
+            fontWeight: "var(--site-weight-heading)" as unknown as number,
+            fontSize: "var(--site-h1)",
+            lineHeight: "var(--site-leading-heading)" as unknown as number,
+            letterSpacing: "var(--site-tracking-heading)",
             color: bg ? "#FFFFFF" : "var(--site-ink)",
           }}
-          className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl"
         >
           {props.headline}
         </h1>

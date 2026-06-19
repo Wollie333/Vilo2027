@@ -3,23 +3,15 @@ import { getTranslations } from "next-intl/server";
 
 import { pageHref } from "@/lib/site/loadSitePage";
 import type { SiteNavItem } from "@/lib/site/types";
-import type { SiteThemeConfig } from "@/lib/site/themes";
 import { createServerClient } from "@/lib/supabase/server";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { loadWebsiteEditorData } from "../loadWebsiteEditorData";
-import { BrandForm } from "./BrandForm";
+import { BRAND_ASSET_SLOTS, type BrandAssetSlot } from "../../schemas";
+import { BrandStudio } from "./BrandStudio";
+import { deriveStudioState } from "./studio";
 
 export const dynamic = "force-dynamic";
-
-const SOCIAL_KEYS = [
-  "instagram",
-  "facebook",
-  "x",
-  "youtube",
-  "linkedin",
-  "website",
-] as const;
 
 export default async function WebsiteBrandPage({
   params,
@@ -46,9 +38,20 @@ export default async function WebsiteBrandPage({
     href: pageHref(p.kind, p.slug),
   }));
 
-  const socials = Object.fromEntries(
-    SOCIAL_KEYS.map((k) => [k, data.brand.socials?.[k] ?? ""]),
-  ) as Record<(typeof SOCIAL_KEYS)[number], string>;
+  // Resolve every brand-asset slot → public URL for the preview chrome.
+  const slotPath: Record<BrandAssetSlot, string | undefined> = {
+    primary: data.brand.logo_path,
+    light: data.brand.logo_light_path,
+    icon: data.brand.logo_icon_path,
+    favicon: data.brand.favicon_path,
+    apple: data.brand.apple_icon_path,
+  };
+  const assetUrls = Object.fromEntries(
+    BRAND_ASSET_SLOTS.map((slot) => [slot, websiteAssetUrl(slotPath[slot])]),
+  ) as Record<BrandAssetSlot, string | null>;
+
+  const fallbackName = data.businessName || data.subdomain;
+  const initial = deriveStudioState(data.brand, data.theme, assetUrls);
 
   return (
     <div>
@@ -59,18 +62,11 @@ export default async function WebsiteBrandPage({
         <p className="mt-1 text-sm text-brand-mute">{t("brandSub")}</p>
       </header>
 
-      <BrandForm
+      <BrandStudio
         websiteId={websiteId}
-        theme={(data.theme ?? {}) as SiteThemeConfig}
+        initial={initial}
         nav={nav}
-        initialName={data.brand.name ?? ""}
-        initialTagline={data.brand.tagline ?? ""}
-        initialLogoUrl={websiteAssetUrl(data.brand.logo_path)}
-        initialFaviconUrl={websiteAssetUrl(data.brand.favicon_path)}
-        initialLogoStyle={data.brand.logo_style ?? "mark"}
-        initialContactEmail={data.brand.contact?.email ?? ""}
-        initialContactPhone={data.brand.contact?.phone ?? ""}
-        initialSocials={socials}
+        fallbackName={fallbackName}
       />
     </div>
   );

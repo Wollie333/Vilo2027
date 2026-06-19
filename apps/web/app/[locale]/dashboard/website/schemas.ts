@@ -14,32 +14,32 @@ export const createWebsiteSchema = z.object({
 
 export type CreateWebsiteInput = z.infer<typeof createWebsiteSchema>;
 
-// --- Brand & Theme (W7) ---
+// --- Brand Studio (logos, identity, colours, typography, buttons) ---
 
 export const LOGO_STYLES = ["wordmark", "mark", "icon"] as const;
 
+// Brand asset slots — each maps to a flat key on the brand jsonb and a storage
+// path prefix. Kept flat (no nested `logos` object) so patchSiteJson's shallow
+// merge never clobbers a sibling path. `primary`/`favicon` reuse the legacy
+// `logo_path`/`favicon_path` keys (no data migration).
+export const BRAND_ASSET_SLOTS = [
+  "primary",
+  "light",
+  "icon",
+  "favicon",
+  "apple",
+] as const;
+export type BrandAssetSlot = (typeof BRAND_ASSET_SLOTS)[number];
+
+export const BRAND_ASSET_KEYS: Record<BrandAssetSlot, string> = {
+  primary: "logo_path",
+  light: "logo_light_path",
+  icon: "logo_icon_path",
+  favicon: "favicon_path",
+  apple: "apple_icon_path",
+};
+
 const socialUrl = z.string().trim().max(300).optional();
-
-export const brandSchema = z.object({
-  websiteId: z.string().uuid(),
-  name: z.string().trim().max(120).default(""),
-  tagline: z.string().trim().max(200).default(""),
-  logoStyle: z.enum(LOGO_STYLES).default("mark"),
-  contactEmail: z.string().trim().max(160).default(""),
-  contactPhone: z.string().trim().max(60).default(""),
-  socials: z
-    .object({
-      instagram: socialUrl,
-      facebook: socialUrl,
-      x: socialUrl,
-      youtube: socialUrl,
-      linkedin: socialUrl,
-      website: socialUrl,
-    })
-    .default({}),
-});
-
-export type BrandInput = z.infer<typeof brandSchema>;
 
 export const SITE_FONTS = [
   "sans",
@@ -57,24 +57,109 @@ export const SITE_PRESET_NAMES = [
   "minimal",
   "nightfall",
 ] as const;
+export const SITE_BUTTON_STYLES = ["solid", "outline"] as const;
 
-// Empty strings on accent/font/radius mean "inherit from the preset" — they are
-// stripped to `undefined` before writing the theme jsonb so `buildSiteVars`
-// falls back to the preset's own value.
-export const themeSchema = z.object({
+const hexOrEmpty = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, "invalid_hex")
+  .or(z.literal(""))
+  .default("");
+
+// Per-role colour overrides — each blank value means "inherit the preset" and is
+// dropped before writing the theme jsonb (so buildSiteVars falls back).
+export const siteColorsSchema = z
+  .object({
+    bg: hexOrEmpty,
+    surface: hexOrEmpty,
+    ink: hexOrEmpty,
+    mute: hexOrEmpty,
+    line: hexOrEmpty,
+    accent: hexOrEmpty,
+    secondary: hexOrEmpty,
+  })
+  // Zod 4: an all-defaulted object has a fully-required output type, so the
+  // outer default must be a full literal (every role blank = inherit preset).
+  .default({
+    bg: "",
+    surface: "",
+    ink: "",
+    mute: "",
+    line: "",
+    accent: "",
+    secondary: "",
+  });
+
+// Typography overrides. Fonts blank = inherit preset family; the numeric fields
+// always carry a concrete (bounded) value defaulting to the type system defaults.
+export const siteTypeSchema = z
+  .object({
+    headingFont: z.enum(SITE_FONTS).or(z.literal("")).default(""),
+    bodyFont: z.enum(SITE_FONTS).or(z.literal("")).default(""),
+    headingWeight: z.number().int().min(300).max(800).default(600),
+    bodyWeight: z.number().int().min(300).max(800).default(400),
+    baseSize: z.number().min(12).max(22).default(16),
+    scale: z.number().min(1).max(1.6).default(1.2),
+    headingLeading: z.number().min(1).max(2).default(1.15),
+    bodyLeading: z.number().min(1).max(2).default(1.6),
+    headingTracking: z.number().min(-0.05).max(0.1).default(-0.01),
+    bodyTracking: z.number().min(-0.05).max(0.1).default(0),
+  })
+  // Zod 4: full literal default (mirrors the per-field defaults above).
+  .default({
+    headingFont: "",
+    bodyFont: "",
+    headingWeight: 600,
+    bodyWeight: 400,
+    baseSize: 16,
+    scale: 1.2,
+    headingLeading: 1.15,
+    bodyLeading: 1.6,
+    headingTracking: -0.01,
+    bodyTracking: 0,
+  });
+
+// One Brand Studio save — patches the brand (identity) + theme (design) columns.
+// Asset paths (logos/favicons) persist on upload via the asset actions, not here.
+export const brandStudioSchema = z.object({
   websiteId: z.string().uuid(),
+  // Identity (brand jsonb)
+  name: z.string().trim().max(120).default(""),
+  tagline: z.string().trim().max(200).default(""),
+  logoStyle: z.enum(LOGO_STYLES).default("mark"),
+  logoMaxHeight: z.number().int().min(28).max(64).default(40),
+  contactEmail: z.string().trim().max(160).default(""),
+  contactPhone: z.string().trim().max(60).default(""),
+  socials: z
+    .object({
+      instagram: socialUrl,
+      facebook: socialUrl,
+      x: socialUrl,
+      youtube: socialUrl,
+      linkedin: socialUrl,
+      website: socialUrl,
+    })
+    .default({}),
+  // Design (theme jsonb)
   preset: z.enum(SITE_PRESET_NAMES),
-  accent: z
-    .string()
-    .trim()
-    .regex(/^#[0-9a-fA-F]{6}$/, "invalid_accent")
-    .or(z.literal(""))
-    .default(""),
-  font: z.enum(SITE_FONTS).or(z.literal("")).default(""),
+  colors: siteColorsSchema,
+  palette: z
+    .array(
+      z
+        .string()
+        .trim()
+        .regex(/^#[0-9a-fA-F]{6}$/),
+    )
+    .max(12)
+    .default([]),
+  type: siteTypeSchema,
   radius: z.enum(SITE_RADII).or(z.literal("")).default(""),
+  buttonStyle: z.enum(SITE_BUTTON_STYLES).default("solid"),
 });
 
-export type ThemeInput = z.infer<typeof themeSchema>;
+export type BrandStudioInput = z.infer<typeof brandStudioSchema>;
+export type SiteColorsInput = z.infer<typeof siteColorsSchema>;
+export type SiteTypeInput = z.infer<typeof siteTypeSchema>;
 
 // --- Section builder (W8) ---
 

@@ -11,6 +11,7 @@ import {
   resolveSiteRef,
 } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
+import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function SiteBlogPostPage({
       <SiteChrome
         brand={ctx.brand}
         nav={ctx.nav}
+        darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
       >
         <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">

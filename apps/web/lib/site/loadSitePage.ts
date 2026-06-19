@@ -149,7 +149,20 @@ export async function loadSiteContext(
       site.subdomain,
     tagline: (brandJson.tagline as string) ?? null,
     logoUrl: websiteAssetUrl(brandJson.logo_path as string | undefined),
+    logoLightUrl: websiteAssetUrl(
+      brandJson.logo_light_path as string | undefined,
+    ),
+    logoIconUrl: websiteAssetUrl(
+      brandJson.logo_icon_path as string | undefined,
+    ),
     faviconUrl: websiteAssetUrl(brandJson.favicon_path as string | undefined),
+    appleIconUrl: websiteAssetUrl(
+      brandJson.apple_icon_path as string | undefined,
+    ),
+    logoMaxHeight:
+      typeof brandJson.logo_max_height === "number"
+        ? brandJson.logo_max_height
+        : null,
     logoStyle: (brandJson.logo_style as SiteBrand["logoStyle"]) || "mark",
     contactEmail: contact.email?.trim() || null,
     contactPhone: contact.phone?.trim() || null,
@@ -223,6 +236,7 @@ export async function loadSiteMeta(
   description?: string;
   ogImageUrl?: string;
   faviconUrl?: string;
+  appleIconUrl?: string;
   robotsIndex: boolean;
   gscToken?: string;
 } | null> {
@@ -270,6 +284,7 @@ export async function loadSiteMeta(
     ogImageUrl:
       websiteAssetUrl(seo.og_image_path) ?? ctx.brand.logoUrl ?? undefined,
     faviconUrl: ctx.brand.faviconUrl ?? undefined,
+    appleIconUrl: ctx.brand.appleIconUrl ?? undefined,
     // Default to indexable; only false when the host opts out AND it's published.
     robotsIndex: seo.robots_index !== false,
     gscToken: seo.gsc_token?.trim() || undefined,

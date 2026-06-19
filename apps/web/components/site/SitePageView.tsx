@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
+import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
@@ -40,6 +41,7 @@ export async function SitePageView({
       <SiteChrome
         brand={ctx.brand}
         nav={ctx.nav}
+        darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
       >
         <SectionRenderer

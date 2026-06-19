@@ -159,11 +159,58 @@ const RADIUS_REM: Record<SiteRadius, string> = {
   xl: "1.25rem",
 };
 
+export type SiteButtonStyle = "solid" | "outline";
+
+/** Per-role colour overrides — each blank/absent value inherits the preset. */
+export type SiteColors = {
+  bg?: string;
+  surface?: string;
+  ink?: string;
+  mute?: string;
+  line?: string;
+  accent?: string;
+  secondary?: string;
+};
+
+/** Typography overrides — each absent value falls back to a hard default below. */
+export type SiteType = {
+  headingFont?: SiteFont;
+  bodyFont?: SiteFont;
+  headingWeight?: number; // 300..800
+  bodyWeight?: number;
+  baseSize?: number; // px, 12..22
+  scale?: number; // modular ratio, 1.0..1.6
+  headingLeading?: number; // unitless, 1.0..2.0
+  bodyLeading?: number;
+  headingTracking?: number; // em, -0.05..0.1
+  bodyTracking?: number;
+};
+
+// Hard defaults for the type system (used when neither the override nor the
+// preset supplies a value). The preset only owns the font *family*; everything
+// else (weights, sizes, leading, tracking) defaults here.
+export const TYPE_DEFAULTS = {
+  headingWeight: 600,
+  bodyWeight: 400,
+  baseSize: 16,
+  scale: 1.2,
+  headingLeading: 1.15,
+  bodyLeading: 1.6,
+  headingTracking: -0.01,
+  bodyTracking: 0,
+} as const;
+
 export type SiteThemeConfig = {
   preset?: string;
+  colors?: SiteColors;
+  palette?: string[]; // saved brand swatches — feed the pickers, not rendered
+  type?: SiteType;
+  radius?: SiteRadius;
+  buttonStyle?: SiteButtonStyle;
+  // Legacy flat keys (pre-Brand-Studio dev rows). Read as a fallback so old
+  // themes keep rendering without a data migration.
   accent?: string;
   font?: SiteFont;
-  radius?: SiteRadius;
 };
 
 function resolvePreset(key?: string): SitePreset {
@@ -172,6 +219,11 @@ function resolvePreset(key?: string): SitePreset {
   }
   return SITE_PRESETS[DEFAULT_PRESET];
 }
+
+const clampNum = (n: number, lo: number, hi: number) =>
+  Math.min(hi, Math.max(lo, n));
+
+const px = (n: number) => `${Math.round(n * 10) / 10}px`;
 
 /** Hex accent → readable on-accent text (black/white by luminance). */
 export function accentInkFor(hex: string): string {
@@ -186,32 +238,90 @@ export function accentInkFor(hex: string): string {
   return lum > 0.6 ? "#0A0A0A" : "#FFFFFF";
 }
 
+/** True when the theme's resolved surface colour is dark (chrome wants a light logo). */
+export function siteSurfaceIsDark(
+  theme: SiteThemeConfig | null | undefined,
+): boolean {
+  const preset = resolvePreset(theme?.preset);
+  const surface =
+    (theme?.colors?.surface || "").trim() || preset.palette.surface;
+  return accentInkFor(surface) === "#FFFFFF";
+}
+
 /**
  * Resolve a theme config into the scoped `--site-*` CSS variables. Returns a
  * style object to spread onto a wrapping element.
+ *
+ * Resolution order for every token: explicit override → preset value → hard
+ * default. Legacy flat `accent`/`font` keys are read as a final fallback so
+ * pre-Brand-Studio dev rows keep rendering.
  */
 export function buildSiteVars(
   theme: SiteThemeConfig | null | undefined,
 ): React.CSSProperties {
   const preset = resolvePreset(theme?.preset);
-  const accent = theme?.accent?.trim() || preset.palette.accent;
-  const accentInk =
-    theme?.accent && theme.accent.trim()
-      ? accentInkFor(theme.accent)
-      : preset.palette.accentInk;
-  const font = FONT_STACKS[theme?.font ?? preset.font];
-  const radius = RADIUS_REM[theme?.radius ?? preset.radius];
+  const c = theme?.colors ?? {};
+  const ty = theme?.type ?? {};
+
+  // --- Colours ---
+  const accentOverride = (c.accent || theme?.accent || "").trim();
+  const accent = accentOverride || preset.palette.accent;
+  const accentInk = accentOverride
+    ? accentInkFor(accentOverride)
+    : preset.palette.accentInk;
+
+  // Secondary accent has no preset value — default to the primary accent so an
+  // un-set secondary is harmless (renders the same as primary).
+  const secondary = (c.secondary || "").trim() || accent;
+  const secondaryInk = accentInkFor(secondary);
+
+  // --- Typography families ---
+  const headingFont = ty.headingFont ?? theme?.font ?? preset.font;
+  const bodyFont = ty.bodyFont ?? theme?.font ?? preset.font;
+  const headingStack = FONT_STACKS[headingFont].heading;
+  const bodyStack = FONT_STACKS[bodyFont].body;
+
+  // --- Typography scale (modular: base × ratio^step) ---
+  const base = clampNum(ty.baseSize ?? TYPE_DEFAULTS.baseSize, 12, 22);
+  const r = clampNum(ty.scale ?? TYPE_DEFAULTS.scale, 1, 1.6);
 
   return {
-    "--site-bg": preset.palette.bg,
-    "--site-surface": preset.palette.surface,
-    "--site-ink": preset.palette.ink,
-    "--site-mute": preset.palette.mute,
-    "--site-line": preset.palette.line,
+    "--site-bg": c.bg || preset.palette.bg,
+    "--site-surface": c.surface || preset.palette.surface,
+    "--site-ink": c.ink || preset.palette.ink,
+    "--site-mute": c.mute || preset.palette.mute,
+    "--site-line": c.line || preset.palette.line,
     "--site-accent": accent,
     "--site-accent-ink": accentInk,
-    "--site-radius": radius,
-    "--site-font-heading": font.heading,
-    "--site-font-body": font.body,
+    "--site-secondary": secondary,
+    "--site-secondary-ink": secondaryInk,
+    "--site-radius": RADIUS_REM[theme?.radius ?? preset.radius],
+
+    "--site-font-heading": headingStack,
+    "--site-font-body": bodyStack,
+    "--site-weight-heading": String(
+      ty.headingWeight ?? TYPE_DEFAULTS.headingWeight,
+    ),
+    "--site-weight-body": String(ty.bodyWeight ?? TYPE_DEFAULTS.bodyWeight),
+    "--site-leading-heading": String(
+      ty.headingLeading ?? TYPE_DEFAULTS.headingLeading,
+    ),
+    "--site-leading-body": String(ty.bodyLeading ?? TYPE_DEFAULTS.bodyLeading),
+    "--site-tracking-heading": `${ty.headingTracking ?? TYPE_DEFAULTS.headingTracking}em`,
+    "--site-tracking-body": `${ty.bodyTracking ?? TYPE_DEFAULTS.bodyTracking}em`,
+
+    "--site-text-sm": px(base / r),
+    "--site-text-base": px(base),
+    "--site-h4": px(base * r),
+    "--site-h3": px(base * r * r),
+    "--site-h2": px(base * r * r * r),
+    "--site-h1": px(base * r * r * r * r),
   } as React.CSSProperties;
+}
+
+/** The default button fill style for a theme (used by site buttons). */
+export function resolveButtonStyle(
+  theme: SiteThemeConfig | null | undefined,
+): SiteButtonStyle {
+  return theme?.buttonStyle === "outline" ? "outline" : "solid";
 }

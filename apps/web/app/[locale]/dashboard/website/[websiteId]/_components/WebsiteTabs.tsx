@@ -8,7 +8,6 @@ import { usePathname } from "next/navigation";
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabOverview", seg: "" },
   { key: "tabBrand", seg: "brand" },
-  { key: "tabTheme", seg: "theme" },
   { key: "tabPages", seg: "pages" },
   { key: "tabRooms", seg: "rooms" },
   { key: "tabBlog", seg: "blog" },

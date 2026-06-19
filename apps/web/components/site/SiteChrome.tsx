@@ -23,17 +23,31 @@ const SOCIAL_ICONS = {
   website: Globe,
 } as const;
 
-/** Logo per chosen style: wordmark (name), icon (mark only), mark (logo+name). */
-function BrandLogo({ brand }: { brand: SiteBrand }) {
+/**
+ * Logo per chosen style: wordmark (name), icon (mark only), mark (logo+name).
+ * On a dark chrome surface it prefers the light logo variant; on narrow screens
+ * it swaps in the compact icon variant when one is set.
+ */
+function BrandLogo({
+  brand,
+  dark = false,
+}: {
+  brand: SiteBrand;
+  dark?: boolean;
+}) {
   const style = brand.logoStyle ?? "mark";
+  const height = brand.logoMaxHeight ?? 40;
   const initial = (brand.name || "·").trim().charAt(0).toUpperCase();
+  const primarySrc = (dark && brand.logoLightUrl) || brand.logoUrl || null;
   const nameEl = (
     <span
       style={{
         fontFamily: "var(--site-font-heading)",
+        fontWeight: "var(--site-weight-heading)" as unknown as number,
+        letterSpacing: "var(--site-tracking-heading)",
         color: "var(--site-ink)",
       }}
-      className="truncate text-lg font-semibold tracking-tight"
+      className="truncate text-lg"
     >
       {brand.name}
     </span>
@@ -41,21 +55,36 @@ function BrandLogo({ brand }: { brand: SiteBrand }) {
 
   if (style === "wordmark") return nameEl;
 
-  const markEl = brand.logoUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={brand.logoUrl}
-      alt={brand.name}
-      className="h-8 w-auto max-w-[160px] object-contain"
-    />
+  const imgCls = "w-auto object-contain";
+  const markEl = primarySrc ? (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={primarySrc}
+        alt={brand.name}
+        style={{ height, maxWidth: 180 }}
+        className={`${imgCls} ${brand.logoIconUrl ? "hidden sm:block" : ""}`}
+      />
+      {brand.logoIconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={brand.logoIconUrl}
+          alt={brand.name}
+          style={{ height }}
+          className={`${imgCls} sm:hidden`}
+        />
+      ) : null}
+    </>
   ) : (
     <span
       style={{
         background: "var(--site-accent)",
         color: "var(--site-accent-ink)",
         borderRadius: "var(--site-radius)",
+        height,
+        width: height,
       }}
-      className="flex h-8 w-8 items-center justify-center text-sm font-bold"
+      className="flex items-center justify-center text-sm font-bold"
     >
       {initial}
     </span>
@@ -84,12 +113,15 @@ export function SiteChrome({
   nav,
   bookHref,
   analyticsWebsiteId,
+  darkChrome = false,
   children,
 }: {
   brand: SiteBrand;
   nav: SiteNavItem[];
   bookHref?: string;
   analyticsWebsiteId?: string;
+  /** Chrome surface resolves dark → prefer the light logo variant. */
+  darkChrome?: boolean;
   children: ReactNode;
 }) {
   const year = "©"; // year stamped by the caller if needed; avoid Date in render
@@ -108,7 +140,7 @@ export function SiteChrome({
       >
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
           <a href="/" className="flex min-w-0 items-center gap-2.5">
-            <BrandLogo brand={brand} />
+            <BrandLogo brand={brand} dark={darkChrome} />
           </a>
 
           <nav className="hidden items-center gap-6 md:flex">
@@ -154,9 +186,11 @@ export function SiteChrome({
           <span
             style={{
               fontFamily: "var(--site-font-heading)",
+              fontWeight: "var(--site-weight-heading)" as unknown as number,
+              letterSpacing: "var(--site-tracking-heading)",
               color: "var(--site-ink)",
             }}
-            className="text-base font-semibold"
+            className="text-base"
           >
             {brand.name}
           </span>

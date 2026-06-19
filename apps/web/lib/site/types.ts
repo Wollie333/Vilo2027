@@ -22,7 +22,14 @@ export type SiteBrand = {
   name: string;
   tagline?: string | null;
   logoUrl?: string | null;
+  /** Logo variant for dark surfaces (footer / dark hero). Falls back to logoUrl. */
+  logoLightUrl?: string | null;
+  /** Compact mark used in the mobile header. Falls back to logoUrl. */
+  logoIconUrl?: string | null;
   faviconUrl?: string | null;
+  appleIconUrl?: string | null;
+  /** Header logo height in px (28..64). */
+  logoMaxHeight?: number | null;
   /** How the logo renders in chrome: wordmark (name), mark (logo+name), icon. */
   logoStyle?: SiteLogoStyle;
   contactEmail?: string | null;

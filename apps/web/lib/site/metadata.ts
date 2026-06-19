@@ -31,7 +31,13 @@ export async function siteMetadata(args: {
   return {
     title: meta.title,
     description: meta.description,
-    icons: meta.faviconUrl ? { icon: meta.faviconUrl } : undefined,
+    icons:
+      meta.faviconUrl || meta.appleIconUrl
+        ? {
+            icon: meta.faviconUrl || undefined,
+            apple: meta.appleIconUrl || undefined,
+          }
+        : undefined,
     robots: index
       ? { index: true, follow: true }
       : { index: false, follow: false },

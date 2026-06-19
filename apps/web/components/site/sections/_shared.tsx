@@ -44,11 +44,13 @@ export function SectionHeading({
     <h2
       style={{
         fontFamily: "var(--site-font-heading)",
+        fontWeight: "var(--site-weight-heading)" as unknown as number,
+        fontSize: "var(--site-h2)",
+        lineHeight: "var(--site-leading-heading)" as unknown as number,
+        letterSpacing: "var(--site-tracking-heading)",
         color: "var(--site-ink)",
       }}
-      className={`text-3xl font-semibold tracking-tight md:text-4xl ${
-        centered ? "text-center" : ""
-      } ${className}`}
+      className={`${centered ? "text-center" : ""} ${className}`}
     >
       {children}
     </h2>

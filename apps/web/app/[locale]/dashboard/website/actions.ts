@@ -19,7 +19,8 @@ import {
 } from "@/lib/website/vercel";
 
 import {
-  brandSchema,
+  BRAND_ASSET_KEYS,
+  brandStudioSchema,
   connectDomainSchema,
   createWebsiteSchema,
   saveBlogCategoriesSchema,
@@ -31,9 +32,9 @@ import {
   savePagesSchema,
   saveWebsiteRoomsSchema,
   seoSchema,
-  themeSchema,
   websiteSettingsSchema,
-  type BrandInput,
+  type BrandAssetSlot,
+  type BrandStudioInput,
   type ConnectDomainInput,
   type CreatePageInput,
   type CreateWebsiteInput,
@@ -45,7 +46,6 @@ import {
   type SavePagesInput,
   type SaveWebsiteRoomsInput,
   type SeoInput,
-  type ThemeInput,
   type WebsiteSettingsInput,
 } from "./schemas";
 
@@ -323,61 +323,93 @@ async function patchSiteJson(
   return { ok: true };
 }
 
-/** Save the site name + tagline (logo is handled by the upload actions). */
-export async function saveBrandAction(
-  input: BrandInput,
+/**
+ * One Brand Studio save — patches the brand (identity) + theme (design) jsonb
+ * columns in a single call. Logo/favicon paths are persisted separately by the
+ * asset actions on upload, so this never touches them.
+ */
+export async function saveBrandStudioAction(
+  input: BrandStudioInput,
 ): Promise<ActionResult> {
-  const parsed = brandSchema.safeParse(input);
+  const parsed = brandStudioSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const {
-    websiteId,
-    name,
-    tagline,
-    logoStyle,
-    contactEmail,
-    contactPhone,
-    socials,
-  } = parsed.data;
+  const d = parsed.data;
 
-  const own = await assertWebsiteOwnership(websiteId);
+  const own = await assertWebsiteOwnership(d.websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
   // Drop empty social URLs so the footer only renders the ones that are set.
   const cleanSocials = Object.fromEntries(
-    Object.entries(socials).filter(([, v]) => v && v.trim()),
+    Object.entries(d.socials).filter(([, v]) => v && v.trim()),
   );
 
-  const res = await patchSiteJson(websiteId, "brand", {
-    name: name.trim(),
-    tagline: tagline.trim(),
-    logo_style: logoStyle,
+  // Colours: keep only the roles the host actually overrode (blank = inherit).
+  const cleanColors = Object.fromEntries(
+    Object.entries(d.colors).filter(([, v]) => v && v.trim()),
+  );
+
+  const brandRes = await patchSiteJson(d.websiteId, "brand", {
+    name: d.name.trim(),
+    tagline: d.tagline.trim(),
+    logo_style: d.logoStyle,
+    logo_max_height: d.logoMaxHeight,
     contact: {
-      email: contactEmail.trim() || undefined,
-      phone: contactPhone.trim() || undefined,
+      email: d.contactEmail.trim() || undefined,
+      phone: d.contactPhone.trim() || undefined,
     },
     socials: cleanSocials,
   });
-  if (!res.ok) return res;
+  if (!brandRes.ok) return brandRes;
 
-  revalidatePath(`/dashboard/website/${websiteId}/brand`);
+  const themeRes = await patchSiteJson(d.websiteId, "theme", {
+    preset: d.preset,
+    colors: cleanColors,
+    palette: d.palette,
+    type: {
+      headingFont: d.type.headingFont || undefined,
+      bodyFont: d.type.bodyFont || undefined,
+      headingWeight: d.type.headingWeight,
+      bodyWeight: d.type.bodyWeight,
+      baseSize: d.type.baseSize,
+      scale: d.type.scale,
+      headingLeading: d.type.headingLeading,
+      bodyLeading: d.type.bodyLeading,
+      headingTracking: d.type.headingTracking,
+      bodyTracking: d.type.bodyTracking,
+    },
+    radius: d.radius || undefined,
+    buttonStyle: d.buttonStyle,
+  });
+  if (!themeRes.ok) return themeRes;
+
+  revalidatePath(`/dashboard/website/${d.websiteId}/brand`);
   return { ok: true };
 }
 
-// ── Favicon (browser-tab icon) — mirrors the logo upload flow ──
-export async function createWebsiteFaviconUploadUrl(
+export type UploadTicket = { path: string; token: string };
+
+// ── Brand assets (logo variants + favicon + apple icon) ──
+// One generalised flow over all five slots. Each slot maps to a flat brand key
+// (BRAND_ASSET_KEYS) and a `{websiteId}/{slot}-{uuid}.{ext}` storage path. The
+// browser uploads straight to Storage (no body cap) then registers the path.
+
+/** Issue a signed upload URL for a brand asset slot. */
+export async function createWebsiteBrandAssetUploadUrl(
   websiteId: string,
+  slot: BrandAssetSlot,
   ext: string,
 ): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
+  if (!BRAND_ASSET_KEYS[slot]) return { ok: false, error: "invalid" };
 
   const safeExt =
     (ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-  const path = `${websiteId}/favicon-${crypto.randomUUID()}.${safeExt}`;
+  const path = `${websiteId}/${slot}-${crypto.randomUUID()}.${safeExt}`;
 
   const admin = createAdminClient();
   const { data, error } = await admin.storage
@@ -387,30 +419,38 @@ export async function createWebsiteFaviconUploadUrl(
   return { ok: true, data: { path, token: data.token } };
 }
 
-/** Record an uploaded favicon path on the site brand (or pick one from library). */
-export async function registerWebsiteFaviconAction(
+/** Record an uploaded brand-asset path on the brand (or pick from the library). */
+export async function registerWebsiteBrandAssetAction(
   websiteId: string,
+  slot: BrandAssetSlot,
   storagePath: string,
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+  const key = BRAND_ASSET_KEYS[slot];
+  if (!key) return { ok: false, error: "invalid" };
   if (!storagePath.startsWith(`${websiteId}/`)) {
     return { ok: false, error: "invalid_path" };
   }
-  const res = await patchSiteJson(websiteId, "brand", {
-    favicon_path: storagePath,
-  });
+
+  const res = await patchSiteJson(websiteId, "brand", { [key]: storagePath });
   if (!res.ok) return res;
+
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
   return { ok: true };
 }
 
-/** Remove the favicon from the brand (object stays in the media library). */
-export async function removeWebsiteFaviconAction(
+/** Remove a brand-asset slot from the brand + delete the object from Storage. */
+export async function removeWebsiteBrandAssetAction(
   websiteId: string,
+  slot: BrandAssetSlot,
 ): Promise<ActionResult> {
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
+  const key = BRAND_ASSET_KEYS[slot];
+  if (!key) return { ok: false, error: "invalid" };
 
   const supabase = createServerClient();
   const { data: row } = await supabase
@@ -419,7 +459,8 @@ export async function removeWebsiteFaviconAction(
     .eq("id", websiteId)
     .maybeSingle();
   const brand = { ...((row?.brand ?? {}) as Record<string, unknown>) };
-  delete brand.favicon_path;
+  const path = typeof brand[key] === "string" ? (brand[key] as string) : null;
+  delete brand[key];
 
   const { error } = await supabase
     .from("host_websites")
@@ -427,81 +468,9 @@ export async function removeWebsiteFaviconAction(
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
 
-  revalidatePath(`/dashboard/website/${websiteId}/brand`);
-  return { ok: true };
-}
-
-/** Save the theme preset + accent/font/radius overrides. */
-export async function saveThemeAction(
-  input: ThemeInput,
-): Promise<ActionResult> {
-  const parsed = themeSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, preset, accent, font, radius } = parsed.data;
-
-  const own = await assertWebsiteOwnership(websiteId);
-  if (!own.ok) return own;
-  if (!(await assertWebsiteFeature(own.hostId)))
-    return { ok: false, error: "locked" };
-
-  const res = await patchSiteJson(websiteId, "theme", {
-    preset,
-    accent: accent || undefined,
-    font: font || undefined,
-    radius: radius || undefined,
-  });
-  if (!res.ok) return res;
-
-  revalidatePath(`/dashboard/website/${websiteId}/theme`);
-  return { ok: true };
-}
-
-export type UploadTicket = { path: string; token: string };
-
-/**
- * Issue a signed upload URL for the site logo. The browser uploads straight to
- * Storage (no body cap), then calls `registerWebsiteLogoAction` with the path.
- * Path is scoped to `{websiteId}/...` so it satisfies the bucket RLS.
- */
-export async function createWebsiteLogoUploadUrl(
-  websiteId: string,
-  ext: string,
-): Promise<{ ok: true; data: UploadTicket } | { ok: false; error: string }> {
-  const own = await assertWebsiteOwnership(websiteId);
-  if (!own.ok) return own;
-  if (!(await assertWebsiteFeature(own.hostId)))
-    return { ok: false, error: "locked" };
-
-  const safeExt =
-    (ext || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-  const path = `${websiteId}/logo-${crypto.randomUUID()}.${safeExt}`;
-
-  const admin = createAdminClient();
-  const { data, error } = await admin.storage
-    .from("website-assets")
-    .createSignedUploadUrl(path);
-  if (error || !data) return { ok: false, error: "upload_start_failed" };
-  return { ok: true, data: { path, token: data.token } };
-}
-
-/** Record an already-uploaded logo path on the site brand. */
-export async function registerWebsiteLogoAction(
-  websiteId: string,
-  storagePath: string,
-): Promise<ActionResult> {
-  const own = await assertWebsiteOwnership(websiteId);
-  if (!own.ok) return own;
-  if (!(await assertWebsiteFeature(own.hostId)))
-    return { ok: false, error: "locked" };
-
-  if (!storagePath.startsWith(`${websiteId}/`)) {
-    return { ok: false, error: "invalid_path" };
+  if (path && path.startsWith(`${websiteId}/`)) {
+    await createAdminClient().storage.from("website-assets").remove([path]);
   }
-
-  const res = await patchSiteJson(websiteId, "brand", {
-    logo_path: storagePath,
-  });
-  if (!res.ok) return res;
 
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
   return { ok: true };
@@ -851,37 +820,6 @@ export async function createWebsiteAssetUploadUrl(
     .createSignedUploadUrl(path);
   if (error || !data) return { ok: false, error: "upload_start_failed" };
   return { ok: true, data: { path, token: data.token } };
-}
-
-/** Remove the logo from the brand + delete the object from Storage. */
-export async function removeWebsiteLogoAction(
-  websiteId: string,
-): Promise<ActionResult> {
-  const own = await assertWebsiteOwnership(websiteId);
-  if (!own.ok) return own;
-
-  const supabase = createServerClient();
-  const { data: row } = await supabase
-    .from("host_websites")
-    .select("brand")
-    .eq("id", websiteId)
-    .maybeSingle();
-  const brand = { ...((row?.brand ?? {}) as Record<string, unknown>) };
-  const path = typeof brand.logo_path === "string" ? brand.logo_path : null;
-  delete brand.logo_path;
-
-  const { error } = await supabase
-    .from("host_websites")
-    .update({ brand })
-    .eq("id", websiteId);
-  if (error) return { ok: false, error: "save_failed" };
-
-  if (path && path.startsWith(`${websiteId}/`)) {
-    await createAdminClient().storage.from("website-assets").remove([path]);
-  }
-
-  revalidatePath(`/dashboard/website/${websiteId}/brand`);
-  return { ok: true };
 }
 
 // ============================================================

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getMyHostId } from "@/lib/host/current";
+import type { SiteThemeConfig } from "@/lib/site/themes";
 import { createServerClient } from "@/lib/supabase/server";
 import { computeWebsiteDirty } from "@/lib/website/publish";
 
@@ -16,12 +17,16 @@ export type WebsiteEditorData = {
     name?: string;
     tagline?: string;
     logo_path?: string;
+    logo_light_path?: string;
+    logo_icon_path?: string;
     favicon_path?: string;
+    apple_icon_path?: string;
     logo_style?: "wordmark" | "mark" | "icon";
+    logo_max_height?: number;
     contact?: { email?: string; phone?: string };
     socials?: Record<string, string>;
   };
-  theme: { preset?: string; accent?: string; font?: string; radius?: string };
+  theme: SiteThemeConfig;
   seo: {
     title?: string;
     description?: string;

@@ -4,7 +4,11 @@ import { Link } from "@/i18n/navigation";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-import { SITE_PRESET_KEYS, type SiteThemeConfig } from "@/lib/site/themes";
+import {
+  SITE_PRESET_KEYS,
+  siteSurfaceIsDark,
+  type SiteThemeConfig,
+} from "@/lib/site/themes";
 import type { SiteData } from "@/lib/site/types";
 import { sectionsSchema } from "@/lib/website/sections.schema";
 
@@ -319,6 +323,7 @@ export default async function SitePreviewPage({
         <SiteChrome
           brand={{ name: "Stillwater Cottage", tagline: "Karoo escape" }}
           nav={nav}
+          darkChrome={siteSurfaceIsDark(theme)}
           bookHref="/property/stillwater/book"
         >
           <div id="rooms" />
