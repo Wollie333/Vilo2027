@@ -7753,6 +7753,7 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean
+          is_default: boolean
           is_premium: boolean
           name: string
           page_templates: Json
@@ -7770,6 +7771,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           is_premium?: boolean
           name: string
           page_templates?: Json
@@ -7787,6 +7789,7 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
           is_premium?: boolean
           name?: string
           page_templates?: Json
@@ -8940,6 +8943,44 @@ export type Database = {
           },
           {
             foreignKeyName: "website_properties_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_restore_points: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          snapshot: Json
+          theme_slug: string | null
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          snapshot: Json
+          theme_slug?: string | null
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          snapshot?: Json
+          theme_slug?: string | null
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_restore_points_website_id_fkey"
             columns: ["website_id"]
             isOneToOne: false
             referencedRelation: "host_websites"
