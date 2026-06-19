@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 // Editor tab bar. All tabs are now live (W6–W14).
 const LIVE_TABS: Array<{ key: string; seg: string }> = [
   { key: "tabOverview", seg: "" },
+  { key: "tabThemes", seg: "theme" },
   { key: "tabBrand", seg: "brand" },
   { key: "tabPages", seg: "pages" },
   { key: "tabRooms", seg: "rooms" },

@@ -1,18 +1,41 @@
-import { redirect } from "@/i18n/navigation";
-import { getLocale } from "next-intl/server";
+import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
-// The Theme tab was merged into the Brand Studio (Colours + Typography +
-// Buttons & Corners sub-sections). Keep this route as a redirect so old links
-// and bookmarks land on the studio.
-export default async function WebsiteThemeRedirect({
+import { loadActiveThemes } from "@/lib/site/themes.server";
+
+import { loadWebsiteEditorData } from "../loadWebsiteEditorData";
+import { ThemeGallery } from "./ThemeGallery";
+
+export const dynamic = "force-dynamic";
+
+export default async function WebsiteThemePage({
   params,
 }: {
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const locale = await getLocale();
-  redirect({
-    href: `/dashboard/website/${websiteId}/brand`,
-    locale,
-  });
+  const [t, data, themes] = await Promise.all([
+    getTranslations("website"),
+    loadWebsiteEditorData(websiteId),
+    loadActiveThemes(),
+  ]);
+  if (!data) notFound();
+
+  const activeSlug = (data.theme.preset as string | undefined) || "classic";
+
+  return (
+    <div>
+      <header className="mb-5">
+        <h2 className="font-display text-lg font-bold text-brand-ink">
+          {t("themesHeading")}
+        </h2>
+        <p className="mt-1 text-sm text-brand-mute">{t("themesSub")}</p>
+      </header>
+      <ThemeGallery
+        websiteId={websiteId}
+        themes={themes}
+        activeSlug={activeSlug}
+      />
+    </div>
+  );
 }
