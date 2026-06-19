@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
-import { resolveThemeBase } from "@/lib/site/themes.server";
+import type { SitePreset } from "@/lib/site/themes";
+import {
+  getThemeBundle,
+  resolveThemeBase,
+  type ThemePageTemplate,
+} from "@/lib/site/themes.server";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -20,6 +27,7 @@ import {
 } from "@/lib/website/vercel";
 
 import {
+  applyThemeSchema,
   BRAND_ASSET_KEYS,
   brandStudioSchema,
   connectDomainSchema,
@@ -34,6 +42,7 @@ import {
   saveWebsiteRoomsSchema,
   seoSchema,
   websiteSettingsSchema,
+  type ApplyThemeInput,
   type BrandAssetSlot,
   type BrandStudioInput,
   type ConnectDomainInput,
@@ -171,6 +180,115 @@ function starterAboutSections(siteName: string) {
       },
     },
   ];
+}
+
+/** Default Home + About templates — used for the built-in presets and as a
+ * fallback when a catalogue theme ships no page templates. */
+function builtinThemeTemplates(siteName: string): ThemePageTemplate[] {
+  return [
+    {
+      kind: "home",
+      slug: "home",
+      title: siteName,
+      nav_label: "Home",
+      nav_order: 0,
+      show_in_nav: true,
+      sections: starterHomeSections(siteName),
+    },
+    {
+      kind: "about",
+      slug: "about",
+      title: "About",
+      nav_label: "About",
+      nav_order: 1,
+      show_in_nav: true,
+      sections: starterAboutSections(siteName),
+    },
+  ];
+}
+
+/**
+ * Apply a catalogue theme to a site: load the theme's design + pages. This
+ * RESETS the site to the theme — `host_websites.theme` becomes the theme base
+ * (the host then customises on top in Brand Studio) and `website_pages` is
+ * replaced by the theme's page templates (built-in starters as a fallback). The
+ * UI confirms first because it's destructive to existing pages.
+ */
+export async function applyThemeAction(
+  input: ApplyThemeInput,
+): Promise<ActionResult> {
+  const parsed = applyThemeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, themeId } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: site } = await supabase
+    .from("host_websites")
+    .select("brand, subdomain, business:businesses ( trading_name )")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const brand = (site?.brand ?? {}) as { name?: string };
+  const business = site?.business as unknown as {
+    trading_name: string | null;
+  } | null;
+  const siteName =
+    brand.name?.trim() ||
+    business?.trading_name ||
+    site?.subdomain ||
+    "My site";
+
+  // Resolve the theme → base + page templates (preset id or catalogue uuid).
+  let slug: string;
+  let base: SitePreset;
+  let templates: ThemePageTemplate[];
+  if (themeId.startsWith("preset:")) {
+    slug = themeId.slice("preset:".length);
+    base = await resolveThemeBase(slug);
+    templates = builtinThemeTemplates(siteName);
+  } else {
+    const bundle = await getThemeBundle(themeId);
+    if (!bundle) return { ok: false, error: "theme_not_found" };
+    slug = bundle.slug;
+    base = bundle.base;
+    templates = bundle.pageTemplates.length
+      ? bundle.pageTemplates
+      : builtinThemeTemplates(siteName);
+  }
+
+  // Owner-checked above; use the admin client for the replace (untyped: the new
+  // theme_id/base columns aren't in the generated types in this lane).
+  const admin = createAdminClient() as unknown as SupabaseClient;
+
+  await admin.from("website_pages").delete().eq("website_id", websiteId);
+  const { error: pagesErr } = await admin.from("website_pages").insert(
+    templates.map((tpl) => ({
+      website_id: websiteId,
+      kind: tpl.kind,
+      slug: tpl.slug,
+      title: tpl.title,
+      nav_label: tpl.nav_label,
+      nav_order: tpl.nav_order,
+      show_in_nav: tpl.show_in_nav,
+      draft_sections: tpl.sections,
+      published_sections: [],
+    })),
+  );
+  if (pagesErr) return { ok: false, error: "seed_failed" };
+
+  const { error: themeErr } = await admin
+    .from("host_websites")
+    .update({ theme: { preset: slug, base } })
+    .eq("id", websiteId);
+  if (themeErr) return { ok: false, error: "apply_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
+  revalidatePath(`/dashboard/website/${websiteId}/brand`);
+  return { ok: true };
 }
 
 /**

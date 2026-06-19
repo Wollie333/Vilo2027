@@ -79,6 +79,55 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
   }
 }
 
+/** One page template carried by a theme (seeds website_pages on apply). */
+export type ThemePageTemplate = {
+  kind: string;
+  slug: string;
+  title: string;
+  nav_label: string;
+  nav_order: number;
+  show_in_nav: boolean;
+  sections: unknown[];
+};
+
+export type ThemeBundle = {
+  slug: string;
+  base: SitePreset;
+  pageTemplates: ThemePageTemplate[];
+};
+
+/** Load a catalogue theme (by uuid) with its base + page templates — for the
+ * apply-theme flow. Returns null if not found / catalogue unavailable. */
+export async function getThemeBundle(
+  themeId: string,
+): Promise<ThemeBundle | null> {
+  try {
+    const sb = createAdminClient() as unknown as SupabaseClient;
+    const { data, error } = await sb
+      .from("site_themes")
+      .select("slug, base, page_templates")
+      .eq("id", themeId)
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .maybeSingle();
+    const row = data as {
+      slug: string;
+      base: SitePreset;
+      page_templates: ThemePageTemplate[] | null;
+    } | null;
+    if (error || !row) return null;
+    return {
+      slug: row.slug,
+      base: row.base,
+      pageTemplates: Array.isArray(row.page_templates)
+        ? row.page_templates
+        : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Resolve a theme's visual base by slug — the authoritative source for what gets
  * stored on save (so we never trust a client-sent base). Falls back to the

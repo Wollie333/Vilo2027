@@ -2,6 +2,15 @@ import { z } from "zod";
 
 import { sectionsSchema } from "@/lib/website/sections.schema";
 
+// Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
+// "preset:<slug>" id for the built-in presets (pre-migration fallback).
+export const applyThemeSchema = z.object({
+  websiteId: z.string().uuid(),
+  themeId: z.string().trim().min(1).max(80),
+});
+
+export type ApplyThemeInput = z.infer<typeof applyThemeSchema>;
+
 export const createWebsiteSchema = z.object({
   businessId: z.string().uuid(),
   subdomain: z
