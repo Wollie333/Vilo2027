@@ -121,6 +121,7 @@ export function SpecialEditor({
                 addon_id: addonId,
                 is_required: false,
                 unit_price_override: null,
+                quantity: 1,
               },
             ],
       };
@@ -582,7 +583,15 @@ export function SpecialEditor({
                 <SegmentField
                   label={t("fldDateMode")}
                   value={form.date_mode}
-                  onChange={(v) => set("date_mode", v)}
+                  onChange={(v) => {
+                    // When switching to fixed-date, force quantity to 1
+                    // (only one booking possible for those exact dates)
+                    if (v === "fixed") {
+                      setForm((f) => ({ ...f, date_mode: v, quantity: 1 }));
+                    } else {
+                      set("date_mode", v);
+                    }
+                  }}
                   options={[
                     {
                       value: "fixed",
@@ -699,14 +708,30 @@ export function SpecialEditor({
 
             {section === "availability" ? (
               <>
-                <NumberField
-                  label={t("fldQuantity")}
-                  value={form.quantity}
-                  min={1}
-                  max={100000}
-                  onChange={(v) => set("quantity", v ?? 1)}
-                  hint={t("fldQuantityHint")}
-                />
+                {form.date_mode === "fixed" ? (
+                  <div className="rounded-[10px] border border-brand-line bg-brand-light/40 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[13px] font-semibold text-brand-ink">
+                        {t("fldQuantity")}
+                      </span>
+                      <span className="rounded-pill bg-brand-accent px-2 py-0.5 text-[11px] font-bold text-brand-secondary">
+                        1
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[12px] text-brand-mute">
+                      {t("fldQuantityFixedHint")}
+                    </p>
+                  </div>
+                ) : (
+                  <NumberField
+                    label={t("fldQuantity")}
+                    value={form.quantity}
+                    min={1}
+                    max={100000}
+                    onChange={(v) => set("quantity", v ?? 1)}
+                    hint={t("fldQuantityHint")}
+                  />
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <DateField
                     label={t("fldGoLive")}
@@ -759,7 +784,17 @@ export function SpecialEditor({
                           </span>
                         </label>
                         {selected ? (
-                          <div className="mt-3 grid grid-cols-2 items-end gap-3 border-t border-brand-line/70 pt-3">
+                          <div className="mt-3 grid grid-cols-3 items-end gap-3 border-t border-brand-line/70 pt-3">
+                            <NumberField
+                              label={t("fldAddonQty")}
+                              value={selected.quantity ?? 1}
+                              min={1}
+                              max={100}
+                              onChange={(v) =>
+                                patchAddon(addon.id, { quantity: v ?? 1 })
+                              }
+                              hint={t("fldAddonQtyHint")}
+                            />
                             <ToggleField
                               label={t("fldRequired")}
                               hint={t("fldRequiredHint")}

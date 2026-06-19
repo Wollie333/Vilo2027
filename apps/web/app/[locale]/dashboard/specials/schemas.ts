@@ -24,6 +24,7 @@ export const specialAddonSchema = z.object({
   addon_id: z.string().uuid(),
   is_required: z.boolean().default(false),
   unit_price_override: z.number().min(0).max(10_000_000).nullable(),
+  quantity: z.number().int().min(1).max(100).default(1),
 });
 export type SpecialAddonInput = z.infer<typeof specialAddonSchema>;
 
@@ -132,6 +133,13 @@ export const specialInputSchema = z
   .refine(
     (v) => new Set(v.addons.map((a) => a.addon_id)).size === v.addons.length,
     { path: ["addons"], message: "An add-on is listed twice." },
-  );
+  )
+  // ── fixed-date specials can only have quantity = 1 ───────────────
+  // (only one booking possible for those exact dates on that room/property)
+  .refine((v) => v.date_mode !== "fixed" || v.quantity === 1, {
+    path: ["quantity"],
+    message:
+      "Fixed-date deals can only sell 1 (the room is booked for those exact dates).",
+  });
 
 export type SpecialInput = z.infer<typeof specialInputSchema>;

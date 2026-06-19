@@ -274,6 +274,7 @@ async function reconcileAddons(
     addon_id: a.addon_id,
     is_required: a.is_required,
     unit_price_override: a.unit_price_override,
+    quantity: a.quantity ?? 1,
     sort_order: i,
   }));
   const ins = await supabase.from("special_addons").insert(rows);

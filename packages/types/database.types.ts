@@ -7840,6 +7840,7 @@ export type Database = {
           addon_id: string
           id: string
           is_required: boolean
+          quantity: number
           sort_order: number
           special_id: string
           unit_price_override: number | null
@@ -7848,6 +7849,7 @@ export type Database = {
           addon_id: string
           id?: string
           is_required?: boolean
+          quantity?: number
           sort_order?: number
           special_id: string
           unit_price_override?: number | null
@@ -7856,6 +7858,7 @@ export type Database = {
           addon_id?: string
           id?: string
           is_required?: boolean
+          quantity?: number
           sort_order?: number
           special_id?: string
           unit_price_override?: number | null

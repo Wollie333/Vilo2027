@@ -156,7 +156,7 @@ export async function loadSpecial(
 
   const { data: addonRows } = await supabase
     .from("special_addons")
-    .select("addon_id, is_required, unit_price_override, sort_order")
+    .select("addon_id, is_required, unit_price_override, quantity, sort_order")
     .eq("special_id", specialId)
     .order("sort_order", { ascending: true });
 
@@ -196,6 +196,7 @@ export async function loadSpecial(
       is_required: a.is_required,
       unit_price_override:
         a.unit_price_override == null ? null : Number(a.unit_price_override),
+      quantity: a.quantity ?? 1,
     })),
   };
 
