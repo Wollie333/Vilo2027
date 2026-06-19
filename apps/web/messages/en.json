@@ -1660,6 +1660,12 @@
     "ddRowBookBy": "Book by",
     "ddPriceLabelNight": "Price per night",
     "ddPriceLabelPkg": "Package price",
-    "ddPanelReassure": "The saving comes off your host's rate — you pay them directly and {brand} adds no fee."
+    "ddPanelReassure": "The saving comes off your host's rate — you pay them directly and {brand} adds no fee.",
+    "ddNavRooms": "Rooms",
+    "ddRoomsTitle": "Rooms in this deal",
+    "ddRoomsIntroWhole": "Booking this deal books the whole place — here are the rooms you'll have.",
+    "ddRoomsIntroRoom": "This deal is for the room below.",
+    "ddRoomSleeps": "Sleeps {count}",
+    "ddRoomEnsuite": "Ensuite"
   }
 }

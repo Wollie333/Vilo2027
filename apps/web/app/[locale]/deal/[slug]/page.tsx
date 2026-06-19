@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import {
+  BedDouble,
   CalendarClock,
   CalendarDays,
   Check,
@@ -13,6 +14,7 @@ import {
   ShieldCheck,
   Sparkles,
   Tag,
+  Users,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -35,6 +37,7 @@ import {
   PhotoGallery,
   type GalleryPhoto,
 } from "@/app/[locale]/property/[slug]/PhotoGallery";
+import { bedSummary } from "@/app/[locale]/property/[slug]/roomDisplay";
 
 import { DealSubnav, type DealNavItem } from "./_components/DealSubnav";
 import { ShareSpecialButton } from "./_components/ShareSpecialButton";
@@ -79,16 +82,6 @@ async function loadSpecial(slug: string) {
     .maybeSingle();
   if (!property || property.deleted_at) return null;
 
-  let roomName: string | null = null;
-  if (special.room_id) {
-    const { data: room } = await admin
-      .from("property_rooms")
-      .select("name")
-      .eq("id", special.room_id)
-      .maybeSingle();
-    roomName = room?.name ?? null;
-  }
-
   // Gallery photos: prefer the deal's room's photos when room-scoped, else the
   // whole property's. The special hero (if set) leads the gallery.
   const { data: photoRows } = await admin
@@ -101,6 +94,40 @@ async function loadSpecial(slug: string) {
     url: string;
     room_id: string | null;
   }>;
+
+  // Rooms attached to the deal: the single targeted room, or — for a
+  // whole-property deal — every active room (descriptive of what booking the
+  // whole place includes). Each card gets its own first photo when it has one.
+  let roomQuery = admin
+    .from("property_rooms")
+    .select(
+      "id, name, max_guests, has_ensuite_bathroom, sort_order, beds:room_beds ( bed_kind, quantity, sort_order )",
+    )
+    .eq("property_id", special.property_id)
+    .is("deleted_at", null)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (special.room_id) roomQuery = roomQuery.eq("id", special.room_id);
+  const { data: roomRows } = await roomQuery;
+  const rooms = (
+    (roomRows ?? []) as Array<{
+      id: string;
+      name: string;
+      max_guests: number;
+      has_ensuite_bathroom: boolean;
+      beds: { bed_kind: string; quantity: number; sort_order: number }[];
+    }>
+  ).map((r) => ({
+    id: r.id,
+    name: r.name,
+    maxGuests: r.max_guests,
+    ensuite: r.has_ensuite_bathroom,
+    bedLabel: bedSummary(
+      [...(r.beds ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+    ),
+    photoUrl: allPhotos.find((p) => p.room_id === r.id)?.url ?? null,
+  }));
+  const roomName = special.room_id ? (rooms[0]?.name ?? null) : null;
   let galleryRows = allPhotos;
   if (special.room_id) {
     const roomPhotos = allPhotos.filter((p) => p.room_id === special.room_id);
@@ -150,6 +177,7 @@ async function loadSpecial(slug: string) {
     special,
     property,
     roomName,
+    rooms,
     gallery,
     amenityKeys,
     included,
@@ -182,6 +210,7 @@ export default async function SpecialDetailPage({
     special,
     property,
     roomName,
+    rooms,
     gallery,
     amenityKeys,
     included,
@@ -297,6 +326,8 @@ export default async function SpecialDetailPage({
     { id: "sec-offer", label: t("ddNavOffer") },
     { id: "sec-dates", label: t("ddNavDates") },
   ];
+  if (rooms.length > 0)
+    navItems.push({ id: "sec-rooms", label: t("ddNavRooms") });
   if (amenityKeys.length > 0)
     navItems.push({ id: "sec-amenities", label: t("ddNavAmenities") });
   navItems.push({ id: "sec-terms", label: t("ddNavTerms") });
@@ -591,6 +622,70 @@ export default async function SpecialDetailPage({
                 ) : null}
               </div>
             </section>
+
+            {/* Rooms in this deal */}
+            {rooms.length > 0 ? (
+              <section
+                id="sec-rooms"
+                className="scroll-mt-32 border-b border-brand-line py-8"
+              >
+                <h2 className="font-display text-[19px] font-bold text-brand-ink">
+                  {t("ddRoomsTitle")}
+                </h2>
+                <p className="mt-1.5 text-[13px] text-brand-mute">
+                  {special.room_id
+                    ? t("ddRoomsIntroRoom")
+                    : t("ddRoomsIntroWhole")}
+                </p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {rooms.map((room) => (
+                    <article
+                      key={room.id}
+                      className="overflow-hidden rounded-card border border-brand-line bg-white shadow-card"
+                    >
+                      <div className="relative aspect-[16/9] bg-brand-accent">
+                        {room.photoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={room.photoUrl}
+                            alt={room.name}
+                            loading="lazy"
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 flex items-center justify-center text-brand-primary">
+                            <BedDouble className="h-7 w-7" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <div className="font-display font-bold text-brand-ink">
+                          {room.name}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-brand-mute">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Users className="h-3.5 w-3.5" />
+                            {t("ddRoomSleeps", { count: room.maxGuests })}
+                          </span>
+                          {room.bedLabel ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <BedDouble className="h-3.5 w-3.5" />
+                              {room.bedLabel}
+                            </span>
+                          ) : null}
+                          {room.ensuite ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Check className="h-3.5 w-3.5 text-brand-primary" />
+                              {t("ddRoomEnsuite")}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {/* Amenities */}
             {amenityKeys.length > 0 ? (
