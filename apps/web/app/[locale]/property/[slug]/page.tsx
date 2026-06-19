@@ -27,7 +27,7 @@ import { loadPropertySpecials } from "@/lib/specials/directory";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
-import { SpecialCard } from "@/app/[locale]/specials/SpecialCard";
+import { SpecialCard } from "@/app/[locale]/deals/SpecialCard";
 
 import { AboutCollapsible } from "./AboutCollapsible";
 import { AmenitiesList } from "./AmenitiesList";

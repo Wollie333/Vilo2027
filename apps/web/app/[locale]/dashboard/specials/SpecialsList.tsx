@@ -420,6 +420,19 @@ function CardActions({ s, t }: { s: SpecialRow; t: SpecialsT }) {
     );
   }
 
+  // Public, account-less link to this special's shareable page. localePrefix is
+  // "as-needed" so the default-locale URL is unprefixed and clean to send.
+  async function copyLink() {
+    setMenuOpen(false);
+    const url = `${window.location.origin}/deal/${s.slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(t("toastLinkCopied"));
+    } catch {
+      toast.error(t("toastLinkError"));
+    }
+  }
+
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       <button
@@ -462,7 +475,12 @@ function CardActions({ s, t }: { s: SpecialRow; t: SpecialsT }) {
               className="fixed inset-0 z-10"
               onClick={() => setMenuOpen(false)}
             />
-            <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-card border border-brand-line bg-white py-1 shadow-lift">
+            <div className="absolute bottom-full right-0 z-20 mb-1 w-44 overflow-hidden rounded-card border border-brand-line bg-white py-1 shadow-lift">
+              <MenuButton
+                icon={Link2}
+                label={t("menuCopyLink")}
+                onClick={copyLink}
+              />
               <MenuLink
                 href={`/dashboard/specials/${s.id}`}
                 icon={BarChart3}

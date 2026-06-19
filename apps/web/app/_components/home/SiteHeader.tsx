@@ -24,7 +24,7 @@ import { VLogo } from "./VLogo";
 const NAV = [
   { href: "#destinations", key: "destinations" },
   { href: "#types", key: "propertyTypes" },
-  { href: "/specials", key: "deals" },
+  { href: "/deals", key: "deals" },
   { href: "/booking-management", key: "forHosts" },
   { href: "/launch", key: "launch" },
 ] as const;

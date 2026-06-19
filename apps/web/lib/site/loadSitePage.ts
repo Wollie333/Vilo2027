@@ -359,7 +359,7 @@ function bookHref(locale: string, slug: string, roomId?: string): string {
 
 /** Deep-link into the special booking flow, tagged as a website-channel booking. */
 function specialBookHref(locale: string, slug: string): string {
-  const path = `/${locale}/special/${slug}/book?via=website`;
+  const path = `/${locale}/deal/${slug}/book?via=website`;
   return APP_URL ? `${APP_URL}${path}` : path;
 }
 

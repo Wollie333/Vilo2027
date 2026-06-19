@@ -117,6 +117,21 @@
 >   state/actions (`76cada3`). (c) **Public surfacing** — site header "Deals"
 >   nav → `/specials`; property page gains a "Specials" tab/section via
 >   `loadPropertySpecials` (card grid → `/special/[slug]`) (`08a655e`).
+> - **Deals public-facing pass DONE 2026-06-19** (founder, same session): split
+>   terminology — **public/guest = "Deals", host/back-end = "Specials"**.
+>   (a) **`/special/[slug]` rebuilt listing-style** (mirrors the room view):
+>   breadcrumb → property, header (badge/category chips + "Part of {property}" +
+>   Share button), `PhotoGallery` (room-scoped photos if room-targeted, else
+>   property; hero first), 4-tile stats grid (Guests/Nights/Save/Book by),
+>   sectioned body (About · Included · Dates · property `AmenitiesList` ·
+>   Cancellation · part-of-property card · report), sticky price/Book panel.
+>   New `ShareSpecialButton`. (b) Manager row-menu gains **Copy share link** +
+>   menu now opens **upward** (was clipped by card `overflow-hidden`).
+>   (c) **Public routes renamed** `/specials→/deals`, `/special/[slug]→/deal/[slug]`
+>   (+`/book`); all card/book/share/nav/`bookHref` links + directory `BASE_PATH`
+>   updated (host routes stay `/dashboard/specials`). (d) **Public copy → "Deals"**
+>   (en.json values only; host strings keep "Specials"). Build+lint green. Touched
+>   shared files (SiteHeader, loadSitePage, property page) — staged explicit paths.
 > - **S7c-3 i18n: website** section + report panel.
 > - **FIN** — full `pnpm build`+`pnpm lint` green, CHANGELOG, fast-forward `main` + push.
 > Fresh session per sub-task; stage explicit paths only; build before each commit.
