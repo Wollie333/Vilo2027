@@ -30,6 +30,7 @@ export default function GuestInbox() {
   const {
     data: conversations,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useConversations(session?.user.id);
@@ -51,6 +52,13 @@ export default function GuestInbox() {
               <Skeleton key={i} height={64} rounded={14} />
             ))}
           </View>
+        ) : isError ? (
+          <EmptyState
+            icon={MessageCircle}
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
+          />
         ) : !conversations || conversations.length === 0 ? (
           <EmptyState
             icon={MessageCircle}

@@ -60,6 +60,7 @@ export default function HostReports() {
             icon={BarChart3}
             title={t("common.errorTitle")}
             message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
           />
         ) : (data ?? []).length === 0 ? (
           <EmptyState

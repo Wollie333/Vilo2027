@@ -15,6 +15,7 @@ import {
 import { useAuth } from "@/lib/auth/auth-provider";
 import { useHostGuests, type HostGuest } from "@/lib/queries/guests";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 export default function HostGuests() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function HostGuests() {
   const {
     data: guests,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useHostGuests(host?.id);
@@ -70,6 +72,13 @@ export default function HostGuests() {
               <Skeleton key={i} height={56} rounded={14} />
             ))}
           </View>
+        ) : isError ? (
+          <EmptyState
+            icon={Users}
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Users}

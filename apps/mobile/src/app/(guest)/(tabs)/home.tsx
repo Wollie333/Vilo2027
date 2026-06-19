@@ -123,8 +123,9 @@ export default function GuestHome() {
         {isError ? (
           <EmptyState
             icon={MapPin}
-            title="Couldn't load stays"
-            message="Pull to retry in a moment."
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
           />
         ) : null}
 

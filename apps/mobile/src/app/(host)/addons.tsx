@@ -65,6 +65,7 @@ export default function HostAddons() {
             icon={Tags}
             title={t("common.errorTitle")}
             message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
           />
         ) : !data || data.length === 0 ? (
           <EmptyState

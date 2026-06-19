@@ -32,6 +32,7 @@ export default function HostInbox() {
   const {
     data: conversations,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useHostConversations(host?.id);
@@ -53,6 +54,13 @@ export default function HostInbox() {
               <Skeleton key={i} height={64} rounded={14} />
             ))}
           </View>
+        ) : isError ? (
+          <EmptyState
+            icon={MessageCircle}
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
+          />
         ) : !conversations || conversations.length === 0 ? (
           <EmptyState
             icon={MessageCircle}

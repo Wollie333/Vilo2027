@@ -34,6 +34,7 @@ export default function HostBookings() {
   const {
     data: bookings,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useHostBookings(host?.id);
@@ -82,6 +83,13 @@ export default function HostBookings() {
       >
         {isLoading ? (
           [0, 1, 2].map((i) => <Skeleton key={i} height={84} rounded={16} />)
+        ) : isError ? (
+          <EmptyState
+            icon={CalendarCheck}
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={CalendarCheck}

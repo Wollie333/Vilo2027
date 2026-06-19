@@ -8,6 +8,7 @@ import { EmptyState, Icon, pullRefresh, Skeleton } from "@/components/ui";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { useDirectoryProperties } from "@/lib/queries/properties";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 export default function GuestSearch() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function GuestSearch() {
   const {
     data: properties,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useDirectoryProperties();
@@ -80,6 +82,13 @@ export default function GuestSearch() {
                 <Skeleton height={14} width="60%" className="mt-3" />
               </View>
             ))
+          ) : isError ? (
+            <EmptyState
+              icon={SearchX}
+              title={t("common.errorTitle")}
+              message={t("common.errorMessage")}
+              action={{ label: t("common.retry"), onPress: () => refetch() }}
+            />
           ) : results.length === 0 ? (
             <EmptyState
               icon={SearchX}

@@ -8,6 +8,7 @@ import {
   type AppNotification,
 } from "@/lib/queries/notifications";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 function severityColor(severity: string): string {
   if (severity === "error" || severity === "critical") return "#EF4444";
@@ -26,6 +27,7 @@ export function NotificationsView({ userId }: { userId: string | undefined }) {
   const {
     data: items,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useNotifications(userId);
@@ -38,6 +40,17 @@ export function NotificationsView({ userId }: { userId: string | undefined }) {
           <Skeleton key={i} height={64} rounded={14} />
         ))}
       </View>
+    );
+  }
+
+  if (isError) {
+    return (
+      <EmptyState
+        icon={Bell}
+        title={t("common.errorTitle")}
+        message={t("common.errorMessage")}
+        action={{ label: t("common.retry"), onPress: () => refetch() }}
+      />
     );
   }
 

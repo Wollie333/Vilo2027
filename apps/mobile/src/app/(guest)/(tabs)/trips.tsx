@@ -33,6 +33,7 @@ export default function GuestTrips() {
   const {
     data: trips,
     isLoading,
+    isError,
     refetch,
     isRefetching,
   } = useTrips(session?.user.id);
@@ -62,6 +63,13 @@ export default function GuestTrips() {
       >
         {isLoading ? (
           [0, 1].map((i) => <Skeleton key={i} height={96} rounded={16} />)
+        ) : isError ? (
+          <EmptyState
+            icon={Briefcase}
+            title={t("common.errorTitle")}
+            message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
+          />
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={Briefcase}

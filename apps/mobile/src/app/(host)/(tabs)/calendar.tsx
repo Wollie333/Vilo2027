@@ -51,9 +51,12 @@ const cellText: Record<DayStatus, string> = {
 
 export default function HostCalendar() {
   const { host, session } = useAuth();
-  const { data: properties, isLoading: loadingProps } = useHostProperties(
-    host?.id,
-  );
+  const {
+    data: properties,
+    isLoading: loadingProps,
+    isError: propsError,
+    refetch: refetchProps,
+  } = useHostProperties(host?.id);
   const [propertyId, setPropertyId] = useState<string | undefined>(undefined);
   const activeProperty = propertyId ?? properties?.[0]?.id;
 
@@ -102,6 +105,13 @@ export default function HostCalendar() {
         <View className="p-5">
           <Skeleton height={300} rounded={16} />
         </View>
+      ) : propsError ? (
+        <EmptyState
+          icon={Home}
+          title={t("common.errorTitle")}
+          message={t("common.errorMessage")}
+          action={{ label: t("common.retry"), onPress: () => refetchProps() }}
+        />
       ) : !properties || properties.length === 0 ? (
         <EmptyState
           icon={Home}

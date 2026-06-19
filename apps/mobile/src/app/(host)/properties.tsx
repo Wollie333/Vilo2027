@@ -54,6 +54,7 @@ export default function HostProperties() {
             icon={Home}
             title={t("common.errorTitle")}
             message={t("common.errorMessage")}
+            action={{ label: t("common.retry"), onPress: () => refetch() }}
           />
         ) : !data || data.length === 0 ? (
           <EmptyState

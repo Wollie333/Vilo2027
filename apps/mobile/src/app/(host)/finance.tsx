@@ -84,6 +84,13 @@ export default function HostFinance() {
             icon={Wallet}
             title={t("common.errorTitle")}
             message={t("common.errorMessage")}
+            action={{
+              label: t("common.retry"),
+              onPress: () => {
+                payments.refetch();
+                bookings.refetch();
+              },
+            }}
           />
         ) : (
           <>

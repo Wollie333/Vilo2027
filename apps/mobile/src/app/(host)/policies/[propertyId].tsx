@@ -62,6 +62,13 @@ export default function PropertyPolicies() {
             icon={ShieldCheck}
             title={t("common.errorTitle")}
             message={t("common.errorMessage")}
+            action={{
+              label: t("common.retry"),
+              onPress: () => {
+                policies.refetch();
+                assignments.refetch();
+              },
+            }}
           />
         ) : !policies.data || policies.data.length === 0 ? (
           <EmptyState

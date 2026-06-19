@@ -20,6 +20,7 @@ import {
 } from "@/lib/queries/host";
 import { brand } from "@/theme/tokens";
 import { formatDateRange, formatMoney } from "@/lib/format";
+import { t } from "@/i18n";
 
 function greeting() {
   const h = new Date().getHours();
@@ -32,7 +33,12 @@ export default function HostOverview() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { host, profile, session } = useAuth();
-  const { data: bookings, isLoading } = useHostBookings(host?.id);
+  const {
+    data: bookings,
+    isLoading,
+    isError,
+    refetch,
+  } = useHostBookings(host?.id);
 
   const kpis = useMemo(() => deriveKpis(bookings), [bookings]);
   const name = (
@@ -116,6 +122,13 @@ export default function HostOverview() {
                 <Skeleton key={i} height={72} rounded={14} />
               ))}
             </View>
+          ) : isError ? (
+            <EmptyState
+              icon={CalendarCheck}
+              title={t("common.errorTitle")}
+              message={t("common.errorMessage")}
+              action={{ label: t("common.retry"), onPress: () => refetch() }}
+            />
           ) : kpis.upcoming.length === 0 ? (
             <EmptyState
               icon={CalendarCheck}
