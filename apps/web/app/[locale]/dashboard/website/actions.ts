@@ -19,6 +19,14 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 import { normaliseDomain, validateDomain } from "@/lib/website/domain";
 import { pollWebsiteDomain } from "@/lib/website/domain-poll";
 import { buildWebsiteSnapshot } from "@/lib/website/publish";
+import {
+  captureRestorePoint,
+  deleteRestorePoint,
+  getRestorePoint,
+  latestAutoForTheme,
+  resolveDefaultThemeId,
+  restoreSnapshotToSite,
+} from "@/lib/website/restorePoints";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
   addDomainToProject,
@@ -32,6 +40,9 @@ import {
   brandStudioSchema,
   connectDomainSchema,
   createWebsiteSchema,
+  resetToDefaultSchema,
+  restorePointIdSchema,
+  saveRestorePointSchema,
   saveBlogCategoriesSchema,
   saveBlogPostSchema,
   saveDraftSectionsSchema,
@@ -46,6 +57,9 @@ import {
   type BrandAssetSlot,
   type BrandStudioInput,
   type ConnectDomainInput,
+  type ResetToDefaultInput,
+  type RestorePointIdInput,
+  type SaveRestorePointInput,
   type CreatePageInput,
   type CreateWebsiteInput,
   type SaveBlogAuthorsInput,
@@ -219,12 +233,16 @@ export async function applyThemeAction(
 ): Promise<ActionResult> {
   const parsed = applyThemeSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, themeId } = parsed.data;
+  const { websiteId, themeId, fresh } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
+
+  // Safety net: snapshot the current design BEFORE we replace anything, so the
+  // switch is always reversible (Phase 2.5).
+  await captureRestorePoint(websiteId, null, "auto_switch");
 
   const supabase = createServerClient();
   const { data: site } = await supabase
@@ -260,6 +278,19 @@ export async function applyThemeAction(
       : builtinThemeTemplates(siteName);
   }
 
+  // Returning to a previously-used theme restores the host's customised version
+  // (not a blank reset) — unless a fresh seed is explicitly requested (reset).
+  if (!fresh) {
+    const prior = await latestAutoForTheme(websiteId, slug);
+    if (prior) {
+      const restored = await restoreSnapshotToSite(websiteId, prior);
+      if (!restored) return { ok: false, error: "apply_failed" };
+      revalidatePath(`/dashboard/website/${websiteId}`);
+      revalidatePath(`/dashboard/website/${websiteId}/brand`);
+      return { ok: true };
+    }
+  }
+
   // Owner-checked above; use the admin client for the replace (untyped: the new
   // theme_id/base columns aren't in the generated types in this lane).
   const admin = createAdminClient() as unknown as SupabaseClient;
@@ -289,6 +320,75 @@ export async function applyThemeAction(
   revalidatePath(`/dashboard/website/${websiteId}`);
   revalidatePath(`/dashboard/website/${websiteId}/brand`);
   return { ok: true };
+}
+
+/** Save the current design as a named restore point ("Save this design"). */
+export async function saveRestorePointAction(
+  input: SaveRestorePointInput,
+): Promise<ActionResult> {
+  const parsed = saveRestorePointSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const own = await assertWebsiteOwnership(parsed.data.websiteId);
+  if (!own.ok) return own;
+  await captureRestorePoint(
+    parsed.data.websiteId,
+    parsed.data.label.trim() || "Saved design",
+    "manual",
+  );
+  revalidatePath(`/dashboard/website/${parsed.data.websiteId}/theme`);
+  return { ok: true };
+}
+
+/** Restore a saved design — replaces pages + resets theme/brand to the snapshot. */
+export async function restoreRestorePointAction(
+  input: RestorePointIdInput,
+): Promise<ActionResult> {
+  const parsed = restorePointIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const rp = await getRestorePoint(parsed.data.restorePointId);
+  if (!rp) return { ok: false, error: "not_found" };
+  const own = await assertWebsiteOwnership(rp.websiteId);
+  if (!own.ok) return own;
+  // Capture the current state first so the restore is itself reversible.
+  await captureRestorePoint(rp.websiteId, null, "auto_switch");
+  const ok = await restoreSnapshotToSite(rp.websiteId, rp.snapshot);
+  if (!ok) return { ok: false, error: "restore_failed" };
+  revalidatePath(`/dashboard/website/${rp.websiteId}`);
+  revalidatePath(`/dashboard/website/${rp.websiteId}/brand`);
+  revalidatePath(`/dashboard/website/${rp.websiteId}/theme`);
+  return { ok: true };
+}
+
+/** Delete a restore point. */
+export async function deleteRestorePointAction(
+  input: RestorePointIdInput,
+): Promise<ActionResult> {
+  const parsed = restorePointIdSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const rp = await getRestorePoint(parsed.data.restorePointId);
+  if (!rp) return { ok: true };
+  const own = await assertWebsiteOwnership(rp.websiteId);
+  if (!own.ok) return own;
+  await deleteRestorePoint(parsed.data.restorePointId);
+  revalidatePath(`/dashboard/website/${rp.websiteId}/theme`);
+  return { ok: true };
+}
+
+/** Reset the site to the default theme — the guaranteed-working safety button.
+ * Fresh-seeds the default theme after auto-capturing the current state. */
+export async function resetToDefaultAction(
+  input: ResetToDefaultInput,
+): Promise<ActionResult> {
+  const parsed = resetToDefaultSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const own = await assertWebsiteOwnership(parsed.data.websiteId);
+  if (!own.ok) return own;
+  const defaultId = await resolveDefaultThemeId();
+  return applyThemeAction({
+    websiteId: parsed.data.websiteId,
+    themeId: defaultId,
+    fresh: true,
+  });
 }
 
 /**
