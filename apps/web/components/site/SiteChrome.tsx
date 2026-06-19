@@ -37,7 +37,9 @@ function BrandLogo({
 }) {
   const style = brand.logoStyle ?? "mark";
   const height = brand.logoMaxHeight ?? 40;
-  const initial = (brand.name || "·").trim().charAt(0).toUpperCase();
+  const initial =
+    brand.monogram?.trim().slice(0, 2).toUpperCase() ||
+    (brand.name || "·").trim().charAt(0).toUpperCase();
   const primarySrc = (dark && brand.logoLightUrl) || brand.logoUrl || null;
   const nameEl = (
     <span
@@ -250,8 +252,13 @@ export function SiteChrome({
                     target="_blank"
                     rel="noopener noreferrer me"
                     aria-label={key}
-                    style={{ color: "var(--site-mute)" }}
-                    className="transition-colors hover:opacity-80"
+                    style={{
+                      background: "var(--site-social-bg)",
+                      color: "var(--site-social-fg)",
+                      border: "var(--site-social-border)",
+                      borderRadius: "var(--site-social-radius)",
+                    }}
+                    className="flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-80"
                   >
                     <Icon className="h-4 w-4" />
                   </a>

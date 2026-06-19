@@ -46,7 +46,8 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
             src={room.imageUrl}
             alt={room.name}
             loading="lazy"
-            className="aspect-[4/3] w-full object-cover"
+            style={{ aspectRatio: "var(--site-card-ratio)" }}
+            className="w-full object-cover"
           />
         ) : null}
         {room.badge || room.featured ? (

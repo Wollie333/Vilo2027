@@ -16,6 +16,7 @@ export type WebsiteEditorData = {
   brand: {
     name?: string;
     tagline?: string;
+    monogram?: string;
     logo_path?: string;
     logo_light_path?: string;
     logo_icon_path?: string;

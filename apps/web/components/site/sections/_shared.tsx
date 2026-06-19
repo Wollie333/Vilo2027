@@ -127,11 +127,12 @@ export function Card({
     <div
       style={{
         background: "var(--site-surface)",
-        borderColor: "var(--site-line)",
-        borderRadius: "var(--site-radius)",
+        border: "var(--site-card-border)",
+        borderRadius: "var(--site-card-radius)",
+        boxShadow: "var(--site-card-shadow)",
         ...style,
       }}
-      className={`overflow-hidden border ${className}`}
+      className={`overflow-hidden ${className}`}
     >
       {children}
     </div>

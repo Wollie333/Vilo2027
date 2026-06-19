@@ -6,10 +6,15 @@
 import {
   TYPE_DEFAULTS,
   type SiteButtonStyle,
+  type SiteCardRatio,
+  type SiteCardStyle,
   type SiteFont,
+  type SiteHeroLayout,
   type SitePresetKey,
   type SiteRadius,
   type SiteShadow,
+  type SiteSocialShape,
+  type SiteSocialStyle,
   type SiteThemeConfig,
 } from "@/lib/site/themes";
 import type { SiteBrand, SiteLogoStyle } from "@/lib/site/types";
@@ -53,6 +58,18 @@ export type StudioImage = {
   shadow: SiteShadow;
 };
 
+export type StudioCard = {
+  style: SiteCardStyle;
+  radius: number; // px
+  shadow: SiteShadow;
+  ratio: SiteCardRatio;
+};
+
+export type StudioSocial = {
+  shape: SiteSocialShape;
+  style: SiteSocialStyle;
+};
+
 export type StudioType = {
   headingFont: SiteFont | ""; // "" = inherit preset family
   bodyFont: SiteFont | "";
@@ -68,11 +85,19 @@ export type StudioType = {
 };
 
 const SHADOWS: SiteShadow[] = ["none", "sm", "md", "lg", "xl"];
+const CARD_STYLES: SiteCardStyle[] = ["elevated", "bordered", "flat"];
+const CARD_RATIOS: SiteCardRatio[] = ["4:3", "16:9", "1:1", "3:2"];
+const SOC_SHAPES: SiteSocialShape[] = ["round", "square"];
+const SOC_STYLES: SiteSocialStyle[] = ["filled", "outline", "plain"];
+
+const oneOf = <T extends string>(list: T[], v: unknown, fallback: T): T =>
+  list.includes(v as T) ? (v as T) : fallback;
 
 export type StudioState = {
   // Identity
   name: string;
   tagline: string;
+  monogram: string;
   logoStyle: SiteLogoStyle;
   logoMaxHeight: number;
   contactEmail: string;
@@ -88,6 +113,10 @@ export type StudioState = {
   radius: SiteRadius | "";
   buttonStyle: SiteButtonStyle;
   image: StudioImage;
+  card: StudioCard;
+  heroLayout: SiteHeroLayout;
+  social: StudioSocial;
+  iconColor: string; // "" = inherit accent
 };
 
 const PRESET_KEYS: SitePresetKey[] = [
@@ -146,6 +175,8 @@ export function deriveStudioState(
   ) as StudioSizes;
 
   const im = (theme.image ?? {}) as Record<string, unknown>;
+  const cd = (theme.card ?? {}) as Record<string, unknown>;
+  const so = (theme.social ?? {}) as Record<string, unknown>;
 
   const socials = Object.fromEntries(
     SOCIAL_KEYS.map((k) => [k, brand.socials?.[k] ?? ""]),
@@ -154,6 +185,7 @@ export function deriveStudioState(
   return {
     name: brand.name ?? "",
     tagline: brand.tagline ?? "",
+    monogram: (brand.monogram ?? "").slice(0, 2),
     logoStyle: brand.logo_style ?? "mark",
     logoMaxHeight: num(brand.logo_max_height, 40),
     contactEmail: brand.contact?.email ?? "",
@@ -193,10 +225,20 @@ export function deriveStudioState(
       radius: num(im.radius, 12),
       borderWidth: num(im.borderWidth, 0),
       borderColor: hex(im.borderColor),
-      shadow: SHADOWS.includes(im.shadow as SiteShadow)
-        ? (im.shadow as SiteShadow)
-        : "none",
+      shadow: oneOf(SHADOWS, im.shadow, "none"),
     },
+    card: {
+      style: oneOf(CARD_STYLES, cd.style, "elevated"),
+      radius: num(cd.radius, 14),
+      shadow: oneOf(SHADOWS, cd.shadow, "sm"),
+      ratio: oneOf(CARD_RATIOS, cd.ratio, "4:3"),
+    },
+    heroLayout: theme.heroLayout === "left" ? "left" : "center",
+    social: {
+      shape: oneOf(SOC_SHAPES, so.shape, "round"),
+      style: oneOf(SOC_STYLES, so.style, "plain"),
+    },
+    iconColor: hex(theme.iconColor),
   };
 }
 
@@ -234,6 +276,10 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
       borderColor: state.image.borderColor || undefined,
       shadow: state.image.shadow,
     },
+    card: { ...state.card },
+    heroLayout: state.heroLayout,
+    social: { ...state.social },
+    iconColor: state.iconColor || undefined,
   };
 }
 
@@ -245,6 +291,7 @@ export function studioBrand(
   return {
     name: state.name.trim() || fallbackName,
     tagline: state.tagline.trim() || null,
+    monogram: state.monogram.trim() || null,
     logoUrl: state.assets.primary,
     logoLightUrl: state.assets.light,
     logoIconUrl: state.assets.icon,
@@ -267,6 +314,7 @@ export function studioToSaveInput(
     websiteId,
     name: state.name,
     tagline: state.tagline,
+    monogram: state.monogram,
     logoStyle: state.logoStyle,
     logoMaxHeight: state.logoMaxHeight,
     contactEmail: state.contactEmail,
@@ -279,5 +327,9 @@ export function studioToSaveInput(
     radius: state.radius,
     buttonStyle: state.buttonStyle,
     image: state.image,
+    card: state.card,
+    heroLayout: state.heroLayout,
+    social: state.social,
+    iconColor: state.iconColor,
   };
 }

@@ -32,6 +32,8 @@ export type SiteBrand = {
   logoMaxHeight?: number | null;
   /** How the logo renders in chrome: wordmark (name), mark (logo+name), icon. */
   logoStyle?: SiteLogoStyle;
+  /** Letter-mark (1–2 chars) shown when no logo image is uploaded. */
+  monogram?: string | null;
   contactEmail?: string | null;
   contactPhone?: string | null;
   socials?: SiteSocials;

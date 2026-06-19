@@ -3,9 +3,12 @@
 import {
   BadgeCheck,
   Droplet,
+  GalleryVerticalEnd,
   Image as ImageIcon,
+  Layout,
   RotateCcw,
   Share2,
+  Sparkles,
   SquareMousePointer,
   Type,
 } from "lucide-react";
@@ -99,6 +102,16 @@ export function IdentitySection({ websiteId, state, merge }: SectionProps) {
           maxLength={200}
           placeholder={t("taglinePlaceholder")}
           className={bsInput}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel hint={t("brandMonogramHint")}>{t("brandMonogram")}</CtlLabel>
+        <input
+          value={state.monogram}
+          onChange={(e) => merge({ monogram: e.target.value.slice(0, 2) })}
+          maxLength={2}
+          placeholder="KS"
+          className={`${bsInput} w-24 text-center font-display text-lg font-extrabold uppercase`}
         />
       </Ctl>
 
@@ -642,6 +655,135 @@ export function SocialSection({ state, merge }: SectionProps) {
             />
           ))}
         </div>
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("brandSocialStyle")}</CtlLabel>
+        <Seg
+          value={state.social.style}
+          options={[
+            { value: "plain", label: t("socialStylePlain") },
+            { value: "filled", label: t("socialStyleFilled") },
+            { value: "outline", label: t("socialStyleOutline") },
+          ]}
+          onChange={(v) => merge({ social: { ...state.social, style: v } })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("brandSocialShape")}</CtlLabel>
+        <Seg
+          value={state.social.shape}
+          options={[
+            { value: "round", label: t("socialShapeRound") },
+            { value: "square", label: t("socialShapeSquare") },
+          ]}
+          onChange={(v) => merge({ social: { ...state.social, shape: v } })}
+        />
+      </Ctl>
+    </Acc>
+  );
+}
+
+// ── Room / listing cards ──────────────────────────────────
+const RATIO_OPTS = ["4:3", "16:9", "1:1", "3:2"] as const;
+
+export function CardsSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  const card = state.card;
+  const setCard = (patch: Partial<StudioState["card"]>) =>
+    merge({ card: { ...card, ...patch } });
+  return (
+    <Acc
+      icon={<GalleryVerticalEnd className="h-[17px] w-[17px]" />}
+      title={t("brandCardsTitle")}
+      subtitle={t("brandCardsSub")}
+    >
+      <Ctl>
+        <CtlLabel>{t("brandCardStyle")}</CtlLabel>
+        <Seg
+          value={card.style}
+          options={[
+            { value: "elevated", label: t("cardStyleElevated") },
+            { value: "bordered", label: t("cardStyleBordered") },
+            { value: "flat", label: t("cardStyleFlat") },
+          ]}
+          onChange={(v) => setCard({ style: v })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("brandImageRadius")}</CtlLabel>
+        <Slider
+          value={card.radius}
+          min={0}
+          max={40}
+          step={1}
+          suffix="px"
+          onChange={(v) => setCard({ radius: v })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("brandImageShadow")}</CtlLabel>
+        <Seg
+          value={card.shadow}
+          options={SHADOW_OPTS.map((o) => ({
+            value: o.value,
+            label: t(o.labelKey),
+          }))}
+          onChange={(v) => setCard({ shadow: v })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("brandCardRatio")}</CtlLabel>
+        <Seg
+          value={card.ratio}
+          options={RATIO_OPTS.map((r) => ({ value: r, label: r }))}
+          onChange={(v) => setCard({ ratio: v })}
+        />
+      </Ctl>
+    </Acc>
+  );
+}
+
+// ── Homepage / hero ───────────────────────────────────────
+export function HomepageSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  return (
+    <Acc
+      icon={<Layout className="h-[17px] w-[17px]" />}
+      title={t("brandHomepageTitle")}
+      subtitle={t("brandHomepageSub")}
+    >
+      <Ctl>
+        <CtlLabel>{t("brandHeroLayout")}</CtlLabel>
+        <Seg
+          value={state.heroLayout}
+          options={[
+            { value: "center", label: t("heroCenter") },
+            { value: "left", label: t("heroLeft") },
+          ]}
+          onChange={(v) => merge({ heroLayout: v })}
+        />
+      </Ctl>
+    </Acc>
+  );
+}
+
+// ── Feature icons ─────────────────────────────────────────
+export function IconsSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  const preset = SITE_PRESETS[state.preset];
+  return (
+    <Acc
+      icon={<Sparkles className="h-[17px] w-[17px]" />}
+      title={t("brandIconsTitle")}
+      subtitle={t("brandIconsSub")}
+    >
+      <Ctl>
+        <CtlLabel>{t("brandIconColour")}</CtlLabel>
+        <SwatchRow
+          value={state.iconColor}
+          inheritedHex={state.colors.accent || preset.palette.accent}
+          onChange={(hex) => merge({ iconColor: hex })}
+        />
       </Ctl>
     </Acc>
   );

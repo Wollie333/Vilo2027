@@ -182,6 +182,32 @@ export const imageStyleSchema = z
 
 export type ImageStyleInput = z.infer<typeof imageStyleSchema>;
 
+// Stage 2 — cards, hero layout, social styling.
+export const SITE_CARD_STYLES = ["elevated", "bordered", "flat"] as const;
+export const SITE_CARD_RATIOS = ["4:3", "16:9", "1:1", "3:2"] as const;
+export const SITE_HERO_LAYOUTS = ["center", "left"] as const;
+export const SITE_SOCIAL_SHAPES = ["round", "square"] as const;
+export const SITE_SOCIAL_STYLES = ["filled", "outline", "plain"] as const;
+
+export const cardStyleSchema = z
+  .object({
+    style: z.enum(SITE_CARD_STYLES).default("elevated"),
+    radius: z.number().int().min(0).max(40).default(14),
+    shadow: z.enum(SITE_SHADOW_NAMES).default("sm"),
+    ratio: z.enum(SITE_CARD_RATIOS).default("4:3"),
+  })
+  .default({ style: "elevated", radius: 14, shadow: "sm", ratio: "4:3" });
+
+export const socialStyleSchema = z
+  .object({
+    shape: z.enum(SITE_SOCIAL_SHAPES).default("round"),
+    style: z.enum(SITE_SOCIAL_STYLES).default("plain"),
+  })
+  .default({ shape: "round", style: "plain" });
+
+export type CardStyleInput = z.infer<typeof cardStyleSchema>;
+export type SocialStyleInput = z.infer<typeof socialStyleSchema>;
+
 // One Brand Studio save — patches the brand (identity) + theme (design) columns.
 // Asset paths (logos/favicons) persist on upload via the asset actions, not here.
 export const brandStudioSchema = z.object({
@@ -189,6 +215,7 @@ export const brandStudioSchema = z.object({
   // Identity (brand jsonb)
   name: z.string().trim().max(120).default(""),
   tagline: z.string().trim().max(200).default(""),
+  monogram: z.string().trim().max(2).default(""),
   logoStyle: z.enum(LOGO_STYLES).default("mark"),
   logoMaxHeight: z.number().int().min(28).max(64).default(40),
   contactEmail: z.string().trim().max(160).default(""),
@@ -219,6 +246,10 @@ export const brandStudioSchema = z.object({
   radius: z.enum(SITE_RADII).or(z.literal("")).default(""),
   buttonStyle: z.enum(SITE_BUTTON_STYLES).default("solid"),
   image: imageStyleSchema,
+  card: cardStyleSchema,
+  heroLayout: z.enum(SITE_HERO_LAYOUTS).default("center"),
+  social: socialStyleSchema,
+  iconColor: hexOrEmpty,
 });
 
 export type BrandStudioInput = z.infer<typeof brandStudioSchema>;
