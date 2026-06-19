@@ -6,12 +6,13 @@ import {
   Check,
   ChevronRight,
   Flag,
+  Gift,
   MapPin,
-  Moon,
   Percent,
+  Play,
+  ShieldCheck,
   Sparkles,
   Tag,
-  Users,
 } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -19,6 +20,7 @@ import { Money } from "@/components/currency/Money";
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
 import { SiteHeader } from "@/app/_components/home/SiteHeader";
 import { Link } from "@/i18n/navigation";
+import { getBrandName } from "@/lib/brand";
 import { nightsBetween } from "@/lib/pricing/engine";
 import {
   cancellationNote,
@@ -34,6 +36,7 @@ import {
   type GalleryPhoto,
 } from "@/app/[locale]/property/[slug]/PhotoGallery";
 
+import { DealSubnav, type DealNavItem } from "./_components/DealSubnav";
 import { ShareSpecialButton } from "./_components/ShareSpecialButton";
 import { SpecialTracker } from "./_components/SpecialTracker";
 
@@ -184,7 +187,10 @@ export default async function SpecialDetailPage({
     included,
     hostName,
   } = loaded;
-  const t = await getTranslations("specials");
+  const [t, brandName] = await Promise.all([
+    getTranslations("specials"),
+    getBrandName(),
+  ]);
   // Curated category keys have their own translations; fall back to the lib's
   // English label for any unknown/custom key.
   const catLabel = (c: string) =>
@@ -224,34 +230,60 @@ export default async function SpecialDetailPage({
       : special.per_night_price == null
         ? null
         : Number(special.per_night_price);
-  const perLabel =
-    special.price_mode === "flat" ? t("dtPackageTotal") : t("dtPerNight");
+  const isFlat = special.price_mode === "flat";
+  const perLabel = isFlat ? t("dtPackageTotal") : t("dtPerNight");
+  const priceLabel = isFlat ? t("ddPriceLabelPkg") : t("ddPriceLabelNight");
+  const offSuffix = special.savings_pct
+    ? t("dtOffParen", { pct: special.savings_pct })
+    : "";
 
-  // ── Stats grid (mirrors the room view's tiles). ──
+  // ── Derived date + scope summaries ──
+  const fixedNights =
+    special.date_mode === "fixed" &&
+    special.fixed_check_in &&
+    special.fixed_check_out
+      ? nightsBetween(special.fixed_check_in, special.fixed_check_out)
+      : null;
+  const minNights =
+    special.date_mode === "fixed" ? fixedNights : (special.min_nights ?? null);
+  const minStayLabel = minNights ? t("bkNights", { count: minNights }) : "—";
+  const datesShort =
+    special.date_mode === "fixed"
+      ? `${fmtDate(special.fixed_check_in)} → ${fmtDate(special.fixed_check_out)}`
+      : `${fmtDate(special.window_start)} – ${fmtDate(special.window_end)}`;
+  const firstNight =
+    special.date_mode === "fixed"
+      ? special.fixed_check_in
+      : special.window_start;
+  const lastNight =
+    special.date_mode === "fixed"
+      ? special.fixed_check_out
+      : special.window_end;
+  const appliesTo = roomName ?? t("ddAppliesWhole");
+
+  // ── "At a glance" tiles ──
   const nightsValue =
     special.date_mode === "fixed"
-      ? special.fixed_check_in && special.fixed_check_out
-        ? String(nightsBetween(special.fixed_check_in, special.fixed_check_out))
+      ? fixedNights != null
+        ? String(fixedNights)
         : "—"
       : special.min_nights
         ? special.max_nights
           ? `${special.min_nights}–${special.max_nights}`
           : `${special.min_nights}+`
         : "—";
-  const stats: { icon: typeof Users; label: string; value: string }[] = [
+  const stats: { label: string; value: string; highlight?: boolean }[] = [
     {
-      icon: Users,
       label: t("dtStatGuests"),
       value: special.max_guests != null ? String(special.max_guests) : "—",
     },
-    { icon: Moon, label: t("dtStatNights"), value: nightsValue },
+    { label: t("dtStatNights"), value: nightsValue },
     {
-      icon: Percent,
       label: t("dtStatSave"),
       value: special.savings_pct ? `${special.savings_pct}%` : "—",
+      highlight: true,
     },
     {
-      icon: CalendarClock,
       label: t("dtStatBookBy"),
       value: special.book_by ? fmtDate(special.book_by) : "—",
     },
@@ -259,65 +291,38 @@ export default async function SpecialDetailPage({
 
   const propertyHref = `/property/${property.slug}`;
 
+  // In-page subnav — only link to sections that actually render.
+  const navItems: DealNavItem[] = [
+    { id: "sec-overview", label: t("ddNavOverview") },
+    { id: "sec-offer", label: t("ddNavOffer") },
+    { id: "sec-dates", label: t("ddNavDates") },
+  ];
+  if (amenityKeys.length > 0)
+    navItems.push({ id: "sec-amenities", label: t("ddNavAmenities") });
+  navItems.push({ id: "sec-terms", label: t("ddNavTerms") });
+
   return (
-    <div className="bg-brand-light text-brand-ink">
+    <div className="bg-white text-brand-ink">
       <SpecialTracker specialId={special.id} />
       <SiteHeader />
 
-      <main className="mx-auto max-w-6xl px-5 pb-28 pt-6 lg:px-8 lg:pb-12 lg:pt-8">
-        {/* Breadcrumb */}
-        <nav className="flex flex-wrap items-center gap-1 text-xs text-brand-mute">
-          {property.province ? (
-            <>
-              <span>{property.province}</span>
-              <ChevronRight className="h-3.5 w-3.5" />
-            </>
-          ) : null}
-          <Link href={propertyHref} className="hover:text-brand-primary">
-            {property.name}
-          </Link>
-          <ChevronRight className="h-3.5 w-3.5" />
-          <span className="font-medium text-brand-ink">{special.title}</span>
-        </nav>
-
-        {/* Header */}
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-pill bg-brand-primary px-2.5 py-0.5 text-[11px] font-semibold text-white">
-                <Sparkles className="h-3 w-3" /> {t("dtBadge")}
-              </span>
-              {special.badge ? (
-                <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
-                  <Tag className="h-3 w-3" /> {special.badge}
-                </span>
-              ) : null}
-              {categoryLabels.map((c: string) => (
-                <span
-                  key={c}
-                  className="rounded-pill border border-brand-line bg-white px-2 py-0.5 text-[10px] font-medium text-brand-mute"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-brand-ink md:text-3xl">
-              {special.title}
-            </h1>
-            <p className="mt-1 flex items-center gap-1 text-sm text-brand-mute">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {locationLine || property.name}
-              {hostName ? t("dtHostedBy", { host: hostName }) : ""}
-            </p>
-            <Link
-              href={propertyHref}
-              className="mt-0.5 inline-block text-sm text-brand-primary hover:underline"
-            >
-              {t("dtPartOf", { property: property.name })}
-              {roomName ? ` · ${roomName}` : ""}
+      <main className="mx-auto max-w-[1180px] px-5 pb-28 pt-6 lg:px-8 lg:pb-14">
+        {/* Breadcrumb + actions */}
+        <div className="flex flex-wrap items-center gap-3">
+          <nav className="flex flex-wrap items-center gap-1.5 text-[12px] text-brand-mute">
+            {property.province ? (
+              <>
+                <span>{property.province}</span>
+                <ChevronRight className="h-3 w-3" />
+              </>
+            ) : null}
+            <Link href={propertyHref} className="hover:text-brand-ink">
+              {property.name}
             </Link>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
+            <ChevronRight className="h-3 w-3" />
+            <span className="font-medium text-brand-ink">{special.title}</span>
+          </nav>
+          <div className="ml-auto flex items-center gap-2 text-sm">
             <ShareSpecialButton
               slug={params.slug}
               label={t("dtShare")}
@@ -328,71 +333,185 @@ export default async function SpecialDetailPage({
           </div>
         </div>
 
-        {/* Gallery */}
-        {gallery.length > 0 ? (
-          <div className="mt-5">
+        {/* Gallery hero + savings ribbon */}
+        <div className="relative mt-5">
+          {gallery.length > 0 ? (
             <PhotoGallery photos={gallery} />
-          </div>
-        ) : (
-          <div className="mt-5 flex h-56 w-full items-center justify-center rounded-card border border-brand-line bg-brand-accent/30 text-brand-primary">
-            <Sparkles className="h-10 w-10" />
-          </div>
-        )}
-
-        {/* Stats grid */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {stats.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-card border border-brand-line bg-white p-4 shadow-card"
-            >
-              <s.icon className="h-5 w-5 text-brand-primary" />
-              <div className="num mt-2 font-display text-lg font-bold tabular-nums text-brand-ink">
-                {s.value}
-              </div>
-              <div className="text-xs text-brand-mute">{s.label}</div>
+          ) : (
+            <div className="flex h-[300px] w-full items-center justify-center rounded-card border border-brand-line bg-brand-accent/30 text-brand-primary sm:h-[380px]">
+              <Sparkles className="h-10 w-10" />
             </div>
-          ))}
+          )}
+          {special.savings_pct ? (
+            <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-3.5 py-1.5 font-display text-[15px] font-extrabold text-white shadow-lift">
+              <Percent className="h-4 w-4" />
+              {t("offPct", { pct: special.savings_pct })}
+            </span>
+          ) : null}
         </div>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-[1.6fr_1fr]">
-          {/* Left column */}
-          <div className="space-y-8">
-            {/* About */}
-            {special.description ? (
-              <section>
-                <h2 className="font-display text-lg font-bold text-brand-ink">
-                  {t("dtAboutTitle")}
-                </h2>
+        {/* Title block */}
+        <div className="mt-6 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-3 py-1 text-[11.5px] font-bold text-brand-secondary">
+              <Sparkles className="h-3.5 w-3.5" /> {t("dtBadge")}
+            </span>
+            {special.badge ? (
+              <span className="inline-flex items-center gap-1 rounded-pill bg-brand-accent px-2.5 py-0.5 text-[11px] font-semibold text-brand-primary">
+                <Tag className="h-3 w-3" /> {special.badge}
+              </span>
+            ) : null}
+            {categoryLabels.map((c: string) => (
+              <span
+                key={c}
+                className="rounded-pill border border-brand-line bg-white px-2 py-0.5 text-[10px] font-medium text-brand-mute"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+          <h1 className="mt-2 font-display text-[28px] font-extrabold leading-tight tracking-tight text-brand-ink sm:text-[32px]">
+            {special.title}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-brand-mute">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 shrink-0" />
+              {locationLine || property.name}
+              {hostName ? t("dtHostedBy", { host: hostName }) : ""}
+            </span>
+            <span className="hidden sm:inline">·</span>
+            <Link
+              href={propertyHref}
+              className="inline-flex items-center gap-1.5 text-brand-primary hover:underline"
+            >
+              <Tag className="h-4 w-4" />
+              {t("dtPartOf", { property: property.name })}
+              {roomName ? ` · ${roomName}` : ""}
+            </Link>
+          </div>
+        </div>
+
+        {/* Sticky in-page subnav */}
+        <DealSubnav items={navItems} />
+
+        {/* Two-column */}
+        <div className="mt-7 grid gap-9 lg:grid-cols-12 lg:gap-12">
+          {/* LEFT */}
+          <div className="min-w-0 lg:col-span-7 xl:col-span-8">
+            {/* Overview — at a glance */}
+            <section
+              id="sec-overview"
+              className="scroll-mt-32 border-b border-brand-line pb-8"
+            >
+              <h2 className="font-display text-[19px] font-bold text-brand-ink">
+                {t("ddAtAGlance")}
+              </h2>
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                {stats.map((s) => (
+                  <div
+                    key={s.label}
+                    className="rounded-[13px] border border-brand-line bg-white p-3.5"
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                      {s.label}
+                    </div>
+                    <div
+                      className={`num mt-1 font-display text-[19px] font-extrabold tabular-nums ${
+                        s.highlight ? "text-brand-primary" : "text-brand-ink"
+                      }`}
+                    >
+                      {s.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex items-start gap-2.5 rounded-[13px] border border-brand-line bg-brand-light/70 px-4 py-3 text-[12.5px] text-brand-secondary">
+                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                <span>{t("ddNoFeeBanner", { brand: brandName })}</span>
+              </div>
+            </section>
+
+            {/* The offer — what you get */}
+            <section
+              id="sec-offer"
+              className="scroll-mt-32 border-b border-brand-line py-8"
+            >
+              <h2 className="font-display text-[19px] font-bold text-brand-ink">
+                {t("ddWhatYouGet")}
+              </h2>
+              {special.description ? (
                 <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-brand-dark">
                   {special.description}
                 </p>
-              </section>
-            ) : null}
+              ) : null}
+              <div className="mt-5 space-y-4">
+                <div className="flex items-start gap-3.5">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+                    <Tag className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <div className="font-display font-semibold text-brand-ink">
+                      {t("ddOfferPriceTitle")}
+                    </div>
+                    <div className="mt-0.5 text-[13px] leading-relaxed text-brand-mute">
+                      {isFlat
+                        ? t("ddOfferPriceBodyPkg")
+                        : t("ddOfferPriceBodyNight")}
+                    </div>
+                  </div>
+                </div>
 
-            {/* What's included */}
-            {included.length > 0 ? (
-              <section className="border-t border-brand-line pt-8">
-                <h2 className="font-display text-lg font-bold text-brand-ink">
-                  {t("dtIncluded")}
-                </h2>
-                <ul className="mt-4 space-y-2">
-                  {included.map((name) => (
-                    <li
-                      key={name}
-                      className="flex items-center gap-2 text-sm text-brand-ink"
-                    >
-                      <Check className="h-4 w-4 shrink-0 text-emerald-600" />
-                      {name}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+                {special.savings_pct ? (
+                  <div className="flex items-start gap-3.5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+                      <Percent className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <div className="font-display font-semibold text-brand-ink">
+                        {t("ddOfferSaveTitle")}
+                      </div>
+                      <div className="mt-0.5 text-[13px] leading-relaxed text-brand-mute">
+                        {t("ddOfferSaveBody", { pct: special.savings_pct })}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {included.length > 0 ? (
+                  <div className="flex items-start gap-3.5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px] bg-brand-accent text-brand-secondary">
+                      <Gift className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <div className="font-display font-semibold text-brand-ink">
+                        {t("ddOfferIncludedTitle")}
+                      </div>
+                      <div className="mt-0.5 text-[13px] leading-relaxed text-brand-mute">
+                        {t("ddOfferIncludedBody")}
+                      </div>
+                      <ul className="mt-2 space-y-1.5">
+                        {included.map((name) => (
+                          <li
+                            key={name}
+                            className="flex items-center gap-2 text-[13px] text-brand-ink"
+                          >
+                            <Check className="h-4 w-4 shrink-0 text-brand-primary" />
+                            {name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </section>
 
             {/* Dates */}
-            <section className="border-t border-brand-line pt-8">
-              <h2 className="flex items-center gap-2 font-display text-lg font-bold text-brand-ink">
+            <section
+              id="sec-dates"
+              className="scroll-mt-32 border-b border-brand-line py-8"
+            >
+              <h2 className="flex items-center gap-2 font-display text-[19px] font-bold text-brand-ink">
                 <CalendarDays className="h-4 w-4 text-brand-primary" />
                 {t("dtDates")}
               </h2>
@@ -428,17 +547,58 @@ export default async function SpecialDetailPage({
                   .
                 </p>
               )}
-              {special.book_by ? (
-                <p className="mt-1 text-xs text-brand-mute">
-                  {t("dtBookBy", { date: fmtDate(special.book_by) })}
-                </p>
-              ) : null}
+              <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
+                <div className="flex items-center gap-3 rounded-[13px] border border-brand-line bg-white p-3.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary">
+                    <Play className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                      {t("ddFirstNight")}
+                    </div>
+                    <div className="num font-display text-[14px] font-bold text-brand-ink">
+                      {fmtDate(firstNight)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-[13px] border border-brand-line bg-white p-3.5">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-brand-accent text-brand-secondary">
+                    <Flag className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                      {t("ddLastNight")}
+                    </div>
+                    <div className="num font-display text-[14px] font-bold text-brand-ink">
+                      {fmtDate(lastNight)}
+                    </div>
+                  </div>
+                </div>
+                {special.book_by ? (
+                  <div className="flex items-center gap-3 rounded-[13px] border border-brand-line bg-white p-3.5">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-status-cancelled/10 text-status-cancelled">
+                      <CalendarClock className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                        {t("ddRowBookBy")}
+                      </div>
+                      <div className="num font-display text-[14px] font-bold text-brand-ink">
+                        {fmtDate(special.book_by)}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </section>
 
-            {/* What this place offers */}
+            {/* Amenities */}
             {amenityKeys.length > 0 ? (
-              <section className="border-t border-brand-line pt-8">
-                <h2 className="font-display text-lg font-bold text-brand-ink">
+              <section
+                id="sec-amenities"
+                className="scroll-mt-32 border-b border-brand-line py-8"
+              >
+                <h2 className="font-display text-[19px] font-bold text-brand-ink">
                   {t("dtOffersTitle")}
                 </h2>
                 <div className="mt-4">
@@ -447,100 +607,168 @@ export default async function SpecialDetailPage({
               </section>
             ) : null}
 
-            {/* Cancellation */}
-            {note?.note ? (
-              <section className="border-t border-brand-line pt-8">
-                <h2 className="font-display text-lg font-bold text-brand-ink">
-                  {t("dtCancellation")}
-                </h2>
-                <p className="mt-2 text-sm text-brand-mute">{note.note}</p>
-              </section>
-            ) : null}
+            {/* Good to know — cancellation + part of property + report */}
+            <section id="sec-terms" className="scroll-mt-32 py-8">
+              <h2 className="font-display text-[19px] font-bold text-brand-ink">
+                {t("ddNavTerms")}
+              </h2>
+              {note?.note ? (
+                <div className="mt-4">
+                  <div className="font-display text-sm font-semibold text-brand-ink">
+                    {t("dtCancellation")}
+                  </div>
+                  <p className="mt-1 text-sm leading-relaxed text-brand-mute">
+                    {note.note}
+                  </p>
+                </div>
+              ) : null}
 
-            {/* Part of property */}
-            <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
-              <h3 className="font-display text-base font-bold text-brand-ink">
-                {t("dtPartOfTitle", { property: property.name })}
-              </h3>
-              <p className="mt-1 text-sm text-brand-mute">
-                {t("dtPartOfBody")}
-              </p>
-              <Link
-                href={propertyHref}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:underline"
-              >
-                {t("dtSeeListing")}
-                <ChevronRight className="h-4 w-4" />
-              </Link>
+              <div className="mt-5 rounded-card border border-brand-line bg-white p-5 shadow-card">
+                <h3 className="font-display text-base font-bold text-brand-ink">
+                  {t("dtPartOfTitle", { property: property.name })}
+                </h3>
+                <p className="mt-1 text-sm text-brand-mute">
+                  {t("dtPartOfBody")}
+                </p>
+                <Link
+                  href={propertyHref}
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:underline"
+                >
+                  {t("dtSeeListing")}
+                  <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
+
+              <div className="mt-5">
+                <Link
+                  href="/help"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mute hover:text-brand-primary"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                  {t("dtReport")}
+                </Link>
+              </div>
             </section>
-
-            <div>
-              <Link
-                href="/help"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-mute hover:text-brand-primary"
-              >
-                <Flag className="h-3.5 w-3.5" />
-                {t("dtReport")}
-              </Link>
-            </div>
           </div>
 
-          {/* Right column — sticky CTA panel */}
-          <aside className="lg:sticky lg:top-20 lg:self-start">
-            <div className="space-y-3 rounded-card border border-brand-line bg-white p-5 shadow-card">
-              {amount != null ? (
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="num font-display text-2xl font-extrabold text-brand-ink">
-                      <Money amount={amount} currency={special.currency} />
+          {/* RIGHT — sticky deal summary */}
+          <aside className="lg:col-span-5 xl:col-span-4">
+            <div className="lg:sticky lg:top-24">
+              <div className="rounded-card border border-brand-line bg-white p-6 shadow-lift">
+                <div className="flex items-center justify-between">
+                  {special.savings_pct ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-primary px-3 py-1 font-display text-[12px] font-extrabold text-white">
+                      <Percent className="h-3.5 w-3.5" />
+                      {t("offPct", { pct: special.savings_pct })}
                     </span>
-                    <span className="text-xs text-brand-mute">{perLabel}</span>
-                  </div>
-                  {special.was_price && special.savings_amount ? (
-                    <p className="mt-1 text-sm font-semibold text-emerald-600">
-                      {t("dtSave")}{" "}
-                      <Money
-                        amount={Number(special.savings_amount)}
-                        currency={special.currency}
-                        approx={false}
-                      />
-                      {special.savings_pct
-                        ? t("dtOffParen", { pct: special.savings_pct })
-                        : ""}
-                      <span className="ml-1 font-normal text-brand-mute line-through">
-                        <Money
-                          amount={Number(special.was_price)}
-                          currency={special.currency}
-                          approx={false}
-                        />
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-light px-3 py-1 text-[11.5px] font-bold text-brand-secondary">
+                      <Sparkles className="h-3.5 w-3.5" /> {t("dtBadge")}
+                    </span>
+                  )}
+                </div>
+
+                {amount != null ? (
+                  <div className="mt-5">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.06em] text-brand-mute">
+                      {priceLabel}
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-baseline gap-2">
+                      {special.was_price && special.savings_amount ? (
+                        <span className="num text-[15px] text-brand-mute line-through">
+                          <Money
+                            amount={Number(special.was_price)}
+                            currency={special.currency}
+                            approx={false}
+                          />
+                        </span>
+                      ) : null}
+                      <span className="num font-display text-[30px] font-extrabold tracking-tight text-brand-ink">
+                        <Money amount={amount} currency={special.currency} />
                       </span>
-                    </p>
+                      <span className="text-xs text-brand-mute">
+                        {perLabel}
+                      </span>
+                    </div>
+                    {special.was_price && special.savings_amount ? (
+                      <div className="mt-1 text-[12px] text-brand-mute">
+                        {t("dtSave")}{" "}
+                        <span className="font-semibold text-brand-primary">
+                          <Money
+                            amount={Number(special.savings_amount)}
+                            currency={special.currency}
+                            approx={false}
+                          />
+                          {offSuffix}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                <div className="mt-5 divide-y divide-brand-line rounded-[12px] border border-brand-line">
+                  <div className="flex items-center justify-between px-3.5 py-2.5 text-[12.5px]">
+                    <span className="text-brand-mute">{t("ddRowDates")}</span>
+                    <span className="num font-medium text-brand-ink">
+                      {datesShort}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3.5 py-2.5 text-[12.5px]">
+                    <span className="text-brand-mute">{t("ddRowMinStay")}</span>
+                    <span className="font-medium text-brand-ink">
+                      {minStayLabel}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3.5 py-2.5 text-[12.5px]">
+                    <span className="text-brand-mute">
+                      {t("ddRowAppliesTo")}
+                    </span>
+                    <span className="max-w-[55%] truncate text-right font-medium text-brand-ink">
+                      {appliesTo}
+                    </span>
+                  </div>
+                  {special.book_by ? (
+                    <div className="flex items-center justify-between px-3.5 py-2.5 text-[12.5px]">
+                      <span className="text-brand-mute">
+                        {t("ddRowBookBy")}
+                      </span>
+                      <span className="num font-medium text-brand-ink">
+                        {fmtDate(special.book_by)}
+                      </span>
+                    </div>
                   ) : null}
                 </div>
-              ) : null}
 
-              {bookable && remaining <= 5 ? (
-                <p className="text-xs font-medium text-amber-600">
-                  {t("onlyLeft", { count: remaining })}
+                {bookable && remaining <= 5 ? (
+                  <p className="mt-4 text-xs font-medium text-amber-600">
+                    {t("onlyLeft", { count: remaining })}
+                  </p>
+                ) : null}
+
+                {bookable ? (
+                  <Link
+                    href={`/deal/${params.slug}/book?via=platform`}
+                    data-special-book
+                    className="mt-5 block rounded-pill bg-brand-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-secondary"
+                  >
+                    {t("dtBookCta")}
+                  </Link>
+                ) : (
+                  <div className="mt-5 rounded-pill bg-brand-light px-5 py-3 text-center text-sm font-medium text-brand-mute">
+                    {soldOut ? t("dtSoldOut") : t("dtUnavailable")}
+                  </div>
+                )}
+                <p className="mt-2 text-center text-[11px] text-brand-mute">
+                  {t("dtDirectNote")}
                 </p>
-              ) : null}
 
-              {bookable ? (
-                <Link
-                  href={`/deal/${params.slug}/book?via=platform`}
-                  data-special-book
-                  className="block rounded-pill bg-brand-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
-                >
-                  {t("dtBookCta")}
-                </Link>
-              ) : (
-                <div className="rounded-pill bg-brand-light px-5 py-3 text-center text-sm font-medium text-brand-mute">
-                  {soldOut ? t("dtSoldOut") : t("dtUnavailable")}
+                <div className="mt-4 flex items-start gap-2.5 rounded-[12px] border border-brand-line bg-brand-light/60 p-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" />
+                  <div className="text-[11px] leading-relaxed text-brand-mute">
+                    {t("ddPanelReassure", { brand: brandName })}
+                  </div>
                 </div>
-              )}
-              <p className="text-center text-[11px] text-brand-mute">
-                {t("dtDirectNote")}
-              </p>
+              </div>
             </div>
           </aside>
         </div>
