@@ -51,6 +51,8 @@ const ICONS: Record<SectionType, LucideIcon> = {
   rich_text: Type,
   faq: HelpCircle,
   contact_form: Mail,
+  // Plumbed in S5a; surfaced in the library (GROUPS) + rendered in S5b.
+  specials_preview: Sparkles,
 };
 
 // Curated grouping for the library (thumbnail grid replaces the plain dropdown).

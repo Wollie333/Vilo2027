@@ -192,6 +192,13 @@ export function newSection(type: SectionType): WebsiteSection {
           show_phone: true,
         },
       };
+    case "specials_preview":
+      return {
+        id,
+        type,
+        enabled: true,
+        props: { heading: "Current specials", layout: "grid", max: 6 },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

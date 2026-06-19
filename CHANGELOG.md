@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-06-19 — Specials · S5a (website plumbing)
+
+Purely additive plumbing so the host micro-site can carry a specials section in
+S5b. Code-only — the `website_pages.kind` CHECK was already front-loaded into the
+S0 foundation migration (`…002000`), so no new migration. No render path yet
+(that's S5b); the new section type is registered but not yet pickable in the
+builder library.
+
+### Added
+- **`specials_preview` section type** — registered in `lib/website/sections.schema.ts`
+  (`SECTION_TYPES`, `AUTO_POPULATE_SECTIONS`, the discriminated union, and a
+  `specialsPreviewProps` config-only schema `{heading?, layout?, max}` mirroring
+  `rooms_preview` — an auto-populate section that will read live data in S5b).
+- **`SpecialCard` / `SpecialsPreviewData`** site types in `lib/site/types.ts`, and
+  `specials_preview` registered in `SiteDataByType` (the SSOT shape the S5b
+  `assembleSiteDataByType` branch + `SpecialsPreview` component will consume:
+  title/slug/image/badge/price(+mode)/savings/scarcity/`bookHref`).
+- **Starter defaults** for the new type in `lib/website/sectionDefaults.ts`
+  (`newSection`) and a dormant icon entry in the builder `SectionLibrary` ICONS map
+  — both required to keep the exhaustive guards compiling; the section is left out
+  of the library `GROUPS` (not yet pickable) until S5b wires the renderer.
+
 ## 2026-06-19 — Specials · S3 (booking wiring)
 
 A booked special is now a real `bookings` row carrying `special_id` /

@@ -106,6 +106,27 @@ export type BlogCard = {
 };
 export type BlogPreviewData = { posts: BlogCard[] };
 
+export type SpecialCard = {
+  id: string;
+  title: string;
+  slug: string | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  badge?: string | null;
+  priceMode: "flat" | "per_night";
+  /** flat_total for flat specials, per_night_price for per-night specials. */
+  price?: number | null;
+  currency?: string | null;
+  /** Shadow price at normal/seasonal rate (drives the strike-through). */
+  wasPrice?: number | null;
+  savingsAmount?: number | null;
+  savingsPct?: number | null;
+  /** Remaining redemptions (drives the scarcity hint). */
+  remaining?: number | null;
+  bookHref: string; // deep-link into the booking engine (?booked_via=website)
+};
+export type SpecialsPreviewData = { specials: SpecialCard[] };
+
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
   gallery: GalleryData;
@@ -113,6 +134,7 @@ export type SiteDataByType = {
   location: LocationData;
   reviews: ReviewsData;
   blog_preview: BlogPreviewData;
+  specials_preview: SpecialsPreviewData;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

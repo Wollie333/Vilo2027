@@ -37,6 +37,7 @@ export const SECTION_TYPES = [
   "rich_text",
   "faq",
   "contact_form",
+  "specials_preview",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -47,6 +48,7 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   "location",
   "reviews",
   "blog_preview",
+  "specials_preview",
 ]);
 
 export function isAutoPopulate(type: SectionType): boolean {
@@ -175,6 +177,16 @@ const blogPreviewProps = z.object({
   max: z.number().int().min(1).max(12).default(3),
 });
 
+// Auto-populate: reads the business's active + show_on_website specials at render
+// time (see lib/site/loadSitePage.ts assembleSiteDataByType). Props are config
+// only — never duplicates special data, so the section is never stale.
+const specialsPreviewProps = z.object({
+  heading,
+  layout: gridLayout,
+  max: z.number().int().min(1).max(60).default(6),
+  ctaLabel: z.string().max(60).optional(),
+});
+
 const richTextProps = z.object({
   html: z.string().max(50000),
 });
@@ -258,6 +270,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("contact_form"),
     props: contactFormProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("specials_preview"),
+    props: specialsPreviewProps,
   }),
 ]);
 

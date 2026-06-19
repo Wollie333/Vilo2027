@@ -37,10 +37,18 @@
 >   sell-through bar + funnel chips + recent bookings → booking record) + `SpecialsList.tsx`
 >   Report links (row menu + card). **View tracking deliberately deferred to S6b** — this panel
 >   only shows numbers it can stand behind (bookings/revenue/sell-through). code-only, no migration.
-> - **S5a (NEXT) website plumbing** — migration: extend `website_pages.kind` CHECK + add
->   `'specials_preview'` to SECTION_TYPES + AUTO_POPULATE_SECTIONS in `sections.schema.ts` +
->   `SpecialCard` to `lib/site/types.ts`. (migration file only — consolidation lane pushes.)
-> - **S5b website render** — `components/site/sections/SpecialsPreview.tsx` + register in
+> - **S5a website plumbing DONE 2026-06-19** (code-only, no migration — the
+>   `website_pages.kind` CHECK was already front-loaded into the S0 foundation migration
+>   `…002000`, which has `kind IN (…,'specials')`): added `'specials_preview'` to
+>   `SECTION_TYPES` + `AUTO_POPULATE_SECTIONS` + the discriminated union + a config-only
+>   `specialsPreviewProps {heading?,layout?,max}` in `sections.schema.ts`; added
+>   `SpecialCard`/`SpecialsPreviewData` + registered `specials_preview` in `SiteDataByType`
+>   in `lib/site/types.ts`. To keep exhaustive guards green: starter `newSection()` default
+>   in `sectionDefaults.ts` + a dormant ICONS entry in builder `SectionLibrary` — but
+>   **left out of library `GROUPS` (not yet pickable)** and **no SectionRenderer case / no
+>   `assembleSiteDataByType` branch** (both have safe defaults) — those are S5b. tsc+lint
+>   (my files) +build green. Staged only my 4 paths.
+> - **S5b (NEXT) website render** — `components/site/sections/SpecialsPreview.tsx` + register in
 >   SectionRenderer + `specials_preview` branch in `assembleSiteDataByType` (loadSitePage.ts,
 >   business's active+show_on_website specials → SpecialCard[], bookHref `?via=website`) + builder
 >   section editor support.
