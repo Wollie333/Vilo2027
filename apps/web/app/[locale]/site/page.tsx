@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }): Promise<Metadata> {
   const sp = await searchParams;
   const h = await headers();
@@ -34,7 +34,7 @@ export async function generateMetadata({
 export default async function SiteHomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }) {
   const sp = await searchParams;
   const h = await headers();
@@ -44,6 +44,11 @@ export default async function SiteHomePage({
   });
   if (!ref) notFound();
   return (
-    <SitePageView siteRef={ref} pathSlug={[]} preview={sp?.preview === "1"} />
+    <SitePageView
+      siteRef={ref}
+      pathSlug={[]}
+      preview={sp?.preview === "1"}
+      themeSlug={sp?.theme}
+    />
   );
 }

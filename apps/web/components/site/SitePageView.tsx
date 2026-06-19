@@ -20,17 +20,23 @@ export const siteAsset: SiteAssetResolver = (path) =>
  * Loads a site + one of its pages and renders the themed frame + sections. The
  * SAME component path the public site and (later) the live preview share. `404`s
  * when the site or page can't be resolved.
+ *
+ * @param themeSlug - Optional theme slug to preview a different theme (for the
+ *   theme gallery preview modal). When provided, the site renders with that
+ *   theme's base instead of its own stored theme.
  */
 export async function SitePageView({
   siteRef,
   pathSlug,
   preview = false,
+  themeSlug,
 }: {
   siteRef: string;
   pathSlug: string[];
   preview?: boolean;
+  themeSlug?: string;
 }) {
-  const ctx = await loadSiteContext(siteRef, { preview });
+  const ctx = await loadSiteContext(siteRef, { preview, themeSlug });
   if (!ctx) notFound();
 
   const result = await loadSitePage(ctx, pathSlug);

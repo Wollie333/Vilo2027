@@ -20,6 +20,7 @@ import {
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 import type { SiteThemeConfig } from "./themes";
+import { resolveThemeBase } from "./themes.server";
 import type {
   BlogCard,
   GalleryImage,
@@ -97,9 +98,10 @@ export function pageHref(kind: string, slug: string): string {
  */
 export async function loadSiteContext(
   ref: string,
-  opts: { preview?: boolean } = {},
+  opts: { preview?: boolean; themeSlug?: string } = {},
 ): Promise<SiteContext | null> {
   const preview = opts.preview ?? false;
+  const previewThemeSlug = opts.themeSlug;
   const sb = createAdminClient();
 
   const { data: site } = await sb
@@ -169,7 +171,15 @@ export async function loadSiteContext(
     contactPhone: contact.phone?.trim() || null,
     socials: (brandJson.socials ?? undefined) as SiteBrand["socials"],
   };
-  const theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
+  // Theme preview: when a themeSlug is provided, load that theme's base instead
+  // of using the site's stored theme. This enables the gallery's full-site preview.
+  let theme: SiteThemeConfig;
+  if (previewThemeSlug) {
+    const previewBase = await resolveThemeBase(previewThemeSlug);
+    theme = { preset: previewThemeSlug, base: previewBase };
+  } else {
+    theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
+  }
   const seo = (snap?.seo ?? site.seo ?? {}) as Record<string, unknown>;
 
   let nav: SiteNavItem[];

@@ -13,7 +13,7 @@ export async function generateMetadata({
   searchParams,
 }: {
   params: Promise<{ slug: string[] }>;
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
   const sp = await searchParams;
@@ -33,7 +33,7 @@ export default async function SiteSlugPage({
   searchParams,
 }: {
   params: Promise<{ slug: string[] }>;
-  searchParams: Promise<{ site?: string; preview?: string }>;
+  searchParams: Promise<{ site?: string; preview?: string; theme?: string }>;
 }) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -48,6 +48,7 @@ export default async function SiteSlugPage({
       siteRef={ref}
       pathSlug={slug ?? []}
       preview={sp?.preview === "1"}
+      themeSlug={sp?.theme}
     />
   );
 }
