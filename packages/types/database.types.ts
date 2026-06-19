@@ -3537,6 +3537,7 @@ export type Database = {
           status: string
           subdomain: string
           theme: Json
+          theme_id: string | null
           updated_at: string
           verification_token: string | null
         }
@@ -3557,6 +3558,7 @@ export type Database = {
           status?: string
           subdomain: string
           theme?: Json
+          theme_id?: string | null
           updated_at?: string
           verification_token?: string | null
         }
@@ -3577,6 +3579,7 @@ export type Database = {
           status?: string
           subdomain?: string
           theme?: Json
+          theme_id?: string | null
           updated_at?: string
           verification_token?: string | null
         }
@@ -3593,6 +3596,13 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "host_websites_theme_id_fkey"
+            columns: ["theme_id"]
+            isOneToOne: false
+            referencedRelation: "site_themes"
             referencedColumns: ["id"]
           },
         ]
@@ -7733,6 +7743,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      site_themes: {
+        Row: {
+          base: Json
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_premium: boolean
+          name: string
+          page_templates: Json
+          preview_image_path: string | null
+          price: number | null
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          base?: Json
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_premium?: boolean
+          name: string
+          page_templates?: Json
+          preview_image_path?: string | null
+          price?: number | null
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          base?: Json
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_premium?: boolean
+          name?: string
+          page_templates?: Json
+          preview_image_path?: string | null
+          price?: number | null
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       spatial_ref_sys: {
         Row: {
