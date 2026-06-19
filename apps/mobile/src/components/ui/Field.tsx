@@ -3,6 +3,7 @@ import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 import { Eye, EyeOff } from "lucide-react-native";
 import { Icon, type IconComponent } from "./Icon";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 type Props = TextInputProps & {
   icon?: IconComponent;
@@ -46,7 +47,10 @@ export function Field({ icon, password = false, ...inputProps }: Props) {
         <Pressable
           onPress={() => setHidden((h) => !h)}
           className="absolute right-3 h-8 w-8 items-center justify-center"
-          accessibilityLabel={hidden ? "Show password" : "Hide password"}
+          accessibilityRole="button"
+          accessibilityLabel={
+            hidden ? t("a11y.showPassword") : t("a11y.hidePassword")
+          }
         >
           <Icon icon={hidden ? Eye : EyeOff} size={18} color={brand.mute} />
         </Pressable>

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft } from "lucide-react-native";
 import { Icon } from "./Icon";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 type Props = {
   title: string;
@@ -33,7 +34,8 @@ export function ScreenHeader({
           {onBack ? (
             <Pressable
               onPress={onBack}
-              accessibilityLabel="Back"
+              accessibilityRole="button"
+              accessibilityLabel={t("common.back")}
               className="h-10 w-10 items-center justify-center rounded-full border border-brand-line active:bg-brand-light"
             >
               <Icon icon={ArrowLeft} size={20} color={brand.ink} />

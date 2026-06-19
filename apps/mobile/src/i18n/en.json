@@ -12,6 +12,14 @@
     "errorTitle": "Something went wrong",
     "errorMessage": "Please check your connection and try again."
   },
+  "a11y": {
+    "notifications": "Notifications",
+    "sendMessage": "Send message",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
   "auth": {
     "welcomeBack": "Welcome back",
     "signInSubtitle": "Sign in to pick up trips, messages and saved stays.",

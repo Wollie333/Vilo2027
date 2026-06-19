@@ -21,6 +21,7 @@ import {
   type Message,
 } from "@/lib/queries/inbox";
 import { brand } from "@/theme/tokens";
+import { t } from "@/i18n";
 
 // Shared two-pane chat used by both the guest and host surfaces. The only
 // difference is which read flag a sent message sets (role).
@@ -72,6 +73,8 @@ export function ChatView({
         >
           <Pressable
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
             className="h-10 w-10 items-center justify-center rounded-full active:bg-brand-light"
           >
             <Icon icon={ArrowLeft} size={20} color={brand.ink} />
@@ -110,6 +113,8 @@ export function ChatView({
           <Pressable
             onPress={onSend}
             disabled={!text.trim() || send.isPending}
+            accessibilityRole="button"
+            accessibilityLabel={t("a11y.sendMessage")}
             className={`h-[42px] w-[42px] items-center justify-center rounded-full ${
               text.trim() ? "bg-brand-primary" : "bg-brand-line"
             }`}

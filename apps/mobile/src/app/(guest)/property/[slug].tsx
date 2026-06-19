@@ -19,6 +19,7 @@ import {
   usePropertyDetail,
   usePropertyReviews,
 } from "@/lib/queries/properties";
+import { t } from "@/i18n";
 
 export default function PropertyDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -45,6 +46,8 @@ export default function PropertyDetailScreen() {
       <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
         <Pressable
           onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={t("common.back")}
           className="ml-3 h-10 w-10 items-center justify-center rounded-full border border-brand-line"
         >
           <Icon icon={ArrowLeft} size={20} color={brand.ink} />
@@ -88,6 +91,8 @@ export default function PropertyDetailScreen() {
           )}
           <Pressable
             onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.back")}
             className="absolute left-4 h-10 w-10 items-center justify-center rounded-full bg-white"
             style={{ top: insets.top + 4 }}
           >

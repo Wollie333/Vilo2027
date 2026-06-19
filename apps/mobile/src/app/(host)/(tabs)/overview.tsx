@@ -75,6 +75,8 @@ export default function HostOverview() {
             <View className="flex-row items-center gap-2">
               <Pressable
                 onPress={() => router.push("/(host)/notifications")}
+                accessibilityRole="button"
+                accessibilityLabel={t("a11y.notifications")}
                 className="h-10 w-10 items-center justify-center rounded-full border border-brand-line active:bg-brand-light"
               >
                 <Icon icon={Bell} size={19} color={brand.ink} />

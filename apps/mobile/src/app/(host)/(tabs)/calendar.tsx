@@ -142,6 +142,8 @@ export default function HostCalendar() {
           <View className="flex-row items-center justify-between">
             <Pressable
               onPress={() => shift(-1)}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.previousMonth")}
               className="h-9 w-9 items-center justify-center rounded-full border border-brand-line"
             >
               <Icon icon={ChevronLeft} size={18} color={brand.ink} />
@@ -151,6 +153,8 @@ export default function HostCalendar() {
             </Text>
             <Pressable
               onPress={() => shift(1)}
+              accessibilityRole="button"
+              accessibilityLabel={t("a11y.nextMonth")}
               className="h-9 w-9 items-center justify-center rounded-full border border-brand-line"
             >
               <Icon icon={ChevronRight} size={18} color={brand.ink} />
