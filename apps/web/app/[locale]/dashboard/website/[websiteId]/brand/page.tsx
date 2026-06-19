@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { loadActiveThemes } from "@/lib/site/themes.server";
+import type { SitePreset } from "@/lib/site/themes";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
 import { loadWebsiteEditorData } from "../loadWebsiteEditorData";
@@ -15,7 +17,10 @@ export default async function WebsiteBrandPage({
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const data = await loadWebsiteEditorData(websiteId);
+  const [data, themes] = await Promise.all([
+    loadWebsiteEditorData(websiteId),
+    loadActiveThemes(),
+  ]);
   if (!data) notFound();
 
   // Resolve every brand-asset slot → public URL for the preview chrome.
@@ -31,12 +36,22 @@ export default async function WebsiteBrandPage({
   ) as Record<BrandAssetSlot, string | null>;
 
   const fallbackName = data.businessName || data.subdomain;
-  const initial = deriveStudioState(data.brand, data.theme, assetUrls);
+
+  // Resolve the active theme's base: the copied base on the saved theme, else the
+  // catalogue theme matching its slug, else the first theme.
+  const presetSlug = (data.theme.preset as string | undefined) || "classic";
+  const base: SitePreset =
+    (data.theme.base as SitePreset | undefined) ??
+    themes.find((t) => t.slug === presetSlug)?.base ??
+    themes[0].base;
+
+  const initial = deriveStudioState(data.brand, data.theme, assetUrls, base);
 
   return (
     <BrandStudio
       websiteId={websiteId}
       initial={initial}
+      themes={themes}
       fallbackName={fallbackName}
       subdomain={data.subdomain}
       liveHref={`/site?site=${data.subdomain}&preview=1`}

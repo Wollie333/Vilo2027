@@ -16,14 +16,13 @@ import {
 import { useTranslations } from "next-intl";
 
 import {
-  SITE_PRESETS,
   buildSiteVars,
   modularSizes,
   type SiteFont,
-  type SitePresetKey,
   type SiteRadius,
   type SiteShadow,
 } from "@/lib/site/themes";
+import type { ThemeOption } from "@/lib/site/themes.server";
 import type { SiteLogoStyle } from "@/lib/site/types";
 import { siteImageStyle } from "@/components/site/sections/_shared";
 
@@ -53,6 +52,7 @@ export type SectionProps = {
   state: StudioState;
   merge: (patch: Partial<StudioState>) => void;
   fallbackName: string;
+  themes: ThemeOption[];
 };
 
 const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
@@ -185,16 +185,16 @@ const COLOUR_ROLES: Array<{ key: keyof StudioColors; labelKey: string }> = [
   { key: "secondary", labelKey: "brandColourSecondary" },
 ];
 
-export function ColourSection({ state, merge }: SectionProps) {
+export function ColourSection({ state, merge, themes }: SectionProps) {
   const t = useTranslations("website");
-  const preset = SITE_PRESETS[state.preset];
+  const base = state.base;
   const setColor = (role: keyof StudioColors, hex: string) =>
     merge({ colors: { ...state.colors, [role]: hex } });
 
   const inheritedFor = (role: keyof StudioColors): string =>
     role === "secondary"
-      ? state.colors.accent || preset.palette.accent
-      : (preset.palette[role as keyof typeof preset.palette] as string);
+      ? state.colors.accent || base.palette.accent
+      : (base.palette[role as keyof typeof base.palette] as string);
 
   return (
     <Acc
@@ -206,10 +206,12 @@ export function ColourSection({ state, merge }: SectionProps) {
       <Ctl>
         <CtlLabel>{t("presetLabel")}</CtlLabel>
         <ThemeCards
-          value={state.preset}
-          onChange={(key) =>
+          themes={themes}
+          activeSlug={state.preset}
+          onSelect={(theme) =>
             merge({
-              preset: key as SitePresetKey,
+              preset: theme.slug,
+              base: theme.base,
               colors: {
                 bg: "",
                 surface: "",
@@ -227,7 +229,7 @@ export function ColourSection({ state, merge }: SectionProps) {
         <CtlLabel>{t("brandColourPrimary")}</CtlLabel>
         <SwatchRow
           value={state.colors.accent}
-          inheritedHex={preset.palette.accent}
+          inheritedHex={base.palette.accent}
           onChange={(hex) => setColor("accent", hex)}
         />
       </Ctl>
@@ -534,7 +536,7 @@ const SHADOW_OPTS: Array<{ value: SiteShadow; labelKey: string }> = [
 export function ImagesSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const img = state.image;
-  const presetLine = SITE_PRESETS[state.preset].palette.line;
+  const presetLine = state.base.palette.line;
   const setImg = (patch: Partial<StudioState["image"]>) =>
     merge({ image: { ...img, ...patch } });
 
@@ -770,7 +772,7 @@ export function HomepageSection({ state, merge }: SectionProps) {
 // ── Feature icons ─────────────────────────────────────────
 export function IconsSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
-  const preset = SITE_PRESETS[state.preset];
+  const base = state.base;
   return (
     <Acc
       icon={<Sparkles className="h-[17px] w-[17px]" />}
@@ -781,7 +783,7 @@ export function IconsSection({ state, merge }: SectionProps) {
         <CtlLabel>{t("brandIconColour")}</CtlLabel>
         <SwatchRow
           value={state.iconColor}
-          inheritedHex={state.colors.accent || preset.palette.accent}
+          inheritedHex={state.colors.accent || base.palette.accent}
           onChange={(hex) => merge({ iconColor: hex })}
         />
       </Ctl>
