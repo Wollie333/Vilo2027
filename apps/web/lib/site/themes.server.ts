@@ -12,6 +12,7 @@ export type ThemeOption = {
   id: string;
   slug: string;
   name: string;
+  description: string | null;
   previewUrl: string | null;
   base: SitePreset;
   isPremium: boolean;
@@ -22,6 +23,7 @@ type ThemeRow = {
   id: string;
   slug: string;
   name: string;
+  description: string | null;
   preview_image_path: string | null;
   base: SitePreset;
   is_premium: boolean | null;
@@ -35,6 +37,7 @@ function presetThemes(): ThemeOption[] {
     id: `preset:${slug}`,
     slug,
     name: SITE_PRESETS[slug].label,
+    description: null,
     previewUrl: null,
     base: SITE_PRESETS[slug],
     isPremium: false,
@@ -57,7 +60,9 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
     const sb = createAdminClient() as unknown as SupabaseClient;
     const { data, error } = await sb
       .from("site_themes")
-      .select("id, slug, name, preview_image_path, base, is_premium, price")
+      .select(
+        "id, slug, name, description, preview_image_path, base, is_premium, price",
+      )
       .eq("is_active", true)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true });
@@ -69,6 +74,7 @@ export async function loadActiveThemes(): Promise<ThemeOption[]> {
       id: r.id,
       slug: r.slug,
       name: r.name,
+      description: r.description ?? null,
       previewUrl: websiteAssetUrl(r.preview_image_path),
       base: (r.base ?? {}) as SitePreset,
       isPremium: !!r.is_premium,
@@ -129,6 +135,39 @@ export async function getThemeBundle(
 }
 
 /**
+ * Load the default theme (is_default = true) with its base + page templates.
+ * Used when creating a new website to apply the default theme automatically.
+ * Falls back to the hardcoded "warm" preset if the DB is unavailable.
+ */
+export async function loadDefaultTheme(): Promise<ThemeBundle | null> {
+  try {
+    const sb = createAdminClient() as unknown as SupabaseClient;
+    const { data, error } = await sb
+      .from("site_themes")
+      .select("slug, base, page_templates")
+      .eq("is_default", true)
+      .eq("is_active", true)
+      .is("deleted_at", null)
+      .maybeSingle();
+    const row = data as {
+      slug: string;
+      base: SitePreset;
+      page_templates: ThemePageTemplate[] | null;
+    } | null;
+    if (error || !row) return null;
+    return {
+      slug: row.slug,
+      base: row.base,
+      pageTemplates: Array.isArray(row.page_templates)
+        ? row.page_templates
+        : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Resolve a theme's visual base by slug — the authoritative source for what gets
  * stored on save (so we never trust a client-sent base). Falls back to the
  * built-in preset of the same slug when the catalogue is unavailable.
@@ -150,5 +189,5 @@ export async function resolveThemeBase(slug: string): Promise<SitePreset> {
   if (slug in SITE_PRESETS) {
     return SITE_PRESETS[slug as keyof typeof SITE_PRESETS];
   }
-  return SITE_PRESETS.classic;
+  return SITE_PRESETS.warm;
 }
