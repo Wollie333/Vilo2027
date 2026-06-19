@@ -5,6 +5,21 @@
 
 ---
 
+## 2026-06-19 — Specials · S7b (help article)
+
+Ships the Help Centre article for the Specials feature per RULES.md §9. SQL-only —
+no schema change, no type regen.
+
+### Added
+- **`specials` help article** — migration `20260619003000_help_specials.sql`
+  inserts a host-audience, published article ("Creating and selling Specials")
+  under the `listings` category (idempotent on slug, `ON CONFLICT DO UPDATE`,
+  category falls back to the first existing category). Covers what a Special is,
+  building one (fixed vs flexible dates, go-live/book-by/quantity), the two pricing
+  modes (flat package vs per-night) + the savings badge, visibility channels (Vilo
+  directory + own website section), how a booking redeems/releases a unit, and the
+  per-special performance report.
+
 ## 2026-06-19 — Specials · S5a (website plumbing)
 
 Purely additive plumbing so the host micro-site can carry a specials section in

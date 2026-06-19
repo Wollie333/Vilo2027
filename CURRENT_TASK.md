@@ -77,7 +77,14 @@
 >   `{key:'specials',label:'Specials',scope:'toggle'}` to `CANONICAL_PRODUCT_FEATURES` so the admin
 >   product editor can configure it. Public special-booking flow deliberately NOT gated (the guest
 >   isn't the entitled party; the host's entitlement is checked at create/publish). build+lint green.
-> - **S7b help article** — DB-backed help migration (`specials` article).
+> - **S7b help article DONE 2026-06-19** — DB-backed help migration
+>   `20260619003000_help_specials.sql` inserts the host-audience, published
+>   `specials` article ("Creating and selling Specials") under the `listings`
+>   category (idempotent on slug; category falls back to the first existing one).
+>   Covers what a Special is, building one (fixed/flexible dates, go-live/book-by/
+>   quantity), the two pricing modes (flat package vs per-night) + savings badge,
+>   visibility channels (directory + website section), redeem/release on booking,
+>   and the per-special report. SQL-only — no schema change, no type regen, no code.
 > - **S7c-1 i18n: dashboard CRUD** strings (S1 editor/list deferred all i18n) → en.json + t().
 > - **S7c-2 i18n: public** directory + shared detail + special booking flow.
 > - **S7c-3 i18n: website** section + report panel.
