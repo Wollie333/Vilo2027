@@ -6,18 +6,14 @@ import { requireHost as getHost } from "@/lib/host/current";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createServerClient } from "@/lib/supabase/server";
 
+import { canUseSpecials } from "@/lib/specials/gate";
+
 import { computeSpecialSavings } from "./_lib/savings";
 import { specialInputSchema, type SpecialInput } from "./schemas";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
-
-// Pre-MVP: every feature is open on the free plan so the founder can smoke-test
-// (AGENT_RULES.md §3.4). The check_feature_permission gate lands in S7.
-async function assertFeatureEnabled(): Promise<boolean> {
-  return true;
-}
 
 const STATUS_PATH = "/dashboard/specials";
 
@@ -209,7 +205,7 @@ export async function createSpecialAction(
 ): Promise<ActionResult<{ id: string }>> {
   const host = await getHost();
   if (!host.ok) return host;
-  if (!(await assertFeatureEnabled())) {
+  if (!(await canUseSpecials(host.hostId))) {
     return { ok: false, error: "Specials aren’t available on your plan." };
   }
   const p = parse(input);
@@ -267,6 +263,9 @@ export async function updateSpecialAction(
 ): Promise<ActionResult> {
   const host = await getHost();
   if (!host.ok) return host;
+  if (!(await canUseSpecials(host.hostId))) {
+    return { ok: false, error: "Specials aren’t available on your plan." };
+  }
   const p = parse(input);
   if (!p.ok) return p;
   const v = p.value;

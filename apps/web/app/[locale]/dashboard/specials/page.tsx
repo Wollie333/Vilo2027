@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Sparkles, Plus } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
+import { canUseSpecials } from "@/lib/specials/gate";
 import { createServerClient } from "@/lib/supabase/server";
 
 import { SpecialsList, type SpecialRow } from "./SpecialsList";
@@ -37,6 +38,24 @@ export default async function SpecialsPage() {
         </h1>
         <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
           Finish host onboarding before creating specials.
+        </p>
+      </div>
+    );
+  }
+
+  // UI-layer feature gate (AGENT_RULES §3.2 — gate at both action + UI layers).
+  // Pre-MVP this is always open (§3.4); at launch it locks out unentitled plans.
+  if (!(await canUseSpecials(host.id))) {
+    return (
+      <div className="rounded-card border border-dashed border-brand-line bg-white p-10 text-center shadow-card">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-card bg-brand-accent text-brand-primary">
+          <Sparkles className="h-6 w-6" />
+        </div>
+        <h1 className="font-display text-lg font-bold text-brand-ink">
+          Specials aren’t on your plan yet
+        </h1>
+        <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
+          Upgrade your plan to create pre-packaged deals for your properties.
         </p>
       </div>
     );

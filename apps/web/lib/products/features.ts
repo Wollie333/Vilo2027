@@ -57,6 +57,8 @@ export const CANONICAL_PRODUCT_FEATURES: CanonicalFeature[] = [
     label: "Done-for-you website design",
     scope: "toggle",
   },
+  // Merchandising
+  { key: "specials", label: "Specials", scope: "toggle" },
   // Engagement
   { key: "inbox_messages", label: "Inbox", scope: "toggle" },
   { key: "reviews_respond", label: "Respond to reviews", scope: "toggle" },

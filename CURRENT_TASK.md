@@ -64,7 +64,19 @@
 > - **S6b view tracking + conversion** — `special_view`/`special_book_click` via `/api/site-track`
 >   beacon + track-listing-view pattern on the platform detail page; aggregate per special in
 >   `lib/website/analytics.ts`; add views + view→booking conversion to the S6a panel.
-> - **S7a feature gate** — gate at action + UI layer; open on `free` pre-MVP (AGENT_RULES §3.4).
+> - **S7a feature gate DONE 2026-06-19** (code + seed migration, no schema change): new
+>   SSOT `lib/specials/gate.ts` — `SPECIALS_FEATURE_KEY='specials'` + `canUseSpecials(hostId)`
+>   wires the canonical `check_feature_permission` RPC (via shared `hostHasFeature`) but
+>   short-circuits to `true` behind a `PRE_MVP_OPEN` flag (AGENT_RULES §3.4 — hosts have no
+>   subscriptions row yet, so the fail-closed RPC would lock everyone out; flip the flag at
+>   launch, no other code change). **Action layer:** `createSpecialAction` + `updateSpecialAction`
+>   now call `canUseSpecials(host.hostId)` (replaced the local always-true stub). **UI layer:**
+>   `dashboard/specials/page.tsx` resolves the gate and renders a "not on your plan yet" card
+>   when unentitled (never shows pre-MVP). Seed migration `20260619002000_specials_feature_gate.sql`
+>   inserts `specials`=true for free/basic/pro/business (ON CONFLICT DO NOTHING). Added
+>   `{key:'specials',label:'Specials',scope:'toggle'}` to `CANONICAL_PRODUCT_FEATURES` so the admin
+>   product editor can configure it. Public special-booking flow deliberately NOT gated (the guest
+>   isn't the entitled party; the host's entitlement is checked at create/publish). build+lint green.
 > - **S7b help article** — DB-backed help migration (`specials` article).
 > - **S7c-1 i18n: dashboard CRUD** strings (S1 editor/list deferred all i18n) → en.json + t().
 > - **S7c-2 i18n: public** directory + shared detail + special booking flow.
