@@ -65,6 +65,8 @@ export default async function SiteBlogPostPage({
         nav={ctx.nav}
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+        header={ctx.theme.header}
+        footer={ctx.theme.footer}
       >
         <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
           <a

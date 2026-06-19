@@ -325,7 +325,12 @@ export function RoomsManager({
         <div className="overflow-hidden rounded-card border border-brand-line bg-brand-light/40">
           <div className="mx-auto max-h-[78vh] overflow-y-auto bg-white">
             <SiteThemeRoot theme={preview.theme}>
-              <SiteChrome brand={preview.brand} nav={preview.nav}>
+              <SiteChrome
+                brand={preview.brand}
+                nav={preview.nav}
+                header={preview.theme.header}
+                footer={preview.theme.footer}
+              >
                 <SectionRenderer
                   sections={[
                     {

@@ -330,7 +330,12 @@ export function SectionBuilder({
             }`}
           >
             <SiteThemeRoot theme={theme}>
-              <SiteChrome brand={brand} nav={nav}>
+              <SiteChrome
+                brand={brand}
+                nav={nav}
+                header={theme.header}
+                footer={theme.footer}
+              >
                 {visualEdit ? (
                   // Visual mode: each section gets a click-to-edit hotspot overlay.
                   enabledSections.map((s) => (

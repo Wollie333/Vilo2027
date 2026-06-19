@@ -629,6 +629,8 @@ export async function saveBrandStudioAction(
     heroLayout: d.heroLayout,
     social: { shape: d.social.shape, style: d.social.style },
     iconColor: d.iconColor || undefined,
+    header: { desktop: d.header.desktop, mobile: d.header.mobile },
+    footer: { desktop: d.footer.desktop, mobile: d.footer.mobile },
   });
   if (!themeRes.ok) return themeRes;
 

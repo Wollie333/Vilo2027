@@ -6,6 +6,8 @@ import {
   GalleryVerticalEnd,
   Image as ImageIcon,
   Layout,
+  PanelBottom,
+  PanelTop,
   RotateCcw,
   Share2,
   Sparkles,
@@ -19,6 +21,8 @@ import {
   buildSiteVars,
   modularSizes,
   type SiteFont,
+  type SiteFooterLayout,
+  type SiteHeaderLayout,
   type SiteRadius,
   type SiteShadow,
 } from "@/lib/site/themes";
@@ -785,6 +789,88 @@ export function IconsSection({ state, merge }: SectionProps) {
           value={state.iconColor}
           inheritedHex={state.colors.accent || base.palette.accent}
           onChange={(hex) => merge({ iconColor: hex })}
+        />
+      </Ctl>
+    </Acc>
+  );
+}
+
+// ── Header layout (desktop + mobile) ──────────────────────
+const HEADER_OPTS: Array<{ value: SiteHeaderLayout; labelKey: string }> = [
+  { value: "classic", labelKey: "headerClassic" },
+  { value: "centered", labelKey: "headerCentered" },
+  { value: "minimal", labelKey: "headerMinimal" },
+];
+
+export function HeaderSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  const setHeader = (patch: Partial<StudioState["header"]>) =>
+    merge({ header: { ...state.header, ...patch } });
+  const opts = HEADER_OPTS.map((o) => ({
+    value: o.value,
+    label: t(o.labelKey),
+  }));
+  return (
+    <Acc
+      icon={<PanelTop className="h-[17px] w-[17px]" />}
+      title={t("brandHeaderTitle")}
+      subtitle={t("brandHeaderSub")}
+    >
+      <Ctl>
+        <CtlLabel>{t("layoutDesktop")}</CtlLabel>
+        <Seg
+          value={state.header.desktop}
+          options={opts}
+          onChange={(v) => setHeader({ desktop: v })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("layoutMobile")}</CtlLabel>
+        <Seg
+          value={state.header.mobile}
+          options={opts}
+          onChange={(v) => setHeader({ mobile: v })}
+        />
+      </Ctl>
+    </Acc>
+  );
+}
+
+// ── Footer layout (desktop + mobile) ──────────────────────
+const FOOTER_OPTS: Array<{ value: SiteFooterLayout; labelKey: string }> = [
+  { value: "centered", labelKey: "footerCentered" },
+  { value: "columns", labelKey: "footerColumns" },
+  { value: "simple", labelKey: "footerSimple" },
+];
+
+export function FooterSection({ state, merge }: SectionProps) {
+  const t = useTranslations("website");
+  const setFooter = (patch: Partial<StudioState["footer"]>) =>
+    merge({ footer: { ...state.footer, ...patch } });
+  const opts = FOOTER_OPTS.map((o) => ({
+    value: o.value,
+    label: t(o.labelKey),
+  }));
+  return (
+    <Acc
+      icon={<PanelBottom className="h-[17px] w-[17px]" />}
+      title={t("brandFooterTitle")}
+      subtitle={t("brandFooterSub")}
+    >
+      <Ctl>
+        <CtlLabel>{t("layoutDesktop")}</CtlLabel>
+        <Seg
+          value={state.footer.desktop}
+          options={opts}
+          onChange={(v) => setFooter({ desktop: v })}
+        />
+      </Ctl>
+      <Ctl>
+        <CtlLabel>{t("layoutMobile")}</CtlLabel>
+        <Seg
+          value={state.footer.mobile}
+          options={opts}
+          onChange={(v) => setFooter({ mobile: v })}
         />
       </Ctl>
     </Acc>
