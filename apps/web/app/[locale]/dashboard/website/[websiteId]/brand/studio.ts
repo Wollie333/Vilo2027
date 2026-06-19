@@ -10,7 +10,7 @@ import {
   type SiteCardStyle,
   type SiteFont,
   type SiteHeroLayout,
-  type SitePresetKey,
+  type SitePreset,
   type SiteRadius,
   type SiteShadow,
   type SiteSocialShape,
@@ -105,8 +105,10 @@ export type StudioState = {
   socials: Record<SocialKey, string>;
   // Logo/favicon asset URLs (for the preview; paths persist on upload)
   assets: Record<BrandAssetSlot, string | null>;
-  // Design
-  preset: SitePresetKey;
+  // Design — `preset` is the active theme slug; `base` is its resolved
+  // palette/font/radius (from the site_themes catalogue) that overrides layer on.
+  preset: string;
+  base: SitePreset;
   colors: StudioColors;
   palette: string[];
   type: StudioType;
@@ -119,19 +121,11 @@ export type StudioState = {
   iconColor: string; // "" = inherit accent
 };
 
-const PRESET_KEYS: SitePresetKey[] = [
-  "classic",
-  "modern",
-  "coastal",
-  "warm",
-  "minimal",
-  "nightfall",
-];
 const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
 const RADII: SiteRadius[] = ["none", "sm", "md", "lg", "xl"];
 
-const asPreset = (v: unknown): SitePresetKey =>
-  PRESET_KEYS.includes(v as SitePresetKey) ? (v as SitePresetKey) : "classic";
+const asSlug = (v: unknown): string =>
+  typeof v === "string" && v.trim() ? v.trim() : "classic";
 const asFont = (v: unknown): SiteFont | "" =>
   FONTS.includes(v as SiteFont) ? (v as SiteFont) : "";
 const asRadius = (v: unknown): SiteRadius | "" =>
@@ -161,6 +155,7 @@ export function deriveStudioState(
   brand: WebsiteEditorData["brand"],
   theme: SiteThemeConfig,
   assetUrls: Record<BrandAssetSlot, string | null>,
+  base: SitePreset,
 ): StudioState {
   const c = theme.colors ?? {};
   const ty = theme.type ?? {};
@@ -192,7 +187,8 @@ export function deriveStudioState(
     contactPhone: brand.contact?.phone ?? "",
     socials,
     assets: assetUrls,
-    preset: asPreset(theme.preset),
+    preset: asSlug(theme.preset),
+    base,
     colors: {
       ...EMPTY_COLORS,
       bg: hex(c.bg),
@@ -253,6 +249,7 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
   );
   return {
     preset: state.preset,
+    base: state.base,
     colors,
     palette: state.palette,
     type: {

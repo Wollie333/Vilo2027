@@ -230,8 +230,9 @@ export const brandStudioSchema = z.object({
       website: socialUrl,
     })
     .default({}),
-  // Design (theme jsonb)
-  preset: z.enum(SITE_PRESET_NAMES),
+  // Design (theme jsonb) — `preset` is the theme slug; the server resolves its
+  // `base` from the site_themes catalogue on save (never trusts a client base).
+  preset: z.string().trim().min(1).max(60).default("classic"),
   colors: siteColorsSchema,
   palette: z
     .array(

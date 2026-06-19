@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
+import { resolveThemeBase } from "@/lib/site/themes.server";
 import { slugify, uniqueSlug } from "@/lib/help/slug";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
@@ -370,8 +371,14 @@ export async function saveBrandStudioAction(
   });
   if (!brandRes.ok) return brandRes;
 
+  // Resolve the theme's base (palette/font/radius) from the catalogue by slug —
+  // the authoritative source, copied in so the renderer's pure buildSiteVars
+  // reads it without a DB lookup.
+  const base = await resolveThemeBase(d.preset);
+
   const themeRes = await patchSiteJson(d.websiteId, "theme", {
     preset: d.preset,
+    base,
     colors: cleanColors,
     palette: d.palette,
     type: {

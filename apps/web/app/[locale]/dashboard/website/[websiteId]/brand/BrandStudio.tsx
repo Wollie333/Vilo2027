@@ -17,6 +17,7 @@ import { useLocale, useTranslations } from "next-intl";
 
 import { saveBrandStudioAction } from "@/app/[locale]/dashboard/website/actions";
 import { Link } from "@/i18n/navigation";
+import type { ThemeOption } from "@/lib/site/themes.server";
 
 import {
   ButtonsSection,
@@ -44,12 +45,14 @@ const ROOT_DOMAIN = "vilo.site";
 export function BrandStudio({
   websiteId,
   initial,
+  themes,
   fallbackName,
   subdomain,
   liveHref,
 }: {
   websiteId: string;
   initial: StudioState;
+  themes: ThemeOption[];
   fallbackName: string;
   subdomain: string;
   liveHref: string;
@@ -65,7 +68,7 @@ export function BrandStudio({
 
   const merge = (patch: Partial<StudioState>) =>
     setState((prev) => ({ ...prev, ...patch }));
-  const sectionProps = { websiteId, state, merge, fallbackName };
+  const sectionProps = { websiteId, state, merge, fallbackName, themes };
 
   // Push the live draft theme/brand + selected page into the preview iframe.
   const post = useCallback(() => {

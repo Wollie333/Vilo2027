@@ -280,6 +280,12 @@ const CARD_RATIO: Record<SiteCardRatio, string> = {
 
 export type SiteThemeConfig = {
   preset?: string;
+  /**
+   * Resolved theme base (palette/font/radius), copied from the selected
+   * site_themes record. When present it supersedes the hardcoded SITE_PRESETS
+   * lookup — keeping buildSiteVars pure while themes live in the DB.
+   */
+  base?: SitePreset;
   colors?: SiteColors;
   palette?: string[]; // saved brand swatches — feed the pickers, not rendered
   type?: SiteType;
@@ -325,7 +331,7 @@ export function accentInkFor(hex: string): string {
 export function siteSurfaceIsDark(
   theme: SiteThemeConfig | null | undefined,
 ): boolean {
-  const preset = resolvePreset(theme?.preset);
+  const preset = theme?.base ?? resolvePreset(theme?.preset);
   const surface =
     (theme?.colors?.surface || "").trim() || preset.palette.surface;
   return accentInkFor(surface) === "#FFFFFF";
@@ -342,7 +348,7 @@ export function siteSurfaceIsDark(
 export function buildSiteVars(
   theme: SiteThemeConfig | null | undefined,
 ): React.CSSProperties {
-  const preset = resolvePreset(theme?.preset);
+  const preset = theme?.base ?? resolvePreset(theme?.preset);
   const c = theme?.colors ?? {};
   const ty = theme?.type ?? {};
 
