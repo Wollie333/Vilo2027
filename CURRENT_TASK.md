@@ -96,7 +96,27 @@
 >   string values changed; `lib/specials/categories.ts` English labels kept as the
 >   `specialCategoryLabel` fallback (public directory i18n = S7c-2). Code-only, no
 >   migration. tsc+lint+build green.
-> - **S7c-2 i18n: public** directory + shared detail + special booking flow.
+> - **S7c-2 i18n: public DONE 2026-06-19** — new public keys in the `specials`
+>   namespace; every hardcoded string wired through `t()` across the `/specials`
+>   directory (`page.tsx` generateMetadata + getTranslations, type/category
+>   chips, plural deal count, pagination), `SpecialCard` (now async server
+>   component), the shared `/special/[slug]` detail (dates/included/cancellation/
+>   savings/CTA/sold-out), and `/special/[slug]/book` (+ `SpecialBookingForm`
+>   client island: validation/dates/guests/extras/details/summary/payment/ack).
+>   Curated category keys translate; unknown keys fall back to
+>   `specialCategoryLabel`. tsc+lint+build green. (commit `44e8e06`)
+> - **Founder redesigns (2026-06-19, same session, committed):**
+>   (a) **Specials Manager** rebuilt to `Specials Manager.html` — light header +
+>   intro, 4-tile stat band (Live/Scheduled/Drafts/Top deal via a derived
+>   bucket), search + status filter chips + sort + card⇄table view toggle,
+>   savings-ribbon cards + ghost create card, all row actions preserved
+>   (`52e4b03`). (b) **Special editor** rebuilt to `Special Editor.html` —
+>   identity bar + health progress ring + 8-section rail (more than the
+>   mockup's 5: our deal carries property/room/add-ons/categories/policy) +
+>   single active panel + footer nav + docked guest preview; same form
+>   state/actions (`76cada3`). (c) **Public surfacing** — site header "Deals"
+>   nav → `/specials`; property page gains a "Specials" tab/section via
+>   `loadPropertySpecials` (card grid → `/special/[slug]`) (`08a655e`).
 > - **S7c-3 i18n: website** section + report panel.
 > - **FIN** — full `pnpm build`+`pnpm lint` green, CHANGELOG, fast-forward `main` + push.
 > Fresh session per sub-task; stage explicit paths only; build before each commit.
