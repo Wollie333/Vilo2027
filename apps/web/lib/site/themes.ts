@@ -29,34 +29,23 @@ export type SitePreset = {
   radius: SiteRadius;
 };
 
+// Production themes: warm (default) + coastal. The DB (site_themes) is the
+// source of truth after the two_themes migration; these are kept as a defensive
+// fallback in case the DB is unavailable.
 export const SITE_PRESETS = {
-  classic: {
-    label: "Classic",
+  warm: {
+    label: "Warm",
     palette: {
-      bg: "#FBF9F5",
+      bg: "#FCF6F1",
       surface: "#FFFFFF",
-      ink: "#2A2622",
-      mute: "#7A716A",
-      line: "#E9E2D8",
-      accent: "#1F6F54",
+      ink: "#34201A",
+      mute: "#8A6F63",
+      line: "#EEDFD4",
+      accent: "#C2522E",
       accentInk: "#FFFFFF",
     },
-    font: "elegant",
+    font: "serif",
     radius: "md",
-  },
-  modern: {
-    label: "Modern",
-    palette: {
-      bg: "#FFFFFF",
-      surface: "#F6F7F9",
-      ink: "#11161C",
-      mute: "#5C6773",
-      line: "#E5E9EE",
-      accent: "#1F6FEB",
-      accentInk: "#FFFFFF",
-    },
-    font: "sans",
-    radius: "lg",
   },
   coastal: {
     label: "Coastal",
@@ -72,53 +61,11 @@ export const SITE_PRESETS = {
     font: "sans",
     radius: "xl",
   },
-  warm: {
-    label: "Warm",
-    palette: {
-      bg: "#FCF6F1",
-      surface: "#FFFFFF",
-      ink: "#34201A",
-      mute: "#8A6F63",
-      line: "#EEDFD4",
-      accent: "#C2522E",
-      accentInk: "#FFFFFF",
-    },
-    font: "serif",
-    radius: "md",
-  },
-  minimal: {
-    label: "Minimal",
-    palette: {
-      bg: "#FFFFFF",
-      surface: "#FAFAFA",
-      ink: "#0A0A0A",
-      mute: "#6B6B6B",
-      line: "#E6E6E6",
-      accent: "#0A0A0A",
-      accentInk: "#FFFFFF",
-    },
-    font: "sans",
-    radius: "none",
-  },
-  nightfall: {
-    label: "Nightfall",
-    palette: {
-      bg: "#0E1116",
-      surface: "#171B22",
-      ink: "#F3EEE3",
-      mute: "#A0A7B2",
-      line: "#2A2F38",
-      accent: "#CBA653",
-      accentInk: "#14110D",
-    },
-    font: "elegant",
-    radius: "md",
-  },
 } as const;
 
 export type SitePresetKey = keyof typeof SITE_PRESETS;
 export const SITE_PRESET_KEYS = Object.keys(SITE_PRESETS) as SitePresetKey[];
-export const DEFAULT_PRESET: SitePresetKey = "classic";
+export const DEFAULT_PRESET: SitePresetKey = "warm";
 
 const FONT_STACKS: Record<SiteFont, { heading: string; body: string }> = {
   sans: {
@@ -160,6 +107,20 @@ const RADIUS_REM: Record<SiteRadius, string> = {
 };
 
 export type SiteButtonStyle = "solid" | "outline";
+
+/** Per-button customization — style, color override, border width, pill shape. */
+export type SiteButtonConfig = {
+  style?: SiteButtonStyle; // fill style (default: solid for primary, outline for secondary)
+  color?: string; // hex override (default: accent for primary, secondary for secondary)
+  borderWidth?: 1 | 2 | 3; // pixels (outline only)
+  pill?: boolean; // full radius override
+};
+
+/** Primary and secondary button configuration. */
+export type SiteButtonsConfig = {
+  primary?: SiteButtonConfig;
+  secondary?: SiteButtonConfig;
+};
 
 // Image styling (Brand Studio "Images" section) — applied to standalone site
 // images (gallery, host photo, property hero) via `--site-img-*`. `radius`
@@ -317,7 +278,8 @@ export type SiteThemeConfig = {
   palette?: string[]; // saved brand swatches — feed the pickers, not rendered
   type?: SiteType;
   radius?: SiteRadius;
-  buttonStyle?: SiteButtonStyle;
+  buttonStyle?: SiteButtonStyle; // legacy single-style fallback
+  buttons?: SiteButtonsConfig; // primary + secondary button config
   image?: SiteImageStyle;
   card?: SiteCard;
   heroLayout?: SiteHeroLayout;
@@ -441,6 +403,37 @@ export function buildSiteVars(
   const socBorder = socStyle === "outline" ? `1px solid ${accent}` : "none";
   const socRadius = social.shape === "square" ? "var(--site-radius)" : "9999px";
 
+  // --- Buttons (primary + secondary) ---
+  const siteRadius = RADIUS_REM[theme?.radius ?? preset.radius];
+  const legacyStyle = theme?.buttonStyle ?? "solid";
+  const btns = theme?.buttons ?? {};
+
+  // Primary button
+  const pBtn = btns.primary ?? {};
+  const pStyle = pBtn.style ?? legacyStyle;
+  const pColor = (pBtn.color || "").trim() || accent;
+  const pInk = pBtn.color ? accentInkFor(pBtn.color) : accentInk;
+  const pBorder =
+    pStyle === "outline"
+      ? `${pBtn.borderWidth ?? 1}px solid ${pColor}`
+      : "none";
+  const pRadius = pBtn.pill ? "9999px" : siteRadius;
+  const pBg = pStyle === "solid" ? pColor : "transparent";
+  const pFg = pStyle === "solid" ? pInk : pColor;
+
+  // Secondary button
+  const sBtn = btns.secondary ?? {};
+  const sStyle = sBtn.style ?? "outline"; // default to outline for secondary
+  const sColor = (sBtn.color || "").trim() || secondary;
+  const sInk = sBtn.color ? accentInkFor(sBtn.color) : secondaryInk;
+  const sBorder =
+    sStyle === "outline"
+      ? `${sBtn.borderWidth ?? 1}px solid ${sColor}`
+      : "none";
+  const sRadius = sBtn.pill ? "9999px" : siteRadius;
+  const sBg = sStyle === "solid" ? sColor : "transparent";
+  const sFg = sStyle === "solid" ? sInk : sColor;
+
   return {
     "--site-bg": c.bg || preset.palette.bg,
     "--site-surface": c.surface || preset.palette.surface,
@@ -493,6 +486,18 @@ export function buildSiteVars(
     "--site-social-fg": socFg,
     "--site-social-border": socBorder,
     "--site-social-radius": socRadius,
+
+    // Primary button
+    "--site-btn-primary-bg": pBg,
+    "--site-btn-primary-color": pFg,
+    "--site-btn-primary-border": pBorder,
+    "--site-btn-primary-radius": pRadius,
+
+    // Secondary button
+    "--site-btn-secondary-bg": sBg,
+    "--site-btn-secondary-color": sFg,
+    "--site-btn-secondary-border": sBorder,
+    "--site-btn-secondary-radius": sRadius,
   } as React.CSSProperties;
 }
 

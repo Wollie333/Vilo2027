@@ -84,25 +84,19 @@ export function Muted({
 export function SiteButton({
   href,
   children,
-  variant = "solid",
+  variant = "primary",
 }: {
   href: string;
   children: ReactNode;
-  variant?: "solid" | "outline";
+  variant?: "primary" | "secondary";
 }) {
-  const style: CSSProperties =
-    variant === "solid"
-      ? {
-          background: "var(--site-accent)",
-          color: "var(--site-accent-ink)",
-          borderRadius: "var(--site-radius)",
-        }
-      : {
-          background: "transparent",
-          color: "var(--site-accent)",
-          border: "1px solid var(--site-accent)",
-          borderRadius: "var(--site-radius)",
-        };
+  const prefix = `--site-btn-${variant}`;
+  const style: CSSProperties = {
+    background: `var(${prefix}-bg)`,
+    color: `var(${prefix}-color)`,
+    border: `var(${prefix}-border)`,
+    borderRadius: `var(${prefix}-radius)`,
+  };
   return (
     <a
       href={href}

@@ -9,6 +9,7 @@ import { hostHasFeature } from "@/lib/products/featureGate";
 import type { SitePreset } from "@/lib/site/themes";
 import {
   getThemeBundle,
+  loadDefaultTheme,
   resolveThemeBase,
   type ThemePageTemplate,
 } from "@/lib/site/themes.server";
@@ -295,20 +296,27 @@ export async function applyThemeAction(
   // theme_id/base columns aren't in the generated types in this lane).
   const admin = createAdminClient() as unknown as SupabaseClient;
 
-  await admin.from("website_pages").delete().eq("website_id", websiteId);
-  const { error: pagesErr } = await admin.from("website_pages").insert(
-    templates.map((tpl) => ({
-      website_id: websiteId,
-      kind: tpl.kind,
-      slug: tpl.slug,
-      title: tpl.title,
-      nav_label: tpl.nav_label,
-      nav_order: tpl.nav_order,
-      show_in_nav: tpl.show_in_nav,
-      draft_sections: tpl.sections,
-      published_sections: [],
-    })),
-  );
+  const { error: deleteErr } = await admin
+    .from("website_pages")
+    .delete()
+    .eq("website_id", websiteId);
+  if (deleteErr) return { ok: false, error: "delete_failed" };
+
+  const pagesToInsert = templates.map((tpl) => ({
+    website_id: websiteId,
+    kind: tpl.kind,
+    slug: tpl.slug,
+    title: tpl.title,
+    nav_label: tpl.nav_label,
+    nav_order: tpl.nav_order,
+    show_in_nav: tpl.show_in_nav,
+    draft_sections: tpl.sections,
+    published_sections: [],
+  }));
+
+  const { error: pagesErr } = await admin
+    .from("website_pages")
+    .insert(pagesToInsert);
   if (pagesErr) return { ok: false, error: "seed_failed" };
 
   const { error: themeErr } = await admin
@@ -438,6 +446,11 @@ export async function createWebsiteAction(
 
   const siteName = business.trading_name?.trim() || subdomain;
 
+  // Load the default theme (warm) with its page templates.
+  const defaultTheme = await loadDefaultTheme();
+  const themePreset = defaultTheme?.slug ?? "warm";
+  const themeBase = defaultTheme?.base ?? undefined;
+
   const { data: site, error: insErr } = await supabase
     .from("host_websites")
     .insert({
@@ -446,37 +459,59 @@ export async function createWebsiteAction(
       subdomain,
       status: "draft",
       brand: { name: siteName },
-      theme: { preset: "classic" },
+      theme: themeBase
+        ? { preset: themePreset, base: themeBase }
+        : { preset: themePreset },
     })
     .select("id")
     .single();
   if (insErr || !site) return { ok: false, error: "create_failed" };
 
-  // Seed pages (home + about).
-  await supabase.from("website_pages").insert([
-    {
-      website_id: site.id,
-      kind: "home",
-      slug: "home",
-      title: siteName,
-      nav_label: "Home",
-      nav_order: 0,
-      show_in_nav: true,
-      draft_sections: starterHomeSections(siteName),
-      published_sections: [],
-    },
-    {
-      website_id: site.id,
-      kind: "about",
-      slug: "about",
-      title: "About",
-      nav_label: "About",
-      nav_order: 1,
-      show_in_nav: true,
-      draft_sections: starterAboutSections(siteName),
-      published_sections: [],
-    },
-  ]);
+  // Seed pages: use theme's page_templates if available, else hardcoded starters.
+  const hasTemplates =
+    defaultTheme?.pageTemplates && defaultTheme.pageTemplates.length > 0;
+
+  if (hasTemplates) {
+    await supabase.from("website_pages").insert(
+      defaultTheme.pageTemplates.map((tpl) => ({
+        website_id: site.id,
+        kind: tpl.kind,
+        slug: tpl.slug,
+        title: tpl.title === "Home" ? siteName : tpl.title,
+        nav_label: tpl.nav_label,
+        nav_order: tpl.nav_order,
+        show_in_nav: tpl.show_in_nav,
+        draft_sections: tpl.sections,
+        published_sections: [],
+      })),
+    );
+  } else {
+    // Fallback to hardcoded starters (defensive, should not happen after migration).
+    await supabase.from("website_pages").insert([
+      {
+        website_id: site.id,
+        kind: "home",
+        slug: "home",
+        title: siteName,
+        nav_label: "Home",
+        nav_order: 0,
+        show_in_nav: true,
+        draft_sections: starterHomeSections(siteName),
+        published_sections: [],
+      },
+      {
+        website_id: site.id,
+        kind: "about",
+        slug: "about",
+        title: "About",
+        nav_label: "About",
+        nav_order: 1,
+        show_in_nav: true,
+        draft_sections: starterAboutSections(siteName),
+        published_sections: [],
+      },
+    ]);
+  }
 
   // Sync the business's properties + rooms as the initial (visible) channel set.
   const { data: props } = await supabase
@@ -613,7 +648,20 @@ export async function saveBrandStudioAction(
       sizes: cleanSizes,
     },
     radius: d.radius || undefined,
-    buttonStyle: d.buttonStyle,
+    buttons: {
+      primary: {
+        style: d.buttons.primary.style,
+        color: d.buttons.primary.color || undefined,
+        borderWidth: d.buttons.primary.borderWidth,
+        pill: d.buttons.primary.pill,
+      },
+      secondary: {
+        style: d.buttons.secondary.style,
+        color: d.buttons.secondary.color || undefined,
+        borderWidth: d.buttons.secondary.borderWidth,
+        pill: d.buttons.secondary.pill,
+      },
+    },
     image: {
       radius: d.image.radius,
       borderWidth: d.image.borderWidth,

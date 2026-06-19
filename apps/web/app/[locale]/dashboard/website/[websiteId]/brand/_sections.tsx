@@ -20,13 +20,13 @@ import { useTranslations } from "next-intl";
 import {
   buildSiteVars,
   modularSizes,
+  type SiteButtonStyle,
   type SiteFont,
   type SiteFooterLayout,
   type SiteHeaderLayout,
   type SiteRadius,
   type SiteShadow,
 } from "@/lib/site/themes";
-import type { ThemeOption } from "@/lib/site/themes.server";
 import type { SiteLogoStyle } from "@/lib/site/types";
 import { siteImageStyle } from "@/components/site/sections/_shared";
 
@@ -40,13 +40,14 @@ import {
   Seg,
   Slider,
   SwatchRow,
-  ThemeCards,
   bsInput,
   bsSelect,
 } from "./_ui";
 import {
   SOCIAL_KEYS,
   studioThemeConfig,
+  type StudioButtonConfig,
+  type StudioButtons,
   type StudioColors,
   type StudioState,
 } from "./studio";
@@ -56,7 +57,6 @@ export type SectionProps = {
   state: StudioState;
   merge: (patch: Partial<StudioState>) => void;
   fallbackName: string;
-  themes: ThemeOption[];
 };
 
 const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
@@ -189,7 +189,7 @@ const COLOUR_ROLES: Array<{ key: keyof StudioColors; labelKey: string }> = [
   { key: "secondary", labelKey: "brandColourSecondary" },
 ];
 
-export function ColourSection({ state, merge, themes }: SectionProps) {
+export function ColourSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const base = state.base;
   const setColor = (role: keyof StudioColors, hex: string) =>
@@ -207,28 +207,6 @@ export function ColourSection({ state, merge, themes }: SectionProps) {
       subtitle={t("brandColourSub")}
       defaultOpen
     >
-      <Ctl>
-        <CtlLabel>{t("presetLabel")}</CtlLabel>
-        <ThemeCards
-          themes={themes}
-          activeSlug={state.preset}
-          onSelect={(theme) =>
-            merge({
-              preset: theme.slug,
-              base: theme.base,
-              colors: {
-                bg: "",
-                surface: "",
-                ink: "",
-                mute: "",
-                line: "",
-                accent: "",
-                secondary: "",
-              },
-            })
-          }
-        />
-      </Ctl>
       <Ctl>
         <CtlLabel>{t("brandColourPrimary")}</CtlLabel>
         <SwatchRow
@@ -477,6 +455,111 @@ export function TypographySection({ state, merge }: SectionProps) {
 }
 
 // ── Buttons & corners ─────────────────────────────────────
+const BORDER_WIDTHS = [
+  { value: "1", label: "1px" },
+  { value: "2", label: "2px" },
+  { value: "3", label: "3px" },
+];
+
+function ButtonConfigControls({
+  cfg,
+  onChange,
+  presetAccent,
+  t,
+}: {
+  cfg: StudioButtonConfig;
+  onChange: (patch: Partial<StudioButtonConfig>) => void;
+  presetAccent: string;
+  t: ReturnType<typeof useTranslations<"website">>;
+}) {
+  const styleOpts: Array<{
+    value: SiteButtonStyle;
+    label: string;
+    diagram: React.ReactNode;
+  }> = [
+    {
+      value: "solid",
+      label: t("brandButtonSolid"),
+      diagram: <span className="h-3.5 w-8 rounded bg-brand-primary" />,
+    },
+    {
+      value: "outline",
+      label: t("brandButtonOutline"),
+      diagram: (
+        <span className="h-3.5 w-8 rounded border-[1.5px] border-brand-primary" />
+      ),
+    },
+  ];
+
+  return (
+    <>
+      <Ctl>
+        <CtlLabel>{t("btnStyle")}</CtlLabel>
+        <Seg
+          value={cfg.style}
+          options={styleOpts}
+          onChange={(v) => onChange({ style: v as SiteButtonStyle })}
+        />
+      </Ctl>
+
+      <Ctl>
+        <CtlLabel hint={t("btnColorHint")}>{t("btnColor")}</CtlLabel>
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={cfg.color || presetAccent}
+            onChange={(e) => onChange({ color: e.target.value.toUpperCase() })}
+            className="h-8 w-12 cursor-pointer rounded border border-brand-line bg-transparent"
+          />
+          <input
+            type="text"
+            value={cfg.color}
+            onChange={(e) =>
+              onChange({ color: e.target.value.toUpperCase().slice(0, 7) })
+            }
+            placeholder={presetAccent}
+            maxLength={7}
+            className={`${bsInput} flex-1 font-mono text-xs uppercase`}
+          />
+          {cfg.color && (
+            <button
+              type="button"
+              onClick={() => onChange({ color: "" })}
+              className="text-xs text-brand-mute hover:text-brand-ink"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </Ctl>
+
+      {cfg.style === "outline" && (
+        <Ctl>
+          <CtlLabel>{t("btnBorderWidth")}</CtlLabel>
+          <Seg
+            value={String(cfg.borderWidth)}
+            options={BORDER_WIDTHS}
+            onChange={(v) => onChange({ borderWidth: Number(v) as 1 | 2 | 3 })}
+          />
+        </Ctl>
+      )}
+
+      <Ctl>
+        <CtlLabel>{t("btnPill")}</CtlLabel>
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={cfg.pill}
+            onChange={(e) => onChange({ pill: e.target.checked })}
+            className="h-4 w-4 rounded border-brand-line"
+          />
+          <span className="text-sm text-brand-mute">{t("btnPillHint")}</span>
+        </label>
+      </Ctl>
+    </>
+  );
+}
+
 export function ButtonsSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const radiusOpts: Array<{ value: SiteRadius | ""; label: string }> = [
@@ -487,12 +570,62 @@ export function ButtonsSection({ state, merge }: SectionProps) {
     { value: "lg", label: t("radius_lg") },
     { value: "xl", label: t("radius_xl") },
   ];
+
+  const presetAccent = state.base.palette.accent;
+  // Secondary fallback: user's secondary color override, or accent if not set
+  const presetSecondary = state.colors.secondary || presetAccent;
+
+  const setBtn = (
+    variant: keyof StudioButtons,
+    patch: Partial<StudioButtonConfig>,
+  ) =>
+    merge({
+      buttons: {
+        ...state.buttons,
+        [variant]: { ...state.buttons[variant], ...patch },
+      },
+    });
+
   return (
     <Acc
       icon={<SquareMousePointer className="h-[17px] w-[17px]" />}
       title={t("brandButtonsTitle")}
       subtitle={t("brandButtonsSub")}
     >
+      {/* Live preview */}
+      <div
+        style={buildSiteVars(studioThemeConfig(state))}
+        className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-[13px] border-[1.5px] border-brand-line/70 bg-brand-light/50 p-5"
+      >
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          style={{
+            background: "var(--site-btn-primary-bg)",
+            color: "var(--site-btn-primary-color)",
+            border: "var(--site-btn-primary-border)",
+            borderRadius: "var(--site-btn-primary-radius)",
+          }}
+          className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+        >
+          {t("btnPreviewPrimary")}
+        </a>
+        <a
+          href="#"
+          onClick={(e) => e.preventDefault()}
+          style={{
+            background: "var(--site-btn-secondary-bg)",
+            color: "var(--site-btn-secondary-color)",
+            border: "var(--site-btn-secondary-border)",
+            borderRadius: "var(--site-btn-secondary-radius)",
+          }}
+          className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+        >
+          {t("btnPreviewSecondary")}
+        </a>
+      </div>
+
+      {/* Site-wide corner radius */}
       <Ctl>
         <CtlLabel>{t("themeCornersLabel")}</CtlLabel>
         <Seg
@@ -501,29 +634,32 @@ export function ButtonsSection({ state, merge }: SectionProps) {
           onChange={(v) => merge({ radius: v })}
         />
       </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandButtonShape")}</CtlLabel>
-        <Seg
-          value={state.buttonStyle}
-          options={[
-            {
-              value: "solid",
-              label: t("brandButtonSolid"),
-              diagram: <span className="h-3.5 w-8 rounded bg-brand-primary" />,
-            },
-            {
-              value: "outline",
-              label: t("brandButtonOutline"),
-              diagram: (
-                <span className="h-3.5 w-8 rounded border-[1.5px] border-brand-primary" />
-              ),
-            },
-          ]}
-          onChange={(v) =>
-            merge({ buttonStyle: v as StudioState["buttonStyle"] })
-          }
+
+      {/* Primary button controls */}
+      <div className="mt-4 border-t border-brand-line pt-4">
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-mute">
+          {t("btnPrimaryHeading")}
+        </h4>
+        <ButtonConfigControls
+          cfg={state.buttons.primary}
+          onChange={(patch) => setBtn("primary", patch)}
+          presetAccent={presetAccent}
+          t={t}
         />
-      </Ctl>
+      </div>
+
+      {/* Secondary button controls */}
+      <div className="mt-4 border-t border-brand-line pt-4">
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-mute">
+          {t("btnSecondaryHeading")}
+        </h4>
+        <ButtonConfigControls
+          cfg={state.buttons.secondary}
+          onChange={(patch) => setBtn("secondary", patch)}
+          presetAccent={presetSecondary}
+          t={t}
+        />
+      </div>
     </Acc>
   );
 }

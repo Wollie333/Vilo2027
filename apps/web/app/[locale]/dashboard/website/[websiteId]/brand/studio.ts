@@ -76,6 +76,19 @@ export type StudioSocial = {
   style: SiteSocialStyle;
 };
 
+// Button config for studio editing (primary + secondary)
+export type StudioButtonConfig = {
+  style: SiteButtonStyle;
+  color: string; // "" = inherit accent
+  borderWidth: 1 | 2 | 3;
+  pill: boolean;
+};
+
+export type StudioButtons = {
+  primary: StudioButtonConfig;
+  secondary: StudioButtonConfig;
+};
+
 export type StudioType = {
   headingFont: SiteFont | ""; // "" = inherit preset family
   bodyFont: SiteFont | "";
@@ -95,6 +108,8 @@ const CARD_STYLES: SiteCardStyle[] = ["elevated", "bordered", "flat"];
 const CARD_RATIOS: SiteCardRatio[] = ["4:3", "16:9", "1:1", "3:2"];
 const SOC_SHAPES: SiteSocialShape[] = ["round", "square"];
 const SOC_STYLES: SiteSocialStyle[] = ["filled", "outline", "plain"];
+const BTN_STYLES: SiteButtonStyle[] = ["solid", "outline"];
+const BTN_WIDTHS = [1, 2, 3] as const;
 
 const oneOf = <T extends string>(list: T[], v: unknown, fallback: T): T =>
   list.includes(v as T) ? (v as T) : fallback;
@@ -119,7 +134,7 @@ export type StudioState = {
   palette: string[];
   type: StudioType;
   radius: SiteRadius | "";
-  buttonStyle: SiteButtonStyle;
+  buttons: StudioButtons;
   image: StudioImage;
   card: StudioCard;
   heroLayout: SiteHeroLayout;
@@ -133,7 +148,7 @@ const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
 const RADII: SiteRadius[] = ["none", "sm", "md", "lg", "xl"];
 
 const asSlug = (v: unknown): string =>
-  typeof v === "string" && v.trim() ? v.trim() : "classic";
+  typeof v === "string" && v.trim() ? v.trim() : "warm";
 const asFont = (v: unknown): SiteFont | "" =>
   FONTS.includes(v as SiteFont) ? (v as SiteFont) : "";
 const asRadius = (v: unknown): SiteRadius | "" =>
@@ -154,6 +169,37 @@ const EMPTY_COLORS: StudioColors = {
   accent: "",
   secondary: "",
 };
+
+const DEFAULT_BUTTON: StudioButtonConfig = {
+  style: "solid",
+  color: "",
+  borderWidth: 2,
+  pill: false,
+};
+
+/** Parse a button config from saved theme data. */
+function deriveButtonConfig(raw: unknown): StudioButtonConfig {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_BUTTON };
+  const r = raw as Record<string, unknown>;
+  return {
+    style: oneOf(BTN_STYLES, r.style, "solid"),
+    color: hex(r.color),
+    borderWidth: BTN_WIDTHS.includes(r.borderWidth as 1 | 2 | 3)
+      ? (r.borderWidth as 1 | 2 | 3)
+      : 2,
+    pill: r.pill === true,
+  };
+}
+
+/** Emit a button config for SiteThemeConfig (omits blank color). */
+function emitButtonConfig(cfg: StudioButtonConfig) {
+  return {
+    style: cfg.style,
+    color: cfg.color || undefined,
+    borderWidth: cfg.borderWidth,
+    pill: cfg.pill,
+  };
+}
 
 /**
  * Build the studio's working state from the saved brand + theme jsonb. Tolerates
@@ -226,7 +272,10 @@ export function deriveStudioState(
       sizes,
     },
     radius: asRadius(theme.radius),
-    buttonStyle: theme.buttonStyle === "outline" ? "outline" : "solid",
+    buttons: {
+      primary: deriveButtonConfig(theme.buttons?.primary),
+      secondary: deriveButtonConfig(theme.buttons?.secondary),
+    },
     image: {
       radius: num(im.radius, 12),
       borderWidth: num(im.borderWidth, 0),
@@ -284,7 +333,10 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
       sizes,
     },
     radius: state.radius || undefined,
-    buttonStyle: state.buttonStyle,
+    buttons: {
+      primary: emitButtonConfig(state.buttons.primary),
+      secondary: emitButtonConfig(state.buttons.secondary),
+    },
     image: {
       radius: state.image.radius,
       borderWidth: state.image.borderWidth,
@@ -342,7 +394,7 @@ export function studioToSaveInput(
     palette: state.palette,
     type: state.type,
     radius: state.radius,
-    buttonStyle: state.buttonStyle,
+    buttons: state.buttons,
     image: state.image,
     card: state.card,
     heroLayout: state.heroLayout,

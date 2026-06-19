@@ -78,14 +78,7 @@ export const SITE_FONTS = [
   "editorial",
 ] as const;
 export const SITE_RADII = ["none", "sm", "md", "lg", "xl"] as const;
-export const SITE_PRESET_NAMES = [
-  "classic",
-  "modern",
-  "coastal",
-  "warm",
-  "minimal",
-  "nightfall",
-] as const;
+export const SITE_PRESET_NAMES = ["warm", "coastal"] as const;
 export const SITE_BUTTON_STYLES = ["solid", "outline"] as const;
 
 const hexOrEmpty = z
@@ -244,8 +237,30 @@ export const socialStyleSchema = z
   })
   .default({ shape: "round", style: "plain" });
 
+// Button config for primary + secondary buttons (Phase 2.2).
+export const buttonConfigSchema = z
+  .object({
+    style: z.enum(SITE_BUTTON_STYLES).default("solid"),
+    color: hexOrEmpty,
+    borderWidth: z.union([z.literal(1), z.literal(2), z.literal(3)]).default(2),
+    pill: z.boolean().default(false),
+  })
+  .default({ style: "solid", color: "", borderWidth: 2, pill: false });
+
+export const buttonsSchema = z
+  .object({
+    primary: buttonConfigSchema,
+    secondary: buttonConfigSchema,
+  })
+  .default({
+    primary: { style: "solid", color: "", borderWidth: 2, pill: false },
+    secondary: { style: "solid", color: "", borderWidth: 2, pill: false },
+  });
+
 export type CardStyleInput = z.infer<typeof cardStyleSchema>;
 export type SocialStyleInput = z.infer<typeof socialStyleSchema>;
+export type ButtonConfigInput = z.infer<typeof buttonConfigSchema>;
+export type ButtonsInput = z.infer<typeof buttonsSchema>;
 
 // One Brand Studio save — patches the brand (identity) + theme (design) columns.
 // Asset paths (logos/favicons) persist on upload via the asset actions, not here.
@@ -271,7 +286,7 @@ export const brandStudioSchema = z.object({
     .default({}),
   // Design (theme jsonb) — `preset` is the theme slug; the server resolves its
   // `base` from the site_themes catalogue on save (never trusts a client base).
-  preset: z.string().trim().min(1).max(60).default("classic"),
+  preset: z.string().trim().min(1).max(60).default("warm"),
   colors: siteColorsSchema,
   palette: z
     .array(
@@ -284,7 +299,7 @@ export const brandStudioSchema = z.object({
     .default([]),
   type: siteTypeSchema,
   radius: z.enum(SITE_RADII).or(z.literal("")).default(""),
-  buttonStyle: z.enum(SITE_BUTTON_STYLES).default("solid"),
+  buttons: buttonsSchema,
   image: imageStyleSchema,
   card: cardStyleSchema,
   heroLayout: z.enum(SITE_HERO_LAYOUTS).default("center"),
