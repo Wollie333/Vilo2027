@@ -271,6 +271,33 @@ export type SiteCard = {
 };
 export type SiteSocial = { shape?: SiteSocialShape; style?: SiteSocialStyle };
 
+// Header & footer layout variants (Phase 5.5) — selectable per theme, with
+// separate desktop + mobile choices. Structural (read by SiteChrome), not vars.
+export type SiteHeaderLayout = "classic" | "centered" | "minimal";
+export type SiteFooterLayout = "centered" | "columns" | "simple";
+export type SiteChromeLayout<T> = { desktop: T; mobile: T };
+export type SiteHeaderConfig = SiteChromeLayout<SiteHeaderLayout>;
+export type SiteFooterConfig = SiteChromeLayout<SiteFooterLayout>;
+
+export const SITE_HEADER_LAYOUTS: SiteHeaderLayout[] = [
+  "classic",
+  "centered",
+  "minimal",
+];
+export const SITE_FOOTER_LAYOUTS: SiteFooterLayout[] = [
+  "centered",
+  "columns",
+  "simple",
+];
+export const DEFAULT_HEADER: SiteHeaderConfig = {
+  desktop: "classic",
+  mobile: "minimal",
+};
+export const DEFAULT_FOOTER: SiteFooterConfig = {
+  desktop: "centered",
+  mobile: "centered",
+};
+
 const CARD_RATIO: Record<SiteCardRatio, string> = {
   "4:3": "4 / 3",
   "16:9": "16 / 9",
@@ -296,6 +323,8 @@ export type SiteThemeConfig = {
   heroLayout?: SiteHeroLayout;
   social?: SiteSocial;
   iconColor?: string; // feature-icon colour; absent ⇒ accent
+  header?: SiteHeaderConfig; // header layout (desktop + mobile)
+  footer?: SiteFooterConfig; // footer layout (desktop + mobile)
   // Legacy flat keys (pre-Brand-Studio dev rows). Read as a fallback so old
   // themes keep rendering without a data migration.
   accent?: string;

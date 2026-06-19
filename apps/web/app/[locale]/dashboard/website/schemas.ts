@@ -217,6 +217,16 @@ export const SITE_CARD_RATIOS = ["4:3", "16:9", "1:1", "3:2"] as const;
 export const SITE_HERO_LAYOUTS = ["center", "left"] as const;
 export const SITE_SOCIAL_SHAPES = ["round", "square"] as const;
 export const SITE_SOCIAL_STYLES = ["filled", "outline", "plain"] as const;
+export const SITE_HEADER_LAYOUT_NAMES = [
+  "classic",
+  "centered",
+  "minimal",
+] as const;
+export const SITE_FOOTER_LAYOUT_NAMES = [
+  "centered",
+  "columns",
+  "simple",
+] as const;
 
 export const cardStyleSchema = z
   .object({
@@ -280,6 +290,18 @@ export const brandStudioSchema = z.object({
   heroLayout: z.enum(SITE_HERO_LAYOUTS).default("center"),
   social: socialStyleSchema,
   iconColor: hexOrEmpty,
+  header: z
+    .object({
+      desktop: z.enum(SITE_HEADER_LAYOUT_NAMES).default("classic"),
+      mobile: z.enum(SITE_HEADER_LAYOUT_NAMES).default("minimal"),
+    })
+    .default({ desktop: "classic", mobile: "minimal" }),
+  footer: z
+    .object({
+      desktop: z.enum(SITE_FOOTER_LAYOUT_NAMES).default("centered"),
+      mobile: z.enum(SITE_FOOTER_LAYOUT_NAMES).default("centered"),
+    })
+    .default({ desktop: "centered", mobile: "centered" }),
 });
 
 export type BrandStudioInput = z.infer<typeof brandStudioSchema>;

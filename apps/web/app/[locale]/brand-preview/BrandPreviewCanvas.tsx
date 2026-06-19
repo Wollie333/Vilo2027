@@ -68,6 +68,8 @@ export function BrandPreviewCanvas({ preview }: { preview: BrandPreview }) {
         nav={nav}
         bookHref="#"
         darkChrome={siteSurfaceIsDark(theme)}
+        header={theme.header}
+        footer={theme.footer}
       >
         <SectionRenderer
           sections={page.sections}

@@ -23,6 +23,8 @@ import {
   ButtonsSection,
   CardsSection,
   ColourSection,
+  FooterSection,
+  HeaderSection,
   HomepageSection,
   IconsSection,
   IdentitySection,
@@ -182,6 +184,8 @@ export function BrandStudio({
             <IconsSection {...sectionProps} />
             <ImagesSection {...sectionProps} />
             <CardsSection {...sectionProps} />
+            <HeaderSection {...sectionProps} />
+            <FooterSection {...sectionProps} />
             <HomepageSection {...sectionProps} />
             <SocialSection {...sectionProps} />
             <div className="h-2" />

@@ -43,6 +43,8 @@ export async function SitePageView({
         nav={ctx.nav}
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+        header={ctx.theme.header}
+        footer={ctx.theme.footer}
       >
         <SectionRenderer
           sections={result.sections}

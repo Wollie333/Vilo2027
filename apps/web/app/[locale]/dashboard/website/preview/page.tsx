@@ -325,6 +325,8 @@ export default async function SitePreviewPage({
           nav={nav}
           darkChrome={siteSurfaceIsDark(theme)}
           bookHref="/property/stillwater/book"
+          header={theme.header}
+          footer={theme.footer}
         >
           <div id="rooms" />
           <SectionRenderer sections={sections} data={data} />

@@ -4,11 +4,17 @@
 // persist on upload, everything else on Save via `saveBrandStudioAction`.
 
 import {
+  DEFAULT_FOOTER,
+  DEFAULT_HEADER,
+  SITE_FOOTER_LAYOUTS,
+  SITE_HEADER_LAYOUTS,
   TYPE_DEFAULTS,
   type SiteButtonStyle,
   type SiteCardRatio,
   type SiteCardStyle,
   type SiteFont,
+  type SiteFooterConfig,
+  type SiteHeaderConfig,
   type SiteHeroLayout,
   type SitePreset,
   type SiteRadius,
@@ -119,6 +125,8 @@ export type StudioState = {
   heroLayout: SiteHeroLayout;
   social: StudioSocial;
   iconColor: string; // "" = inherit accent
+  header: SiteHeaderConfig;
+  footer: SiteFooterConfig;
 };
 
 const FONTS: SiteFont[] = ["sans", "serif", "elegant", "grotesk", "editorial"];
@@ -172,6 +180,8 @@ export function deriveStudioState(
   const im = (theme.image ?? {}) as Record<string, unknown>;
   const cd = (theme.card ?? {}) as Record<string, unknown>;
   const so = (theme.social ?? {}) as Record<string, unknown>;
+  const hd = (theme.header ?? {}) as Record<string, unknown>;
+  const ft = (theme.footer ?? {}) as Record<string, unknown>;
 
   const socials = Object.fromEntries(
     SOCIAL_KEYS.map((k) => [k, brand.socials?.[k] ?? ""]),
@@ -235,6 +245,14 @@ export function deriveStudioState(
       style: oneOf(SOC_STYLES, so.style, "plain"),
     },
     iconColor: hex(theme.iconColor),
+    header: {
+      desktop: oneOf(SITE_HEADER_LAYOUTS, hd.desktop, DEFAULT_HEADER.desktop),
+      mobile: oneOf(SITE_HEADER_LAYOUTS, hd.mobile, DEFAULT_HEADER.mobile),
+    },
+    footer: {
+      desktop: oneOf(SITE_FOOTER_LAYOUTS, ft.desktop, DEFAULT_FOOTER.desktop),
+      mobile: oneOf(SITE_FOOTER_LAYOUTS, ft.mobile, DEFAULT_FOOTER.mobile),
+    },
   };
 }
 
@@ -277,6 +295,8 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
     heroLayout: state.heroLayout,
     social: { ...state.social },
     iconColor: state.iconColor || undefined,
+    header: { ...state.header },
+    footer: { ...state.footer },
   };
 }
 
@@ -328,5 +348,7 @@ export function studioToSaveInput(
     heroLayout: state.heroLayout,
     social: state.social,
     iconColor: state.iconColor,
+    header: state.header,
+    footer: state.footer,
   };
 }
