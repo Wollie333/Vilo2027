@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 
 // Per-special reporting (plan S6). Owner-scoped — every read filters by host_id
@@ -9,9 +10,9 @@ import { createServerClient } from "@/lib/supabase/server";
 // honest performance signal is the BOOKING funnel + sell-through against the
 // quantity cap (not raw pageviews). Revenue reuses the platform's canonical
 // revenue set (confirmed / checked_in / completed) so the panel agrees with the
-// ledger and reports. On-site view tracking + view→booking conversion ride on
-// the website analytics pipeline and arrive when that cross-surface wiring lands
-// (kept out of here so this panel never shows a number it can't stand behind).
+// ledger and reports. S6b adds first-party on-site signal: cookieless views of
+// the public /special/[slug] page + Book-CTA clicks (special_view_events) and a
+// view→booking conversion rate, so the host sees demand alongside conversion.
 
 /** Booking statuses that count as realised revenue — matches Reports/Ledger. */
 const REVENUE_STATUSES = ["confirmed", "checked_in", "completed"] as const;
@@ -56,6 +57,13 @@ export type SpecialReport = {
   revenueBookings: number; // # of bookings in the revenue set
   revenue: number; // sum(total_amount) over the revenue set
   recent: SpecialBookingRow[];
+
+  // on-site traffic + conversion (S6b — public /special/[slug] beacon)
+  views: number; // total detail-page views
+  uniqueViewers: number; // distinct cookieless sessions that viewed
+  bookClicks: number; // Book-CTA clicks
+  /** bookings ÷ unique viewers, 0–100 (0 when no viewers). */
+  viewToBookingPct: number;
 };
 
 function pct(part: number, whole: number): number {
@@ -112,6 +120,32 @@ export async function loadSpecialReport(
     .map(([status, count]) => ({ status, count }))
     .sort((a, b) => b.count - a.count);
 
+  // On-site traffic (S6b). Read via the admin client: special_view_events isn't
+  // in the generated types yet (consolidation lane regenerates them) and the
+  // special is already owner-verified above, so an admin count scoped to this
+  // special_id leaks nothing. Append-only table, tiny pre-MVP volume.
+  const admin = createAdminClient();
+  const { data: viewRows } = await admin
+    .from("special_view_events")
+    .select("event, session_id")
+    .eq("special_id", specialId);
+  const events = (viewRows ?? []) as {
+    event: string;
+    session_id: string | null;
+  }[];
+  let views = 0;
+  let bookClicks = 0;
+  const viewerSessions = new Set<string>();
+  for (const e of events) {
+    if (e.event === "special_view") {
+      views += 1;
+      if (e.session_id) viewerSessions.add(e.session_id);
+    } else if (e.event === "special_book_click") {
+      bookClicks += 1;
+    }
+  }
+  const uniqueViewers = viewerSessions.size;
+
   const prop = (
     Array.isArray(special.property) ? special.property[0] : special.property
   ) as { name: string } | null;
@@ -145,6 +179,12 @@ export async function loadSpecialReport(
     byStatus,
     revenueBookings,
     revenue,
+
+    views,
+    uniqueViewers,
+    bookClicks,
+    viewToBookingPct: pct(rows.length, uniqueViewers),
+
     recent: rows.slice(0, 10).map((b) => ({
       id: b.id,
       guestName: b.guest_name ?? "Guest",

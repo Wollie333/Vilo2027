@@ -15,6 +15,8 @@ import { specialCategoryLabel } from "@/lib/specials/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
+import { SpecialTracker } from "./_components/SpecialTracker";
+
 export const dynamic = "force-dynamic";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -152,6 +154,7 @@ export default async function SpecialDetailPage({
 
   return (
     <div className="bg-white text-brand-ink">
+      <SpecialTracker specialId={special.id} />
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-5 py-8 lg:px-8 lg:py-12">
         <Link
@@ -320,6 +323,7 @@ export default async function SpecialDetailPage({
               {bookable ? (
                 <Link
                   href={`/special/${params.slug}/book?via=platform`}
+                  data-special-book
                   className="block rounded-pill bg-brand-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
                 >
                   Book this special

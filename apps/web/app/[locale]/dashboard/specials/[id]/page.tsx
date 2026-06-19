@@ -4,12 +4,15 @@ import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
   CalendarDays,
+  Eye,
+  MousePointerClick,
   Pencil,
   ReceiptText,
   Sparkles,
   Tag,
   TicketCheck,
   TrendingUp,
+  Users,
 } from "lucide-react";
 
 import { Link } from "@/i18n/navigation";
@@ -137,13 +140,85 @@ export default async function SpecialReportPage({
         </section>
       ) : null}
 
+      <Traffic report={report} />
+
       <RecentBookings rows={report.recent} />
 
       <p className="px-1 text-[12px] leading-relaxed text-brand-mute">
-        On-site view tracking and view-to-booking conversion arrive with the
-        website analytics integration. This panel reports realised bookings,
-        revenue and sell-through against your quantity cap.
+        Views are cookieless visits to this special&apos;s public page. Booking,
+        revenue and sell-through count realised bookings against your quantity
+        cap.
       </p>
+    </div>
+  );
+}
+
+function Traffic({ report }: { report: SpecialReport }) {
+  return (
+    <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-sm font-bold text-brand-ink">
+          Traffic &amp; conversion
+        </h2>
+        <span className="text-[12.5px] font-semibold text-brand-ink">
+          {report.viewToBookingPct}% view → booking
+        </span>
+      </div>
+      <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <Stat
+          icon={Eye}
+          label="Page views"
+          value={String(report.views)}
+          sub={`${report.uniqueViewers} unique ${
+            report.uniqueViewers === 1 ? "viewer" : "viewers"
+          }`}
+        />
+        <Stat
+          icon={MousePointerClick}
+          label="Book clicks"
+          value={String(report.bookClicks)}
+          sub="Book CTA taps"
+        />
+        <Stat
+          icon={Users}
+          label="Bookings"
+          value={String(report.totalBookings)}
+          sub={
+            report.uniqueViewers > 0
+              ? `${report.viewToBookingPct}% of viewers`
+              : "no views yet"
+          }
+        />
+      </div>
+    </section>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: typeof Eye;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-primary">
+        <Icon className="h-4 w-4" />
+      </span>
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+          {label}
+        </div>
+        <div className="font-display text-xl font-bold text-brand-ink">
+          {value}
+        </div>
+        <div className="text-[12px] text-brand-mute">{sub}</div>
+      </div>
     </div>
   );
 }
