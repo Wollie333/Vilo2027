@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { CalendarDays, Check, MapPin, Sparkles, Tag } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -96,9 +97,10 @@ export async function generateMetadata({
   params: { slug: string };
 }): Promise<Metadata> {
   const loaded = await loadSpecial(params.slug);
-  if (!loaded) return { title: "Special not found" };
+  const t = await getTranslations("specials");
+  if (!loaded) return { title: t("dtMetaNotFound") };
   return {
-    title: `${loaded.special.title} — special`,
+    title: t("dtMetaTitle", { title: loaded.special.title }),
     description: loaded.special.description ?? undefined,
   };
 }
@@ -111,6 +113,11 @@ export default async function SpecialDetailPage({
   const loaded = await loadSpecial(params.slug);
   if (!loaded) notFound();
   const { special, property, roomName, included, hostName } = loaded;
+  const t = await getTranslations("specials");
+  // Curated category keys have their own translations; fall back to the lib's
+  // English label for any unknown/custom key.
+  const catLabel = (c: string) =>
+    t.has(`category_${c}`) ? t(`category_${c}`) : specialCategoryLabel(c);
 
   const today = todayISO();
   const remaining = Math.max(0, special.quantity - special.redemptions_used);
@@ -132,7 +139,7 @@ export default async function SpecialDetailPage({
     null;
   const place = [property.city, property.province].filter(Boolean).join(", ");
   const categoryLabels = (special.categories ?? []).map((c: string) =>
-    specialCategoryLabel(c),
+    catLabel(c),
   );
 
   const policySummary = await getListingPolicySummary(
@@ -150,7 +157,7 @@ export default async function SpecialDetailPage({
         ? null
         : Number(special.per_night_price);
   const perLabel =
-    special.price_mode === "flat" ? "package total" : "per night";
+    special.price_mode === "flat" ? t("dtPackageTotal") : t("dtPerNight");
 
   return (
     <div className="bg-white text-brand-ink">
@@ -161,7 +168,7 @@ export default async function SpecialDetailPage({
           href="/specials"
           className="mb-4 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
         >
-          ← All specials
+          {t("dtBackAll")}
         </Link>
 
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
@@ -204,7 +211,7 @@ export default async function SpecialDetailPage({
                   {property.name}
                   {roomName ? ` · ${roomName}` : ""}
                   {place ? ` · ${place}` : ""}
-                  {hostName ? ` · hosted by ${hostName}` : ""}
+                  {hostName ? t("dtHostedBy", { host: hostName }) : ""}
                 </p>
                 {special.description ? (
                   <p className="whitespace-pre-line pt-1 text-sm text-brand-ink/80">
@@ -217,35 +224,42 @@ export default async function SpecialDetailPage({
             {/* dates */}
             <section className="space-y-2 rounded-2xl border border-brand-line p-5">
               <h2 className="flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <CalendarDays className="h-4 w-4" /> Dates
+                <CalendarDays className="h-4 w-4" /> {t("dtDates")}
               </h2>
               {special.date_mode === "fixed" ? (
                 <p className="text-sm text-brand-ink">
                   {special.fixed_check_in} → {special.fixed_check_out}{" "}
                   <span className="text-brand-mute">
                     (
-                    {nightsBetween(
-                      special.fixed_check_in ?? "",
-                      special.fixed_check_out ?? "",
-                    )}{" "}
-                    nights — fixed dates)
+                    {t("dtFixedNights", {
+                      nights: nightsBetween(
+                        special.fixed_check_in ?? "",
+                        special.fixed_check_out ?? "",
+                      ),
+                    })}
+                    )
                   </span>
                 </p>
               ) : (
                 <p className="text-sm text-brand-ink">
-                  Book any stay between {special.window_start} and{" "}
-                  {special.window_end}
+                  {t("dtFlexRange", {
+                    start: special.window_start ?? "",
+                    end: special.window_end ?? "",
+                  })}
                   {special.min_nights
-                    ? ` · ${special.min_nights}${
-                        special.max_nights ? `–${special.max_nights}` : "+"
-                      } nights`
+                    ? t("dtNightsRange", {
+                        min: special.min_nights,
+                        max: special.max_nights
+                          ? `–${special.max_nights}`
+                          : "+",
+                      })
                     : ""}
                   .
                 </p>
               )}
               {special.book_by ? (
                 <p className="text-xs text-brand-mute">
-                  Book by {special.book_by}.
+                  {t("dtBookBy", { date: special.book_by })}
                 </p>
               ) : null}
             </section>
@@ -254,7 +268,7 @@ export default async function SpecialDetailPage({
             {included.length > 0 ? (
               <section className="space-y-2 rounded-2xl border border-brand-line p-5">
                 <h2 className="text-sm font-semibold text-brand-ink">
-                  What&apos;s included
+                  {t("dtIncluded")}
                 </h2>
                 <ul className="space-y-1.5">
                   {included.map((name) => (
@@ -273,7 +287,7 @@ export default async function SpecialDetailPage({
             {note?.note ? (
               <section className="rounded-2xl border border-brand-line p-5">
                 <h2 className="text-sm font-semibold text-brand-ink">
-                  Cancellation
+                  {t("dtCancellation")}
                 </h2>
                 <p className="mt-1 text-sm text-brand-mute">{note.note}</p>
               </section>
@@ -293,14 +307,14 @@ export default async function SpecialDetailPage({
                   </div>
                   {special.was_price && special.savings_amount ? (
                     <p className="mt-1 text-sm font-semibold text-emerald-600">
-                      Save{" "}
+                      {t("dtSave")}{" "}
                       <Money
                         amount={Number(special.savings_amount)}
                         currency={special.currency}
                         approx={false}
                       />
                       {special.savings_pct
-                        ? ` (${special.savings_pct}% off)`
+                        ? t("dtOffParen", { pct: special.savings_pct })
                         : ""}
                       <span className="ml-1 font-normal text-brand-mute line-through">
                         <Money
@@ -316,7 +330,7 @@ export default async function SpecialDetailPage({
 
               {bookable && remaining <= 5 ? (
                 <p className="text-xs font-medium text-amber-600">
-                  Only {remaining} left
+                  {t("onlyLeft", { count: remaining })}
                 </p>
               ) : null}
 
@@ -326,15 +340,15 @@ export default async function SpecialDetailPage({
                   data-special-book
                   className="block rounded-pill bg-brand-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
                 >
-                  Book this special
+                  {t("dtBookCta")}
                 </Link>
               ) : (
                 <div className="rounded-pill bg-brand-light px-5 py-3 text-center text-sm font-medium text-brand-mute">
-                  {soldOut ? "Sold out" : "No longer available"}
+                  {soldOut ? t("dtSoldOut") : t("dtUnavailable")}
                 </div>
               )}
               <p className="text-center text-[11px] text-brand-mute">
-                You book directly with the host.
+                {t("dtDirectNote")}
               </p>
             </div>
           </aside>

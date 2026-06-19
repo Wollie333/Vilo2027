@@ -1,4 +1,5 @@
 import { MapPin, Sparkles, Tag } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { Money } from "@/components/currency/Money";
 import { Link } from "@/i18n/navigation";
@@ -8,12 +9,18 @@ import type { DirectorySpecial } from "@/lib/specials/directory";
 // Presentational card for the cross-host /specials directory. Links to the
 // shared public detail page (/special/[slug]); the detail page owns the booking
 // CTA. Shows the savings badge + scarcity, mirroring the booking-page deal card.
-export function SpecialCard({ special: s }: { special: DirectorySpecial }) {
+export async function SpecialCard({
+  special: s,
+}: {
+  special: DirectorySpecial;
+}) {
+  const t = await getTranslations("specials");
   const location = [s.propertyCity, s.propertyProvince]
     .filter(Boolean)
     .join(", ");
   const amount = s.priceMode === "flat" ? s.flatTotal : s.perNightPrice;
-  const perLabel = s.priceMode === "flat" ? "package" : "/ night";
+  const perLabel =
+    s.priceMode === "flat" ? t("cardPackage") : t("cardPerNight");
 
   return (
     <Link
@@ -41,7 +48,7 @@ export function SpecialCard({ special: s }: { special: DirectorySpecial }) {
         ) : null}
         {s.savingsPct ? (
           <span className="absolute right-3 top-3 inline-flex items-center rounded-pill bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-            {s.savingsPct}% off
+            {t("offPct", { pct: s.savingsPct })}
           </span>
         ) : null}
       </div>
@@ -75,7 +82,7 @@ export function SpecialCard({ special: s }: { special: DirectorySpecial }) {
         ) : null}
         {s.remaining <= 5 ? (
           <div className="mt-1 text-[11px] font-medium text-amber-600">
-            Only {s.remaining} left
+            {t("onlyLeft", { count: s.remaining })}
           </div>
         ) : null}
       </div>

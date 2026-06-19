@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -22,9 +23,10 @@ import {
   type SpecialAddonOption,
 } from "./SpecialBookingForm";
 
-export const metadata: Metadata = {
-  title: "Book this special",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("specials");
+  return { title: t("bkMetaTitle") };
+}
 
 // Guest-facing deal data (quantity left, add-ons, dates) must always read fresh —
 // see the sibling property booking page for why force-dynamic is required.
@@ -174,8 +176,9 @@ export default async function SpecialBookingPage({
 
   const remaining = Math.max(0, special.quantity - special.redemptions_used);
   const heroUrl = websiteAssetUrl(special.hero_image_path);
+  const t = await getTranslations("specials");
   const categoryLabels = (special.categories ?? []).map((c: string) =>
-    specialCategoryLabel(c),
+    t.has(`category_${c}`) ? t(`category_${c}`) : specialCategoryLabel(c),
   );
 
   return (

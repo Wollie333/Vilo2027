@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, Lock, Tag } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 
 import {
@@ -72,6 +73,7 @@ function nightsBetween(a: string, b: string): number {
 }
 
 export function SpecialBookingForm(props: Props) {
+  const t = useTranslations("specials");
   const soldOut = props.remaining <= 0;
 
   // ── dates ─────────────────────────────────────────────────────────
@@ -158,26 +160,24 @@ export function SpecialBookingForm(props: Props) {
   const canPay = !soldOut && methods.length > 0 && datesReady && ack;
 
   function validateLocal(): string | null {
-    if (soldOut) return "This special is sold out.";
-    if (!datesReady) return "Choose your check-in and check-out dates.";
+    if (soldOut) return t("bkErrSoldOut");
+    if (!datesReady) return t("bkErrDates");
     if (props.dateMode === "flexible") {
       if (props.windowStart && checkIn < props.windowStart)
-        return "Check-in is before the offer window.";
+        return t("bkErrBeforeWindow");
       if (props.windowEnd && checkOut > props.windowEnd)
-        return "Check-out is after the offer window.";
+        return t("bkErrAfterWindow");
       if (props.minNights && nights < props.minNights)
-        return `This deal needs at least ${props.minNights} nights.`;
+        return t("bkErrMinNights", { count: props.minNights });
       if (props.maxNights && nights > props.maxNights)
-        return `This deal is for at most ${props.maxNights} nights.`;
+        return t("bkErrMaxNights", { count: props.maxNights });
     }
     if (!props.isAuthenticated) {
-      if (name.trim().length < 2) return "Tell us your name.";
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
-        return "Enter a valid email.";
-      if (password.length < 8)
-        return "Choose a password of at least 8 characters.";
+      if (name.trim().length < 2) return t("bkErrName");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return t("bkErrEmail");
+      if (password.length < 8) return t("bkErrPassword");
     }
-    if (!ack) return "Please accept the policies to book.";
+    if (!ack) return t("bkErrAck");
     return null;
   }
 
@@ -271,8 +271,10 @@ export function SpecialBookingForm(props: Props) {
             ) : null}
             {props.savingsAmount && props.savingsPct ? (
               <p className="text-sm font-semibold text-emerald-600">
-                Save {formatMoney(props.savingsAmount, props.currency)} (
-                {props.savingsPct}% off)
+                {t("bkSave", {
+                  amount: formatMoney(props.savingsAmount, props.currency),
+                  pct: props.savingsPct,
+                })}
                 {props.wasPrice ? (
                   <span className="ml-1 font-normal text-brand-mute line-through">
                     {formatMoney(props.wasPrice, props.currency)}
@@ -282,7 +284,7 @@ export function SpecialBookingForm(props: Props) {
             ) : null}
             {!soldOut && props.remaining <= 5 ? (
               <p className="text-xs font-medium text-amber-600">
-                Only {props.remaining} left
+                {t("onlyLeft", { count: props.remaining })}
               </p>
             ) : null}
           </div>
@@ -290,31 +292,33 @@ export function SpecialBookingForm(props: Props) {
 
         {soldOut ? (
           <div className="rounded-2xl border border-brand-line bg-brand-light p-5 text-sm text-brand-mute">
-            This special is sold out.
+            {t("bkErrSoldOut")}
           </div>
         ) : (
           <>
             {/* dates */}
             <section className="space-y-3 rounded-2xl border border-brand-line p-5">
               <h2 className="text-sm font-semibold text-brand-ink">
-                Your dates
+                {t("bkYourDates")}
               </h2>
               {props.dateMode === "fixed" ? (
                 <p className="text-sm text-brand-ink">
                   {props.fixedCheckIn} → {props.fixedCheckOut}{" "}
                   <span className="text-brand-mute">
                     (
-                    {nightsBetween(
-                      props.fixedCheckIn ?? "",
-                      props.fixedCheckOut ?? "",
-                    )}{" "}
-                    nights — fixed)
+                    {t("bkFixedNights", {
+                      nights: nightsBetween(
+                        props.fixedCheckIn ?? "",
+                        props.fixedCheckOut ?? "",
+                      ),
+                    })}
+                    )
                   </span>
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-xs text-brand-mute">
-                    Check-in
+                    {t("bkCheckIn")}
                     <input
                       type="date"
                       value={checkIn}
@@ -325,7 +329,7 @@ export function SpecialBookingForm(props: Props) {
                     />
                   </label>
                   <label className="block text-xs text-brand-mute">
-                    Check-out
+                    {t("bkCheckOut")}
                     <input
                       type="date"
                       value={checkOut}
@@ -337,12 +341,15 @@ export function SpecialBookingForm(props: Props) {
                   </label>
                   {props.windowStart && props.windowEnd ? (
                     <p className="col-span-full text-xs text-brand-mute">
-                      Book any stay between {props.windowStart} and{" "}
-                      {props.windowEnd}
+                      {t("dtFlexRange", {
+                        start: props.windowStart,
+                        end: props.windowEnd,
+                      })}
                       {props.minNights
-                        ? ` · ${props.minNights}${
-                            props.maxNights ? `–${props.maxNights}` : "+"
-                          } nights`
+                        ? t("dtNightsRange", {
+                            min: props.minNights,
+                            max: props.maxNights ? `–${props.maxNights}` : "+",
+                          })
                         : ""}
                       .
                     </p>
@@ -353,7 +360,9 @@ export function SpecialBookingForm(props: Props) {
 
             {/* guests */}
             <section className="space-y-3 rounded-2xl border border-brand-line p-5">
-              <h2 className="text-sm font-semibold text-brand-ink">Guests</h2>
+              <h2 className="text-sm font-semibold text-brand-ink">
+                {t("bkGuests")}
+              </h2>
               <select
                 value={guests}
                 onChange={(e) => setGuests(Number(e.target.value))}
@@ -362,7 +371,7 @@ export function SpecialBookingForm(props: Props) {
                 {Array.from({ length: props.maxGuests }, (_, i) => i + 1).map(
                   (n) => (
                     <option key={n} value={n}>
-                      {n} {n === 1 ? "guest" : "guests"}
+                      {t("bkGuestCount", { count: n })}
                     </option>
                   ),
                 )}
@@ -373,7 +382,9 @@ export function SpecialBookingForm(props: Props) {
             {(props.requiredAddons.length > 0 ||
               props.optionalAddons.length > 0) && (
               <section className="space-y-3 rounded-2xl border border-brand-line p-5">
-                <h2 className="text-sm font-semibold text-brand-ink">Extras</h2>
+                <h2 className="text-sm font-semibold text-brand-ink">
+                  {t("bkExtras")}
+                </h2>
                 {props.requiredAddons.map((a) => (
                   <div
                     key={a.id}
@@ -383,7 +394,7 @@ export function SpecialBookingForm(props: Props) {
                       <p className="text-sm font-medium text-brand-ink">
                         {a.name}{" "}
                         <span className="text-[11px] font-normal text-brand-mute">
-                          (included)
+                          {t("bkIncludedTag")}
                         </span>
                       </p>
                       {a.description ? (
@@ -431,18 +442,18 @@ export function SpecialBookingForm(props: Props) {
             {/* your details */}
             <section className="space-y-3 rounded-2xl border border-brand-line p-5">
               <h2 className="text-sm font-semibold text-brand-ink">
-                Your details
+                {t("bkYourDetails")}
               </h2>
               <input
                 type="text"
-                placeholder="Full name"
+                placeholder={t("bkFullName")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full rounded-lg border border-brand-line px-3 py-2 text-sm"
               />
               <input
                 type="email"
-                placeholder="Email"
+                placeholder={t("bkEmail")}
                 value={email}
                 disabled={props.isAuthenticated}
                 onChange={(e) => setEmail(e.target.value)}
@@ -450,7 +461,7 @@ export function SpecialBookingForm(props: Props) {
               />
               <input
                 type="tel"
-                placeholder="Phone (optional)"
+                placeholder={t("bkPhone")}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 className="w-full rounded-lg border border-brand-line px-3 py-2 text-sm"
@@ -458,14 +469,14 @@ export function SpecialBookingForm(props: Props) {
               {!props.isAuthenticated ? (
                 <input
                   type="password"
-                  placeholder="Create a password (min 8 characters)"
+                  placeholder={t("bkPassword")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-brand-line px-3 py-2 text-sm"
                 />
               ) : null}
               <textarea
-                placeholder="Special requests (optional)"
+                placeholder={t("bkRequests")}
                 value={requests}
                 onChange={(e) => setRequests(e.target.value)}
                 rows={2}
@@ -483,8 +494,8 @@ export function SpecialBookingForm(props: Props) {
             <div className="flex justify-between">
               <span className="text-brand-mute">
                 {props.priceMode === "flat"
-                  ? "Package"
-                  : `${nights || props.minNights || 1} nights`}
+                  ? t("bkPackage")
+                  : t("bkNights", { count: nights || props.minNights || 1 })}
               </span>
               <span className="text-brand-ink">
                 {formatMoney(estimate.accommodation, props.currency)}
@@ -492,7 +503,7 @@ export function SpecialBookingForm(props: Props) {
             </div>
             {estimate.addons > 0 ? (
               <div className="flex justify-between">
-                <span className="text-brand-mute">Extras</span>
+                <span className="text-brand-mute">{t("bkExtras")}</span>
                 <span className="text-brand-ink">
                   {formatMoney(estimate.addons, props.currency)}
                 </span>
@@ -501,15 +512,13 @@ export function SpecialBookingForm(props: Props) {
           </div>
           <div className="flex items-baseline justify-between border-t border-brand-line pt-3">
             <span className="text-sm font-semibold text-brand-ink">
-              Estimated total
+              {t("bkEstimatedTotal")}
             </span>
             <span className="font-display text-2xl font-extrabold text-brand-ink">
               {formatMoney(estimate.total, props.currency)}
             </span>
           </div>
-          <p className="text-[11px] text-brand-mute">
-            Final price is confirmed at payment.
-          </p>
+          <p className="text-[11px] text-brand-mute">{t("bkFinalNote")}</p>
 
           {!soldOut ? (
             <>
@@ -527,16 +536,12 @@ export function SpecialBookingForm(props: Props) {
                         checked={method === m}
                         onChange={() => setMethod(m)}
                       />
-                      {m === "paystack"
-                        ? "Pay by card"
-                        : "Pay by EFT (transfer)"}
+                      {m === "paystack" ? t("bkPayCard") : t("bkPayEft")}
                     </label>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-amber-600">
-                  This host hasn’t set up payments yet.
-                </p>
+                <p className="text-xs text-amber-600">{t("bkNoPayments")}</p>
               )}
 
               <label className="flex items-start gap-2 text-xs text-brand-mute">
@@ -547,9 +552,11 @@ export function SpecialBookingForm(props: Props) {
                   className="mt-0.5"
                 />
                 <span>
-                  I accept the booking terms and cancellation policy
-                  {props.cancellationNote ? ` — ${props.cancellationNote}` : ""}
-                  .
+                  {t("bkAck", {
+                    note: props.cancellationNote
+                      ? t("bkAckNote", { note: props.cancellationNote })
+                      : "",
+                  })}
                 </span>
               </label>
 
@@ -568,7 +575,7 @@ export function SpecialBookingForm(props: Props) {
                 ) : (
                   <Lock className="h-4 w-4" />
                 )}
-                {method === "eft" ? "Book and pay by EFT" : "Confirm and pay"}
+                {method === "eft" ? t("bkSubmitEft") : t("bkSubmitCard")}
               </button>
             </>
           ) : null}

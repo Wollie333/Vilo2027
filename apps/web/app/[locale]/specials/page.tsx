@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { ArrowLeft, ArrowRight, Search, Sparkles, X } from "lucide-react";
 
 import { SiteFooter } from "@/app/_components/home/SiteFooter";
@@ -15,11 +16,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 import { SpecialCard } from "./SpecialCard";
 
-export const metadata: Metadata = {
-  title: "Specials & deals",
-  description:
-    "Pre-packaged accommodation deals from hosts across South Africa — book directly at a price the host controls.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("specials");
+  return { title: t("dirMetaTitle"), description: t("dirMetaDesc") };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -45,15 +45,18 @@ export default async function SpecialsDirectoryPage({
   searchParams?: SpecialsSearchParams;
 }) {
   const admin = createAdminClient();
-  const brandName = await getBrandName();
+  const [t, brandName] = await Promise.all([
+    getTranslations("specials"),
+    getBrandName(),
+  ]);
   const result = await searchSpecials(admin, searchParams, BASE_PATH);
   const { where, type, category } = result;
   const current = { where, type, category };
 
   // Accommodation types present in the unfiltered set would need a second query;
   // a fixed list (same as /explore) keeps the chip row stable and predictable.
-  const typeChips = Object.entries(SPECIAL_TYPE_LABEL).filter(
-    ([key]) => key !== "other",
+  const typeChips = Object.keys(SPECIAL_TYPE_LABEL).filter(
+    (key) => key !== "other",
   );
 
   return (
@@ -66,15 +69,14 @@ export default async function SpecialsDirectoryPage({
           <div className="flex items-center gap-2 text-brand-primary">
             <Sparkles className="h-5 w-5" />
             <span className="text-xs font-semibold uppercase tracking-wide">
-              Specials
+              {t("dirBadge")}
             </span>
           </div>
           <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight text-brand-ink md:text-3xl">
-            Hand-picked deals from {brandName} hosts
+            {t("dirTitle", { brand: brandName })}
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-brand-mute">
-            Pre-packaged stays at a price the host sets — book directly, no
-            marketplace commission.
+            {t("dirSubtitle")}
           </p>
 
           <form
@@ -92,7 +94,7 @@ export default async function SpecialsDirectoryPage({
                 type="text"
                 name="where"
                 defaultValue={where}
-                placeholder="Search by city, province or deal"
+                placeholder={t("dirSearchPlaceholder")}
                 className="w-full rounded-pill border border-brand-line bg-white py-2.5 pl-9 pr-4 text-sm text-brand-ink placeholder:text-brand-mute focus:border-brand-primary focus:outline-none"
               />
             </div>
@@ -100,7 +102,7 @@ export default async function SpecialsDirectoryPage({
               type="submit"
               className="rounded-pill bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90"
             >
-              Search
+              {t("dirSearchCta")}
             </button>
           </form>
         </div>
@@ -117,7 +119,7 @@ export default async function SpecialsDirectoryPage({
                 : "border border-brand-line bg-white text-brand-mute hover:bg-brand-accent"
             }`}
           >
-            All
+            {t("dirFilterAll")}
           </Link>
           {SPECIAL_CATEGORIES.map((c) => (
             <Link
@@ -131,11 +133,11 @@ export default async function SpecialsDirectoryPage({
                   : "border border-brand-line bg-white text-brand-mute hover:bg-brand-accent"
               }`}
             >
-              {c.label}
+              {t(`category_${c.key}`)}
             </Link>
           ))}
           <span className="mx-1 self-center text-brand-line">|</span>
-          {typeChips.map(([key, label]) => (
+          {typeChips.map((key) => (
             <Link
               key={key}
               href={filterHref(current, {
@@ -147,7 +149,7 @@ export default async function SpecialsDirectoryPage({
                   : "border border-brand-line bg-white text-brand-mute hover:bg-brand-accent"
               }`}
             >
-              {label}
+              {t(`type_${key}`)}
             </Link>
           ))}
         </div>
@@ -158,7 +160,7 @@ export default async function SpecialsDirectoryPage({
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-display text-xl font-bold tracking-tight text-brand-ink">
-              {where ? `Specials matching "${where}"` : "All specials"}
+              {where ? t("dirResultsMatching", { where }) : t("dirResultsAll")}
             </h2>
             {result.hasFilters ? (
               <Link
@@ -166,14 +168,17 @@ export default async function SpecialsDirectoryPage({
                 className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-primary hover:underline"
               >
                 <X className="h-3 w-3" />
-                Clear filters
+                {t("dirClearFilters")}
               </Link>
             ) : null}
           </div>
           <div className="text-sm text-brand-mute">
-            {result.totalCount} {result.totalCount === 1 ? "deal" : "deals"}
+            {t("dirDealCount", { count: result.totalCount })}
             {result.totalPages > 1
-              ? ` · page ${result.safePage} of ${result.totalPages}`
+              ? t("dirPageSuffix", {
+                  page: result.safePage,
+                  total: result.totalPages,
+                })
               : ""}
           </div>
         </div>
@@ -184,11 +189,10 @@ export default async function SpecialsDirectoryPage({
               <Sparkles className="h-6 w-6" />
             </div>
             <h3 className="font-display text-lg font-bold text-brand-ink">
-              No specials yet
+              {t("dirEmptyTitle")}
             </h3>
             <p className="mx-auto mt-1 max-w-md text-sm text-brand-mute">
-              Try a different city or category. New deals from {brandName} hosts
-              go live all the time.
+              {t("dirEmptyBody", { brand: brandName })}
             </p>
           </div>
         ) : (
@@ -201,7 +205,7 @@ export default async function SpecialsDirectoryPage({
 
         {result.totalPages > 1 && result.specials.length > 0 ? (
           <nav
-            aria-label="Pagination"
+            aria-label={t("dirPaginationAria")}
             className="mt-10 flex items-center justify-center gap-3"
           >
             {result.prevHref ? (
@@ -211,16 +215,19 @@ export default async function SpecialsDirectoryPage({
                 className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Previous
+                {t("dirPrev")}
               </Link>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-brand-light/40 px-4 py-2 text-sm font-medium text-brand-mute">
                 <ArrowLeft className="h-4 w-4" />
-                Previous
+                {t("dirPrev")}
               </span>
             )}
             <span className="text-sm font-medium text-brand-mute">
-              Page {result.safePage} of {result.totalPages}
+              {t("dirPageOf", {
+                page: result.safePage,
+                total: result.totalPages,
+              })}
             </span>
             {result.nextHref ? (
               <Link
@@ -228,12 +235,12 @@ export default async function SpecialsDirectoryPage({
                 rel="next"
                 className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-white px-4 py-2 text-sm font-medium text-brand-ink transition-colors hover:bg-brand-accent"
               >
-                Next
+                {t("dirNext")}
                 <ArrowRight className="h-4 w-4" />
               </Link>
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded border border-brand-line bg-brand-light/40 px-4 py-2 text-sm font-medium text-brand-mute">
-                Next
+                {t("dirNext")}
                 <ArrowRight className="h-4 w-4" />
               </span>
             )}
