@@ -69,6 +69,7 @@ export type StudioCard = {
   radius: number; // px
   shadow: SiteShadow;
   ratio: SiteCardRatio;
+  borderColor: string; // "" = inherit line color
 };
 
 export type StudioSocial = {
@@ -114,6 +115,52 @@ const BTN_WIDTHS = [1, 2, 3] as const;
 const oneOf = <T extends string>(list: T[], v: unknown, fallback: T): T =>
   list.includes(v as T) ? (v as T) : fallback;
 
+/**
+ * Theme defaults — the baseline values from the active theme's catalogue entry.
+ * Each control compares its current value against these to show "overridden" state
+ * and enable the reset-to-default functionality.
+ */
+export type ThemeDefaults = {
+  // From SitePreset (base)
+  colors: {
+    bg: string;
+    surface: string;
+    ink: string;
+    mute: string;
+    line: string;
+    accent: string;
+    accentInk: string;
+  };
+  font: SiteFont;
+  radius: SiteRadius;
+  // Typography defaults (from TYPE_DEFAULTS)
+  type: {
+    headingWeight: number;
+    bodyWeight: number;
+    baseSize: number;
+    scale: number;
+    headingLeading: number;
+    bodyLeading: number;
+    headingTracking: number;
+    bodyTracking: number;
+  };
+  // Button defaults
+  buttons: {
+    primary: StudioButtonConfig;
+    secondary: StudioButtonConfig;
+  };
+  // Image defaults
+  image: StudioImage;
+  // Card defaults
+  card: StudioCard;
+  // Layout defaults
+  heroLayout: SiteHeroLayout;
+  header: SiteHeaderConfig;
+  footer: SiteFooterConfig;
+  // Social defaults
+  social: StudioSocial;
+};
+
 export type StudioState = {
   // Identity
   name: string;
@@ -130,6 +177,8 @@ export type StudioState = {
   // palette/font/radius (from the site_themes catalogue) that overrides layer on.
   preset: string;
   base: SitePreset;
+  /** Theme defaults for reset-to-default functionality. */
+  defaults: ThemeDefaults;
   colors: StudioColors;
   palette: string[];
   type: StudioType;
@@ -176,6 +225,73 @@ const DEFAULT_BUTTON: StudioButtonConfig = {
   borderWidth: 2,
   pill: false,
 };
+
+const DEFAULT_SECONDARY_BUTTON: StudioButtonConfig = {
+  style: "outline",
+  color: "",
+  borderWidth: 2,
+  pill: false,
+};
+
+const DEFAULT_IMAGE: StudioImage = {
+  radius: 12,
+  borderWidth: 0,
+  borderColor: "",
+  shadow: "none",
+};
+
+const DEFAULT_CARD: StudioCard = {
+  style: "elevated",
+  radius: 14,
+  shadow: "sm",
+  ratio: "4:3",
+  borderColor: "",
+};
+
+const DEFAULT_SOCIAL: StudioSocial = {
+  shape: "round",
+  style: "plain",
+};
+
+/**
+ * Build the theme defaults object from the base preset. This provides the
+ * baseline values that every control can compare against for "reset to default".
+ */
+function buildThemeDefaults(base: SitePreset): ThemeDefaults {
+  return {
+    colors: {
+      bg: base.palette.bg,
+      surface: base.palette.surface,
+      ink: base.palette.ink,
+      mute: base.palette.mute,
+      line: base.palette.line,
+      accent: base.palette.accent,
+      accentInk: base.palette.accentInk,
+    },
+    font: base.font,
+    radius: base.radius,
+    type: {
+      headingWeight: TYPE_DEFAULTS.headingWeight,
+      bodyWeight: TYPE_DEFAULTS.bodyWeight,
+      baseSize: TYPE_DEFAULTS.baseSize,
+      scale: TYPE_DEFAULTS.scale,
+      headingLeading: TYPE_DEFAULTS.headingLeading,
+      bodyLeading: TYPE_DEFAULTS.bodyLeading,
+      headingTracking: TYPE_DEFAULTS.headingTracking,
+      bodyTracking: TYPE_DEFAULTS.bodyTracking,
+    },
+    buttons: {
+      primary: { ...DEFAULT_BUTTON },
+      secondary: { ...DEFAULT_SECONDARY_BUTTON },
+    },
+    image: { ...DEFAULT_IMAGE },
+    card: { ...DEFAULT_CARD },
+    heroLayout: "center",
+    header: { ...DEFAULT_HEADER },
+    footer: { ...DEFAULT_FOOTER },
+    social: { ...DEFAULT_SOCIAL },
+  };
+}
 
 /** Parse a button config from saved theme data. */
 function deriveButtonConfig(raw: unknown): StudioButtonConfig {
@@ -233,6 +349,8 @@ export function deriveStudioState(
     SOCIAL_KEYS.map((k) => [k, brand.socials?.[k] ?? ""]),
   ) as Record<SocialKey, string>;
 
+  const defaults = buildThemeDefaults(base);
+
   return {
     name: brand.name ?? "",
     tagline: brand.tagline ?? "",
@@ -245,6 +363,7 @@ export function deriveStudioState(
     assets: assetUrls,
     preset: asSlug(theme.preset),
     base,
+    defaults,
     colors: {
       ...EMPTY_COLORS,
       bg: hex(c.bg),
@@ -287,6 +406,7 @@ export function deriveStudioState(
       radius: num(cd.radius, 14),
       shadow: oneOf(SHADOWS, cd.shadow, "sm"),
       ratio: oneOf(CARD_RATIOS, cd.ratio, "4:3"),
+      borderColor: hex(cd.borderColor),
     },
     heroLayout: theme.heroLayout === "left" ? "left" : "center",
     social: {
@@ -343,7 +463,10 @@ export function studioThemeConfig(state: StudioState): SiteThemeConfig {
       borderColor: state.image.borderColor || undefined,
       shadow: state.image.shadow,
     },
-    card: { ...state.card },
+    card: {
+      ...state.card,
+      borderColor: state.card.borderColor || undefined,
+    },
     heroLayout: state.heroLayout,
     social: { ...state.social },
     iconColor: state.iconColor || undefined,

@@ -1,7 +1,6 @@
 "use client";
 
 import { Eye, X } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 /**
@@ -10,19 +9,16 @@ import { useCallback } from "react";
  * Also provides the buildPreviewHref helper for nav links to preserve params.
  */
 export function PreviewBanner({
-  subdomain,
   themeSlug,
 }: {
   subdomain: string;
   themeSlug?: string;
 }) {
-  const searchParams = useSearchParams();
-
   // Build the exit URL — go to the dashboard website editor
   const exitHref = `/dashboard/website`;
 
   return (
-    <div className="sticky top-0 z-50 flex items-center justify-between gap-4 bg-[#0A0A0A] px-4 py-2.5 text-white">
+    <div className="relative z-50 flex items-center justify-between gap-4 bg-[#0A0A0A] px-4 py-2.5 text-white">
       <div className="flex items-center gap-2.5">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10">
           <Eye className="h-4 w-4" />

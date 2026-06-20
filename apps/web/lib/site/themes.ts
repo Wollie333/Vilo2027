@@ -229,6 +229,7 @@ export type SiteCard = {
   radius?: number; // px; absent ⇒ inherit --site-radius
   shadow?: SiteShadow;
   ratio?: SiteCardRatio;
+  borderColor?: string; // hex; absent ⇒ inherit line color
 };
 export type SiteSocial = { shape?: SiteSocialShape; style?: SiteSocialStyle };
 

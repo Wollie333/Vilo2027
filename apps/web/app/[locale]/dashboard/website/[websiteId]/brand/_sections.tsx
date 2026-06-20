@@ -3,16 +3,22 @@
 import {
   BadgeCheck,
   Droplet,
+  Facebook,
   GalleryVerticalEnd,
+  Globe,
   Image as ImageIcon,
-  Layout,
+  Instagram,
+  Linkedin,
+  Mail,
   PanelBottom,
   PanelTop,
+  Phone,
   RotateCcw,
   Share2,
-  Sparkles,
   SquareMousePointer,
   Type,
+  Twitter,
+  Youtube,
 } from "lucide-react";
 
 import { useTranslations } from "next-intl";
@@ -37,8 +43,14 @@ import {
   Acc,
   Ctl,
   CtlLabel,
+  Divider,
+  PreviewBox,
+  ResetButton,
   Seg,
+  SegControl,
   Slider,
+  SliderControl,
+  SubGroup,
   SwatchRow,
   bsInput,
   bsSelect,
@@ -225,6 +237,18 @@ export function ColourSection({ state, merge }: SectionProps) {
           />
         </Ctl>
       ))}
+
+      <Divider />
+
+      {/* Feature icon colour (merged from Icons section) */}
+      <Ctl>
+        <CtlLabel>{t("brandIconColour")}</CtlLabel>
+        <SwatchRow
+          value={state.iconColor}
+          inheritedHex={state.colors.accent || base.palette.accent}
+          onChange={(hex) => merge({ iconColor: hex })}
+        />
+      </Ctl>
     </Acc>
   );
 }
@@ -316,6 +340,7 @@ function SizeRow({
 export function TypographySection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const ty = state.type;
+  const defaults = state.defaults.type;
   const setType = (patch: Partial<StudioState["type"]>) =>
     merge({ type: { ...ty, ...patch } });
   const vars = buildSiteVars(studioThemeConfig(state));
@@ -327,77 +352,75 @@ export function TypographySection({ state, merge }: SectionProps) {
       title={t("brandTypographyTitle")}
       subtitle={t("brandTypographySub")}
     >
-      <Ctl>
-        <CtlLabel>{t("brandHeadingFontTitle")}</CtlLabel>
-        <FontSelect
-          value={ty.headingFont}
-          onChange={(v) => setType({ headingFont: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandBodyFontTitle")}</CtlLabel>
-        <FontSelect
-          value={ty.bodyFont}
-          onChange={(v) => setType({ bodyFont: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandHeadingWeight")}</CtlLabel>
-        <Slider
-          value={ty.headingWeight}
-          min={300}
-          max={800}
-          step={100}
-          onChange={(v) => setType({ headingWeight: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandBodyWeight")}</CtlLabel>
-        <Slider
-          value={ty.bodyWeight}
-          min={300}
-          max={700}
-          step={100}
-          onChange={(v) => setType({ bodyWeight: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandBaseSize")}</CtlLabel>
-        <Slider
+      {/* Fonts */}
+      <SubGroup title={t("typeFonts")}>
+        <Ctl>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-brand-mute">
+              {t("brandHeadingFontTitle")}
+            </span>
+            <ResetButton
+              isOverridden={ty.headingFont !== ""}
+              onReset={() => setType({ headingFont: "" })}
+            />
+          </div>
+          <FontSelect
+            value={ty.headingFont}
+            onChange={(v) => setType({ headingFont: v })}
+          />
+        </Ctl>
+        <Ctl>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-[0.05em] text-brand-mute">
+              {t("brandBodyFontTitle")}
+            </span>
+            <ResetButton
+              isOverridden={ty.bodyFont !== ""}
+              onReset={() => setType({ bodyFont: "" })}
+            />
+          </div>
+          <FontSelect
+            value={ty.bodyFont}
+            onChange={(v) => setType({ bodyFont: v })}
+          />
+        </Ctl>
+      </SubGroup>
+
+      {/* Scale & Metrics */}
+      <SubGroup title={t("typeScale")}>
+        <SliderControl
+          label={t("brandBaseSize")}
           value={ty.baseSize}
+          defaultValue={defaults.baseSize}
           min={12}
           max={22}
-          step={1}
           suffix="px"
           onChange={(v) => setType({ baseSize: v })}
         />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandScale")}</CtlLabel>
-        <Slider
+        <SliderControl
+          label={t("brandScale")}
           value={ty.scale}
+          defaultValue={defaults.scale}
           min={1}
           max={1.6}
           step={0.01}
           format={(v) => v.toFixed(2)}
           onChange={(v) => setType({ scale: v })}
         />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandLineHeight")}</CtlLabel>
-        <Slider
+        <SliderControl
+          label={t("brandLineHeight")}
           value={ty.bodyLeading}
+          defaultValue={defaults.bodyLeading}
           min={1}
           max={2}
           step={0.01}
           format={(v) => v.toFixed(2)}
           onChange={(v) => setType({ bodyLeading: v })}
         />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandLetterSpacing")}</CtlLabel>
-        <Slider
+        <SliderControl
+          label={t("brandLetterSpacing")}
           value={ty.headingTracking}
+          defaultValue={defaults.headingTracking}
           min={-0.05}
           max={0.1}
           step={0.005}
@@ -405,11 +428,33 @@ export function TypographySection({ state, merge }: SectionProps) {
           format={(v) => v.toFixed(3)}
           onChange={(v) => setType({ headingTracking: v })}
         />
-      </Ctl>
+      </SubGroup>
 
-      <Ctl>
-        <CtlLabel hint={t("brandSizeAuto")}>{t("brandSizesTitle")}</CtlLabel>
-        <div className="space-y-2.5">
+      {/* Weights */}
+      <SubGroup title={t("typeWeights")}>
+        <SliderControl
+          label={t("brandHeadingWeight")}
+          value={ty.headingWeight}
+          defaultValue={defaults.headingWeight}
+          min={300}
+          max={800}
+          step={100}
+          onChange={(v) => setType({ headingWeight: v })}
+        />
+        <SliderControl
+          label={t("brandBodyWeight")}
+          value={ty.bodyWeight}
+          defaultValue={defaults.bodyWeight}
+          min={300}
+          max={700}
+          step={100}
+          onChange={(v) => setType({ bodyWeight: v })}
+        />
+      </SubGroup>
+
+      {/* Size Overrides (collapsed by default) */}
+      <SubGroup title={t("brandSizesTitle")} defaultOpen={false}>
+        <div className="space-y-2.5 pl-1">
           {SIZE_ROWS.map((row) => (
             <SizeRow
               key={row.key}
@@ -420,36 +465,36 @@ export function TypographySection({ state, merge }: SectionProps) {
             />
           ))}
         </div>
-      </Ctl>
+      </SubGroup>
 
-      <div
-        style={{ ...vars, background: "var(--site-bg)" }}
-        className="mt-4 rounded-[13px] border-[1.5px] border-brand-line/70 p-4"
-      >
-        <div
-          style={{
-            fontFamily: "var(--site-font-heading)",
-            fontWeight: "var(--site-weight-heading)" as unknown as number,
-            fontSize: "var(--site-h3)",
-            lineHeight: "var(--site-leading-heading)" as unknown as number,
-            letterSpacing: "var(--site-tracking-heading)",
-            color: "var(--site-ink)",
-          }}
-        >
-          {t("brandSpecimenHeading")}
+      {/* Live Preview */}
+      <PreviewBox vars={{ ...vars, background: "var(--site-bg)" }}>
+        <div className="w-full">
+          <div
+            style={{
+              fontFamily: "var(--site-font-heading)",
+              fontWeight: "var(--site-weight-heading)" as unknown as number,
+              fontSize: "var(--site-h3)",
+              lineHeight: "var(--site-leading-heading)" as unknown as number,
+              letterSpacing: "var(--site-tracking-heading)",
+              color: "var(--site-ink)",
+            }}
+          >
+            {t("brandSpecimenHeading")}
+          </div>
+          <div
+            style={{
+              fontFamily: "var(--site-font-body)",
+              fontSize: "var(--site-text-base)",
+              lineHeight: "var(--site-leading-body)" as unknown as number,
+              color: "var(--site-mute)",
+            }}
+            className="mt-1.5"
+          >
+            {t("brandSpecimenBody")}
+          </div>
         </div>
-        <div
-          style={{
-            fontFamily: "var(--site-font-body)",
-            fontSize: "var(--site-text-base)",
-            lineHeight: "var(--site-leading-body)" as unknown as number,
-            color: "var(--site-mute)",
-          }}
-          className="mt-1.5"
-        >
-          {t("brandSpecimenBody")}
-        </div>
-      </div>
+      </PreviewBox>
     </Acc>
   );
 }
@@ -461,76 +506,42 @@ const BORDER_WIDTHS = [
   { value: "3", label: "3px" },
 ];
 
-function ButtonConfigControls({
+function ButtonVariantControls({
+  label,
   cfg,
   onChange,
   presetAccent,
   t,
+  defaultOpen = true,
 }: {
+  label: string;
   cfg: StudioButtonConfig;
   onChange: (patch: Partial<StudioButtonConfig>) => void;
   presetAccent: string;
   t: ReturnType<typeof useTranslations<"website">>;
+  defaultOpen?: boolean;
 }) {
-  const styleOpts: Array<{
-    value: SiteButtonStyle;
-    label: string;
-    diagram: React.ReactNode;
-  }> = [
-    {
-      value: "solid",
-      label: t("brandButtonSolid"),
-      diagram: <span className="h-3.5 w-8 rounded bg-brand-primary" />,
-    },
-    {
-      value: "outline",
-      label: t("brandButtonOutline"),
-      diagram: (
-        <span className="h-3.5 w-8 rounded border-[1.5px] border-brand-primary" />
-      ),
-    },
-  ];
-
   return (
-    <>
+    <SubGroup title={label} defaultOpen={defaultOpen}>
       <Ctl>
         <CtlLabel>{t("btnStyle")}</CtlLabel>
         <Seg
           value={cfg.style}
-          options={styleOpts}
+          options={[
+            { value: "solid", label: t("brandButtonSolid") },
+            { value: "outline", label: t("brandButtonOutline") },
+          ]}
           onChange={(v) => onChange({ style: v as SiteButtonStyle })}
         />
       </Ctl>
 
       <Ctl>
-        <CtlLabel hint={t("btnColorHint")}>{t("btnColor")}</CtlLabel>
-        <div className="flex items-center gap-2">
-          <input
-            type="color"
-            value={cfg.color || presetAccent}
-            onChange={(e) => onChange({ color: e.target.value.toUpperCase() })}
-            className="h-8 w-12 cursor-pointer rounded border border-brand-line bg-transparent"
-          />
-          <input
-            type="text"
-            value={cfg.color}
-            onChange={(e) =>
-              onChange({ color: e.target.value.toUpperCase().slice(0, 7) })
-            }
-            placeholder={presetAccent}
-            maxLength={7}
-            className={`${bsInput} flex-1 font-mono text-xs uppercase`}
-          />
-          {cfg.color && (
-            <button
-              type="button"
-              onClick={() => onChange({ color: "" })}
-              className="text-xs text-brand-mute hover:text-brand-ink"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <CtlLabel>{t("btnColor")}</CtlLabel>
+        <SwatchRow
+          value={cfg.color}
+          inheritedHex={presetAccent}
+          onChange={(hex) => onChange({ color: hex })}
+        />
       </Ctl>
 
       {cfg.style === "outline" && (
@@ -545,18 +556,19 @@ function ButtonConfigControls({
       )}
 
       <Ctl>
-        <CtlLabel>{t("btnPill")}</CtlLabel>
-        <label className="flex cursor-pointer items-center gap-2">
+        <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
             checked={cfg.pill}
             onChange={(e) => onChange({ pill: e.target.checked })}
-            className="h-4 w-4 rounded border-brand-line"
+            className="h-4 w-4 rounded border-brand-line accent-brand-primary"
           />
-          <span className="text-sm text-brand-mute">{t("btnPillHint")}</span>
+          <span className="text-[12px] text-brand-mute">
+            {t("btnPillHint")}
+          </span>
         </label>
       </Ctl>
-    </>
+    </SubGroup>
   );
 }
 
@@ -572,7 +584,6 @@ export function ButtonsSection({ state, merge }: SectionProps) {
   ];
 
   const presetAccent = state.base.palette.accent;
-  // Secondary fallback: user's secondary color override, or accent if not set
   const presetSecondary = state.colors.secondary || presetAccent;
 
   const setBtn = (
@@ -593,73 +604,66 @@ export function ButtonsSection({ state, merge }: SectionProps) {
       subtitle={t("brandButtonsSub")}
     >
       {/* Live preview */}
-      <div
-        style={buildSiteVars(studioThemeConfig(state))}
-        className="mb-4 flex flex-wrap items-center justify-center gap-3 rounded-[13px] border-[1.5px] border-brand-line/70 bg-brand-light/50 p-5"
-      >
-        <a
-          href="#"
-          onClick={(e) => e.preventDefault()}
-          style={{
-            background: "var(--site-btn-primary-bg)",
-            color: "var(--site-btn-primary-color)",
-            border: "var(--site-btn-primary-border)",
-            borderRadius: "var(--site-btn-primary-radius)",
-          }}
-          className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-        >
-          {t("btnPreviewPrimary")}
-        </a>
-        <a
-          href="#"
-          onClick={(e) => e.preventDefault()}
-          style={{
-            background: "var(--site-btn-secondary-bg)",
-            color: "var(--site-btn-secondary-color)",
-            border: "var(--site-btn-secondary-border)",
-            borderRadius: "var(--site-btn-secondary-radius)",
-          }}
-          className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
-        >
-          {t("btnPreviewSecondary")}
-        </a>
-      </div>
+      <PreviewBox vars={buildSiteVars(studioThemeConfig(state))}>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <a
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            style={{
+              background: "var(--site-btn-primary-bg)",
+              color: "var(--site-btn-primary-color)",
+              border: "var(--site-btn-primary-border)",
+              borderRadius: "var(--site-btn-primary-radius)",
+            }}
+            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+          >
+            {t("btnPreviewPrimary")}
+          </a>
+          <a
+            href="#"
+            onClick={(e) => e.preventDefault()}
+            style={{
+              background: "var(--site-btn-secondary-bg)",
+              color: "var(--site-btn-secondary-color)",
+              border: "var(--site-btn-secondary-border)",
+              borderRadius: "var(--site-btn-secondary-radius)",
+            }}
+            className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
+          >
+            {t("btnPreviewSecondary")}
+          </a>
+        </div>
+      </PreviewBox>
 
       {/* Site-wide corner radius */}
-      <Ctl>
-        <CtlLabel>{t("themeCornersLabel")}</CtlLabel>
-        <Seg
-          value={state.radius}
-          options={radiusOpts}
-          onChange={(v) => merge({ radius: v })}
-        />
-      </Ctl>
+      <SegControl
+        label={t("themeCornersLabel")}
+        value={state.radius}
+        defaultValue=""
+        options={radiusOpts}
+        onChange={(v) => merge({ radius: v })}
+      />
 
-      {/* Primary button controls */}
-      <div className="mt-4 border-t border-brand-line pt-4">
-        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-mute">
-          {t("btnPrimaryHeading")}
-        </h4>
-        <ButtonConfigControls
-          cfg={state.buttons.primary}
-          onChange={(patch) => setBtn("primary", patch)}
-          presetAccent={presetAccent}
-          t={t}
-        />
-      </div>
+      <Divider />
 
-      {/* Secondary button controls */}
-      <div className="mt-4 border-t border-brand-line pt-4">
-        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-mute">
-          {t("btnSecondaryHeading")}
-        </h4>
-        <ButtonConfigControls
-          cfg={state.buttons.secondary}
-          onChange={(patch) => setBtn("secondary", patch)}
-          presetAccent={presetSecondary}
-          t={t}
-        />
-      </div>
+      {/* Primary button */}
+      <ButtonVariantControls
+        label={t("btnPrimaryHeading")}
+        cfg={state.buttons.primary}
+        onChange={(patch) => setBtn("primary", patch)}
+        presetAccent={presetAccent}
+        t={t}
+      />
+
+      {/* Secondary button */}
+      <ButtonVariantControls
+        label={t("btnSecondaryHeading")}
+        cfg={state.buttons.secondary}
+        onChange={(patch) => setBtn("secondary", patch)}
+        presetAccent={presetSecondary}
+        t={t}
+        defaultOpen={false}
+      />
     </Acc>
   );
 }
@@ -676,6 +680,7 @@ const SHADOW_OPTS: Array<{ value: SiteShadow; labelKey: string }> = [
 export function ImagesSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const img = state.image;
+  const defaults = state.defaults.image;
   const presetLine = state.base.palette.line;
   const setImg = (patch: Partial<StudioState["image"]>) =>
     merge({ image: { ...img, ...patch } });
@@ -686,40 +691,37 @@ export function ImagesSection({ state, merge }: SectionProps) {
       title={t("brandImagesTitle")}
       subtitle={t("brandImagesSub")}
     >
-      <div
-        style={buildSiteVars(studioThemeConfig(state))}
-        className="flex items-center justify-center rounded-[13px] border-[1.5px] border-brand-line/70 bg-brand-light/50 p-5"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://picsum.photos/seed/vilo-imgstyle/480/320"
-          alt=""
-          style={siteImageStyle}
-          className="h-28 w-44 object-cover"
-        />
-      </div>
-      <Ctl>
-        <CtlLabel>{t("brandImageRadius")}</CtlLabel>
-        <Slider
-          value={img.radius}
-          min={0}
-          max={48}
-          step={1}
-          suffix="px"
-          onChange={(v) => setImg({ radius: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandImageBorderWidth")}</CtlLabel>
-        <Slider
-          value={img.borderWidth}
-          min={0}
-          max={12}
-          step={1}
-          suffix="px"
-          onChange={(v) => setImg({ borderWidth: v })}
-        />
-      </Ctl>
+      {/* Live preview */}
+      <PreviewBox vars={buildSiteVars(studioThemeConfig(state))}>
+        <div className="flex justify-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://picsum.photos/seed/vilo-imgstyle/480/320"
+            alt=""
+            style={siteImageStyle}
+            className="h-28 w-44 object-cover"
+          />
+        </div>
+      </PreviewBox>
+
+      <SliderControl
+        label={t("brandImageRadius")}
+        value={img.radius}
+        defaultValue={defaults.radius}
+        min={0}
+        max={48}
+        suffix="px"
+        onChange={(v) => setImg({ radius: v })}
+      />
+      <SliderControl
+        label={t("brandImageBorderWidth")}
+        value={img.borderWidth}
+        defaultValue={defaults.borderWidth}
+        min={0}
+        max={12}
+        suffix="px"
+        onChange={(v) => setImg({ borderWidth: v })}
+      />
       {img.borderWidth > 0 ? (
         <Ctl>
           <CtlLabel>{t("brandImageBorderColor")}</CtlLabel>
@@ -730,22 +732,30 @@ export function ImagesSection({ state, merge }: SectionProps) {
           />
         </Ctl>
       ) : null}
-      <Ctl>
-        <CtlLabel>{t("brandImageShadow")}</CtlLabel>
-        <Seg
-          value={img.shadow}
-          options={SHADOW_OPTS.map((o) => ({
-            value: o.value,
-            label: t(o.labelKey),
-          }))}
-          onChange={(v) => setImg({ shadow: v })}
-        />
-      </Ctl>
+      <SegControl
+        label={t("brandImageShadow")}
+        value={img.shadow}
+        defaultValue={defaults.shadow}
+        options={SHADOW_OPTS.map((o) => ({
+          value: o.value,
+          label: t(o.labelKey),
+        }))}
+        onChange={(v) => setImg({ shadow: v })}
+      />
     </Acc>
   );
 }
 
 // ── Social channels ───────────────────────────────────────
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  facebook: Facebook,
+  x: Twitter,
+  youtube: Youtube,
+  linkedin: Linkedin,
+  website: Globe,
+} as const;
+
 export function SocialSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const socialLabels: Record<string, string> = {
@@ -762,64 +772,91 @@ export function SocialSection({ state, merge }: SectionProps) {
       title={t("brandSocialTitle")}
       subtitle={t("brandSocialSub")}
     >
+      {/* Style controls at top (most important visual choice) */}
+      <SegControl
+        label={t("brandSocialStyle")}
+        value={state.social.style}
+        defaultValue={state.defaults.social.style}
+        options={[
+          { value: "plain", label: t("socialStylePlain") },
+          { value: "filled", label: t("socialStyleFilled") },
+          { value: "outline", label: t("socialStyleOutline") },
+        ]}
+        onChange={(v) => merge({ social: { ...state.social, style: v } })}
+      />
+      <SegControl
+        label={t("brandSocialShape")}
+        value={state.social.shape}
+        defaultValue={state.defaults.social.shape}
+        options={[
+          { value: "round", label: t("socialShapeRound") },
+          { value: "square", label: t("socialShapeSquare") },
+        ]}
+        onChange={(v) => merge({ social: { ...state.social, shape: v } })}
+      />
+
+      <Divider />
+
+      {/* Contact info section */}
       <Ctl>
-        <CtlLabel>{t("contactEmailLabel")}</CtlLabel>
-        <input
-          type="email"
-          value={state.contactEmail}
-          onChange={(e) => merge({ contactEmail: e.target.value })}
-          maxLength={160}
-          className={bsInput}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("contactPhoneLabel")}</CtlLabel>
-        <input
-          value={state.contactPhone}
-          onChange={(e) => merge({ contactPhone: e.target.value })}
-          maxLength={60}
-          className={bsInput}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel hint={t("brandSocialHint")}>{t("socialsLabel")}</CtlLabel>
-        <div className="space-y-2.5">
-          {SOCIAL_KEYS.map((key) => (
+        <CtlLabel>{t("contactInfoLabel")}</CtlLabel>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-light">
+              <Mail className="h-4 w-4 text-brand-mute" />
+            </span>
             <input
-              key={key}
-              value={state.socials[key]}
-              onChange={(e) =>
-                merge({ socials: { ...state.socials, [key]: e.target.value } })
-              }
-              maxLength={300}
-              placeholder={socialLabels[key]}
-              className={`${bsInput} h-10`}
+              type="email"
+              value={state.contactEmail}
+              onChange={(e) => merge({ contactEmail: e.target.value })}
+              placeholder={t("contactEmailLabel")}
+              maxLength={160}
+              className={`${bsInput} flex-1`}
             />
-          ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-light">
+              <Phone className="h-4 w-4 text-brand-mute" />
+            </span>
+            <input
+              value={state.contactPhone}
+              onChange={(e) => merge({ contactPhone: e.target.value })}
+              placeholder={t("contactPhoneLabel")}
+              maxLength={60}
+              className={`${bsInput} flex-1`}
+            />
+          </div>
         </div>
       </Ctl>
+
+      <Divider />
+
+      {/* Social links grid with icons */}
       <Ctl>
-        <CtlLabel>{t("brandSocialStyle")}</CtlLabel>
-        <Seg
-          value={state.social.style}
-          options={[
-            { value: "plain", label: t("socialStylePlain") },
-            { value: "filled", label: t("socialStyleFilled") },
-            { value: "outline", label: t("socialStyleOutline") },
-          ]}
-          onChange={(v) => merge({ social: { ...state.social, style: v } })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandSocialShape")}</CtlLabel>
-        <Seg
-          value={state.social.shape}
-          options={[
-            { value: "round", label: t("socialShapeRound") },
-            { value: "square", label: t("socialShapeSquare") },
-          ]}
-          onChange={(v) => merge({ social: { ...state.social, shape: v } })}
-        />
+        <CtlLabel hint={t("brandSocialHint")}>{t("socialsLabel")}</CtlLabel>
+        <div className="space-y-2">
+          {SOCIAL_KEYS.map((key) => {
+            const Icon = SOCIAL_ICONS[key];
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-light">
+                  <Icon className="h-4 w-4 text-brand-mute" />
+                </span>
+                <input
+                  value={state.socials[key]}
+                  onChange={(e) =>
+                    merge({
+                      socials: { ...state.socials, [key]: e.target.value },
+                    })
+                  }
+                  maxLength={300}
+                  placeholder={socialLabels[key]}
+                  className={`${bsInput} flex-1`}
+                />
+              </div>
+            );
+          })}
+        </div>
       </Ctl>
     </Acc>
   );
@@ -827,106 +864,131 @@ export function SocialSection({ state, merge }: SectionProps) {
 
 // ── Room / listing cards ──────────────────────────────────
 const RATIO_OPTS = ["4:3", "16:9", "1:1", "3:2"] as const;
+const RATIO_PADDING: Record<string, string> = {
+  "4:3": "75%",
+  "16:9": "56.25%",
+  "1:1": "100%",
+  "3:2": "66.67%",
+};
+const SHADOW_VALUES: Record<SiteShadow, string> = {
+  none: "none",
+  sm: "0 1px 2px rgba(0,0,0,0.05)",
+  md: "0 4px 6px -1px rgba(0,0,0,0.1)",
+  lg: "0 10px 15px -3px rgba(0,0,0,0.1)",
+  xl: "0 20px 25px -5px rgba(0,0,0,0.1)",
+};
 
 export function CardsSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
   const card = state.card;
+  const defaults = state.defaults.card;
+  const presetLine = state.base.palette.line;
   const setCard = (patch: Partial<StudioState["card"]>) =>
     merge({ card: { ...card, ...patch } });
+
+  // Compute card styles for preview
+  const cardBg = card.style === "elevated" ? "#fff" : "transparent";
+  const borderColor = card.borderColor || presetLine;
+  const cardBorder =
+    card.style === "bordered" ? `1px solid ${borderColor}` : "none";
+  const cardShadow =
+    card.style === "elevated" ? SHADOW_VALUES[card.shadow] : "none";
+
   return (
     <Acc
       icon={<GalleryVerticalEnd className="h-[17px] w-[17px]" />}
       title={t("brandCardsTitle")}
       subtitle={t("brandCardsSub")}
     >
-      <Ctl>
-        <CtlLabel>{t("brandCardStyle")}</CtlLabel>
-        <Seg
-          value={card.style}
-          options={[
-            { value: "elevated", label: t("cardStyleElevated") },
-            { value: "bordered", label: t("cardStyleBordered") },
-            { value: "flat", label: t("cardStyleFlat") },
-          ]}
-          onChange={(v) => setCard({ style: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandImageRadius")}</CtlLabel>
-        <Slider
-          value={card.radius}
-          min={0}
-          max={40}
-          step={1}
-          suffix="px"
-          onChange={(v) => setCard({ radius: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandImageShadow")}</CtlLabel>
-        <Seg
+      {/* Live card preview */}
+      <PreviewBox vars={{ background: "#f8f9fa" }}>
+        <div className="flex justify-center">
+          <div
+            style={{
+              width: 180,
+              background: cardBg,
+              border: cardBorder,
+              boxShadow: cardShadow,
+              borderRadius: card.radius,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                paddingBottom: RATIO_PADDING[card.ratio],
+                background: "linear-gradient(135deg, #ddd 0%, #bbb 100%)",
+                position: "relative",
+              }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ImageIcon className="h-8 w-8 text-white/60" />
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="text-sm font-semibold text-gray-800">
+                Room Title
+              </div>
+              <div className="text-xs text-gray-500">R1,200 / night</div>
+            </div>
+          </div>
+        </div>
+      </PreviewBox>
+
+      <SegControl
+        label={t("brandCardStyle")}
+        value={card.style}
+        defaultValue={defaults.style}
+        options={[
+          { value: "elevated", label: t("cardStyleElevated") },
+          { value: "bordered", label: t("cardStyleBordered") },
+          { value: "flat", label: t("cardStyleFlat") },
+        ]}
+        onChange={(v) => setCard({ style: v })}
+      />
+
+      <SliderControl
+        label={t("brandCardRadius")}
+        value={card.radius}
+        defaultValue={defaults.radius}
+        min={0}
+        max={40}
+        suffix="px"
+        onChange={(v) => setCard({ radius: v })}
+      />
+
+      {/* Border color - only for bordered style */}
+      {card.style === "bordered" && (
+        <Ctl>
+          <CtlLabel>{t("brandCardBorderColor")}</CtlLabel>
+          <SwatchRow
+            value={card.borderColor}
+            inheritedHex={presetLine}
+            onChange={(hex) => setCard({ borderColor: hex })}
+          />
+        </Ctl>
+      )}
+
+      {/* Shadow - only for elevated style */}
+      {card.style === "elevated" && (
+        <SegControl
+          label={t("brandCardShadow")}
           value={card.shadow}
+          defaultValue={defaults.shadow}
           options={SHADOW_OPTS.map((o) => ({
             value: o.value,
             label: t(o.labelKey),
           }))}
           onChange={(v) => setCard({ shadow: v })}
         />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("brandCardRatio")}</CtlLabel>
-        <Seg
-          value={card.ratio}
-          options={RATIO_OPTS.map((r) => ({ value: r, label: r }))}
-          onChange={(v) => setCard({ ratio: v })}
-        />
-      </Ctl>
-    </Acc>
-  );
-}
+      )}
 
-// ── Homepage / hero ───────────────────────────────────────
-export function HomepageSection({ state, merge }: SectionProps) {
-  const t = useTranslations("website");
-  return (
-    <Acc
-      icon={<Layout className="h-[17px] w-[17px]" />}
-      title={t("brandHomepageTitle")}
-      subtitle={t("brandHomepageSub")}
-    >
-      <Ctl>
-        <CtlLabel>{t("brandHeroLayout")}</CtlLabel>
-        <Seg
-          value={state.heroLayout}
-          options={[
-            { value: "center", label: t("heroCenter") },
-            { value: "left", label: t("heroLeft") },
-          ]}
-          onChange={(v) => merge({ heroLayout: v })}
-        />
-      </Ctl>
-    </Acc>
-  );
-}
-
-// ── Feature icons ─────────────────────────────────────────
-export function IconsSection({ state, merge }: SectionProps) {
-  const t = useTranslations("website");
-  const base = state.base;
-  return (
-    <Acc
-      icon={<Sparkles className="h-[17px] w-[17px]" />}
-      title={t("brandIconsTitle")}
-      subtitle={t("brandIconsSub")}
-    >
-      <Ctl>
-        <CtlLabel>{t("brandIconColour")}</CtlLabel>
-        <SwatchRow
-          value={state.iconColor}
-          inheritedHex={state.colors.accent || base.palette.accent}
-          onChange={(hex) => merge({ iconColor: hex })}
-        />
-      </Ctl>
+      <SegControl
+        label={t("brandCardRatio")}
+        value={card.ratio}
+        defaultValue={defaults.ratio}
+        options={RATIO_OPTS.map((r) => ({ value: r, label: r }))}
+        onChange={(v) => setCard({ ratio: v })}
+      />
     </Acc>
   );
 }
@@ -940,6 +1002,8 @@ const HEADER_OPTS: Array<{ value: SiteHeaderLayout; labelKey: string }> = [
 
 export function HeaderSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
+  const headerDefaults = state.defaults.header;
+  const heroDefault = state.defaults.heroLayout;
   const setHeader = (patch: Partial<StudioState["header"]>) =>
     merge({ header: { ...state.header, ...patch } });
   const opts = HEADER_OPTS.map((o) => ({
@@ -952,22 +1016,34 @@ export function HeaderSection({ state, merge }: SectionProps) {
       title={t("brandHeaderTitle")}
       subtitle={t("brandHeaderSub")}
     >
-      <Ctl>
-        <CtlLabel>{t("layoutDesktop")}</CtlLabel>
-        <Seg
-          value={state.header.desktop}
-          options={opts}
-          onChange={(v) => setHeader({ desktop: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("layoutMobile")}</CtlLabel>
-        <Seg
-          value={state.header.mobile}
-          options={opts}
-          onChange={(v) => setHeader({ mobile: v })}
-        />
-      </Ctl>
+      {/* Hero layout (merged from Homepage section) */}
+      <SegControl
+        label={t("brandHeroLayout")}
+        value={state.heroLayout}
+        defaultValue={heroDefault}
+        options={[
+          { value: "center", label: t("heroCenter") },
+          { value: "left", label: t("heroLeft") },
+        ]}
+        onChange={(v) => merge({ heroLayout: v })}
+      />
+
+      <Divider />
+
+      <SegControl
+        label={t("layoutDesktop")}
+        value={state.header.desktop}
+        defaultValue={headerDefaults.desktop}
+        options={opts}
+        onChange={(v) => setHeader({ desktop: v })}
+      />
+      <SegControl
+        label={t("layoutMobile")}
+        value={state.header.mobile}
+        defaultValue={headerDefaults.mobile}
+        options={opts}
+        onChange={(v) => setHeader({ mobile: v })}
+      />
     </Acc>
   );
 }
@@ -981,6 +1057,7 @@ const FOOTER_OPTS: Array<{ value: SiteFooterLayout; labelKey: string }> = [
 
 export function FooterSection({ state, merge }: SectionProps) {
   const t = useTranslations("website");
+  const defaults = state.defaults.footer;
   const setFooter = (patch: Partial<StudioState["footer"]>) =>
     merge({ footer: { ...state.footer, ...patch } });
   const opts = FOOTER_OPTS.map((o) => ({
@@ -993,22 +1070,20 @@ export function FooterSection({ state, merge }: SectionProps) {
       title={t("brandFooterTitle")}
       subtitle={t("brandFooterSub")}
     >
-      <Ctl>
-        <CtlLabel>{t("layoutDesktop")}</CtlLabel>
-        <Seg
-          value={state.footer.desktop}
-          options={opts}
-          onChange={(v) => setFooter({ desktop: v })}
-        />
-      </Ctl>
-      <Ctl>
-        <CtlLabel>{t("layoutMobile")}</CtlLabel>
-        <Seg
-          value={state.footer.mobile}
-          options={opts}
-          onChange={(v) => setFooter({ mobile: v })}
-        />
-      </Ctl>
+      <SegControl
+        label={t("layoutDesktop")}
+        value={state.footer.desktop}
+        defaultValue={defaults.desktop}
+        options={opts}
+        onChange={(v) => setFooter({ desktop: v })}
+      />
+      <SegControl
+        label={t("layoutMobile")}
+        value={state.footer.mobile}
+        defaultValue={defaults.mobile}
+        options={opts}
+        onChange={(v) => setFooter({ mobile: v })}
+      />
     </Acc>
   );
 }

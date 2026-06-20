@@ -25,8 +25,6 @@ import {
   ColourSection,
   FooterSection,
   HeaderSection,
-  HomepageSection,
-  IconsSection,
   IdentitySection,
   ImagesSection,
   SocialSection,
@@ -164,12 +162,10 @@ export function BrandStudio({
             <ColourSection {...sectionProps} />
             <TypographySection {...sectionProps} />
             <ButtonsSection {...sectionProps} />
-            <IconsSection {...sectionProps} />
             <ImagesSection {...sectionProps} />
             <CardsSection {...sectionProps} />
             <HeaderSection {...sectionProps} />
             <FooterSection {...sectionProps} />
-            <HomepageSection {...sectionProps} />
             <SocialSection {...sectionProps} />
             <div className="h-2" />
           </div>
@@ -261,7 +257,7 @@ export function BrandStudio({
                 ))}
               </div>
               <a
-                href={`/site?site=${subdomain}&preview=1`}
+                href={`/${locale}/site?site=${subdomain}&preview=1`}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={t("brandViewLive")}

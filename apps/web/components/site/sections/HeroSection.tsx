@@ -28,7 +28,7 @@ export function HeroSection({
     >
       <div
         className="mx-auto w-full max-w-4xl"
-        style={{ textAlign: "var(--site-hero-align)" as "center" | "left" }}
+        style={{ textAlign: props.align === "left" ? "left" : "center" }}
       >
         <h1
           style={{
@@ -53,14 +53,17 @@ export function HeroSection({
         {props.cta_label && props.cta_href ? (
           <div
             className="mt-8 flex"
-            style={{ justifyContent: "var(--site-hero-justify)" }}
+            style={{
+              justifyContent: props.align === "left" ? "flex-start" : "center",
+            }}
           >
             <a
               href={props.cta_href}
               style={{
-                background: "var(--site-accent)",
-                color: "var(--site-accent-ink)",
-                borderRadius: "var(--site-radius)",
+                background: "var(--site-btn-primary-bg)",
+                color: "var(--site-btn-primary-color)",
+                border: "var(--site-btn-primary-border)",
+                borderRadius: "var(--site-btn-primary-radius)",
               }}
               className="inline-flex items-center px-7 py-3.5 text-base font-semibold transition-opacity hover:opacity-90"
             >

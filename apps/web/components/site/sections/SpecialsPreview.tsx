@@ -111,9 +111,10 @@ function SpecialCardView({
             href={s.bookHref}
             data-vilo-book
             style={{
-              background: "var(--site-accent)",
-              color: "var(--site-accent-ink)",
-              borderRadius: "var(--site-radius)",
+              background: "var(--site-btn-primary-bg)",
+              color: "var(--site-btn-primary-color)",
+              border: "var(--site-btn-primary-border)",
+              borderRadius: "var(--site-btn-primary-radius)",
             }}
             className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
           >

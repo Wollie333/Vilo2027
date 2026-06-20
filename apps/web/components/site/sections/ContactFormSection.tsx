@@ -168,9 +168,10 @@ export function ContactFormSection({
           type="submit"
           disabled={!live || status === "sending"}
           style={{
-            background: "var(--site-accent)",
-            color: "var(--site-accent-ink)",
-            borderRadius: "var(--site-radius)",
+            background: "var(--site-btn-primary-bg)",
+            color: "var(--site-btn-primary-color)",
+            border: "var(--site-btn-primary-border)",
+            borderRadius: "var(--site-btn-primary-radius)",
           }}
           className="inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
         >
