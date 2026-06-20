@@ -60,6 +60,11 @@ export type SiteMenuItem = {
   newTab?: boolean;
   children?: SiteMenuItem[]; // one level of dropdown
 };
+export type SiteFooterColumn = {
+  id: string;
+  heading?: string;
+  links: SiteMenuItem[];
+};
 export type SiteNavigation = {
   /** Explicit header menu; when empty the page-derived nav is used. */
   menu?: SiteMenuItem[];
@@ -73,6 +78,7 @@ export type SiteNavigation = {
   footer?: {
     showPoweredBy?: boolean; // default true
     copyright?: string | null;
+    columns?: SiteFooterColumn[];
   };
 };
 

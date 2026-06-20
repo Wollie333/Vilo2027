@@ -10,9 +10,9 @@ import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
 
 export type PageOption = { label: string; href: string };
 
-const uid = () => crypto.randomUUID();
+export const uid = () => crypto.randomUUID();
 
-function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
+export function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
   const j = i + dir;
   if (j < 0 || j >= arr.length) return arr;
   const next = [...arr];
@@ -21,7 +21,7 @@ function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
 }
 
 /** Quick page picker — sets a link's href (and label, if blank) from a page. */
-function PagePick({
+export function PagePick({
   pages,
   onPick,
 }: {
@@ -49,7 +49,7 @@ function PagePick({
   );
 }
 
-function IconBtn({
+export function IconBtn({
   onClick,
   title,
   danger,

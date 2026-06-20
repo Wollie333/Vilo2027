@@ -9,9 +9,10 @@ import { useTranslations } from "next-intl";
 
 import { saveNavigationAction } from "@/app/[locale]/dashboard/website/actions";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
-import type { SiteMenuItem } from "@/lib/site/types";
+import type { SiteFooterColumn, SiteMenuItem } from "@/lib/site/types";
 
 import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
+import { FooterBuilder } from "./FooterBuilder";
 import { MenuBuilder, type PageOption } from "./MenuBuilder";
 
 export function NavigationForm({
@@ -35,6 +36,8 @@ export function NavigationForm({
   const setFooter = (patch: Partial<NavigationConfig["footer"]>) =>
     setNav((n) => ({ ...n, footer: { ...n.footer, ...patch } }));
   const setMenu = (menu: SiteMenuItem[]) => setNav((n) => ({ ...n, menu }));
+  const setFooterColumns = (columns: SiteFooterColumn[]) =>
+    setNav((n) => ({ ...n, footer: { ...n.footer, columns } }));
 
   function onSave() {
     startSave(async () => {
@@ -143,7 +146,20 @@ export function NavigationForm({
           checked={nav.footer.showPoweredBy}
           onChange={(v) => setFooter({ showPoweredBy: v })}
         />
+        <TextField
+          label={t("navCopyright")}
+          value={nav.footer.copyright ?? ""}
+          onChange={(v) => setFooter({ copyright: v })}
+          maxLength={160}
+          hint={t("navCopyrightHint")}
+        />
       </section>
+
+      <FooterBuilder
+        columns={nav.footer.columns ?? []}
+        pages={pages}
+        onChange={setFooterColumns}
+      />
 
       <button
         type="button"

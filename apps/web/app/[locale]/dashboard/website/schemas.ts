@@ -574,8 +574,18 @@ export const navigationSchema = z.object({
     .object({
       showPoweredBy: z.boolean().default(true),
       copyright: z.string().trim().max(160).optional(),
+      columns: z
+        .array(
+          z.object({
+            id: z.string(),
+            heading: z.string().trim().max(60).optional(),
+            links: z.array(menuLinkSchema).max(12).default([]),
+          }),
+        )
+        .max(5)
+        .default([]),
     })
-    .default({ showPoweredBy: true }),
+    .default({ showPoweredBy: true, columns: [] }),
 });
 export type NavigationConfig = z.infer<typeof navigationSchema>;
 

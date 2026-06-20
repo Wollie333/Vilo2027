@@ -22,6 +22,7 @@ import {
 } from "@/lib/site/themes";
 import type {
   SiteBrand,
+  SiteFooterColumn,
   SiteMenuItem,
   SiteNavItem,
   SiteNavigation,
@@ -551,6 +552,61 @@ function FooterInner({
   );
 }
 
+/** Widget-column footer (host-built). Brand + social, then custom link columns. */
+function FooterColumns({
+  brand,
+  columns,
+  copyright,
+  preview,
+}: {
+  brand: SiteBrand;
+  columns: SiteFooterColumn[];
+  copyright?: string | null;
+  preview?: PreviewCtx;
+}) {
+  return (
+    <div className="mx-auto w-full max-w-5xl px-5 py-12">
+      <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+        <div className="flex flex-col gap-3">
+          <FooterBrandName brand={brand} />
+          {brand.tagline ? (
+            <p style={{ color: "var(--site-mute)" }} className="text-sm">
+              {brand.tagline}
+            </p>
+          ) : null}
+          <SocialLinks brand={brand} />
+        </div>
+        {columns.map((col) => (
+          <div key={col.id} className="flex flex-col gap-2">
+            {col.heading ? (
+              <span
+                style={{ color: "var(--site-ink)" }}
+                className="text-sm font-semibold"
+              >
+                {col.heading}
+              </span>
+            ) : null}
+            {col.links.map((l) => (
+              <MenuLink
+                key={l.id}
+                item={l}
+                preview={preview}
+                className="text-sm"
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div
+        style={{ borderColor: "var(--site-line)", color: "var(--site-mute)" }}
+        className="mt-8 border-t pt-5 text-center text-xs"
+      >
+        {copyright?.trim() || `© ${brand.name}`}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Header + footer for a tenant micro-site, themed off `--site-*` vars. The
  * header/footer LAYOUT is chosen per theme (Phase 5.5) with separate desktop +
@@ -605,6 +661,7 @@ export function SiteChrome({
     label: m.label,
     href: m.href,
   }));
+  const footerColumns = navigation.footer?.columns ?? [];
   return (
     <div className="flex min-h-screen flex-col">
       {analyticsWebsiteId ? (
@@ -661,22 +718,33 @@ export function SiteChrome({
         }}
         className="border-t"
       >
-        <div className="hidden md:block">
-          <FooterInner
-            variant={footer.desktop}
+        {footerColumns.length > 0 ? (
+          <FooterColumns
             brand={brand}
-            nav={flatNav}
+            columns={footerColumns}
+            copyright={navigation.footer?.copyright}
             preview={preview}
           />
-        </div>
-        <div className="md:hidden">
-          <FooterInner
-            variant={footer.mobile}
-            brand={brand}
-            nav={flatNav}
-            preview={preview}
-          />
-        </div>
+        ) : (
+          <>
+            <div className="hidden md:block">
+              <FooterInner
+                variant={footer.desktop}
+                brand={brand}
+                nav={flatNav}
+                preview={preview}
+              />
+            </div>
+            <div className="md:hidden">
+              <FooterInner
+                variant={footer.mobile}
+                brand={brand}
+                nav={flatNav}
+                preview={preview}
+              />
+            </div>
+          </>
+        )}
         {navigation.footer?.showPoweredBy !== false ? (
           <div style={{ borderColor: "var(--site-line)" }} className="border-t">
             <p
