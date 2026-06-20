@@ -2,7 +2,29 @@
 
 > Reset at the start of every session. This is the session contract.
 
-**Active focus:** **Specials feature** (host pre-packaged accommodation deals) — runs on the
+## ▶ ACTIVE LANE: Website CMS — enterprise build-out (RESUME HERE · 2026-06-20)
+
+**Branch:** `main` (all work committed; working tree clean). **Contract:** `WEBSITE_CMS_PLAN.md` (+ `WEBSITE_CMS_AUDIT.md`).
+Dev server runs at http://localhost:3001 — test a tenant site via `/en/site?site=<subdomain>`.
+
+**Design law (non-negotiable):** a CURATED SECTION system, NOT a drag-and-drop/Elementor page builder. Devs pre-build beautiful responsive sections; the host drags ready-made sections in and only edits text / images / colours / variant / tone — never raw layout. Same polished feel as the Brand/Theme Studio.
+
+**DONE & committed (this session group):**
+- **Phase 0** — security/correctness: server-side `rich_text` sanitise, save UX (errors/autosave/unsaved-guard), location map render, Home-page nav lock, default-theme fallback.
+- **Phase 1** — curated sections: shared `tone` + per-type `variant` on ALL 21 types, device `visibility`, date `schedule`, visual section library + schematic thumbnails, page-template gallery, saved blocks ("my blocks"). New section types amenities/pricing/video (stats/logos/map earlier). Stored on `host_websites.saved_sections` jsonb (migration `…003000`).
+- **Phase 2** — header/footer/nav: menu builder (1-level dropdowns), top bar (whatsapp/phone/email), header CTA, sticky + transparent-over-hero (`components/site/StickyHeader.tsx`), footer columns, powered-by, copyright. Stored on `host_websites.navigation` jsonb (migration `…004000`).
+- **Phase 3** — SEO Excellence: Yoast-style analyzer `lib/website/seoAnalyzer.ts` → red/orange/green coach (`SeoAnalysis`) on pages + blog; auto Schema.org JSON-LD `lib/site/structuredData.ts` (LodgingBusiness/rooms/reviews/Breadcrumb + BlogPosting) via `components/site/JsonLd.tsx` in `SitePageView` + blog post route; canonical URLs (`lib/site/metadata.ts`) + sitemap `lastmod`; a11y checker `lib/website/a11yAnalyzer.ts` + `A11yCard`; social share preview `SocialPreview`. Focus keyword rides existing jsonb (`seo_overrides` / blog `seo`) — no migration.
+- **Polish pass** (commit `fb110cd`): builder preview now uses the real navigation; rooms/specials honor the layout picker (grid/list/carousel); structured-data hardening (absolute-URL images, no zero-star rating, string prices, slugify keyword check, wider a11y label scan); transparent-header+topbar conflict resolved; duplicate-link key fixed; newTab toggles for dropdown children + footer links. i18n 0 missing; tsc+lint clean.
+- **Phase 4 FOUNDATION** (commit `4a65201`): migration `20260620005000_website_forms.sql` **APPLIED to the linked project** — `website_forms` + `website_form_submissions` (owner+admin RLS); types regenerated; tsc clean.
+
+**▶ NEXT — Phase 4 (Form Builder) build slices. Decisions locked:** submissions → **inbox + the new submissions table** (reuse `lib/website/createWebsiteEnquiry` for email-bearing forms; persist every submission to `website_form_submissions`, store `conversation_id`); spam → **honeypot only for now** (Turnstile deferred, no env keys); newsletter → **CRM contacts** (`host_contacts` tag `newsletter` + `email_consent` via `upsertHostContact`).
+Slices: (1) Forms tab + form builder UI (curated field types) over `website_forms`; (2) public `form` section render + service-role submit route (persist + inbox route); (3) newsletter form type → host_contacts; (4) host submissions view (list/read/archive + CSV); (5) polish pass. **REUSE the existing pipeline:** `ContactFormSection` → `/api/website-enquiry` → `createWebsiteEnquiry` (honeypot, rate-limit, blocked-sender, lead identity→Guests CRM, website-source conversation in inbox, host notify + optional email).
+
+**Conventions/gotchas:** verify with `cd apps/web && pnpm exec tsc --noEmit` + `pnpm next lint --file …` (NOT `pnpm build` — the dev server holds `.next`). **Commit subject MUST start lowercase after the type** (commitlint subject-case rejects "feat(x): SEO …"/"Yoast …" → start with a verb like "add"). Stage bracketed paths with `GIT_LITERAL_PATHSPECS=1`. Pre-commit hook runs prettier (re-reads files after). End commits with the `Co-Authored-By: Claude Opus 4.8` trailer. Migration flow: write file → `echo y | supabase db push --linked` → `supabase gen types typescript --linked > packages/types/database.types.ts 2>/tmp/e.log` (NEVER pipe stderr into the types file). **Founder rule: polish/perfect each phase before moving to the next** (run a 3-area audit + fix).
+
+---
+
+**Earlier lane (paused):** **Specials feature** (host pre-packaged accommodation deals) — runs on the
 `feat/website-property-restructure` branch alongside the Website CMS work.
 
 > **SPECIALS RESUME ANCHOR (multi-session).** Plan: `~/.claude/plans/ok-so-i-need-tender-sphinx.md`.

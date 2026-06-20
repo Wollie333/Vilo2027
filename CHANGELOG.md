@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phases 1–3 + polish + Phase 4 foundation
+
+Enterprise build-out of the curated-section website CMS. Save point before
+building the Phase 4 form builder.
+
+### Added
+- **Phase 1 — curated sections:** shared `tone` + per-type `variant` on all 21
+  section types, device `visibility`, date `schedule`, a visual section library
+  with thumbnails, a page-template gallery, and saved blocks ("my blocks";
+  `host_websites.saved_sections` jsonb). New section types: amenities/pricing/video.
+- **Phase 2 — header/footer/navigation:** menu builder (1-level dropdowns), top
+  bar, header CTA, sticky + transparent-over-hero header (`StickyHeader`), footer
+  columns, powered-by, copyright (`host_websites.navigation` jsonb).
+- **Phase 3 — SEO Excellence:** Yoast-style analyzer + red/orange/green coach on
+  pages and blog posts; auto Schema.org JSON-LD (LodgingBusiness/rooms/reviews/
+  breadcrumb + BlogPosting); canonical URLs + sitemap `lastmod`; accessibility
+  checker; social share preview. (`lib/website/seoAnalyzer.ts`,
+  `lib/website/a11yAnalyzer.ts`, `lib/site/structuredData.ts`,
+  `components/site/JsonLd.tsx`.)
+- **Phase 4 foundation:** migration `20260620005000_website_forms.sql` —
+  `website_forms` + `website_form_submissions` tables (owner/admin RLS), applied
+  to the linked project; types regenerated.
+
+### Fixed (polish pass `fb110cd`)
+- Section-builder preview now reflects the real navigation (menu/top bar/footer/
+  transparent header), not page-derived nav.
+- Rooms & Specials sections honor the layout picker (grid/list/carousel).
+- Structured-data hardening (absolute-URL images, no zero-star ratings, string
+  prices, slugify keyword check); transparent-header/top-bar conflict; duplicate
+  nav-link React key; `newTab` controls for dropdown children + footer links.
+
+### Migrations
+- `20260620003000_website_saved_sections.sql`, `20260620004000_website_navigation.sql`,
+  `20260620005000_website_forms.sql` — all additive, decoupled from bookings/payments.
+
+### Notes
+- Verified with `tsc --noEmit` + per-file `next lint` (the dev server holds
+  `.next`, so `pnpm build` is avoided during the session). i18n 0 missing keys.
+
+---
+
 ## 2026-06-19 — Deals (public Specials) · listing-style detail + "Deals" rename
 
 Makes the public deal page browse like the rest of the site and splits the
