@@ -1005,6 +1005,8 @@
     "sectionType_specials_preview": "Specials & deals",
     "libraryTitle": "Add a section",
     "librarySub": "Pick a building block — it drops in with starter content you can edit.",
+    "librarySearchPlaceholder": "Search sections…",
+    "libraryNoResults": "No sections match your search.",
     "catHero": "Hero & intro",
     "catShowcase": "Showcase",
     "catTrust": "Build trust",

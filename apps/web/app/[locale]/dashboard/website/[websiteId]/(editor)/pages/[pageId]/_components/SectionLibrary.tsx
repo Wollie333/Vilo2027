@@ -1,26 +1,7 @@
 "use client";
 
-import {
-  AlignLeft,
-  BarChart3,
-  BedDouble,
-  Building2,
-  Heart,
-  HelpCircle,
-  Images,
-  LayoutTemplate,
-  Mail,
-  Map as MapIcon,
-  MapPin,
-  MousePointerClick,
-  Newspaper,
-  Sparkles,
-  Star,
-  Tag,
-  Type,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+import { Search } from "lucide-react";
+import { useState } from "react";
 
 import { useTranslations } from "next-intl";
 
@@ -34,28 +15,9 @@ import {
   type SectionType,
 } from "@/lib/website/sections.schema";
 
-const ICONS: Record<SectionType, LucideIcon> = {
-  hero: LayoutTemplate,
-  intro: AlignLeft,
-  highlights: Sparkles,
-  stats: BarChart3,
-  gallery: Images,
-  logos: Building2,
-  rooms_preview: BedDouble,
-  location: MapPin,
-  map: MapIcon,
-  reviews: Star,
-  cta: MousePointerClick,
-  host_bio: UserRound,
-  values: Heart,
-  blog_preview: Newspaper,
-  rich_text: Type,
-  faq: HelpCircle,
-  contact_form: Mail,
-  specials_preview: Tag,
-};
+import { SectionThumb } from "./SectionThumb";
 
-// Curated grouping for the library (thumbnail grid replaces the plain dropdown).
+// Curated grouping for the library (visual thumbnail grid).
 const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   { key: "catHero", types: ["hero", "intro"] },
   {
@@ -78,9 +40,10 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
 ];
 
 /**
- * Section library — the richer "add a section" picker (Phase 5). A modal grid of
- * preview cards grouped by purpose, each with an icon + description and a Live
- * badge for auto-populate types. Picking one adds it with its starter content.
+ * Section library — the visual "add a section" picker. A searchable modal grid of
+ * thumbnail cards grouped by purpose, each a mini schematic of the section's
+ * layout + name/description and a Live badge for auto-populate types. Picking one
+ * adds it with its starter content.
  */
 export function SectionLibrary({
   open,
@@ -92,41 +55,68 @@ export function SectionLibrary({
   onPick: (type: SectionType) => void;
 }) {
   const t = useTranslations("website");
+  const [query, setQuery] = useState("");
 
   function pick(type: SectionType) {
     onPick(type);
     onOpenChange(false);
+    setQuery("");
   }
+
+  const q = query.trim().toLowerCase();
+  const matches = (type: SectionType) =>
+    !q ||
+    t(`sectionType_${type}`).toLowerCase().includes(q) ||
+    t(`sectionDesc_${type}`).toLowerCase().includes(q);
+
+  const groups = GROUPS.map((g) => ({
+    ...g,
+    types: g.types.filter(matches),
+  })).filter((g) => g.types.length > 0);
 
   return (
     <FormModal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(o) => {
+        if (!o) setQuery("");
+        onOpenChange(o);
+      }}
       title={t("libraryTitle")}
       description={t("librarySub")}
       size="lg"
     >
-      <div className="space-y-6">
-        {GROUPS.map((group) => (
-          <section key={group.key}>
-            <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
-              {t(group.key)}
-            </h3>
-            <div className="grid gap-2.5 sm:grid-cols-2">
-              {group.types.map((type) => {
-                const Icon = ICONS[type];
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => pick(type)}
-                    className="group flex items-start gap-3 rounded-card border border-brand-line bg-white p-3 text-left transition hover:border-brand-primary hover:shadow-card"
-                  >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary transition group-hover:bg-brand-accent">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1.5">
+      <div className="space-y-5">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-mute" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={t("librarySearchPlaceholder")}
+            className="w-full rounded-[10px] border border-brand-line bg-white py-2 pl-9 pr-3 text-sm text-brand-ink outline-none focus:border-brand-primary"
+          />
+        </div>
+
+        {groups.length === 0 ? (
+          <p className="py-10 text-center text-sm text-brand-mute">
+            {t("libraryNoResults")}
+          </p>
+        ) : (
+          <div className="space-y-6">
+            {groups.map((group) => (
+              <section key={group.key}>
+                <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+                  {t(group.key)}
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {group.types.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => pick(type)}
+                      className="group flex flex-col rounded-card border border-brand-line bg-white p-2 text-left transition hover:border-brand-primary hover:shadow-card"
+                    >
+                      <SectionThumb type={type} />
+                      <span className="mt-2 flex items-center gap-1.5 px-0.5">
                         <span className="text-sm font-semibold text-brand-ink">
                           {t(`sectionType_${type}`)}
                         </span>
@@ -136,16 +126,16 @@ export function SectionLibrary({
                           </span>
                         ) : null}
                       </span>
-                      <span className="mt-0.5 block text-[12.5px] leading-snug text-brand-mute">
+                      <span className="mt-0.5 line-clamp-2 px-0.5 text-[12px] leading-snug text-brand-mute">
                         {t(`sectionDesc_${type}`)}
                       </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
 
       <FormModalFooter>
