@@ -792,7 +792,12 @@ export async function assembleSiteDataByType(
       ]
         .filter(Boolean)
         .join(", ");
-      out.location = { address: address || null, mapEmbedUrl: null, pois };
+      // Keyless Google Maps embed (same approach as the free-form MapSection).
+      // City/province/country only — keeps the exact address private pre-booking.
+      const mapEmbedUrl = address
+        ? `https://maps.google.com/maps?q=${encodeURIComponent(address)}&z=12&output=embed`
+        : null;
+      out.location = { address: address || null, mapEmbedUrl, pois };
     })(),
 
     // REVIEWS — published reviews across visible properties (aggregate + cards).

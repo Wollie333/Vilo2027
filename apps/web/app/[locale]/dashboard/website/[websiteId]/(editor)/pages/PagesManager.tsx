@@ -98,7 +98,11 @@ export function PagesManager({
     const oldIndex = pages.findIndex((p) => p.id === active.id);
     const newIndex = pages.findIndex((p) => p.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
-    setPages(arrayMove(pages, oldIndex, newIndex));
+    const reordered = arrayMove(pages, oldIndex, newIndex);
+    // The home page always stays first, even if another page is dropped above it.
+    const homeIdx = reordered.findIndex((p) => p.kind === "home");
+    if (homeIdx > 0) reordered.unshift(reordered.splice(homeIdx, 1)[0]);
+    setPages(reordered);
     setDirty(true);
   }
 
@@ -164,6 +168,7 @@ export function PagesManager({
                 websiteId={websiteId}
                 page={p}
                 title={pageTitle(p)}
+                locked={p.kind === "home"}
                 onPatch={patch}
                 onDelete={() => setDeleteId(p.id)}
               />
@@ -220,12 +225,14 @@ function PageRow({
   websiteId,
   page,
   title,
+  locked,
   onPatch,
   onDelete,
 }: {
   websiteId: string;
   page: ManagedPage;
   title: string;
+  locked: boolean;
   onPatch: (id: string, next: Partial<ManagedPage>) => void;
   onDelete: () => void;
 }) {
@@ -239,7 +246,7 @@ function PageRow({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: page.id });
+  } = useSortable({ id: page.id, disabled: locked });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -268,15 +275,25 @@ function PageRow({
       }`}
     >
       <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-label={t("dragToReorder")}
-          className="cursor-grab touch-none text-brand-mute/70 hover:text-brand-ink active:cursor-grabbing"
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {locked ? (
+          <span
+            aria-hidden
+            title={t("homeStaysFirst")}
+            className="cursor-not-allowed text-brand-mute/30"
+          >
+            <GripVertical className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            aria-label={t("dragToReorder")}
+            className="cursor-grab touch-none text-brand-mute/70 hover:text-brand-ink active:cursor-grabbing"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
           <FileText className="h-4.5 w-4.5" />
         </span>

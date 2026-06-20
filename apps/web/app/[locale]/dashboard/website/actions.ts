@@ -1039,8 +1039,23 @@ export async function savePagesAction(
     return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
-  for (let i = 0; i < pages.length; i += 1) {
-    const p = pages[i];
+
+  // The home page is always pinned to nav_order 0 regardless of the submitted
+  // order, so it can never be reordered out of first position.
+  const { data: homeRow } = await supabase
+    .from("website_pages")
+    .select("id")
+    .eq("website_id", websiteId)
+    .eq("kind", "home")
+    .maybeSingle();
+  const ordered = [...pages];
+  if (homeRow?.id) {
+    const hi = ordered.findIndex((p) => p.id === homeRow.id);
+    if (hi > 0) ordered.unshift(ordered.splice(hi, 1)[0]);
+  }
+
+  for (let i = 0; i < ordered.length; i += 1) {
+    const p = ordered[i];
     const { error } = await supabase
       .from("website_pages")
       .update({
