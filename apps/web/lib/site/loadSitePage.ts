@@ -29,8 +29,10 @@ import type { SiteThemeConfig } from "./themes";
 import { resolveThemeBase } from "./themes.server";
 import type {
   BlogCard,
+  BookableProperty,
   GalleryImage,
   Poi,
+  RateRow,
   PropertyOverride,
   PublishSnapshot,
   ReviewCard,
@@ -608,6 +610,24 @@ async function assembleSectionData(
       case "trust":
         if (byType.trust) data[s.id] = { type: "trust", data: byType.trust };
         break;
+      case "booking_search":
+        if (byType.booking_search)
+          data[s.id] = {
+            type: "booking_search",
+            data: byType.booking_search,
+          };
+        break;
+      case "availability_calendar":
+        if (byType.availability_calendar)
+          data[s.id] = {
+            type: "availability_calendar",
+            data: byType.availability_calendar,
+          };
+        break;
+      case "rate_table":
+        if (byType.rate_table)
+          data[s.id] = { type: "rate_table", data: byType.rate_table };
+        break;
       default:
         break;
     }
@@ -656,6 +676,160 @@ async function loadSiteForms(
   return { forms };
 }
 
+/** Absolute checkout base for a property (append ?from=&to=&guests= client-side). */
+function bookBaseHref(locale: string, slug: string): string {
+  const path = `/${locale}/property/${slug}/book`;
+  return APP_URL ? `${APP_URL}${path}` : path;
+}
+
+/**
+ * The site's bookable properties (visible channel members) for the funnel
+ * widgets — booking_search + availability_calendar. Carries only selector +
+ * deep-link data; pricing/availability resolve live via the API endpoints.
+ */
+async function loadBookableProperties(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["booking_search"]> {
+  const ids = ctx.propertyIds;
+  if (ids.length === 0) return { websiteId: ctx.websiteId, properties: [] };
+  const { data } = await sb
+    .from("properties")
+    .select("id, slug, name, currency, min_nights, max_guests")
+    .in("id", ids);
+  const byId = new Map((data ?? []).map((p) => [(p as { id: string }).id, p]));
+  const properties: BookableProperty[] = [];
+  for (const id of ids) {
+    const p = byId.get(id) as {
+      id: string;
+      slug: string | null;
+      name: string | null;
+      currency: string | null;
+      min_nights: number | null;
+      max_guests: number | null;
+    } | null;
+    if (!p) continue;
+    const slug = p.slug ?? "";
+    properties.push({
+      id: p.id,
+      slug,
+      name: p.name?.trim() || slug,
+      currency: p.currency ?? "ZAR",
+      minNights: p.min_nights ?? 1,
+      maxGuests: p.max_guests ?? 10,
+      bookBase: bookBaseHref(ctx.locale, slug),
+    });
+  }
+  return { websiteId: ctx.websiteId, properties };
+}
+
+/**
+ * Live nightly-rate table across the site's visible rooms (display-only — the
+ * booking engine always re-prices). Resolves the same visible-room set as
+ * rooms_preview (frozen snapshot rows, else live website_rooms) ⨝ the live
+ * property_rooms for current price/active state.
+ */
+async function loadRateTable(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["rate_table"]> {
+  // Visible room ids + any display-price/currency override (snapshot or live).
+  let overrideRows: Pick<
+    SnapshotRoom,
+    "room_id" | "display_price" | "display_currency" | "display_name"
+  >[];
+  if (ctx.publishedRoomRows) {
+    overrideRows = ctx.publishedRoomRows
+      .filter((r) => r.is_visible)
+      .sort((a, b) => a.sort_order - b.sort_order);
+  } else {
+    const { data: wr } = await sb
+      .from("website_rooms")
+      .select(
+        "room_id, display_price, display_currency, display_name, sort_order",
+      )
+      .eq("website_id", ctx.websiteId)
+      .eq("is_visible", true)
+      .order("sort_order", { ascending: true });
+    overrideRows = (wr ?? []).map((r) => ({
+      room_id: (r as { room_id: string }).room_id,
+      display_price: (r as { display_price: number | string | null })
+        .display_price as number | null,
+      display_currency: (r as { display_currency: string | null })
+        .display_currency,
+      display_name: (r as { display_name: string | null }).display_name,
+    }));
+  }
+
+  const roomIds = overrideRows.map((r) => r.room_id).filter(Boolean);
+  if (roomIds.length === 0) return { rows: [] };
+
+  const { data: prRows } = await sb
+    .from("property_rooms")
+    .select(
+      "id, name, base_price, weekend_price, currency, property_id, is_active, deleted_at, max_guests, min_nights",
+    )
+    .in("id", roomIds);
+  const roomById = new Map(
+    (prRows ?? []).map((r) => [(r as { id: string }).id, r]),
+  );
+
+  // Property slug + name for the per-room deep-link / grouping label.
+  const propIds = [
+    ...new Set(
+      (prRows ?? []).map((r) => (r as { property_id: string }).property_id),
+    ),
+  ];
+  const propById = new Map<string, { slug: string; name: string | null }>();
+  if (propIds.length > 0) {
+    const { data: props } = await sb
+      .from("properties")
+      .select("id, slug, name")
+      .in("id", propIds);
+    for (const p of props ?? []) {
+      propById.set((p as { id: string }).id, {
+        slug: (p as { slug: string | null }).slug ?? "",
+        name: (p as { name: string | null }).name,
+      });
+    }
+  }
+
+  const rows: RateRow[] = overrideRows
+    .map((ov): RateRow | null => {
+      const room = roomById.get(ov.room_id) as {
+        id: string;
+        name: string;
+        base_price: number | string | null;
+        weekend_price: number | string | null;
+        currency: string | null;
+        property_id: string;
+        is_active: boolean | null;
+        deleted_at: string | null;
+        max_guests: number | null;
+        min_nights: number | null;
+      } | null;
+      if (!room || room.is_active === false || room.deleted_at) return null;
+      const prop = propById.get(room.property_id);
+      const nightly = ov.display_price ?? room.base_price;
+      return {
+        roomId: room.id,
+        name: ov.display_name?.trim() || room.name,
+        propertyId: room.property_id,
+        propertyName: prop?.name ?? null,
+        nightlyFrom: nightly == null ? null : Number(nightly),
+        weekendPrice:
+          room.weekend_price == null ? null : Number(room.weekend_price),
+        currency: ov.display_currency || room.currency || "ZAR",
+        minNights: room.min_nights ?? null,
+        maxGuests: room.max_guests ?? null,
+        bookHref: bookHref(ctx.locale, prop?.slug ?? "", room.id),
+      };
+    })
+    .filter((r): r is RateRow => r !== null);
+
+  return { rows };
+}
+
 /**
  * Resolve the live data for each requested auto-populate section TYPE (keyed by
  * type, not section id) — the SSOT used by both the public renderer
@@ -679,6 +853,18 @@ export async function assembleSiteDataByType(
   // FORMS — website-scoped (not property-scoped), so resolve before the guard.
   if (types.has("form")) {
     out.form = await loadSiteForms(sb, ctx);
+  }
+
+  // BOOKING FUNNEL — search + calendar share the bookable-property set; the rate
+  // table reads website_rooms. Resolve before the property-id guard so the
+  // widgets always carry the website id (they render even with no properties).
+  if (types.has("booking_search") || types.has("availability_calendar")) {
+    const funnel = await loadBookableProperties(sb, ctx);
+    if (types.has("booking_search")) out.booking_search = funnel;
+    if (types.has("availability_calendar")) out.availability_calendar = funnel;
+  }
+  if (types.has("rate_table")) {
+    out.rate_table = await loadRateTable(sb, ctx);
   }
 
   const ids = ctx.propertyIds;

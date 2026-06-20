@@ -277,6 +277,58 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "booking_search":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col justify-center gap-1.5">
+            <div className="grid grid-cols-3 gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="h-4 rounded border border-brand-line bg-white"
+                />
+              ))}
+            </div>
+            <div className="mx-auto h-3 w-16 rounded-full bg-brand-accent" />
+          </div>
+        </Frame>
+      );
+    case "availability_calendar":
+      return (
+        <Frame>
+          <div className="grid flex-1 grid-cols-7 grid-rows-3 gap-[3px]">
+            {Array.from({ length: 21 }).map((_, i) => (
+              <div
+                key={i}
+                className={`rounded-[2px] ${
+                  i === 4 || i === 9 || i === 15
+                    ? "bg-brand-line/70"
+                    : "bg-white"
+                }`}
+              />
+            ))}
+          </div>
+        </Frame>
+      );
+    case "rate_table":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col justify-center gap-1">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded bg-white px-1.5 py-1"
+              >
+                <Bar w="w-1/3" />
+                <div className="flex items-center gap-1">
+                  <div className="h-2 w-5 rounded bg-brand-line" />
+                  <div className="h-2 w-4 rounded bg-brand-accent" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
     default:
       return (
         <Frame>

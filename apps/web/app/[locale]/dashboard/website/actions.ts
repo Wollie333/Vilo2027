@@ -2429,6 +2429,41 @@ export async function saveWebsiteFormAction(
 /** A form option for the page-builder form picker (id + name + type). */
 export type WebsiteFormOption = { id: string; name: string; type: FormType };
 
+export type WebsitePropertyOption = { id: string; name: string };
+
+/**
+ * List the site's visible properties for the booking-funnel section pickers
+ * (booking_search / availability_calendar). Owner-scoped; mirrors the channel
+ * membership the public funnel quotes against.
+ */
+export async function listWebsiteBookablePropertiesAction(
+  websiteId: string,
+): Promise<
+  | { ok: true; properties: WebsitePropertyOption[] }
+  | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("website_properties")
+    .select("property_id, properties ( name )")
+    .eq("website_id", websiteId)
+    .eq("is_visible", true);
+  const properties: WebsitePropertyOption[] = (data ?? []).map((r) => {
+    const row = r as {
+      property_id: string;
+      properties: { name: string | null } | { name: string | null }[] | null;
+    };
+    const prop = Array.isArray(row.properties)
+      ? row.properties[0]
+      : row.properties;
+    return { id: row.property_id, name: prop?.name?.trim() || "Property" };
+  });
+  return { ok: true, properties };
+}
+
 /** List the site's forms for the `form` section picker (owner-scoped). */
 export async function listWebsiteFormsAction(
   websiteId: string,

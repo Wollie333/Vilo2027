@@ -43,6 +43,9 @@ export const SECTION_TYPES = [
   "pricing",
   "video",
   "trust",
+  "booking_search",
+  "availability_calendar",
+  "rate_table",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -57,6 +60,11 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   // `form` pulls its definition (fields/settings) live from website_forms, so
   // editing the form in the Forms tab updates the rendered section instantly.
   "form",
+  // Phase 6B booking funnel — all three read the business's live properties /
+  // rooms / availability at render (never duplicate engine data, never stale).
+  "booking_search",
+  "availability_calendar",
+  "rate_table",
 ]);
 
 export function isAutoPopulate(type: SectionType): boolean {
@@ -340,6 +348,39 @@ const trustProps = z.object({
   variant: z.enum(TRUST_VARIANTS).default("badges"),
 });
 
+// ── Booking funnel (Phase 6B) ─────────────────────────────────
+// All three are AUTO-POPULATE config: they reference the business's own
+// properties/rooms and read live availability + SERVER-RECALCULATED pricing from
+// the existing booking engine. Props NEVER carry a price (the client is never
+// trusted); `property_id` (optional) pins the section to one of the site's
+// visible properties — empty means "let the guest choose" (or the primary one).
+
+// Lead-gen search widget: date range + guests → live availability + a
+// server-recalculated quote, then a deep-link into the real checkout.
+const bookingSearchProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+  property_id: z.string().uuid().optional(),
+  ctaLabel: z.string().max(60).optional(),
+});
+
+// Month calendar of live availability for one property (booked/blocked dates
+// greyed out). Reads blocked_dates at render — never a stale snapshot.
+const availabilityCalendarProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+  property_id: z.string().uuid().optional(),
+  months: z.number().int().min(1).max(2).default(1),
+});
+
+// Live nightly-rate table across the site's visible rooms. Prices are read
+// server-side from the live rooms (display-only; booking always re-prices).
+const rateTableProps = z.object({
+  heading,
+  note: z.string().max(300).optional(),
+  ctaLabel: z.string().max(60).optional(),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -415,6 +456,21 @@ export const sectionSchema = z.discriminatedUnion("type", [
   z.object({ ...sectionBase, type: z.literal("pricing"), props: pricingProps }),
   z.object({ ...sectionBase, type: z.literal("video"), props: videoProps }),
   z.object({ ...sectionBase, type: z.literal("trust"), props: trustProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("booking_search"),
+    props: bookingSearchProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("availability_calendar"),
+    props: availabilityCalendarProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("rate_table"),
+    props: rateTableProps,
+  }),
 ]);
 
 export type WebsiteSection = z.infer<typeof sectionSchema>;

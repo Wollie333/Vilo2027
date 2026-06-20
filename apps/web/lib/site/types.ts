@@ -224,6 +224,45 @@ export type SiteFormDef = {
 /** All of the site's forms; a `form` section picks its own by props.form_id. */
 export type FormRenderData = { forms: SiteFormDef[] };
 
+// ── Booking funnel (Phase 6B) ────────────────────────────────
+/**
+ * A property the site can take bookings for (a visible channel member). Carries
+ * only what the funnel widgets need to render selectors + build a deep-link;
+ * every price is recalculated server-side via /api/website-quote (the client is
+ * never trusted). `bookBase` is the absolute checkout URL to append dates to.
+ */
+export type BookableProperty = {
+  id: string;
+  slug: string;
+  name: string;
+  currency: string;
+  minNights: number;
+  maxGuests: number;
+  /** Absolute booking-engine URL for this property (append ?from=&to=&guests=). */
+  bookBase: string;
+};
+/** Shared by booking_search + availability_calendar (the site's bookable set). */
+export type BookingFunnelData = {
+  websiteId: string;
+  properties: BookableProperty[];
+};
+
+/** One row of the live rate table (display-only — booking re-prices server-side). */
+export type RateRow = {
+  roomId: string;
+  name: string;
+  propertyId: string;
+  propertyName?: string | null;
+  /** Live nightly "from" price (server-read from the room). */
+  nightlyFrom: number | null;
+  weekendPrice?: number | null;
+  currency: string;
+  minNights?: number | null;
+  maxGuests?: number | null;
+  bookHref: string;
+};
+export type RateTableData = { rows: RateRow[] };
+
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
   gallery: GalleryData;
@@ -236,6 +275,11 @@ export type SiteDataByType = {
   // The trust section is free-form (badges in props) but takes an OPTIONAL live
   // review aggregate (average + count) — reuses the reviews shape.
   trust: ReviewsData;
+  // Booking funnel — search + calendar share the bookable-property set; the
+  // rate table reads live nightly rates. Pricing/availability resolve live.
+  booking_search: BookingFunnelData;
+  availability_calendar: BookingFunnelData;
+  rate_table: RateTableData;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

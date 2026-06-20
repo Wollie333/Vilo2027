@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import {
+  listWebsiteBookablePropertiesAction,
   listWebsiteFormsAction,
   type WebsiteFormOption,
+  type WebsitePropertyOption,
 } from "@/app/[locale]/dashboard/website/actions";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
@@ -1122,9 +1124,152 @@ function SectionFields({
       );
     }
 
+    case "booking_search": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={600}
+            rows={2}
+          />
+          <FunnelPropertyPicker
+            websiteId={websiteId}
+            value={p.property_id}
+            onChange={(id) => set({ property_id: id })}
+          />
+          <TextField
+            label={t("fldBookingSearchCta")}
+            value={p.ctaLabel ?? ""}
+            onChange={(v) => set({ ctaLabel: v })}
+            maxLength={60}
+          />
+          <LiveNote>{t("liveBookingSearch")}</LiveNote>
+        </div>
+      );
+    }
+
+    case "availability_calendar": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={600}
+            rows={2}
+          />
+          <FunnelPropertyPicker
+            websiteId={websiteId}
+            value={p.property_id}
+            onChange={(id) => set({ property_id: id })}
+          />
+          <SelectField
+            label={t("fldCalendarMonths")}
+            value={String(p.months ?? 1)}
+            options={[
+              { value: "1", label: t("calendarMonths_one") },
+              { value: "2", label: t("calendarMonths_two") },
+            ]}
+            onChange={(v) => set({ months: Number(v) })}
+          />
+          <LiveNote>{t("liveAvailabilityCalendar")}</LiveNote>
+        </div>
+      );
+    }
+
+    case "rate_table": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextField
+            label={t("fldRateTableCta")}
+            value={p.ctaLabel ?? ""}
+            onChange={(v) => set({ ctaLabel: v })}
+            maxLength={60}
+          />
+          <TextArea
+            label={t("fldRateTableNote")}
+            value={p.note ?? ""}
+            onChange={(v) => set({ note: v })}
+            maxLength={300}
+            rows={2}
+          />
+          <LiveNote>{t("liveRateTable")}</LiveNote>
+        </div>
+      );
+    }
+
     default:
       return null;
   }
+}
+
+/**
+ * Property picker shared by the booking-funnel section editors. Fetches the
+ * site's visible properties; an empty value means "let the guest choose" (or the
+ * primary property when the section pins none).
+ */
+function FunnelPropertyPicker({
+  websiteId,
+  value,
+  onChange,
+}: {
+  websiteId: string;
+  value?: string;
+  onChange: (id: string | undefined) => void;
+}) {
+  const t = useTranslations("website");
+  const [properties, setProperties] = useState<WebsitePropertyOption[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    listWebsiteBookablePropertiesAction(websiteId).then((res) => {
+      if (active && res.ok) setProperties(res.properties);
+    });
+    return () => {
+      active = false;
+    };
+  }, [websiteId]);
+
+  return (
+    <SelectField
+      label={t("fldFunnelProperty")}
+      value={value ?? ""}
+      options={[
+        { value: "", label: t("funnelPropertyAny") },
+        ...properties.map((p) => ({ value: p.id, label: p.name })),
+      ]}
+      onChange={(v) => onChange(v || undefined)}
+    />
+  );
 }
 
 /**

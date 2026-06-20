@@ -32,6 +32,9 @@ import { AmenitiesSection } from "./sections/AmenitiesSection";
 import { PricingSection } from "./sections/PricingSection";
 import { VideoSection } from "./sections/VideoSection";
 import { TrustSection } from "./sections/TrustSection";
+import { BookingSearchSection } from "./sections/BookingSearchSection";
+import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
+import { RateTableSection } from "./sections/RateTableSection";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -205,6 +208,29 @@ function SectionSwitch({
         <TrustSection
           props={section.props}
           data={dataFor(data, section.id, "trust")}
+        />
+      );
+    case "booking_search":
+      return (
+        <BookingSearchSection
+          props={section.props}
+          data={dataFor(data, section.id, "booking_search")}
+          interactive={interactive}
+        />
+      );
+    case "availability_calendar":
+      return (
+        <AvailabilityCalendarSection
+          props={section.props}
+          data={dataFor(data, section.id, "availability_calendar")}
+          interactive={interactive}
+        />
+      );
+    case "rate_table":
+      return (
+        <RateTableSection
+          props={section.props}
+          data={dataFor(data, section.id, "rate_table")}
         />
       );
     default:

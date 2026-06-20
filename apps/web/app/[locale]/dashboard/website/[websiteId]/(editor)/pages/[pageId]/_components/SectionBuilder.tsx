@@ -112,6 +112,21 @@ function buildPreviewData(
       case "trust":
         if (pool.trust) data[s.id] = { type: "trust", data: pool.trust };
         break;
+      case "booking_search":
+        if (pool.booking_search)
+          data[s.id] = { type: "booking_search", data: pool.booking_search };
+        break;
+      case "availability_calendar":
+        if (pool.availability_calendar)
+          data[s.id] = {
+            type: "availability_calendar",
+            data: pool.availability_calendar,
+          };
+        break;
+      case "rate_table":
+        if (pool.rate_table)
+          data[s.id] = { type: "rate_table", data: pool.rate_table };
+        break;
       default:
         break;
     }

@@ -45,6 +45,10 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
       "host_bio",
     ],
   },
+  {
+    key: "catBooking",
+    types: ["booking_search", "availability_calendar", "rate_table"],
+  },
   { key: "catLocation", types: ["location", "map"] },
   { key: "catConvert", types: ["cta", "contact_form", "form"] },
   { key: "catMore", types: ["rich_text", "faq"] },

@@ -296,6 +296,40 @@ export function newSection(type: SectionType): WebsiteSection {
           ],
         },
       };
+    case "booking_search":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Check availability",
+          body: "Choose your dates and see live availability and pricing.",
+        },
+      };
+    case "availability_calendar":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Availability",
+          body: "Open dates are bookable — pick one to start your reservation.",
+          months: 1,
+        },
+      };
+    case "rate_table":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Our rates",
+          note: "Rates are per night from — your final price is confirmed at checkout.",
+        },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

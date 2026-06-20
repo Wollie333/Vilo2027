@@ -5,6 +5,57 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 6B booking funnel (save-point b)
+
+Three new curated booking-funnel section types wired to the **live** booking
+engine with **server-recalculated** pricing (the client is never trusted). NO DB
+migration, NO AI. Completes Phase 6 save-point (b).
+
+### Added — section types
+- **`booking_search`** (`components/site/sections/BookingSearchSection.tsx`,
+  client) — date range + guests → POSTs `/api/website-quote` for live
+  availability + a server-recomputed whole-stay price, then a deep-link into the
+  real checkout (`?from=&to=&guests=`). Property picker when the site has more
+  than one (or pin one in the editor). Rooms-only properties show availability +
+  "choose your room at checkout" (no single total).
+- **`availability_calendar`** (`AvailabilityCalendarSection.tsx`, client) — month
+  calendar (1–2 months) reading live blocked dates from
+  `/api/website-availability`; open days deep-link into checkout with the date
+  pre-filled. Month navigation + legend.
+- **`rate_table`** (`RateTableSection.tsx`, server) — live nightly-rate table
+  across the site's visible rooms (display-only; Book re-prices server-side).
+
+### Added — server logic (anti-tamper, server-recalc)
+- **`lib/website/bookingFunnel.ts`** — `quoteWebsiteStay` + `websiteAvailability`
+  (+ Zod schemas). Both run on the service-role admin client and are gated by a
+  **membership check** (the requested property must be a *visible* channel member
+  of the website), so a site can only quote/inspect its own listings. Pricing
+  always recomputed via the canonical `computeStayPricing` engine; availability
+  via `listing_is_available_whole` / `blocked_dates`. Never throws.
+- Route handlers **`app/api/website-quote`** + **`app/api/website-availability`**
+  (mirror `website-form-submit`: nodejs, force-dynamic, always 200 + `{ok}`).
+- **`loadSitePage.ts`** — `loadBookableProperties` + `loadRateTable` assemblies
+  (resolve before the property-id guard so widgets always carry the website id);
+  fanned through `assembleSiteDataByType` / `assembleSectionData`.
+
+### Added — builder + types
+- `SiteDataByType` entries `booking_search`/`availability_calendar`
+  (`BookingFunnelData`) + `rate_table` (`RateTableData`) in `lib/site/types.ts`;
+  3 props schemas + union entries in `sections.schema.ts` (all in
+  `AUTO_POPULATE_SECTIONS`); renderer cases; `sectionDefaults` starters;
+  `SectionEditor` cases + shared `FunnelPropertyPicker`
+  (`listWebsiteBookablePropertiesAction`); `SectionLibrary` "Booking" group;
+  `SectionThumb` schematics; `SectionBuilder` preview mapper. +16 `website` en
+  i18n keys.
+
+### Notes
+- tsc + lint (changed files) green; `scripts/verify-themes-compat.mjs` 🎉 (all
+  themes still validate; the new types are additive/optional).
+- **Next: save-point (c)** — on-site checkout funnel + thank-you + deep
+  Paystack/PayPal/accounting integration via the existing engine.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 6A slice 3: pop-ups (completes save-point a)
 
 Site-wide pop-up modal over `host_websites.settings.conversion.popup` (same
