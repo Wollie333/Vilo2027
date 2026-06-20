@@ -913,6 +913,130 @@ function SectionFields({
       );
     }
 
+    case "amenities": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldAmenities")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ icon: "", label: "" })}
+            addLabel={t("addAmenity")}
+            max={40}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldAmenityIcon")}
+                  value={item.icon ?? ""}
+                  onChange={(v) => patch({ icon: v })}
+                  maxLength={60}
+                  hint={t("fldAmenityIconHint")}
+                />
+                <TextField
+                  label={t("fldAmenityLabel")}
+                  value={item.label}
+                  onChange={(v) => patch({ label: v })}
+                  maxLength={120}
+                />
+              </>
+            )}
+          />
+        </div>
+      );
+    }
+
+    case "pricing": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <ItemListEditor
+            label={t("fldPricing")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ label: "", price: "", note: "" })}
+            addLabel={t("addPriceRow")}
+            max={20}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldPriceLabel")}
+                  value={item.label}
+                  onChange={(v) => patch({ label: v })}
+                  maxLength={120}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextField
+                    label={t("fldPrice")}
+                    value={item.price}
+                    onChange={(v) => patch({ price: v })}
+                    maxLength={40}
+                  />
+                  <TextField
+                    label={t("fldPriceNote")}
+                    value={item.note ?? ""}
+                    onChange={(v) => patch({ note: v })}
+                    maxLength={160}
+                  />
+                </div>
+              </>
+            )}
+          />
+          <TextField
+            label={t("fldPricingFootnote")}
+            value={p.footnote ?? ""}
+            onChange={(v) => set({ footnote: v })}
+            maxLength={300}
+          />
+        </div>
+      );
+    }
+
+    case "video": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextField
+            label={t("fldVideoUrl")}
+            value={p.url}
+            onChange={(v) => set({ url: v })}
+            maxLength={500}
+            hint={t("fldVideoUrlHint")}
+          />
+          <TextField
+            label={t("fldVideoCaption")}
+            value={p.caption ?? ""}
+            onChange={(v) => set({ caption: v })}
+            maxLength={300}
+          />
+        </div>
+      );
+    }
+
     default:
       return null;
   }

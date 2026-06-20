@@ -38,6 +38,9 @@ export const SECTION_TYPES = [
   "faq",
   "contact_form",
   "specials_preview",
+  "amenities",
+  "pricing",
+  "video",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -260,6 +263,43 @@ const contactFormProps = z.object({
   variant: z.enum(CONTACT_VARIANTS).default("stacked"),
 });
 
+// Free-form facilities/amenities grid (icon + label).
+const amenitiesProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        icon: z.string().max(60).optional(),
+        label: z.string().max(120),
+      }),
+    )
+    .max(40)
+    .default([]),
+});
+
+// Free-form display-only rates table (booking always re-prices server-side).
+const pricingProps = z.object({
+  heading,
+  items: z
+    .array(
+      z.object({
+        label: z.string().max(120),
+        price: z.string().max(40),
+        note: z.string().max(160).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+  footnote: z.string().max(300).optional(),
+});
+
+// Free-form embedded video (YouTube / Vimeo URL).
+const videoProps = z.object({
+  heading,
+  url: z.string().max(500),
+  caption: z.string().max(300).optional(),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -326,6 +366,13 @@ export const sectionSchema = z.discriminatedUnion("type", [
     type: z.literal("specials_preview"),
     props: specialsPreviewProps,
   }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("amenities"),
+    props: amenitiesProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("pricing"), props: pricingProps }),
+  z.object({ ...sectionBase, type: z.literal("video"), props: videoProps }),
 ]);
 
 export type WebsiteSection = z.infer<typeof sectionSchema>;

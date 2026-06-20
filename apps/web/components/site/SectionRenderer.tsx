@@ -27,6 +27,9 @@ import { SpecialsPreviewSection } from "./sections/SpecialsPreview";
 import { RichTextSection } from "./sections/RichTextSection";
 import { FaqSection } from "./sections/FaqSection";
 import { ContactFormSection } from "./sections/ContactFormSection";
+import { AmenitiesSection } from "./sections/AmenitiesSection";
+import { PricingSection } from "./sections/PricingSection";
+import { VideoSection } from "./sections/VideoSection";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -180,6 +183,12 @@ function SectionSwitch({
           interactive={interactive}
         />
       );
+    case "amenities":
+      return <AmenitiesSection props={section.props} />;
+    case "pricing":
+      return <PricingSection props={section.props} />;
+    case "video":
+      return <VideoSection props={section.props} />;
     default:
       return null;
   }

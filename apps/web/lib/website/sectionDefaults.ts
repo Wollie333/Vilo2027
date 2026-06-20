@@ -227,6 +227,46 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: { heading: "Current specials", layout: "grid", max: 6 },
       };
+    case "amenities":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Amenities",
+          items: [
+            { icon: "📶", label: "Free Wi-Fi" },
+            { icon: "🅿️", label: "Free parking" },
+            { icon: "☕", label: "Breakfast included" },
+            { icon: "🏊", label: "Swimming pool" },
+          ],
+        },
+      };
+    case "pricing":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Rates",
+          items: [
+            { label: "Standard room", price: "R1 200", note: "per night" },
+            { label: "Deluxe suite", price: "R2 400", note: "per night" },
+          ],
+          footnote:
+            "Rates are indicative — your final price is confirmed at booking.",
+        },
+      };
+    case "video":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { heading: "Take a look", url: "", caption: "" },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

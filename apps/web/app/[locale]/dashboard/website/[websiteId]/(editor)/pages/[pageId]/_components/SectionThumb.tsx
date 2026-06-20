@@ -216,6 +216,46 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "amenities":
+      return (
+        <Frame>
+          <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-1.5">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-1 rounded bg-white px-1.5"
+              >
+                <div className="h-2 w-2 shrink-0 rounded-full bg-brand-accent" />
+                <Bar w="w-2/3" />
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
+    case "pricing":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col justify-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between rounded bg-white px-1.5 py-1"
+              >
+                <Bar w="w-1/3" />
+                <div className="h-2 w-5 rounded bg-brand-accent" />
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
+    case "video":
+      return (
+        <Frame>
+          <div className="flex flex-1 items-center justify-center rounded bg-brand-line/50">
+            <div className="h-0 w-0 border-y-[6px] border-l-[10px] border-y-transparent border-l-brand-accent" />
+          </div>
+        </Frame>
+      );
     default:
       return (
         <Frame>
