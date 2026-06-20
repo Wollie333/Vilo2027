@@ -4,8 +4,11 @@ import { SectionShell } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "rich_text" }>["props"];
 
-// `props.html` is expected to be ALREADY sanitised by the server loader
-// (reuse sanitiseListingHtml in W4) — this component is pure presentational.
+// `props.html` is sanitised server-side before it reaches here: on write
+// (saveDraftSectionsAction) and again at the render chokepoint
+// (loadSitePage → sanitiseSectionsHtml). This component is pure presentational.
+// NOTE: the in-editor builder preview renders the host's own unsaved HTML
+// client-side (self-XSS only); persisted/published content is always cleaned.
 export function RichTextSection({ props }: { props: Props }) {
   return (
     <SectionShell width="narrow">

@@ -19,6 +19,7 @@ import {
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import type { SiteThemeConfig } from "./themes";
 import { resolveThemeBase } from "./themes.server";
 import type {
@@ -339,8 +340,10 @@ export async function loadSitePage(
 
   if (!pageRow) return null;
 
-  const sections = parseSectionsLoose(
-    ctx.preview ? pageRow.draft_sections : pageRow.published_sections,
+  const sections = sanitiseSectionsHtml(
+    parseSectionsLoose(
+      ctx.preview ? pageRow.draft_sections : pageRow.published_sections,
+    ),
   );
 
   const data = await assembleSectionData(sb, ctx, sections);

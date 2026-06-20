@@ -28,6 +28,7 @@ import {
   resolveDefaultThemeId,
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
+import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
   addDomainToProject,
@@ -805,9 +806,11 @@ export async function saveDraftSectionsAction(
     .maybeSingle();
   if (!page) return { ok: false, error: "not_found" };
 
+  // Defense-in-depth: strip any XSS from free-form rich_text HTML before it is
+  // ever stored (the public loader sanitises again at render — see B1).
   const { error } = await supabase
     .from("website_pages")
-    .update({ draft_sections: sections })
+    .update({ draft_sections: sanitiseSectionsHtml(sections) })
     .eq("id", pageId)
     .eq("website_id", websiteId);
   if (error) return { ok: false, error: "save_failed" };

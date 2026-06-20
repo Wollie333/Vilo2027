@@ -32,7 +32,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
@@ -57,6 +57,7 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 import { newSection } from "@/lib/website/sectionDefaults";
 import {
   isAutoPopulate,
+  sectionsSchema,
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
@@ -92,11 +93,30 @@ function buildPreviewData(
         if (pool.blog_preview)
           data[s.id] = { type: "blog_preview", data: pool.blog_preview };
         break;
+      case "specials_preview":
+        if (pool.specials_preview)
+          data[s.id] = {
+            type: "specials_preview",
+            data: pool.specials_preview,
+          };
+        break;
       default:
         break;
     }
   }
   return data;
+}
+
+/**
+ * First section that fails validation — lets us tell the host exactly which
+ * section to fix instead of the old silent, all-or-nothing save rejection.
+ */
+function firstInvalidSection(list: WebsiteSection[]): WebsiteSection | null {
+  const res = sectionsSchema.safeParse(list);
+  if (res.success) return null;
+  const idx = res.error.issues[0]?.path[0];
+  if (typeof idx === "number" && list[idx]) return list[idx];
+  return list[0] ?? null;
 }
 
 export function SectionBuilder({
@@ -128,6 +148,9 @@ export function SectionBuilder({
   const [visualEdit, setVisualEdit] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
+  const [autoStatus, setAutoStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
@@ -194,6 +217,14 @@ export function SectionBuilder({
   }
 
   function onSave() {
+    const bad = firstInvalidSection(sections);
+    if (bad) {
+      setSelectedId(bad.id);
+      toast.error(
+        t("sectionInvalid", { section: t(`sectionType_${bad.type}`) }),
+      );
+      return;
+    }
     startSave(async () => {
       const res = await saveDraftSectionsAction({
         websiteId,
@@ -205,10 +236,48 @@ export function SectionBuilder({
         return;
       }
       setDirty(false);
+      setAutoStatus("saved");
       toast.success(t("draftSaved"));
       router.refresh();
     });
   }
+
+  // Debounced autosave — persists valid drafts ~1.5s after the last edit so
+  // navigation can't silently lose work. Invalid drafts are held back (the host
+  // fixes the flagged field via manual Save) rather than auto-saving broken data.
+  useEffect(() => {
+    if (!dirty || saving) return;
+    if (firstInvalidSection(sections)) {
+      setAutoStatus("error");
+      return;
+    }
+    const id = setTimeout(() => {
+      setAutoStatus("saving");
+      void saveDraftSectionsAction({ websiteId, pageId, sections }).then(
+        (res) => {
+          if (res.ok) {
+            setDirty(false);
+            setAutoStatus("saved");
+          } else {
+            setAutoStatus("error");
+          }
+        },
+      );
+    }, 1500);
+    return () => clearTimeout(id);
+  }, [sections, dirty, saving, websiteId, pageId]);
+
+  // Warn on tab close / hard refresh with unsaved edits (autosave covers soft
+  // in-app navigation; this catches the cases beforeunload can).
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   const enabledSections = sections.filter((s) => s.enabled);
 
@@ -226,15 +295,29 @@ export function SectionBuilder({
             {t("addSection")}
           </button>
 
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !dirty}
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {dirty ? t("saveDraft") : t("draftSavedShort")}
-          </button>
+          <div className="flex items-center gap-2.5">
+            <span
+              className="text-[12px] font-medium text-brand-mute"
+              aria-live="polite"
+            >
+              {dirty
+                ? autoStatus === "saving"
+                  ? t("autosaving")
+                  : t("unsavedChanges")
+                : autoStatus === "saved"
+                  ? t("autosaved")
+                  : null}
+            </span>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving || !dirty}
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {dirty ? t("saveDraft") : t("draftSavedShort")}
+            </button>
+          </div>
         </div>
 
         {sections.length === 0 ? (
