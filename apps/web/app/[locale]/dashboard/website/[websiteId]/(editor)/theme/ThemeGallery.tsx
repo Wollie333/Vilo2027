@@ -2,7 +2,7 @@
 
 import { Check, ExternalLink } from "lucide-react";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import type { ThemeOption } from "@/lib/site/themes.server";
 
@@ -20,9 +20,12 @@ export function ThemeGallery({
   subdomain: string;
 }) {
   const t = useTranslations("website");
+  const locale = useLocale();
   const [activateTheme, setActivateTheme] = useState<ThemeOption | null>(null);
+  // Locale-prefixed so the public site route resolves (matches Brand Studio's
+  // preview); a bare /site does not reliably route under next-intl.
   const previewHref = (slug: string) =>
-    `/site?site=${subdomain}&preview=1&theme=${slug}`;
+    `/${locale}/site?site=${subdomain}&preview=1&theme=${slug}`;
 
   return (
     <>

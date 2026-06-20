@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { useLocale } from "next-intl";
+
 import { applyThemeAction } from "@/app/[locale]/dashboard/website/actions";
 import {
   FormModal,
@@ -36,10 +38,11 @@ export function ThemeActivateModal({
   onClose,
 }: Props) {
   const t = useTranslations("website");
+  const locale = useLocale();
   const router = useRouter();
   const [applying, startApply] = useTransition();
 
-  const previewUrl = `/site?site=${subdomain}&preview=1&theme=${theme.slug}`;
+  const previewUrl = `/${locale}/site?site=${subdomain}&preview=1&theme=${theme.slug}`;
 
   function handleActivate() {
     startApply(async () => {
