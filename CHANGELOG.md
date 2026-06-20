@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 4 form builder — slice 5 (polish) + phase complete
+
+Polish pass + Phase 4 completion. 3-area audit (submit/security, builder/data,
+UX/i18n) — verified the public render passes `interactive`/`data`, the SEO text
+extractor walks the new section's props, and every referenced i18n key resolves.
+
+### Fixed
+- **`FormSection` guards a zero-field form** — a `form` section pointing at a form
+  with no fields now renders nothing on the public site (a hint in the builder)
+  instead of an unsubmittable form.
+- **Checkbox values are readable** — stored as `Yes` (was `true`), so inbox
+  threads, the responses view and CSV exports all read cleanly.
+
+### Phase 4 status
+Form builder is feature-complete for the locked scope: builder + curated fields,
+public render + service-role submit, inbox routing, newsletter→CRM, responses
+view + CSV. **Deferred (noted for the founder):** Cloudflare Turnstile (no env
+keys yet — honeypot-only for now), newsletter double-opt-in, convert-to-booking
+deep-link, POPIA erase tooling, a default "quick contact" form per site. No DB
+schema change this slice. tsc + lint green.
+
 ## 2026-06-20 — Website CMS: Phase 4 form builder — slice 4 (responses view)
 
 ### Added

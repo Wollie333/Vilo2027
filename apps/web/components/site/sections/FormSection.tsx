@@ -47,7 +47,8 @@ export function FormSection({
   );
   const [error, setError] = useState("");
 
-  const live = interactive && Boolean(websiteId) && Boolean(form);
+  const usable = Boolean(form) && (form?.fields.length ?? 0) > 0;
+  const live = interactive && Boolean(websiteId) && usable;
   const variant = props.variant ?? "stacked";
 
   function setValue(id: string, v: string) {
@@ -83,9 +84,9 @@ export function FormSection({
     }
   }
 
-  // No form selected / resolved — render nothing on the public site, a hint in
-  // the builder preview.
-  if (!form) {
+  // No form selected/resolved, or the chosen form has no fields yet — render
+  // nothing on the public site, a hint in the builder preview.
+  if (!form || !usable) {
     if (!interactive) return null;
     return (
       <SectionShell surface width="narrow">
@@ -203,9 +204,9 @@ export function FormSection({
               <input
                 type="checkbox"
                 required={field.required}
-                checked={v === "true"}
+                checked={v.length > 0}
                 onChange={(e) =>
-                  setValue(field.id, e.target.checked ? "true" : "")
+                  setValue(field.id, e.target.checked ? "Yes" : "")
                 }
                 className="h-4 w-4"
               />
