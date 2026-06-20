@@ -337,6 +337,7 @@ export function RoomsManager({
                       id: "rooms-preview",
                       type: "rooms_preview",
                       enabled: true,
+                      tone: "default",
                       props: { heading: t("roomsHeading"), max: 60 },
                     },
                   ]}

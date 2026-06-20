@@ -64,6 +64,10 @@ export type SectionTone = (typeof SECTION_TONES)[number];
 export const HERO_VARIANTS = ["classic", "split", "minimal"] as const;
 export const INTRO_VARIANTS = ["centered", "split", "lead"] as const;
 export const CTA_VARIANTS = ["banner", "card", "split"] as const;
+export const HIGHLIGHTS_VARIANTS = ["grid", "list", "plain"] as const;
+export const STATS_VARIANTS = ["band", "plain", "cards"] as const;
+export const VALUES_VARIANTS = ["border", "cards", "numbered"] as const;
+export const HOSTBIO_VARIANTS = ["side", "centered", "card"] as const;
 
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
@@ -98,6 +102,7 @@ const highlightsProps = z.object({
     )
     .max(12)
     .default([]),
+  variant: z.enum(HIGHLIGHTS_VARIANTS).default("grid"),
 });
 
 const statsProps = z.object({
@@ -111,6 +116,7 @@ const statsProps = z.object({
     )
     .max(8)
     .default([]),
+  variant: z.enum(STATS_VARIANTS).default("band"),
 });
 
 const logosProps = z.object({
@@ -170,6 +176,7 @@ const hostBioProps = z.object({
   name: z.string().max(120).optional(),
   body: z.string().max(4000),
   photo_path: z.string().optional(),
+  variant: z.enum(HOSTBIO_VARIANTS).default("side"),
 });
 
 const valuesProps = z.object({
@@ -183,6 +190,7 @@ const valuesProps = z.object({
     )
     .max(12)
     .default([]),
+  variant: z.enum(VALUES_VARIANTS).default("border"),
 });
 
 const blogPreviewProps = z.object({

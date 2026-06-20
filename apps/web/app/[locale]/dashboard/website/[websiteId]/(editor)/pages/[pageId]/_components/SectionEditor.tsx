@@ -214,6 +214,16 @@ function SectionFields({
               </>
             )}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "grid", label: t("highlightsVariant_grid") },
+              { value: "list", label: t("highlightsVariant_list") },
+              { value: "plain", label: t("highlightsVariant_plain") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
         </div>
       );
     }
@@ -253,6 +263,16 @@ function SectionFields({
                 />
               </>
             )}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "band", label: t("statsVariant_band") },
+              { value: "plain", label: t("statsVariant_plain") },
+              { value: "cards", label: t("statsVariant_cards") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
         </div>
       );
@@ -376,6 +396,16 @@ function SectionFields({
                 />
               </>
             )}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "border", label: t("valuesVariant_border") },
+              { value: "cards", label: t("valuesVariant_cards") },
+              { value: "numbered", label: t("valuesVariant_numbered") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
         </div>
       );
@@ -542,6 +572,16 @@ function SectionFields({
             websiteId={websiteId}
             path={p.photo_path}
             onChange={(path) => set({ photo_path: path })}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "side", label: t("hostbioVariant_side") },
+              { value: "centered", label: t("hostbioVariant_centered") },
+              { value: "card", label: t("hostbioVariant_card") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
         </div>
       );

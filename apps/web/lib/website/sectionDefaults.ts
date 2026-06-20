@@ -46,6 +46,7 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: {
           heading: "Why guests come back",
+          variant: "grid",
           items: [
             { title: "Direct rates", body: "No platform markup." },
             {
@@ -67,6 +68,7 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: {
           heading: "By the numbers",
+          variant: "band",
           items: [
             { value: "500+", label: "Happy guests" },
             { value: "4.9", label: "Average rating" },
@@ -149,6 +151,7 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: {
           heading: "Your host",
+          variant: "side",
           name: "",
           body: "A few warm lines about you and your team.",
         },
@@ -161,6 +164,7 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: {
           heading: "How we host",
+          variant: "border",
           items: [
             {
               title: "Thoughtful",
