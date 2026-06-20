@@ -5,6 +5,11 @@ import {
   sectionsSchema,
   type SectionType,
 } from "@/lib/website/sections.schema";
+import {
+  formFieldsSchema,
+  formSettingsSchema,
+  FORM_TYPES,
+} from "@/lib/website/forms.schema";
 
 // Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
 // "preset:<slug>" id for the built-in presets (pre-migration fallback). `fresh`
@@ -620,5 +625,33 @@ export const savePageSeoSchema = z.object({
   description: z.string().trim().max(200).default(""),
   focusKeyword: z.string().trim().max(60).default(""),
 });
+
+// ── Forms (Phase 4 — form builder) ────────────────────────────
+// The field/settings shape is the SSOT in lib/website/forms.schema.ts (shared
+// with the public render + submit route). These wrap it for the dashboard
+// actions. A new form is created empty (name + type only); the builder then
+// edits fields/settings and saves.
+export const createWebsiteFormSchema = z.object({
+  websiteId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name the form.").max(120),
+  type: z.enum(FORM_TYPES).default("contact"),
+});
+export type CreateWebsiteFormInput = z.infer<typeof createWebsiteFormSchema>;
+
+export const saveWebsiteFormSchema = z.object({
+  websiteId: z.string().uuid(),
+  formId: z.string().uuid(),
+  name: z.string().trim().min(1, "Name the form.").max(120),
+  type: z.enum(FORM_TYPES),
+  fields: formFieldsSchema,
+  settings: formSettingsSchema,
+});
+export type SaveWebsiteFormInput = z.infer<typeof saveWebsiteFormSchema>;
+
+export const deleteWebsiteFormSchema = z.object({
+  websiteId: z.string().uuid(),
+  formId: z.string().uuid(),
+});
+export type DeleteWebsiteFormInput = z.infer<typeof deleteWebsiteFormSchema>;
 
 export type SavePageSeoInput = z.infer<typeof savePageSeoSchema>;

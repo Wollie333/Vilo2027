@@ -59,6 +59,9 @@ import {
   deleteSavedSectionSchema,
   savedSectionsSchema,
   saveWebsiteRoomsSchema,
+  createWebsiteFormSchema,
+  saveWebsiteFormSchema,
+  deleteWebsiteFormSchema,
   seoSchema,
   websiteSettingsSchema,
   type ApplyThemeInput,
@@ -81,6 +84,9 @@ import {
   type SavePageSeoInput,
   type SavePagesInput,
   type SaveWebsiteRoomsInput,
+  type CreateWebsiteFormInput,
+  type SaveWebsiteFormInput,
+  type DeleteWebsiteFormInput,
   type SeoInput,
   type WebsiteSettingsInput,
 } from "./schemas";
@@ -2292,5 +2298,97 @@ export async function setCanonicalHostAction(
   if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/domain`);
+  return { ok: true };
+}
+
+// ── Forms (Phase 4 — form builder) ────────────────────────────
+// Owner + feature gated like every other CMS write. A form is created empty
+// (name + type); the builder edits fields/settings via saveWebsiteFormAction.
+// Soft-delete (deleted_at) so existing submissions keep a parent row.
+
+export async function createWebsiteFormAction(
+  input: CreateWebsiteFormInput,
+): Promise<CreateResult> {
+  const parsed = createWebsiteFormSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, name, type } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { data: form, error } = await supabase
+    .from("website_forms")
+    .insert({ website_id: websiteId, name, type, fields: [], settings: {} })
+    .select("id")
+    .single();
+  if (error || !form) return { ok: false, error: "create_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/forms`);
+  return { ok: true, id: form.id };
+}
+
+export async function saveWebsiteFormAction(
+  input: SaveWebsiteFormInput,
+): Promise<ActionResult> {
+  const parsed = saveWebsiteFormSchema.safeParse(input);
+  if (!parsed.success)
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "invalid",
+    };
+  const { websiteId, formId, name, type, fields, settings } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  // Normalise: only `select` fields keep options; drop empties elsewhere so the
+  // public render never sees a stray choices list.
+  const cleanFields = fields.map((f) => ({
+    ...f,
+    options:
+      f.type === "select"
+        ? (f.options ?? []).filter((o) => o.trim().length > 0)
+        : undefined,
+  }));
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("website_forms")
+    .update({ name, type, fields: cleanFields, settings })
+    .eq("id", formId)
+    .eq("website_id", websiteId)
+    .is("deleted_at", null);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/forms`);
+  return { ok: true };
+}
+
+export async function deleteWebsiteFormAction(
+  input: DeleteWebsiteFormInput,
+): Promise<ActionResult> {
+  const parsed = deleteWebsiteFormSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, formId } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+  if (!(await assertWebsiteFeature(own.hostId)))
+    return { ok: false, error: "locked" };
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("website_forms")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", formId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "delete_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/forms`);
   return { ok: true };
 }

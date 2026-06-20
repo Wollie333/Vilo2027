@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 4 form builder — slice 1 (Forms tab + builder UI)
+
+First build slice of the Phase 4 form builder over the `website_forms` table.
+
+### Added
+- **Forms tab** in the website editor (`[websiteId]/forms`) — a master-detail
+  builder: a forms list on the left, a curated builder on the right.
+- **Curated form builder** — name + type (contact/custom/newsletter), an ordered
+  field list (add from a fixed catalogue: text/paragraph/email/phone/dropdown/
+  checkbox/date; edit label/placeholder/required + dropdown choices; reorder +
+  delete), and form settings (button label, success message, send-to-inbox).
+- **SSOT field schema** `lib/website/forms.schema.ts` (`FORM_FIELD_TYPES`,
+  `formFieldSchema`, `formSettingsSchema`) — shared with the public render +
+  submit route built in slice 2.
+- **Owner + feature-gated actions** `createWebsiteFormAction` /
+  `saveWebsiteFormAction` / `deleteWebsiteFormAction` (soft-delete so existing
+  responses keep their parent), `loadFormsEditor` loader (parses stored jsonb
+  through the SSOT schema + counts live submissions per form).
+- +44 `website` i18n keys (en). No DB schema change (tables from the Phase 4
+  foundation migration `20260620005000`). tsc + lint green.
+
 ## 2026-06-20 — Website CMS: Phases 1–3 + polish + Phase 4 foundation
 
 Enterprise build-out of the curated-section website CMS. Save point before
