@@ -312,6 +312,24 @@ export async function loadSiteMeta(
  * Load one page (by path slug, [] = home) and assemble the live data for every
  * auto-populate section it contains. Returns null when the page doesn't exist.
  */
+/** Section scheduling — the live site hides sections outside their date window;
+ *  preview always shows them. Accepts YYYY-MM-DD or ISO date strings. */
+function withinSchedule(schedule?: { start?: string; end?: string }): boolean {
+  if (!schedule) return true;
+  const now = Date.now();
+  if (schedule.start) {
+    const t = Date.parse(schedule.start);
+    if (!Number.isNaN(t) && now < t) return false;
+  }
+  if (schedule.end) {
+    const t = Date.parse(schedule.end);
+    // A date-only end is inclusive for the whole day.
+    const end = /^\d{4}-\d{2}-\d{2}$/.test(schedule.end) ? t + 86_400_000 : t;
+    if (!Number.isNaN(t) && now > end) return false;
+  }
+  return true;
+}
+
 export async function loadSitePage(
   ctx: SiteContext,
   pathSlug: string[],
@@ -344,7 +362,7 @@ export async function loadSitePage(
     parseSectionsLoose(
       ctx.preview ? pageRow.draft_sections : pageRow.published_sections,
     ),
-  );
+  ).filter((s) => ctx.preview || withinSchedule(s.schedule));
 
   const data = await assembleSectionData(sb, ctx, sections);
 

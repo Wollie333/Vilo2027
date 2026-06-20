@@ -40,7 +40,7 @@ export function SectionEditor({
         section={section}
         onChange={onChange}
       />
-      <div className="border-t border-brand-line pt-4">
+      <div className="space-y-4 border-t border-brand-line pt-4">
         <SelectField
           label={t("fldTone")}
           value={section.tone}
@@ -52,6 +52,59 @@ export function SectionEditor({
           ]}
           onChange={(tone) => onChange({ ...section, tone })}
         />
+        <SelectField
+          label={t("fldVisibility")}
+          value={section.visibility ?? "all"}
+          options={[
+            { value: "all", label: t("visibility_all") },
+            { value: "desktop", label: t("visibility_desktop") },
+            { value: "mobile", label: t("visibility_mobile") },
+          ]}
+          onChange={(v) => onChange({ ...section, visibility: v })}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="text-[12px] font-medium text-brand-mute">
+              {t("fldScheduleStart")}
+            </span>
+            <input
+              type="date"
+              value={section.schedule?.start ?? ""}
+              onChange={(e) =>
+                onChange({
+                  ...section,
+                  schedule: {
+                    ...section.schedule,
+                    start: e.target.value || undefined,
+                  },
+                })
+              }
+              className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[12px] font-medium text-brand-mute">
+              {t("fldScheduleEnd")}
+            </span>
+            <input
+              type="date"
+              value={section.schedule?.end ?? ""}
+              onChange={(e) =>
+                onChange({
+                  ...section,
+                  schedule: {
+                    ...section.schedule,
+                    end: e.target.value || undefined,
+                  },
+                })
+              }
+              className="mt-1 w-full rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
+            />
+          </label>
+        </div>
+        <p className="text-[11.5px] leading-snug text-brand-mute">
+          {t("scheduleHint")}
+        </p>
       </div>
     </div>
   );

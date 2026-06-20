@@ -61,6 +61,10 @@ export function isAutoPopulate(type: SectionType): boolean {
 export const SECTION_TONES = ["default", "accent", "dark", "muted"] as const;
 export type SectionTone = (typeof SECTION_TONES)[number];
 
+// Device targeting + scheduling (optional, so no default churn on every section).
+export const SECTION_VISIBILITY = ["all", "desktop", "mobile"] as const;
+export type SectionVisibility = (typeof SECTION_VISIBILITY)[number];
+
 export const HERO_VARIANTS = ["classic", "split", "minimal"] as const;
 export const INTRO_VARIANTS = ["centered", "split", "lead"] as const;
 export const CTA_VARIANTS = ["banner", "card", "split"] as const;
@@ -261,6 +265,14 @@ const sectionBase = {
   id: z.string().uuid(),
   enabled: z.boolean().default(true),
   tone: z.enum(SECTION_TONES).default("default"),
+  // Optional so existing/new section literals don't all need to set them.
+  visibility: z.enum(SECTION_VISIBILITY).optional(),
+  schedule: z
+    .object({
+      start: z.string().optional(),
+      end: z.string().optional(),
+    })
+    .optional(),
 };
 
 export const sectionSchema = z.discriminatedUnion("type", [

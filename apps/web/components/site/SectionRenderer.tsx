@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 
-import type {
-  SectionTone,
-  WebsiteSection,
-} from "@/lib/website/sections.schema";
+import type { WebsiteSection } from "@/lib/website/sections.schema";
 import {
   dataFor,
   type SiteAssetResolver,
@@ -58,7 +55,7 @@ export function SectionRenderer({
       {sections
         .filter((s) => s.enabled)
         .map((section) => (
-          <ToneWrap key={section.id} tone={section.tone}>
+          <SectionWrap key={section.id} section={section}>
             <SectionSwitch
               section={section}
               data={data}
@@ -66,22 +63,35 @@ export function SectionRenderer({
               websiteId={websiteId}
               interactive={interactive}
             />
-          </ToneWrap>
+          </SectionWrap>
         ))}
     </>
   );
 }
 
-/** Wraps a section in its colour-scheme (tone). "default" renders no wrapper. */
-function ToneWrap({
-  tone,
+/** Wraps a section in its colour tone (style) + device visibility (class).
+ *  Renders no wrapper when both are at their defaults. */
+function SectionWrap({
+  section,
   children,
 }: {
-  tone?: SectionTone;
+  section: WebsiteSection;
   children: ReactNode;
 }) {
-  const style = sectionToneStyle(tone);
-  return style ? <div style={style}>{children}</div> : <>{children}</>;
+  const style = sectionToneStyle(section.tone);
+  const vis = section.visibility ?? "all";
+  const visClass =
+    vis === "desktop"
+      ? "hidden md:block"
+      : vis === "mobile"
+        ? "block md:hidden"
+        : "";
+  if (!style && !visClass) return <>{children}</>;
+  return (
+    <div style={style} className={visClass || undefined}>
+      {children}
+    </div>
+  );
 }
 
 function SectionSwitch({
