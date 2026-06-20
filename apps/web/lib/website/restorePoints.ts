@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { DEFAULT_PRESET } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Design restore points (Phase 2.5). A snapshot captures the live design (theme
@@ -216,7 +217,7 @@ export async function latestAutoForTheme(
 }
 
 /** The catalogue's default theme id (the guaranteed-working reset target).
- * Falls back to the Classic preset when the catalogue is unavailable. */
+ * Falls back to the default built-in preset when the catalogue is unavailable. */
 export async function resolveDefaultThemeId(): Promise<string> {
   try {
     const { data } = await admin()
@@ -232,5 +233,5 @@ export async function resolveDefaultThemeId(): Promise<string> {
   } catch {
     // fall through
   }
-  return "preset:classic";
+  return `preset:${DEFAULT_PRESET}`;
 }
