@@ -540,8 +540,19 @@ export const deleteSavedSectionSchema = z.object({
 });
 export type DeleteSavedSectionInput = z.infer<typeof deleteSavedSectionSchema>;
 
-// --- Navigation (top bar, header CTA/behaviour, footer extras) ---
+// --- Navigation (menu, top bar, header CTA/behaviour, footer extras) ---
+const menuLinkSchema = z.object({
+  id: z.string(),
+  label: z.string().trim().max(60),
+  href: z.string().trim().max(500),
+  newTab: z.boolean().optional(),
+});
+export const menuItemSchema = menuLinkSchema.extend({
+  children: z.array(menuLinkSchema).max(12).optional(),
+});
+
 export const navigationSchema = z.object({
+  menu: z.array(menuItemSchema).max(20).default([]),
   topBar: z
     .object({
       enabled: z.boolean().default(false),

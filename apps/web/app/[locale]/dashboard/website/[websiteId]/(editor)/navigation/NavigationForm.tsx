@@ -9,15 +9,19 @@ import { useTranslations } from "next-intl";
 
 import { saveNavigationAction } from "@/app/[locale]/dashboard/website/actions";
 import type { NavigationConfig } from "@/app/[locale]/dashboard/website/schemas";
+import type { SiteMenuItem } from "@/lib/site/types";
 
 import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
+import { MenuBuilder, type PageOption } from "./MenuBuilder";
 
 export function NavigationForm({
   websiteId,
   initial,
+  pages,
 }: {
   websiteId: string;
   initial: NavigationConfig;
+  pages: PageOption[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -30,6 +34,7 @@ export function NavigationForm({
     setNav((n) => ({ ...n, header: { ...n.header, ...patch } }));
   const setFooter = (patch: Partial<NavigationConfig["footer"]>) =>
     setNav((n) => ({ ...n, footer: { ...n.footer, ...patch } }));
+  const setMenu = (menu: SiteMenuItem[]) => setNav((n) => ({ ...n, menu }));
 
   function onSave() {
     startSave(async () => {
@@ -45,6 +50,8 @@ export function NavigationForm({
 
   return (
     <div className="space-y-6">
+      <MenuBuilder menu={nav.menu} pages={pages} onChange={setMenu} />
+
       {/* Top bar */}
       <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
         <div>

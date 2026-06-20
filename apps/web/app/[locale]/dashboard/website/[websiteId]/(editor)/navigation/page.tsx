@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { getMyHostId } from "@/lib/host/current";
+import { pageHref } from "@/lib/site/loadSitePage";
 import { createServerClient } from "@/lib/supabase/server";
 import { navigationSchema } from "@/app/[locale]/dashboard/website/schemas";
 
@@ -32,6 +33,16 @@ export default async function WebsiteNavigationPage({
 
   const navigation = navigationSchema.parse(site.navigation ?? {});
 
+  const { data: pageRows } = await supabase
+    .from("website_pages")
+    .select("kind, slug, nav_label, title, nav_order")
+    .eq("website_id", websiteId)
+    .order("nav_order", { ascending: true });
+  const pages = (pageRows ?? []).map((p) => ({
+    label: p.nav_label?.trim() || p.title?.trim() || p.slug,
+    href: pageHref(p.kind, p.slug),
+  }));
+
   return (
     <div className="max-w-2xl">
       <header className="mb-5">
@@ -41,7 +52,11 @@ export default async function WebsiteNavigationPage({
         <p className="mt-1 text-sm text-brand-mute">{t("navSub")}</p>
       </header>
 
-      <NavigationForm websiteId={websiteId} initial={navigation} />
+      <NavigationForm
+        websiteId={websiteId}
+        initial={navigation}
+        pages={pages}
+      />
     </div>
   );
 }

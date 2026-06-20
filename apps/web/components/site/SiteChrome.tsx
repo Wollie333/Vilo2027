@@ -1,4 +1,5 @@
 import {
+  ChevronDown,
   Facebook,
   Globe,
   Instagram,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/site/themes";
 import type {
   SiteBrand,
+  SiteMenuItem,
   SiteNavItem,
   SiteNavigation,
   SiteTopBar,
@@ -270,6 +272,90 @@ function NavLinks({
   );
 }
 
+type PreviewCtx = { subdomain: string; themeSlug?: string };
+
+function MenuLink({
+  item,
+  className = "",
+  preview,
+}: {
+  item: SiteMenuItem;
+  className?: string;
+  preview?: PreviewCtx;
+}) {
+  const isExternal = item.href.startsWith("http");
+  const href = buildNavHref(item.href, preview);
+  return (
+    <a
+      href={href}
+      target={item.newTab ? "_blank" : undefined}
+      rel={item.newTab ? "noopener noreferrer" : undefined}
+      data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
+      style={{ color: "var(--site-mute)" }}
+      className={`transition-colors hover:opacity-80 ${className}`}
+    >
+      {item.label}
+    </a>
+  );
+}
+
+/** Header menu with one level of (CSS hover/focus) dropdowns — no client JS. */
+function MenuNav({
+  menu,
+  className = "",
+  preview,
+}: {
+  menu: SiteMenuItem[];
+  className?: string;
+  preview?: PreviewCtx;
+}) {
+  if (menu.length === 0) return null;
+  return (
+    <nav className={className}>
+      {menu.map((item) =>
+        item.children && item.children.length > 0 ? (
+          <div key={item.id} className="group relative">
+            <button
+              type="button"
+              style={{ color: "var(--site-mute)" }}
+              className="inline-flex items-center gap-1 text-sm font-medium transition-colors hover:opacity-80"
+            >
+              {item.label}
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            <div className="invisible absolute left-0 top-full z-30 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+              <div
+                style={{
+                  background: "var(--site-surface)",
+                  border: "1px solid var(--site-line)",
+                  borderRadius: "var(--site-radius)",
+                }}
+                className="min-w-[180px] py-1.5 shadow-lift"
+              >
+                {item.children.map((child) => (
+                  <MenuLink
+                    key={child.id}
+                    item={child}
+                    preview={preview}
+                    className="block px-4 py-2 text-sm font-medium"
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <MenuLink
+            key={item.id}
+            item={item}
+            preview={preview}
+            className="text-sm font-medium"
+          />
+        ),
+      )}
+    </nav>
+  );
+}
+
 function ContactLinks({ brand }: { brand: SiteBrand }) {
   if (!brand.contactEmail && !brand.contactPhone) return null;
   return (
@@ -336,7 +422,7 @@ function SocialLinks({ brand }: { brand: SiteBrand }) {
 function HeaderInner({
   variant,
   brand,
-  nav,
+  menu,
   bookHref,
   bookLabel,
   dark,
@@ -344,7 +430,7 @@ function HeaderInner({
 }: {
   variant: SiteHeaderLayout;
   brand: SiteBrand;
-  nav: SiteNavItem[];
+  menu: SiteMenuItem[];
   bookHref?: string;
   bookLabel?: string;
   dark?: boolean;
@@ -355,8 +441,8 @@ function HeaderInner({
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-5 py-4">
         <Logo brand={brand} dark={dark} preview={preview} />
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-          <NavLinks
-            nav={nav}
+          <MenuNav
+            menu={menu}
             className="flex flex-wrap items-center gap-x-6 gap-y-2"
             preview={preview}
           />
@@ -377,8 +463,8 @@ function HeaderInner({
   return (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
       <Logo brand={brand} dark={dark} preview={preview} />
-      <NavLinks
-        nav={nav}
+      <MenuNav
+        menu={menu}
         className="flex items-center gap-6"
         preview={preview}
       />
@@ -510,6 +596,15 @@ export function SiteChrome({
   const effectiveBookHref = navigation.header?.ctaHref?.trim() || bookHref;
   const sticky = navigation.header?.sticky !== false;
   const topBar = navigation.topBar;
+  // Explicit menu wins; otherwise fall back to the page-derived nav.
+  const menu: SiteMenuItem[] =
+    navigation.menu && navigation.menu.length > 0
+      ? navigation.menu
+      : nav.map((n) => ({ id: n.href, label: n.label, href: n.href }));
+  const flatNav: SiteNavItem[] = menu.map((m) => ({
+    label: m.label,
+    href: m.href,
+  }));
   return (
     <div className="flex min-h-screen flex-col">
       {analyticsWebsiteId ? (
@@ -537,7 +632,7 @@ export function SiteChrome({
           <HeaderInner
             variant={header.desktop}
             brand={brand}
-            nav={nav}
+            menu={menu}
             bookHref={effectiveBookHref}
             bookLabel={bookLabel}
             dark={darkChrome}
@@ -548,7 +643,7 @@ export function SiteChrome({
           <HeaderInner
             variant={header.mobile}
             brand={brand}
-            nav={nav}
+            menu={menu}
             bookHref={effectiveBookHref}
             bookLabel={bookLabel}
             dark={darkChrome}
@@ -570,7 +665,7 @@ export function SiteChrome({
           <FooterInner
             variant={footer.desktop}
             brand={brand}
-            nav={nav}
+            nav={flatNav}
             preview={preview}
           />
         </div>
@@ -578,7 +673,7 @@ export function SiteChrome({
           <FooterInner
             variant={footer.mobile}
             brand={brand}
-            nav={nav}
+            nav={flatNav}
             preview={preview}
           />
         </div>

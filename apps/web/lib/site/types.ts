@@ -53,7 +53,16 @@ export type SiteTopBar = {
   email?: string | null;
   message?: string | null;
 };
+export type SiteMenuItem = {
+  id: string;
+  label: string;
+  href: string;
+  newTab?: boolean;
+  children?: SiteMenuItem[]; // one level of dropdown
+};
 export type SiteNavigation = {
+  /** Explicit header menu; when empty the page-derived nav is used. */
+  menu?: SiteMenuItem[];
   topBar?: SiteTopBar;
   header?: {
     ctaLabel?: string | null;
