@@ -13,9 +13,11 @@ import {
   Layers,
   Loader2,
   PackagePlus,
+  Plus,
   Sparkles,
   Tag,
   Type as TypeIcon,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -26,7 +28,11 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { formatMoney } from "@/lib/format";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
-import { createSpecialAction, updateSpecialAction } from "../actions";
+import {
+  createInlineAddonAction,
+  createSpecialAction,
+  updateSpecialAction,
+} from "../actions";
 import type { SpecialEditorData } from "../_lib/load";
 import type { SpecialEditorStatus, SpecialInput } from "../schemas";
 import {
@@ -72,6 +78,22 @@ export function SpecialEditor({
   const [form, setForm] = useState<SpecialInput>(initialValues);
   const [pending, startTransition] = useTransition();
   const [section, setSection] = useState<SectionKey>("details");
+
+  // Dynamically added addons (created inline via the "Add custom extra" form)
+  type DynamicAddon = {
+    id: string;
+    name: string;
+    unitPrice: number;
+    currency: string;
+  };
+  const [dynamicAddons, setDynamicAddons] = useState<DynamicAddon[]>([]);
+
+  // Inline addon form state
+  const [showInlineForm, setShowInlineForm] = useState(false);
+  const [inlineName, setInlineName] = useState("");
+  const [inlinePrice, setInlinePrice] = useState<number | null>(null);
+  const [inlineSaveToLibrary, setInlineSaveToLibrary] = useState(false);
+  const [inlineCreating, setInlineCreating] = useState(false);
 
   function set<K extends keyof SpecialInput>(key: K, value: SpecialInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -139,6 +161,60 @@ export function SpecialEditor({
       ),
     }));
   }
+
+  // Create an inline addon (custom extra) and add it to the special
+  async function handleCreateInlineAddon() {
+    if (!inlineName.trim()) {
+      toast.error(t("inlineNameRequired"));
+      return;
+    }
+    if (inlinePrice == null || inlinePrice < 0) {
+      toast.error(t("inlinePriceRequired"));
+      return;
+    }
+    setInlineCreating(true);
+    try {
+      const res = await createInlineAddonAction({
+        name: inlineName.trim(),
+        unitPrice: inlinePrice,
+        currency,
+        saveToLibrary: inlineSaveToLibrary,
+      });
+      if (!res.ok || !res.data) {
+        toast.error(res.ok ? "Failed to create extra." : res.error);
+        return;
+      }
+      const newAddon = res.data;
+      // Add to dynamic addons for display
+      setDynamicAddons((prev) => [...prev, newAddon]);
+      // Auto-select this addon in the form
+      setForm((f) => ({
+        ...f,
+        addons: [
+          ...f.addons,
+          {
+            addon_id: newAddon.id,
+            is_required: true, // default to compulsory for custom extras
+            unit_price_override: null,
+            quantity: 1,
+          },
+        ],
+      }));
+      // Reset form
+      setInlineName("");
+      setInlinePrice(null);
+      setInlineSaveToLibrary(false);
+      setShowInlineForm(false);
+      toast.success(t("inlineAddonCreated"));
+    } finally {
+      setInlineCreating(false);
+    }
+  }
+
+  // Combine library addons with dynamically created ones
+  const allAddons = useMemo(() => {
+    return [...data.addons, ...dynamicAddons];
+  }, [data.addons, dynamicAddons]);
 
   function submit(status: SpecialEditorStatus) {
     if (!form.property_id) {
@@ -750,76 +826,155 @@ export function SpecialEditor({
             ) : null}
 
             {section === "extras" ? (
-              data.addons.length === 0 ? (
-                <p className="rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3 py-2.5 text-[13px] text-brand-mute">
-                  {t("addonsEmpty")}
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {data.addons.map((addon) => {
-                    const selected = form.addons.find(
-                      (a) => a.addon_id === addon.id,
-                    );
-                    return (
-                      <div
-                        key={addon.id}
-                        className={`rounded-[10px] border p-3 transition ${
-                          selected
-                            ? "border-brand-primary/40 bg-brand-accent/20"
-                            : "border-brand-line bg-white"
-                        }`}
+              <div className="space-y-3">
+                {/* Existing addons list */}
+                {allAddons.length > 0 ? (
+                  <div className="space-y-2">
+                    {allAddons.map((addon) => {
+                      const selected = form.addons.find(
+                        (a) => a.addon_id === addon.id,
+                      );
+                      return (
+                        <div
+                          key={addon.id}
+                          className={`rounded-[10px] border p-3 transition ${
+                            selected
+                              ? "border-brand-primary/40 bg-brand-accent/20"
+                              : "border-brand-line bg-white"
+                          }`}
+                        >
+                          <label className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
+                              <input
+                                type="checkbox"
+                                checked={!!selected}
+                                onChange={() => toggleAddon(addon.id)}
+                                className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
+                              />
+                              {addon.name}
+                            </span>
+                            <span className="text-[12px] text-brand-mute">
+                              {formatMoney(addon.unitPrice, addon.currency)}
+                            </span>
+                          </label>
+                          {selected ? (
+                            <div className="mt-3 grid grid-cols-3 items-end gap-3 border-t border-brand-line/70 pt-3">
+                              <NumberField
+                                label={t("fldAddonQty")}
+                                value={selected.quantity ?? 1}
+                                min={1}
+                                max={100}
+                                onChange={(v) =>
+                                  patchAddon(addon.id, { quantity: v ?? 1 })
+                                }
+                                hint={t("fldAddonQtyHint")}
+                              />
+                              <ToggleField
+                                label={t("fldRequired")}
+                                hint={t("fldRequiredHint")}
+                                checked={selected.is_required}
+                                onChange={(v) =>
+                                  patchAddon(addon.id, { is_required: v })
+                                }
+                              />
+                              <NumberField
+                                label={t("fldPriceOverride")}
+                                value={selected.unit_price_override}
+                                min={0}
+                                step={0.01}
+                                prefix={currency}
+                                onChange={(v) =>
+                                  patchAddon(addon.id, {
+                                    unit_price_override: v,
+                                  })
+                                }
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="rounded-[10px] border border-dashed border-brand-line bg-brand-light/40 px-3 py-2.5 text-[13px] text-brand-mute">
+                    {t("addonsEmpty")}
+                  </p>
+                )}
+
+                {/* Inline addon creation form */}
+                {showInlineForm ? (
+                  <div className="rounded-[10px] border-2 border-dashed border-brand-primary/40 bg-brand-accent/10 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-[13px] font-semibold text-brand-ink">
+                        {t("inlineFormTitle")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowInlineForm(false)}
+                        className="text-brand-mute hover:text-brand-ink"
                       >
-                        <label className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-[13px] font-semibold text-brand-ink">
-                            <input
-                              type="checkbox"
-                              checked={!!selected}
-                              onChange={() => toggleAddon(addon.id)}
-                              className="h-4 w-4 rounded border-brand-line text-brand-primary focus:ring-brand-primary"
-                            />
-                            {addon.name}
-                          </span>
-                          <span className="text-[12px] text-brand-mute">
-                            {formatMoney(addon.unitPrice, addon.currency)}
-                          </span>
-                        </label>
-                        {selected ? (
-                          <div className="mt-3 grid grid-cols-3 items-end gap-3 border-t border-brand-line/70 pt-3">
-                            <NumberField
-                              label={t("fldAddonQty")}
-                              value={selected.quantity ?? 1}
-                              min={1}
-                              max={100}
-                              onChange={(v) =>
-                                patchAddon(addon.id, { quantity: v ?? 1 })
-                              }
-                              hint={t("fldAddonQtyHint")}
-                            />
-                            <ToggleField
-                              label={t("fldRequired")}
-                              hint={t("fldRequiredHint")}
-                              checked={selected.is_required}
-                              onChange={(v) =>
-                                patchAddon(addon.id, { is_required: v })
-                              }
-                            />
-                            <NumberField
-                              label={t("fldPriceOverride")}
-                              value={selected.unit_price_override}
-                              min={0}
-                              step={0.01}
-                              prefix={currency}
-                              onChange={(v) =>
-                                patchAddon(addon.id, { unit_price_override: v })
-                              }
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <TextField
+                        label={t("inlineNameLabel")}
+                        value={inlineName}
+                        onChange={setInlineName}
+                        placeholder={t("inlineNamePlaceholder")}
+                        maxLength={120}
+                      />
+                      <NumberField
+                        label={t("inlinePriceLabel")}
+                        value={inlinePrice}
+                        min={0}
+                        step={0.01}
+                        prefix={currency}
+                        onChange={setInlinePrice}
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <ToggleField
+                        label={t("inlineSaveToLibrary")}
+                        hint={t("inlineSaveToLibraryHint")}
+                        checked={inlineSaveToLibrary}
+                        onChange={setInlineSaveToLibrary}
+                      />
+                    </div>
+                    <div className="mt-4 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowInlineForm(false)}
+                        className="rounded-[10px] border border-brand-line bg-white px-4 py-2 text-[13px] font-medium text-brand-ink transition hover:bg-brand-light"
+                      >
+                        {t("inlineCancel")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={inlineCreating}
+                        onClick={handleCreateInlineAddon}
+                        className="inline-flex items-center gap-2 rounded-[10px] bg-brand-primary px-4 py-2 text-[13px] font-medium text-white transition hover:bg-brand-secondary disabled:opacity-50"
+                      >
+                        {inlineCreating ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Plus className="h-4 w-4" />
+                        )}
+                        {t("inlineCreate")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowInlineForm(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-[10px] border-2 border-dashed border-brand-line bg-white px-4 py-3 text-[13px] font-medium text-brand-mute transition hover:border-brand-primary/40 hover:bg-brand-accent/10 hover:text-brand-primary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("inlineAddCustom")}
+                  </button>
+                )}
+              </div>
             ) : null}
 
             {section === "merch" ? (

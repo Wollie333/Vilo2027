@@ -577,3 +577,67 @@ export async function deleteSpecialAction(
   revalidatePath(STATUS_PATH);
   return { ok: true };
 }
+
+// ─── Inline addon creation for specials ─────────────────────────────────────
+// Creates a new addon inline (used when adding a custom extra to a special).
+// If saveToLibrary is true, the addon is visible in the host's addon library.
+// If false, it's hidden (is_active = false) and only used by this special.
+
+export type InlineAddonInput = {
+  name: string;
+  unitPrice: number;
+  currency: string;
+  saveToLibrary: boolean;
+};
+
+export async function createInlineAddonAction(
+  input: InlineAddonInput,
+): Promise<
+  ActionResult<{
+    id: string;
+    name: string;
+    unitPrice: number;
+    currency: string;
+  }>
+> {
+  const host = await getHost();
+  if (!host.ok) return host;
+
+  const name = input.name.trim();
+  if (!name || name.length > 120) {
+    return { ok: false, error: "Name must be 1-120 characters." };
+  }
+  if (input.unitPrice < 0 || input.unitPrice > 10_000_000) {
+    return { ok: false, error: "Price must be between 0 and 10,000,000." };
+  }
+
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from("addons")
+    .insert({
+      host_id: host.hostId,
+      name,
+      unit_price: input.unitPrice,
+      currency: input.currency,
+      pricing_model: "per_stay", // simplest model for specials
+      is_active: input.saveToLibrary, // hidden from library if not saved
+      is_required: false,
+      min_quantity: 1,
+    })
+    .select("id, name, unit_price, currency")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: "Could not create the extra. Try again." };
+  }
+
+  return {
+    ok: true,
+    data: {
+      id: data.id,
+      name: data.name,
+      unitPrice: Number(data.unit_price),
+      currency: data.currency,
+    },
+  };
+}
