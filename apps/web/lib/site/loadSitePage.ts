@@ -43,8 +43,11 @@ const APP_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
 export type SiteContext = {
   websiteId: string;
   businessId: string;
+  subdomain: string;
   status: string;
   preview: boolean;
+  /** Theme slug when previewing a different theme (for theme gallery). */
+  previewThemeSlug?: string;
   locale: string; // business default_language (drives booking deep-link locale)
   brand: SiteBrand;
   theme: SiteThemeConfig;
@@ -219,8 +222,10 @@ export async function loadSiteContext(
   return {
     websiteId: site.id,
     businessId: site.business_id,
+    subdomain: site.subdomain,
     status: site.status,
     preview,
+    previewThemeSlug,
     locale: site.business?.default_language || "en",
     brand,
     theme,

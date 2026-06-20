@@ -42,6 +42,11 @@ export async function SitePageView({
   const result = await loadSitePage(ctx, pathSlug);
   if (!result) notFound();
 
+  // Build preview context for SiteChrome if in preview mode
+  const previewContext = ctx.preview
+    ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
+    : undefined;
+
   return (
     <SiteThemeRoot theme={ctx.theme}>
       <SiteChrome
@@ -51,6 +56,7 @@ export async function SitePageView({
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
         header={ctx.theme.header}
         footer={ctx.theme.footer}
+        preview={previewContext}
       >
         <SectionRenderer
           sections={result.sections}

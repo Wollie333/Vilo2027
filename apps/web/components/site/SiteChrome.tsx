@@ -20,6 +20,7 @@ import {
 } from "@/lib/site/themes";
 import type { SiteBrand, SiteNavItem } from "@/lib/site/types";
 
+import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
 
 const SOCIAL_ICONS = {
@@ -109,10 +110,19 @@ function BrandLogo({
   );
 }
 
-function Logo({ brand, dark }: { brand: SiteBrand; dark?: boolean }) {
+function Logo({
+  brand,
+  dark,
+  preview,
+}: {
+  brand: SiteBrand;
+  dark?: boolean;
+  preview?: { subdomain: string; themeSlug?: string };
+}) {
+  const href = buildNavHref("/", preview);
   return (
     <a
-      href="/"
+      href={href}
       data-nav-page="home"
       className="flex min-w-0 items-center gap-2.5"
     >
@@ -146,12 +156,37 @@ function hrefToPageKey(href: string): string {
   return clean || "home";
 }
 
+/** Build a preview-aware href for navigation links. */
+function buildNavHref(
+  href: string,
+  preview?: { subdomain: string; themeSlug?: string },
+): string {
+  // External links pass through unchanged
+  if (href.startsWith("http")) return href;
+  // No preview mode — use regular href
+  if (!preview) return href;
+
+  // In preview mode, build a URL that preserves preview params
+  const params = new URLSearchParams();
+  params.set("site", preview.subdomain);
+  params.set("preview", "1");
+  if (preview.themeSlug) params.set("theme", preview.themeSlug);
+
+  // Normalize path: "/" becomes "/site", "/about" becomes "/site/about"
+  const cleanPath = href.startsWith("/") ? href : `/${href}`;
+  const basePath = cleanPath === "/" ? "/site" : `/site${cleanPath}`;
+
+  return `${basePath}?${params.toString()}`;
+}
+
 function NavLinks({
   nav,
   className = "",
+  preview,
 }: {
   nav: SiteNavItem[];
   className?: string;
+  preview?: { subdomain: string; themeSlug?: string };
 }) {
   if (nav.length === 0) return null;
 
@@ -160,10 +195,11 @@ function NavLinks({
       {nav.map((item) => {
         // Add data-nav-page for internal links so preview mode can intercept
         const isExternal = item.href.startsWith("http");
+        const href = buildNavHref(item.href, preview);
         return (
           <a
             key={item.href}
-            href={item.href}
+            href={href}
             data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
             style={{ color: "var(--site-mute)" }}
             className="text-sm font-medium transition-colors hover:opacity-80"
@@ -245,21 +281,24 @@ function HeaderInner({
   nav,
   bookHref,
   dark,
+  preview,
 }: {
   variant: SiteHeaderLayout;
   brand: SiteBrand;
   nav: SiteNavItem[];
   bookHref?: string;
   dark?: boolean;
+  preview?: { subdomain: string; themeSlug?: string };
 }) {
   if (variant === "centered") {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 px-5 py-4">
-        <Logo brand={brand} dark={dark} />
+        <Logo brand={brand} dark={dark} preview={preview} />
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           <NavLinks
             nav={nav}
             className="flex flex-wrap items-center gap-x-6 gap-y-2"
+            preview={preview}
           />
           {bookHref ? <BookCta href={bookHref} /> : null}
         </div>
@@ -269,7 +308,7 @@ function HeaderInner({
   if (variant === "minimal") {
     return (
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
-        <Logo brand={brand} dark={dark} />
+        <Logo brand={brand} dark={dark} preview={preview} />
         {bookHref ? <BookCta href={bookHref} /> : null}
       </div>
     );
@@ -277,8 +316,12 @@ function HeaderInner({
   // classic — logo left · nav · book right
   return (
     <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
-      <Logo brand={brand} dark={dark} />
-      <NavLinks nav={nav} className="flex items-center gap-6" />
+      <Logo brand={brand} dark={dark} preview={preview} />
+      <NavLinks
+        nav={nav}
+        className="flex items-center gap-6"
+        preview={preview}
+      />
       {bookHref ? <BookCta href={bookHref} /> : null}
     </div>
   );
@@ -305,10 +348,12 @@ function FooterInner({
   variant,
   brand,
   nav,
+  preview,
 }: {
   variant: SiteFooterLayout;
   brand: SiteBrand;
   nav: SiteNavItem[];
+  preview?: { subdomain: string; themeSlug?: string };
 }) {
   if (variant === "columns") {
     return (
@@ -322,6 +367,7 @@ function FooterInner({
           <NavLinks
             nav={nav}
             className="flex flex-wrap gap-x-5 gap-y-2 sm:justify-end"
+            preview={preview}
           />
           <span style={{ color: "var(--site-mute)" }} className="text-xs">
             © {brand.name}
@@ -348,6 +394,7 @@ function FooterInner({
       <NavLinks
         nav={nav}
         className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2"
+        preview={preview}
       />
       <ContactLinks brand={brand} />
       <SocialLinks brand={brand} />
@@ -370,6 +417,9 @@ function FooterInner({
  * Internal nav links include `data-nav-page` attributes with the page key,
  * which the Brand Studio preview can intercept via event delegation to stay
  * on the same URL while switching pages.
+ *
+ * When `preview` is set, a black banner shows at the top indicating preview
+ * mode, and nav links preserve the preview/theme query params.
  */
 export function SiteChrome({
   brand,
@@ -379,6 +429,7 @@ export function SiteChrome({
   darkChrome = false,
   header = DEFAULT_HEADER,
   footer = DEFAULT_FOOTER,
+  preview,
   children,
 }: {
   brand: SiteBrand;
@@ -389,12 +440,22 @@ export function SiteChrome({
   darkChrome?: boolean;
   header?: SiteHeaderConfig;
   footer?: SiteFooterConfig;
+  /** Preview mode context — shows banner and preserves params in nav links. */
+  preview?: { subdomain: string; themeSlug?: string };
   children: ReactNode;
 }) {
   return (
     <div className="flex min-h-screen flex-col">
       {analyticsWebsiteId ? (
         <SiteAnalytics websiteId={analyticsWebsiteId} />
+      ) : null}
+
+      {/* Preview mode banner */}
+      {preview ? (
+        <PreviewBanner
+          subdomain={preview.subdomain}
+          themeSlug={preview.themeSlug}
+        />
       ) : null}
 
       <header
@@ -411,6 +472,7 @@ export function SiteChrome({
             nav={nav}
             bookHref={bookHref}
             dark={darkChrome}
+            preview={preview}
           />
         </div>
         <div className="md:hidden">
@@ -420,6 +482,7 @@ export function SiteChrome({
             nav={nav}
             bookHref={bookHref}
             dark={darkChrome}
+            preview={preview}
           />
         </div>
       </header>
@@ -434,10 +497,20 @@ export function SiteChrome({
         className="border-t"
       >
         <div className="hidden md:block">
-          <FooterInner variant={footer.desktop} brand={brand} nav={nav} />
+          <FooterInner
+            variant={footer.desktop}
+            brand={brand}
+            nav={nav}
+            preview={preview}
+          />
         </div>
         <div className="md:hidden">
-          <FooterInner variant={footer.mobile} brand={brand} nav={nav} />
+          <FooterInner
+            variant={footer.mobile}
+            brand={brand}
+            nav={nav}
+            preview={preview}
+          />
         </div>
       </footer>
     </div>
