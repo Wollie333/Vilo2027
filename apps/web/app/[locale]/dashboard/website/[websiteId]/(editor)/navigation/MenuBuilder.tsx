@@ -250,7 +250,7 @@ export function MenuBuilder({
                           maxLength={500}
                         />
                       </div>
-                      <div className="mt-2">
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                         <PagePick
                           pages={pages}
                           onPick={(p) =>
@@ -259,6 +259,11 @@ export function MenuBuilder({
                               label: child.label.trim() || p.label,
                             })
                           }
+                        />
+                        <ToggleField
+                          label={t("navLinkNewTab")}
+                          checked={child.newTab ?? false}
+                          onChange={(v) => setChild(i, ci, { newTab: v })}
                         />
                       </div>
                     </li>

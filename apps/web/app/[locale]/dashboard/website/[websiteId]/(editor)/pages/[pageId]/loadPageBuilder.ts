@@ -41,6 +41,8 @@ export type PageBuilderData = {
   brand: SiteContext["brand"];
   theme: SiteContext["theme"];
   nav: SiteContext["nav"];
+  /** Navigation config so the preview chrome matches the published render. */
+  navigation: SiteContext["navigation"];
   /** Live data pool keyed by auto-populate type, so the preview is never stale. */
   dataByType: Partial<SiteDataByType>;
   /** Host's reusable saved sections ("my blocks"). */
@@ -134,6 +136,7 @@ export async function loadPageBuilder(
     brand: ctx?.brand ?? { name: site.subdomain },
     theme: ctx?.theme ?? {},
     nav: ctx?.nav ?? [],
+    navigation: ctx?.navigation ?? {},
     dataByType,
     savedSections,
   };

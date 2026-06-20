@@ -254,13 +254,13 @@ function NavLinks({
 
   return (
     <nav className={className}>
-      {nav.map((item) => {
+      {nav.map((item, index) => {
         // Add data-nav-page for internal links so preview mode can intercept
         const isExternal = item.href.startsWith("http");
         const href = buildNavHref(item.href, preview);
         return (
           <a
-            key={item.href}
+            key={`${item.href}-${index}`}
             href={href}
             data-nav-page={isExternal ? undefined : hrefToPageKey(item.href)}
             style={{ color: "var(--site-mute)" }}
@@ -663,7 +663,10 @@ export function SiteChrome({
     href: m.href,
   }));
   const footerColumns = navigation.footer?.columns ?? [];
-  const transparentOver = navigation.header?.transparentOverHero === true;
+  // Transparent-over-hero and a top bar can't coexist (the fixed header would
+  // overlay the top bar) — the top bar wins.
+  const transparentOver =
+    navigation.header?.transparentOverHero === true && !topBar?.enabled;
   const headerDark = transparentOver || darkChrome;
   return (
     <div className="flex min-h-screen flex-col">

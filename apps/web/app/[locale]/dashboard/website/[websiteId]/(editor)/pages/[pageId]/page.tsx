@@ -70,6 +70,7 @@ export default async function WebsitePageBuilder({
         brand={data.brand}
         theme={data.theme}
         nav={data.nav}
+        navigation={data.navigation}
         dataByType={data.dataByType}
         savedSections={data.savedSections}
       />

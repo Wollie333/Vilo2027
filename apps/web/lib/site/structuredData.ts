@@ -19,6 +19,10 @@ import type {
 
 type Node = Record<string, unknown>;
 
+/** schema.org requires absolute URLs — drop anything relative or empty. */
+const abs = (u: string | null | undefined): string | undefined =>
+  u && /^https?:\/\//.test(u) ? u : undefined;
+
 /** First live-data datum of a given auto-populate type on the page (if any). */
 function find<T>(result: SitePageResult, type: string): T | undefined {
   for (const s of result.sections) {
@@ -72,12 +76,11 @@ export function buildSiteJsonLd(args: {
   const gallery = find<GalleryData>(result, "gallery");
 
   const seo = ctx.seo as { og_image_path?: string };
-  const logo = ctx.brand.logoUrl ?? undefined;
+  const logo = abs(ctx.brand.logoUrl);
   const image =
-    gallery?.images?.[0]?.url ??
-    websiteAssetUrl(seo.og_image_path) ??
-    logo ??
-    undefined;
+    abs(gallery?.images?.[0]?.url) ??
+    abs(websiteAssetUrl(seo.og_image_path)) ??
+    logo;
 
   const sameAs = Object.values(ctx.brand.socials ?? {}).filter(
     (v): v is string => typeof v === "string" && /^https?:\/\//.test(v),
@@ -108,7 +111,7 @@ export function buildSiteJsonLd(args: {
     lodging.address = addr;
   }
 
-  if (reviews?.average != null && reviews.count) {
+  if (reviews?.average != null && reviews.average > 0 && reviews.count) {
     lodging.aggregateRating = {
       "@type": "AggregateRating",
       ratingValue: reviews.average,
@@ -129,7 +132,7 @@ export function buildSiteJsonLd(args: {
       const offer: Node = {
         "@type": "Offer",
         name: r.name,
-        price: r.price,
+        price: String(r.price),
         priceCurrency: r.currency ?? "ZAR",
         category: "LodgingReservation",
       };
@@ -158,6 +161,7 @@ export function buildBlogPostJsonLd(args: {
   const { ctx, post, postSlug, origin } = args;
   const siteUrl = origin.replace(/\/+$/, "");
   const url = `${siteUrl}/blog/${postSlug}`;
+  const brandLogo = abs(ctx.brand.logoUrl);
 
   const posting: Node = {
     "@type": "BlogPosting",
@@ -168,13 +172,14 @@ export function buildBlogPostJsonLd(args: {
     publisher: {
       "@type": "Organization",
       name: ctx.brand.name,
-      ...(ctx.brand.logoUrl
-        ? { logo: { "@type": "ImageObject", url: ctx.brand.logoUrl } }
+      ...(brandLogo
+        ? { logo: { "@type": "ImageObject", url: brandLogo } }
         : {}),
     },
   };
   if (post.excerpt) posting.description = post.excerpt;
-  if (post.coverUrl) posting.image = post.coverUrl;
+  const coverAbs = abs(post.coverUrl);
+  if (coverAbs) posting.image = coverAbs;
   if (post.date) posting.datePublished = post.date;
   if (post.authorName)
     posting.author = { "@type": "Person", name: post.authorName };

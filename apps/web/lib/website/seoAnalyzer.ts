@@ -3,6 +3,8 @@
 // accommodation CMS rather than pulling in the heavy `yoastseo` package; the
 // readability checks are deliberately language-neutral (lengths, not English
 // grammar) for the EN/AF/DE market.
+import { slugify } from "@/lib/help/slug";
+
 import type { WebsiteSection } from "./sections.schema";
 
 export type SeoStatus = "good" | "ok" | "bad";
@@ -159,7 +161,7 @@ export function analyzeSeo(input: SeoInput): SeoReport {
           },
     );
     checks.push(
-      slug.includes(kw.replace(/\s+/g, "-"))
+      slugify(kw).length > 0 && slug.includes(slugify(kw))
         ? {
             id: "kwSlug",
             status: "good",

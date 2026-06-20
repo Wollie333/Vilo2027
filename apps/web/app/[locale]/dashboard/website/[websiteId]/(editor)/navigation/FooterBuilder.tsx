@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 
 import type { SiteFooterColumn, SiteMenuItem } from "@/lib/site/types";
 
-import { TextField } from "../pages/[pageId]/_components/fields";
+import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
 import { IconBtn, PagePick, move, uid, type PageOption } from "./MenuBuilder";
 
 export function FooterBuilder({
@@ -143,7 +143,7 @@ export function FooterBuilder({
                         maxLength={500}
                       />
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                       <PagePick
                         pages={pages}
                         onPick={(p) =>
@@ -152,6 +152,11 @@ export function FooterBuilder({
                             label: l.label.trim() || p.label,
                           })
                         }
+                      />
+                      <ToggleField
+                        label={t("navLinkNewTab")}
+                        checked={l.newTab ?? false}
+                        onChange={(v) => setLink(i, li, { newTab: v })}
                       />
                     </div>
                   </li>

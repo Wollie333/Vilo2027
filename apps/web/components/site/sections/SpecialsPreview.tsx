@@ -146,7 +146,15 @@ export function SpecialsPreviewSection({
           Your current specials appear here.
         </Muted>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={`grid gap-5 ${
+            props.layout === "list"
+              ? "grid-cols-1"
+              : props.layout === "carousel"
+                ? "auto-cols-[85%] grid-flow-col overflow-x-auto sm:auto-cols-[45%] lg:auto-cols-[31%]"
+                : "sm:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
           {specials.map((s) => (
             <SpecialCardView key={s.id} special={s} cta={cta} />
           ))}

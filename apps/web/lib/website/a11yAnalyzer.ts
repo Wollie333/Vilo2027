@@ -96,7 +96,10 @@ export function analyzeA11y(sections: WebsiteSection[]): A11yReport {
     if (node && typeof node === "object") {
       for (const [k, v] of Object.entries(node)) {
         if (typeof v === "string") {
-          if (/label/i.test(k) && GENERIC_LABELS.has(v.trim().toLowerCase())) {
+          if (
+            /label|cta|button/i.test(k) &&
+            GENERIC_LABELS.has(v.trim().toLowerCase())
+          ) {
             generic.push(v.trim());
           }
         } else {

@@ -55,6 +55,7 @@ import type {
   SiteDataByType,
   SiteBrand,
   SiteNavItem,
+  SiteNavigation,
 } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 import { newSection } from "@/lib/website/sectionDefaults";
@@ -131,6 +132,7 @@ export function SectionBuilder({
   brand,
   theme,
   nav,
+  navigation,
   dataByType,
   savedSections,
 }: {
@@ -140,6 +142,7 @@ export function SectionBuilder({
   brand: SiteBrand;
   theme: SiteThemeConfig;
   nav: SiteNavItem[];
+  navigation: SiteNavigation;
   dataByType: Partial<SiteDataByType>;
   savedSections: SavedSection[];
 }) {
@@ -424,6 +427,7 @@ export function SectionBuilder({
           <SiteChrome
             brand={brand}
             nav={nav}
+            navigation={navigation}
             header={theme.header}
             footer={theme.footer}
           >

@@ -134,9 +134,23 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
   );
 }
 
-function RoomGrid({ rooms, cta }: { rooms: RoomCardData[]; cta: string }) {
+function RoomGrid({
+  rooms,
+  cta,
+  layout,
+}: {
+  rooms: RoomCardData[];
+  cta: string;
+  layout?: "grid" | "list" | "carousel";
+}) {
+  const cols =
+    layout === "list"
+      ? "grid-cols-1"
+      : layout === "carousel"
+        ? "grid-flow-col auto-cols-[85%] overflow-x-auto sm:auto-cols-[45%] lg:auto-cols-[31%]"
+        : "sm:grid-cols-2 lg:grid-cols-3";
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={`grid gap-5 ${cols}`}>
       {rooms.map((room) => (
         <RoomCardView key={room.id} room={room} cta={cta} />
       ))}
@@ -212,13 +226,13 @@ export function RoomsPreviewSection({
                     ) : null}
                   </div>
                 ) : null}
-                <RoomGrid rooms={run.rooms} cta={cta} />
+                <RoomGrid rooms={run.rooms} cta={cta} layout={props.layout} />
               </div>
             );
           })}
         </div>
       ) : (
-        <RoomGrid rooms={rooms} cta={cta} />
+        <RoomGrid rooms={rooms} cta={cta} layout={props.layout} />
       )}
     </SectionShell>
   );
