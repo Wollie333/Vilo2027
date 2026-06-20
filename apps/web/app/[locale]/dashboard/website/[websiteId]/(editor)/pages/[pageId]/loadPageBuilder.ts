@@ -15,6 +15,11 @@ import {
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 
+import {
+  savedSectionsSchema,
+  type SavedSection,
+} from "@/app/[locale]/dashboard/website/schemas";
+
 export type PageBuilderData = {
   websiteId: string;
   subdomain: string;
@@ -32,6 +37,8 @@ export type PageBuilderData = {
   nav: SiteContext["nav"];
   /** Live data pool keyed by auto-populate type, so the preview is never stale. */
   dataByType: Partial<SiteDataByType>;
+  /** Host's reusable saved sections ("my blocks"). */
+  savedSections: SavedSection[];
 };
 
 /**
@@ -82,6 +89,19 @@ export async function loadPageBuilder(
     ? await assembleSiteDataByType(admin, ctx, new Set(AUTO_POPULATE_SECTIONS))
     : {};
 
+  // `saved_sections` isn't in the generated types yet (migration 20260620003000);
+  // the admin client is schema-untyped, so reading the column is safe here.
+  const { data: savedRow } = await admin
+    .from("host_websites")
+    .select("saved_sections")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const savedSections = savedSectionsSchema
+    .catch([])
+    .parse(
+      (savedRow as { saved_sections?: unknown } | null)?.saved_sections ?? [],
+    );
+
   return {
     websiteId,
     subdomain: site.subdomain,
@@ -100,5 +120,6 @@ export async function loadPageBuilder(
     theme: ctx?.theme ?? {},
     nav: ctx?.nav ?? [],
     dataByType,
+    savedSections,
   };
 }

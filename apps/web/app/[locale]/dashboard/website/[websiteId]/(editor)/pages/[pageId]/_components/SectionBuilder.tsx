@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  Bookmark,
   ChevronDown,
   Copy,
   Eye,
@@ -37,7 +38,11 @@ import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
 
-import { saveDraftSectionsAction } from "@/app/[locale]/dashboard/website/actions";
+import {
+  saveDraftSectionsAction,
+  saveSavedSectionAction,
+  deleteSavedSectionAction,
+} from "@/app/[locale]/dashboard/website/actions";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
@@ -61,6 +66,7 @@ import {
   type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import type { SavedSection } from "@/app/[locale]/dashboard/website/schemas";
 
 import { SectionEditor } from "./SectionEditor";
 import { SectionLibrary } from "./SectionLibrary";
@@ -127,6 +133,7 @@ export function SectionBuilder({
   theme,
   nav,
   dataByType,
+  savedSections,
 }: {
   websiteId: string;
   pageId: string;
@@ -135,6 +142,7 @@ export function SectionBuilder({
   theme: SiteThemeConfig;
   nav: SiteNavItem[];
   dataByType: Partial<SiteDataByType>;
+  savedSections: SavedSection[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
@@ -152,6 +160,8 @@ export function SectionBuilder({
     "idle" | "saving" | "saved" | "error"
   >("idle");
   const previewRef = useRef<HTMLDivElement>(null);
+  const [saveBlockFor, setSaveBlockFor] = useState<WebsiteSection | null>(null);
+  const [blockName, setBlockName] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -214,6 +224,41 @@ export function SectionBuilder({
     const s = newSection(type);
     mutate([...sections, s]);
     setSelectedId(s.id);
+  }
+
+  /** Insert a saved block as a fresh section (cloned with a new id). */
+  function insertSaved(saved: SavedSection) {
+    const copy = {
+      ...structuredClone(saved.section),
+      id: crypto.randomUUID(),
+    } as WebsiteSection;
+    mutate([...sections, copy]);
+    setSelectedId(copy.id);
+  }
+
+  function confirmSaveBlock() {
+    const section = saveBlockFor;
+    const name = blockName.trim();
+    if (!section || !name) return;
+    startSave(async () => {
+      const res = await saveSavedSectionAction({ websiteId, name, section });
+      if (!res.ok) {
+        toast.error(t("blockSaveError"));
+        return;
+      }
+      setSaveBlockFor(null);
+      setBlockName("");
+      toast.success(t("blockSaved"));
+      router.refresh();
+    });
+  }
+
+  function deleteSaved(id: string) {
+    startSave(async () => {
+      const res = await deleteSavedSectionAction({ websiteId, id });
+      if (res.ok) router.refresh();
+      else toast.error(t("blockSaveError"));
+    });
   }
 
   function onSave() {
@@ -347,6 +392,10 @@ export function SectionBuilder({
                     onToggle={() => toggleEnabled(s.id)}
                     onDuplicate={() => duplicateSection(s.id)}
                     onRemove={() => removeSection(s.id)}
+                    onSaveBlock={() => {
+                      setSaveBlockFor(s);
+                      setBlockName("");
+                    }}
                     onChange={updateSection}
                   />
                 ))}
@@ -460,7 +509,48 @@ export function SectionBuilder({
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
         onPick={addSection}
+        savedSections={savedSections}
+        onPickSaved={(s) => {
+          insertSaved(s);
+          setLibraryOpen(false);
+        }}
+        onDeleteSaved={deleteSaved}
       />
+
+      {/* Save-as-block name dialog */}
+      {saveBlockFor ? (
+        <FormModal
+          open
+          onOpenChange={(o) => {
+            if (!o) {
+              setSaveBlockFor(null);
+              setBlockName("");
+            }
+          }}
+          title={t("saveBlockTitle")}
+          description={t("saveBlockSub")}
+        >
+          <input
+            value={blockName}
+            onChange={(e) => setBlockName(e.target.value)}
+            placeholder={t("blockNamePlaceholder")}
+            maxLength={80}
+            className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
+          />
+          <FormModalFooter>
+            <FormModalCancel>{t("cancel")}</FormModalCancel>
+            <button
+              type="button"
+              onClick={confirmSaveBlock}
+              disabled={saving || !blockName.trim()}
+              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t("saveBlockConfirm")}
+            </button>
+          </FormModalFooter>
+        </FormModal>
+      ) : null}
 
       {/* Visual-edit drawer — edit the clicked section; preview updates live. */}
       {editingSection ? (
@@ -498,6 +588,7 @@ function SortableSectionRow({
   onToggle,
   onDuplicate,
   onRemove,
+  onSaveBlock,
   onChange,
 }: {
   section: WebsiteSection;
@@ -507,6 +598,7 @@ function SortableSectionRow({
   onToggle: () => void;
   onDuplicate: () => void;
   onRemove: () => void;
+  onSaveBlock: () => void;
   onChange: (next: WebsiteSection) => void;
 }) {
   const t = useTranslations("website");
@@ -584,6 +676,14 @@ function SortableSectionRow({
           className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
         >
           <Copy className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onSaveBlock}
+          title={t("saveAsBlock")}
+          className="rounded p-1.5 text-brand-mute hover:bg-brand-light hover:text-brand-ink"
+        >
+          <Bookmark className="h-4 w-4" />
         </button>
         <button
           type="button"

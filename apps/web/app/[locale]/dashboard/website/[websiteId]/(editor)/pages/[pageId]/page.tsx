@@ -63,6 +63,7 @@ export default async function WebsitePageBuilder({
         theme={data.theme}
         nav={data.nav}
         dataByType={data.dataByType}
+        savedSections={data.savedSections}
       />
     </div>
   );

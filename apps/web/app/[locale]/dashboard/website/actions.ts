@@ -54,6 +54,9 @@ import {
   saveBlogAuthorsSchema,
   savePageSeoSchema,
   savePagesSchema,
+  saveSavedSectionSchema,
+  deleteSavedSectionSchema,
+  savedSectionsSchema,
   saveWebsiteRoomsSchema,
   seoSchema,
   websiteSettingsSchema,
@@ -66,6 +69,8 @@ import {
   type SaveRestorePointInput,
   type CreatePageInput,
   type PageTemplate,
+  type SaveSavedSectionInput,
+  type DeleteSavedSectionInput,
   type CreateWebsiteInput,
   type SaveBlogAuthorsInput,
   type SaveBlogCategoriesInput,
@@ -819,6 +824,71 @@ export async function saveDraftSectionsAction(
   if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/pages/${pageId}`);
+  return { ok: true };
+}
+
+// Saved sections ("my blocks"). Stored on host_websites.saved_sections — added
+// by migration 20260620003000; the column isn't in the generated DB types until
+// it's applied + regenerated, so these use an untyped client for that column.
+export async function saveSavedSectionAction(
+  input: SaveSavedSectionInput,
+): Promise<ActionResult> {
+  const parsed = saveSavedSectionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, name, section } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const sb = createServerClient() as unknown as SupabaseClient;
+  const { data: row } = await sb
+    .from("host_websites")
+    .select("saved_sections")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const current = savedSectionsSchema
+    .catch([])
+    .parse((row as { saved_sections?: unknown } | null)?.saved_sections ?? []);
+  const next = [{ id: uuid(), name, section }, ...current].slice(0, 50);
+
+  const { error } = await sb
+    .from("host_websites")
+    .update({ saved_sections: next })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
+  return { ok: true };
+}
+
+export async function deleteSavedSectionAction(
+  input: DeleteSavedSectionInput,
+): Promise<ActionResult> {
+  const parsed = deleteSavedSectionSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, id } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const sb = createServerClient() as unknown as SupabaseClient;
+  const { data: row } = await sb
+    .from("host_websites")
+    .select("saved_sections")
+    .eq("id", websiteId)
+    .maybeSingle();
+  const current = savedSectionsSchema
+    .catch([])
+    .parse((row as { saved_sections?: unknown } | null)?.saved_sections ?? []);
+  const next = current.filter((s) => s.id !== id);
+
+  const { error } = await sb
+    .from("host_websites")
+    .update({ saved_sections: next })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
   return { ok: true };
 }
 

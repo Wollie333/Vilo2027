@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useState } from "react";
 
 import { useTranslations } from "next-intl";
@@ -14,6 +14,7 @@ import {
   isAutoPopulate,
   type SectionType,
 } from "@/lib/website/sections.schema";
+import type { SavedSection } from "@/app/[locale]/dashboard/website/schemas";
 
 import { SectionThumb } from "./SectionThumb";
 
@@ -58,10 +59,16 @@ export function SectionLibrary({
   open,
   onOpenChange,
   onPick,
+  savedSections = [],
+  onPickSaved,
+  onDeleteSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (type: SectionType) => void;
+  savedSections?: SavedSection[];
+  onPickSaved?: (saved: SavedSection) => void;
+  onDeleteSaved?: (id: string) => void;
 }) {
   const t = useTranslations("website");
   const [query, setQuery] = useState("");
@@ -82,6 +89,14 @@ export function SectionLibrary({
     ...g,
     types: g.types.filter(matches),
   })).filter((g) => g.types.length > 0);
+
+  const savedMatches = savedSections.filter(
+    (s) =>
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      t(`sectionType_${s.section.type}`).toLowerCase().includes(q),
+  );
+  const nothing = groups.length === 0 && savedMatches.length === 0;
 
   return (
     <FormModal
@@ -105,12 +120,48 @@ export function SectionLibrary({
           />
         </div>
 
-        {groups.length === 0 ? (
+        {nothing ? (
           <p className="py-10 text-center text-sm text-brand-mute">
             {t("libraryNoResults")}
           </p>
         ) : (
           <div className="space-y-6">
+            {savedMatches.length > 0 ? (
+              <section>
+                <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+                  {t("catSaved")}
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {savedMatches.map((saved) => (
+                    <div key={saved.id} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => onPickSaved?.(saved)}
+                        className="group flex w-full flex-col rounded-card border border-brand-line bg-white p-2 text-left transition hover:border-brand-primary hover:shadow-card"
+                      >
+                        <SectionThumb type={saved.section.type} />
+                        <span className="mt-2 truncate px-0.5 text-sm font-semibold text-brand-ink">
+                          {saved.name}
+                        </span>
+                        <span className="mt-0.5 px-0.5 text-[12px] text-brand-mute">
+                          {t(`sectionType_${saved.section.type}`)}
+                        </span>
+                      </button>
+                      {onDeleteSaved ? (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSaved(saved.id)}
+                          title={t("deleteBlock")}
+                          className="absolute right-2 top-2 rounded-full bg-white/90 p-1 text-brand-mute shadow-sm transition hover:text-red-600"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
             {groups.map((group) => (
               <section key={group.key}>
                 <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-brand-mute">

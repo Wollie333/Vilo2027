@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import {
+  sectionSchema,
   sectionsSchema,
   type SectionType,
 } from "@/lib/website/sections.schema";
@@ -514,6 +515,30 @@ export const createPageSchema = z.object({
 });
 
 export type CreatePageInput = z.infer<typeof createPageSchema>;
+
+// --- Saved sections ("my blocks") — reusable customised sections ---
+
+/** A persisted saved section in host_websites.saved_sections. */
+export const savedSectionSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().max(80),
+  section: sectionSchema,
+});
+export const savedSectionsSchema = z.array(savedSectionSchema).max(50);
+export type SavedSection = z.infer<typeof savedSectionSchema>;
+
+export const saveSavedSectionSchema = z.object({
+  websiteId: z.string().uuid(),
+  name: z.string().trim().min(1, "required").max(80),
+  section: sectionSchema,
+});
+export type SaveSavedSectionInput = z.infer<typeof saveSavedSectionSchema>;
+
+export const deleteSavedSectionSchema = z.object({
+  websiteId: z.string().uuid(),
+  id: z.string().uuid(),
+});
+export type DeleteSavedSectionInput = z.infer<typeof deleteSavedSectionSchema>;
 
 // One page's nav state as edited in the manager — order is derived from the array
 // index, so a reorder persists. `navLabel` blank falls back to the page title.
