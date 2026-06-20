@@ -46,6 +46,20 @@ override). This session closed the real gaps.
   **Note:** the `elegant` font stack falls back to Georgia/system unless the
   Cormorant/Inter web fonts are loaded site-wide — an optional fidelity follow-up.
 
+### Compatibility — themes work with everything we've built (D)
+- `scripts/verify-themes-compat.mjs` (read-only) runs **every active theme's**
+  `page_templates` through the **actual current `sections.schema`**
+  (`parseSectionsLoose` + per-section `safeParse`, via Node TS type-stripping):
+  all three themes (aria/warm/coastal) validate with **zero sections dropped**,
+  and every section type they use exists in `SECTION_TYPES`. So activating any
+  theme never silently drops a section, and the Phase-4 **Forms** work already
+  flows through every theme (each Contact page's `contact_form` routes to the
+  host inbox).
+- Migration `20260621001000_themes_add_trust.sql` (data-only, pushed, idempotent)
+  adds the curated **`trust`** section to the **warm + coastal** home pages too
+  (Aria already had it), so every theme carries the recent work. Re-verified
+  green.
+
 ## 2026-06-20 — Website CMS: Phase 5 (AI Site Generator) deferred + Phase 6A slice 1 (trust-signals section)
 
 ### Decision
