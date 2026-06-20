@@ -8872,6 +8872,102 @@ export type Database = {
           },
         ]
       }
+      website_form_submissions: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          data: Json
+          form_id: string
+          id: string
+          status: string
+          website_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          data?: Json
+          form_id: string
+          id?: string
+          status?: string
+          website_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          data?: Json
+          form_id?: string
+          id?: string
+          status?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_form_submissions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_form_submissions_form_id_fkey"
+            columns: ["form_id"]
+            isOneToOne: false
+            referencedRelation: "website_forms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_form_submissions_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_forms: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          fields: Json
+          id: string
+          name: string
+          settings: Json
+          type: string
+          updated_at: string
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          fields?: Json
+          id?: string
+          name: string
+          settings?: Json
+          type?: string
+          updated_at?: string
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          settings?: Json
+          type?: string
+          updated_at?: string
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_forms_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_media: {
         Row: {
           alt: string | null
