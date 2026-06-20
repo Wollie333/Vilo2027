@@ -35,7 +35,7 @@ export function StickyHeader({
           background: "var(--site-surface)",
           borderColor: "var(--site-line)",
         }}
-        className={`${sticky ? "sticky top-0 z-20" : ""}border-b`}
+        className={sticky ? "sticky top-0 z-20 border-b" : "border-b"}
       >
         {children}
       </header>

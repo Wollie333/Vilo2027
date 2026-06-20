@@ -25,15 +25,13 @@ import {
   EyeOff,
   GripVertical,
   Loader2,
-  Monitor,
   Pencil,
   Plus,
   Pointer,
-  Smartphone,
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
@@ -68,6 +66,7 @@ import {
 } from "@/lib/website/sections.schema";
 import type { SavedSection } from "@/app/[locale]/dashboard/website/schemas";
 
+import { DeviceFrame } from "./DeviceFrame";
 import { SectionEditor } from "./SectionEditor";
 import { SectionLibrary } from "./SectionLibrary";
 
@@ -150,7 +149,6 @@ export function SectionBuilder({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSections[0]?.id ?? null,
   );
-  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
   const [dirty, setDirty] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [visualEdit, setVisualEdit] = useState(false);
@@ -159,7 +157,6 @@ export function SectionBuilder({
   const [autoStatus, setAutoStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
-  const previewRef = useRef<HTMLDivElement>(null);
   const [saveBlockFor, setSaveBlockFor] = useState<WebsiteSection | null>(null);
   const [blockName, setBlockName] = useState("");
 
@@ -406,103 +403,63 @@ export function SectionBuilder({
       </div>
 
       {/* ── Preview pane ──────────────────────────── */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] font-semibold uppercase tracking-wide text-brand-mute">
-            {t("livePreview")}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setVisualEdit((v) => !v)}
-              title={t("visualEditHint")}
-              className={`inline-flex items-center gap-1.5 rounded-[10px] border px-2.5 py-1.5 text-[12.5px] font-semibold transition ${
-                visualEdit
-                  ? "border-brand-primary bg-brand-primary text-white"
-                  : "border-brand-line bg-white text-brand-mute hover:text-brand-ink"
-              }`}
-            >
-              <Pointer className="h-3.5 w-3.5" />
-              {t("visualEdit")}
-            </button>
-            <div className="inline-flex rounded-[10px] border border-brand-line bg-white p-0.5">
-              <button
-                type="button"
-                onClick={() => setDevice("desktop")}
-                title={t("deviceDesktop")}
-                className={`rounded-[8px] p-1.5 ${
-                  device === "desktop"
-                    ? "bg-brand-primary text-white"
-                    : "text-brand-mute hover:text-brand-ink"
-                }`}
-              >
-                <Monitor className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setDevice("phone")}
-                title={t("devicePhone")}
-                className={`rounded-[8px] p-1.5 ${
-                  device === "phone"
-                    ? "bg-brand-primary text-white"
-                    : "text-brand-mute hover:text-brand-ink"
-                }`}
-              >
-                <Smartphone className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-card border border-brand-line bg-brand-light/40">
-          <div
-            ref={previewRef}
-            className={`mx-auto max-h-[78vh] overflow-y-auto bg-white transition-[max-width] ${
-              device === "phone" ? "max-w-[390px]" : "max-w-full"
+      <DeviceFrame
+        toolbar={
+          <button
+            type="button"
+            onClick={() => setVisualEdit((v) => !v)}
+            title={t("visualEditHint")}
+            className={`inline-flex items-center gap-1.5 rounded-[10px] border px-2.5 py-1.5 text-[12.5px] font-semibold transition ${
+              visualEdit
+                ? "border-brand-primary bg-brand-primary text-white"
+                : "border-brand-line bg-white text-brand-mute hover:text-brand-ink"
             }`}
           >
-            <SiteThemeRoot theme={theme}>
-              <SiteChrome
-                brand={brand}
-                nav={nav}
-                header={theme.header}
-                footer={theme.footer}
-              >
-                {visualEdit ? (
-                  // Visual mode: each section gets a click-to-edit hotspot overlay.
-                  enabledSections.map((s) => (
-                    <div key={s.id} className="group relative">
-                      <SectionRenderer
-                        sections={[s]}
-                        data={previewData}
-                        asset={asset}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(s.id)}
-                        className="absolute inset-0 z-10 flex items-start justify-start bg-brand-primary/0 ring-inset transition group-hover:bg-brand-primary/5 group-hover:ring-2 group-hover:ring-brand-primary"
-                      >
-                        <span className="m-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-ink px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 shadow-lift transition group-hover:opacity-100">
-                          <Pencil className="h-3 w-3" />
-                          {t("editSectionLabel", {
-                            section: t(`sectionType_${s.type}`),
-                          })}
-                        </span>
-                      </button>
-                    </div>
-                  ))
-                ) : (
+            <Pointer className="h-3.5 w-3.5" />
+            {t("visualEdit")}
+          </button>
+        }
+      >
+        <SiteThemeRoot theme={theme}>
+          <SiteChrome
+            brand={brand}
+            nav={nav}
+            header={theme.header}
+            footer={theme.footer}
+          >
+            {visualEdit ? (
+              // Visual mode: each section gets a click-to-edit hotspot overlay.
+              enabledSections.map((s) => (
+                <div key={s.id} className="group relative">
                   <SectionRenderer
-                    sections={sections}
+                    sections={[s]}
                     data={previewData}
                     asset={asset}
                   />
-                )}
-              </SiteChrome>
-            </SiteThemeRoot>
-          </div>
-        </div>
-      </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(s.id)}
+                    className="absolute inset-0 z-10 flex items-start justify-start bg-brand-primary/0 ring-inset transition group-hover:bg-brand-primary/5 group-hover:ring-2 group-hover:ring-brand-primary"
+                  >
+                    <span className="m-3 inline-flex items-center gap-1.5 rounded-pill bg-brand-ink px-2.5 py-1 text-[11px] font-semibold text-white opacity-0 shadow-lift transition group-hover:opacity-100">
+                      <Pencil className="h-3 w-3" />
+                      {t("editSectionLabel", {
+                        section: t(`sectionType_${s.type}`),
+                      })}
+                    </span>
+                  </button>
+                </div>
+              ))
+            ) : (
+              <SectionRenderer
+                sections={sections}
+                data={previewData}
+                asset={asset}
+              />
+            )}
+          </SiteChrome>
+        </SiteThemeRoot>
+      </DeviceFrame>
 
       {/* Section library picker (replaces the old dropdown). */}
       <SectionLibrary
