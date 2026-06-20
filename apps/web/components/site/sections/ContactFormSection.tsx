@@ -41,6 +41,7 @@ export function ContactFormSection({
   const [error, setError] = useState("");
 
   const live = interactive && Boolean(websiteId);
+  const variant = props.variant ?? "stacked";
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -95,6 +96,108 @@ export function ContactFormSection({
     );
   }
 
+  const formEl = (
+    <form onSubmit={onSubmit} className="space-y-4">
+      {/* Honeypot — hidden from real users; bots fill it and get dropped. */}
+      <input
+        type="text"
+        name="company"
+        tabIndex={-1}
+        autoComplete="off"
+        value={hp}
+        onChange={(e) => setHp(e.target.value)}
+        className="hidden"
+        aria-hidden
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <input
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your name"
+          maxLength={120}
+          style={fieldStyle}
+          className="w-full border px-4 py-3 text-sm outline-none"
+        />
+        <input
+          required
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email address"
+          maxLength={200}
+          style={fieldStyle}
+          className="w-full border px-4 py-3 text-sm outline-none"
+        />
+      </div>
+      {props.show_phone ? (
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Phone (optional)"
+          maxLength={40}
+          style={fieldStyle}
+          className="w-full border px-4 py-3 text-sm outline-none"
+        />
+      ) : null}
+      <textarea
+        required
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="How can we help?"
+        maxLength={2000}
+        rows={5}
+        style={fieldStyle}
+        className="w-full resize-y border px-4 py-3 text-sm outline-none"
+      />
+
+      {status === "error" ? (
+        <p className="text-sm font-medium text-red-600">{error}</p>
+      ) : null}
+
+      <button
+        type="submit"
+        disabled={!live || status === "sending"}
+        style={{
+          background: "var(--site-btn-primary-bg)",
+          color: "var(--site-btn-primary-color)",
+          border: "var(--site-btn-primary-border)",
+          borderRadius: "var(--site-btn-primary-radius)",
+        }}
+        className="inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
+      >
+        {status === "sending" ? "Sending…" : props.submit_label}
+      </button>
+      {!live ? (
+        <p style={{ color: "var(--site-mute)" }} className="text-xs">
+          This form is interactive on your published site.
+        </p>
+      ) : null}
+    </form>
+  );
+
+  // SPLIT — heading/intro on the left, form on the right.
+  if (variant === "split") {
+    return (
+      <SectionShell surface>
+        <div className="grid gap-8 md:grid-cols-2 md:gap-12">
+          <div className="space-y-3">
+            {props.heading ? (
+              <SectionHeading centered={false}>{props.heading}</SectionHeading>
+            ) : null}
+            {props.body ? (
+              <Muted className="text-base">{props.body}</Muted>
+            ) : null}
+          </div>
+          <div>{formEl}</div>
+        </div>
+      </SectionShell>
+    );
+  }
+
+  // STACKED (default) — centred heading/intro above the form.
   return (
     <SectionShell surface width="narrow">
       {props.heading ? (
@@ -103,86 +206,7 @@ export function ContactFormSection({
       {props.body ? (
         <Muted className="mb-8 text-center text-base">{props.body}</Muted>
       ) : null}
-
-      <form onSubmit={onSubmit} className="mx-auto max-w-lg space-y-4">
-        {/* Honeypot — hidden from real users; bots fill it and get dropped. */}
-        <input
-          type="text"
-          name="company"
-          tabIndex={-1}
-          autoComplete="off"
-          value={hp}
-          onChange={(e) => setHp(e.target.value)}
-          className="hidden"
-          aria-hidden
-        />
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <input
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            maxLength={120}
-            style={fieldStyle}
-            className="w-full border px-4 py-3 text-sm outline-none"
-          />
-          <input
-            required
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            maxLength={200}
-            style={fieldStyle}
-            className="w-full border px-4 py-3 text-sm outline-none"
-          />
-        </div>
-        {props.show_phone ? (
-          <input
-            type="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone (optional)"
-            maxLength={40}
-            style={fieldStyle}
-            className="w-full border px-4 py-3 text-sm outline-none"
-          />
-        ) : null}
-        <textarea
-          required
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="How can we help?"
-          maxLength={2000}
-          rows={5}
-          style={fieldStyle}
-          className="w-full resize-y border px-4 py-3 text-sm outline-none"
-        />
-
-        {status === "error" ? (
-          <p className="text-sm font-medium text-red-600">{error}</p>
-        ) : null}
-
-        <button
-          type="submit"
-          disabled={!live || status === "sending"}
-          style={{
-            background: "var(--site-btn-primary-bg)",
-            color: "var(--site-btn-primary-color)",
-            border: "var(--site-btn-primary-border)",
-            borderRadius: "var(--site-btn-primary-radius)",
-          }}
-          className="inline-flex w-full items-center justify-center px-6 py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto"
-        >
-          {status === "sending" ? "Sending…" : props.submit_label}
-        </button>
-        {!live ? (
-          <p style={{ color: "var(--site-mute)" }} className="text-xs">
-            This form is interactive on your published site.
-          </p>
-        ) : null}
-      </form>
+      <div className="mx-auto max-w-lg">{formEl}</div>
     </SectionShell>
   );
 }

@@ -367,6 +367,15 @@ function SectionFields({
             max={20}
             onChange={(v) => set({ zoom: v })}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "boxed", label: t("mapVariant_boxed") },
+              { value: "wide", label: t("mapVariant_wide") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
         </div>
       );
     }
@@ -509,6 +518,15 @@ function SectionFields({
             maxLength={300}
             rows={2}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "stacked", label: t("contactVariant_stacked") },
+              { value: "split", label: t("contactVariant_split") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
           <LiveNote>{t("contactFormNote")}</LiveNote>
         </div>
       );
@@ -609,15 +627,28 @@ function SectionFields({
 
     case "rich_text": {
       const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
       return (
-        <TextArea
-          label={t("fldHtml")}
-          value={p.html}
-          onChange={(v) => onChange({ ...section, props: { html: v } })}
-          maxLength={50000}
-          rows={8}
-          hint={t("fldHtmlHint")}
-        />
+        <div className="space-y-4">
+          <TextArea
+            label={t("fldHtml")}
+            value={p.html}
+            onChange={(v) => set({ html: v })}
+            maxLength={50000}
+            rows={8}
+            hint={t("fldHtmlHint")}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "narrow", label: t("richtextVariant_narrow") },
+              { value: "wide", label: t("richtextVariant_wide") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+        </div>
       );
     }
 
@@ -707,6 +738,16 @@ function SectionFields({
             label={t("fldShowMap")}
             checked={p.show_map}
             onChange={(v) => set({ show_map: v })}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "split", label: t("locationVariant_split") },
+              { value: "stacked", label: t("locationVariant_stacked") },
+              { value: "list", label: t("locationVariant_list") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
           <LiveNote>{t("liveLocation")}</LiveNote>
         </div>

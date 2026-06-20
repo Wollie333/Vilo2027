@@ -72,6 +72,10 @@ export const REVIEWS_VARIANTS = ["grid", "list", "plain"] as const;
 export const BLOG_VARIANTS = ["grid", "list", "compact"] as const;
 export const FAQ_VARIANTS = ["accordion", "plain", "columns"] as const;
 export const LOGOS_VARIANTS = ["row", "grid", "color"] as const;
+export const LOCATION_VARIANTS = ["split", "stacked", "list"] as const;
+export const MAP_VARIANTS = ["boxed", "wide"] as const;
+export const CONTACT_VARIANTS = ["stacked", "split"] as const;
+export const RICHTEXT_VARIANTS = ["narrow", "wide"] as const;
 
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
@@ -149,6 +153,7 @@ const mapProps = z.object({
   address: z.string().max(300),
   caption: z.string().max(300).optional(),
   zoom: z.number().int().min(1).max(20).default(14),
+  variant: z.enum(MAP_VARIANTS).default("boxed"),
 });
 
 const roomsPreviewProps = z.object({
@@ -161,6 +166,7 @@ const roomsPreviewProps = z.object({
 const locationProps = z.object({
   heading,
   show_map: z.boolean().default(true),
+  variant: z.enum(LOCATION_VARIANTS).default("split"),
 });
 
 const reviewsProps = z.object({
@@ -217,6 +223,7 @@ const specialsPreviewProps = z.object({
 
 const richTextProps = z.object({
   html: z.string().max(50000),
+  variant: z.enum(RICHTEXT_VARIANTS).default("narrow"),
 });
 
 const faqProps = z.object({
@@ -246,6 +253,7 @@ const contactFormProps = z.object({
     .max(300)
     .default("Thanks — your message is on its way. We'll be in touch soon."),
   show_phone: z.boolean().default(true),
+  variant: z.enum(CONTACT_VARIANTS).default("stacked"),
 });
 
 // ── Section discriminated union ───────────────────────────────

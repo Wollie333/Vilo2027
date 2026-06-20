@@ -103,6 +103,7 @@ export function newSection(type: SectionType): WebsiteSection {
           address: "",
           caption: "",
           zoom: 14,
+          variant: "boxed",
         },
       };
     case "rooms_preview":
@@ -119,7 +120,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "Where you'll be", show_map: true },
+        props: { heading: "Where you'll be", show_map: true, variant: "split" },
       };
     case "reviews":
       return {
@@ -188,7 +189,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { html: "<p>Add your own text here.</p>" },
+        props: { html: "<p>Add your own text here.</p>", variant: "narrow" },
       };
     case "faq":
       return {
@@ -215,6 +216,7 @@ export function newSection(type: SectionType): WebsiteSection {
           success_message:
             "Thanks — your message is on its way. We'll be in touch soon.",
           show_phone: true,
+          variant: "stacked",
         },
       };
     case "specials_preview":
