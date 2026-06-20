@@ -2,6 +2,8 @@ import "server-only";
 
 import { headers } from "next/headers";
 
+import type { Json } from "@vilo/types";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 
 import { AdminReasonRequired } from "./errors";
@@ -126,7 +128,7 @@ export function withAdminAudit<TArgs extends { reason?: string }, TResult>(
         after,
         args,
         reason: args.reason ?? null,
-      },
+      } as unknown as Json,
       ip_address: ip,
       user_agent: userAgent,
     });

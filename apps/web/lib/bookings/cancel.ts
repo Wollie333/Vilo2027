@@ -136,7 +136,7 @@ export async function finalizeCancellation(
           booking_id: booking.id,
           payment_id: payment.id,
           host_id: booking.host_id,
-          guest_id: booking.guest_id,
+          guest_id: booking.guest_id as string,
           requested_amount: refund.refundAmount,
           policy_entitlement: refund.refundAmount,
           currency: booking.currency || "ZAR",

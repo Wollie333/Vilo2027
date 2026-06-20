@@ -1,3 +1,5 @@
+import type { Database } from "@vilo/types";
+
 import { recomputeBookingPaymentState } from "@/lib/payments/ledger";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -74,42 +76,47 @@ export async function acceptAndConvertQuote(
   // Booking stays PENDING + unpaid — the guest pays from the thread/pay page,
   // and the payment confirmation path confirms it (firing the calendar block +
   // invoice + the quote→converted trigger).
+  // `reference` is omitted: a BEFORE INSERT trigger generates it.
+  const bookingInsert: Omit<
+    Database["public"]["Tables"]["bookings"]["Insert"],
+    "reference"
+  > = {
+    host_id: quote.host_id,
+    property_id: quote.property_id,
+    guest_id: acceptGuestId,
+    guest_name: quote.guest_name,
+    guest_email: quote.guest_email,
+    guest_phone: quote.guest_phone,
+    origin: "quote_converted",
+    quote_id: quote.id,
+    scope: quote.scope,
+    check_in: quote.check_in,
+    check_out: quote.check_out,
+    guests_count: quote.headcount,
+    guests_breakdown: quote.guests_breakdown ?? null,
+    discount_amount: quote.discount_amount ?? 0,
+    deposit_amount: quote.deposit_amount ?? 0,
+    balance_due: quote.balance_amount ?? 0,
+    balance_due_date:
+      Number(quote.balance_amount ?? 0) > 0 && quote.check_in
+        ? new Date(
+            new Date(`${quote.check_in}T00:00:00Z`).getTime() -
+              (quote.balance_due_days ?? 7) * 86_400_000,
+          )
+            .toISOString()
+            .slice(0, 10)
+        : null,
+    base_amount: quote.base_amount,
+    cleaning_fee: quote.cleaning_fee,
+    total_amount: quote.total_amount,
+    currency: quote.currency,
+    payment_status: "pending",
+    special_requests: quote.notes,
+    status: "pending",
+  };
   const { data: booking, error: bookErr } = await admin
     .from("bookings")
-    .insert({
-      host_id: quote.host_id,
-      property_id: quote.property_id,
-      guest_id: acceptGuestId,
-      guest_name: quote.guest_name,
-      guest_email: quote.guest_email,
-      guest_phone: quote.guest_phone,
-      origin: "quote_converted",
-      quote_id: quote.id,
-      scope: quote.scope,
-      check_in: quote.check_in,
-      check_out: quote.check_out,
-      guests_count: quote.headcount,
-      guests_breakdown: quote.guests_breakdown ?? null,
-      discount_amount: quote.discount_amount ?? 0,
-      deposit_amount: quote.deposit_amount ?? 0,
-      balance_due: quote.balance_amount ?? 0,
-      balance_due_date:
-        Number(quote.balance_amount ?? 0) > 0 && quote.check_in
-          ? new Date(
-              new Date(`${quote.check_in}T00:00:00Z`).getTime() -
-                (quote.balance_due_days ?? 7) * 86_400_000,
-            )
-              .toISOString()
-              .slice(0, 10)
-          : null,
-      base_amount: quote.base_amount,
-      cleaning_fee: quote.cleaning_fee,
-      total_amount: quote.total_amount,
-      currency: quote.currency,
-      payment_status: "pending",
-      special_requests: quote.notes,
-      status: "pending",
-    })
+    .insert(bookingInsert as Database["public"]["Tables"]["bookings"]["Insert"])
     .select("id")
     .single();
   if (bookErr || !booking) {

@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Json } from "@vilo/types";
+
 import { gkeyForEmail, gkeyForGuest } from "@/lib/guests/gkey";
 import type { createAdminClient } from "@/lib/supabase/admin";
 
@@ -213,11 +215,12 @@ export async function fetchHostTransactions(
   // account (mirrors the directory RPC's email-merge) so one person = one group.
   const refEmails = new Set<string>();
   const collect = (
-    rows: { guest_snapshot?: { email?: string } | null }[] | null,
+    rows: { guest_snapshot?: Json | null }[] | null,
     bookingEmailRows: { booking?: unknown }[] | null,
   ) => {
     for (const r of rows ?? []) {
-      const e = r.guest_snapshot?.email;
+      const snap = r.guest_snapshot as { email?: string } | null;
+      const e = snap?.email;
       if (e) refEmails.add(e.trim().toLowerCase());
     }
     for (const r of bookingEmailRows ?? []) {

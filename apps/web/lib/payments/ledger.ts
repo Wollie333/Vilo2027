@@ -10,6 +10,8 @@
 // Server-only. All writes use the service-role admin client; callers verify the
 // host owns the booking first (payments have no host-write RLS).
 
+import type { Database, Json } from "@vilo/types";
+
 import { round2 } from "@/lib/format";
 import { gkeyFor } from "@/lib/guests/gkey";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -105,7 +107,9 @@ export async function recomputeBookingPaymentState(
 
   // Don't clobber terminal money states (refunded / voided) the refund flow set.
   const terminal = ["refunded", "partially_refunded", "voided", "failed"];
-  const patch: Record<string, unknown> = { balance_due: balance };
+  const patch: Database["public"]["Tables"]["bookings"]["Update"] = {
+    balance_due: balance,
+  };
   if (!terminal.includes(booking.payment_status as string)) {
     patch.payment_status = status;
   }
@@ -217,7 +221,7 @@ export async function recordBookingPayment(
       note: input.note ?? null,
       recorded_by: input.recordedBy,
       provider_reference: input.providerReference ?? null,
-      provider_response: input.providerResponse ?? null,
+      provider_response: (input.providerResponse ?? null) as Json,
       captured_at: now,
     })
     .select("id")

@@ -1,3 +1,5 @@
+import type { Json } from "@vilo/types";
+
 import { getBrandName } from "@/lib/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -120,7 +122,7 @@ async function dispatchEventInner<K extends EventKind>(
         title: ia.title,
         body: ia.body ?? null,
         link: ia.link ?? null,
-        payload: input.refs as Record<string, unknown>,
+        payload: input.refs as Json,
       });
     }
     return;
@@ -143,7 +145,7 @@ async function dispatchEventInner<K extends EventKind>(
     if (!skip) {
       await supabase.from("notification_queue").insert({
         type: event.emailTemplate,
-        payload: input.refs as Record<string, unknown>,
+        payload: input.refs as Json,
         host_id: input.hostId ?? null,
         guest_id: input.guestId ?? null,
         user_id: input.recipientUserId,
@@ -171,7 +173,7 @@ async function dispatchEventInner<K extends EventKind>(
       await supabase.from("pending_push_queue").insert({
         user_id: input.recipientUserId,
         event_kind: input.kind,
-        payload: pushPayload as unknown as Record<string, unknown>,
+        payload: pushPayload as unknown as Json,
         release_at: releaseAt.toISOString(),
       });
       await logDelivery(supabase, {
@@ -191,9 +193,9 @@ async function dispatchEventInner<K extends EventKind>(
       p_user_id: input.recipientUserId,
       p_kind: input.kind,
       p_title: inAppPayload.title,
-      p_body: inAppPayload.body ?? null,
-      p_link: inAppPayload.link ?? null,
-      p_payload: (input.refs as Record<string, unknown>) ?? {},
+      p_body: inAppPayload.body,
+      p_link: inAppPayload.link,
+      p_payload: input.refs as Json,
       p_category_id: event.category,
       p_severity: event.severity,
     });

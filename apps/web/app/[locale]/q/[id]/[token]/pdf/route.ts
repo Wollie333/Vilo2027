@@ -172,7 +172,7 @@ export async function GET(
       description: a.label,
       quantity: a.quantity,
       unit_price: a.unit_price,
-      subtotal: a.subtotal,
+      subtotal: a.subtotal ?? 0,
     });
   }
   const discount = Number(quote.discount_amount ?? 0);

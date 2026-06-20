@@ -533,8 +533,8 @@ export const adminPayoutAffiliateAction = withAdminAudit<
         p_payout_id: c.payout_id,
         p_action: "paid",
         p_admin: admin.userId,
-        p_reference: reference ?? null,
-        p_reason: null,
+        p_reference: reference ?? undefined,
+        p_reason: undefined,
       },
     );
     if (sErr) throw new Error(sErr.message);

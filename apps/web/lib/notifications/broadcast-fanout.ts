@@ -1,3 +1,5 @@
+import type { Json } from "@vilo/types";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const FANOUT_BATCH_SIZE = 5;
@@ -71,7 +73,7 @@ export async function runBroadcastFanout(): Promise<FanoutResult> {
           link_url: b.link_url ?? null,
           link_label: b.link_label ?? null,
           recipient_email: u.email,
-        } as Record<string, unknown>,
+        } as Json,
       }));
 
       if (queueRows.length > 0) {
@@ -150,7 +152,7 @@ export async function fanoutBroadcastToInApp(broadcast: {
       payload: {
         broadcast_id: broadcast.id,
         broadcast_severity: broadcast.severity,
-      } as Record<string, unknown>,
+      } as Json,
       category_id: "admin_broadcasts",
       severity: inAppSeverity,
     }));

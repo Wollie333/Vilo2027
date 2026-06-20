@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Json } from "@vilo/types";
+
 import type { createAdminClient } from "@/lib/supabase/admin";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -40,7 +42,7 @@ export async function logFinanceEvent(
       amount: e.amount ?? null,
       currency: e.currency ?? null,
       reason: e.reason ?? null,
-      metadata: e.metadata ?? null,
+      metadata: (e.metadata ?? null) as Json,
     });
   } catch {
     // Never let audit logging break a money action.

@@ -28,7 +28,7 @@ export const setAffiliateStatusAction = withAdminAudit<
       p_affiliate_id: args.affiliateId,
       p_status: args.status,
       p_admin: admin.userId,
-      p_reason: args.reason ?? null,
+      p_reason: args.reason,
     });
     if (error) return { result: { ok: false, error: error.message } };
     revalidatePath("/admin/affiliates");
@@ -58,8 +58,8 @@ export const settleAffiliatePayoutAction = withAdminAudit<
       p_payout_id: args.payoutId,
       p_action: args.action,
       p_admin: admin.userId,
-      p_reference: args.reference ?? null,
-      p_reason: args.reason ?? null,
+      p_reference: args.reference,
+      p_reason: args.reason,
     });
     if (error) return { result: { ok: false, error: error.message } };
     const res = data as { ok: boolean; error?: string };

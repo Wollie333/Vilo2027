@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import type { Database } from "@vilo/types";
+
 import { withAdminAudit } from "@/lib/admin";
+
+type PaymentSettingsUpdate =
+  Database["public"]["Tables"]["platform_payment_settings"]["Update"];
 
 const PAY_SETTINGS_TARGET = "00000000-0000-0000-0000-0000000a7000";
 
@@ -41,7 +46,7 @@ export const savePaymentSettingsAction = withAdminAudit<
     if (!parsed.success) throw new Error("Invalid input.");
     const d = parsed.data;
 
-    const patch: Record<string, unknown> = {
+    const patch: PaymentSettingsUpdate = {
       paystack_enabled: d.paystackEnabled,
       paystack_mode: d.paystackMode,
       paystack_public_key: d.paystackPublicKey || null,

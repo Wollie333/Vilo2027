@@ -376,8 +376,8 @@ export async function createBookingAction(
         {
           p_listing_id: listing.id,
           p_room_id: r.id,
-          p_check_in: d.check_in,
-          p_check_out: d.check_out,
+          p_check_in: d.check_in!,
+          p_check_out: d.check_out!,
         },
       );
       if (availErr || availResult === false) {
@@ -475,8 +475,8 @@ export async function createBookingAction(
       "listing_is_available_whole",
       {
         p_listing_id: listing.id,
-        p_check_in: d.check_in,
-        p_check_out: d.check_out,
+        p_check_in: d.check_in!,
+        p_check_out: d.check_out!,
       },
     );
     if (availErr || availResult === false) {

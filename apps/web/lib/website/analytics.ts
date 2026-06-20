@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { createAdminClient } from "@/lib/supabase/admin";
-import type { createServerClient } from "@/lib/supabase/server";
+import type { Database } from "@vilo/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Aggregates first-party website traffic (Phase 0A) for the Overview dashboard.
 // Reads `website_analytics_events` (cookieless pageview/booking_click rows) over
@@ -12,9 +12,7 @@ import type { createServerClient } from "@/lib/supabase/server";
 // one pageview, so we cannot measure dwell time without lying. We surface
 // `pagesPerVisit` (a real metric) instead.
 
-type Db =
-  | ReturnType<typeof createAdminClient>
-  | ReturnType<typeof createServerClient>;
+type Db = SupabaseClient<Database>;
 
 export type AnalyticsRange = "7d" | "30d" | "90d";
 

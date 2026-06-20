@@ -1,3 +1,5 @@
+import type { Json } from "@vilo/types";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type DigestRunResult = {
@@ -180,7 +182,7 @@ export async function runDigestDrain(): Promise<DigestRunResult> {
             recipient_first_name: firstName(profile.full_name),
             cadence,
             groups,
-          } as Record<string, unknown>,
+          } as Json,
         });
       }
 

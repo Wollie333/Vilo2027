@@ -1,5 +1,8 @@
 import "server-only";
 
+import type { Database } from "@vilo/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { pageHref } from "@/lib/site/loadSitePage";
 import type {
   PropertyOverride,
@@ -7,14 +10,11 @@ import type {
   SiteNavItem,
   SnapshotRoom,
 } from "@/lib/site/types";
-import type { createAdminClient } from "@/lib/supabase/admin";
-import type { createServerClient } from "@/lib/supabase/server";
 
 // Works with either the owner-scoped server client (publish action / dirty check
-// run by the host) or the service-role admin client.
-type Db =
-  | ReturnType<typeof createAdminClient>
-  | ReturnType<typeof createServerClient>;
+// run by the host) or the service-role admin client. Typed against the schema so
+// `.from()` reads are checked; the still-untyped server client stays assignable.
+type Db = SupabaseClient<Database>;
 
 /**
  * Deterministic JSON with recursively sorted object keys. Needed because Postgres

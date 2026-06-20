@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@vilo/types";
 
 /**
  * Service-role Supabase client. Bypasses RLS. **Server-side only.**
@@ -11,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
  * enforces ownership. Reach for this only when RLS can't model the operation
  * (e.g. guest-initiated booking inserts where the guest isn't the host).
  */
-export function createAdminClient() {
+export function createAdminClient(): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) {
@@ -19,7 +20,7 @@ export function createAdminClient() {
       "createAdminClient: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set.",
     );
   }
-  return createClient(url, serviceKey, {
+  return createClient<Database>(url, serviceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

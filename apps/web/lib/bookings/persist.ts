@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { Database } from "@vilo/types";
+
 import type { PricingModel } from "@/app/[locale]/dashboard/addons/schemas";
 import {
   startBookingPayment,
@@ -21,6 +23,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // ─────────────────────────────────────────────────────────────────────────
 
 type Admin = ReturnType<typeof createAdminClient>;
+
+/**
+ * The bookings insert payload. `reference` is omitted: a BEFORE INSERT trigger
+ * (`trigger_gen_booking_reference`) generates it, so callers never supply it.
+ */
+type BookingInsert = Omit<
+  Database["public"]["Tables"]["bookings"]["Insert"],
+  "reference"
+>;
 
 export type BookingRoomRow = {
   room_id: string;
@@ -67,7 +78,7 @@ export type PersistBookingInput = {
    * The full bookings insert payload. The caller owns every column (incl.
    * special_id / origin / booked_via / coupon_id) — persist only fills nothing.
    */
-  bookingInsert: Record<string, unknown>;
+  bookingInsert: BookingInsert;
   redeem?: RedeemStep;
   bookingRooms?: BookingRoomRow[];
   addons?: BookingAddonRow[];
@@ -96,7 +107,10 @@ export async function persistBookingAndPay(
   // 1. Insert the booking row.
   const { data: booking, error: bookingErr } = await admin
     .from("bookings")
-    .insert(input.bookingInsert)
+    // reference is trigger-filled (see BookingInsert) — re-add it for the typed insert.
+    .insert(
+      input.bookingInsert as Database["public"]["Tables"]["bookings"]["Insert"],
+    )
     .select("id, reference")
     .single();
   if (bookingErr || !booking) {

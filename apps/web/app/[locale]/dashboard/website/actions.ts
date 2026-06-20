@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@vilo/types";
 
 import { requireHost } from "@/lib/host/current";
 import { hostHasFeature } from "@/lib/products/featureGate";
@@ -291,9 +291,8 @@ export async function applyThemeAction(
     }
   }
 
-  // Owner-checked above; use the admin client for the replace (untyped: the new
-  // theme_id/base columns aren't in the generated types in this lane).
-  const admin = createAdminClient() as unknown as SupabaseClient;
+  // Owner-checked above; use the admin client for the replace.
+  const admin = createAdminClient();
 
   await admin.from("website_pages").delete().eq("website_id", websiteId);
   const { error: pagesErr } = await admin.from("website_pages").insert(
@@ -305,7 +304,7 @@ export async function applyThemeAction(
       nav_label: tpl.nav_label,
       nav_order: tpl.nav_order,
       show_in_nav: tpl.show_in_nav,
-      draft_sections: tpl.sections,
+      draft_sections: tpl.sections as Json,
       published_sections: [],
     })),
   );
@@ -313,7 +312,7 @@ export async function applyThemeAction(
 
   const { error: themeErr } = await admin
     .from("host_websites")
-    .update({ theme: { preset: slug, base } })
+    .update({ theme: { preset: slug, base } as Json })
     .eq("id", websiteId);
   if (themeErr) return { ok: false, error: "apply_failed" };
 
@@ -1823,7 +1822,7 @@ export async function removeCustomDomainAction(
       domain_status: "none",
       ssl_status: "none",
       verification_token: null,
-      settings,
+      settings: settings as Json,
     })
     .eq("id", websiteId);
   if (error) return { ok: false, error: "save_failed" };

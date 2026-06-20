@@ -1,8 +1,9 @@
 import "server-only";
 
+import type { Database, Json } from "@vilo/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { sendTransactionalEmail } from "@/lib/email/send";
-import type { createAdminClient } from "@/lib/supabase/admin";
-import type { createServerClient } from "@/lib/supabase/server";
 import {
   getDomainConfig,
   vercelConfigured,
@@ -15,9 +16,7 @@ import {
 // Talks to Vercel, derives the domain/SSL status, persists it, and appends an
 // INSERT-only `website_domain_events` row on each meaningful transition.
 
-type Db =
-  | ReturnType<typeof createAdminClient>
-  | ReturnType<typeof createServerClient>;
+type Db = SupabaseClient<Database>;
 
 export type DomainStatus =
   | "none"
@@ -207,5 +206,5 @@ async function appendEvent(
 ): Promise<void> {
   await sb
     .from("website_domain_events")
-    .insert({ website_id: websiteId, event, detail });
+    .insert({ website_id: websiteId, event, detail: detail as Json });
 }

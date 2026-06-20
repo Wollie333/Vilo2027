@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-20 — Type the admin Supabase client (`SupabaseClient<Database>`)
+
+Makes `createAdminClient()` schema-aware and removes the casts that hid the
+untyped client. Type-only — no runtime behaviour change, no migration.
+
+### Changed
+- **`createAdminClient()`** now returns `SupabaseClient<Database>`
+  (`createClient<Database>(...)`), so every `.from("table")` / `.rpc()` call on
+  the admin client is type-checked against the generated DB types. Added
+  `@vilo/types` as a workspace dependency of `apps/web`.
+- **Removed `as unknown as SupabaseClient` casts** in `lib/website/restorePoints.ts`,
+  `lib/site/themes.server.ts`, and `app/[locale]/dashboard/website/actions.ts`
+  (`applyThemeAction`), plus the manual result-shape `as { … }` casts the proper
+  typing made unnecessary.
+- **`lib/website/{publish,analytics,domain-poll}.ts`** — the `Db` helper type is
+  now `SupabaseClient<Database>` (was a union with the untyped server client),
+  fixing the union "not callable" `.from()` errors. The still-untyped server
+  client stays assignable.
+- **Fixed the real type mismatches surfaced app-wide** (notifications, payments
+  ledger, finance audit/transactions, bookings persist/cancel, quotes
+  accept-convert, host signup, admin affiliates/payments, website actions): JSON
+  columns typed via `Json`, trigger-filled columns (`bookings.reference`,
+  `hosts.handle`, `properties.business_id`) handled with `Omit<…Insert, col>` +
+  a single boundary cast, and RPC args (`p_reason`/`p_reference`/`p_body`/
+  `p_link`) passed as `string | undefined` (SQL `DEFAULT NULL`, runtime-equiv).
+
+### Notes
+- The server/browser Supabase clients remain untyped (out of scope); only the
+  admin client and the website `Db` helper were typed this session.
+- `pnpm lint` + `pnpm test` green; `tsc --noEmit` clean. `pnpm build` compiles
+  and type-checks (`✓ Compiled successfully`); prerender needs Supabase env vars
+  not present in this container (pre-existing, unrelated to these changes).
+
 ## 2026-06-19 — Deals (public Specials) · listing-style detail + "Deals" rename
 
 Makes the public deal page browse like the rest of the site and splits the

@@ -32,7 +32,7 @@ type Asset = {
   id: string;
   title: string;
   category: string;
-  fileUrl: string;
+  fileUrl: string | null;
   mimeType: string | null;
   isActive: boolean;
 };
@@ -295,7 +295,7 @@ export function AffiliateSettingsClient({
                   {(a.mimeType ?? "").startsWith("image/") ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={a.fileUrl}
+                      src={a.fileUrl ?? undefined}
                       alt={a.title}
                       className="h-full w-full object-contain"
                     />
