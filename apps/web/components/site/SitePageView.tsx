@@ -1,10 +1,13 @@
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
+import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
 import { websiteAssetUrl } from "@/lib/website/assets";
 
+import { JsonLd } from "./JsonLd";
 import { SectionRenderer } from "./SectionRenderer";
 import { SiteChrome } from "./SiteChrome";
 import { SiteThemeRoot } from "./SiteThemeRoot";
@@ -47,26 +50,48 @@ export async function SitePageView({
     ? { subdomain: ctx.subdomain, themeSlug: ctx.previewThemeSlug }
     : undefined;
 
+  // Structured data (schema.org) — public render only; never advertise preview.
+  let jsonLdGraph: Record<string, unknown>[] = [];
+  if (!ctx.preview) {
+    const h = await headers();
+    const host = h.get("x-vilo-site-host") || h.get("host") || "";
+    if (host) {
+      const scheme =
+        host.startsWith("localhost") || host.startsWith("127.")
+          ? "http"
+          : "https";
+      jsonLdGraph = buildSiteJsonLd({
+        ctx,
+        result,
+        pathSlug,
+        origin: `${scheme}://${host}`,
+      });
+    }
+  }
+
   return (
-    <SiteThemeRoot theme={ctx.theme}>
-      <SiteChrome
-        brand={ctx.brand}
-        nav={ctx.nav}
-        navigation={ctx.navigation}
-        darkChrome={siteSurfaceIsDark(ctx.theme)}
-        analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
-        header={ctx.theme.header}
-        footer={ctx.theme.footer}
-        preview={previewContext}
-      >
-        <SectionRenderer
-          sections={result.sections}
-          data={result.data}
-          asset={siteAsset}
-          websiteId={ctx.websiteId}
-          interactive={!ctx.preview}
-        />
-      </SiteChrome>
-    </SiteThemeRoot>
+    <>
+      <JsonLd graph={jsonLdGraph} />
+      <SiteThemeRoot theme={ctx.theme}>
+        <SiteChrome
+          brand={ctx.brand}
+          nav={ctx.nav}
+          navigation={ctx.navigation}
+          darkChrome={siteSurfaceIsDark(ctx.theme)}
+          analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+          header={ctx.theme.header}
+          footer={ctx.theme.footer}
+          preview={previewContext}
+        >
+          <SectionRenderer
+            sections={result.sections}
+            data={result.data}
+            asset={siteAsset}
+            websiteId={ctx.websiteId}
+            interactive={!ctx.preview}
+          />
+        </SiteChrome>
+      </SiteThemeRoot>
+    </>
   );
 }

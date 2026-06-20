@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { JsonLd } from "@/components/site/JsonLd";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { siteAsset } from "@/components/site/SitePageView";
@@ -12,6 +13,7 @@ import {
   resolveSiteRef,
 } from "@/lib/site/loadSitePage";
 import { siteMetadata } from "@/lib/site/metadata";
+import { buildBlogPostJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 
 export const dynamic = "force-dynamic";
@@ -62,148 +64,177 @@ export default async function SiteBlogPostPage({
 
   const cover = siteAsset(post.coverUrl);
 
+  // Structured data (BlogPosting) — public render only.
+  let jsonLdGraph: Record<string, unknown>[] = [];
+  if (!ctx.preview) {
+    const host = h.get("x-vilo-site-host") || h.get("host") || "";
+    if (host) {
+      const scheme =
+        host.startsWith("localhost") || host.startsWith("127.")
+          ? "http"
+          : "https";
+      jsonLdGraph = buildBlogPostJsonLd({
+        ctx,
+        post: {
+          title: post.title,
+          date: post.date,
+          authorName: post.authorName,
+          coverUrl: cover ?? null,
+          excerpt: post.excerpt,
+        },
+        postSlug,
+        origin: `${scheme}://${host}`,
+      });
+    }
+  }
+
   return (
-    <SiteThemeRoot theme={ctx.theme}>
-      <SiteChrome
-        brand={ctx.brand}
-        nav={ctx.nav}
-        darkChrome={siteSurfaceIsDark(ctx.theme)}
-        analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
-        header={ctx.theme.header}
-        footer={ctx.theme.footer}
-      >
-        <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
-          <a
-            href="/"
-            style={{ color: "var(--site-accent)" }}
-            className="text-sm font-medium hover:opacity-80"
-          >
-            ← {ctx.brand.name}
-          </a>
-          <h1
-            style={{
-              fontFamily: "var(--site-font-heading)",
-              color: "var(--site-ink)",
-            }}
-            className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl"
-          >
-            {post.title}
-          </h1>
-          <div
-            style={{ color: "var(--site-mute)" }}
-            className="mt-2 flex items-center gap-2 text-sm"
-          >
-            {post.authorName ? <span>{post.authorName}</span> : null}
-            {post.authorName && post.date ? <span>·</span> : null}
-            {post.date ? <span>{post.date}</span> : null}
-          </div>
-          {cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={cover}
-              alt={post.title}
-              style={{ borderRadius: "var(--site-radius)" }}
-              className="mt-6 aspect-[16/9] w-full object-cover"
-            />
-          ) : null}
-          <div
-            style={{ color: "var(--site-ink)" }}
-            className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:rounded [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
-            // body_html is sanitised in loadSiteBlogPost
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
-          />
-
-          {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
-            <div
-              style={{
-                borderColor: "var(--site-line)",
-                background: "var(--site-surface)",
-                borderRadius: "var(--site-radius)",
-              }}
-              className="mt-12 flex items-start gap-4 border p-5"
+    <>
+      <JsonLd graph={jsonLdGraph} />
+      <SiteThemeRoot theme={ctx.theme}>
+        <SiteChrome
+          brand={ctx.brand}
+          nav={ctx.nav}
+          darkChrome={siteSurfaceIsDark(ctx.theme)}
+          analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
+          header={ctx.theme.header}
+          footer={ctx.theme.footer}
+        >
+          <article className="mx-auto w-full max-w-2xl px-5 py-16 md:py-20">
+            <a
+              href="/"
+              style={{ color: "var(--site-accent)" }}
+              className="text-sm font-medium hover:opacity-80"
             >
-              {post.authorAvatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={post.authorAvatarUrl}
-                  alt={post.authorName}
-                  className="h-14 w-14 shrink-0 rounded-full object-cover"
-                />
-              ) : null}
-              <div>
-                <p
-                  style={{ color: "var(--site-ink)" }}
-                  className="font-semibold"
-                >
-                  {post.authorName}
-                </p>
-                {post.authorBio ? (
-                  <p
-                    style={{ color: "var(--site-mute)" }}
-                    className="mt-1 text-sm leading-relaxed"
-                  >
-                    {post.authorBio}
-                  </p>
-                ) : null}
-              </div>
+              ← {ctx.brand.name}
+            </a>
+            <h1
+              style={{
+                fontFamily: "var(--site-font-heading)",
+                color: "var(--site-ink)",
+              }}
+              className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl"
+            >
+              {post.title}
+            </h1>
+            <div
+              style={{ color: "var(--site-mute)" }}
+              className="mt-2 flex items-center gap-2 text-sm"
+            >
+              {post.authorName ? <span>{post.authorName}</span> : null}
+              {post.authorName && post.date ? <span>·</span> : null}
+              {post.date ? <span>{post.date}</span> : null}
             </div>
-          ) : null}
+            {cover ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cover}
+                alt={post.title}
+                style={{ borderRadius: "var(--site-radius)" }}
+                className="mt-6 aspect-[16/9] w-full object-cover"
+              />
+            ) : null}
+            <div
+              style={{ color: "var(--site-ink)" }}
+              className="site-prose mt-8 space-y-4 text-base leading-relaxed [&_a]:underline [&_h2]:mt-6 [&_h2]:text-2xl [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:text-xl [&_h3]:font-semibold [&_img]:my-4 [&_img]:rounded [&_li]:ml-5 [&_li]:list-disc [&_strong]:font-semibold"
+              // body_html is sanitised in loadSiteBlogPost
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
+            />
 
-          {relatedPosts.length > 0 ? (
-            <div className="mt-16">
-              <h2
+            {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
+              <div
                 style={{
-                  fontFamily: "var(--site-font-heading)",
-                  color: "var(--site-ink)",
+                  borderColor: "var(--site-line)",
+                  background: "var(--site-surface)",
+                  borderRadius: "var(--site-radius)",
                 }}
-                className="text-xl font-semibold"
+                className="mt-12 flex items-start gap-4 border p-5"
               >
-                Related posts
-              </h2>
-              <div className="mt-6 grid gap-4 sm:grid-cols-3">
-                {relatedPosts.map((related) => (
-                  <a
-                    key={related.slug}
-                    href={`/blog/${related.slug}`}
-                    className="group block"
+                {post.authorAvatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={post.authorAvatarUrl}
+                    alt={post.authorName}
+                    className="h-14 w-14 shrink-0 rounded-full object-cover"
+                  />
+                ) : null}
+                <div>
+                  <p
+                    style={{ color: "var(--site-ink)" }}
+                    className="font-semibold"
                   >
-                    <article
-                      style={{
-                        background: "var(--site-surface)",
-                        borderColor: "var(--site-line)",
-                        borderRadius: "var(--site-radius)",
-                      }}
-                      className="flex h-full flex-col overflow-hidden border"
+                    {post.authorName}
+                  </p>
+                  {post.authorBio ? (
+                    <p
+                      style={{ color: "var(--site-mute)" }}
+                      className="mt-1 text-sm leading-relaxed"
                     >
-                      {related.coverUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={siteAsset(related.coverUrl) ?? related.coverUrl}
-                          alt={related.title}
-                          loading="lazy"
-                          className="aspect-[16/9] w-full object-cover"
-                        />
-                      ) : null}
-                      <div className="p-4">
-                        <h3
-                          style={{
-                            fontFamily: "var(--site-font-heading)",
-                            color: "var(--site-ink)",
-                          }}
-                          className="line-clamp-2 text-sm font-semibold transition-opacity group-hover:opacity-80"
-                        >
-                          {related.title}
-                        </h3>
-                      </div>
-                    </article>
-                  </a>
-                ))}
+                      {post.authorBio}
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          ) : null}
-        </article>
-      </SiteChrome>
-    </SiteThemeRoot>
+            ) : null}
+
+            {relatedPosts.length > 0 ? (
+              <div className="mt-16">
+                <h2
+                  style={{
+                    fontFamily: "var(--site-font-heading)",
+                    color: "var(--site-ink)",
+                  }}
+                  className="text-xl font-semibold"
+                >
+                  Related posts
+                </h2>
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                  {relatedPosts.map((related) => (
+                    <a
+                      key={related.slug}
+                      href={`/blog/${related.slug}`}
+                      className="group block"
+                    >
+                      <article
+                        style={{
+                          background: "var(--site-surface)",
+                          borderColor: "var(--site-line)",
+                          borderRadius: "var(--site-radius)",
+                        }}
+                        className="flex h-full flex-col overflow-hidden border"
+                      >
+                        {related.coverUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={
+                              siteAsset(related.coverUrl) ?? related.coverUrl
+                            }
+                            alt={related.title}
+                            loading="lazy"
+                            className="aspect-[16/9] w-full object-cover"
+                          />
+                        ) : null}
+                        <div className="p-4">
+                          <h3
+                            style={{
+                              fontFamily: "var(--site-font-heading)",
+                              color: "var(--site-ink)",
+                            }}
+                            className="line-clamp-2 text-sm font-semibold transition-opacity group-hover:opacity-80"
+                          >
+                            {related.title}
+                          </h3>
+                        </div>
+                      </article>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </article>
+        </SiteChrome>
+      </SiteThemeRoot>
+    </>
   );
 }
