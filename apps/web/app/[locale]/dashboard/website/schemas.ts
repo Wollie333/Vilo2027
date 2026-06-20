@@ -654,4 +654,15 @@ export const deleteWebsiteFormSchema = z.object({
 });
 export type DeleteWebsiteFormInput = z.infer<typeof deleteWebsiteFormSchema>;
 
+export const SUBMISSION_STATUSES = ["new", "read", "archived", "spam"] as const;
+
+export const setSubmissionStatusSchema = z.object({
+  websiteId: z.string().uuid(),
+  submissionId: z.string().uuid(),
+  status: z.enum(SUBMISSION_STATUSES),
+});
+export type SetSubmissionStatusInput = z.infer<
+  typeof setSubmissionStatusSchema
+>;
+
 export type SavePageSeoInput = z.infer<typeof savePageSeoSchema>;

@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 4 form builder — slice 4 (responses view)
+
+### Added
+- **Responses view** `[websiteId]/forms/responses` — a host-facing list of every
+  form submission. Filter by form + by status (Active / Archived / All), expand a
+  row to read the full field→value detail, and manage status (mark read, archive,
+  restore). New submissions are bold with a dot and auto-marked read on open;
+  email-bearing submissions link straight to their inbox conversation.
+- **CSV export** — per-form, client-side: columns are the form's field labels +
+  submitted-at + status (proper quoting). Disabled until a single form is chosen.
+- **`setSubmissionStatusAction`** (owner-scoped) + `loadFormResponses` loader; a
+  "Responses" link on the Forms tab header and a per-form "View N responses" link
+  in the builder footer. +24 `website` i18n keys (en). No DB schema change.
+
 ## 2026-06-20 — Website CMS: Phase 4 form builder — slice 3 (newsletter → CRM)
 
 ### Added

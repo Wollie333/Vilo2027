@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
@@ -416,14 +417,23 @@ export function FormsManager({
 
           {/* Footer actions */}
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => handleDelete(selected.id)}
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-mute transition-colors hover:text-red-600"
-            >
-              <Trash2 className="h-4 w-4" />
-              {t("formsDelete")}
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => handleDelete(selected.id)}
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-mute transition-colors hover:text-red-600"
+              >
+                <Trash2 className="h-4 w-4" />
+                {t("formsDelete")}
+              </button>
+              <Link
+                href={`/dashboard/website/${websiteId}/forms/responses?form=${selected.id}`}
+                className="inline-flex items-center gap-1.5 text-[13px] font-medium text-brand-mute transition-colors hover:text-brand-ink"
+              >
+                <Inbox className="h-4 w-4" />
+                {t("formsViewResponses", { count: selected.submissionCount })}
+              </Link>
+            </div>
             <button
               type="button"
               onClick={handleSave}

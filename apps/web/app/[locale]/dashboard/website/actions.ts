@@ -63,6 +63,7 @@ import {
   createWebsiteFormSchema,
   saveWebsiteFormSchema,
   deleteWebsiteFormSchema,
+  setSubmissionStatusSchema,
   seoSchema,
   websiteSettingsSchema,
   type ApplyThemeInput,
@@ -88,6 +89,7 @@ import {
   type CreateWebsiteFormInput,
   type SaveWebsiteFormInput,
   type DeleteWebsiteFormInput,
+  type SetSubmissionStatusInput,
   type SeoInput,
   type WebsiteSettingsInput,
 } from "./schemas";
@@ -2397,6 +2399,29 @@ export async function listWebsiteFormsAction(
       type: f.type as FormType,
     })),
   };
+}
+
+/** Update a submission's status (read / archived / restored-to-new / spam). */
+export async function setSubmissionStatusAction(
+  input: SetSubmissionStatusInput,
+): Promise<ActionResult> {
+  const parsed = setSubmissionStatusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, submissionId, status } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("website_form_submissions")
+    .update({ status })
+    .eq("id", submissionId)
+    .eq("website_id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}/forms/responses`);
+  return { ok: true };
 }
 
 export async function deleteWebsiteFormAction(
