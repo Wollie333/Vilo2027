@@ -18,12 +18,52 @@ import {
 type Layout = "grid" | "list" | "carousel";
 
 /**
+ * Per-section editor: the type-specific fields (SectionFields) plus the shared
+ * appearance control (colour-scheme "tone" — applies to every section type; the
+ * layout "variant" lives in the per-type fields). `onChange` replaces the whole
+ * (typed) section in the builder state.
+ */
+export function SectionEditor({
+  websiteId,
+  section,
+  onChange,
+}: {
+  websiteId: string;
+  section: WebsiteSection;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <div className="space-y-5">
+      <SectionFields
+        websiteId={websiteId}
+        section={section}
+        onChange={onChange}
+      />
+      <div className="border-t border-brand-line pt-4">
+        <SelectField
+          label={t("fldTone")}
+          value={section.tone}
+          options={[
+            { value: "default", label: t("tone_default") },
+            { value: "accent", label: t("tone_accent") },
+            { value: "dark", label: t("tone_dark") },
+            { value: "muted", label: t("tone_muted") },
+          ]}
+          onChange={(tone) => onChange({ ...section, tone })}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Per-type property form for one section (W8). Switches on the discriminated
  * union so each branch edits a fully-typed `props`. Free-form sections edit their
  * own content; auto-populate sections edit only config + show a "pulls live data"
- * note. `onChange` replaces the whole (typed) section in the builder state.
+ * note.
  */
-export function SectionEditor({
+function SectionFields({
   websiteId,
   section,
   onChange,
@@ -91,6 +131,16 @@ export function SectionEditor({
             ]}
             onChange={(v) => set({ align: v })}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "classic", label: t("heroVariant_classic") },
+              { value: "split", label: t("heroVariant_split") },
+              { value: "minimal", label: t("heroVariant_minimal") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
         </div>
       );
     }
@@ -113,6 +163,16 @@ export function SectionEditor({
             onChange={(v) => set({ body: v })}
             maxLength={4000}
             rows={5}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "centered", label: t("introVariant_centered") },
+              { value: "split", label: t("introVariant_split") },
+              { value: "lead", label: t("introVariant_lead") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
         </div>
       );
@@ -438,6 +498,16 @@ export function SectionEditor({
               hint={t("fldCtaHrefHint")}
             />
           </div>
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "banner", label: t("ctaVariant_banner") },
+              { value: "card", label: t("ctaVariant_card") },
+              { value: "split", label: t("ctaVariant_split") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
         </div>
       );
     }

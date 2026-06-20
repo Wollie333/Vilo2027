@@ -55,6 +55,16 @@ export function isAutoPopulate(type: SectionType): boolean {
   return AUTO_POPULATE_SECTIONS.has(type);
 }
 
+// ── Per-section presentation (Phase 1) ────────────────────────
+// `tone` is shared across every section (one-tap colour scheme); `variant` is
+// per-type (each section declares the layout options that make sense for it).
+export const SECTION_TONES = ["default", "accent", "dark", "muted"] as const;
+export type SectionTone = (typeof SECTION_TONES)[number];
+
+export const HERO_VARIANTS = ["classic", "split", "minimal"] as const;
+export const INTRO_VARIANTS = ["centered", "split", "lead"] as const;
+export const CTA_VARIANTS = ["banner", "card", "split"] as const;
+
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
 const gridLayout = z.enum(["grid", "list", "carousel"]).optional();
@@ -67,11 +77,13 @@ const heroProps = z.object({
   cta_label: z.string().max(60).optional(),
   cta_href: z.string().max(500).optional(),
   align: z.enum(["left", "center"]).default("center"),
+  variant: z.enum(HERO_VARIANTS).default("classic"),
 });
 
 const introProps = z.object({
   heading,
   body: z.string().max(4000),
+  variant: z.enum(INTRO_VARIANTS).default("centered"),
 });
 
 const highlightsProps = z.object({
@@ -150,6 +162,7 @@ const ctaProps = z.object({
   body: z.string().max(600).optional(),
   button_label: z.string().max(60),
   button_href: z.string().max(500),
+  variant: z.enum(CTA_VARIANTS).default("banner"),
 });
 
 const hostBioProps = z.object({
@@ -223,6 +236,7 @@ const contactFormProps = z.object({
 const sectionBase = {
   id: z.string().uuid(),
   enabled: z.boolean().default(true),
+  tone: z.enum(SECTION_TONES).default("default"),
 };
 
 export const sectionSchema = z.discriminatedUnion("type", [

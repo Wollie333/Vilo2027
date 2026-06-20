@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
+import type { SectionTone } from "@/lib/website/sections.schema";
+
 // Shared presentational primitives for site sections. All colour/radius/font
 // come from the scoped `--site-*` CSS vars (set by <SiteThemeRoot>), never the
 // app's brand-* tokens, so each tenant site themes independently.
@@ -11,6 +13,47 @@ export const siteImageStyle: CSSProperties = {
   border: "var(--site-img-border)",
   boxShadow: "var(--site-img-shadow)",
 };
+
+/**
+ * Per-section colour scheme ("tone"). Returns a style that paints the band
+ * background and re-points the scoped `--site-*` text vars for the section
+ * subtree, so any section can be recoloured in one tap and stay on-brand.
+ * Returns undefined for "default" (inherit the page theme). `color-mix` and
+ * literal alpha keep it readable across any theme palette.
+ */
+export function sectionToneStyle(
+  tone?: SectionTone,
+): CSSProperties | undefined {
+  switch (tone) {
+    case "accent":
+      return {
+        background: "var(--site-accent)",
+        "--site-bg": "var(--site-accent)",
+        "--site-surface": "color-mix(in srgb, #fff 14%, var(--site-accent))",
+        "--site-ink": "var(--site-accent-ink)",
+        "--site-mute":
+          "color-mix(in srgb, var(--site-accent-ink) 70%, transparent)",
+        "--site-line":
+          "color-mix(in srgb, var(--site-accent-ink) 24%, transparent)",
+      } as CSSProperties;
+    case "dark":
+      return {
+        background: "var(--site-ink)",
+        "--site-bg": "var(--site-ink)",
+        "--site-surface": "rgba(255,255,255,0.08)",
+        "--site-ink": "#ffffff",
+        "--site-mute": "rgba(255,255,255,0.68)",
+        "--site-line": "rgba(255,255,255,0.18)",
+      } as CSSProperties;
+    case "muted":
+      return {
+        background: "color-mix(in srgb, var(--site-ink) 5%, var(--site-bg))",
+        "--site-surface": "var(--site-bg)",
+      } as CSSProperties;
+    default:
+      return undefined;
+  }
+}
 
 export function SectionShell({
   children,

@@ -1,9 +1,16 @@
-import type { WebsiteSection } from "@/lib/website/sections.schema";
+import type { ReactNode } from "react";
+
+import type {
+  SectionTone,
+  WebsiteSection,
+} from "@/lib/website/sections.schema";
 import {
   dataFor,
   type SiteAssetResolver,
   type SiteData,
 } from "@/lib/site/types";
+
+import { sectionToneStyle } from "./sections/_shared";
 
 import { HeroSection } from "./sections/HeroSection";
 import { IntroSection } from "./sections/IntroSection";
@@ -51,17 +58,30 @@ export function SectionRenderer({
       {sections
         .filter((s) => s.enabled)
         .map((section) => (
-          <SectionSwitch
-            key={section.id}
-            section={section}
-            data={data}
-            asset={asset}
-            websiteId={websiteId}
-            interactive={interactive}
-          />
+          <ToneWrap key={section.id} tone={section.tone}>
+            <SectionSwitch
+              section={section}
+              data={data}
+              asset={asset}
+              websiteId={websiteId}
+              interactive={interactive}
+            />
+          </ToneWrap>
         ))}
     </>
   );
+}
+
+/** Wraps a section in its colour-scheme (tone). "default" renders no wrapper. */
+function ToneWrap({
+  tone,
+  children,
+}: {
+  tone?: SectionTone;
+  children: ReactNode;
+}) {
+  const style = sectionToneStyle(tone);
+  return style ? <div style={style}>{children}</div> : <>{children}</>;
 }
 
 function SectionSwitch({

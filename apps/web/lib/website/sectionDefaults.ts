@@ -18,10 +18,12 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           headline: "Your headline here",
           subheadline: "A short welcoming line beneath it.",
           align: "center",
+          variant: "classic",
         },
       };
     case "intro":
@@ -29,9 +31,11 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Welcome",
           body: "Tell guests what makes your place special.",
+          variant: "centered",
         },
       };
     case "highlights":
@@ -39,6 +43,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Why guests come back",
           items: [
@@ -59,6 +64,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "By the numbers",
           items: [
@@ -73,6 +79,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "As featured in", items: [] },
       };
     case "gallery":
@@ -80,6 +87,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "Gallery", layout: "grid", max: 12 },
       };
     case "map":
@@ -87,6 +95,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Find us",
           address: "",
@@ -99,6 +108,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "Rooms & rates", layout: "grid", max: 6 },
       };
     case "location":
@@ -106,6 +116,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "Where you'll be", show_map: true },
       };
     case "reviews":
@@ -113,6 +124,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "What guests say", max: 6 },
       };
     case "cta":
@@ -120,11 +132,13 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Ready to book?",
           body: "Reserve your dates directly — no booking fees.",
           button_label: "Check availability",
           button_href: "#rooms",
+          variant: "banner",
         },
       };
     case "host_bio":
@@ -132,6 +146,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Your host",
           name: "",
@@ -143,6 +158,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "How we host",
           items: [
@@ -159,6 +175,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "From the journal", max: 3 },
       };
     case "rich_text":
@@ -166,6 +183,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { html: "<p>Add your own text here.</p>" },
       };
     case "faq":
@@ -173,6 +191,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Good to know",
           items: [{ q: "Is there Wi-Fi?", a: "Yes — free, uncapped." }],
@@ -183,6 +202,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: {
           heading: "Get in touch",
           body: "Have a question? Send us a message and we'll reply soon.",
@@ -197,6 +217,7 @@ export function newSection(type: SectionType): WebsiteSection {
         id,
         type,
         enabled: true,
+        tone: "default",
         props: { heading: "Current specials", layout: "grid", max: 6 },
       };
     default: {
