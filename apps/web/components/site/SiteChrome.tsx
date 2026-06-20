@@ -22,6 +22,7 @@ import {
 } from "@/lib/site/themes";
 import type {
   SiteBrand,
+  SiteConversion,
   SiteFooterColumn,
   SiteMenuItem,
   SiteNavItem,
@@ -29,9 +30,11 @@ import type {
   SiteTopBar,
 } from "@/lib/site/types";
 
+import { AnnouncementBar } from "./AnnouncementBar";
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
 import { StickyHeader } from "./StickyHeader";
+import { WhatsAppButton } from "./WhatsAppButton";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -634,6 +637,7 @@ export function SiteChrome({
   footer = DEFAULT_FOOTER,
   preview,
   navigation = {},
+  conversion = {},
   children,
 }: {
   brand: SiteBrand;
@@ -647,6 +651,8 @@ export function SiteChrome({
   /** Preview mode context — shows banner and preserves params in nav links. */
   preview?: { subdomain: string; themeSlug?: string };
   navigation?: SiteNavigation;
+  /** Conversion chrome (WhatsApp button + announcement bar). */
+  conversion?: SiteConversion;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -681,6 +687,11 @@ export function SiteChrome({
           themeSlug={preview.themeSlug}
         />
       ) : null}
+
+      <AnnouncementBar
+        announcement={conversion.announcement}
+        preview={Boolean(preview)}
+      />
 
       {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
@@ -756,6 +767,8 @@ export function SiteChrome({
           </div>
         ) : null}
       </footer>
+
+      <WhatsAppButton whatsapp={conversion.whatsapp} />
     </div>
   );
 }

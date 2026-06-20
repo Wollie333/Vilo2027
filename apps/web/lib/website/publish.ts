@@ -4,6 +4,7 @@ import { pageHref } from "@/lib/site/loadSitePage";
 import type {
   PropertyOverride,
   PublishSnapshot,
+  SiteConversion,
   SiteNavItem,
   SiteNavigation,
   SnapshotRoom,
@@ -80,7 +81,7 @@ export async function buildWebsiteSnapshot(
     await Promise.all([
       sb
         .from("host_websites")
-        .select("brand, theme, seo, navigation")
+        .select("brand, theme, seo, navigation, settings")
         .eq("id", websiteId)
         .maybeSingle(),
       sb
@@ -123,6 +124,10 @@ export async function buildWebsiteSnapshot(
     }
   }
 
+  const settings = ((site as { settings?: unknown })?.settings ?? {}) as {
+    conversion?: SiteConversion;
+  };
+
   return {
     brand: (site?.brand ?? {}) as Record<string, unknown>,
     theme: (site?.theme ?? {}) as Record<string, unknown>,
@@ -130,6 +135,7 @@ export async function buildWebsiteSnapshot(
     nav,
     navigation: ((site as { navigation?: unknown })?.navigation ??
       {}) as SiteNavigation,
+    conversion: (settings.conversion ?? {}) as SiteConversion,
     propertyIds: (props ?? []).map((p) => p.property_id),
     rooms: normaliseRooms(rooms),
     propertyOverrides,

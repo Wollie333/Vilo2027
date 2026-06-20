@@ -9,20 +9,33 @@ import { useTranslations } from "next-intl";
 
 import { saveWebsiteSettingsAction } from "@/app/[locale]/dashboard/website/actions";
 
-import { TextField, ToggleField } from "../pages/[pageId]/_components/fields";
+import {
+  TextArea,
+  TextField,
+  ToggleField,
+} from "../pages/[pageId]/_components/fields";
 
 type SettingsState = {
   enquiryEmailEnabled: boolean;
   enquiryEmailTo: string;
+  whatsappEnabled: boolean;
+  whatsappNumber: string;
+  whatsappMessage: string;
+  announcementEnabled: boolean;
+  announcementText: string;
+  announcementLinkLabel: string;
+  announcementLinkHref: string;
 };
 
 export function SettingsForm({
   websiteId,
   defaultEmail,
+  defaultPhone,
   initial,
 }: {
   websiteId: string;
   defaultEmail: string;
+  defaultPhone: string;
   initial: SettingsState;
 }) {
   const t = useTranslations("website");
@@ -42,11 +55,23 @@ export function SettingsForm({
       state.enquiryEmailEnabled && !state.enquiryEmailTo.trim()
         ? defaultEmail.trim()
         : state.enquiryEmailTo.trim();
+    // Likewise, seed the WhatsApp number from the brand contact phone.
+    const whatsappNumber =
+      state.whatsappEnabled && !state.whatsappNumber.trim()
+        ? defaultPhone.trim()
+        : state.whatsappNumber.trim();
     startSave(async () => {
       const res = await saveWebsiteSettingsAction({
         websiteId,
         enquiryEmailEnabled: state.enquiryEmailEnabled,
         enquiryEmailTo: emailTo,
+        whatsappEnabled: state.whatsappEnabled,
+        whatsappNumber,
+        whatsappMessage: state.whatsappMessage.trim(),
+        announcementEnabled: state.announcementEnabled,
+        announcementText: state.announcementText.trim(),
+        announcementLinkLabel: state.announcementLinkLabel.trim(),
+        announcementLinkHref: state.announcementLinkHref.trim(),
       });
       if (!res.ok) {
         toast.error(
@@ -86,6 +111,93 @@ export function SettingsForm({
             maxLength={160}
             hint={t("settingsEmailHint")}
           />
+        ) : null}
+      </section>
+
+      {/* WhatsApp click-to-chat (Phase 6A slice 2) */}
+      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
+        <div>
+          <h3 className="text-sm font-semibold text-brand-ink">
+            {t("settingsWhatsappTitle")}
+          </h3>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            {t("settingsWhatsappDesc")}
+          </p>
+        </div>
+
+        <ToggleField
+          label={t("settingsWhatsappToggle")}
+          checked={state.whatsappEnabled}
+          onChange={(v) => set("whatsappEnabled", v)}
+        />
+
+        {state.whatsappEnabled ? (
+          <>
+            <TextField
+              label={t("settingsWhatsappNumber")}
+              value={state.whatsappNumber}
+              onChange={(v) => set("whatsappNumber", v)}
+              placeholder={defaultPhone || "+27 82 123 4567"}
+              maxLength={32}
+              hint={t("settingsWhatsappNumberHint")}
+            />
+            <TextArea
+              label={t("settingsWhatsappMessage")}
+              value={state.whatsappMessage}
+              onChange={(v) => set("whatsappMessage", v)}
+              placeholder={t("settingsWhatsappMessagePlaceholder")}
+              maxLength={300}
+              rows={2}
+              hint={t("settingsWhatsappMessageHint")}
+            />
+          </>
+        ) : null}
+      </section>
+
+      {/* Announcement bar (Phase 6A slice 2) */}
+      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
+        <div>
+          <h3 className="text-sm font-semibold text-brand-ink">
+            {t("settingsAnnouncementTitle")}
+          </h3>
+          <p className="mt-1 text-[13px] text-brand-mute">
+            {t("settingsAnnouncementDesc")}
+          </p>
+        </div>
+
+        <ToggleField
+          label={t("settingsAnnouncementToggle")}
+          checked={state.announcementEnabled}
+          onChange={(v) => set("announcementEnabled", v)}
+        />
+
+        {state.announcementEnabled ? (
+          <>
+            <TextField
+              label={t("settingsAnnouncementText")}
+              value={state.announcementText}
+              onChange={(v) => set("announcementText", v)}
+              placeholder={t("settingsAnnouncementTextPlaceholder")}
+              maxLength={200}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label={t("settingsAnnouncementLinkLabel")}
+                value={state.announcementLinkLabel}
+                onChange={(v) => set("announcementLinkLabel", v)}
+                placeholder={t("settingsAnnouncementLinkLabelPlaceholder")}
+                maxLength={60}
+              />
+              <TextField
+                label={t("settingsAnnouncementLinkHref")}
+                value={state.announcementLinkHref}
+                onChange={(v) => set("announcementLinkHref", v)}
+                placeholder="/contact"
+                maxLength={300}
+                hint={t("settingsAnnouncementLinkHrefHint")}
+              />
+            </div>
+          </>
         ) : null}
       </section>
 

@@ -485,6 +485,15 @@ export const websiteSettingsSchema = z.object({
     .email("invalid_email")
     .or(z.literal(""))
     .default(""),
+  // Conversion chrome (Phase 6A slice 2): floating WhatsApp button + a
+  // dismissible announcement bar. Stored under `settings.conversion`.
+  whatsappEnabled: z.boolean().default(false),
+  whatsappNumber: z.string().trim().max(32).default(""),
+  whatsappMessage: z.string().trim().max(300).default(""),
+  announcementEnabled: z.boolean().default(false),
+  announcementText: z.string().trim().max(200).default(""),
+  announcementLinkLabel: z.string().trim().max(60).default(""),
+  announcementLinkHref: z.string().trim().max(300).default(""),
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;

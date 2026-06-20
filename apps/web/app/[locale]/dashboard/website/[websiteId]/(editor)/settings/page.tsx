@@ -19,6 +19,17 @@ export default async function WebsiteSettingsPage({
   if (!data) notFound();
 
   const enquiry = data.settings.enquiry ?? {};
+  const conversion = (data.settings.conversion ?? {}) as {
+    whatsapp?: { enabled?: boolean; number?: string; message?: string };
+    announcement?: {
+      enabled?: boolean;
+      text?: string;
+      linkLabel?: string;
+      linkHref?: string;
+    };
+  };
+  const wa = conversion.whatsapp ?? {};
+  const ann = conversion.announcement ?? {};
 
   return (
     <div className="max-w-2xl">
@@ -32,9 +43,17 @@ export default async function WebsiteSettingsPage({
       <SettingsForm
         websiteId={websiteId}
         defaultEmail={data.brand.contact?.email ?? ""}
+        defaultPhone={data.brand.contact?.phone ?? ""}
         initial={{
           enquiryEmailEnabled: enquiry.emailEnabled === true,
           enquiryEmailTo: enquiry.emailTo ?? "",
+          whatsappEnabled: wa.enabled === true,
+          whatsappNumber: wa.number ?? "",
+          whatsappMessage: wa.message ?? "",
+          announcementEnabled: ann.enabled === true,
+          announcementText: ann.text ?? "",
+          announcementLinkLabel: ann.linkLabel ?? "",
+          announcementLinkHref: ann.linkHref ?? "",
         }}
       />
     </div>

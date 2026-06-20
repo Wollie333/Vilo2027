@@ -87,6 +87,28 @@ export type SiteNavigation = {
   };
 };
 
+/**
+ * Site-wide conversion chrome (Phase 6A slice 2), stored under
+ * `host_websites.settings.conversion` and frozen into the publish snapshot. A
+ * floating WhatsApp click-to-chat button + a dismissible announcement bar.
+ */
+export type SiteConversion = {
+  whatsapp?: {
+    enabled?: boolean;
+    /** Number in international format (digits, may carry a leading +). */
+    number?: string | null;
+    /** Optional pre-filled message text. */
+    message?: string | null;
+  };
+  announcement?: {
+    enabled?: boolean;
+    text?: string | null;
+    /** Optional call-to-action link rendered after the text. */
+    linkLabel?: string | null;
+    linkHref?: string | null;
+  };
+};
+
 // ── Per-section live data (auto-populate sections only) ───────
 export type GalleryImage = { url: string; caption?: string | null };
 export type GalleryData = { images: GalleryImage[] };
@@ -240,11 +262,14 @@ export type PublishSnapshot = {
   nav: SiteNavItem[];
   /** Navigation config (top bar, header CTA/behaviour, footer extras). */
   navigation?: SiteNavigation;
+  /** Conversion chrome (WhatsApp button + announcement bar). */
+  conversion?: SiteConversion;
   propertyIds: string[];
   rooms: SnapshotRoom[];
   /** Per-property rooms-section overrides, keyed by property id. */
   propertyOverrides?: Record<string, PropertyOverride>;
 };
+// NOTE: keep `SiteContext.conversion` (loadSitePage) and this field in sync.
 
 export type SiteAssetResolver = (
   path: string | null | undefined,

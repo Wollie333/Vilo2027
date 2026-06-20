@@ -5,6 +5,39 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 6A slice 2: WhatsApp click-to-chat + announcement bar
+
+Conversion chrome over `host_websites.settings.conversion` jsonb (extends the
+Phase-5 Settings tab). Site-wide, frozen into the publish snapshot, injected in
+the public frame. NO DB migration, NO AI.
+
+### Added — conversion chrome
+- **Floating WhatsApp button** (`components/site/WhatsAppButton.tsx`) — a fixed
+  bottom-right `wa.me` click-to-chat link with an optional pre-filled message;
+  WhatsApp green, renders nothing unless enabled with a number.
+- **Dismissible announcement bar** (`components/site/AnnouncementBar.tsx`, client)
+  — slim themed strip above the header with optional CTA link; dismissal stored
+  in `localStorage` keyed by the message text (editing the text re-shows it);
+  always shows + never persists dismissal in builder preview.
+- **Settings tab UI** — two new cards (WhatsApp, Announcement) in `SettingsForm`
+  with enable toggles + fields; seeds the WhatsApp number from the brand contact
+  phone the first time it's turned on. +18 `website` en i18n keys.
+
+### Changed — plumbing
+- `websiteSettingsSchema` + `saveWebsiteSettingsAction` persist a `conversion`
+  block (whatsapp + announcement); announcement CTA href sanitised to http(s)/
+  internal only.
+- `SiteConversion` type added (`lib/site/types.ts`); `SiteContext.conversion`
+  resolved in `loadSiteContext` (snapshot → live `settings.conversion`); frozen
+  into `PublishSnapshot` via `buildWebsiteSnapshot` (so editing it marks the site
+  dirty for republish).
+- `SiteChrome` renders the announcement bar (above the top bar) + the WhatsApp
+  button; `conversion` threaded through `SitePageView` + both blog routes.
+
+tsc + lint green. Next: Phase 6A slice 3 (pop-ups w/ trigger rules + freq cap).
+
+---
+
 ## 2026-06-21 — Website CMS: theme + brand wiring — new-tab previews + "Aria" flagship default theme
 
 Founder ask: wire the Theme/Brand tabs so a host activates a theme and gets a

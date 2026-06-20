@@ -37,6 +37,7 @@ import type {
   RoomCard,
   RoomGroup,
   SiteBrand,
+  SiteConversion,
   SiteData,
   SiteDataByType,
   SiteNavItem,
@@ -64,6 +65,8 @@ export type SiteContext = {
   nav: SiteNavItem[];
   /** Navigation config (top bar, header CTA/behaviour, footer extras). */
   navigation: SiteNavigation;
+  /** Conversion chrome (WhatsApp button + announcement bar). */
+  conversion: SiteConversion;
   /** Ordered, visible property ids for this site (channel membership). */
   propertyIds: string[];
   /**
@@ -120,7 +123,7 @@ export async function loadSiteContext(
   const { data: site } = await sb
     .from("host_websites")
     .select(
-      "id, business_id, status, subdomain, custom_domain, brand, theme, seo, navigation, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
+      "id, business_id, status, subdomain, custom_domain, brand, theme, seo, navigation, settings, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
     )
     .or(`subdomain.eq.${ref},custom_domain.eq.${ref}`)
     .is("deleted_at", null)
@@ -134,6 +137,7 @@ export async function loadSiteContext(
       theme: Record<string, unknown> | null;
       seo: Record<string, unknown> | null;
       navigation: Record<string, unknown> | null;
+      settings: { conversion?: SiteConversion } | null;
       published_snapshot: PublishSnapshot | null;
       business: {
         default_language: string | null;
@@ -198,6 +202,10 @@ export async function loadSiteContext(
   const navigation = (snap?.navigation ??
     site.navigation ??
     {}) as SiteNavigation;
+  // Conversion chrome reads the frozen snapshot publicly; preview/legacy live.
+  const conversion = (snap?.conversion ??
+    site.settings?.conversion ??
+    {}) as SiteConversion;
 
   let nav: SiteNavItem[];
   let propertyIds: string[];
@@ -246,6 +254,7 @@ export async function loadSiteContext(
     seo,
     nav,
     navigation,
+    conversion,
     propertyIds,
     publishedRoomRows,
     publishedPropertyOverrides,

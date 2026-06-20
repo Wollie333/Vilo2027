@@ -77,6 +77,7 @@ export async function SitePageView({
           brand={ctx.brand}
           nav={ctx.nav}
           navigation={ctx.navigation}
+          conversion={ctx.conversion}
           darkChrome={siteSurfaceIsDark(ctx.theme)}
           analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
           header={ctx.theme.header}

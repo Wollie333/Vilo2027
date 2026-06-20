@@ -2023,12 +2023,30 @@ export async function saveWebsiteSettingsAction(
 ): Promise<ActionResult> {
   const parsed = websiteSettingsSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { websiteId, enquiryEmailEnabled, enquiryEmailTo } = parsed.data;
+  const {
+    websiteId,
+    enquiryEmailEnabled,
+    enquiryEmailTo,
+    whatsappEnabled,
+    whatsappNumber,
+    whatsappMessage,
+    announcementEnabled,
+    announcementText,
+    announcementLinkLabel,
+    announcementLinkHref,
+  } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
   if (!own.ok) return own;
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
+
+  // Only keep an http(s) or site-internal href for the announcement CTA — never
+  // a `javascript:`/`data:` scheme.
+  const safeHref = (() => {
+    const h = announcementLinkHref.trim();
+    return /^(https?:\/\/|\/)/i.test(h) ? h : "";
+  })();
 
   const supabase = createServerClient();
   const { data: row } = await supabase
@@ -2041,6 +2059,19 @@ export async function saveWebsiteSettingsAction(
     enquiry: {
       emailEnabled: enquiryEmailEnabled,
       emailTo: enquiryEmailTo.trim().toLowerCase(),
+    },
+    conversion: {
+      whatsapp: {
+        enabled: whatsappEnabled,
+        number: whatsappNumber.trim(),
+        message: whatsappMessage.trim(),
+      },
+      announcement: {
+        enabled: announcementEnabled,
+        text: announcementText.trim(),
+        linkLabel: announcementLinkLabel.trim(),
+        linkHref: safeHref,
+      },
     },
   };
 
