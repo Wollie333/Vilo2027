@@ -60,6 +60,8 @@ export default async function SiteBlogIndexPage({
         brand={ctx.brand}
         nav={ctx.nav}
         conversion={ctx.conversion}
+        popupForm={ctx.popupForm}
+        websiteId={ctx.websiteId}
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
         header={ctx.theme.header}

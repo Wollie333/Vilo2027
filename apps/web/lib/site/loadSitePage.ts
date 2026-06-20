@@ -67,6 +67,8 @@ export type SiteContext = {
   navigation: SiteNavigation;
   /** Conversion chrome (WhatsApp button + announcement bar). */
   conversion: SiteConversion;
+  /** Resolved definition of the pop-up's embedded form, when one is set. */
+  popupForm: SiteFormDef | null;
   /** Ordered, visible property ids for this site (channel membership). */
   propertyIds: string[];
   /**
@@ -207,6 +209,21 @@ export async function loadSiteContext(
     site.settings?.conversion ??
     {}) as SiteConversion;
 
+  // Resolve the pop-up's embedded form live (its content stays current, like
+  // rooms/blog) when one is referenced.
+  let popupForm: SiteFormDef | null = null;
+  const popupFormId = conversion.popup?.formId?.trim();
+  if (popupFormId) {
+    const { data: formRow } = await sb
+      .from("website_forms")
+      .select("id, name, type, fields, settings")
+      .eq("id", popupFormId)
+      .eq("website_id", site.id)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (formRow) popupForm = mapFormRow(formRow);
+  }
+
   let nav: SiteNavItem[];
   let propertyIds: string[];
   let publishedRoomRows: SnapshotRoom[] | null;
@@ -255,6 +272,7 @@ export async function loadSiteContext(
     nav,
     navigation,
     conversion,
+    popupForm,
     propertyIds,
     publishedRoomRows,
     publishedPropertyOverrides,
@@ -597,6 +615,25 @@ async function assembleSectionData(
   return data;
 }
 
+/** Parse one `website_forms` row into its public-render definition (SSOT). */
+function mapFormRow(f: {
+  id: string;
+  name: string;
+  type: string;
+  fields: unknown;
+  settings: unknown;
+}): SiteFormDef {
+  const fields = formFieldsSchema.safeParse(f.fields);
+  const settings = formSettingsSchema.safeParse(f.settings ?? {});
+  return {
+    id: f.id,
+    name: f.name,
+    type: f.type as FormType,
+    fields: fields.success ? fields.data : [],
+    settings: settings.success ? settings.data : formSettingsSchema.parse({}),
+  };
+}
+
 /**
  * Resolve every form for this website into its public-render definition. Forms
  * aren't property-scoped, so this is website-scoped (like specials). A `form`
@@ -613,21 +650,9 @@ async function loadSiteForms(
     .is("deleted_at", null)
     .order("created_at", { ascending: true });
 
-  const forms: SiteFormDef[] = (data ?? []).map((f) => {
-    const fields = formFieldsSchema.safeParse(
-      (f as { fields: unknown }).fields,
-    );
-    const settings = formSettingsSchema.safeParse(
-      (f as { settings: unknown }).settings ?? {},
-    );
-    return {
-      id: (f as { id: string }).id,
-      name: (f as { name: string }).name,
-      type: (f as { type: string }).type as FormType,
-      fields: fields.success ? fields.data : [],
-      settings: settings.success ? settings.data : formSettingsSchema.parse({}),
-    };
-  });
+  const forms: SiteFormDef[] = (data ?? []).map((f) =>
+    mapFormRow(f as Parameters<typeof mapFormRow>[0]),
+  );
   return { forms };
 }
 

@@ -5,6 +5,40 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 6A slice 3: pop-ups (completes save-point a)
+
+Site-wide pop-up modal over `host_websites.settings.conversion.popup` (same
+frozen-snapshot pattern as slice 2). Completes Phase 6A save-point (a) —
+conversion extras (trust section + WhatsApp + announcement + pop-ups). NO DB
+migration, NO AI.
+
+### Added — pop-up modal
+- **`components/site/SitePopup.tsx`** (client) — themed modal shown on a trigger
+  rule (**delay** / **scroll depth** / **exit-intent**), frequency-capped via
+  `localStorage` keyed by the pop-up content (once-per-visitor / daily / every
+  visit). Shows an optional **embedded `website_forms` form** (compact
+  `PopupForm`, submitted through the existing `/api/website-form-submit`
+  pipeline — newsletter forms still flow to contacts) or a simple CTA link.
+  Opens immediately + never persists + inert form in builder preview.
+- **Settings tab** gains a Pop-up card (`SettingsForm`): toggle, heading/body,
+  trigger select with conditional delay/scroll input, frequency select, form
+  picker (the site's `website_forms`), and CTA label/URL when no form is chosen.
+  +27 `website` en i18n keys.
+
+### Changed — plumbing
+- `SiteConversion.popup` type; `websiteSettingsSchema` + `saveWebsiteSettingsAction`
+  persist a `popup` block (CTA href sanitised; shared `cleanHref` helper).
+- `SiteContext.popupForm` resolved in `loadSiteContext` (live, by `popup.formId`,
+  website-scoped) via a new shared `mapFormRow` SSOT (refactored out of
+  `loadSiteForms`); threaded through `SiteChrome` + `SitePageView` + blog routes.
+  Pop-up config rides the already-frozen `conversion` snapshot, so editing it
+  marks the site dirty for republish.
+
+tsc + lint green. Phase 6A save-point (a) complete. Next: 6B booking funnel
+(save-point b).
+
+---
+
 ## 2026-06-21 — Website CMS Phase 6A slice 2: WhatsApp click-to-chat + announcement bar
 
 Conversion chrome over `host_websites.settings.conversion` jsonb (extends the

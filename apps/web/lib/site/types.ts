@@ -107,6 +107,25 @@ export type SiteConversion = {
     linkLabel?: string | null;
     linkHref?: string | null;
   };
+  /** Pop-up modal (Phase 6A slice 3) with trigger rules + frequency cap. */
+  popup?: {
+    enabled?: boolean;
+    heading?: string | null;
+    body?: string | null;
+    /** When the pop-up appears. */
+    trigger?: "delay" | "scroll" | "exit";
+    /** Seconds to wait before showing (trigger === "delay"). */
+    delaySeconds?: number;
+    /** Scroll depth percent that triggers it (trigger === "scroll"). */
+    scrollPercent?: number;
+    /** How often a returning visitor sees it again. */
+    frequency?: "once" | "daily" | "always";
+    /** Optional simple CTA button (used when no embedded form). */
+    ctaLabel?: string | null;
+    ctaHref?: string | null;
+    /** Optional embedded `website_forms` row id (e.g. a newsletter form). */
+    formId?: string | null;
+  };
 };
 
 // ── Per-section live data (auto-populate sections only) ───────

@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
+import { listWebsiteFormsAction } from "@/app/[locale]/dashboard/website/actions";
+
 import { loadWebsiteEditorData } from "../../loadWebsiteEditorData";
 import { SettingsForm } from "./SettingsForm";
 
@@ -12,11 +14,14 @@ export default async function WebsiteSettingsPage({
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const [t, data] = await Promise.all([
+  const [t, data, formsRes] = await Promise.all([
     getTranslations("website"),
     loadWebsiteEditorData(websiteId),
+    listWebsiteFormsAction(websiteId),
   ]);
   if (!data) notFound();
+
+  const forms = formsRes.ok ? formsRes.forms : [];
 
   const enquiry = data.settings.enquiry ?? {};
   const conversion = (data.settings.conversion ?? {}) as {
@@ -27,9 +32,22 @@ export default async function WebsiteSettingsPage({
       linkLabel?: string;
       linkHref?: string;
     };
+    popup?: {
+      enabled?: boolean;
+      heading?: string;
+      body?: string;
+      trigger?: "delay" | "scroll" | "exit";
+      delaySeconds?: number;
+      scrollPercent?: number;
+      frequency?: "once" | "daily" | "always";
+      ctaLabel?: string;
+      ctaHref?: string;
+      formId?: string;
+    };
   };
   const wa = conversion.whatsapp ?? {};
   const ann = conversion.announcement ?? {};
+  const pop = conversion.popup ?? {};
 
   return (
     <div className="max-w-2xl">
@@ -44,6 +62,7 @@ export default async function WebsiteSettingsPage({
         websiteId={websiteId}
         defaultEmail={data.brand.contact?.email ?? ""}
         defaultPhone={data.brand.contact?.phone ?? ""}
+        forms={forms.map((f) => ({ id: f.id, name: f.name }))}
         initial={{
           enquiryEmailEnabled: enquiry.emailEnabled === true,
           enquiryEmailTo: enquiry.emailTo ?? "",
@@ -54,6 +73,16 @@ export default async function WebsiteSettingsPage({
           announcementText: ann.text ?? "",
           announcementLinkLabel: ann.linkLabel ?? "",
           announcementLinkHref: ann.linkHref ?? "",
+          popupEnabled: pop.enabled === true,
+          popupHeading: pop.heading ?? "",
+          popupBody: pop.body ?? "",
+          popupTrigger: pop.trigger ?? "delay",
+          popupDelaySeconds: pop.delaySeconds ?? 5,
+          popupScrollPercent: pop.scrollPercent ?? 50,
+          popupFrequency: pop.frequency ?? "once",
+          popupCtaLabel: pop.ctaLabel ?? "",
+          popupCtaHref: pop.ctaHref ?? "",
+          popupFormId: pop.formId ?? "",
         }}
       />
     </div>

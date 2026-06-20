@@ -2034,6 +2034,16 @@ export async function saveWebsiteSettingsAction(
     announcementText,
     announcementLinkLabel,
     announcementLinkHref,
+    popupEnabled,
+    popupHeading,
+    popupBody,
+    popupTrigger,
+    popupDelaySeconds,
+    popupScrollPercent,
+    popupFrequency,
+    popupCtaLabel,
+    popupCtaHref,
+    popupFormId,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -2041,12 +2051,13 @@ export async function saveWebsiteSettingsAction(
   if (!(await assertWebsiteFeature(own.hostId)))
     return { ok: false, error: "locked" };
 
-  // Only keep an http(s) or site-internal href for the announcement CTA — never
-  // a `javascript:`/`data:` scheme.
-  const safeHref = (() => {
-    const h = announcementLinkHref.trim();
+  // Only keep an http(s) or site-internal href — never a `javascript:`/`data:`
+  // scheme (announcement CTA + pop-up CTA share this guard).
+  const cleanHref = (raw: string) => {
+    const h = raw.trim();
     return /^(https?:\/\/|\/)/i.test(h) ? h : "";
-  })();
+  };
+  const safeHref = cleanHref(announcementLinkHref);
 
   const supabase = createServerClient();
   const { data: row } = await supabase
@@ -2071,6 +2082,18 @@ export async function saveWebsiteSettingsAction(
         text: announcementText.trim(),
         linkLabel: announcementLinkLabel.trim(),
         linkHref: safeHref,
+      },
+      popup: {
+        enabled: popupEnabled,
+        heading: popupHeading.trim(),
+        body: popupBody.trim(),
+        trigger: popupTrigger,
+        delaySeconds: popupDelaySeconds,
+        scrollPercent: popupScrollPercent,
+        frequency: popupFrequency,
+        ctaLabel: popupCtaLabel.trim(),
+        ctaHref: cleanHref(popupCtaHref),
+        formId: popupFormId,
       },
     },
   };

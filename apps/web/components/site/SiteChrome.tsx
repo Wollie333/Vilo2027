@@ -24,6 +24,7 @@ import type {
   SiteBrand,
   SiteConversion,
   SiteFooterColumn,
+  SiteFormDef,
   SiteMenuItem,
   SiteNavItem,
   SiteNavigation,
@@ -33,6 +34,7 @@ import type {
 import { AnnouncementBar } from "./AnnouncementBar";
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
+import { SitePopup } from "./SitePopup";
 import { StickyHeader } from "./StickyHeader";
 import { WhatsAppButton } from "./WhatsAppButton";
 
@@ -638,6 +640,8 @@ export function SiteChrome({
   preview,
   navigation = {},
   conversion = {},
+  popupForm = null,
+  websiteId,
   children,
 }: {
   brand: SiteBrand;
@@ -651,8 +655,12 @@ export function SiteChrome({
   /** Preview mode context — shows banner and preserves params in nav links. */
   preview?: { subdomain: string; themeSlug?: string };
   navigation?: SiteNavigation;
-  /** Conversion chrome (WhatsApp button + announcement bar). */
+  /** Conversion chrome (WhatsApp button + announcement bar + pop-up). */
   conversion?: SiteConversion;
+  /** Resolved definition of the pop-up's embedded form (when one is set). */
+  popupForm?: SiteFormDef | null;
+  /** The site id — lets the pop-up's embedded form submit. */
+  websiteId?: string;
   children: ReactNode;
 }) {
   const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
@@ -769,6 +777,13 @@ export function SiteChrome({
       </footer>
 
       <WhatsAppButton whatsapp={conversion.whatsapp} />
+
+      <SitePopup
+        popup={conversion.popup}
+        form={popupForm}
+        websiteId={websiteId}
+        interactive={!preview}
+      />
     </div>
   );
 }

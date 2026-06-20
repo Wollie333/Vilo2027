@@ -494,6 +494,18 @@ export const websiteSettingsSchema = z.object({
   announcementText: z.string().trim().max(200).default(""),
   announcementLinkLabel: z.string().trim().max(60).default(""),
   announcementLinkHref: z.string().trim().max(300).default(""),
+  // Pop-up modal (Phase 6A slice 3): trigger rules + frequency cap, with an
+  // optional CTA link or an embedded `website_forms` form (e.g. newsletter).
+  popupEnabled: z.boolean().default(false),
+  popupHeading: z.string().trim().max(120).default(""),
+  popupBody: z.string().trim().max(400).default(""),
+  popupTrigger: z.enum(["delay", "scroll", "exit"]).default("delay"),
+  popupDelaySeconds: z.coerce.number().int().min(0).max(120).default(5),
+  popupScrollPercent: z.coerce.number().int().min(5).max(100).default(50),
+  popupFrequency: z.enum(["once", "daily", "always"]).default("once"),
+  popupCtaLabel: z.string().trim().max(60).default(""),
+  popupCtaHref: z.string().trim().max(300).default(""),
+  popupFormId: z.string().uuid().or(z.literal("")).default(""),
 });
 
 export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;
