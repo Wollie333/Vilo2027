@@ -414,6 +414,7 @@ export const saveBlogPostSchema = z.object({
   authorId: z.string().uuid().or(z.literal("")).default(""),
   seoTitle: z.string().trim().max(70).default(""),
   seoDescription: z.string().trim().max(200).default(""),
+  seoFocusKeyword: z.string().trim().max(60).default(""),
 });
 
 export type SaveBlogPostInput = z.infer<typeof saveBlogPostSchema>;

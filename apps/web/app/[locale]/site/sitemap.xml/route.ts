@@ -26,11 +26,11 @@ export async function GET(request: Request) {
   const [{ data: pages }, { data: posts }] = await Promise.all([
     sb
       .from("website_pages")
-      .select("kind, slug")
+      .select("kind, slug, updated_at")
       .eq("website_id", ctx.websiteId),
     sb
       .from("website_blog_posts")
-      .select("slug, publish_at, created_at")
+      .select("slug, publish_at, created_at, updated_at")
       .eq("website_id", ctx.websiteId)
       .eq("status", "published")
       .is("deleted_at", null),
@@ -40,14 +40,23 @@ export async function GET(request: Request) {
   const loc = (path: string) =>
     `${origin}${path}`.replace(/\/+$/, "") || origin;
 
+  const day = (v: string | null | undefined) => v?.slice(0, 10);
+  const pageRows = pages ?? [];
+  const homeRow = pageRows.find((p) => p.kind === "home");
+
   const entries: { path: string; lastmod?: string }[] = [
-    { path: "/" },
-    ...(pages ?? [])
+    { path: "/", lastmod: day(homeRow?.updated_at as string | null) },
+    ...pageRows
       .filter((p) => p.kind !== "home")
-      .map((p) => ({ path: `/${p.slug}` })),
+      .map((p) => ({
+        path: `/${p.slug}`,
+        lastmod: day(p.updated_at as string | null),
+      })),
     ...(posts ?? []).map((p) => ({
       path: `/blog/${p.slug}`,
-      lastmod: ((p.publish_at ?? p.created_at) as string | null)?.slice(0, 10),
+      lastmod: day(
+        (p.updated_at ?? p.publish_at ?? p.created_at) as string | null,
+      ),
     })),
   ];
 

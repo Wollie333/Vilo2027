@@ -27,6 +27,7 @@ import {
   TextField,
   ToggleField,
 } from "../../pages/[pageId]/_components/fields";
+import { SeoAnalysis } from "../../pages/[pageId]/_components/SeoAnalysis";
 
 type Post = BlogPostEditorData["post"];
 
@@ -132,6 +133,7 @@ export function PostEditor({
         authorId: post.authorId,
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
+        seoFocusKeyword: post.seoFocusKeyword,
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -352,6 +354,14 @@ export function PostEditor({
               onChange={(v) => patch({ seoDescription: v })}
               maxLength={200}
               rows={2}
+            />
+            <SeoAnalysis
+              title={post.seoTitle.trim() || post.title}
+              description={post.seoDescription.trim() || post.excerpt}
+              focusKeyword={post.seoFocusKeyword}
+              onFocusKeyword={(v) => patch({ seoFocusKeyword: v })}
+              bodyText={post.bodyHtml.replace(/<[^>]+>/g, " ")}
+              slug={post.slug || slugPlaceholder}
             />
           </section>
 

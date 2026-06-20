@@ -1596,6 +1596,7 @@ export async function saveBlogPostAction(
     authorId,
     seoTitle,
     seoDescription,
+    seoFocusKeyword,
   } = parsed.data;
 
   const own = await assertWebsiteOwnership(websiteId);
@@ -1679,6 +1680,7 @@ export async function saveBlogPostAction(
       seo: {
         title: seoTitle || undefined,
         description: seoDescription || undefined,
+        focusKeyword: seoFocusKeyword || undefined,
       },
     })
     .eq("id", postId)

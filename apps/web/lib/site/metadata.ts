@@ -28,9 +28,26 @@ export async function siteMetadata(args: {
   const index = meta.robotsIndex && !args.preview;
   const ogImages = meta.ogImageUrl ? [{ url: meta.ogImageUrl }] : undefined;
 
+  // Canonical URL from the tenant host + path (skip preview and ?site= testing).
+  const host = args.host?.trim().toLowerCase();
+  let canonical: string | undefined;
+  if (host && !args.preview) {
+    const scheme =
+      host.startsWith("localhost") || host.startsWith("127.")
+        ? "http"
+        : "https";
+    const path = args.postSlug
+      ? `/blog/${args.postSlug}`
+      : args.pathSlug && args.pathSlug.length
+        ? `/${args.pathSlug.join("/")}`
+        : "";
+    canonical = `${scheme}://${host}${path}`;
+  }
+
   return {
     title: meta.title,
     description: meta.description,
+    alternates: canonical ? { canonical } : undefined,
     icons:
       meta.faviconUrl || meta.appleIconUrl
         ? {

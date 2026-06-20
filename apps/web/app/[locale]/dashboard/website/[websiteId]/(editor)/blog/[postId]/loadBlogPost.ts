@@ -29,6 +29,7 @@ export type BlogPostEditorData = {
     bodyHtml: string;
     seoTitle: string;
     seoDescription: string;
+    seoFocusKeyword: string;
   };
 };
 
@@ -78,7 +79,11 @@ export async function loadBlogPost(
   );
   if (!post) return null;
 
-  const seo = (post.seo ?? {}) as { title?: string; description?: string };
+  const seo = (post.seo ?? {}) as {
+    title?: string;
+    description?: string;
+    focusKeyword?: string;
+  };
 
   return {
     websiteId: site.id,
@@ -104,6 +109,7 @@ export async function loadBlogPost(
       bodyHtml: post.body_html ?? "",
       seoTitle: seo.title ?? "",
       seoDescription: seo.description ?? "",
+      seoFocusKeyword: seo.focusKeyword ?? "",
     },
   };
 }
