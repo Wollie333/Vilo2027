@@ -704,4 +704,37 @@ Related: `BUSINESS_PRINCIPLES.md` Principle #1; plan
 
 ---
 
+## ADR-022 — Website CMS Phase 5 (AI Site Generator) deferred indefinitely
+**Status:** Accepted
+**Date:** 2026-06-20
+
+**Decision:** The enterprise Website-CMS build-out skips **Phase 5 — Minutes-to-Launch
+(AI Site Generator)** entirely. Vilo will ship **no AI website-generation ability**:
+no `buildSiteBrief()` + generation engine, no onboarding "generate my site" wizard,
+no inline rewrite/SEO-suggest/translate assist. The lane proceeds from Phase 4
+(Forms & Leads, complete) straight to **Phase 6 — Conversion & Booking**.
+
+**Reasons:**
+- Founder call (2026-06-20): the AI generator is out of scope for now — hosts build
+  their sites with the curated section system + templates already shipped in
+  Phases 0–4, which is sufficient for launch.
+- Avoids the first Anthropic/LLM integration in the codebase (no `ANTHROPIC_API_KEY`,
+  no new dependency, no token-budget/cost surface, no `website_ai_generations` log) —
+  none of that plumbing is introduced.
+
+**Rejected alternatives:**
+- Building only save-point (a) (brief + engine) as a hidden/inert capability — still
+  introduces the Claude client + key + cost surface for a feature the founder doesn't
+  want. Cleaner to defer the whole phase.
+
+**Constraint:**
+- Do not resurrect any Phase 5 sub-task without an explicit founder reopen of this ADR.
+- The curated-section design law (sections are pre-built; hosts only edit
+  text/image/colour/variant/tone) is unchanged and remains the only site-authoring path.
+
+Related: `WEBSITE_CMS_PLAN.md` §"Phase 5" (now skipped); `CURRENT_TASK.md` active-lane
+anchor; memory `project-website-cms`.
+
+---
+
 *When making a new significant decision — add an ADR here before writing code. Format: status, date, decision, reasons, alternatives rejected, constraint.*

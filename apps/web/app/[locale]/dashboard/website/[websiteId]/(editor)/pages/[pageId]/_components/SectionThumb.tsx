@@ -257,6 +257,26 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "trust":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col items-center justify-center gap-1.5">
+            <MiniStars />
+            <Bar w="w-1/4" muted />
+            <div className="mt-0.5 flex gap-1.5">
+              {[0, 1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-1 rounded-full border border-brand-line bg-white px-1.5 py-0.5"
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-brand-accent" />
+                  <div className="h-1 w-4 rounded-full bg-brand-line" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Frame>
+      );
     default:
       return (
         <Frame>

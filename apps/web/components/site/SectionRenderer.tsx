@@ -31,6 +31,7 @@ import { FormSection } from "./sections/FormSection";
 import { AmenitiesSection } from "./sections/AmenitiesSection";
 import { PricingSection } from "./sections/PricingSection";
 import { VideoSection } from "./sections/VideoSection";
+import { TrustSection } from "./sections/TrustSection";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -199,6 +200,13 @@ function SectionSwitch({
       return <PricingSection props={section.props} />;
     case "video":
       return <VideoSection props={section.props} />;
+    case "trust":
+      return (
+        <TrustSection
+          props={section.props}
+          data={dataFor(data, section.id, "trust")}
+        />
+      );
     default:
       return null;
   }

@@ -109,6 +109,9 @@ function buildPreviewData(
       case "form":
         if (pool.form) data[s.id] = { type: "form", data: pool.form };
         break;
+      case "trust":
+        if (pool.trust) data[s.id] = { type: "trust", data: pool.trust };
+        break;
       default:
         break;
     }

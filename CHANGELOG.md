@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 5 (AI Site Generator) deferred + Phase 6A slice 1 (trust-signals section)
+
+### Decision
+- **Phase 5 (Minutes-to-Launch / AI Site Generator) deferred indefinitely** (founder)
+  — `DECISIONS.md` ADR-022. Vilo ships **no AI website-generation ability**: no
+  brief+engine, no generate-my-site wizard, no inline AI assist, no `ANTHROPIC_API_KEY`,
+  no new dependency. Hosts build sites with the curated section system + templates
+  from Phases 0–4. The lane now proceeds Phase 4 → **Phase 6 (Conversion & Booking)**.
+
+### Added — Phase 6A, slice 1: trust-signals section (no AI)
+- New curated **`trust` section type** (`sections.schema.ts`): free-form badges
+  (awards / certifications / payment + secure badges — icon + label + optional
+  caption) plus an **optional live review score** (★ average · N reviews) and a
+  Pills/Cards variant. Badges are host-entered; the score is pulled live from the
+  business's published reviews — never stale.
+- Public render: `components/site/sections/TrustSection.tsx` (themed `--site-*`,
+  reuses the shared `Stars`; renders nothing when there's no score and no badge).
+- Live score wiring reuses the existing reviews aggregate — `SiteDataByType.trust`
+  = `ReviewsData`; `assembleSiteDataByType` resolves the reviews block when either
+  `reviews` or `trust` is on the page; fanned out in `assembleSectionData` +
+  builder `buildPreviewData`; the builder preview requests `trust` so the score
+  shows in-editor.
+- Builder: `SectionEditor` trust case (heading/body/show-score toggle/badge list/
+  variant + LiveNote), `SectionLibrary` catTrust += trust, `SectionThumb`
+  schematic, `sectionDefaults` starter. SEO text extractor needs no change (badge
+  `label`/`caption` + `heading`/`body` are already walked). +13 `website` i18n
+  keys (en). **NO DB schema change** (sections ride existing `draft_sections`).
+  tsc + lint green.
+
 ## 2026-06-20 — Website CMS: Phase 4 form builder — slice 5 (polish) + phase complete
 
 Polish pass + Phase 4 completion. 3-area audit (submit/security, builder/data,

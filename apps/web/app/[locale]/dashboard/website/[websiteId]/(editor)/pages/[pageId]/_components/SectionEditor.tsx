@@ -1053,6 +1053,75 @@ function SectionFields({
       );
     }
 
+    case "trust": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldHeading")}
+            value={p.heading ?? ""}
+            onChange={(v) => set({ heading: v })}
+            maxLength={200}
+          />
+          <TextArea
+            label={t("fldBody")}
+            value={p.body ?? ""}
+            onChange={(v) => set({ body: v })}
+            maxLength={600}
+            rows={2}
+          />
+          <ToggleField
+            label={t("fldTrustShowScore")}
+            checked={p.show_review_score}
+            onChange={(v) => set({ show_review_score: v })}
+          />
+          <ItemListEditor
+            label={t("fldTrustBadges")}
+            items={p.items}
+            onChange={(items) => set({ items })}
+            blank={() => ({ icon: "", label: "", caption: "" })}
+            addLabel={t("addTrustBadge")}
+            max={20}
+            renderItem={(item, patch) => (
+              <>
+                <TextField
+                  label={t("fldAmenityIcon")}
+                  value={item.icon ?? ""}
+                  onChange={(v) => patch({ icon: v })}
+                  maxLength={60}
+                  hint={t("fldAmenityIconHint")}
+                />
+                <TextField
+                  label={t("fldTrustBadgeLabel")}
+                  value={item.label}
+                  onChange={(v) => patch({ label: v })}
+                  maxLength={120}
+                />
+                <TextField
+                  label={t("fldTrustBadgeCaption")}
+                  value={item.caption ?? ""}
+                  onChange={(v) => patch({ caption: v })}
+                  maxLength={160}
+                />
+              </>
+            )}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "badges", label: t("trustVariant_badges") },
+              { value: "grid", label: t("trustVariant_grid") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <LiveNote>{t("liveTrustScore")}</LiveNote>
+        </div>
+      );
+    }
+
     default:
       return null;
   }

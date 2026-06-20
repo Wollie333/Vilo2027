@@ -13,6 +13,7 @@ import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   AUTO_POPULATE_SECTIONS,
   parseSectionsLoose,
+  type SectionType,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 import { extractSectionsText } from "@/lib/website/seoAnalyzer";
@@ -98,7 +99,13 @@ export async function loadPageBuilder(
   // The site row always resolves (we just read it), but be defensive.
   const sections = parseSectionsLoose(pageRow.draft_sections);
   const dataByType = ctx
-    ? await assembleSiteDataByType(admin, ctx, new Set(AUTO_POPULATE_SECTIONS))
+    ? await assembleSiteDataByType(
+        admin,
+        ctx,
+        // `trust` is free-form but takes a live review score — request it too so
+        // the builder preview shows the score, like the public site does.
+        new Set<SectionType>([...AUTO_POPULATE_SECTIONS, "trust"]),
+      )
     : {};
 
   // The admin client is schema-untyped, so reading saved_sections is fine here.

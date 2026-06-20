@@ -578,6 +578,9 @@ async function assembleSectionData(
       case "form":
         if (byType.form) data[s.id] = { type: "form", data: byType.form };
         break;
+      case "trust":
+        if (byType.trust) data[s.id] = { type: "trust", data: byType.trust };
+        break;
       default:
         break;
     }
@@ -875,8 +878,10 @@ export async function assembleSiteDataByType(
     })(),
 
     // REVIEWS — published reviews across visible properties (aggregate + cards).
+    // The trust section reuses this same aggregate for its live review score,
+    // so resolve when either section is on the page.
     (async () => {
-      if (!types.has("reviews")) return;
+      if (!types.has("reviews") && !types.has("trust")) return;
       const { data: rows } = await sb
         .from("reviews")
         .select(
@@ -910,7 +915,9 @@ export async function assembleSiteDataByType(
           body: r.body as string,
           date: r.created_at.slice(0, 10),
         }));
-      out.reviews = { items, average, count };
+      const aggregate = { items, average, count };
+      if (types.has("reviews")) out.reviews = aggregate;
+      if (types.has("trust")) out.trust = aggregate;
     })(),
 
     // BLOG — published posts for this site (featured-first, then recent).

@@ -279,6 +279,23 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: { heading: "Take a look", url: "", caption: "" },
       };
+    case "trust":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Book with confidence",
+          show_review_score: true,
+          variant: "badges",
+          items: [
+            { icon: "🔒", label: "Secure payments" },
+            { icon: "✅", label: "Verified host" },
+            { icon: "🏅", label: "Superhost award" },
+          ],
+        },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

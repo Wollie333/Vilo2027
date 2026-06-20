@@ -192,6 +192,9 @@ export type SiteDataByType = {
   blog_preview: BlogPreviewData;
   specials_preview: SpecialsPreviewData;
   form: FormRenderData;
+  // The trust section is free-form (badges in props) but takes an OPTIONAL live
+  // review aggregate (average + count) — reuses the reviews shape.
+  trust: ReviewsData;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

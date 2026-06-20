@@ -39,6 +39,7 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
       "highlights",
       "stats",
       "reviews",
+      "trust",
       "values",
       "amenities",
       "host_bio",

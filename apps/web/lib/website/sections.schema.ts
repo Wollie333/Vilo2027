@@ -42,6 +42,7 @@ export const SECTION_TYPES = [
   "amenities",
   "pricing",
   "video",
+  "trust",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -87,6 +88,7 @@ export const LOCATION_VARIANTS = ["split", "stacked", "list"] as const;
 export const MAP_VARIANTS = ["boxed", "wide"] as const;
 export const CONTACT_VARIANTS = ["stacked", "split"] as const;
 export const RICHTEXT_VARIANTS = ["narrow", "wide"] as const;
+export const TRUST_VARIANTS = ["badges", "grid"] as const;
 
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
@@ -315,6 +317,29 @@ const videoProps = z.object({
   caption: z.string().max(300).optional(),
 });
 
+// Trust signals (Phase 6A) — free-form badges (awards / certifications /
+// payment + secure badges) plus an OPTIONAL live review score. The badges live
+// in props (host-entered, like amenities); the score is pulled live from the
+// business's published reviews at render time (see lib/site/loadSitePage.ts —
+// it reuses the reviews aggregate), so it's never stale.
+const trustProps = z.object({
+  heading,
+  body: z.string().max(600).optional(),
+  /** Show the live "★ 4.9 · 128 reviews" block above the badges. */
+  show_review_score: z.boolean().default(true),
+  items: z
+    .array(
+      z.object({
+        icon: z.string().max(60).optional(),
+        label: z.string().max(120),
+        caption: z.string().max(160).optional(),
+      }),
+    )
+    .max(20)
+    .default([]),
+  variant: z.enum(TRUST_VARIANTS).default("badges"),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -389,6 +414,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ ...sectionBase, type: z.literal("pricing"), props: pricingProps }),
   z.object({ ...sectionBase, type: z.literal("video"), props: videoProps }),
+  z.object({ ...sectionBase, type: z.literal("trust"), props: trustProps }),
 ]);
 
 export type WebsiteSection = z.infer<typeof sectionSchema>;
