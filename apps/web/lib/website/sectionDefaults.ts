@@ -82,7 +82,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "As featured in", items: [] },
+        props: { heading: "As featured in", items: [], variant: "row" },
       };
     case "gallery":
       return {
@@ -127,7 +127,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "What guests say", max: 6 },
+        props: { heading: "What guests say", max: 6, variant: "grid" },
       };
     case "cta":
       return {
@@ -180,7 +180,7 @@ export function newSection(type: SectionType): WebsiteSection {
         type,
         enabled: true,
         tone: "default",
-        props: { heading: "From the journal", max: 3 },
+        props: { heading: "From the journal", max: 3, variant: "grid" },
       };
     case "rich_text":
       return {
@@ -198,6 +198,7 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: {
           heading: "Good to know",
+          variant: "accordion",
           items: [{ q: "Is there Wi-Fi?", a: "Yes — free, uncapped." }],
         },
       };

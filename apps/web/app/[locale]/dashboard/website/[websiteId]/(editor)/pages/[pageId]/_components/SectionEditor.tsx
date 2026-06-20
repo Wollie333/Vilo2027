@@ -321,6 +321,16 @@ function SectionFields({
               </>
             )}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "row", label: t("logosVariant_row") },
+              { value: "grid", label: t("logosVariant_grid") },
+              { value: "color", label: t("logosVariant_color") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
         </div>
       );
     }
@@ -447,6 +457,16 @@ function SectionFields({
                 />
               </>
             )}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "accordion", label: t("faqVariant_accordion") },
+              { value: "plain", label: t("faqVariant_plain") },
+              { value: "columns", label: t("faqVariant_columns") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
         </div>
       );
@@ -712,6 +732,16 @@ function SectionFields({
             max={30}
             onChange={(v) => set({ max: v })}
           />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "grid", label: t("reviewsVariant_grid") },
+              { value: "list", label: t("reviewsVariant_list") },
+              { value: "plain", label: t("reviewsVariant_plain") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
           <LiveNote>{t("liveReviews")}</LiveNote>
         </div>
       );
@@ -735,6 +765,16 @@ function SectionFields({
             min={1}
             max={12}
             onChange={(v) => set({ max: v })}
+          />
+          <SelectField
+            label={t("fldVariant")}
+            value={p.variant}
+            options={[
+              { value: "grid", label: t("blogVariant_grid") },
+              { value: "list", label: t("blogVariant_list") },
+              { value: "compact", label: t("blogVariant_compact") },
+            ]}
+            onChange={(v) => set({ variant: v })}
           />
           <LiveNote>{t("liveBlog")}</LiveNote>
         </div>

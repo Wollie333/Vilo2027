@@ -68,6 +68,10 @@ export const HIGHLIGHTS_VARIANTS = ["grid", "list", "plain"] as const;
 export const STATS_VARIANTS = ["band", "plain", "cards"] as const;
 export const VALUES_VARIANTS = ["border", "cards", "numbered"] as const;
 export const HOSTBIO_VARIANTS = ["side", "centered", "card"] as const;
+export const REVIEWS_VARIANTS = ["grid", "list", "plain"] as const;
+export const BLOG_VARIANTS = ["grid", "list", "compact"] as const;
+export const FAQ_VARIANTS = ["accordion", "plain", "columns"] as const;
+export const LOGOS_VARIANTS = ["row", "grid", "color"] as const;
 
 // ── Shared prop fragments ─────────────────────────────────────
 const heading = z.string().max(200).optional();
@@ -131,6 +135,7 @@ const logosProps = z.object({
     )
     .max(16)
     .default([]),
+  variant: z.enum(LOGOS_VARIANTS).default("row"),
 });
 
 const galleryProps = z.object({
@@ -161,6 +166,7 @@ const locationProps = z.object({
 const reviewsProps = z.object({
   heading,
   max: z.number().int().min(1).max(30).default(6),
+  variant: z.enum(REVIEWS_VARIANTS).default("grid"),
 });
 
 const ctaProps = z.object({
@@ -196,6 +202,7 @@ const valuesProps = z.object({
 const blogPreviewProps = z.object({
   heading,
   max: z.number().int().min(1).max(12).default(3),
+  variant: z.enum(BLOG_VARIANTS).default("grid"),
 });
 
 // Auto-populate: reads the business's active + show_on_website specials at render
@@ -223,6 +230,7 @@ const faqProps = z.object({
     )
     .max(40)
     .default([]),
+  variant: z.enum(FAQ_VARIANTS).default("accordion"),
 });
 
 // Lead-capture form. Free-form CONFIG only — a submission is not stored in the
