@@ -827,9 +827,10 @@ export async function saveDraftSectionsAction(
   return { ok: true };
 }
 
-// Saved sections ("my blocks"). Stored on host_websites.saved_sections — added
-// by migration 20260620003000; the column isn't in the generated DB types until
-// it's applied + regenerated, so these use an untyped client for that column.
+// Saved sections ("my blocks"), stored on host_websites.saved_sections (jsonb).
+// An untyped client is used for that column so the SavedSection union (with its
+// optional props) doesn't have to be forced through the generated `Json` type —
+// the same pattern as the other jsonb writers in this file.
 export async function saveSavedSectionAction(
   input: SaveSavedSectionInput,
 ): Promise<ActionResult> {

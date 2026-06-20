@@ -89,8 +89,7 @@ export async function loadPageBuilder(
     ? await assembleSiteDataByType(admin, ctx, new Set(AUTO_POPULATE_SECTIONS))
     : {};
 
-  // `saved_sections` isn't in the generated types yet (migration 20260620003000);
-  // the admin client is schema-untyped, so reading the column is safe here.
+  // The admin client is schema-untyped, so reading saved_sections is fine here.
   const { data: savedRow } = await admin
     .from("host_websites")
     .select("saved_sections")

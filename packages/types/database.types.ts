@@ -3541,6 +3541,7 @@ export type Database = {
           id: string
           published_at: string | null
           published_snapshot: Json | null
+          saved_sections: Json
           seo: Json
           settings: Json
           ssl_status: string
@@ -3562,6 +3563,7 @@ export type Database = {
           id?: string
           published_at?: string | null
           published_snapshot?: Json | null
+          saved_sections?: Json
           seo?: Json
           settings?: Json
           ssl_status?: string
@@ -3583,6 +3585,7 @@ export type Database = {
           id?: string
           published_at?: string | null
           published_snapshot?: Json | null
+          saved_sections?: Json
           seo?: Json
           settings?: Json
           ssl_status?: string
