@@ -5,6 +5,61 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 6 on-site checkout (save-point c) — PHASE 6 COMPLETE
+
+Full on-site booking checkout that runs on the host's OWN tenant domain — search
+→ select → details → pay (card or EFT) → thank-you, all reusing the existing
+booking/payment engine. Server-recalculated pricing throughout (the client is
+never trusted on money). NO DB migration, NO AI. Completes Phase 6 (a+b+c).
+
+### Added — shared booking core (one money SSOT)
+- **`lib/bookings/createBooking.ts`** `createBookingCore(input, actor, ctx)` —
+  extracted verbatim from `createBookingAction` (validate → re-price via the
+  canonical `priceStay` → availability RPCs → `persistBookingAndPay`). Both
+  checkout surfaces now run it: the app's authenticated checkout and the new
+  session-less on-site one. `createBookingAction` is now a thin auth wrapper —
+  behaviour preserved (same returnTo, same redirect).
+
+### Added — session-less on-site checkout
+- **`lib/website/siteCheckout.ts`** — `siteBookingQuote` (live price +
+  availability via `computeStayPricing` + the RPCs) and `createSiteBooking`
+  (find-or-create a passwordless guest via `findOrCreateLeadIdentity`, then run
+  the shared core). Both membership-gated (property must be a VISIBLE channel
+  member, via the exported `resolveSiteProperty`) and run on the service-role
+  admin client. Routes **`/api/site-booking-quote`** + **`/api/site-booking`**.
+- **`app/[locale]/site/book/page.tsx`** — themed checkout page (membership-gated
+  loader: property + rooms + the host's payment rails [Paystack when connected,
+  EFT fallback] + cancellation note). **`SiteCheckoutForm.tsx`** (client,
+  `--site-*` themed): dates, whole-place/rooms, party, contact, payment method,
+  policy ack, a live server-recalculated total, submit → redirect to the host's
+  Paystack page (card) or the on-site thank-you (EFT).
+- **`app/[locale]/site/book/thank-you/page.tsx`** — confirms a card payment with
+  the host's key via the existing `confirmHostCardPaymentByReference` (webhook is
+  the backstop), or shows the awaiting-transfer state + the host's banking
+  details for EFT. Anti-tamper: booking must belong to a sellable property.
+
+### Changed — on-site booking links + a tenant-host routing fix
+- Booking deep-links from the site (rooms, rate table, booking-search,
+  availability-calendar) now point at the **on-site** `/book` route via a new
+  `siteBookHref(ctx, …)` (relative on a tenant host; `/[locale]/site` + `&site=`
+  when rendered via the app-domain `?site=` preview). Threaded `siteParam →
+  ctx.bookBasePath` through `loadSiteContext` / `SitePageView` / the site routes.
+- **middleware fix:** on a tenant host, global route-handler trees (`/api`,
+  auth, ical, …) now pass through to their real handlers (tagged with
+  `x-vilo-site-host`) instead of being rewritten into `/<locale>/site/*` where
+  they'd 404. This also fixes the existing `/api/website-*` form/funnel endpoints
+  for real tenant domains (previously only exercised via the app-domain `?site=`
+  path, so the bug was latent). App-host routing unchanged (host tests 10/10).
+
+### Notes
+- tsc + lint (changed files) green; `verify-themes-compat.mjs` 🎉.
+- **Deferred (founder):** add-ons + coupons in the on-site UI (the core already
+  supports them — UI only); Turnstile/bot-hardening on the checkout; the on-site
+  flow needs `NEXT_PUBLIC_ROOT_DOMAIN` + wildcard DNS to run on real tenant
+  domains (same W5 OPS TODO) — until then test via the app-domain `?site=`.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 6B booking funnel (save-point b)
 
 Three new curated booking-funnel section types wired to the **live** booking

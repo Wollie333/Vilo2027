@@ -33,13 +33,17 @@ export async function SitePageView({
   pathSlug,
   preview = false,
   themeSlug,
+  siteParam,
 }: {
   siteRef: string;
   pathSlug: string[];
   preview?: boolean;
   themeSlug?: string;
+  /** Set when the site is reached via the app-domain ?site= affordance — makes
+   *  on-site booking links carry the /[locale]/site prefix so they resolve. */
+  siteParam?: string | null;
 }) {
-  const ctx = await loadSiteContext(siteRef, { preview, themeSlug });
+  const ctx = await loadSiteContext(siteRef, { preview, themeSlug, siteParam });
   if (!ctx) notFound();
 
   const result = await loadSitePage(ctx, pathSlug);

@@ -111,13 +111,17 @@ export function BookingSearchSection({
           }
         | { ok: false; error: string };
       if (json.ok) {
+        // Continue ON-SITE: build the checkout link from the property's on-site
+        // base (server bookHref points at the app domain; we keep the guest on
+        // the host's own domain). bookBase always carries `?property=…`.
+        const onsiteHref = `${selected.bookBase}&from=${checkIn}&to=${checkOut}&guests=${guests}`;
         setState({
           kind: "result",
           available: json.available,
           nights: json.nights,
           total: json.total,
           currency: json.currency,
-          bookHref: json.bookHref,
+          bookHref: onsiteHref,
         });
       } else {
         setState({ kind: "error", message: json.error });

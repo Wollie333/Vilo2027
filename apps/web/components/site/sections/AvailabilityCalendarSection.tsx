@@ -273,7 +273,7 @@ function MonthGrid({
           const blocked = unavailable.has(iso);
           const open = !past && !blocked;
           const href =
-            open && live && bookBase ? `${bookBase}?from=${iso}` : undefined;
+            open && live && bookBase ? `${bookBase}&from=${iso}` : undefined;
           return (
             <DayCell key={iso} day={day} open={open} past={past} href={href} />
           );

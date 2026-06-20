@@ -60,6 +60,9 @@ export type SiteContext = {
   /** Theme slug when previewing a different theme (for theme gallery). */
   previewThemeSlug?: string;
   locale: string; // business default_language (drives booking deep-link locale)
+  /** Path prefix for on-site booking links ("" on a tenant host; /[locale]/site
+   *  when rendered via the app-domain ?site= testing affordance). */
+  bookBasePath: string;
   brand: SiteBrand;
   theme: SiteThemeConfig;
   /** Site-level SEO config (title/description/og_image_path/robots/sitemap/gsc). */
@@ -118,7 +121,11 @@ export function pageHref(kind: string, slug: string): string {
  */
 export async function loadSiteContext(
   ref: string,
-  opts: { preview?: boolean; themeSlug?: string } = {},
+  opts: {
+    preview?: boolean;
+    themeSlug?: string;
+    siteParam?: string | null;
+  } = {},
 ): Promise<SiteContext | null> {
   const preview = opts.preview ?? false;
   const previewThemeSlug = opts.themeSlug;
@@ -260,6 +267,13 @@ export async function loadSiteContext(
     publishedPropertyOverrides = null;
   }
 
+  const locale = site.business?.default_language || "en";
+  // On-site booking links are relative to the site root. On a real tenant host
+  // that's "" (e.g. /book); when the site is rendered via the app-domain
+  // ?site=<sub> testing affordance it must carry the /[locale]/site prefix so the
+  // link resolves on the app domain too. siteParam is set only in that case.
+  const bookBasePath = opts.siteParam ? `/${locale}/site` : "";
+
   return {
     websiteId: site.id,
     businessId: site.business_id,
@@ -267,7 +281,8 @@ export async function loadSiteContext(
     status: site.status,
     preview,
     previewThemeSlug,
-    locale: site.business?.default_language || "en",
+    locale,
+    bookBasePath,
     brand,
     theme,
     seo,
@@ -431,9 +446,31 @@ function firstNameLastInitial(name: string | null | undefined): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
 
-function bookHref(locale: string, slug: string, roomId?: string): string {
-  const path = `/${locale}/property/${slug}/book${roomId ? `?room=${roomId}` : ""}`;
-  return APP_URL ? `${APP_URL}${path}` : path;
+/**
+ * Build a link into the ON-SITE checkout (Phase 6B/c), relative to the site root
+ * so it stays on the host's own domain. Always carries `?property=…` (so a `&`
+ * suffix is always valid for the funnel widgets that append dates client-side);
+ * adds `&site=` when rendered via the app-domain ?site= testing affordance.
+ */
+function siteBookHref(
+  ctx: Pick<SiteContext, "bookBasePath" | "subdomain">,
+  params: {
+    propertyId?: string;
+    roomId?: string;
+    from?: string;
+    to?: string;
+    guests?: number;
+  },
+): string {
+  const qs = new URLSearchParams();
+  if (params.propertyId) qs.set("property", params.propertyId);
+  if (params.roomId) qs.set("room", params.roomId);
+  if (params.from) qs.set("from", params.from);
+  if (params.to) qs.set("to", params.to);
+  if (params.guests != null) qs.set("guests", String(params.guests));
+  if (ctx.bookBasePath) qs.set("site", ctx.subdomain);
+  const q = qs.toString();
+  return `${ctx.bookBasePath}/book${q ? `?${q}` : ""}`;
 }
 
 /** Deep-link into the special booking flow, tagged as a website-channel booking. */
@@ -676,12 +713,6 @@ async function loadSiteForms(
   return { forms };
 }
 
-/** Absolute checkout base for a property (append ?from=&to=&guests= client-side). */
-function bookBaseHref(locale: string, slug: string): string {
-  const path = `/${locale}/property/${slug}/book`;
-  return APP_URL ? `${APP_URL}${path}` : path;
-}
-
 /**
  * The site's bookable properties (visible channel members) for the funnel
  * widgets — booking_search + availability_calendar. Carries only selector +
@@ -717,7 +748,7 @@ async function loadBookableProperties(
       currency: p.currency ?? "ZAR",
       minNights: p.min_nights ?? 1,
       maxGuests: p.max_guests ?? 10,
-      bookBase: bookBaseHref(ctx.locale, slug),
+      bookBase: siteBookHref(ctx, { propertyId: p.id }),
     });
   }
   return { websiteId: ctx.websiteId, properties };
@@ -822,7 +853,10 @@ async function loadRateTable(
         currency: ov.display_currency || room.currency || "ZAR",
         minNights: room.min_nights ?? null,
         maxGuests: room.max_guests ?? null,
-        bookHref: bookHref(ctx.locale, prop?.slug ?? "", room.id),
+        bookHref: siteBookHref(ctx, {
+          propertyId: room.property_id,
+          roomId: room.id,
+        }),
       };
     })
     .filter((r): r is RateRow => r !== null);
@@ -870,8 +904,8 @@ export async function assembleSiteDataByType(
   const ids = ctx.propertyIds;
   if (ids.length === 0) return out;
 
-  // Resolve property slugs once (needed by rooms + location).
-  const needsSlugs = types.has("rooms_preview") || types.has("location");
+  // Resolve property slugs once (needed by location; rooms/rate links use ids).
+  const needsSlugs = types.has("location");
   const slugByProperty = new Map<string, string>();
   let primaryProperty: {
     id: string;
@@ -1017,7 +1051,6 @@ export async function assembleSiteDataByType(
           } | null;
           if (!room || room.is_active === false || room.deleted_at) return null;
           usedProps.add(room.property_id);
-          const slug = slugByProperty.get(room.property_id) ?? "";
           const price = ov.display_price ?? room.base_price;
           // A few facts derived from the live room (cosmetic — no booking impact).
           const facts: string[] = [];
@@ -1035,7 +1068,10 @@ export async function assembleSiteDataByType(
             currency: ov.display_currency || room.currency || "ZAR",
             description: ov.display_desc?.trim() || room.description,
             imageUrl: photoByRoom.get(room.id) ?? null,
-            bookHref: bookHref(ctx.locale, slug, room.id),
+            bookHref: siteBookHref(ctx, {
+              propertyId: room.property_id,
+              roomId: room.id,
+            }),
             featured: ov.featured ?? false,
             badge: ov.badge?.trim() || null,
             facts,

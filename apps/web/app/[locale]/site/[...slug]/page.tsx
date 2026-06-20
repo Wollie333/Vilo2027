@@ -49,6 +49,7 @@ export default async function SiteSlugPage({
       pathSlug={slug ?? []}
       preview={sp?.preview === "1"}
       themeSlug={sp?.theme}
+      siteParam={sp?.site}
     />
   );
 }

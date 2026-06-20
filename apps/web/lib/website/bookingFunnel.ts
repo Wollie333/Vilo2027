@@ -63,14 +63,15 @@ export type WebsiteAvailabilityResult =
   | { ok: true; unavailable: string[] }
   | { ok: false; error: string };
 
-type AdminClient = ReturnType<typeof createAdminClient>;
+export type AdminClient = ReturnType<typeof createAdminClient>;
 
 /**
  * Anti-tamper gate: confirm `propertyId` is a visible channel member of
  * `websiteId`. Returns the property's slug + currency for the deep-link/quote, or
- * null when the property isn't bookable through this site.
+ * null when the property isn't bookable through this site. Shared by the funnel
+ * endpoints AND the on-site checkout (lib/website/siteCheckout.ts).
  */
-async function resolveSiteProperty(
+export async function resolveSiteProperty(
   admin: AdminClient,
   websiteId: string,
   propertyId: string,

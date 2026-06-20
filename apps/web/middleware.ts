@@ -28,10 +28,19 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_ROOT_DOMAIN,
   );
   if (host.kind === "site") {
-    const url = request.nextUrl.clone();
-    url.pathname = siteRewritePath(pathname, routing.defaultLocale);
     const headers = new Headers(request.headers);
     headers.set("x-vilo-site-host", host.ref);
+    // Global route-handler trees (api workers, auth, ical, unsubscribe, quote,
+    // /r) are NOT part of the per-site page tree — rewriting them into
+    // /<locale>/site/* would 404. Let them reach their real handlers, just tagged
+    // with the site host so a handler can resolve which tenant called it (the
+    // on-site checkout + website form/funnel endpoints rely on this). SEO files
+    // DO have per-site routes, so they still get rewritten below.
+    if (FUNCTIONAL.test(pathname)) {
+      return NextResponse.next({ request: { headers } });
+    }
+    const url = request.nextUrl.clone();
+    url.pathname = siteRewritePath(pathname, routing.defaultLocale);
     return NextResponse.rewrite(url, { request: { headers } });
   }
 

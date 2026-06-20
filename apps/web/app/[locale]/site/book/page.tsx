@@ -1,0 +1,163 @@
+import { headers } from "next/headers";
+import { notFound } from "next/navigation";
+
+import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
+import { hostHasValidEft } from "@/lib/payments/eft";
+import { getHostPaystackForBusiness } from "@/lib/payments/host-paystack";
+import {
+  cancellationNote,
+  type ListingPolicySummary,
+} from "@/lib/policy/listing-summary";
+import { loadSiteContext, resolveSiteRef } from "@/lib/site/loadSitePage";
+import { siteSurfaceIsDark } from "@/lib/site/themes";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+import { SiteCheckoutForm, type CheckoutRoom } from "./SiteCheckoutForm";
+
+export const dynamic = "force-dynamic";
+
+type SP = {
+  site?: string;
+  property?: string;
+  slug?: string;
+  room?: string;
+  from?: string;
+  to?: string;
+  guests?: string;
+  scope?: string;
+};
+
+const isIso = (v?: string) => Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
+
+/**
+ * On-site checkout (Phase 6B/c) — runs on the host's own tenant domain. Loads the
+ * chosen property + rooms (membership-gated to the site's visible channel
+ * members) and the host's payment options, then renders the themed checkout form.
+ * Pricing/availability/payment all resolve server-side via the shared booking
+ * engine (the client is never trusted on price). 404s if the property isn't a
+ * visible member of this site.
+ */
+export default async function SiteBookPage({
+  searchParams,
+}: {
+  searchParams: Promise<SP>;
+}) {
+  const sp = await searchParams;
+  const h = await headers();
+  const ref = resolveSiteRef({
+    host: h.get("x-vilo-site-host"),
+    siteParam: sp?.site,
+  });
+  if (!ref) notFound();
+
+  const ctx = await loadSiteContext(ref, { siteParam: sp?.site });
+  if (!ctx) notFound();
+
+  const admin = createAdminClient();
+
+  // Resolve the target property from ?property (id) or ?slug, defaulting to the
+  // site's primary visible property. It MUST be a visible channel member.
+  let propertyId = sp?.property?.trim() || "";
+  if (!propertyId && sp?.slug) {
+    const { data: bySlug } = await admin
+      .from("properties")
+      .select("id")
+      .eq("slug", sp.slug.trim())
+      .maybeSingle();
+    if (bySlug) propertyId = bySlug.id;
+  }
+  if (!propertyId) propertyId = ctx.propertyIds[0] ?? "";
+  if (!propertyId || !ctx.propertyIds.includes(propertyId)) notFound();
+
+  const { data: property } = await admin
+    .from("properties")
+    .select(
+      "id, business_id, host_id, name, currency, base_price, max_guests, min_nights, booking_mode, is_published",
+    )
+    .eq("id", propertyId)
+    .maybeSingle();
+  if (!property || !property.is_published) notFound();
+
+  const { data: roomRows } = await admin
+    .from("property_rooms")
+    .select(
+      "id, name, base_price, currency, max_guests, min_guests, min_nights",
+    )
+    .eq("property_id", propertyId)
+    .is("deleted_at", null)
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+
+  const rooms: CheckoutRoom[] = (roomRows ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    price: r.base_price == null ? null : Number(r.base_price),
+    currency: (r.currency as string | null) || property.currency || "ZAR",
+    maxGuests: r.max_guests ?? 1,
+    minGuests: r.min_guests ?? 1,
+    minNights: r.min_nights ?? 1,
+  }));
+
+  // Payment rails — card when the host has connected Paystack, EFT when a valid
+  // default account exists. Both resolved server-side.
+  const [cardPaystack, eftAvailable] = await Promise.all([
+    property.business_id
+      ? getHostPaystackForBusiness(property.business_id)
+      : Promise.resolve(null),
+    hostHasValidEft(property.host_id),
+  ]);
+
+  // Cancellation note (best-effort) via the policy resolver RPC.
+  let cancellation: { title: string; note: string } | null = null;
+  try {
+    const { data: summary } = await admin.rpc("get_listing_policy_summary", {
+      p_listing_id: propertyId,
+    });
+    if (summary)
+      cancellation = cancellationNote(
+        summary as unknown as ListingPolicySummary,
+      );
+  } catch {
+    cancellation = null;
+  }
+
+  return (
+    <SiteThemeRoot theme={ctx.theme}>
+      <SiteChrome
+        brand={ctx.brand}
+        nav={ctx.nav}
+        navigation={ctx.navigation}
+        conversion={ctx.conversion}
+        popupForm={ctx.popupForm}
+        websiteId={ctx.websiteId}
+        darkChrome={siteSurfaceIsDark(ctx.theme)}
+        header={ctx.theme.header}
+        footer={ctx.theme.footer}
+      >
+        <SiteCheckoutForm
+          websiteId={ctx.websiteId}
+          propertyId={property.id}
+          propertyName={property.name}
+          currency={property.currency || "ZAR"}
+          maxGuests={property.max_guests ?? 10}
+          basePrice={
+            property.base_price == null ? null : Number(property.base_price)
+          }
+          bookingMode={property.booking_mode ?? "whole_listing"}
+          rooms={rooms}
+          cardAvailable={Boolean(cardPaystack)}
+          eftAvailable={eftAvailable}
+          cancellation={cancellation}
+          initial={{
+            from: isIso(sp?.from) ? sp!.from! : "",
+            to: isIso(sp?.to) ? sp!.to! : "",
+            guests: Math.max(1, Number(sp?.guests) || 2),
+            roomId: sp?.room?.trim() || null,
+            scope: sp?.scope === "whole_listing" ? "whole_listing" : null,
+          }}
+        />
+      </SiteChrome>
+    </SiteThemeRoot>
+  );
+}
