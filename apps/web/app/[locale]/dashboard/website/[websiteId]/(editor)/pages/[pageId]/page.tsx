@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { loadPageBuilder } from "./loadPageBuilder";
+import { A11yCard } from "./_components/A11yCard";
 import { PageSeoCard } from "./_components/PageSeoCard";
 import { SectionBuilder } from "./_components/SectionBuilder";
 
@@ -51,12 +52,16 @@ export default async function WebsitePageBuilder({
         fallbackTitle={title}
         slug={data.page.slug}
         bodyText={data.bodyText}
+        domain={data.subdomain}
+        ogImageUrl={data.ogImageUrl}
         initial={{
           title: data.page.seo.title ?? "",
           description: data.page.seo.description ?? "",
           focusKeyword: data.page.seo.focusKeyword ?? "",
         }}
       />
+
+      <A11yCard sections={data.sections} />
 
       <SectionBuilder
         websiteId={websiteId}

@@ -9,6 +9,7 @@ import {
 import type { SiteDataByType } from "@/lib/site/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
+import { websiteAssetUrl } from "@/lib/website/assets";
 import {
   AUTO_POPULATE_SECTIONS,
   parseSectionsLoose,
@@ -24,6 +25,8 @@ import {
 export type PageBuilderData = {
   websiteId: string;
   subdomain: string;
+  /** Site-level OG share image (for the social preview). */
+  ogImageUrl?: string;
   page: {
     id: string;
     kind: string;
@@ -61,7 +64,7 @@ export async function loadPageBuilder(
 
   const { data: site } = await supabase
     .from("host_websites")
-    .select("id, subdomain")
+    .select("id, subdomain, seo")
     .eq("id", websiteId)
     .eq("host_id", hostId)
     .is("deleted_at", null)
@@ -111,6 +114,10 @@ export async function loadPageBuilder(
   return {
     websiteId,
     subdomain: site.subdomain,
+    ogImageUrl:
+      websiteAssetUrl(
+        (site.seo as { og_image_path?: string } | null)?.og_image_path,
+      ) ?? undefined,
     page: {
       id: pageRow.id,
       kind: pageRow.kind,

@@ -11,6 +11,7 @@ import { savePageSeoAction } from "@/app/[locale]/dashboard/website/actions";
 
 import { TextArea, TextField } from "./fields";
 import { SeoAnalysis } from "./SeoAnalysis";
+import { SocialPreview } from "./SocialPreview";
 
 /**
  * Collapsible per-page SEO override editor (Phase 6). Surfaces
@@ -23,6 +24,8 @@ export function PageSeoCard({
   fallbackTitle,
   slug,
   bodyText,
+  domain,
+  ogImageUrl,
   initial,
 }: {
   websiteId: string;
@@ -30,6 +33,8 @@ export function PageSeoCard({
   fallbackTitle: string;
   slug?: string;
   bodyText?: string;
+  domain?: string;
+  ogImageUrl?: string;
   initial: { title: string; description: string; focusKeyword: string };
 }) {
   const t = useTranslations("website");
@@ -87,6 +92,12 @@ export function PageSeoCard({
               {description.trim() || t("pageSeoDescFallback")}
             </p>
           </div>
+          <SocialPreview
+            title={previewTitle}
+            description={description.trim() || t("pageSeoDescFallback")}
+            domain={domain}
+            imageUrl={ogImageUrl}
+          />
           <TextField
             label={t("pageSeoTitleLabel")}
             value={title}
