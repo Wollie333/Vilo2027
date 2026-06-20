@@ -35,6 +35,7 @@ import type {
   SiteData,
   SiteDataByType,
   SiteNavItem,
+  SiteNavigation,
   SnapshotRoom,
   SpecialCard,
 } from "./types";
@@ -55,6 +56,8 @@ export type SiteContext = {
   /** Site-level SEO config (title/description/og_image_path/robots/sitemap/gsc). */
   seo: Record<string, unknown>;
   nav: SiteNavItem[];
+  /** Navigation config (top bar, header CTA/behaviour, footer extras). */
+  navigation: SiteNavigation;
   /** Ordered, visible property ids for this site (channel membership). */
   propertyIds: string[];
   /**
@@ -111,7 +114,7 @@ export async function loadSiteContext(
   const { data: site } = await sb
     .from("host_websites")
     .select(
-      "id, business_id, status, subdomain, custom_domain, brand, theme, seo, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
+      "id, business_id, status, subdomain, custom_domain, brand, theme, seo, navigation, published_snapshot, deleted_at, business:businesses ( default_language, trading_name )",
     )
     .or(`subdomain.eq.${ref},custom_domain.eq.${ref}`)
     .is("deleted_at", null)
@@ -124,6 +127,7 @@ export async function loadSiteContext(
       brand: Record<string, unknown> | null;
       theme: Record<string, unknown> | null;
       seo: Record<string, unknown> | null;
+      navigation: Record<string, unknown> | null;
       published_snapshot: PublishSnapshot | null;
       business: {
         default_language: string | null;
@@ -185,6 +189,9 @@ export async function loadSiteContext(
     theme = (snap?.theme ?? site.theme ?? {}) as SiteThemeConfig;
   }
   const seo = (snap?.seo ?? site.seo ?? {}) as Record<string, unknown>;
+  const navigation = (snap?.navigation ??
+    site.navigation ??
+    {}) as SiteNavigation;
 
   let nav: SiteNavItem[];
   let propertyIds: string[];
@@ -232,6 +239,7 @@ export async function loadSiteContext(
     theme,
     seo,
     nav,
+    navigation,
     propertyIds,
     publishedRoomRows,
     publishedPropertyOverrides,

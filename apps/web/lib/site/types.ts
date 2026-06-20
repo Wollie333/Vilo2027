@@ -44,6 +44,29 @@ export type SiteNavItem = {
   href: string; // path within the site (e.g. "/", "/about")
 };
 
+// Navigation config (host_websites.navigation). All optional so the renderer can
+// apply sensible defaults; the menu builder extends this later.
+export type SiteTopBar = {
+  enabled?: boolean;
+  phone?: string | null;
+  whatsapp?: string | null;
+  email?: string | null;
+  message?: string | null;
+};
+export type SiteNavigation = {
+  topBar?: SiteTopBar;
+  header?: {
+    ctaLabel?: string | null;
+    ctaHref?: string | null;
+    sticky?: boolean; // default true
+    transparentOverHero?: boolean;
+  };
+  footer?: {
+    showPoweredBy?: boolean; // default true
+    copyright?: string | null;
+  };
+};
+
 // ── Per-section live data (auto-populate sections only) ───────
 export type GalleryImage = { url: string; caption?: string | null };
 export type GalleryData = { images: GalleryImage[] };
@@ -180,6 +203,8 @@ export type PublishSnapshot = {
   theme: Record<string, unknown>;
   seo: Record<string, unknown>;
   nav: SiteNavItem[];
+  /** Navigation config (top bar, header CTA/behaviour, footer extras). */
+  navigation?: SiteNavigation;
   propertyIds: string[];
   rooms: SnapshotRoom[];
   /** Per-property rooms-section overrides, keyed by property id. */

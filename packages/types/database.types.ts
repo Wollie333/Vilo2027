@@ -3539,6 +3539,7 @@ export type Database = {
           domain_status: string
           host_id: string
           id: string
+          navigation: Json
           published_at: string | null
           published_snapshot: Json | null
           saved_sections: Json
@@ -3561,6 +3562,7 @@ export type Database = {
           domain_status?: string
           host_id: string
           id?: string
+          navigation?: Json
           published_at?: string | null
           published_snapshot?: Json | null
           saved_sections?: Json
@@ -3583,6 +3585,7 @@ export type Database = {
           domain_status?: string
           host_id?: string
           id?: string
+          navigation?: Json
           published_at?: string | null
           published_snapshot?: Json | null
           saved_sections?: Json

@@ -54,6 +54,7 @@ import {
   saveBlogAuthorsSchema,
   savePageSeoSchema,
   savePagesSchema,
+  saveNavigationSchema,
   saveSavedSectionSchema,
   deleteSavedSectionSchema,
   savedSectionsSchema,
@@ -69,6 +70,7 @@ import {
   type SaveRestorePointInput,
   type CreatePageInput,
   type PageTemplate,
+  type SaveNavigationInput,
   type SaveSavedSectionInput,
   type DeleteSavedSectionInput,
   type CreateWebsiteInput,
@@ -824,6 +826,28 @@ export async function saveDraftSectionsAction(
   if (error) return { ok: false, error: "save_failed" };
 
   revalidatePath(`/dashboard/website/${websiteId}/pages/${pageId}`);
+  return { ok: true };
+}
+
+/** Save the site navigation config (top bar, header CTA/behaviour, footer). */
+export async function saveNavigationAction(
+  input: SaveNavigationInput,
+): Promise<ActionResult> {
+  const parsed = saveNavigationSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "invalid" };
+  const { websiteId, navigation } = parsed.data;
+
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("host_websites")
+    .update({ navigation })
+    .eq("id", websiteId);
+  if (error) return { ok: false, error: "save_failed" };
+
+  revalidatePath(`/dashboard/website/${websiteId}`);
   return { ok: true };
 }
 

@@ -4,6 +4,7 @@ import {
   Instagram,
   Linkedin,
   Mail,
+  MessageCircle,
   Phone,
   Twitter,
   Youtube,
@@ -18,7 +19,12 @@ import {
   type SiteHeaderConfig,
   type SiteHeaderLayout,
 } from "@/lib/site/themes";
-import type { SiteBrand, SiteNavItem } from "@/lib/site/types";
+import type {
+  SiteBrand,
+  SiteNavItem,
+  SiteNavigation,
+  SiteTopBar,
+} from "@/lib/site/types";
 
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
@@ -131,7 +137,7 @@ function Logo({
   );
 }
 
-function BookCta({ href }: { href: string }) {
+function BookCta({ href, label }: { href: string; label?: string }) {
   return (
     <a
       href={href}
@@ -144,8 +150,59 @@ function BookCta({ href }: { href: string }) {
       }}
       className="shrink-0 px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
     >
-      Book now
+      {label || "Book now"}
     </a>
+  );
+}
+
+/** Thin contact/announcement strip above the header (phone / WhatsApp / email). */
+function TopBar({ bar }: { bar: SiteTopBar }) {
+  const phone = bar.phone?.trim();
+  const wa = bar.whatsapp?.trim();
+  const email = bar.email?.trim();
+  const msg = bar.message?.trim();
+  if (!phone && !wa && !email && !msg) return null;
+  const waHref = wa ? `https://wa.me/${wa.replace(/[^\d]/g, "")}` : null;
+  return (
+    <div
+      style={{ background: "var(--site-ink)", color: "var(--site-bg)" }}
+      className="px-5 py-1.5 text-xs"
+    >
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-5 gap-y-1 sm:justify-between">
+        {msg ? <span className="font-medium">{msg}</span> : <span />}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {phone ? (
+            <a
+              href={`tel:${phone}`}
+              className="inline-flex items-center gap-1 hover:opacity-80"
+            >
+              <Phone className="h-3 w-3" />
+              {phone}
+            </a>
+          ) : null}
+          {waHref ? (
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:opacity-80"
+            >
+              <MessageCircle className="h-3 w-3" />
+              WhatsApp
+            </a>
+          ) : null}
+          {email ? (
+            <a
+              href={`mailto:${email}`}
+              className="inline-flex items-center gap-1 hover:opacity-80"
+            >
+              <Mail className="h-3 w-3" />
+              {email}
+            </a>
+          ) : null}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -281,6 +338,7 @@ function HeaderInner({
   brand,
   nav,
   bookHref,
+  bookLabel,
   dark,
   preview,
 }: {
@@ -288,6 +346,7 @@ function HeaderInner({
   brand: SiteBrand;
   nav: SiteNavItem[];
   bookHref?: string;
+  bookLabel?: string;
   dark?: boolean;
   preview?: { subdomain: string; themeSlug?: string };
 }) {
@@ -301,7 +360,7 @@ function HeaderInner({
             className="flex flex-wrap items-center gap-x-6 gap-y-2"
             preview={preview}
           />
-          {bookHref ? <BookCta href={bookHref} /> : null}
+          {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
         </div>
       </div>
     );
@@ -310,7 +369,7 @@ function HeaderInner({
     return (
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-4">
         <Logo brand={brand} dark={dark} preview={preview} />
-        {bookHref ? <BookCta href={bookHref} /> : null}
+        {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
       </div>
     );
   }
@@ -323,7 +382,7 @@ function HeaderInner({
         className="flex items-center gap-6"
         preview={preview}
       />
-      {bookHref ? <BookCta href={bookHref} /> : null}
+      {bookHref ? <BookCta href={bookHref} label={bookLabel} /> : null}
     </div>
   );
 }
@@ -431,6 +490,7 @@ export function SiteChrome({
   header = DEFAULT_HEADER,
   footer = DEFAULT_FOOTER,
   preview,
+  navigation = {},
   children,
 }: {
   brand: SiteBrand;
@@ -443,8 +503,13 @@ export function SiteChrome({
   footer?: SiteFooterConfig;
   /** Preview mode context — shows banner and preserves params in nav links. */
   preview?: { subdomain: string; themeSlug?: string };
+  navigation?: SiteNavigation;
   children: ReactNode;
 }) {
+  const bookLabel = navigation.header?.ctaLabel?.trim() || undefined;
+  const effectiveBookHref = navigation.header?.ctaHref?.trim() || bookHref;
+  const sticky = navigation.header?.sticky !== false;
+  const topBar = navigation.topBar;
   return (
     <div className="flex min-h-screen flex-col">
       {analyticsWebsiteId ? (
@@ -459,19 +524,22 @@ export function SiteChrome({
         />
       ) : null}
 
+      {topBar?.enabled ? <TopBar bar={topBar} /> : null}
+
       <header
         style={{
           background: "var(--site-surface)",
           borderColor: "var(--site-line)",
         }}
-        className="sticky top-0 z-20 border-b"
+        className={`${sticky ? "sticky top-0 z-20" : ""}border-b`}
       >
         <div className="hidden md:block">
           <HeaderInner
             variant={header.desktop}
             brand={brand}
             nav={nav}
-            bookHref={bookHref}
+            bookHref={effectiveBookHref}
+            bookLabel={bookLabel}
             dark={darkChrome}
             preview={preview}
           />
@@ -481,7 +549,8 @@ export function SiteChrome({
             variant={header.mobile}
             brand={brand}
             nav={nav}
-            bookHref={bookHref}
+            bookHref={effectiveBookHref}
+            bookLabel={bookLabel}
             dark={darkChrome}
             preview={preview}
           />
@@ -513,6 +582,16 @@ export function SiteChrome({
             preview={preview}
           />
         </div>
+        {navigation.footer?.showPoweredBy !== false ? (
+          <div style={{ borderColor: "var(--site-line)" }} className="border-t">
+            <p
+              style={{ color: "var(--site-mute)" }}
+              className="mx-auto w-full max-w-5xl px-5 py-3 text-center text-[11px]"
+            >
+              Powered by Vilo
+            </p>
+          </div>
+        ) : null}
       </footer>
     </div>
   );

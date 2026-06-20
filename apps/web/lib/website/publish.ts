@@ -5,6 +5,7 @@ import type {
   PropertyOverride,
   PublishSnapshot,
   SiteNavItem,
+  SiteNavigation,
   SnapshotRoom,
 } from "@/lib/site/types";
 import type { createAdminClient } from "@/lib/supabase/admin";
@@ -79,7 +80,7 @@ export async function buildWebsiteSnapshot(
     await Promise.all([
       sb
         .from("host_websites")
-        .select("brand, theme, seo")
+        .select("brand, theme, seo, navigation")
         .eq("id", websiteId)
         .maybeSingle(),
       sb
@@ -127,6 +128,8 @@ export async function buildWebsiteSnapshot(
     theme: (site?.theme ?? {}) as Record<string, unknown>,
     seo: (site?.seo ?? {}) as Record<string, unknown>,
     nav,
+    navigation: ((site as { navigation?: unknown })?.navigation ??
+      {}) as SiteNavigation,
     propertyIds: (props ?? []).map((p) => p.property_id),
     rooms: normaliseRooms(rooms),
     propertyOverrides,

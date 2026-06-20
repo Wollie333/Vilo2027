@@ -540,6 +540,40 @@ export const deleteSavedSectionSchema = z.object({
 });
 export type DeleteSavedSectionInput = z.infer<typeof deleteSavedSectionSchema>;
 
+// --- Navigation (top bar, header CTA/behaviour, footer extras) ---
+export const navigationSchema = z.object({
+  topBar: z
+    .object({
+      enabled: z.boolean().default(false),
+      phone: z.string().trim().max(40).optional(),
+      whatsapp: z.string().trim().max(40).optional(),
+      email: z.string().trim().max(200).optional(),
+      message: z.string().trim().max(160).optional(),
+    })
+    .default({ enabled: false }),
+  header: z
+    .object({
+      ctaLabel: z.string().trim().max(40).optional(),
+      ctaHref: z.string().trim().max(500).optional(),
+      sticky: z.boolean().default(true),
+      transparentOverHero: z.boolean().default(false),
+    })
+    .default({ sticky: true, transparentOverHero: false }),
+  footer: z
+    .object({
+      showPoweredBy: z.boolean().default(true),
+      copyright: z.string().trim().max(160).optional(),
+    })
+    .default({ showPoweredBy: true }),
+});
+export type NavigationConfig = z.infer<typeof navigationSchema>;
+
+export const saveNavigationSchema = z.object({
+  websiteId: z.string().uuid(),
+  navigation: navigationSchema,
+});
+export type SaveNavigationInput = z.infer<typeof saveNavigationSchema>;
+
 // One page's nav state as edited in the manager — order is derived from the array
 // index, so a reorder persists. `navLabel` blank falls back to the page title.
 export const pageNavSchema = z.object({
