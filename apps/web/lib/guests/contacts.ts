@@ -35,6 +35,8 @@ export type UpsertHostContactInput = {
   lastStage?: string | null;
   /** POPIA: may only ever be turned ON (write-once); never used to revoke. */
   emailConsent?: boolean;
+  /** Tags to ADD (merge-only, deduped) — never removes existing tags. */
+  addTags?: string[];
   mode?: "fill" | "overwrite";
 };
 
@@ -104,6 +106,11 @@ export async function upsertHostContact(
     if (input.lastStage) patch.last_stage = input.lastStage;
     if (guestId && !existing.guest_id) patch.guest_id = guestId;
     if (input.emailConsent) patch.email_consent = true;
+    if (input.addTags && input.addTags.length > 0) {
+      const current = existing.tags ?? [];
+      const merged = Array.from(new Set([...current, ...input.addTags]));
+      if (merged.length !== current.length) patch.tags = merged;
+    }
 
     if (Object.keys(patch).length === 0) return existing as UpsertedContact;
 
@@ -128,6 +135,9 @@ export async function upsertHostContact(
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.lastStage ? { last_stage: input.lastStage } : {}),
       ...(input.emailConsent ? { email_consent: true } : {}),
+      ...(input.addTags && input.addTags.length > 0
+        ? { tags: input.addTags }
+        : {}),
     })
     .select(COLS)
     .maybeSingle();

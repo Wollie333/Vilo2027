@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 4 form builder — slice 3 (newsletter → CRM)
+
+### Added
+- **Newsletter routing** — a `newsletter`-type form submission now upserts the
+  email into the host's CRM (`host_contacts`) with a `newsletter` tag and
+  marketing consent (`email_consent`), and opens NO inbox conversation. A blocked
+  contact is respected (no re-engagement). The submission is still persisted to
+  `website_form_submissions` for the responses view.
+- **`upsertHostContact` gains `addTags`** — a merge-only (never-removes, deduped)
+  tag option, so the canonical contact writer stays the single path. No DB schema
+  change. tsc + lint green.
+
 ## 2026-06-20 — Website CMS: Phase 4 form builder — slice 2 (public render + submit)
 
 Public side of the form builder — a host can now drop a built form onto any page

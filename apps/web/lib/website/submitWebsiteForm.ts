@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { createWebsiteEnquiry } from "@/lib/website/createWebsiteEnquiry";
+import { upsertHostContact } from "@/lib/guests/contacts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   formFieldsSchema,
@@ -123,21 +124,54 @@ export async function submitWebsiteForm(
   // host notify + optional email). Newsletter → CRM contacts is slice 3.
   const emailField = fields.data.find((f) => f.type === "email");
   const email = emailField ? validated.clean[emailField.id] : undefined;
+
+  // Best-guess sender name/phone from the submitted fields (shared by both the
+  // inbox and newsletter routes below).
+  const nameField = fields.data.find(
+    (f) => f.type === "text" && validated.clean[f.id],
+  );
+  const phoneField = fields.data.find((f) => f.type === "phone");
+  const phone = phoneField ? validated.clean[phoneField.id] : undefined;
+
+  // NEWSLETTER — add the email to the host's CRM contacts (tag `newsletter` +
+  // marketing consent), no inbox conversation. Respects a blocked contact.
+  if (formType === "newsletter" && email) {
+    const { data: site } = await admin
+      .from("host_websites")
+      .select("host_id")
+      .eq("id", d.website_id)
+      .maybeSingle();
+    if (site?.host_id) {
+      const { data: existing } = await admin
+        .from("host_contacts")
+        .select("blocked")
+        .eq("host_id", site.host_id)
+        .ilike("email", email)
+        .maybeSingle();
+      if (!existing?.blocked) {
+        await upsertHostContact(admin, {
+          hostId: site.host_id,
+          email,
+          name: nameField ? validated.clean[nameField.id] : null,
+          phone: phone ?? null,
+          emailConsent: true,
+          addTags: ["newsletter"],
+        });
+      }
+    }
+    return { ok: true, data: {} };
+  }
+
   const wantsInbox =
     formType !== "newsletter" && settings.notifyInbox && Boolean(email);
 
   let conversationId: string | undefined;
   if (wantsInbox && email) {
-    // Best-guess sender name: first text field value, else the email local part.
-    const nameField = fields.data.find(
-      (f) => f.type === "text" && validated.clean[f.id],
-    );
+    // Sender name: first text field value, else the email local part.
     const guessedName = (
       nameField ? validated.clean[nameField.id] : email.split("@")[0]
     ).trim();
     const name = guessedName.length >= 2 ? guessedName : "Website visitor";
-    const phoneField = fields.data.find((f) => f.type === "phone");
-    const phone = phoneField ? validated.clean[phoneField.id] : undefined;
 
     // Readable message = every answered field as "Label: value" lines, so the
     // host sees the whole submission in the inbox thread.
