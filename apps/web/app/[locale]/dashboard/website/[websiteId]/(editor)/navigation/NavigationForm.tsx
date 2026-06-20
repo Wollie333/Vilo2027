@@ -134,6 +134,14 @@ export function NavigationForm({
           checked={nav.header.sticky}
           onChange={(v) => setHeader({ sticky: v })}
         />
+        <ToggleField
+          label={t("navTransparent")}
+          checked={nav.header.transparentOverHero}
+          onChange={(v) => setHeader({ transparentOverHero: v })}
+        />
+        <p className="text-[12px] leading-snug text-brand-mute">
+          {t("navTransparentHint")}
+        </p>
       </section>
 
       {/* Footer */}

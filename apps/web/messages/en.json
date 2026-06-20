@@ -1390,6 +1390,8 @@
     "navCtaHref": "Button link",
     "navCtaHrefHint": "Where the header button goes (defaults to your booking link).",
     "navSticky": "Keep the header visible on scroll",
+    "navTransparent": "Transparent header over the hero",
+    "navTransparentHint": "Best for pages that start with a full-width hero image; the header fades in on scroll.",
     "navFooterTitle": "Footer",
     "navPoweredBy": "Show “Powered by Vilo”",
     "navCopyright": "Copyright line",

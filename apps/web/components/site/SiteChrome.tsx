@@ -31,6 +31,7 @@ import type {
 
 import { PreviewBanner } from "./PreviewBanner";
 import { SiteAnalytics } from "./SiteAnalytics";
+import { StickyHeader } from "./StickyHeader";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -662,6 +663,8 @@ export function SiteChrome({
     href: m.href,
   }));
   const footerColumns = navigation.footer?.columns ?? [];
+  const transparentOver = navigation.header?.transparentOverHero === true;
+  const headerDark = transparentOver || darkChrome;
   return (
     <div className="flex min-h-screen flex-col">
       {analyticsWebsiteId ? (
@@ -678,13 +681,7 @@ export function SiteChrome({
 
       {topBar?.enabled ? <TopBar bar={topBar} /> : null}
 
-      <header
-        style={{
-          background: "var(--site-surface)",
-          borderColor: "var(--site-line)",
-        }}
-        className={`${sticky ? "sticky top-0 z-20" : ""}border-b`}
-      >
+      <StickyHeader sticky={sticky} transparent={transparentOver}>
         <div className="hidden md:block">
           <HeaderInner
             variant={header.desktop}
@@ -692,7 +689,7 @@ export function SiteChrome({
             menu={menu}
             bookHref={effectiveBookHref}
             bookLabel={bookLabel}
-            dark={darkChrome}
+            dark={headerDark}
             preview={preview}
           />
         </div>
@@ -703,11 +700,11 @@ export function SiteChrome({
             menu={menu}
             bookHref={effectiveBookHref}
             bookLabel={bookLabel}
-            dark={darkChrome}
+            dark={headerDark}
             preview={preview}
           />
         </div>
-      </header>
+      </StickyHeader>
 
       <main className="flex-1">{children}</main>
 
