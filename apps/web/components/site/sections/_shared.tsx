@@ -134,14 +134,24 @@ export function Card({
 }
 
 export function Stars({ rating }: { rating: number }) {
-  const full = Math.round(Math.max(0, Math.min(5, rating)));
+  const r = Math.max(0, Math.min(5, rating));
+  const pct = (r / 5) * 100;
+  // Overlay technique: a clipped accent layer over a muted track gives precise
+  // fractional fill (e.g. 4.4 → 88%) instead of rounding to whole stars.
   return (
     <span
-      aria-label={`${full} out of 5`}
-      style={{ color: "var(--site-accent)" }}
+      aria-label={`${r.toFixed(1)} out of 5`}
+      className="relative inline-block whitespace-nowrap"
+      style={{ color: "var(--site-line)" }}
     >
-      {"★★★★★".slice(0, full)}
-      <span style={{ color: "var(--site-line)" }}>{"★★★★★".slice(full)}</span>
+      {"★★★★★"}
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 overflow-hidden"
+        style={{ width: `${pct}%`, color: "var(--site-accent)" }}
+      >
+        {"★★★★★"}
+      </span>
     </span>
   );
 }
