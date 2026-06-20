@@ -40,7 +40,10 @@ import {
   duplicatePageAction,
   savePagesAction,
 } from "@/app/[locale]/dashboard/website/actions";
-import { PAGE_TEMPLATES } from "@/app/[locale]/dashboard/website/schemas";
+import {
+  PAGE_TEMPLATES,
+  PAGE_TEMPLATE_SECTIONS,
+} from "@/app/[locale]/dashboard/website/schemas";
 import {
   FormModal,
   FormModalCancel,
@@ -439,22 +442,32 @@ function AddPageModal({
           <span className="block text-[13px] font-semibold text-brand-ink">
             {t("pageTemplate")}
           </span>
-          <div className="mt-1.5 grid gap-2 sm:grid-cols-3">
+          <div className="mt-1.5 grid gap-2.5 sm:grid-cols-2">
             {PAGE_TEMPLATES.map((tpl) => (
               <button
                 key={tpl}
                 type="button"
                 onClick={() => setTemplate(tpl)}
-                className={`rounded-[10px] border px-3 py-2.5 text-left text-[13px] transition ${
+                className={`rounded-[10px] border p-2.5 text-left transition ${
                   template === tpl
                     ? "border-brand-primary bg-brand-light"
                     : "border-brand-line bg-white hover:bg-brand-light"
                 }`}
               >
-                <span className="block font-semibold text-brand-ink">
+                <div className="mb-2 flex flex-col gap-1 rounded-[8px] border border-brand-line bg-brand-light/40 p-1.5">
+                  {PAGE_TEMPLATE_SECTIONS[tpl].slice(0, 5).map((type, i) => (
+                    <div
+                      key={i}
+                      className="truncate rounded bg-white px-1.5 py-1 text-[10px] font-medium text-brand-mute"
+                    >
+                      {t(`sectionType_${type}`)}
+                    </div>
+                  ))}
+                </div>
+                <span className="block text-[13px] font-semibold text-brand-ink">
                   {t(`pageTemplate_${tpl}`)}
                 </span>
-                <span className="mt-0.5 block text-[11.5px] text-brand-mute">
+                <span className="mt-0.5 block text-[11.5px] leading-snug text-brand-mute">
                   {t(`pageTemplateDesc_${tpl}`)}
                 </span>
               </button>

@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { sectionsSchema } from "@/lib/website/sections.schema";
+import {
+  sectionsSchema,
+  type SectionType,
+} from "@/lib/website/sections.schema";
 
 // Apply a catalogue theme to a site — `themeId` is a site_themes uuid OR a
 // "preset:<slug>" id for the built-in presets (pre-migration fallback). `fresh`
@@ -481,7 +484,28 @@ export type WebsiteSettingsInput = z.infer<typeof websiteSettingsSchema>;
 
 // --- Multi-page management (Phase 6) ---
 
-export const PAGE_TEMPLATES = ["blank", "about", "contact"] as const;
+export const PAGE_TEMPLATES = [
+  "blank",
+  "about",
+  "contact",
+  "landing",
+  "rooms",
+  "experiences",
+  "gallery",
+] as const;
+export type PageTemplate = (typeof PAGE_TEMPLATES)[number];
+
+/** Section composition per page template — shared by the create-page action
+ *  (builds real sections via newSection) and the picker's preview wireframe. */
+export const PAGE_TEMPLATE_SECTIONS: Record<PageTemplate, SectionType[]> = {
+  blank: ["intro"],
+  about: ["intro", "host_bio", "values"],
+  contact: ["intro", "contact_form"],
+  landing: ["hero", "highlights", "rooms_preview", "reviews", "cta"],
+  rooms: ["intro", "rooms_preview", "amenities", "pricing", "cta"],
+  experiences: ["intro", "highlights", "gallery", "cta"],
+  gallery: ["intro", "gallery"],
+};
 
 export const createPageSchema = z.object({
   websiteId: z.string().uuid(),

@@ -28,6 +28,7 @@ import {
   resolveDefaultThemeId,
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
+import { newSection } from "@/lib/website/sectionDefaults";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
@@ -49,6 +50,7 @@ import {
   saveBlogPostSchema,
   saveDraftSectionsSchema,
   createPageSchema,
+  PAGE_TEMPLATE_SECTIONS,
   saveBlogAuthorsSchema,
   savePageSeoSchema,
   savePagesSchema,
@@ -63,6 +65,7 @@ import {
   type RestorePointIdInput,
   type SaveRestorePointInput,
   type CreatePageInput,
+  type PageTemplate,
   type CreateWebsiteInput,
   type SaveBlogAuthorsInput,
   type SaveBlogCategoriesInput,
@@ -886,64 +889,13 @@ export async function duplicatePageAction(
 // ============================================================
 
 /** Starter sections for a new page, by template — so it never starts empty. */
-function templatePageSections(template: string, title: string) {
-  switch (template) {
-    case "about":
-      return [
-        {
-          id: uuid(),
-          type: "intro",
-          enabled: true,
-          props: {
-            heading: "Our story",
-            body: "Share who you are, why you host, and what guests can expect.",
-          },
-        },
-        {
-          id: uuid(),
-          type: "host_bio",
-          enabled: true,
-          props: {
-            heading: "Meet your host",
-            body: "A few warm lines about you and your team.",
-          },
-        },
-      ];
-    case "contact":
-      return [
-        {
-          id: uuid(),
-          type: "intro",
-          enabled: true,
-          props: {
-            heading: title,
-            body: "We'd love to hear from you.",
-          },
-        },
-        {
-          id: uuid(),
-          type: "contact_form",
-          enabled: true,
-          props: {
-            heading: "Get in touch",
-            body: "Send us a message and we'll reply soon.",
-            submit_label: "Send message",
-            success_message:
-              "Thanks — your message is on its way. We'll be in touch soon.",
-            show_phone: true,
-          },
-        },
-      ];
-    default:
-      return [
-        {
-          id: uuid(),
-          type: "intro",
-          enabled: true,
-          props: { heading: title, body: "Add your content here." },
-        },
-      ];
-  }
+/** Build a new page's starter sections from a template blueprint. newSection
+ *  gives each a complete, valid props object (incl. tone). */
+function templatePageSections(template: string) {
+  const key = (
+    template in PAGE_TEMPLATE_SECTIONS ? template : "blank"
+  ) as PageTemplate;
+  return PAGE_TEMPLATE_SECTIONS[key].map((type) => newSection(type));
 }
 
 /** Create a new custom page (optionally from a starter template) + open it. */
@@ -979,7 +931,7 @@ export async function createPageAction(
       nav_label: title,
       nav_order: nextOrder,
       show_in_nav: true,
-      draft_sections: templatePageSections(template, title),
+      draft_sections: templatePageSections(template),
       published_sections: [],
     })
     .select("id")
