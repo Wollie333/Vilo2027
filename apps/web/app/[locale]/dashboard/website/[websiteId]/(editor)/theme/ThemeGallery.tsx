@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, Eye } from "lucide-react";
+import { Check, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 
 import type { ThemeOption } from "@/lib/site/themes.server";
 
-import { ThemePreviewModal } from "./ThemePreviewModal";
+import { ThemeActivateModal } from "./ThemeActivateModal";
 
 export function ThemeGallery({
   websiteId,
@@ -20,7 +20,9 @@ export function ThemeGallery({
   subdomain: string;
 }) {
   const t = useTranslations("website");
-  const [previewTheme, setPreviewTheme] = useState<ThemeOption | null>(null);
+  const [activateTheme, setActivateTheme] = useState<ThemeOption | null>(null);
+  const previewHref = (slug: string) =>
+    `/site?site=${subdomain}&preview=1&theme=${slug}`;
 
   return (
     <>
@@ -86,16 +88,17 @@ export function ThemeGallery({
                   </span>
                 )}
 
-                {/* Hover overlay with preview button */}
+                {/* Hover overlay — preview opens the live site in a new tab */}
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewTheme(theme)}
+                  <a
+                    href={previewHref(theme.slug)}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-brand-ink shadow-lg transition hover:bg-brand-light"
                   >
-                    <Eye className="h-4 w-4" />
+                    <ExternalLink className="h-4 w-4" />
                     {t("themePreviewBtn")}
-                  </button>
+                  </a>
                 </div>
               </div>
 
@@ -124,39 +127,51 @@ export function ThemeGallery({
                   </p>
                 )}
 
-                {/* Action button */}
-                <button
-                  type="button"
-                  onClick={() => setPreviewTheme(theme)}
-                  className={`w-full rounded-xl py-2.5 text-sm font-semibold transition ${
-                    active
-                      ? "cursor-default bg-green-50 text-green-700"
-                      : "bg-brand-primary text-white hover:opacity-90"
-                  }`}
-                >
-                  {active ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <Check className="h-4 w-4" />
-                      {t("themeCurrentlyActive")}
-                    </span>
-                  ) : (
-                    t("themePreviewActivate")
-                  )}
-                </button>
+                {/* Actions — Preview opens a new tab; Activate confirms */}
+                <div className="flex items-center gap-2">
+                  <a
+                    href={previewHref(theme.slug)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-brand-line bg-white px-3.5 py-2.5 text-sm font-semibold text-brand-ink transition hover:bg-brand-light"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t("themePreviewBtn")}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => !active && setActivateTheme(theme)}
+                    disabled={active}
+                    className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+                      active
+                        ? "cursor-default bg-green-50 text-green-700"
+                        : "bg-brand-primary text-white hover:opacity-90"
+                    }`}
+                  >
+                    {active ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Check className="h-4 w-4" />
+                        {t("themeCurrentlyActive")}
+                      </span>
+                    ) : (
+                      t("themeActivate")
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Preview Modal */}
-      {previewTheme && (
-        <ThemePreviewModal
-          theme={previewTheme}
+      {/* Activate confirmation */}
+      {activateTheme && (
+        <ThemeActivateModal
+          theme={activateTheme}
           websiteId={websiteId}
           subdomain={subdomain}
-          isActive={previewTheme.slug === activeSlug}
-          onClose={() => setPreviewTheme(null)}
+          isActive={activateTheme.slug === activeSlug}
+          onClose={() => setActivateTheme(null)}
         />
       )}
     </>
