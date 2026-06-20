@@ -14,6 +14,7 @@ import {
   parseSectionsLoose,
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
+import { extractSectionsText } from "@/lib/website/seoAnalyzer";
 
 import {
   savedSectionsSchema,
@@ -28,9 +29,11 @@ export type PageBuilderData = {
     kind: string;
     slug: string;
     title: string | null;
-    seo: { title?: string; description?: string };
+    seo: { title?: string; description?: string; focusKeyword?: string };
   };
   sections: WebsiteSection[];
+  /** Flattened section text for the SEO analyzer. */
+  bodyText: string;
   /** Site chrome for the inline preview (same data the public site renders). */
   brand: SiteContext["brand"];
   theme: SiteContext["theme"];
@@ -78,7 +81,11 @@ export async function loadPageBuilder(
       slug: string;
       title: string | null;
       draft_sections: unknown;
-      seo_overrides: { title?: string; description?: string } | null;
+      seo_overrides: {
+        title?: string;
+        description?: string;
+        focusKeyword?: string;
+      } | null;
     }>();
   if (!pageRow) return null;
 
@@ -112,9 +119,11 @@ export async function loadPageBuilder(
       seo: {
         title: pageRow.seo_overrides?.title,
         description: pageRow.seo_overrides?.description,
+        focusKeyword: pageRow.seo_overrides?.focusKeyword,
       },
     },
     sections,
+    bodyText: extractSectionsText(sections),
     brand: ctx?.brand ?? { name: site.subdomain },
     theme: ctx?.theme ?? {},
     nav: ctx?.nav ?? [],

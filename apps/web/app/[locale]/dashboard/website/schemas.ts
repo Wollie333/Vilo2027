@@ -617,6 +617,7 @@ export const savePageSeoSchema = z.object({
   pageId: z.string().uuid(),
   title: z.string().trim().max(70).default(""),
   description: z.string().trim().max(200).default(""),
+  focusKeyword: z.string().trim().max(60).default(""),
 });
 
 export type SavePageSeoInput = z.infer<typeof savePageSeoSchema>;

@@ -49,9 +49,12 @@ export default async function WebsitePageBuilder({
         websiteId={websiteId}
         pageId={pageId}
         fallbackTitle={title}
+        slug={data.page.slug}
+        bodyText={data.bodyText}
         initial={{
           title: data.page.seo.title ?? "",
           description: data.page.seo.description ?? "",
+          focusKeyword: data.page.seo.focusKeyword ?? "",
         }}
       />
 

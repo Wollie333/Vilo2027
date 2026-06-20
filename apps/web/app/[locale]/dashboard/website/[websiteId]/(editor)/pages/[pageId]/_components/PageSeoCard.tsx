@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { savePageSeoAction } from "@/app/[locale]/dashboard/website/actions";
 
 import { TextArea, TextField } from "./fields";
+import { SeoAnalysis } from "./SeoAnalysis";
 
 /**
  * Collapsible per-page SEO override editor (Phase 6). Surfaces
@@ -20,18 +21,23 @@ export function PageSeoCard({
   websiteId,
   pageId,
   fallbackTitle,
+  slug,
+  bodyText,
   initial,
 }: {
   websiteId: string;
   pageId: string;
   fallbackTitle: string;
-  initial: { title: string; description: string };
+  slug?: string;
+  bodyText?: string;
+  initial: { title: string; description: string; focusKeyword: string };
 }) {
   const t = useTranslations("website");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
+  const [focusKeyword, setFocusKeyword] = useState(initial.focusKeyword);
   const [saving, startSave] = useTransition();
 
   function onSave() {
@@ -41,6 +47,7 @@ export function PageSeoCard({
         pageId,
         title,
         description,
+        focusKeyword,
       });
       if (!res.ok) {
         toast.error(t("saveError"));
@@ -95,6 +102,14 @@ export function PageSeoCard({
             maxLength={200}
             rows={2}
             hint={t("pageSeoDescHint")}
+          />
+          <SeoAnalysis
+            title={title}
+            description={description}
+            focusKeyword={focusKeyword}
+            onFocusKeyword={setFocusKeyword}
+            bodyText={bodyText}
+            slug={slug}
           />
           <button
             type="button"
