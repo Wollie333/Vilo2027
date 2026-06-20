@@ -27,6 +27,7 @@ import { SpecialsPreviewSection } from "./sections/SpecialsPreview";
 import { RichTextSection } from "./sections/RichTextSection";
 import { FaqSection } from "./sections/FaqSection";
 import { ContactFormSection } from "./sections/ContactFormSection";
+import { FormSection } from "./sections/FormSection";
 import { AmenitiesSection } from "./sections/AmenitiesSection";
 import { PricingSection } from "./sections/PricingSection";
 import { VideoSection } from "./sections/VideoSection";
@@ -179,6 +180,15 @@ function SectionSwitch({
       return (
         <ContactFormSection
           props={section.props}
+          websiteId={websiteId}
+          interactive={interactive}
+        />
+      );
+    case "form":
+      return (
+        <FormSection
+          props={section.props}
+          data={dataFor(data, section.id, "form")}
           websiteId={websiteId}
           interactive={interactive}
         />

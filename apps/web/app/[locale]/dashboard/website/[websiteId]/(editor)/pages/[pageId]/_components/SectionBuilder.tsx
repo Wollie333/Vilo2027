@@ -106,6 +106,9 @@ function buildPreviewData(
             data: pool.specials_preview,
           };
         break;
+      case "form":
+        if (pool.form) data[s.id] = { type: "form", data: pool.form };
+        break;
       default:
         break;
     }

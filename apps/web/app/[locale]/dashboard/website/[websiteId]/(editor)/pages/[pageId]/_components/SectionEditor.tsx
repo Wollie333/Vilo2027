@@ -1,7 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { useTranslations } from "next-intl";
 
+import {
+  listWebsiteFormsAction,
+  type WebsiteFormOption,
+} from "@/app/[locale]/dashboard/website/actions";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 
 import {
@@ -585,6 +591,16 @@ function SectionFields({
       );
     }
 
+    case "form":
+      // Hooks (forms-list fetch) live in a child so this switch stays hook-free.
+      return (
+        <FormFieldsEditor
+          websiteId={websiteId}
+          section={section}
+          onChange={onChange}
+        />
+      );
+
     case "cta": {
       const p = section.props;
       const set = (patch: Partial<typeof p>) =>
@@ -1040,4 +1056,79 @@ function SectionFields({
     default:
       return null;
   }
+}
+
+/**
+ * Editor for a `form` section. Fetches the site's forms (built in the Forms tab)
+ * for the picker; the chosen form's fields/settings are resolved live at render.
+ */
+function FormFieldsEditor({
+  websiteId,
+  section,
+  onChange,
+}: {
+  websiteId: string;
+  section: Extract<WebsiteSection, { type: "form" }>;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const [forms, setForms] = useState<WebsiteFormOption[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    listWebsiteFormsAction(websiteId).then((res) => {
+      if (!active) return;
+      if (res.ok) setForms(res.forms);
+      setLoaded(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, [websiteId]);
+
+  const p = section.props;
+  const set = (patch: Partial<typeof p>) =>
+    onChange({ ...section, props: { ...p, ...patch } });
+
+  return (
+    <div className="space-y-4">
+      {loaded && forms.length === 0 ? (
+        <LiveNote>{t("formSectionNoForms")}</LiveNote>
+      ) : (
+        <SelectField
+          label={t("formSectionPick")}
+          value={p.form_id ?? ""}
+          options={[
+            { value: "", label: t("formSectionPickPrompt") },
+            ...forms.map((f) => ({ value: f.id, label: f.name })),
+          ]}
+          onChange={(v) => set({ form_id: v || undefined })}
+        />
+      )}
+      <TextField
+        label={t("fldHeading")}
+        value={p.heading ?? ""}
+        onChange={(v) => set({ heading: v })}
+        maxLength={200}
+      />
+      <TextArea
+        label={t("fldBody")}
+        value={p.body ?? ""}
+        onChange={(v) => set({ body: v })}
+        maxLength={600}
+        rows={2}
+      />
+      <SelectField
+        label={t("fldVariant")}
+        value={p.variant}
+        options={[
+          { value: "stacked", label: t("contactVariant_stacked") },
+          { value: "split", label: t("contactVariant_split") },
+        ]}
+        onChange={(v) => set({ variant: v })}
+      />
+      <LiveNote>{t("formSectionNote")}</LiveNote>
+    </div>
+  );
 }

@@ -20,6 +20,11 @@ import {
   type WebsiteSection,
 } from "@/lib/website/sections.schema";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
+import {
+  formFieldsSchema,
+  formSettingsSchema,
+  type FormType,
+} from "@/lib/website/forms.schema";
 import type { SiteThemeConfig } from "./themes";
 import { resolveThemeBase } from "./themes.server";
 import type {
@@ -38,6 +43,7 @@ import type {
   SiteNavigation,
   SnapshotRoom,
   SpecialCard,
+  SiteFormDef,
 } from "./types";
 
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "") ?? "";
@@ -569,11 +575,48 @@ async function assembleSectionData(
             data: byType.specials_preview,
           };
         break;
+      case "form":
+        if (byType.form) data[s.id] = { type: "form", data: byType.form };
+        break;
       default:
         break;
     }
   }
   return data;
+}
+
+/**
+ * Resolve every form for this website into its public-render definition. Forms
+ * aren't property-scoped, so this is website-scoped (like specials). A `form`
+ * section picks its own definition by props.form_id from this pool.
+ */
+async function loadSiteForms(
+  sb: Sb,
+  ctx: SiteContext,
+): Promise<SiteDataByType["form"]> {
+  const { data } = await sb
+    .from("website_forms")
+    .select("id, name, type, fields, settings")
+    .eq("website_id", ctx.websiteId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+
+  const forms: SiteFormDef[] = (data ?? []).map((f) => {
+    const fields = formFieldsSchema.safeParse(
+      (f as { fields: unknown }).fields,
+    );
+    const settings = formSettingsSchema.safeParse(
+      (f as { settings: unknown }).settings ?? {},
+    );
+    return {
+      id: (f as { id: string }).id,
+      name: (f as { name: string }).name,
+      type: (f as { type: string }).type as FormType,
+      fields: fields.success ? fields.data : [],
+      settings: settings.success ? settings.data : formSettingsSchema.parse({}),
+    };
+  });
+  return { forms };
 }
 
 /**
@@ -594,6 +637,11 @@ export async function assembleSiteDataByType(
   // property-id guard that the other sections rely on.
   if (types.has("specials_preview")) {
     out.specials_preview = await loadSpecialsPreview(sb, ctx);
+  }
+
+  // FORMS — website-scoped (not property-scoped), so resolve before the guard.
+  if (types.has("form")) {
+    out.form = await loadSiteForms(sb, ctx);
   }
 
   const ids = ctx.propertyIds;

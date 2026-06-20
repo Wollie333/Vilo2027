@@ -204,6 +204,7 @@ export function SectionThumb({ type }: { type: SectionType }) {
         </Frame>
       );
     case "contact_form":
+    case "form":
       return (
         <Frame>
           <div className="flex flex-1 flex-col justify-center gap-1.5">

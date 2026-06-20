@@ -29,6 +29,7 @@ import {
   restoreSnapshotToSite,
 } from "@/lib/website/restorePoints";
 import { newSection } from "@/lib/website/sectionDefaults";
+import type { FormType } from "@/lib/website/forms.schema";
 import { sanitiseSectionsHtml } from "@/lib/website/sanitiseSections";
 import { validateSubdomain } from "@/lib/website/subdomain";
 import {
@@ -2367,6 +2368,35 @@ export async function saveWebsiteFormAction(
 
   revalidatePath(`/dashboard/website/${websiteId}/forms`);
   return { ok: true };
+}
+
+/** A form option for the page-builder form picker (id + name + type). */
+export type WebsiteFormOption = { id: string; name: string; type: FormType };
+
+/** List the site's forms for the `form` section picker (owner-scoped). */
+export async function listWebsiteFormsAction(
+  websiteId: string,
+): Promise<
+  { ok: true; forms: WebsiteFormOption[] } | { ok: false; error: string }
+> {
+  const own = await assertWebsiteOwnership(websiteId);
+  if (!own.ok) return own;
+
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("website_forms")
+    .select("id, name, type")
+    .eq("website_id", websiteId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true });
+  return {
+    ok: true,
+    forms: (data ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      type: f.type as FormType,
+    })),
+  };
 }
 
 export async function deleteWebsiteFormAction(

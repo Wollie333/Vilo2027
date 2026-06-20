@@ -219,6 +219,18 @@ export function newSection(type: SectionType): WebsiteSection {
           variant: "stacked",
         },
       };
+    case "form":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          heading: "Get in touch",
+          body: "Fill in the form and we'll get back to you.",
+          variant: "stacked",
+        },
+      };
     case "specials_preview":
       return {
         id,

@@ -37,6 +37,7 @@ export const SECTION_TYPES = [
   "rich_text",
   "faq",
   "contact_form",
+  "form",
   "specials_preview",
   "amenities",
   "pricing",
@@ -52,6 +53,9 @@ export const AUTO_POPULATE_SECTIONS: ReadonlySet<SectionType> = new Set([
   "reviews",
   "blog_preview",
   "specials_preview",
+  // `form` pulls its definition (fields/settings) live from website_forms, so
+  // editing the form in the Forms tab updates the rendered section instantly.
+  "form",
 ]);
 
 export function isAutoPopulate(type: SectionType): boolean {
@@ -263,6 +267,17 @@ const contactFormProps = z.object({
   variant: z.enum(CONTACT_VARIANTS).default("stacked"),
 });
 
+// Host-built form (Phase 4). CONFIG only — references a website_forms row by id;
+// the fields/settings are resolved live at render (auto-populate). A submission
+// is persisted to website_form_submissions and, for email-bearing forms, opens
+// a "Website Enquiry" in the inbox (see lib/website/submitWebsiteForm.ts).
+const formProps = z.object({
+  form_id: z.string().uuid().optional(),
+  heading,
+  body: z.string().max(600).optional(),
+  variant: z.enum(CONTACT_VARIANTS).default("stacked"),
+});
+
 // Free-form facilities/amenities grid (icon + label).
 const amenitiesProps = z.object({
   heading,
@@ -361,6 +376,7 @@ export const sectionSchema = z.discriminatedUnion("type", [
     type: z.literal("contact_form"),
     props: contactFormProps,
   }),
+  z.object({ ...sectionBase, type: z.literal("form"), props: formProps }),
   z.object({
     ...sectionBase,
     type: z.literal("specials_preview"),

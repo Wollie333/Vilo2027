@@ -6,6 +6,11 @@
 // server-side (W4 `loadSitePage.ts`). Free-form sections read everything from
 // their own `props` and ignore this map.
 import type { SectionType } from "@/lib/website/sections.schema";
+import type {
+  FormField,
+  FormSettings,
+  FormType,
+} from "@/lib/website/forms.schema";
 
 export type SiteLogoStyle = "wordmark" | "mark" | "icon";
 
@@ -167,6 +172,17 @@ export type SpecialCard = {
 };
 export type SpecialsPreviewData = { specials: SpecialCard[] };
 
+/** A host-built form's public-render definition (resolved live from website_forms). */
+export type SiteFormDef = {
+  id: string;
+  name: string;
+  type: FormType;
+  fields: FormField[];
+  settings: FormSettings;
+};
+/** All of the site's forms; a `form` section picks its own by props.form_id. */
+export type FormRenderData = { forms: SiteFormDef[] };
+
 /** Live-data shape per auto-populate section type. */
 export type SiteDataByType = {
   gallery: GalleryData;
@@ -175,6 +191,7 @@ export type SiteDataByType = {
   reviews: ReviewsData;
   blog_preview: BlogPreviewData;
   specials_preview: SpecialsPreviewData;
+  form: FormRenderData;
 };
 export type AutoSectionType = keyof SiteDataByType;
 

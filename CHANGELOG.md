@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-20 — Website CMS: Phase 4 form builder — slice 2 (public render + submit)
+
+Public side of the form builder — a host can now drop a built form onto any page
+and receive submissions.
+
+### Added
+- **`form` section type** — a curated, auto-populate section that references a
+  `website_forms` row by id and resolves its fields/settings live at render (edit
+  the form in the Forms tab and the page updates instantly). Wired through the
+  schema, `SiteDataByType.form` (`FormRenderData`), `assembleSiteDataByType` /
+  `assembleSectionData` / the builder preview pool, `sectionDefaults`, the section
+  library + thumbnail, and a builder editor case with a form picker
+  (`listWebsiteFormsAction`).
+- **Public `FormSection`** — renders the curated fields dynamically (text /
+  paragraph / email / phone / dropdown / checkbox / date), themed via `--site-*`,
+  with a honeypot and the form's success message. Inert in the builder preview.
+- **Submit pipeline** — `lib/website/submitWebsiteForm.ts` + service-role route
+  `app/api/website-form-submit`: validates values against the form definition
+  server-side, persists every submission to `website_form_submissions`, and for
+  email-bearing non-newsletter forms reuses `createWebsiteEnquiry` to open a
+  "Website Enquiry" in the inbox (storing `conversation_id`). Honeypot-only spam,
+  per the locked decisions; newsletter→CRM routing is slice 3.
+- +9 `website` i18n keys (en). No DB schema change. tsc + lint green.
+
 ## 2026-06-20 — Website CMS: Phase 4 form builder — slice 1 (Forms tab + builder UI)
 
 First build slice of the Phase 4 form builder over the `website_forms` table.
