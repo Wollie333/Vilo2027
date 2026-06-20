@@ -5,6 +5,47 @@
 
 ---
 
+## 2026-06-21 — Website CMS: theme + brand wiring — new-tab previews + "Aria" flagship default theme
+
+Founder ask: wire the Theme/Brand tabs so a host activates a theme and gets a
+complete, working, beautiful multi-page site (auto-pulling rooms/reviews/etc.),
+restyleable in Brand Studio, with every Preview opening in a new tab — and a
+beautiful modern default theme. **Most of the activation engine already existed**
+(parallel theme lane: `site_themes` catalogue with `base` + `page_templates`,
+`applyThemeAction` rebuild-from-blueprint + restore points, `createWebsiteAction`
+auto-applies the default theme, Brand Studio, the `?theme=<slug>` preview
+override). This session closed the real gaps.
+
+### Changed — previews open in a new tab (A)
+- Theme gallery "Preview" (hover + footer) now opens the live site in a **new tab**
+  (`/site?site=<sub>&preview=1&theme=<slug>`) so the host sees exactly how their
+  site looks/functions under that theme on their own data, before activating. The
+  old full-screen iframe modal is replaced by a small, reversible **Activate**
+  confirmation (`ThemeActivateModal`, with its own "Preview in new tab" link).
+  Editor header + Brand Studio already opened previews in a new tab. Commit
+  `22d376b`. +3 en i18n keys.
+
+### Added — "Aria", the new flagship default theme (B)
+- Migration `20260621000000_theme_aria_default.sql` (data-only; **pushed to the
+  linked DB**) adds the **Aria** theme and makes it the **sole default** (demotes
+  warm/coastal): modern editorial-luxe `base` — warm paper `#F6F4EF`, near-black
+  ink, deep-eucalyptus accent `#2F5D4F`, `elegant` serif-display + sans, `lg`
+  radius — plus a polished **7-page `page_templates` blueprint** (home / about /
+  rooms / contact / blog / checkout / thank-you, 23 sections) whose sections
+  auto-populate from the host's rooms / reviews / gallery / location / blog. The
+  home page folds in the curated **`trust`** section (from the Phase 6A slice).
+  New sites seed Aria automatically; existing sites can activate it.
+
+### Verified (C)
+- `scripts/verify-theme-aria.mjs` (read-only, service role) — 22/22 green against
+  the live DB: Aria present, active, sole default; base font/radius/accent correct;
+  7 pages with all expected kinds; home carries the Trust + auto sections; all 23
+  sections have unique UUID ids + the props the schema requires. Migration list
+  confirms the prior theme migrations were already applied remotely (gap C).
+- No app-schema change ⇒ no type regen. tsc + lint green on the changed code.
+  **Note:** the `elegant` font stack falls back to Georgia/system unless the
+  Cormorant/Inter web fonts are loaded site-wide — an optional fidelity follow-up.
+
 ## 2026-06-20 — Website CMS: Phase 5 (AI Site Generator) deferred + Phase 6A slice 1 (trust-signals section)
 
 ### Decision
