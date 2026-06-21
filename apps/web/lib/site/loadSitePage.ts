@@ -452,7 +452,7 @@ function firstNameLastInitial(name: string | null | undefined): string {
  * suffix is always valid for the funnel widgets that append dates client-side);
  * adds `&site=` when rendered via the app-domain ?site= testing affordance.
  */
-function siteBookHref(
+export function siteBookHref(
   ctx: Pick<SiteContext, "bookBasePath" | "subdomain">,
   params: {
     propertyId?: string;

@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-06-21 — Enable on-site checkout on host sites (Phase 6c follow-up)
+
+Wire the on-site checkout in as the default booking entry point so it's actually
+usable on a host's website out of the box.
+
+- **Default header "Book now" CTA → the on-site checkout.** `SiteChrome` already
+  accepted a `bookHref` (host's nav CTA wins over it); the site pages never
+  passed one, so no Book button showed by default. `SitePageView` (+ the checkout
+  & thank-you pages) now pass `siteBookHref(ctx, {})` — guarded by
+  `propertyIds.length > 0` so it never links to a 404 on a site with nothing to
+  book. A host-set navigation CTA still overrides. `siteBookHref` is now exported.
+- **Fix:** the thank-you page's EFT-details query typed via `.maybeSingle<EftDetails>()`
+  instead of an `as typeof` cast (a tsc error that had slipped past a stale
+  incremental cache in the c commit). tsc + lint green.
+- Booking is now reachable on every host site three ways: the header Book button,
+  the booking-funnel sections (search/calendar/rates), and each room's Book
+  button — all landing on the on-site `/book` checkout.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 6 on-site checkout (save-point c) — PHASE 6 COMPLETE
 
 Full on-site booking checkout that runs on the host's OWN tenant domain — search

@@ -10,13 +10,25 @@ import {
 } from "@/components/site/sections/_shared";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { confirmHostCardPaymentByReference } from "@/lib/payments/pay-booking";
-import { loadSiteContext, resolveSiteRef } from "@/lib/site/loadSitePage";
+import {
+  loadSiteContext,
+  resolveSiteRef,
+  siteBookHref,
+} from "@/lib/site/loadSitePage";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
 type SP = { site?: string; b?: string; reference?: string; trxref?: string };
+
+type EftDetails = {
+  account_holder: string;
+  bank_name: string;
+  account_number: string;
+  branch_code: string;
+  account_type: string;
+};
 
 type BookingRow = {
   id: string;
@@ -120,13 +132,7 @@ export default async function SiteThankYouPage({
     booking.payment_method === "eft" || booking.status === "pending_eft";
 
   // EFT awaiting-transfer → load the host's default banking details.
-  let eft: {
-    account_holder: string;
-    bank_name: string;
-    account_number: string;
-    branch_code: string;
-    account_type: string;
-  } | null = null;
+  let eft: EftDetails | null = null;
   if (isEftPending && !isConfirmed) {
     const { data } = await admin
       .from("eft_banking_details")
@@ -136,8 +142,8 @@ export default async function SiteThankYouPage({
       .eq("host_id", booking.host_id)
       .eq("is_default", true)
       .eq("is_archived", false)
-      .maybeSingle();
-    if (data) eft = data as typeof eft;
+      .maybeSingle<EftDetails>();
+    if (data) eft = data;
   }
 
   return (
@@ -149,6 +155,9 @@ export default async function SiteThankYouPage({
         conversion={ctx.conversion}
         popupForm={ctx.popupForm}
         websiteId={ctx.websiteId}
+        bookHref={
+          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+        }
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         header={ctx.theme.header}
         footer={ctx.theme.footer}

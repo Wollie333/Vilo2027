@@ -9,7 +9,11 @@ import {
   cancellationNote,
   type ListingPolicySummary,
 } from "@/lib/policy/listing-summary";
-import { loadSiteContext, resolveSiteRef } from "@/lib/site/loadSitePage";
+import {
+  loadSiteContext,
+  resolveSiteRef,
+  siteBookHref,
+} from "@/lib/site/loadSitePage";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -131,6 +135,9 @@ export default async function SiteBookPage({
         conversion={ctx.conversion}
         popupForm={ctx.popupForm}
         websiteId={ctx.websiteId}
+        bookHref={
+          ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined
+        }
         darkChrome={siteSurfaceIsDark(ctx.theme)}
         header={ctx.theme.header}
         footer={ctx.theme.footer}

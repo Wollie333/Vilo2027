@@ -1,7 +1,11 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
-import { loadSiteContext, loadSitePage } from "@/lib/site/loadSitePage";
+import {
+  loadSiteContext,
+  loadSitePage,
+  siteBookHref,
+} from "@/lib/site/loadSitePage";
 import { buildSiteJsonLd } from "@/lib/site/structuredData";
 import { siteSurfaceIsDark } from "@/lib/site/themes";
 import type { SiteAssetResolver } from "@/lib/site/types";
@@ -73,6 +77,12 @@ export async function SitePageView({
     }
   }
 
+  // Default the header "Book now" CTA to the on-site checkout whenever the site
+  // has a bookable property (a host-set navigation CTA still wins). Omitted when
+  // there's nothing to book, so the button never links to a 404.
+  const headerBookHref =
+    ctx.propertyIds.length > 0 ? siteBookHref(ctx, {}) : undefined;
+
   return (
     <>
       <JsonLd graph={jsonLdGraph} />
@@ -84,6 +94,7 @@ export async function SitePageView({
           conversion={ctx.conversion}
           popupForm={ctx.popupForm}
           websiteId={ctx.websiteId}
+          bookHref={headerBookHref}
           darkChrome={siteSurfaceIsDark(ctx.theme)}
           analyticsWebsiteId={ctx.preview ? undefined : ctx.websiteId}
           header={ctx.theme.header}
