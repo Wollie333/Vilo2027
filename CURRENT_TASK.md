@@ -2,7 +2,34 @@
 
 > Reset at the start of every session. This is the session contract.
 
-## ▶ ACTIVE LANE: Website CMS — enterprise build-out (RESUME HERE · 2026-06-20)
+## ▶ ACTIVE LANE: Website CMS — PREMIUM REDESIGN to mockups (RESUME HERE · 2026-06-21)
+
+**Branch:** `main` — all work committed, working tree clean; full `pnpm build` ran green twice this session group.
+
+**Goal:** redesign the whole Website CMS to the founder's pixel mockups + a simple in-page builder. **Mockup HTML files live in `C:\Users\Wollie\Downloads\*.html`** (Page Builder A · Pages Manager (2) · Forms Manager · Form Editor · Navigation Manager · Blog Manager · Blog Post Editor · Domain Manager · SEO Manager · Website Settings · Website CMS C). READ these for fidelity — the plain "Pages Manager.html"/"Website Settings.html" 1.4MB files are iframe wrappers; use the numbered/real ones.
+
+**Design system (built):** scoped CSS — `.vilo-cms` (dashboard tab pages) · `.vilo-builder` (full-screen editors) · `.vilo-nav` (nav previews). Generated `cms.css`/`builder.css`/`nav.css` + hand-authored `cms-extra.css` under `app/[locale]/dashboard/website/`; full-screen editors under `app/[locale]/website-editor/` with `blog-editor.css` + `form-editor.css`. Builder engine = **@dnd-kit (already installed)** over the curated section model (NOT an element tree). **Founder rules:** build on dnd-kit; **NO fake/dead toggles for unbuilt features** (omit instead); match mockups closely; editors are FULL-SCREEN.
+
+**DONE & committed this session group (premium redesign):**
+- Foundation (scoped CSS) · shared shell (subheader site-switcher + emerald `.ctab` tab bar + PublishBar `.btn`)
+- **Blog tab** + full-screen **Blog editor** · **Domain tab** · **SEO tab** · **Rooms tab REMOVED** (rooms auto-pull into `website_rooms` on publish via `reconcileWebsiteRooms`)
+- **Navigation**: manager (3 cards + live `.vilo-nav` previews) + 3 full-screen editors (`website-editor/[websiteId]/navigation/[section]` header|menu|footer); old `NavigationForm` deleted
+- **Page builder**: full-screen palette·canvas·inspector·3-view·preview at `website-editor/[websiteId]/pages/[pageId]`, true to Page Builder A (re-houses the existing `SectionBuilder` engine — dnd-kit + `SectionRenderer` live canvas + `SectionEditor` inspector) + **Pages manager** `.ptr` table
+- **Forms COMPLETE**: manager `FormsList` (3 stat cards + filter + table + **derived tracking** [status=embedded-in-published-page, embedLabels, submissions month/last — NO migration]) + full-screen **15-type editor** `website-editor/[websiteId]/forms/[formId]` (palette/canvas/inspector, true to Form Editor.html) + public `FormSection` render + submit. `forms.schema.ts` expanded 7→17 types ADDITIVELY (jsonb, no migration). Old inline `FormsManager` + dashboard `forms/[formId]` route DELETED.
+- **Settings**: premium `.sblock/.setrow` layout, real controls only (Branding/conversion settings/Access/Danger-zone publish-unpublish)
+
+**▶ NEXT (resume here, in order):**
+1. **Overview** (`Website CMS C.html`). GOOD NEWS — the analytics pipeline ALREADY EXISTS + is REAL: `website_analytics_events` (via `/api/site-track`) → `lib/website/analytics.ts` → `loadOverviewData(websiteId,range)` returns `analytics{visitors,pageviews,bookingClicks,conversion,deltas,devices,trend,topPages,sources,hasData}`. Current `(editor)/page.tsx` (511 lines) already renders KPIs+TrafficChart+topPages+sources+devices from REAL data but is NOT styled to the mockup. **TASK = restyle to the `.vilo-cms` mockup (`.kpi`/`.card`/`.barmini` etc.) + ADD the portfolio "All websites" grid** (load all host sites + per-site stats via `website_analytics_events` grouped). **OMIT** the booking funnel strip + revenue/leads KPIs — not tracked (no fake data, per founder rule).
+2. **Page-builder free elements** (Columns/Heading/Text/Image/Button/Spacer/Divider) + **per-block desktop/tablet/mobile style overrides** — additive to `sections.schema.ts`; the "Elementor-but-simple" features.
+3. (lower) in-builder **Page settings** panel (SEO + a11y → retire the old dashboard `pages/[pageId]` route, still present as an unlinked fallback); fold header/footer/menu editors onto the page-builder engine.
+
+**Honest gaps shipped (intentional):** old dashboard `pages/[pageId]` route kept as an UNLINKED fallback (its `PageSeoCard`+`A11yCard` not yet in the new builder; per-page SEO is editable in the SEO tab meanwhile). Theme/Brand are still extra tabs vs the mockup's 8 (reconcile when convenient). Settings omits unbuilt sections (editable general/privacy/integrations/password/maintenance/transfer/delete — no backend actions). Overview will omit funnel/revenue/leads.
+
+**Full per-commit detail:** MEMORY.md ([Website CMS phases]) + CHANGELOG.md (2026-06-21 entries). Commits this group: `4e304a0`→`84a4b74` (navigation → forms).
+
+---
+
+## ▶ ACTIVE LANE (historical log): Website CMS — enterprise build-out (· 2026-06-20)
 
 **Branch:** `main` (all work committed; working tree clean). **Contract:** `WEBSITE_CMS_PLAN.md` (+ `WEBSITE_CMS_AUDIT.md`).
 Dev server runs at http://localhost:3001 — test a tenant site via `/en/site?site=<subdomain>`.
