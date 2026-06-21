@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Columns container block
+
+Adds a **Columns** layout block — a bounded, single-level container (1–4 columns,
+each holding a short list of inline heading/text/image/button blocks). NOT a
+general element tree: columns can't nest columns and the page stays a flat list
+of sections. Collapses to one column on mobile. Additive — no migration.
+
+### Added
+- **`columns` section type** (`sections.schema.ts`): `columnsProps` =
+  optional `heading` + `columns[]` (1–4, each `{ blocks: ColumnBlock[] }`) +
+  `gap` (sm/md/lg) + `align`. `ColumnBlock` is a `kind`-discriminated union
+  (heading / text / image / button). Starter (2 columns) in `sectionDefaults`.
+- **Public renderer** `components/site/sections/ColumnsSection.tsx` — a
+  responsive grid (1 col mobile → N desktop) of theme-aware inline blocks
+  (`--site-*` vars; images via `SiteImg`, buttons via `SiteButton`). Wired into
+  `SectionRenderer`.
+- **Inspector** — `ColumnsEditor` in `SectionEditor`: column count / gap /
+  alignment + per-column block management (add heading/text/image/button,
+  edit each block's fields, move up/down, remove). Palette entry "Columns" +
+  `Columns3` icon (full-screen `PageBuilder` + `SectionLibrary`); `SectionThumb`
+  schematic.
+- +13 `website` en i18n keys. The SEO text walk already covers the nested block
+  text via the generic recursion. tsc + lint + themes-compat green. No DB change.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Per-block responsive style
 
 Adds optional per-block **desktop/tablet/mobile spacing overrides** + a

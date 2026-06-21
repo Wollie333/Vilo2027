@@ -43,6 +43,7 @@ import {
   ElSpacerSection,
   ElDividerSection,
 } from "./sections/Elements";
+import { ColumnsSection } from "./sections/ColumnsSection";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -269,6 +270,8 @@ function SectionSwitch({
       return <ElSpacerSection props={section.props} />;
     case "el_divider":
       return <ElDividerSection props={section.props} />;
+    case "columns":
+      return <ColumnsSection props={section.props} asset={asset} />;
     default:
       return null;
   }

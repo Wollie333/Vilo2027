@@ -377,6 +377,20 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "columns":
+      return (
+        <Frame>
+          <div className="grid flex-1 grid-cols-2 gap-1.5">
+            {[0, 1].map((i) => (
+              <div key={i} className="flex flex-col gap-1 rounded bg-white p-1">
+                <Bar w="w-2/3" muted />
+                <Bar />
+                <Bar w="w-3/4" />
+              </div>
+            ))}
+          </div>
+        </Frame>
+      );
     default:
       return (
         <Frame>

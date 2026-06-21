@@ -55,6 +55,7 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   {
     key: "catElements",
     types: [
+      "columns",
       "el_heading",
       "el_text",
       "el_image",

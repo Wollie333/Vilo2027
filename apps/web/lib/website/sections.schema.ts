@@ -53,6 +53,8 @@ export const SECTION_TYPES = [
   "el_button",
   "el_spacer",
   "el_divider",
+  // Columns — a bounded single-level container (NOT a general element tree).
+  "columns",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -431,6 +433,44 @@ const elDividerProps = z.object({
   width: z.enum(["narrow", "full"]).default("full"),
 });
 
+// ── Columns container ─────────────────────────────────────────
+// A bounded, SINGLE-LEVEL layout block: a row of 1–4 columns, each holding a
+// short list of inline content blocks (heading / text / image / button). This
+// is NOT a general element tree — columns cannot nest columns; the page stays a
+// flat list of sections. Collapses to one column on mobile.
+const columnBlockSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("heading"),
+    text: z.string().max(200),
+    level: z.enum(["h2", "h3", "h4"]).default("h3"),
+  }),
+  z.object({ kind: z.literal("text"), body: z.string().max(2000) }),
+  z.object({
+    kind: z.literal("image"),
+    image_path: z.string().optional(),
+    alt: z.string().max(200).optional(),
+  }),
+  z.object({
+    kind: z.literal("button"),
+    label: z.string().max(60),
+    href: z.string().max(500),
+    variant: z.enum(["primary", "secondary"]).default("primary"),
+  }),
+]);
+export type ColumnBlock = z.infer<typeof columnBlockSchema>;
+export type ColumnBlockKind = ColumnBlock["kind"];
+
+const columnSchema = z.object({
+  blocks: z.array(columnBlockSchema).max(12).default([]),
+});
+
+const columnsProps = z.object({
+  heading,
+  columns: z.array(columnSchema).min(1).max(4).default([]),
+  gap: z.enum(["sm", "md", "lg"]).default("md"),
+  align: z.enum(["left", "center"]).default("left"),
+});
+
 // ── Per-block responsive style (additive) ─────────────────────
 // Optional per-viewport spacing overrides + an optional background colour.
 // Applied by the renderer's SectionWrap (a scoped <style> with media queries) —
@@ -571,6 +611,11 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("el_divider"),
     props: elDividerProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("columns"),
+    props: columnsProps,
   }),
 ]);
 

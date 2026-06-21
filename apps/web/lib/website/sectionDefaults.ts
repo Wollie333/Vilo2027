@@ -386,6 +386,37 @@ export function newSection(type: SectionType): WebsiteSection {
         tone: "default",
         props: { line: "solid", width: "full" },
       };
+    case "columns":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          gap: "md",
+          align: "left",
+          columns: [
+            {
+              blocks: [
+                { kind: "heading", text: "First column", level: "h3" },
+                {
+                  kind: "text",
+                  body: "Describe this column in a sentence or two.",
+                },
+              ],
+            },
+            {
+              blocks: [
+                { kind: "heading", text: "Second column", level: "h3" },
+                {
+                  kind: "text",
+                  body: "Describe this column in a sentence or two.",
+                },
+              ],
+            },
+          ],
+        },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;

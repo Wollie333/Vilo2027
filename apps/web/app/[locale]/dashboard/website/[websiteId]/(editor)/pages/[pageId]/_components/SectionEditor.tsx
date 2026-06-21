@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useTranslations } from "next-intl";
@@ -10,7 +11,11 @@ import {
   type WebsiteFormOption,
   type WebsitePropertyOption,
 } from "@/app/[locale]/dashboard/website/actions";
-import type { WebsiteSection } from "@/lib/website/sections.schema";
+import type {
+  ColumnBlock,
+  ColumnBlockKind,
+  WebsiteSection,
+} from "@/lib/website/sections.schema";
 
 import {
   ImageField,
@@ -1524,6 +1529,15 @@ function SectionFields({
       );
     }
 
+    case "columns":
+      return (
+        <ColumnsEditor
+          websiteId={websiteId}
+          section={section}
+          onChange={onChange}
+        />
+      );
+
     default:
       return null;
   }
@@ -1663,6 +1677,284 @@ function FormFieldsEditor({
         onChange={(v) => set({ variant: v })}
       />
       <LiveNote>{t("formSectionNote")}</LiveNote>
+    </div>
+  );
+}
+
+/** A blank inline block of the given kind (column content). */
+function newColumnBlock(kind: ColumnBlockKind): ColumnBlock {
+  switch (kind) {
+    case "heading":
+      return { kind, text: "Heading", level: "h3" };
+    case "text":
+      return { kind, body: "Add some text." };
+    case "image":
+      return { kind };
+    case "button":
+      return { kind, label: "Button", href: "#", variant: "primary" };
+  }
+}
+
+/**
+ * Columns editor — a bounded single-level container: pick the column count, gap
+ * and alignment, then add/reorder/remove inline content blocks (heading / text /
+ * image / button) inside each column.
+ */
+function ColumnsEditor({
+  websiteId,
+  section,
+  onChange,
+}: {
+  websiteId: string;
+  section: Extract<WebsiteSection, { type: "columns" }>;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const p = section.props;
+  const columns = p.columns ?? [];
+  const set = (patch: Partial<typeof p>) =>
+    onChange({ ...section, props: { ...p, ...patch } });
+
+  const setColumnBlocks = (ci: number, blocks: ColumnBlock[]) =>
+    set({ columns: columns.map((c, i) => (i === ci ? { ...c, blocks } : c)) });
+
+  const setCount = (n: number) => {
+    const next = columns.slice(0, n);
+    while (next.length < n) next.push({ blocks: [] });
+    set({ columns: next });
+  };
+
+  return (
+    <div className="space-y-4">
+      <TextField
+        label={t("fldHeading")}
+        value={p.heading ?? ""}
+        onChange={(v) => set({ heading: v })}
+        maxLength={200}
+        hint={t("fldColumnsHeadingHint")}
+      />
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField
+          label={t("fldColumnsCount")}
+          value={String(Math.min(4, Math.max(1, columns.length || 1)))}
+          options={[
+            { value: "1", label: "1" },
+            { value: "2", label: "2" },
+            { value: "3", label: "3" },
+            { value: "4", label: "4" },
+          ]}
+          onChange={(v) => setCount(Number(v))}
+        />
+        <SelectField
+          label={t("fldColumnsGap")}
+          value={p.gap}
+          options={[
+            { value: "sm", label: t("elSpacer_sm") },
+            { value: "md", label: t("elSpacer_md") },
+            { value: "lg", label: t("elSpacer_lg") },
+          ]}
+          onChange={(v) => set({ gap: v })}
+        />
+      </div>
+      <SelectField
+        label={t("fldAlign")}
+        value={p.align}
+        options={[
+          { value: "left", label: t("align_left") },
+          { value: "center", label: t("align_center") },
+        ]}
+        onChange={(v) => set({ align: v })}
+      />
+
+      {columns.map((col, ci) => (
+        <div
+          key={ci}
+          className="rounded-[12px] border border-brand-line bg-brand-light/30 p-3"
+        >
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-brand-mute">
+            {t("columnLabel", { n: ci + 1 })}
+          </div>
+          <div className="space-y-3">
+            {col.blocks.map((block, bi) => (
+              <ColumnBlockEditor
+                key={bi}
+                websiteId={websiteId}
+                block={block}
+                isFirst={bi === 0}
+                isLast={bi === col.blocks.length - 1}
+                onChange={(next) =>
+                  setColumnBlocks(
+                    ci,
+                    col.blocks.map((b, i) => (i === bi ? next : b)),
+                  )
+                }
+                onRemove={() =>
+                  setColumnBlocks(
+                    ci,
+                    col.blocks.filter((_, i) => i !== bi),
+                  )
+                }
+                onMove={(dir) => {
+                  const j = bi + dir;
+                  if (j < 0 || j >= col.blocks.length) return;
+                  const next = [...col.blocks];
+                  [next[bi], next[j]] = [next[j], next[bi]];
+                  setColumnBlocks(ci, next);
+                }}
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {(["heading", "text", "image", "button"] as ColumnBlockKind[]).map(
+              (kind) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() =>
+                    setColumnBlocks(ci, [...col.blocks, newColumnBlock(kind)])
+                  }
+                  className="inline-flex items-center gap-1 rounded-[8px] border border-dashed border-brand-line px-2.5 py-1 text-[12px] font-medium text-brand-mute transition hover:border-brand-mute hover:text-brand-ink"
+                >
+                  + {t(`blockKind_${kind}`)}
+                </button>
+              ),
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** One inline block's fields inside a column, with move/remove controls. */
+function ColumnBlockEditor({
+  websiteId,
+  block,
+  isFirst,
+  isLast,
+  onChange,
+  onRemove,
+  onMove,
+}: {
+  websiteId: string;
+  block: ColumnBlock;
+  isFirst: boolean;
+  isLast: boolean;
+  onChange: (next: ColumnBlock) => void;
+  onRemove: () => void;
+  onMove: (dir: -1 | 1) => void;
+}) {
+  const t = useTranslations("website");
+
+  return (
+    <div className="relative rounded-[10px] border border-brand-line bg-white p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-brand-mute">
+          {t(`blockKind_${block.kind}`)}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={isFirst}
+            onClick={() => onMove(-1)}
+            className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+            aria-label={t("moveUp")}
+          >
+            <ArrowUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            disabled={isLast}
+            onClick={() => onMove(1)}
+            className="rounded p-1 text-brand-mute hover:bg-brand-light disabled:opacity-30"
+            aria-label={t("moveDown")}
+          >
+            <ArrowDown className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded p-1 text-brand-mute hover:bg-white hover:text-red-600"
+            aria-label={t("removeItem")}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {block.kind === "heading" ? (
+        <div className="space-y-2.5">
+          <TextField
+            label={t("fldElHeadingText")}
+            value={block.text}
+            onChange={(v) => onChange({ ...block, text: v })}
+            maxLength={200}
+          />
+          <SelectField
+            label={t("fldElLevel")}
+            value={block.level}
+            options={[
+              { value: "h2", label: t("elLevel_h2") },
+              { value: "h3", label: t("elLevel_h3") },
+              { value: "h4", label: t("elLevel_h4") },
+            ]}
+            onChange={(v) => onChange({ ...block, level: v })}
+          />
+        </div>
+      ) : null}
+
+      {block.kind === "text" ? (
+        <TextArea
+          label={t("fldBody")}
+          value={block.body}
+          onChange={(v) => onChange({ ...block, body: v })}
+          maxLength={2000}
+          rows={3}
+        />
+      ) : null}
+
+      {block.kind === "image" ? (
+        <div className="space-y-2.5">
+          <ImageField
+            label={t("fldElImage")}
+            websiteId={websiteId}
+            path={block.image_path}
+            onChange={(path) => onChange({ ...block, image_path: path })}
+          />
+          <TextField
+            label={t("fldElImageAlt")}
+            value={block.alt ?? ""}
+            onChange={(v) => onChange({ ...block, alt: v })}
+            maxLength={200}
+          />
+        </div>
+      ) : null}
+
+      {block.kind === "button" ? (
+        <div className="space-y-2.5">
+          <TextField
+            label={t("fldCtaLabel")}
+            value={block.label}
+            onChange={(v) => onChange({ ...block, label: v })}
+            maxLength={60}
+          />
+          <TextField
+            label={t("fldCtaHref")}
+            value={block.href}
+            onChange={(v) => onChange({ ...block, href: v })}
+            maxLength={500}
+          />
+          <SelectField
+            label={t("fldElButtonStyle")}
+            value={block.variant}
+            options={[
+              { value: "primary", label: t("elButton_primary") },
+              { value: "secondary", label: t("elButton_secondary") },
+            ]}
+            onChange={(v) => onChange({ ...block, variant: v })}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

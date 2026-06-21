@@ -27,6 +27,7 @@ import {
   Building2,
   CalendarDays,
   ClipboardList,
+  Columns3,
   Copy,
   Eye,
   EyeOff,
@@ -142,6 +143,7 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   {
     key: "catElements",
     types: [
+      "columns",
       "el_heading",
       "el_text",
       "el_image",
@@ -185,6 +187,7 @@ const ICONS: Record<SectionType, LucideIcon> = {
   el_button: SquareMousePointer,
   el_spacer: MoveVertical,
   el_divider: Minus,
+  columns: Columns3,
 };
 
 /** Build the by-id SiteData map for the live preview from the per-type pool. */
