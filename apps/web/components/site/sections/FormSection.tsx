@@ -125,6 +125,189 @@ export function FormSection({
     );
   }
 
+  function toggleCheck(id: string, opt: string) {
+    const cur = (values[id] ?? "").split(", ").filter(Boolean);
+    const next = cur.includes(opt)
+      ? cur.filter((x) => x !== opt)
+      : [...cur, opt];
+    setValue(id, next.join(", "));
+  }
+
+  const labelSpan = (field: SiteFormDef["fields"][number]) => (
+    <span style={{ color: "var(--site-ink)" }} className="text-sm font-medium">
+      {field.label}
+      {field.required ? " *" : ""}
+    </span>
+  );
+
+  function renderControl(field: SiteFormDef["fields"][number], v: string) {
+    const common = {
+      required: field.required,
+      value: v,
+      style: fieldStyle,
+      className: inputCls,
+      placeholder: field.placeholder,
+    };
+    switch (field.type) {
+      case "textarea":
+        return (
+          <label className="block space-y-1.5">
+            {labelSpan(field)}
+            <textarea
+              {...common}
+              rows={5}
+              onChange={(e) => setValue(field.id, e.target.value)}
+              className={`${inputCls} resize-y`}
+            />
+          </label>
+        );
+      case "select":
+      case "rooms":
+        return (
+          <label className="block space-y-1.5">
+            {labelSpan(field)}
+            <select
+              required={field.required}
+              value={v}
+              style={fieldStyle}
+              onChange={(e) => setValue(field.id, e.target.value)}
+              className={inputCls}
+            >
+              <option value="">—</option>
+              {(field.options ?? []).map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </label>
+        );
+      case "radio":
+        return (
+          <fieldset className="space-y-1.5">
+            {labelSpan(field)}
+            <div className="space-y-2 pt-1">
+              {(field.options ?? []).map((opt) => (
+                <label
+                  key={opt}
+                  style={{ color: "var(--site-ink)" }}
+                  className="flex items-center gap-2.5 text-sm"
+                >
+                  <input
+                    type="radio"
+                    name={field.id}
+                    value={opt}
+                    required={field.required}
+                    checked={v === opt}
+                    onChange={() => setValue(field.id, opt)}
+                    className="h-4 w-4"
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        );
+      case "checkboxes":
+        return (
+          <fieldset className="space-y-1.5">
+            {labelSpan(field)}
+            <div className="space-y-2 pt-1">
+              {(field.options ?? []).map((opt) => (
+                <label
+                  key={opt}
+                  style={{ color: "var(--site-ink)" }}
+                  className="flex items-center gap-2.5 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(values[field.id] ?? "").split(", ").includes(opt)}
+                    onChange={() => toggleCheck(field.id, opt)}
+                    className="h-4 w-4"
+                  />
+                  <span>{opt}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        );
+      case "checkbox":
+      case "consent":
+        return (
+          <label
+            style={{ color: "var(--site-ink)" }}
+            className="flex items-start gap-2.5 text-sm"
+          >
+            <input
+              type="checkbox"
+              required={field.required}
+              checked={v.length > 0}
+              onChange={(e) =>
+                setValue(field.id, e.target.checked ? "Yes" : "")
+              }
+              className="mt-0.5 h-4 w-4"
+            />
+            <span>
+              {field.optLabel || field.label}
+              {field.required ? " *" : ""}
+            </span>
+          </label>
+        );
+      case "dates": {
+        const [din = "", dout = ""] = v.split(" → ");
+        return (
+          <label className="block space-y-1.5">
+            {labelSpan(field)}
+            <div className="flex gap-3">
+              <input
+                type="date"
+                required={field.required}
+                value={din}
+                style={fieldStyle}
+                className={inputCls}
+                onChange={(e) =>
+                  setValue(field.id, `${e.target.value} → ${dout}`)
+                }
+              />
+              <input
+                type="date"
+                value={dout}
+                style={fieldStyle}
+                className={inputCls}
+                onChange={(e) =>
+                  setValue(field.id, `${din} → ${e.target.value}`)
+                }
+              />
+            </div>
+          </label>
+        );
+      }
+      default: {
+        const inputType =
+          field.type === "email"
+            ? "email"
+            : field.type === "phone"
+              ? "tel"
+              : field.type === "date"
+                ? "date"
+                : field.type === "number" || field.type === "guests"
+                  ? "number"
+                  : "text";
+        return (
+          <label className="block space-y-1.5">
+            {labelSpan(field)}
+            <input
+              {...common}
+              type={inputType}
+              min={field.type === "guests" ? 1 : undefined}
+              onChange={(e) => setValue(field.id, e.target.value)}
+            />
+          </label>
+        );
+      }
+    }
+  }
+
   const formEl = (
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Honeypot — hidden from real users; bots fill it and get dropped. */}
@@ -139,109 +322,61 @@ export function FormSection({
         aria-hidden
       />
 
-      {form.fields.map((field) => {
-        const v = values[field.id] ?? "";
-        const common = {
-          required: field.required,
-          value: v,
-          style: fieldStyle,
-          className: inputCls,
-          placeholder: field.placeholder,
-        };
-        if (field.type === "textarea") {
-          return (
-            <label key={field.id} className="block space-y-1.5">
-              <span
-                style={{ color: "var(--site-ink)" }}
-                className="text-sm font-medium"
-              >
-                {field.label}
-                {field.required ? " *" : ""}
-              </span>
-              <textarea
-                {...common}
-                rows={5}
-                onChange={(e) => setValue(field.id, e.target.value)}
-                className={`${inputCls} resize-y`}
+      <div className="flex flex-wrap gap-x-4 gap-y-4">
+        {form.fields.map((field) => {
+          if (field.type === "divider") {
+            return (
+              <hr
+                key={field.id}
+                style={{ borderColor: "var(--site-line)", width: "100%" }}
               />
-            </label>
-          );
-        }
-        if (field.type === "select") {
-          return (
-            <label key={field.id} className="block space-y-1.5">
-              <span
-                style={{ color: "var(--site-ink)" }}
-                className="text-sm font-medium"
+            );
+          }
+          if (field.type === "heading") {
+            return (
+              <h3
+                key={field.id}
+                style={{ color: "var(--site-ink)", width: "100%" }}
+                className="text-lg font-semibold"
               >
                 {field.label}
-                {field.required ? " *" : ""}
-              </span>
-              <select
-                required={field.required}
-                value={v}
-                style={fieldStyle}
-                onChange={(e) => setValue(field.id, e.target.value)}
-                className={inputCls}
+              </h3>
+            );
+          }
+          if (field.type === "paragraph") {
+            return (
+              <p
+                key={field.id}
+                style={{ color: "var(--site-mute)", width: "100%" }}
+                className="text-sm leading-relaxed"
               >
-                <option value="">—</option>
-                {(field.options ?? []).map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </label>
-          );
-        }
-        if (field.type === "checkbox") {
+                {field.label}
+              </p>
+            );
+          }
+          const v = values[field.id] ?? "";
           return (
-            <label
+            <div
               key={field.id}
-              style={{ color: "var(--site-ink)" }}
-              className="flex items-center gap-2.5 text-sm"
+              className="min-w-0 space-y-1.5"
+              style={{
+                width: field.width === "half" ? "calc(50% - 8px)" : "100%",
+                flexGrow: 1,
+              }}
             >
-              <input
-                type="checkbox"
-                required={field.required}
-                checked={v.length > 0}
-                onChange={(e) =>
-                  setValue(field.id, e.target.checked ? "Yes" : "")
-                }
-                className="h-4 w-4"
-              />
-              <span>
-                {field.label}
-                {field.required ? " *" : ""}
-              </span>
-            </label>
+              {renderControl(field, v)}
+              {field.help ? (
+                <span
+                  style={{ color: "var(--site-mute)" }}
+                  className="block text-xs"
+                >
+                  {field.help}
+                </span>
+              ) : null}
+            </div>
           );
-        }
-        const inputType =
-          field.type === "email"
-            ? "email"
-            : field.type === "phone"
-              ? "tel"
-              : field.type === "date"
-                ? "date"
-                : "text";
-        return (
-          <label key={field.id} className="block space-y-1.5">
-            <span
-              style={{ color: "var(--site-ink)" }}
-              className="text-sm font-medium"
-            >
-              {field.label}
-              {field.required ? " *" : ""}
-            </span>
-            <input
-              {...common}
-              type={inputType}
-              onChange={(e) => setValue(field.id, e.target.value)}
-            />
-          </label>
-        );
-      })}
+        })}
+      </div>
 
       {status === "error" ? (
         <p className="text-sm font-medium text-red-600">{error}</p>

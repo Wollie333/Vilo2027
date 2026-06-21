@@ -93,6 +93,7 @@ export function FormsManager({
         type: "contact",
         fields: [],
         settings: {
+          description: "",
           submitLabel: "Send",
           successMessage:
             "Thanks — your message is on its way. We'll be in touch soon.",
@@ -169,6 +170,7 @@ export function FormsManager({
         type,
         label: t(`fieldType_${type}`),
         required: false,
+        width: "full",
         ...(type === "select" ? { options: [t("formsOption")] } : {}),
       },
     ]);
