@@ -25,8 +25,12 @@ foundation only — **no screen changes yet, zero visual change**.
   `builder.css`, scoped under **`.vilo-builder`** (full-screen editor chrome +
   inspector fields + the `.bk-*` canvas block previews with `.device` responsive
   rules).
-- **`app/[locale]/dashboard/website/layout.tsx`** — imports both stylesheets for
-  the `/dashboard/website` subtree. CSS-only; returns children unchanged.
+- **`apps/web/app/[locale]/dashboard/website/nav.css`** — generated from the
+  mockups' `nav.css`, scoped under **`.vilo-nav`** (header/menu/footer live-preview
+  chrome + the menu-tree manager rows; usable inside either a `.vilo-cms` tab or a
+  `.vilo-builder` editor).
+- **`app/[locale]/dashboard/website/layout.tsx`** — imports all three stylesheets
+  for the `/dashboard/website` subtree. CSS-only; returns children unchanged.
 
 ### Notes
 - The app's existing `brand-*` tokens already match the mockup emerald palette
