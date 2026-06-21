@@ -5,6 +5,32 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Navigation manager
+
+Rebuilds the Navigation tab to the `Navigation Manager.html` mockup — three module
+cards (Header / Main menu / Footer) with live previews. Non-breaking: the existing
+editing form stays below, anchored from the cards' "Edit" buttons.
+
+### Added
+- **`navigation/NavPreviews.tsx`** — lightweight live previews built from the real
+  navigation config + brand, themed with the scoped `.vilo-nav` chrome (nav.css):
+  `NavHeaderPreview` (announce + bar + menu + CTA), `NavMenuPills`, `NavFooterPreview`.
+- +10 `website` i18n keys.
+
+### Changed
+- **`navigation/page.tsx`** — now a `.vilo-cms .vilo-nav` manager: a Header card
+  (with Sticky/CTA/Announcement chips + preview), a Main-menu card (menu pills), and
+  a Footer card (footer preview). "Edit" buttons jump to the existing
+  `NavigationForm` rendered below, which keeps all editing working unchanged.
+
+### Notes
+- A bounded, non-breaking slice. Deviations from the mockup (to be refined): editing
+  is the existing combined form rather than three separate full-screen editors, and
+  the previews reflect today's nav model (the mockup's richer header layout/search,
+  footer theme/newsletter/social aren't in the schema yet). tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · shared editor shell (subheader + tab bar)
 
 Restyles the shared website-editor chrome to the mockup so every redesigned tab
