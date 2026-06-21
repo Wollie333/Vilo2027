@@ -1,6 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import type { SectionTone } from "@/lib/website/sections.schema";
+import type {
+  BlockSpace,
+  BlockStyle,
+  SectionTone,
+} from "@/lib/website/sections.schema";
 
 // Shared presentational primitives for site sections. All colour/radius/font
 // come from the scoped `--site-*` CSS vars (set by <SiteThemeRoot>), never the
@@ -53,6 +57,40 @@ export function sectionToneStyle(
     default:
       return undefined;
   }
+}
+
+// ── Per-block responsive style ────────────────────────────────
+// A scoped <style> with viewport media queries lets any section carry
+// desktop/tablet/mobile spacing overrides (correct on the live public site;
+// the builder device frames are an approximation, like the existing responsive
+// `visibility`). Breakpoints mirror Tailwind's lg/sm.
+const BLOCK_PAD: Record<BlockSpace, number> = {
+  none: 0,
+  sm: 16,
+  md: 32,
+  lg: 64,
+  xl: 112,
+};
+
+function viewportRules(v?: { padTop?: BlockSpace; padBottom?: BlockSpace }) {
+  if (!v) return "";
+  const out: string[] = [];
+  if (v.padTop) out.push(`padding-top:${BLOCK_PAD[v.padTop]}px`);
+  if (v.padBottom) out.push(`padding-bottom:${BLOCK_PAD[v.padBottom]}px`);
+  return out.join(";");
+}
+
+/** Build the scoped CSS for a section's responsive spacing (empty when none). */
+export function blockStyleCss(cls: string, style?: BlockStyle): string {
+  if (!style) return "";
+  let css = "";
+  const d = viewportRules(style.desktop);
+  if (d) css += `.${cls}{${d}}`;
+  const tb = viewportRules(style.tablet);
+  if (tb) css += `@media(max-width:1024px){.${cls}{${tb}}}`;
+  const mb = viewportRules(style.mobile);
+  if (mb) css += `@media(max-width:640px){.${cls}{${mb}}}`;
+  return css;
 }
 
 export function SectionShell({

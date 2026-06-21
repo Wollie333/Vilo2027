@@ -7,7 +7,7 @@ import {
   type SiteData,
 } from "@/lib/site/types";
 
-import { sectionToneStyle } from "./sections/_shared";
+import { blockStyleCss, sectionToneStyle } from "./sections/_shared";
 
 import { HeroSection } from "./sections/HeroSection";
 import { IntroSection } from "./sections/IntroSection";
@@ -85,8 +85,9 @@ export function SectionRenderer({
   );
 }
 
-/** Wraps a section in its colour tone (style) + device visibility (class).
- *  Renders no wrapper when both are at their defaults. */
+/** Wraps a section in its colour tone + optional background, device visibility,
+ *  and per-block responsive spacing (a scoped <style>). Renders no wrapper when
+ *  everything is at its default. */
 function SectionWrap({
   section,
   children,
@@ -94,7 +95,7 @@ function SectionWrap({
   section: WebsiteSection;
   children: ReactNode;
 }) {
-  const style = sectionToneStyle(section.tone);
+  const tone = sectionToneStyle(section.tone);
   const vis = section.visibility ?? "all";
   const visClass =
     vis === "desktop"
@@ -102,9 +103,18 @@ function SectionWrap({
       : vis === "mobile"
         ? "block md:hidden"
         : "";
-  if (!style && !visClass) return <>{children}</>;
+
+  const bg = section.style?.background?.trim();
+  const style = bg ? { ...(tone ?? {}), background: bg } : tone;
+  const cls = `wsec-${section.id.replace(/-/g, "")}`;
+  const css = blockStyleCss(cls, section.style);
+
+  if (!style && !visClass && !css) return <>{children}</>;
+  const className =
+    [visClass, css ? cls : ""].filter(Boolean).join(" ") || undefined;
   return (
-    <div style={style} className={visClass || undefined}>
+    <div style={style} className={className}>
+      {css ? <style>{css}</style> : null}
       {children}
     </div>
   );

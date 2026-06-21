@@ -431,6 +431,30 @@ const elDividerProps = z.object({
   width: z.enum(["narrow", "full"]).default("full"),
 });
 
+// ── Per-block responsive style (additive) ─────────────────────
+// Optional per-viewport spacing overrides + an optional background colour.
+// Applied by the renderer's SectionWrap (a scoped <style> with media queries) —
+// any section can be fine-tuned for desktop/tablet/mobile without an element
+// tree. All optional, so existing sections/themes never need to set it.
+export const BLOCK_SPACE = ["none", "sm", "md", "lg", "xl"] as const;
+export type BlockSpace = (typeof BLOCK_SPACE)[number];
+
+const blockViewportStyle = z
+  .object({
+    padTop: z.enum(BLOCK_SPACE).optional(),
+    padBottom: z.enum(BLOCK_SPACE).optional(),
+  })
+  .optional();
+
+export const blockStyleSchema = z.object({
+  /** Background colour override (CSS colour) applied across all viewports. */
+  background: z.string().max(40).optional(),
+  desktop: blockViewportStyle,
+  tablet: blockViewportStyle,
+  mobile: blockViewportStyle,
+});
+export type BlockStyle = z.infer<typeof blockStyleSchema>;
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -444,6 +468,7 @@ const sectionBase = {
       end: z.string().optional(),
     })
     .optional(),
+  style: blockStyleSchema.optional(),
 };
 
 export const sectionSchema = z.discriminatedUnion("type", [

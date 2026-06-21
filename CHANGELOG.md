@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Per-block responsive style
+
+Adds optional per-block **desktop/tablet/mobile spacing overrides** + a
+**background-colour override** to every section — the "responsive" half of the
+Elementor-but-simple builder. **Additive** optional `style` on the section base
+(no migration; existing sections/themes untouched).
+
+### Added
+- **`blockStyleSchema`** on `sectionBase.style?` (`sections.schema.ts`): an
+  optional `background` (CSS colour, all viewports) + `desktop`/`tablet`/`mobile`
+  `{ padTop?, padBottom? }` from a `none/sm/md/lg/xl` scale.
+- **Renderer** — `SectionWrap` now emits a scoped `<style>` (class `wsec-<id>`)
+  with viewport media queries (`≤1024px` tablet, `≤640px` mobile) for the spacing
+  and merges the background over the tone style. Correct on the live public site;
+  the builder device frames remain an approximation (same as the existing
+  responsive `visibility`). Helper `blockStyleCss` in `sections/_shared.tsx`.
+- **Inspector** — a `BlockStyleEditor` in the section appearance panel: a
+  self-contained device sub-toggle (Desktop/Tablet/Mobile) driving Space-above /
+  Space-below selects + a background colour picker (swatch + hex + clear).
+- +8 `website` en i18n keys. tsc + lint + themes-compat green. No DB change.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Page-builder free elements
 
 Adds the first batch of "free element" building blocks to the page builder —

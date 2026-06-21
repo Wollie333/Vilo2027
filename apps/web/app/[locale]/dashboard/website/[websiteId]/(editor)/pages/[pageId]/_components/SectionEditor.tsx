@@ -114,6 +114,130 @@ export function SectionEditor({
           {t("scheduleHint")}
         </p>
       </div>
+      <BlockStyleEditor section={section} onChange={onChange} />
+    </div>
+  );
+}
+
+/**
+ * Per-block responsive style: an optional background colour + desktop/tablet/
+ * mobile spacing overrides (top/bottom). Self-contained device sub-toggle so it
+ * works in both builders without threading the canvas device state in.
+ */
+function BlockStyleEditor({
+  section,
+  onChange,
+}: {
+  section: WebsiteSection;
+  onChange: (next: WebsiteSection) => void;
+}) {
+  const t = useTranslations("website");
+  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">(
+    "desktop",
+  );
+  const style = section.style ?? {};
+  const vp = style[device] ?? {};
+
+  const setVp = (patch: { padTop?: string; padBottom?: string }) => {
+    const next = { ...vp, ...patch };
+    // Drop empty ("default") entries so the JSON stays lean.
+    if (!next.padTop) delete next.padTop;
+    if (!next.padBottom) delete next.padBottom;
+    const hasAny = next.padTop || next.padBottom;
+    onChange({
+      ...section,
+      style: { ...style, [device]: hasAny ? next : undefined },
+    });
+  };
+  const setBg = (bg: string | undefined) =>
+    onChange({ ...section, style: { ...style, background: bg } });
+
+  const spaceOptions = [
+    { value: "", label: t("blockDefault") },
+    { value: "none", label: t("spaceNone") },
+    { value: "sm", label: t("elSpacer_sm") },
+    { value: "md", label: t("elSpacer_md") },
+    { value: "lg", label: t("elSpacer_lg") },
+    { value: "xl", label: t("elSpacer_xl") },
+  ];
+  const devices: Array<{ key: typeof device; label: string }> = [
+    { key: "desktop", label: t("deviceDesktop") },
+    { key: "tablet", label: t("deviceTablet") },
+    { key: "mobile", label: t("devicePhone") },
+  ];
+
+  return (
+    <div className="space-y-4 border-t border-brand-line pt-4">
+      <div>
+        <span className="block text-[13px] font-semibold text-brand-ink">
+          {t("fldBlockStyle")}
+        </span>
+        <p className="mt-0.5 text-[11.5px] leading-snug text-brand-mute">
+          {t("blockStyleHint")}
+        </p>
+      </div>
+
+      <div className="inline-flex rounded-[10px] border border-brand-line bg-brand-light/50 p-0.5">
+        {devices.map((d) => (
+          <button
+            key={d.key}
+            type="button"
+            onClick={() => setDevice(d.key)}
+            className={`rounded-[8px] px-3 py-1 text-[12px] font-semibold transition ${
+              device === d.key
+                ? "bg-white text-brand-secondary shadow-sm"
+                : "text-brand-mute hover:text-brand-ink"
+            }`}
+          >
+            {d.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField
+          label={t("fldPadTop")}
+          value={vp.padTop ?? ""}
+          options={spaceOptions}
+          onChange={(v) => setVp({ padTop: v })}
+        />
+        <SelectField
+          label={t("fldPadBottom")}
+          value={vp.padBottom ?? ""}
+          options={spaceOptions}
+          onChange={(v) => setVp({ padBottom: v })}
+        />
+      </div>
+
+      <div>
+        <span className="block text-[13px] font-semibold text-brand-ink">
+          {t("fldBlockBg")}
+        </span>
+        <div className="mt-1.5 flex items-center gap-2">
+          <input
+            type="color"
+            value={style.background ?? "#ffffff"}
+            onChange={(e) => setBg(e.target.value)}
+            className="h-9 w-12 cursor-pointer rounded-[8px] border border-brand-line bg-white"
+            aria-label={t("fldBlockBg")}
+          />
+          <input
+            value={style.background ?? ""}
+            onChange={(e) => setBg(e.target.value || undefined)}
+            placeholder="#FFFFFF"
+            className="w-32 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
+          />
+          {style.background ? (
+            <button
+              type="button"
+              onClick={() => setBg(undefined)}
+              className="text-[12px] font-medium text-brand-mute hover:text-red-600"
+            >
+              {t("blockBgClear")}
+            </button>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
