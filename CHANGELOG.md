@@ -5,6 +5,29 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · remove the Rooms tab
+
+Rooms are managed under Properties (sidebar → Rooms) and pulled into the website
+automatically, so the dedicated Website-CMS Rooms tab was redundant — removed.
+
+### Removed
+- The **Rooms** tab from the website editor tab bar (`WebsiteTabs`).
+- The route `(editor)/rooms/` (page + `RoomsManager` + `loadRoomsEditor`).
+- The rooms references in the Overview (checklist step, quick link, and the
+  hidden-rooms "needs attention" signal + its query in `loadOverviewData`).
+
+### Changed
+- `syncWebsiteRoomsAction` (only the deleted tab called it) → a private
+  `reconcileWebsiteRooms(supabase, websiteId)` helper, now invoked at the start of
+  **`publishWebsiteAction`**. So publishing always pulls the host's current
+  rooms/properties into channel membership before snapshotting — rooms stay current
+  without a tab. Existing visibility/overrides on still-present rooms are preserved;
+  the public room display (frozen snapshot ⨝ live `property_rooms`) is unchanged.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · SEO tab
 
 Rebuilds the SEO tab to the `SEO Manager.html` mockup. Non-breaking restyle —

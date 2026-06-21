@@ -1196,30 +1196,28 @@ export async function createWebsiteAssetUploadUrl(
 }
 
 // ============================================================
-// W9 — Rooms tab (channel membership + display overrides)
+// Channel membership (rooms/properties auto-pull)
 // ============================================================
 
 /**
  * Reconcile the site's `website_properties` + `website_rooms` with the business's
- * current properties/rooms — pulls in anything added since the site was created and
- * prunes membership for rooms/properties that no longer exist. Newly synced rows
- * default to visible. Cosmetic overrides on still-present rooms are preserved.
+ * current properties/rooms — pulls in anything added since and prunes membership
+ * for rooms/properties that no longer exist; newly synced rows default to visible.
+ *
+ * There's no Rooms tab anymore: rooms are managed entirely under Properties and
+ * pulled into the website automatically. This runs on publish (below) so the
+ * frozen snapshot always reflects the host's current rooms.
  */
-export async function syncWebsiteRoomsAction(
+async function reconcileWebsiteRooms(
+  supabase: ReturnType<typeof createServerClient>,
   websiteId: string,
-): Promise<ActionResult> {
-  const own = await assertWebsiteOwnership(websiteId);
-  if (!own.ok) return own;
-  if (!(await assertWebsiteFeature(own.hostId)))
-    return { ok: false, error: "locked" };
-
-  const supabase = createServerClient();
+): Promise<void> {
   const { data: site } = await supabase
     .from("host_websites")
     .select("business_id")
     .eq("id", websiteId)
     .maybeSingle();
-  if (!site) return { ok: false, error: "not_found" };
+  if (!site) return;
 
   const { data: props } = await supabase
     .from("properties")
@@ -1285,9 +1283,6 @@ export async function syncWebsiteRoomsAction(
   if (orphanRooms.length > 0) {
     await supabase.from("website_rooms").delete().in("id", orphanRooms);
   }
-
-  revalidatePath(`/dashboard/website/${websiteId}/rooms`);
-  return { ok: true };
 }
 
 // ============================================================
@@ -1309,6 +1304,10 @@ export async function publishWebsiteAction(
     return { ok: false, error: "locked" };
 
   const supabase = createServerClient();
+
+  // Pull the business's current rooms/properties into channel membership before
+  // snapshotting, so the live site always reflects what's managed under Properties.
+  await reconcileWebsiteRooms(supabase, websiteId);
 
   // Copy draft → published for every page. There's no SQL column-to-column copy
   // via the JS client, so read the drafts and write them back (pages are few).

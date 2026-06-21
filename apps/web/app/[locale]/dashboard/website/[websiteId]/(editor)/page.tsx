@@ -1,6 +1,5 @@
 import {
   ArrowUpRight,
-  BedDouble,
   Check,
   CircleAlert,
   CircleCheck,
@@ -116,7 +115,6 @@ export default async function WebsiteOverviewPage({
     },
     { key: "stepThemeTitle", done: Boolean(site.theme.accent), seg: "theme" },
     { key: "stepPagesTitle", done: site.counts.pages > 0, seg: "pages" },
-    { key: "stepRoomsTitle", done: site.counts.rooms > 0, seg: "rooms" },
     { key: "stepSeoTitle", done: Boolean(site.seo.title), seg: "seo" },
     { key: "stepPublishTitle", done: isLive, seg: "" },
   ];
@@ -148,7 +146,6 @@ export default async function WebsiteOverviewPage({
     { seg: "brand", key: "tabBrand", icon: ImageIcon },
     { seg: "theme", key: "tabTheme", icon: Palette },
     { seg: "pages", key: "tabPages", icon: Feather },
-    { seg: "rooms", key: "tabRooms", icon: BedDouble },
     { seg: "blog", key: "tabBlog", icon: Newspaper },
     { seg: "domain", key: "tabDomain", icon: Globe },
     { seg: "seo", key: "tabSeo", icon: SearchCheck },

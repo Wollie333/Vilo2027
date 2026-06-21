@@ -50,29 +50,23 @@ export async function loadOverviewData(
 
   const supabase = createServerClient();
 
-  const [analytics, domainRow, postsRes, hiddenRoomsRes, mediaRes] =
-    await Promise.all([
-      loadWebsiteAnalytics(supabase, websiteId, range),
-      supabase
-        .from("host_websites")
-        .select("domain_status")
-        .eq("id", websiteId)
-        .maybeSingle(),
-      supabase
-        .from("website_blog_posts")
-        .select("seo, status")
-        .eq("website_id", websiteId)
-        .is("deleted_at", null),
-      supabase
-        .from("website_rooms")
-        .select("id", { count: "exact", head: true })
-        .eq("website_id", websiteId)
-        .eq("is_visible", false),
-      supabase
-        .from("website_media")
-        .select("alt, width, height")
-        .eq("website_id", websiteId),
-    ]);
+  const [analytics, domainRow, postsRes, mediaRes] = await Promise.all([
+    loadWebsiteAnalytics(supabase, websiteId, range),
+    supabase
+      .from("host_websites")
+      .select("domain_status")
+      .eq("id", websiteId)
+      .maybeSingle(),
+    supabase
+      .from("website_blog_posts")
+      .select("seo, status")
+      .eq("website_id", websiteId)
+      .is("deleted_at", null),
+    supabase
+      .from("website_media")
+      .select("alt, width, height")
+      .eq("website_id", websiteId),
+  ]);
 
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
   const domainStatus = (domainRow.data?.domain_status as string) ?? "none";
@@ -89,7 +83,6 @@ export async function loadOverviewData(
     const seo = (p.seo ?? {}) as { title?: string; description?: string };
     return !seo.title?.trim() || !seo.description?.trim();
   }).length;
-  const hiddenRooms = hiddenRoomsRes.count ?? 0;
 
   const signals: OverviewSignal[] = [];
   if (isLive && site.isDirty) signals.push({ key: "attnUnpublished", seg: "" });
@@ -98,8 +91,6 @@ export async function loadOverviewData(
     signals.push({ key: "attnDomain", seg: "domain" });
   if (postsNoSeo > 0)
     signals.push({ key: "attnPostsNoSeo", count: postsNoSeo, seg: "blog" });
-  if (hiddenRooms > 0)
-    signals.push({ key: "attnHiddenRooms", count: hiddenRooms, seg: "rooms" });
   if (!site.seo.title?.trim())
     signals.push({ key: "attnNoSeoTitle", seg: "seo" });
 
