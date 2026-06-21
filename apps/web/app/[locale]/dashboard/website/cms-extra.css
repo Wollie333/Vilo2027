@@ -4,6 +4,38 @@
    rest of the emerald system. Grid column templates differ per table, so .ptr
    carries everything EXCEPT grid-template-columns — each table sets that inline. */
 
+/* ---------- row "⋯" dropdown menu (Pages manager) ---------- */
+.vilo-cms .rm-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+.vilo-cms .rm-item:hover {
+  background: var(--soft);
+}
+.vilo-cms .rm-item svg {
+  color: var(--mute);
+}
+.vilo-cms .rm-danger {
+  color: #ef4444;
+}
+.vilo-cms .rm-danger:hover {
+  background: #fef2f2;
+}
+.vilo-cms .rm-danger svg {
+  color: #ef4444;
+}
+
 /* ---------- table row (manager lists) ---------- */
 .vilo-cms .ptr {
   display: grid;

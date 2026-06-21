@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+
+import { createServerClient } from "@/lib/supabase/server";
 
 import { loadPagesList } from "./loadPagesList";
 import { PagesManager } from "./PagesManager";
@@ -12,22 +13,26 @@ export default async function WebsitePagesList({
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const [t, pages] = await Promise.all([
-    getTranslations("website"),
+  const supabase = createServerClient();
+  const [pages, siteRes] = await Promise.all([
     loadPagesList(websiteId),
+    supabase
+      .from("host_websites")
+      .select("subdomain")
+      .eq("id", websiteId)
+      .maybeSingle(),
   ]);
   if (!pages) notFound();
 
-  return (
-    <div className="max-w-2xl space-y-5">
-      <header>
-        <h2 className="font-display text-lg font-bold text-brand-ink">
-          {t("pagesHeading")}
-        </h2>
-        <p className="mt-1 text-sm text-brand-mute">{t("pagesManageSub")}</p>
-      </header>
+  const subdomain = `${siteRes.data?.subdomain ?? ""}.${
+    process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"
+  }`;
 
-      <PagesManager websiteId={websiteId} initialPages={pages} />
-    </div>
+  return (
+    <PagesManager
+      websiteId={websiteId}
+      subdomain={subdomain}
+      initialPages={pages}
+    />
   );
 }

@@ -1,34 +1,22 @@
 "use client";
 
 import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
   Copy,
   Eye,
   EyeOff,
-  FileText,
-  GripVertical,
   Loader2,
+  MoreHorizontal,
   Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
-import { useState, useTransition } from "react";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
@@ -62,69 +50,55 @@ export type ManagedPage = {
   publishedCount: number;
 };
 
+// Pages mockup grid: Page · Type · Status · Sections · Actions.
+const GRID = "minmax(0,1fr) 120px 110px 120px 96px";
+
 export function PagesManager({
   websiteId,
+  subdomain,
   initialPages,
 }: {
   websiteId: string;
+  subdomain: string;
   initialPages: ManagedPage[];
 }) {
   const t = useTranslations("website");
   const router = useRouter();
   const [pages, setPages] = useState<ManagedPage[]>(initialPages);
-  const [dirty, setDirty] = useState(false);
-  const [saving, startSave] = useTransition();
   const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const [, startSave] = useTransition();
 
   function pageTitle(p: ManagedPage) {
     if (p.kind === "home") return t("pageHome");
     if (p.kind === "about") return t("pageAbout");
     return p.title || p.slug;
   }
-
-  function patch(id: string, next: Partial<ManagedPage>) {
-    setPages((ps) => ps.map((p) => (p.id === id ? { ...p, ...next } : p)));
-    setDirty(true);
+  function pageType(p: ManagedPage) {
+    if (p.kind === "home") return t("pageTypeLanding");
+    return t("pageTypeStandard");
   }
 
-  function onDragEnd(e: DragEndEvent) {
-    const { active, over } = e;
-    if (!over || active.id === over.id) return;
-    const oldIndex = pages.findIndex((p) => p.id === active.id);
-    const newIndex = pages.findIndex((p) => p.id === over.id);
-    if (oldIndex < 0 || newIndex < 0) return;
-    const reordered = arrayMove(pages, oldIndex, newIndex);
-    // The home page always stays first, even if another page is dropped above it.
-    const homeIdx = reordered.findIndex((p) => p.kind === "home");
-    if (homeIdx > 0) reordered.unshift(reordered.splice(homeIdx, 1)[0]);
-    setPages(reordered);
-    setDirty(true);
-  }
-
-  function onSave() {
+  function toggleNav(p: ManagedPage) {
+    const next = pages.map((x) =>
+      x.id === p.id ? { ...x, showInNav: !x.showInNav } : x,
+    );
+    setPages(next);
     startSave(async () => {
       const res = await savePagesAction({
         websiteId,
-        pages: pages.map((p) => ({
-          id: p.id,
-          navLabel: p.navLabel ?? "",
-          showInNav: p.showInNav,
+        pages: next.map((x) => ({
+          id: x.id,
+          navLabel: x.navLabel ?? "",
+          showInNav: x.showInNav,
         })),
       });
       if (!res.ok) {
         toast.error(t("saveError"));
+        setPages(pages);
         return;
       }
-      setDirty(false);
-      toast.success(t("pagesSaved"));
+      toast.success(p.showInNav ? t("hiddenFromNav") : t("inNav"));
       router.refresh();
     });
   }
@@ -132,53 +106,73 @@ export function PagesManager({
   const deleting = deleteId ? pages.find((p) => p.id === deleteId) : null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm font-semibold text-brand-ink transition hover:bg-brand-light"
-        >
-          <Plus className="h-4 w-4" />
-          {t("addPage")}
-        </button>
-        {dirty ? (
+    <div className="vilo-cms mx-auto max-w-[1180px]">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <h1
+            className="font-display text-[20px] font-extrabold"
+            style={{ color: "var(--ink)" }}
+          >
+            {t("pagesHeading")}
+          </h1>
+          <span className="tag">{pages.length}</span>
+        </div>
+        <div className="ml-auto flex items-center gap-2.5">
           <button
             type="button"
-            onClick={onSave}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+            className="btn btn-primary btn-sm"
+            onClick={() => setAddOpen(true)}
           >
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {t("saveNav")}
+            <Plus style={{ width: 15, height: 15 }} />
+            {t("addPage")}
           </button>
-        ) : null}
+        </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={onDragEnd}
+      <section
+        style={{
+          border: "1px solid var(--line)",
+          borderRadius: 16,
+          background: "#fff",
+          overflow: "hidden",
+        }}
       >
-        <SortableContext
-          items={pages.map((p) => p.id)}
-          strategy={verticalListSortingStrategy}
+        <div
+          className="ptr"
+          style={{
+            gridTemplateColumns: GRID,
+            cursor: "default",
+            paddingTop: 11,
+            paddingBottom: 11,
+            background: "#FAFCFB",
+            borderBottom: "1px solid var(--line)",
+          }}
         >
-          <ul className="space-y-2.5">
-            {pages.map((p) => (
-              <PageRow
-                key={p.id}
-                websiteId={websiteId}
-                page={p}
-                title={pageTitle(p)}
-                locked={p.kind === "home"}
-                onPatch={patch}
-                onDelete={() => setDeleteId(p.id)}
-              />
-            ))}
-          </ul>
-        </SortableContext>
-      </DndContext>
+          <div className="smallcaps">{t("pagesColPage")}</div>
+          <div className="smallcaps">{t("pagesColType")}</div>
+          <div className="smallcaps">{t("pagesColStatus")}</div>
+          <div className="smallcaps">{t("pagesColSections")}</div>
+          <div className="smallcaps" style={{ textAlign: "right" }}>
+            {t("pagesColActions")}
+          </div>
+        </div>
+
+        <div style={{ padding: 8 }}>
+          {pages.map((p) => (
+            <PageRow
+              key={p.id}
+              websiteId={websiteId}
+              subdomain={subdomain}
+              page={p}
+              title={pageTitle(p)}
+              type={pageType(p)}
+              onDuplicate={() => router.refresh()}
+              onToggleNav={() => toggleNav(p)}
+              onDelete={() => setDeleteId(p.id)}
+            />
+          ))}
+        </div>
+      </section>
 
       <AddPageModal
         open={addOpen}
@@ -226,38 +220,30 @@ export function PagesManager({
 
 function PageRow({
   websiteId,
+  subdomain,
   page,
   title,
-  locked,
-  onPatch,
+  type,
+  onDuplicate,
+  onToggleNav,
   onDelete,
 }: {
   websiteId: string;
+  subdomain: string;
   page: ManagedPage;
   title: string;
-  locked: boolean;
-  onPatch: (id: string, next: Partial<ManagedPage>) => void;
+  type: string;
+  onDuplicate: () => void;
+  onToggleNav: () => void;
   onDelete: () => void;
 }) {
   const t = useTranslations("website");
   const router = useRouter();
   const [dup, startDup] = useTransition();
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: page.id, disabled: locked });
+  const live = page.publishedCount > 0;
+  const path = page.kind === "home" ? "/" : `/${page.slug}`;
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 30 : undefined,
-  };
-
-  function onDuplicate() {
+  function onDuplicateClick() {
     startDup(async () => {
       const res = await duplicatePageAction(websiteId, page.id);
       if (!res.ok) {
@@ -265,122 +251,165 @@ function PageRow({
         return;
       }
       toast.success(t("pageDuplicated"));
+      onDuplicate();
       router.push(`/website-editor/${websiteId}/pages/${res.id}`);
     });
   }
 
   return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className={`rounded-card border bg-white p-3 transition ${
-        isDragging ? "border-brand-primary shadow-lift" : "border-brand-line"
-      }`}
+    <Link
+      href={`/website-editor/${websiteId}/pages/${page.id}`}
+      className="ptr"
+      style={{ gridTemplateColumns: GRID }}
     >
-      <div className="flex items-center gap-2.5">
-        {locked ? (
-          <span
-            aria-hidden
-            title={t("homeStaysFirst")}
-            className="cursor-not-allowed text-brand-mute/30"
-          >
-            <GripVertical className="h-4 w-4" />
-          </span>
-        ) : (
-          <button
-            type="button"
-            {...attributes}
-            {...listeners}
-            aria-label={t("dragToReorder")}
-            className="cursor-grab touch-none text-brand-mute/70 hover:text-brand-ink active:cursor-grabbing"
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
-        )}
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] bg-brand-light text-brand-secondary">
-          <FileText className="h-4.5 w-4.5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold text-brand-ink">
-              {title}
-            </span>
-            {page.publishedCount === 0 ? (
-              <span className="rounded-pill bg-brand-light px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-brand-mute">
-                {t("notPublishedYet")}
-              </span>
-            ) : null}
-          </div>
-          <span className="text-[12px] text-brand-mute">
-            {t("sectionCount", { count: page.draftCount })} · /
-            {page.kind === "home" ? "" : page.slug}
-          </span>
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="pthumb">
+          <div className="tb" />
+          <div className="ph" />
         </div>
-
-        <Link
-          href={`/website-editor/${websiteId}/pages/${page.id}`}
-          title={t("editPage")}
-          className="shrink-0 rounded-[10px] border border-brand-line bg-white p-2.5 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink"
-        >
-          <Pencil className="h-4 w-4" />
-        </Link>
-        <button
-          type="button"
-          onClick={onDuplicate}
-          disabled={dup}
-          title={t("duplicatePage")}
-          className="shrink-0 rounded-[10px] border border-brand-line bg-white p-2.5 text-brand-mute transition hover:bg-brand-light hover:text-brand-ink disabled:opacity-50"
-        >
-          {dup ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-        </button>
-        {page.kind !== "home" ? (
-          <button
-            type="button"
-            onClick={onDelete}
-            title={t("deletePage")}
-            className="shrink-0 rounded-[10px] border border-brand-line bg-white p-2.5 text-brand-mute transition hover:bg-red-50 hover:text-red-600"
+        <div className="min-w-0">
+          <div
+            className="truncate font-display text-[14px] font-bold"
+            style={{ color: "var(--ink)" }}
           >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        ) : null}
+            {title}
+          </div>
+          <div
+            className="mono truncate text-[11.5px]"
+            style={{ color: "var(--mute)" }}
+          >
+            {subdomain}
+            {path}
+          </div>
+        </div>
       </div>
 
-      {/* Nav controls */}
-      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-brand-line pt-3">
-        <label className="flex flex-1 items-center gap-2">
-          <span className="text-[12px] font-medium text-brand-mute">
-            {t("navLabel")}
-          </span>
-          <input
-            value={page.navLabel ?? ""}
-            onChange={(e) => onPatch(page.id, { navLabel: e.target.value })}
-            placeholder={title}
-            maxLength={60}
-            className="min-w-0 flex-1 rounded-[8px] border border-brand-line bg-white px-2.5 py-1.5 text-[13px] text-brand-ink outline-none focus:border-brand-primary"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => onPatch(page.id, { showInNav: !page.showInNav })}
-          className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1.5 text-[12px] font-semibold transition ${
-            page.showInNav
-              ? "bg-brand-accent text-brand-secondary"
-              : "bg-brand-light text-brand-mute"
-          }`}
-        >
-          {page.showInNav ? (
-            <Eye className="h-3.5 w-3.5" />
-          ) : (
-            <EyeOff className="h-3.5 w-3.5" />
-          )}
-          {page.showInNav ? t("inNav") : t("hiddenFromNav")}
-        </button>
+      <div className="text-[12.5px]" style={{ color: "var(--mute)" }}>
+        {type}
       </div>
-    </li>
+
+      <div>
+        <span className={live ? "tag green" : "tag"}>
+          <span className="d" />
+          {live ? t("statusLive") : t("statusDraftPage")}
+        </span>
+      </div>
+
+      <div className="text-[12.5px]" style={{ color: "var(--mute)" }}>
+        {t("sectionCount", { count: page.draftCount })}
+      </div>
+
+      <div className="flex items-center justify-end gap-1.5">
+        <span className="btn btn-ghost btn-sm" style={{ height: 32 }}>
+          <Pencil style={{ width: 14, height: 14, color: "var(--mute)" }} />
+          {t("editPage")}
+        </span>
+        <RowMenu
+          dup={dup}
+          inNav={page.showInNav}
+          canDelete={page.kind !== "home"}
+          onDuplicate={onDuplicateClick}
+          onToggleNav={onToggleNav}
+          onDelete={onDelete}
+        />
+      </div>
+    </Link>
+  );
+}
+
+/** Small per-row "⋯" dropdown (duplicate · nav visibility · delete). */
+function RowMenu({
+  dup,
+  inNav,
+  canDelete,
+  onDuplicate,
+  onToggleNav,
+  onDelete,
+}: {
+  dup: boolean;
+  inNav: boolean;
+  canDelete: boolean;
+  onDuplicate: () => void;
+  onToggleNav: () => void;
+  onDelete: () => void;
+}) {
+  const t = useTranslations("website");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const stop = (fn: () => void) => (e: ReactMouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false);
+    fn();
+  };
+
+  return (
+    <div ref={ref} className="relative" style={{ height: 32 }}>
+      <button
+        type="button"
+        className="icon-btn"
+        style={{ height: 32, width: 32 }}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={t("pageMenu")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
+      >
+        {dup ? (
+          <Loader2 className="animate-spin" style={{ width: 17, height: 17 }} />
+        ) : (
+          <MoreHorizontal style={{ width: 17, height: 17 }} />
+        )}
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 z-30 mt-1 w-48 overflow-hidden rounded-[12px] border bg-white py-1"
+          style={{
+            borderColor: "var(--line)",
+            top: "100%",
+            boxShadow: "0 18px 40px -18px rgba(6,78,59,.45)",
+          }}
+        >
+          <button type="button" className="rm-item" onClick={stop(onDuplicate)}>
+            <Copy style={{ width: 15, height: 15 }} />
+            {t("duplicatePage")}
+          </button>
+          <button type="button" className="rm-item" onClick={stop(onToggleNav)}>
+            {inNav ? (
+              <EyeOff style={{ width: 15, height: 15 }} />
+            ) : (
+              <Eye style={{ width: 15, height: 15 }} />
+            )}
+            {inNav ? t("hideFromNav") : t("showInNav")}
+          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="rm-item rm-danger"
+              onClick={stop(onDelete)}
+            >
+              <Trash2 style={{ width: 15, height: 15 }} />
+              {t("deletePage")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

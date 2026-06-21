@@ -5,6 +5,35 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Pages manager + builder fidelity
+
+Two fixes against the real mockup files (`Page Builder A.html`, `Pages Manager.html`).
+
+### Page builder — true to `Page Builder A.html`
+- Left panel is now the block **palette** ("Add blocks", categorised `.pal-grid`) — not
+  an outline. Canvas blocks carry their own `.bk` overlay (hover label + drag grip,
+  hide/duplicate/delete tools, insert-between `+`, selection ring). Device toggle moved
+  into the top bar; added a full-screen **Preview** mode (with Exit). Inspector unchanged.
+
+### Pages manager — true to `Pages Manager.html`
+- **`PagesManager`** rebuilt to the mockup `.ptr` table inside `.vilo-cms`: title + count,
+  "New page", and a `.card` table — Page (thumb + title + path) · Type · Status (`.tag`) ·
+  Sections · Actions (Edit + a "⋯" dropdown: duplicate / nav visibility / delete). The page
+  template modal (title + template) is preserved.
+- **`pages/page.tsx`** now passes the site's `subdomain` and drops the old header wrapper
+  (the manager renders its own title).
+- New `.rm-item`/`.rm-danger` dropdown styles in `cms-extra.css`; +12 i18n keys.
+
+### Notes / deviations
+- The old inline page **reorder + nav-label + show-in-nav** controls are gone from the row
+  (the mockup's table is clean); nav visibility moved into the "⋯" menu, and menu order/labels
+  live in the Navigation menu builder. The mockup's "Traffic · 30d" column is shown as
+  **Sections** (no per-page analytics yet).
+
+tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · full-screen Page builder (foundation)
 
 The Pages editor becomes a full-screen visual builder (palette · live canvas ·
