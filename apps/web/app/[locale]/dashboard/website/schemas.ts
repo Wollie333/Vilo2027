@@ -417,6 +417,9 @@ export const saveBlogPostSchema = z.object({
   bodyHtml: z.string().max(50000).default(""),
   // Reusable author profile (website_blog_authors row), or "" for none.
   authorId: z.string().uuid().or(z.literal("")).default(""),
+  // Free-form tag names — created on save (find-or-create per website by slug)
+  // and reconciled onto the post↔tag join. Blank/dupe names are dropped server-side.
+  tags: z.array(z.string().trim().min(1).max(60)).max(20).default([]),
   seoTitle: z.string().trim().max(70).default(""),
   seoDescription: z.string().trim().max(200).default(""),
   seoFocusKeyword: z.string().trim().max(60).default(""),

@@ -145,6 +145,26 @@ export default async function SiteBlogPostPage({
               dangerouslySetInnerHTML={{ __html: post.bodyHtml }}
             />
 
+            {post.tags.length > 0 ? (
+              <div className="mt-8 flex flex-wrap gap-2">
+                {post.tags.map((tag) => (
+                  <a
+                    key={tag.slug}
+                    href={`/blog/tag/${tag.slug}`}
+                    style={{
+                      background: "var(--site-surface)",
+                      borderColor: "var(--site-line)",
+                      color: "var(--site-mute)",
+                      borderRadius: "var(--site-radius)",
+                    }}
+                    className="border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80"
+                  >
+                    #{tag.name}
+                  </a>
+                ))}
+              </div>
+            ) : null}
+
             {post.authorName && (post.authorBio || post.authorAvatarUrl) ? (
               <div
                 style={{

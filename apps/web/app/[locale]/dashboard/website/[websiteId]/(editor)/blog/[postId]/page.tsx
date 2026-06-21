@@ -20,6 +20,7 @@ export default async function WebsiteBlogPostPage({
       subdomain={data.subdomain}
       categories={data.categories}
       authors={data.authors}
+      allTags={data.allTags}
       initialPost={data.post}
     />
   );

@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 7 save-point (b): blog tags + archives
+
+Adds blog tags with public tag-archive pages. (The scheduled-publish cron and
+RSS feed already existed, so this save-point is tags.) NO AI.
+
+### Added — migration (pushed to the linked project)
+- **`20260621002000_website_blog_tags.sql`** — `website_blog_tags`
+  (website_id, name, slug, sort_order; unique per (website_id, slug)) +
+  `website_blog_post_tags` join (post_id/tag_id, cascade). Owner + admin RLS
+  mirroring the categories/authors pattern. Types regenerated.
+
+### Added — editor (create tags inline)
+- `saveBlogPostSchema` gains `tags: string[]` (names); `saveBlogPostAction`
+  find-or-creates each tag by slug per website and replaces the post↔tag join.
+- `loadBlogPost` returns the post's `tags` + the site's `allTags` (autocomplete).
+- `PostEditor` gains a chip-style **TagField** (type + Enter/comma to add,
+  backspace to remove, datalist suggestions from existing tags). +3 i18n keys.
+
+### Added — public
+- `loadSiteBlogPost` now returns the post's tags; the post detail renders
+  `#tag` chips linking to the archive.
+- **`loadSiteBlogByTag`** + new route **`/blog/tag/[tagSlug]`** — a tag's
+  published posts in the blog card grid (mirrors the index).
+
+tsc + lint green. **Next: 7(c)** — next/image + Supabase transforms, lightbox,
+alt-text on fresh editor uploads (register them into `website_media`), Core Web
+Vitals score.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 7 save-point (a): blog editor → media library
 
 Completes Phase 7 save-point (a) "TipTap". The Tiptap editor, `body_html`

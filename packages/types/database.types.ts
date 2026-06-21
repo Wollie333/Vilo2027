@@ -8758,6 +8758,36 @@ export type Database = {
           },
         ]
       }
+      website_blog_post_tags: {
+        Row: {
+          post_id: string
+          tag_id: string
+        }
+        Insert: {
+          post_id: string
+          tag_id: string
+        }
+        Update: {
+          post_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_blog_post_tags_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "website_blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "website_blog_post_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "website_blog_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       website_blog_posts: {
         Row: {
           author_id: string | null
@@ -8833,6 +8863,41 @@ export type Database = {
           },
           {
             foreignKeyName: "website_blog_posts_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "host_websites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_blog_tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          website_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          website_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          website_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_blog_tags_website_id_fkey"
             columns: ["website_id"]
             isOneToOne: false
             referencedRelation: "host_websites"

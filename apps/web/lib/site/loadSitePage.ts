@@ -1227,12 +1227,13 @@ export async function loadSiteBlogPost(
   authorBio: string | null;
   authorAvatarUrl: string | null;
   excerpt: string | null;
+  tags: { name: string; slug: string }[];
 } | null> {
   const sb = createAdminClient();
   let q = sb
     .from("website_blog_posts")
     .select(
-      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at, author:website_blog_authors ( name, avatar_path, bio )",
+      "title, body_html, cover_path, publish_at, created_at, author_name, excerpt, status, deleted_at, author:website_blog_authors ( name, avatar_path, bio ), tags:website_blog_post_tags ( tag:website_blog_tags ( name, slug ) )",
     )
     .eq("website_id", ctx.websiteId)
     .eq("slug", postSlug);
@@ -1250,8 +1251,23 @@ export async function loadSiteBlogPost(
       avatar_path: string | null;
       bio: string | null;
     } | null;
+    tags:
+      | {
+          tag:
+            | { name: string; slug: string }
+            | { name: string; slug: string }[]
+            | null;
+        }[]
+      | null;
   }>();
   if (!post) return null;
+  const tags = (post.tags ?? [])
+    .map((row) => {
+      const t = Array.isArray(row.tag) ? row.tag[0] : row.tag;
+      return t ? { name: t.name, slug: t.slug } : null;
+    })
+    .filter((t): t is { name: string; slug: string } => t !== null)
+    .sort((a, b) => a.name.localeCompare(b.name));
   return {
     title: post.title,
     bodyHtml: sanitiseListingHtml(post.body_html ?? ""),
@@ -1263,6 +1279,7 @@ export async function loadSiteBlogPost(
     authorAvatarUrl:
       websiteAssetUrl(post.author?.avatar_path ?? undefined) ?? null,
     excerpt: post.excerpt,
+    tags,
   };
 }
 
@@ -1365,4 +1382,66 @@ export async function loadRelatedPosts(
     coverUrl:
       websiteAssetUrl((p as { cover_path: string | null }).cover_path) ?? null,
   }));
+}
+
+/**
+ * Load a tag's published posts for its archive page (`/blog/tag/<slug>`).
+ * Returns null when the tag slug doesn't exist on this site.
+ */
+export async function loadSiteBlogByTag(
+  ctx: SiteContext,
+  tagSlug: string,
+): Promise<{ tagName: string; posts: BlogIndexPost[] } | null> {
+  const sb = createAdminClient();
+  const { data: tag } = await sb
+    .from("website_blog_tags")
+    .select("id, name")
+    .eq("website_id", ctx.websiteId)
+    .eq("slug", tagSlug)
+    .maybeSingle();
+  if (!tag) return null;
+
+  const { data: joins } = await sb
+    .from("website_blog_post_tags")
+    .select("post_id")
+    .eq("tag_id", tag.id);
+  const postIds = (joins ?? []).map((j) => (j as { post_id: string }).post_id);
+  if (postIds.length === 0) return { tagName: tag.name, posts: [] };
+
+  const { data: posts } = await sb
+    .from("website_blog_posts")
+    .select(
+      "title, slug, excerpt, cover_path, publish_at, created_at, featured, author_name, author:website_blog_authors ( name )",
+    )
+    .eq("website_id", ctx.websiteId)
+    .in("id", postIds)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .order("featured", { ascending: false, nullsFirst: true })
+    .order("publish_at", { ascending: false, nullsFirst: false });
+
+  const mapped: BlogIndexPost[] = (posts ?? []).map((p) => {
+    const row = p as {
+      title: string;
+      slug: string;
+      excerpt: string | null;
+      cover_path: string | null;
+      publish_at: string | null;
+      created_at: string;
+      featured: boolean | null;
+      author_name: string | null;
+      author: { name: string | null } | { name: string | null }[] | null;
+    };
+    const authorObj = Array.isArray(row.author) ? row.author[0] : row.author;
+    return {
+      title: row.title,
+      slug: row.slug,
+      excerpt: row.excerpt,
+      coverUrl: websiteAssetUrl(row.cover_path ?? undefined) ?? null,
+      date: (row.publish_at ?? row.created_at)?.slice(0, 10) ?? null,
+      authorName: authorObj?.name ?? row.author_name,
+      featured: row.featured ?? false,
+    };
+  });
+  return { tagName: tag.name, posts: mapped };
 }

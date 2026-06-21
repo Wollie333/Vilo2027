@@ -1603,6 +1603,7 @@ export async function saveBlogPostAction(
     excerpt,
     bodyHtml,
     authorId,
+    tags,
     seoTitle,
     seoDescription,
     seoFocusKeyword,
@@ -1695,6 +1696,38 @@ export async function saveBlogPostAction(
     .eq("id", postId)
     .eq("website_id", websiteId);
   if (error) return { ok: false, error: "save_failed" };
+
+  // Tags — find-or-create by slug per website, then replace the post↔tag join.
+  // Dedupe by slug so "Surf" and "surf" collapse to one tag.
+  const bySlug = new Map<string, string>();
+  for (const raw of tags) {
+    const name = raw.trim();
+    if (!name) continue;
+    const tagSlug = slugify(name);
+    if (tagSlug && !bySlug.has(tagSlug)) bySlug.set(tagSlug, name);
+  }
+  let tagIds: string[] = [];
+  if (bySlug.size > 0) {
+    const { data: tagRows } = await supabase
+      .from("website_blog_tags")
+      .upsert(
+        [...bySlug].map(([tagSlug, name]) => ({
+          website_id: websiteId,
+          name,
+          slug: tagSlug,
+        })),
+        { onConflict: "website_id,slug" },
+      )
+      .select("id");
+    tagIds = (tagRows ?? []).map((r) => r.id);
+  }
+  // Replace the join rows for this post (delete-all then insert the current set).
+  await supabase.from("website_blog_post_tags").delete().eq("post_id", postId);
+  if (tagIds.length > 0) {
+    await supabase
+      .from("website_blog_post_tags")
+      .insert(tagIds.map((tag_id) => ({ post_id: postId, tag_id })));
+  }
 
   revalidatePath(`/dashboard/website/${websiteId}/blog`);
   revalidatePath(`/dashboard/website/${websiteId}/blog/${postId}`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -58,12 +58,14 @@ export function PostEditor({
   subdomain,
   categories,
   authors,
+  allTags,
   initialPost,
 }: {
   websiteId: string;
   subdomain: string;
   categories: Array<{ id: string; name: string }>;
   authors: BlogPostEditorData["authors"];
+  allTags: string[];
   initialPost: Post;
 }) {
   const t = useTranslations("website");
@@ -158,6 +160,7 @@ export function PostEditor({
         excerpt: post.excerpt,
         bodyHtml: post.bodyHtml,
         authorId: post.authorId,
+        tags: post.tags,
         seoTitle: post.seoTitle,
         seoDescription: post.seoDescription,
         seoFocusKeyword: post.seoFocusKeyword,
@@ -308,6 +311,14 @@ export function PostEditor({
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
+            <TagField
+              label={t("blogTags")}
+              hint={t("blogTagsHint")}
+              placeholder={t("blogAddTag")}
+              value={post.tags}
+              suggestions={allTags}
+              onChange={(tags) => patch({ tags })}
+            />
             <TextField
               label={t("blogSlug")}
               value={post.slug}
@@ -411,5 +422,87 @@ export function PostEditor({
         onSelectItem={handleSelectItem}
       />
     </div>
+  );
+}
+
+/** Chip-style free-form tag input with autocomplete from the site's tags. */
+function TagField({
+  label,
+  hint,
+  placeholder,
+  value,
+  suggestions,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  placeholder?: string;
+  value: string[];
+  suggestions: string[];
+  onChange: (tags: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const listId = "blog-tag-suggestions";
+
+  function add(name: string) {
+    const tag = name.trim();
+    setDraft("");
+    if (!tag) return;
+    if (value.some((v) => v.toLowerCase() === tag.toLowerCase())) return;
+    if (value.length >= 20) return;
+    onChange([...value, tag]);
+  }
+  function removeAt(i: number) {
+    onChange(value.filter((_, idx) => idx !== i));
+  }
+
+  return (
+    <label className="block">
+      <span className="block text-[13px] font-semibold text-brand-ink">
+        {label}
+      </span>
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 rounded-[10px] border border-brand-line bg-white p-2">
+        {value.map((tag, i) => (
+          <span
+            key={tag}
+            className="inline-flex items-center gap-1 rounded-pill bg-brand-light px-2 py-0.5 text-[12px] font-medium text-brand-ink"
+          >
+            {tag}
+            <button
+              type="button"
+              onClick={() => removeAt(i)}
+              aria-label={`Remove ${tag}`}
+              className="text-brand-mute transition-colors hover:text-red-600"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          list={listId}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === ",") {
+              e.preventDefault();
+              add(draft);
+            } else if (e.key === "Backspace" && !draft && value.length > 0) {
+              removeAt(value.length - 1);
+            }
+          }}
+          onBlur={() => add(draft)}
+          placeholder={placeholder}
+          className="min-w-[8rem] flex-1 bg-transparent text-sm text-brand-ink outline-none"
+        />
+        <datalist id={listId}>
+          {suggestions.map((s) => (
+            <option key={s} value={s} />
+          ))}
+        </datalist>
+      </div>
+      {hint ? (
+        <span className="mt-1 block text-[12px] text-brand-mute">{hint}</span>
+      ) : null}
+    </label>
   );
 }

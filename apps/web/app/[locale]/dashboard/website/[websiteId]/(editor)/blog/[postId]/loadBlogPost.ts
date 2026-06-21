@@ -15,6 +15,8 @@ export type BlogPostEditorData = {
   subdomain: string;
   categories: Array<{ id: string; name: string }>;
   authors: BlogAuthorRow[];
+  /** Every tag name on this site — autocomplete suggestions for the tag input. */
+  allTags: string[];
   post: {
     id: string;
     title: string;
@@ -27,6 +29,8 @@ export type BlogPostEditorData = {
     coverPath: string;
     excerpt: string;
     bodyHtml: string;
+    /** The post's current tag names. */
+    tags: string[];
     seoTitle: string;
     seoDescription: string;
     seoFocusKeyword: string;
@@ -54,30 +58,52 @@ export async function loadBlogPost(
     .maybeSingle();
   if (!site) return null;
 
-  const [{ data: post }, { data: cats }, { data: authors }] = await Promise.all(
-    [
-      supabase
-        .from("website_blog_posts")
-        .select(
-          "id, title, slug, status, featured, publish_at, category_id, author_id, cover_path, excerpt, body_html, seo",
-        )
-        .eq("id", postId)
-        .eq("website_id", site.id)
-        .is("deleted_at", null)
-        .maybeSingle(),
-      supabase
-        .from("website_blog_categories")
-        .select("id, name")
-        .eq("website_id", site.id)
-        .order("sort_order", { ascending: true }),
-      supabase
-        .from("website_blog_authors")
-        .select("id, name, avatar_path, bio")
-        .eq("website_id", site.id)
-        .order("sort_order", { ascending: true }),
-    ],
-  );
+  const [
+    { data: post },
+    { data: cats },
+    { data: authors },
+    { data: allTagRows },
+    { data: postTagRows },
+  ] = await Promise.all([
+    supabase
+      .from("website_blog_posts")
+      .select(
+        "id, title, slug, status, featured, publish_at, category_id, author_id, cover_path, excerpt, body_html, seo",
+      )
+      .eq("id", postId)
+      .eq("website_id", site.id)
+      .is("deleted_at", null)
+      .maybeSingle(),
+    supabase
+      .from("website_blog_categories")
+      .select("id, name")
+      .eq("website_id", site.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("website_blog_authors")
+      .select("id, name, avatar_path, bio")
+      .eq("website_id", site.id)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("website_blog_tags")
+      .select("name")
+      .eq("website_id", site.id)
+      .order("name", { ascending: true }),
+    supabase
+      .from("website_blog_post_tags")
+      .select("tag:website_blog_tags ( name )")
+      .eq("post_id", postId),
+  ]);
   if (!post) return null;
+
+  const postTags = (postTagRows ?? [])
+    .map((r) => {
+      const tag = (r as { tag: { name: string } | { name: string }[] | null })
+        .tag;
+      const t = Array.isArray(tag) ? tag[0] : tag;
+      return t?.name ?? "";
+    })
+    .filter(Boolean);
 
   const seo = (post.seo ?? {}) as {
     title?: string;
@@ -95,6 +121,7 @@ export async function loadBlogPost(
       avatarPath: a.avatar_path ?? "",
       bio: a.bio ?? "",
     })),
+    allTags: (allTagRows ?? []).map((t) => t.name),
     post: {
       id: post.id,
       title: post.title,
@@ -107,6 +134,7 @@ export async function loadBlogPost(
       coverPath: post.cover_path ?? "",
       excerpt: post.excerpt ?? "",
       bodyHtml: post.body_html ?? "",
+      tags: postTags,
       seoTitle: seo.title ?? "",
       seoDescription: seo.description ?? "",
       seoFocusKeyword: seo.focusKeyword ?? "",
