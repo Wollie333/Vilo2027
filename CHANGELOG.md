@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · SEO tab
+
+Rebuilds the SEO tab to the `SEO Manager.html` mockup. Non-breaking restyle —
+reuses the existing site-level SEO storage + `saveSeoAction`, and adds a real
+**per-page SEO table** read from each page's `seo_overrides`.
+
+### Added
+- `cms-extra.css`: SEO-tab styles scoped `.vilo-cms` — `.cc` char counters,
+  `.gprev` Google preview, `.ogprev` social card, the `.imgpick` share-image
+  picker, the `.seorow` per-page table, `.score`, `.checkpill`.
+- **`seo/page.tsx`** now loads `website_pages` (kind/title/slug/`seo_overrides`)
+  and passes per-page title/description completeness to the form.
+- +18 `website` i18n keys.
+
+### Changed
+- **`seo/SeoForm.tsx`** rebuilt to the mockup: Search appearance (meta title +
+  description with character counters + live Google preview), Social sharing
+  (share image via the media library + Open-Graph preview), **Page-by-page SEO**
+  (table with per-page Title/Description checks + Good/Fair/Missing score, linking
+  to the page), and Indexing (allow-search-engines toggle, sitemap on/off, GSC
+  verification). Wrapped in `.vilo-cms`; reuses `saveSeoAction`.
+- **`seo/page.tsx`** full-width; the form owns its header.
+
+### Notes
+- The OG preview reuses the meta title/description (no separate social title/
+  description fields — that'd need new storage; deferred). The per-page status is
+  completeness-based (pages have no per-page draft/live state). tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Domain tab + settings primitives
 
 Rebuilds the Domain tab to the `Domain Manager.html` mockup and lays down the

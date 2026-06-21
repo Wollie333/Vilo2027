@@ -356,6 +356,177 @@
   background: var(--soft);
 }
 
+/* ---------- SEO tab ---------- */
+.vilo-cms .cc {
+  font-family: "JetBrains Mono";
+  font-size: 11px;
+  color: var(--mute);
+}
+.vilo-cms .cc.warn {
+  color: #b45309;
+}
+.vilo-cms .gprev {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 17px;
+  background: #fff;
+  max-width: 600px;
+}
+.vilo-cms .gprev .gu {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #202124;
+}
+.vilo-cms .gprev .gu .fav {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: var(--soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vilo-cms .gprev .gu .gp {
+  font-family: "JetBrains Mono";
+  font-size: 11.5px;
+  color: #5f6368;
+}
+.vilo-cms .gprev .gt {
+  color: #1a0dab;
+  font-size: 19px;
+  line-height: 1.3;
+  margin-top: 6px;
+  font-weight: 400;
+}
+.vilo-cms .gprev .gd {
+  color: #4d5156;
+  font-size: 13px;
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.vilo-cms .ogprev {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+  max-width: 480px;
+  background: #fff;
+}
+.vilo-cms .ogprev .ogimg {
+  height: 170px;
+  background: repeating-linear-gradient(
+    135deg,
+    #e8f5ee 0 12px,
+    #dcefe4 12px 24px
+  );
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fb6a2;
+}
+.vilo-cms .ogprev .ogb {
+  padding: 11px 14px;
+  border-top: 1px solid var(--line);
+}
+.vilo-cms .ogprev .ogu {
+  font-family: "JetBrains Mono";
+  font-size: 11px;
+  color: #65676b;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.vilo-cms .ogprev .ogt {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1c1e21;
+  margin-top: 3px;
+}
+.vilo-cms .ogprev .ogd {
+  font-size: 12.5px;
+  color: #65676b;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.vilo-cms .imgpick {
+  height: 150px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  background: repeating-linear-gradient(
+    135deg,
+    #e8f5ee 0 12px,
+    #dcefe4 12px 24px
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8fb6a2;
+}
+.vilo-cms .imgpick img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vilo-cms .imgpick .ip-ov {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(5, 46, 31, 0.42);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.vilo-cms .imgpick:hover .ip-ov {
+  opacity: 1;
+}
+.vilo-cms .seorow {
+  display: grid;
+  grid-template-columns: 1fr 88px 96px 70px 30px;
+  gap: 14px;
+  align-items: center;
+  padding: 11px 16px;
+  border-radius: 11px;
+  text-decoration: none;
+}
+.vilo-cms .seorow.head {
+  background: #fafcfb;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+}
+.vilo-cms .seorow:hover:not(.head) {
+  background: #fafcfb;
+}
+.vilo-cms .score {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.vilo-cms .score .sd {
+  height: 8px;
+  width: 8px;
+  border-radius: 9999px;
+}
+.vilo-cms .checkpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
 /* ---------- forms manager stat tiles ---------- */
 .vilo-cms .stat {
   flex: 1;

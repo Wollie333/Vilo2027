@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+
+import { createServerClient } from "@/lib/supabase/server";
 
 import { loadWebsiteEditorData } from "../../loadWebsiteEditorData";
-import { SeoForm } from "./SeoForm";
+import { SeoForm, type PageSeoRow } from "./SeoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -12,34 +13,46 @@ export default async function WebsiteSeoPage({
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const [t, data] = await Promise.all([
-    getTranslations("website"),
-    loadWebsiteEditorData(websiteId),
-  ]);
+  const data = await loadWebsiteEditorData(websiteId);
   if (!data) notFound();
 
-  return (
-    <div className="max-w-2xl">
-      <header className="mb-5">
-        <h2 className="font-display text-lg font-bold text-brand-ink">
-          {t("seoHeading")}
-        </h2>
-        <p className="mt-1 text-sm text-brand-mute">{t("seoSub")}</p>
-      </header>
+  // Per-page SEO completeness (the website is already owner-verified above).
+  const supabase = createServerClient();
+  const { data: pageRows } = await supabase
+    .from("website_pages")
+    .select("id, kind, title, slug, seo_overrides")
+    .eq("website_id", websiteId)
+    .order("nav_order", { ascending: true });
 
-      <SeoForm
-        websiteId={websiteId}
-        fallbackTitle={data.brand.name ?? data.subdomain}
-        previewHost={`${data.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"}`}
-        initial={{
-          title: data.seo.title ?? "",
-          description: data.seo.description ?? "",
-          ogImagePath: data.seo.og_image_path ?? "",
-          gscToken: data.seo.gsc_token ?? "",
-          robotsIndex: data.seo.robots_index !== false,
-          sitemapEnabled: data.seo.sitemap_enabled !== false,
-        }}
-      />
-    </div>
+  const pages: PageSeoRow[] = (pageRows ?? []).map((p) => {
+    const seo = (p.seo_overrides ?? {}) as {
+      title?: string;
+      description?: string;
+    };
+    return {
+      id: p.id,
+      name: p.title?.trim() || p.kind,
+      kind: p.kind,
+      slug: p.slug,
+      hasTitle: Boolean(seo.title?.trim()),
+      hasDescription: Boolean(seo.description?.trim()),
+    };
+  });
+
+  return (
+    <SeoForm
+      websiteId={websiteId}
+      fallbackTitle={data.brand.name ?? data.subdomain}
+      previewHost={`${data.subdomain}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site"}`}
+      pages={pages}
+      initial={{
+        title: data.seo.title ?? "",
+        description: data.seo.description ?? "",
+        ogImagePath: data.seo.og_image_path ?? "",
+        gscToken: data.seo.gsc_token ?? "",
+        robotsIndex: data.seo.robots_index !== false,
+        sitemapEnabled: data.seo.sitemap_enabled !== false,
+      }}
+    />
   );
 }
