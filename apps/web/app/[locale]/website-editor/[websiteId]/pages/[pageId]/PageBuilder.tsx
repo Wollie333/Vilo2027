@@ -18,19 +18,49 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Check,
+  AlignLeft,
+  ArrowLeft,
+  BadgeDollarSign,
+  BarChart3,
+  BedDouble,
+  Blocks,
+  Building2,
+  CalendarDays,
+  ClipboardList,
   Copy,
   Eye,
   EyeOff,
-  File as FileIcon,
   GripVertical,
+  Heart,
+  HelpCircle,
+  Image as ImageIcon,
+  Images,
+  LayoutTemplate,
+  ListChecks,
   Loader2,
+  Mail,
+  Map as MapIcon,
+  MapPin,
+  MousePointerClick,
   Monitor,
+  Newspaper,
   Plus,
   Rocket,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
   Smartphone,
+  Sparkles,
+  Star,
+  Table,
   Tablet,
+  Tag,
   Trash2,
+  Type as TypeIcon,
+  User,
+  Video,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
@@ -40,20 +70,13 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import {
-  deleteSavedSectionAction,
   publishWebsiteAction,
   saveDraftSectionsAction,
-  saveSavedSectionAction,
 } from "@/app/[locale]/dashboard/website/actions";
 import type { SavedSection } from "@/app/[locale]/dashboard/website/schemas";
 import { SectionRenderer } from "@/components/site/SectionRenderer";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
-import {
-  FormModal,
-  FormModalCancel,
-  FormModalFooter,
-} from "@/components/ui/form-modal";
 import type { SiteThemeConfig } from "@/lib/site/themes";
 import type {
   SiteBrand,
@@ -72,11 +95,75 @@ import {
 } from "@/lib/website/sections.schema";
 
 import { SectionEditor } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionEditor";
-import { SectionLibrary } from "@/app/[locale]/dashboard/website/[websiteId]/(editor)/pages/[pageId]/_components/SectionLibrary";
 
 const asset = (p: string | null | undefined) => websiteAssetUrl(p) ?? undefined;
 
 type Device = "desktop" | "tablet" | "phone";
+
+// Palette catalogue — same grouping as the SectionLibrary modal.
+const GROUPS: Array<{ key: string; types: SectionType[] }> = [
+  { key: "catHero", types: ["hero", "intro"] },
+  {
+    key: "catShowcase",
+    types: [
+      "gallery",
+      "rooms_preview",
+      "specials_preview",
+      "pricing",
+      "video",
+      "logos",
+      "blog_preview",
+    ],
+  },
+  {
+    key: "catTrust",
+    types: [
+      "highlights",
+      "stats",
+      "reviews",
+      "trust",
+      "values",
+      "amenities",
+      "host_bio",
+    ],
+  },
+  {
+    key: "catBooking",
+    types: ["booking_search", "availability_calendar", "rate_table"],
+  },
+  { key: "catLocation", types: ["location", "map"] },
+  { key: "catConvert", types: ["cta", "contact_form", "form"] },
+  { key: "catMore", types: ["rich_text", "faq"] },
+];
+
+const ICONS: Record<SectionType, LucideIcon> = {
+  hero: ImageIcon,
+  intro: AlignLeft,
+  highlights: Sparkles,
+  stats: BarChart3,
+  gallery: Images,
+  logos: Building2,
+  rooms_preview: BedDouble,
+  location: MapPin,
+  map: MapIcon,
+  reviews: Star,
+  cta: MousePointerClick,
+  host_bio: User,
+  values: Heart,
+  blog_preview: Newspaper,
+  rich_text: TypeIcon,
+  faq: HelpCircle,
+  contact_form: Mail,
+  form: ClipboardList,
+  specials_preview: Tag,
+  amenities: ListChecks,
+  pricing: BadgeDollarSign,
+  video: Video,
+  trust: ShieldCheck,
+  booking_search: Search,
+  availability_calendar: CalendarDays,
+  rate_table: Table,
+};
 
 /** Build the by-id SiteData map for the live preview from the per-type pool. */
 function buildPreviewData(
@@ -125,7 +212,6 @@ export function PageBuilder({
   nav,
   navigation,
   dataByType,
-  savedSections,
 }: {
   websiteId: string;
   pageId: string;
@@ -147,14 +233,12 @@ export function PageBuilder({
   );
   const [dirty, setDirty] = useState(false);
   const [device, setDevice] = useState<Device>("desktop");
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [insertAt, setInsertAt] = useState<number | null>(null);
   const [publishing, startPublish] = useTransition();
-  const [saving, startSave] = useTransition();
   const [autoStatus, setAutoStatus] = useState<
     "idle" | "saving" | "saved" | "error"
   >("idle");
-  const [saveBlockFor, setSaveBlockFor] = useState<WebsiteSection | null>(null);
-  const [blockName, setBlockName] = useState("");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -197,16 +281,10 @@ export function PageBuilder({
   }
   function addSection(type: SectionType) {
     const s = newSection(type);
-    mutate([...sections, s]);
+    const at = insertAt ?? sections.length;
+    mutate([...sections.slice(0, at), s, ...sections.slice(at)]);
     setSelectedId(s.id);
-  }
-  function insertSaved(saved: SavedSection) {
-    const copy = {
-      ...structuredClone(saved.section),
-      id: crypto.randomUUID(),
-    } as WebsiteSection;
-    mutate([...sections, copy]);
-    setSelectedId(copy.id);
+    setInsertAt(null);
   }
   function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
@@ -215,30 +293,6 @@ export function PageBuilder({
     const newIndex = sections.findIndex((s) => s.id === over.id);
     if (oldIndex < 0 || newIndex < 0) return;
     mutate(arrayMove(sections, oldIndex, newIndex));
-  }
-
-  function confirmSaveBlock() {
-    const section = saveBlockFor;
-    const name = blockName.trim();
-    if (!section || !name) return;
-    startSave(async () => {
-      const res = await saveSavedSectionAction({ websiteId, name, section });
-      if (!res.ok) {
-        toast.error(t("blockSaveError"));
-        return;
-      }
-      setSaveBlockFor(null);
-      setBlockName("");
-      toast.success(t("blockSaved"));
-      router.refresh();
-    });
-  }
-  function deleteSaved(id: string) {
-    startSave(async () => {
-      const res = await deleteSavedSectionAction({ websiteId, id });
-      if (res.ok) router.refresh();
-      else toast.error(t("blockSaveError"));
-    });
   }
 
   function onPublish() {
@@ -251,7 +305,6 @@ export function PageBuilder({
       return;
     }
     startPublish(async () => {
-      // Persist the latest draft first, then publish the snapshot.
       const draft = await saveDraftSectionsAction({
         websiteId,
         pageId,
@@ -274,7 +327,7 @@ export function PageBuilder({
 
   // Debounced autosave — valid drafts persist ~1.5s after the last edit.
   useEffect(() => {
-    if (!dirty || saving || publishing) return;
+    if (!dirty || publishing) return;
     if (firstInvalidSection(sections)) {
       setAutoStatus("error");
       return;
@@ -293,7 +346,7 @@ export function PageBuilder({
       );
     }, 1500);
     return () => clearTimeout(id);
-  }, [sections, dirty, saving, publishing, websiteId, pageId]);
+  }, [sections, dirty, publishing, websiteId, pageId]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -311,20 +364,17 @@ export function PageBuilder({
       : device === "phone"
         ? "device mobile"
         : "device";
-  const devices: Array<{ key: Device; icon: typeof Monitor; title: string }> = [
+  const devices: Array<{ key: Device; icon: LucideIcon; title: string }> = [
     { key: "desktop", icon: Monitor, title: t("deviceDesktop") },
     { key: "tablet", icon: Tablet, title: t("deviceTablet") },
     { key: "phone", icon: Smartphone, title: t("devicePhone") },
   ];
-  const enabled = sections.filter((s) => s.enabled);
   const autoLabel =
     autoStatus === "saving"
       ? t("autosaving")
       : dirty
         ? t("unsavedChanges")
-        : autoStatus === "saved"
-          ? t("autosaved")
-          : "";
+        : t("autosaved");
 
   return (
     <div
@@ -338,12 +388,12 @@ export function PageBuilder({
     >
       <header className="etop">
         <Link href={`/dashboard/website/${websiteId}/pages`} className="eback">
-          <FileIcon style={{ width: 16, height: 16 }} />
+          <ArrowLeft style={{ width: 16, height: 16 }} />
           {t("allPages")}
         </Link>
         <div className="epage">
           <span className="pico">
-            <FileIcon style={{ width: 16, height: 16 }} />
+            <LayoutTemplate style={{ width: 16, height: 16 }} />
           </span>
           <div>
             <div className="ptit">{pageTitle}</div>
@@ -351,42 +401,67 @@ export function PageBuilder({
           </div>
         </div>
 
+        {!previewing ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginLeft: 14,
+            }}
+          >
+            <div className="seg" role="group" aria-label={t("livePreview")}>
+              {devices.map((d) => {
+                const Ico = d.icon;
+                return (
+                  <button
+                    key={d.key}
+                    type="button"
+                    title={d.title}
+                    aria-pressed={device === d.key}
+                    className={device === d.key ? "on" : ""}
+                    onClick={() => setDevice(d.key)}
+                  >
+                    <Ico style={{ width: 16, height: 16 }} />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
         <div
           style={{
             marginLeft: "auto",
             display: "flex",
             alignItems: "center",
-            gap: 12,
+            gap: 10,
           }}
         >
-          <div className="seg" role="group" aria-label={t("livePreview")}>
-            {devices.map((d) => {
-              const Ico = d.icon;
-              return (
-                <button
-                  key={d.key}
-                  type="button"
-                  title={d.title}
-                  aria-pressed={device === d.key}
-                  className={device === d.key ? "on" : ""}
-                  onClick={() => setDevice(d.key)}
-                >
-                  <Ico style={{ width: 15, height: 15 }} />
-                </button>
-              );
-            })}
-          </div>
-
-          <span className="savedot" aria-live="polite">
-            {autoStatus === "saving" ? (
-              <Loader2
-                className="animate-spin"
-                style={{ width: 13, height: 13 }}
-              />
-            ) : null}
-            {autoLabel}
-          </span>
-
+          {!previewing ? (
+            <span className="savedot" aria-live="polite">
+              {autoStatus === "saving" ? (
+                <Loader2
+                  className="animate-spin"
+                  style={{ width: 13, height: 13 }}
+                />
+              ) : (
+                <i />
+              )}
+              {autoLabel}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setPreviewing((v) => !v);
+              setSelectedId(null);
+            }}
+          >
+            <Eye style={{ width: 15, height: 15 }} />
+            {previewing ? t("exitPreview") : t("previewCta")}
+          </button>
           <button
             type="button"
             className="btn btn-primary btn-sm"
@@ -407,50 +482,47 @@ export function PageBuilder({
       </header>
 
       <div className="ebody">
-        {/* ── Palette / outline ─────────────────────── */}
-        <aside className="epanel l">
-          <div className="epanel-h">
-            <h3>{t("pbOutline")}</h3>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm"
-              onClick={() => setLibraryOpen(true)}
-              style={{ marginLeft: "auto" }}
-            >
-              <Plus style={{ width: 14, height: 14 }} />
-              {t("addSection")}
-            </button>
-          </div>
-          <div className="epanel-b thin">
-            {sections.length === 0 ? (
-              <div className="insp-empty">{t("noSections")}</div>
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={onDragEnd}
-              >
-                <SortableContext
-                  items={sections.map((s) => s.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="ol">
-                    {sections.map((s) => (
-                      <OutlineItem
-                        key={s.id}
-                        section={s}
-                        selected={selectedId === s.id}
-                        onSelect={() => setSelectedId(s.id)}
-                        onToggle={() => toggleEnabled(s.id)}
-                        onRemove={() => removeSection(s.id)}
-                      />
-                    ))}
+        {/* ── Palette ───────────────────────────────── */}
+        {!previewing ? (
+          <aside className="epanel l">
+            <div className="epanel-h">
+              <Blocks style={{ width: 16, height: 16, color: "#10B981" }} />
+              <h3>{t("pbAddBlocks")}</h3>
+            </div>
+            <div className="epanel-b thin">
+              {insertAt !== null ? (
+                <div className="pal-cat" style={{ color: "#064E3B" }}>
+                  {t("pbInsertingHint")}
+                </div>
+              ) : null}
+              {GROUPS.map((g) => (
+                <div key={g.key}>
+                  <div className="pal-cat">{t(g.key)}</div>
+                  <div className="pal-grid">
+                    {g.types.map((type) => {
+                      const Ico = ICONS[type];
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          className="pal-item"
+                          onClick={() => addSection(type)}
+                        >
+                          <span className="pi-ic">
+                            <Ico style={{ width: 16, height: 16 }} />
+                          </span>
+                          <span className="pi-nm">
+                            {t(`sectionType_${type}`)}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                </SortableContext>
-              </DndContext>
-            )}
-          </div>
-        </aside>
+                </div>
+              ))}
+            </div>
+          </aside>
+        ) : null}
 
         {/* ── Canvas (live theme/brand preview) ─────── */}
         <div className="canvas-wrap thin">
@@ -463,28 +535,40 @@ export function PageBuilder({
                 header={theme.header}
                 footer={theme.footer}
               >
-                {enabled.length === 0 ? (
-                  <div className="canvas-empty">{t("noSections")}</div>
-                ) : (
-                  enabled.map((s) => (
-                    <div
-                      key={s.id}
-                      onClick={() => setSelectedId(s.id)}
-                      style={{
-                        position: "relative",
-                        cursor: "pointer",
-                        outline:
-                          selectedId === s.id ? "2px solid #10B981" : "none",
-                        outlineOffset: -2,
-                      }}
-                    >
-                      <SectionRenderer
-                        sections={[s]}
-                        data={previewData}
-                        asset={asset}
-                      />
+                {sections.length === 0 ? (
+                  <div className="canvas-empty">
+                    <div className="ce-ic">
+                      <Blocks style={{ width: 26, height: 26 }} />
                     </div>
-                  ))
+                    <p style={{ marginTop: 12 }}>{t("noSections")}</p>
+                  </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={onDragEnd}
+                  >
+                    <SortableContext
+                      items={sections.map((s) => s.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {sections.map((s, i) => (
+                        <BkBlock
+                          key={s.id}
+                          section={s}
+                          index={i}
+                          selected={selectedId === s.id}
+                          previewing={previewing}
+                          data={previewData}
+                          onSelect={() => setSelectedId(s.id)}
+                          onToggle={() => toggleEnabled(s.id)}
+                          onDuplicate={() => duplicateSection(s.id)}
+                          onRemove={() => removeSection(s.id)}
+                          onInsertAfter={() => setInsertAt(i + 1)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 )}
               </SiteChrome>
             </SiteThemeRoot>
@@ -492,11 +576,18 @@ export function PageBuilder({
         </div>
 
         {/* ── Inspector ─────────────────────────────── */}
-        <aside className="epanel r">
-          {selected ? (
-            <>
-              <div className="epanel-h">
-                <h3>{t(`sectionType_${selected.type}`)}</h3>
+        {!previewing ? (
+          <aside className="epanel r">
+            <div className="epanel-h">
+              <SlidersHorizontal
+                style={{ width: 16, height: 16, color: "#10B981" }}
+              />
+              <h3>
+                {selected
+                  ? t(`sectionType_${selected.type}`)
+                  : t("pbInspector")}
+              </h3>
+              {selected ? (
                 <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
                   <button
                     type="button"
@@ -529,91 +620,72 @@ export function PageBuilder({
                     <Trash2 style={{ width: 15, height: 15 }} />
                   </button>
                 </div>
-              </div>
-              <div className="epanel-b thin">
-                {isAutoPopulate(selected.type) ? (
-                  <p className="insp-sec" style={{ fontSize: 12.5 }}>
-                    {t("visualEditLiveHint")}
-                  </p>
-                ) : null}
-                <SectionEditor
-                  websiteId={websiteId}
-                  section={selected}
-                  onChange={updateSection}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="insp-empty">{t("pbSelectHint")}</div>
-          )}
-        </aside>
+              ) : null}
+            </div>
+            <div className="epanel-b thin">
+              {selected ? (
+                <>
+                  {isAutoPopulate(selected.type) ? (
+                    <p className="insp-sec" style={{ fontSize: 12.5 }}>
+                      {t("visualEditLiveHint")}
+                    </p>
+                  ) : null}
+                  <SectionEditor
+                    websiteId={websiteId}
+                    section={selected}
+                    onChange={updateSection}
+                  />
+                </>
+              ) : (
+                <div className="insp-empty">
+                  <div className="ie-ic">
+                    <SlidersHorizontal style={{ width: 22, height: 22 }} />
+                  </div>
+                  <p>{t("pbSelectHint")}</p>
+                </div>
+              )}
+            </div>
+          </aside>
+        ) : null}
       </div>
 
-      <SectionLibrary
-        open={libraryOpen}
-        onOpenChange={setLibraryOpen}
-        onPick={(type) => {
-          addSection(type);
-          setLibraryOpen(false);
-        }}
-        savedSections={savedSections}
-        onPickSaved={(s) => {
-          insertSaved(s);
-          setLibraryOpen(false);
-        }}
-        onDeleteSaved={deleteSaved}
-      />
-
-      {saveBlockFor ? (
-        <FormModal
-          open
-          onOpenChange={(o) => {
-            if (!o) {
-              setSaveBlockFor(null);
-              setBlockName("");
-            }
-          }}
-          title={t("saveBlockTitle")}
-          description={t("saveBlockSub")}
+      {previewing ? (
+        <button
+          type="button"
+          className="btn btn-dark exitpv"
+          onClick={() => setPreviewing(false)}
         >
-          <input
-            value={blockName}
-            onChange={(e) => setBlockName(e.target.value)}
-            placeholder={t("blockNamePlaceholder")}
-            maxLength={80}
-            className="w-full rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm text-brand-ink outline-none focus:border-brand-primary"
-          />
-          <FormModalFooter>
-            <FormModalCancel>{t("cancel")}</FormModalCancel>
-            <button
-              type="button"
-              onClick={confirmSaveBlock}
-              disabled={saving || !blockName.trim()}
-              className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? <Check style={{ width: 15, height: 15 }} /> : null}
-              {t("saveBlockConfirm")}
-            </button>
-          </FormModalFooter>
-        </FormModal>
+          <X style={{ width: 15, height: 15 }} />
+          {t("exitPreview")}
+        </button>
       ) : null}
     </div>
   );
 }
 
-/** One outline row — drag to reorder (grip), click to select, hide/delete. */
-function OutlineItem({
+/** One canvas block — real section render wrapped in the `.bk` select/tools overlay. */
+function BkBlock({
   section,
+  index,
   selected,
+  previewing,
+  data,
   onSelect,
   onToggle,
+  onDuplicate,
   onRemove,
+  onInsertAfter,
 }: {
   section: WebsiteSection;
+  index: number;
   selected: boolean;
+  previewing: boolean;
+  data: SiteData;
   onSelect: () => void;
   onToggle: () => void;
+  onDuplicate: () => void;
   onRemove: () => void;
+  onInsertAfter: () => void;
 }) {
   const t = useTranslations("website");
   const {
@@ -629,76 +701,90 @@ function OutlineItem({
     transition,
     zIndex: isDragging ? 30 : undefined,
   };
+
+  if (previewing) {
+    return section.enabled ? (
+      <SectionRenderer sections={[section]} data={data} asset={asset} />
+    ) : null;
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`ol-item${selected ? "sel" : ""}${section.enabled ? "" : "hidden"}`}
+      className={`bk${selected ? "sel" : ""}${isDragging ? "dragging" : ""}`}
       onClick={onSelect}
     >
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={t("dragToReorder")}
-        className="iconbtn"
-        style={{ cursor: "grab" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical style={{ width: 14, height: 14 }} />
-      </button>
-      <span
-        style={{
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
+      <div className="bk-label">
+        <span className="bl-grip" {...attributes} {...listeners}>
+          <GripVertical style={{ width: 13, height: 13 }} />
+        </span>
         {t(`sectionType_${section.type}`)}
-      </span>
-      {isAutoPopulate(section.type) ? (
-        <span
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            textTransform: "uppercase",
-            color: "#4A7C6A",
-            background: "#E8F3EE",
-            padding: "2px 5px",
-            borderRadius: 5,
+        {!section.enabled ? <span>· {t("hiddenLabel")}</span> : null}
+      </div>
+      <div className="bk-tools">
+        <button
+          type="button"
+          title={section.enabled ? t("hideSection") : t("showSection")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
           }}
         >
-          {t("liveBadge")}
-        </span>
-      ) : null}
-      <button
-        type="button"
-        className="iconbtn"
-        title={section.enabled ? t("hideSection") : t("showSection")}
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
-        }}
-      >
-        {section.enabled ? (
-          <Eye style={{ width: 14, height: 14 }} />
-        ) : (
-          <EyeOff style={{ width: 14, height: 14 }} />
-        )}
-      </button>
-      <button
-        type="button"
-        className="iconbtn"
-        title={t("deleteSection")}
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-      >
-        <Trash2 style={{ width: 14, height: 14 }} />
-      </button>
+          {section.enabled ? (
+            <Eye style={{ width: 15, height: 15 }} />
+          ) : (
+            <EyeOff style={{ width: 15, height: 15 }} />
+          )}
+        </button>
+        <button
+          type="button"
+          title={t("duplicateSection")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate();
+          }}
+        >
+          <Copy style={{ width: 15, height: 15 }} />
+        </button>
+        <span className="sepr" />
+        <button
+          type="button"
+          className="del"
+          title={t("deleteSection")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+        >
+          <Trash2 style={{ width: 15, height: 15 }} />
+        </button>
+      </div>
+
+      <div style={{ opacity: section.enabled ? 1 : 0.45 }}>
+        <SectionRenderer
+          sections={[{ ...section, enabled: true }]}
+          data={data}
+          asset={asset}
+        />
+      </div>
+
+      <div className="bk-insert">
+        <span className="ins-line" />
+        <button
+          type="button"
+          className="ins-btn"
+          title={t("pbInsertHere")}
+          aria-label={t("pbInsertHere")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onInsertAfter();
+          }}
+        >
+          <Plus style={{ width: 15, height: 15 }} />
+        </button>
+      </div>
+      <span className="sr-only">{index + 1}</span>
     </div>
   );
 }
