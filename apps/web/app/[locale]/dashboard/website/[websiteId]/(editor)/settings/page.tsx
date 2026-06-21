@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 
 import { listWebsiteFormsAction } from "@/app/[locale]/dashboard/website/actions";
 
@@ -14,8 +13,7 @@ export default async function WebsiteSettingsPage({
   params: Promise<{ websiteId: string }>;
 }) {
   const { websiteId } = await params;
-  const [t, data, formsRes] = await Promise.all([
-    getTranslations("website"),
+  const [data, formsRes] = await Promise.all([
     loadWebsiteEditorData(websiteId),
     listWebsiteFormsAction(websiteId),
   ]);
@@ -50,41 +48,35 @@ export default async function WebsiteSettingsPage({
   const pop = conversion.popup ?? {};
 
   return (
-    <div className="max-w-2xl">
-      <header className="mb-5">
-        <h2 className="font-display text-lg font-bold text-brand-ink">
-          {t("settingsHeading")}
-        </h2>
-        <p className="mt-1 text-sm text-brand-mute">{t("settingsSub")}</p>
-      </header>
-
-      <SettingsForm
-        websiteId={websiteId}
-        defaultEmail={data.brand.contact?.email ?? ""}
-        defaultPhone={data.brand.contact?.phone ?? ""}
-        forms={forms.map((f) => ({ id: f.id, name: f.name }))}
-        initial={{
-          enquiryEmailEnabled: enquiry.emailEnabled === true,
-          enquiryEmailTo: enquiry.emailTo ?? "",
-          whatsappEnabled: wa.enabled === true,
-          whatsappNumber: wa.number ?? "",
-          whatsappMessage: wa.message ?? "",
-          announcementEnabled: ann.enabled === true,
-          announcementText: ann.text ?? "",
-          announcementLinkLabel: ann.linkLabel ?? "",
-          announcementLinkHref: ann.linkHref ?? "",
-          popupEnabled: pop.enabled === true,
-          popupHeading: pop.heading ?? "",
-          popupBody: pop.body ?? "",
-          popupTrigger: pop.trigger ?? "delay",
-          popupDelaySeconds: pop.delaySeconds ?? 5,
-          popupScrollPercent: pop.scrollPercent ?? 50,
-          popupFrequency: pop.frequency ?? "once",
-          popupCtaLabel: pop.ctaLabel ?? "",
-          popupCtaHref: pop.ctaHref ?? "",
-          popupFormId: pop.formId ?? "",
-        }}
-      />
-    </div>
+    <SettingsForm
+      websiteId={websiteId}
+      status={data.status}
+      defaultEmail={data.brand.contact?.email ?? ""}
+      defaultPhone={data.brand.contact?.phone ?? ""}
+      brandHref={`/dashboard/website/${websiteId}/brand`}
+      seoHref={`/dashboard/website/${websiteId}/seo`}
+      forms={forms.map((f) => ({ id: f.id, name: f.name }))}
+      initial={{
+        enquiryEmailEnabled: enquiry.emailEnabled === true,
+        enquiryEmailTo: enquiry.emailTo ?? "",
+        whatsappEnabled: wa.enabled === true,
+        whatsappNumber: wa.number ?? "",
+        whatsappMessage: wa.message ?? "",
+        announcementEnabled: ann.enabled === true,
+        announcementText: ann.text ?? "",
+        announcementLinkLabel: ann.linkLabel ?? "",
+        announcementLinkHref: ann.linkHref ?? "",
+        popupEnabled: pop.enabled === true,
+        popupHeading: pop.heading ?? "",
+        popupBody: pop.body ?? "",
+        popupTrigger: pop.trigger ?? "delay",
+        popupDelaySeconds: pop.delaySeconds ?? 5,
+        popupScrollPercent: pop.scrollPercent ?? 50,
+        popupFrequency: pop.frequency ?? "once",
+        popupCtaLabel: pop.ctaLabel ?? "",
+        popupCtaHref: pop.ctaHref ?? "",
+        popupFormId: pop.formId ?? "",
+      }}
+    />
   );
 }

@@ -1,21 +1,32 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import {
+  ArrowUpRight,
+  Bell,
+  Check,
+  Loader2,
+  MessageCircle,
+  Megaphone,
+  Paintbrush,
+  Palette,
+  Rocket,
+  ShieldAlert,
+  Sparkles,
+  type LucideIcon,
+} from "lucide-react";
+import { useState, useTransition, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { useTranslations } from "next-intl";
 
-import { saveWebsiteSettingsAction } from "@/app/[locale]/dashboard/website/actions";
-
+import { Link } from "@/i18n/navigation";
+import { useRouter } from "next/navigation";
 import {
-  NumberField,
-  SelectField,
-  TextArea,
-  TextField,
-  ToggleField,
-} from "../pages/[pageId]/_components/fields";
+  publishWebsiteAction,
+  saveWebsiteSettingsAction,
+  unpublishWebsiteAction,
+} from "@/app/[locale]/dashboard/website/actions";
+import { modal } from "@/components/ui/modal-host";
 
 type PopupTrigger = "delay" | "scroll" | "exit";
 type PopupFrequency = "once" | "daily" | "always";
@@ -42,16 +53,102 @@ type SettingsState = {
   popupFormId: string;
 };
 
+// ── Layout primitives (mockup .sblock / .setrow / .sw / .field) ──
+function Sblock({
+  icon: Icon,
+  title,
+  desc,
+  danger,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  desc: string;
+  danger?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="sblock">
+      <div className="sblock-h">
+        <span
+          className="si"
+          style={
+            danger ? { background: "#FEF2F2", color: "#B91C1C" } : undefined
+          }
+        >
+          <Icon style={{ width: 19, height: 19 }} />
+        </span>
+        <div>
+          <h2>{title}</h2>
+          <p>{desc}</p>
+        </div>
+      </div>
+      <div
+        className={danger ? "danger" : "card"}
+        style={{ overflow: "hidden" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Setrow({
+  title,
+  desc,
+  col,
+  children,
+}: {
+  title?: string;
+  desc?: ReactNode;
+  col?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={col ? "setrow col" : "setrow"}>
+      {title ? (
+        <div className="lbl">
+          <b>{title}</b>
+          {desc ? <span>{desc}</span> : null}
+        </div>
+      ) : null}
+      <div
+        className={col ? "" : "ctl"}
+        style={col ? { marginTop: 8 } : undefined}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Sw({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      className={on ? "sw on" : "sw"}
+      aria-pressed={on}
+      onClick={() => onChange(!on)}
+    />
+  );
+}
+
 export function SettingsForm({
   websiteId,
+  status,
   defaultEmail,
   defaultPhone,
+  brandHref,
+  seoHref,
   forms,
   initial,
 }: {
   websiteId: string;
+  status: "draft" | "published" | "unpublished";
   defaultEmail: string;
   defaultPhone: string;
+  brandHref: string;
+  seoHref: string;
   forms: Array<{ id: string; name: string }>;
   initial: SettingsState;
 }) {
@@ -59,20 +156,20 @@ export function SettingsForm({
   const router = useRouter();
   const [state, setState] = useState<SettingsState>(initial);
   const [saving, startSave] = useTransition();
+  const [lifecycle, startLifecycle] = useTransition();
 
   const set = <K extends keyof SettingsState>(
     key: K,
     value: SettingsState[K],
   ) => setState((s) => ({ ...s, [key]: value }));
 
+  const isLive = status === "published";
+
   function onSave() {
-    // Pre-fill the address with the brand contact email the first time the host
-    // turns the toggle on with nothing entered yet.
     const emailTo =
       state.enquiryEmailEnabled && !state.enquiryEmailTo.trim()
         ? defaultEmail.trim()
         : state.enquiryEmailTo.trim();
-    // Likewise, seed the WhatsApp number from the brand contact phone.
     const whatsappNumber =
       state.whatsappEnabled && !state.whatsappNumber.trim()
         ? defaultPhone.trim()
@@ -111,247 +208,363 @@ export function SettingsForm({
     });
   }
 
+  function onPublishToggle() {
+    startLifecycle(async () => {
+      if (isLive) {
+        const ok = await modal.destructive({
+          title: t("takeOfflineTitle"),
+          description: t("takeOfflineBody"),
+          confirmLabel: t("takeOfflineConfirm"),
+        });
+        if (!ok) return;
+        const res = await unpublishWebsiteAction(websiteId);
+        if (!res.ok) {
+          toast.error(t("saveError"));
+          return;
+        }
+        toast.success(t("siteOffline"));
+      } else {
+        const res = await publishWebsiteAction(websiteId);
+        if (!res.ok) {
+          toast.error(t("publishError"));
+          return;
+        }
+        toast.success(t("sitePublished"));
+      }
+      router.refresh();
+    });
+  }
+
   return (
-    <div className="space-y-6">
-      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
+    <div className="vilo-cms wrap-set mx-auto">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <div>
-          <h3 className="text-sm font-semibold text-brand-ink">
-            {t("settingsEnquiriesTitle")}
-          </h3>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            {t("settingsEnquiriesDesc")}
+          <h1
+            className="font-display text-[20px] font-extrabold"
+            style={{ color: "var(--ink)" }}
+          >
+            {t("settingsHeading")}
+          </h1>
+          <p className="mt-1 text-[13px]" style={{ color: "var(--mute)" }}>
+            {t("settingsSub")}
           </p>
         </div>
+        <button
+          type="button"
+          className="btn btn-primary btn-sm ml-auto"
+          onClick={onSave}
+          disabled={saving}
+        >
+          {saving ? (
+            <Loader2
+              className="animate-spin"
+              style={{ width: 15, height: 15 }}
+            />
+          ) : (
+            <Check style={{ width: 15, height: 15 }} />
+          )}
+          {t("settingsSaveCta")}
+        </button>
+      </div>
 
-        <ToggleField
-          label={t("settingsEmailToggle")}
-          checked={state.enquiryEmailEnabled}
-          onChange={(v) => set("enquiryEmailEnabled", v)}
-        />
+      {/* BRANDING — managed in Brand Studio */}
+      <Sblock
+        icon={Palette}
+        title={t("settingsBrandingTitle")}
+        desc={t("settingsBrandingDesc")}
+      >
+        <Setrow title={t("settingsThemeRow")} desc={t("settingsThemeRowDesc")}>
+          <Link href={brandHref} className="btn btn-ghost btn-sm">
+            <Paintbrush
+              style={{ width: 14, height: 14, color: "var(--mute)" }}
+            />
+            {t("settingsOpenBrand")}
+          </Link>
+        </Setrow>
+      </Sblock>
 
-        {state.enquiryEmailEnabled ? (
-          <TextField
-            label={t("settingsEmailTo")}
-            value={state.enquiryEmailTo}
-            onChange={(v) => set("enquiryEmailTo", v)}
-            placeholder={defaultEmail || "you@example.com"}
-            maxLength={160}
-            hint={t("settingsEmailHint")}
+      {/* ENQUIRIES */}
+      <Sblock
+        icon={Sparkles}
+        title={t("settingsEnquiriesTitle")}
+        desc={t("settingsEnquiriesDesc")}
+      >
+        <Setrow title={t("settingsEmailToggle")} desc={t("settingsEmailHint")}>
+          <Sw
+            on={state.enquiryEmailEnabled}
+            onChange={(v) => set("enquiryEmailEnabled", v)}
           />
+        </Setrow>
+        {state.enquiryEmailEnabled ? (
+          <Setrow title={t("settingsEmailTo")} col>
+            <input
+              className="field"
+              type="email"
+              value={state.enquiryEmailTo}
+              placeholder={defaultEmail || "you@example.com"}
+              maxLength={160}
+              onChange={(e) => set("enquiryEmailTo", e.target.value)}
+            />
+          </Setrow>
         ) : null}
-      </section>
+      </Sblock>
 
-      {/* WhatsApp click-to-chat (Phase 6A slice 2) */}
-      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div>
-          <h3 className="text-sm font-semibold text-brand-ink">
-            {t("settingsWhatsappTitle")}
-          </h3>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            {t("settingsWhatsappDesc")}
-          </p>
-        </div>
-
-        <ToggleField
-          label={t("settingsWhatsappToggle")}
-          checked={state.whatsappEnabled}
-          onChange={(v) => set("whatsappEnabled", v)}
-        />
-
+      {/* WHATSAPP */}
+      <Sblock
+        icon={MessageCircle}
+        title={t("settingsWhatsappTitle")}
+        desc={t("settingsWhatsappDesc")}
+      >
+        <Setrow title={t("settingsWhatsappToggle")}>
+          <Sw
+            on={state.whatsappEnabled}
+            onChange={(v) => set("whatsappEnabled", v)}
+          />
+        </Setrow>
         {state.whatsappEnabled ? (
           <>
-            <TextField
-              label={t("settingsWhatsappNumber")}
-              value={state.whatsappNumber}
-              onChange={(v) => set("whatsappNumber", v)}
-              placeholder={defaultPhone || "+27 82 123 4567"}
-              maxLength={32}
-              hint={t("settingsWhatsappNumberHint")}
-            />
-            <TextArea
-              label={t("settingsWhatsappMessage")}
-              value={state.whatsappMessage}
-              onChange={(v) => set("whatsappMessage", v)}
-              placeholder={t("settingsWhatsappMessagePlaceholder")}
-              maxLength={300}
-              rows={2}
-              hint={t("settingsWhatsappMessageHint")}
-            />
+            <Setrow title={t("settingsWhatsappNumber")} col>
+              <input
+                className="field"
+                value={state.whatsappNumber}
+                placeholder={defaultPhone || "+27 82 123 4567"}
+                maxLength={32}
+                onChange={(e) => set("whatsappNumber", e.target.value)}
+              />
+            </Setrow>
+            <Setrow title={t("settingsWhatsappMessage")} col>
+              <textarea
+                className="field"
+                value={state.whatsappMessage}
+                placeholder={t("settingsWhatsappMessagePlaceholder")}
+                maxLength={300}
+                onChange={(e) => set("whatsappMessage", e.target.value)}
+              />
+            </Setrow>
           </>
         ) : null}
-      </section>
+      </Sblock>
 
-      {/* Announcement bar (Phase 6A slice 2) */}
-      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div>
-          <h3 className="text-sm font-semibold text-brand-ink">
-            {t("settingsAnnouncementTitle")}
-          </h3>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            {t("settingsAnnouncementDesc")}
-          </p>
-        </div>
-
-        <ToggleField
-          label={t("settingsAnnouncementToggle")}
-          checked={state.announcementEnabled}
-          onChange={(v) => set("announcementEnabled", v)}
-        />
-
+      {/* ANNOUNCEMENT */}
+      <Sblock
+        icon={Megaphone}
+        title={t("settingsAnnouncementTitle")}
+        desc={t("settingsAnnouncementDesc")}
+      >
+        <Setrow title={t("settingsAnnouncementToggle")}>
+          <Sw
+            on={state.announcementEnabled}
+            onChange={(v) => set("announcementEnabled", v)}
+          />
+        </Setrow>
         {state.announcementEnabled ? (
           <>
-            <TextField
-              label={t("settingsAnnouncementText")}
-              value={state.announcementText}
-              onChange={(v) => set("announcementText", v)}
-              placeholder={t("settingsAnnouncementTextPlaceholder")}
-              maxLength={200}
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label={t("settingsAnnouncementLinkLabel")}
-                value={state.announcementLinkLabel}
-                onChange={(v) => set("announcementLinkLabel", v)}
-                placeholder={t("settingsAnnouncementLinkLabelPlaceholder")}
-                maxLength={60}
+            <Setrow title={t("settingsAnnouncementText")} col>
+              <input
+                className="field"
+                value={state.announcementText}
+                placeholder={t("settingsAnnouncementTextPlaceholder")}
+                maxLength={200}
+                onChange={(e) => set("announcementText", e.target.value)}
               />
-              <TextField
-                label={t("settingsAnnouncementLinkHref")}
-                value={state.announcementLinkHref}
-                onChange={(v) => set("announcementLinkHref", v)}
-                placeholder="/contact"
-                maxLength={300}
-                hint={t("settingsAnnouncementLinkHrefHint")}
-              />
-            </div>
-          </>
-        ) : null}
-      </section>
-
-      {/* Pop-up modal (Phase 6A slice 3) */}
-      <section className="space-y-4 rounded-card border border-brand-line bg-white p-6 shadow-card">
-        <div>
-          <h3 className="text-sm font-semibold text-brand-ink">
-            {t("settingsPopupTitle")}
-          </h3>
-          <p className="mt-1 text-[13px] text-brand-mute">
-            {t("settingsPopupDesc")}
-          </p>
-        </div>
-
-        <ToggleField
-          label={t("settingsPopupToggle")}
-          checked={state.popupEnabled}
-          onChange={(v) => set("popupEnabled", v)}
-        />
-
-        {state.popupEnabled ? (
-          <>
-            <TextField
-              label={t("settingsPopupHeading")}
-              value={state.popupHeading}
-              onChange={(v) => set("popupHeading", v)}
-              placeholder={t("settingsPopupHeadingPlaceholder")}
-              maxLength={120}
-            />
-            <TextArea
-              label={t("settingsPopupBody")}
-              value={state.popupBody}
-              onChange={(v) => set("popupBody", v)}
-              placeholder={t("settingsPopupBodyPlaceholder")}
-              maxLength={400}
-              rows={2}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField<PopupTrigger>
-                label={t("settingsPopupTrigger")}
-                value={state.popupTrigger}
-                onChange={(v) => set("popupTrigger", v)}
-                options={[
-                  { value: "delay", label: t("settingsPopupTriggerDelay") },
-                  { value: "scroll", label: t("settingsPopupTriggerScroll") },
-                  { value: "exit", label: t("settingsPopupTriggerExit") },
-                ]}
-              />
-              {state.popupTrigger === "delay" ? (
-                <NumberField
-                  label={t("settingsPopupDelay")}
-                  value={state.popupDelaySeconds}
-                  onChange={(v) => set("popupDelaySeconds", v)}
-                  min={0}
-                  max={120}
-                />
-              ) : state.popupTrigger === "scroll" ? (
-                <NumberField
-                  label={t("settingsPopupScroll")}
-                  value={state.popupScrollPercent}
-                  onChange={(v) => set("popupScrollPercent", v)}
-                  min={5}
-                  max={100}
-                />
-              ) : (
-                <div />
-              )}
-            </div>
-
-            <SelectField<PopupFrequency>
-              label={t("settingsPopupFrequency")}
-              value={state.popupFrequency}
-              onChange={(v) => set("popupFrequency", v)}
-              options={[
-                { value: "once", label: t("settingsPopupFreqOnce") },
-                { value: "daily", label: t("settingsPopupFreqDaily") },
-                { value: "always", label: t("settingsPopupFreqAlways") },
-              ]}
-            />
-
-            <SelectField<string>
-              label={t("settingsPopupForm")}
-              value={state.popupFormId}
-              onChange={(v) => set("popupFormId", v)}
-              options={[
-                { value: "", label: t("settingsPopupFormNone") },
-                ...forms.map((f) => ({ value: f.id, label: f.name })),
-              ]}
-            />
-
-            {state.popupFormId ? (
-              <p className="text-[13px] text-brand-mute">
-                {t("settingsPopupFormHint")}
-              </p>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <TextField
-                  label={t("settingsPopupCtaLabel")}
-                  value={state.popupCtaLabel}
-                  onChange={(v) => set("popupCtaLabel", v)}
-                  placeholder={t("settingsPopupCtaLabelPlaceholder")}
+            </Setrow>
+            <Setrow title={t("settingsAnnouncementLinkLabel")} col>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input
+                  className="field"
+                  value={state.announcementLinkLabel}
+                  placeholder={t("settingsAnnouncementLinkLabelPlaceholder")}
                   maxLength={60}
+                  onChange={(e) => set("announcementLinkLabel", e.target.value)}
                 />
-                <TextField
-                  label={t("settingsPopupCtaHref")}
-                  value={state.popupCtaHref}
-                  onChange={(v) => set("popupCtaHref", v)}
+                <input
+                  className="field"
+                  value={state.announcementLinkHref}
                   placeholder="/contact"
                   maxLength={300}
-                  hint={t("settingsAnnouncementLinkHrefHint")}
+                  onChange={(e) => set("announcementLinkHref", e.target.value)}
                 />
               </div>
-            )}
+            </Setrow>
           </>
         ) : null}
-      </section>
+      </Sblock>
 
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={saving}
-        className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+      {/* POP-UP */}
+      <Sblock
+        icon={Bell}
+        title={t("settingsPopupTitle")}
+        desc={t("settingsPopupDesc")}
       >
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-        {t("save")}
-      </button>
+        <Setrow title={t("settingsPopupToggle")}>
+          <Sw
+            on={state.popupEnabled}
+            onChange={(v) => set("popupEnabled", v)}
+          />
+        </Setrow>
+        {state.popupEnabled ? (
+          <>
+            <Setrow title={t("settingsPopupHeading")} col>
+              <input
+                className="field"
+                value={state.popupHeading}
+                placeholder={t("settingsPopupHeadingPlaceholder")}
+                maxLength={120}
+                onChange={(e) => set("popupHeading", e.target.value)}
+              />
+            </Setrow>
+            <Setrow title={t("settingsPopupBody")} col>
+              <textarea
+                className="field"
+                value={state.popupBody}
+                placeholder={t("settingsPopupBodyPlaceholder")}
+                maxLength={400}
+                onChange={(e) => set("popupBody", e.target.value)}
+              />
+            </Setrow>
+            <Setrow title={t("settingsPopupTrigger")} col>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <select
+                  className="field"
+                  value={state.popupTrigger}
+                  onChange={(e) =>
+                    set("popupTrigger", e.target.value as PopupTrigger)
+                  }
+                >
+                  <option value="delay">
+                    {t("settingsPopupTriggerDelay")}
+                  </option>
+                  <option value="scroll">
+                    {t("settingsPopupTriggerScroll")}
+                  </option>
+                  <option value="exit">{t("settingsPopupTriggerExit")}</option>
+                </select>
+                {state.popupTrigger === "delay" ? (
+                  <input
+                    className="field"
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={state.popupDelaySeconds}
+                    onChange={(e) =>
+                      set("popupDelaySeconds", Number(e.target.value))
+                    }
+                  />
+                ) : state.popupTrigger === "scroll" ? (
+                  <input
+                    className="field"
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={state.popupScrollPercent}
+                    onChange={(e) =>
+                      set("popupScrollPercent", Number(e.target.value))
+                    }
+                  />
+                ) : null}
+              </div>
+            </Setrow>
+            <Setrow title={t("settingsPopupFrequency")} col>
+              <select
+                className="field"
+                value={state.popupFrequency}
+                onChange={(e) =>
+                  set("popupFrequency", e.target.value as PopupFrequency)
+                }
+              >
+                <option value="once">{t("settingsPopupFreqOnce")}</option>
+                <option value="daily">{t("settingsPopupFreqDaily")}</option>
+                <option value="always">{t("settingsPopupFreqAlways")}</option>
+              </select>
+            </Setrow>
+            <Setrow title={t("settingsPopupForm")} col>
+              <select
+                className="field"
+                value={state.popupFormId}
+                onChange={(e) => set("popupFormId", e.target.value)}
+              >
+                <option value="">{t("settingsPopupFormNone")}</option>
+                {forms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            </Setrow>
+            {!state.popupFormId ? (
+              <Setrow title={t("settingsPopupCtaLabel")} col>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    className="field"
+                    value={state.popupCtaLabel}
+                    placeholder={t("settingsPopupCtaLabelPlaceholder")}
+                    maxLength={60}
+                    onChange={(e) => set("popupCtaLabel", e.target.value)}
+                  />
+                  <input
+                    className="field"
+                    value={state.popupCtaHref}
+                    placeholder="/contact"
+                    maxLength={300}
+                    onChange={(e) => set("popupCtaHref", e.target.value)}
+                  />
+                </div>
+              </Setrow>
+            ) : null}
+          </>
+        ) : null}
+      </Sblock>
+
+      {/* ACCESS */}
+      <Sblock
+        icon={ArrowUpRight}
+        title={t("settingsAccessTitle")}
+        desc={t("settingsAccessDesc")}
+      >
+        <Setrow
+          title={t("settingsIndexingRow")}
+          desc={t("settingsIndexingDesc")}
+        >
+          <Link href={seoHref} className="btn btn-ghost btn-sm">
+            {t("settingsOpenSeo")}
+            <ArrowUpRight
+              style={{ width: 14, height: 14, color: "var(--mute)" }}
+            />
+          </Link>
+        </Setrow>
+      </Sblock>
+
+      {/* DANGER ZONE */}
+      <Sblock
+        icon={ShieldAlert}
+        title={t("settingsDangerTitle")}
+        desc={t("settingsDangerDesc")}
+        danger
+      >
+        <Setrow
+          title={isLive ? t("settingsUnpublishRow") : t("settingsPublishRow")}
+          desc={isLive ? t("settingsUnpublishDesc") : t("settingsPublishDesc")}
+        >
+          <button
+            type="button"
+            className={
+              isLive ? "btn btn-sm btn-danger" : "btn btn-sm btn-primary"
+            }
+            onClick={onPublishToggle}
+            disabled={lifecycle}
+          >
+            {lifecycle ? (
+              <Loader2
+                className="animate-spin"
+                style={{ width: 14, height: 14 }}
+              />
+            ) : isLive ? null : (
+              <Rocket style={{ width: 14, height: 14 }} />
+            )}
+            {isLive ? t("takeOfflineCta") : t("publishCta")}
+          </button>
+        </Setrow>
+      </Sblock>
     </div>
   );
 }

@@ -5,6 +5,36 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Settings (premium layout, real controls)
+
+Rebuilds the Settings tab to the `Website Settings.html` mockup's `.sblock`/`.setrow`
+layout — but with **only real controls** (no fake toggles for unbuilt features).
+
+### Changed
+- **`SettingsForm`** — restyled into the mockup's premium settings shell (`.vilo-cms`
+  `.wrap-set` + `.sblock` cards of `.setrow`s with `.sw` switches + `.field` inputs):
+  - **Branding** → "Open Brand Studio" link.
+  - **Enquiries / WhatsApp / Announcement / Pop-up** — the existing, working conversion
+    settings, restyled (state + `saveWebsiteSettingsAction` unchanged).
+  - **Access & indexing** → "Open SEO" link.
+  - **Danger zone** → real Publish / Unpublish via `publishWebsiteAction` /
+    `unpublishWebsiteAction` (with a destructive confirm on take-offline).
+- **`settings/page.tsx`** — passes `status` + brand/SEO hrefs; drops the old header.
+- `.danger`/`.btn-danger` styles in `cms-extra.css`; +19 i18n keys.
+
+### Notes — deliberately omitted (unbuilt, no actions to wire)
+- The mockup's General (editable name/tagline/lang/tz/currency), Privacy & legal (cookie
+  consent, legal pages), password protection, maintenance mode, Integrations (GA4/Meta
+  Pixel/custom code), transfer ownership, and delete-website are **not** shown — they have
+  no backend yet and the project rule forbids fake/dead toggles. They can be added when
+  the underlying features land.
+
+### Hardening
+- Full `pnpm build` run — **exit 0**: every new route (page builder, nav/blog editors,
+  Pages/Forms managers, Settings) compiles and builds.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Forms manager (+ derived tracking)
 
 First Forms slice, true to `Forms Manager.html`. The full-screen form editor + the

@@ -36,6 +36,25 @@
   color: #ef4444;
 }
 
+/* ---------- settings danger zone ---------- */
+.vilo-cms .danger {
+  border: 1px solid #f6d9d9;
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+}
+.vilo-cms .danger .setrow {
+  border-color: #fbe7e7;
+}
+.vilo-cms .btn-danger {
+  background: #fff;
+  border: 1px solid #f2c2c2;
+  color: #b91c1c;
+}
+.vilo-cms .btn-danger:hover {
+  background: #fef2f2;
+}
+
 /* ---------- table row (manager lists) ---------- */
 .vilo-cms .ptr {
   display: grid;
