@@ -5,7 +5,7 @@ import { loadBlogPost } from "./loadBlogPost";
 
 export const dynamic = "force-dynamic";
 
-export default async function WebsiteBlogPostPage({
+export default async function FullScreenBlogPostPage({
   params,
 }: {
   params: Promise<{ websiteId: string; postId: string }>;

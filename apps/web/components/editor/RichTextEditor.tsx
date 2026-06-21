@@ -210,7 +210,7 @@ function Toolbar({
   ];
 
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded border border-brand-line bg-brand-light/40 p-1">
+    <div className="rte-toolbar flex flex-wrap items-center gap-1 rounded border border-brand-line bg-brand-light/40 p-1">
       {buttons.map((b) => {
         const Icon = b.icon;
         return (

@@ -116,7 +116,7 @@ export function BlogManager({
         toast.error(t("saveError"));
         return;
       }
-      router.push(`/dashboard/website/${websiteId}/blog/${res.id}`);
+      router.push(`/website-editor/${websiteId}/blog/${res.id}`);
     });
   }
 
@@ -340,7 +340,7 @@ function PostRow({
 
   return (
     <Link
-      href={`/dashboard/website/${websiteId}/blog/${post.id}`}
+      href={`/website-editor/${websiteId}/blog/${post.id}`}
       className="ptr"
       style={{ gridTemplateColumns: GRID }}
     >

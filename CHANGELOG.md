@@ -5,6 +5,49 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Phase 2: full-screen Blog post editor
+
+Rebuilds the blog post editor to the `Blog Post Editor.html` mockup and makes it
+the first **full-screen editor** — it breaks out of the dashboard shell entirely,
+as agreed. Establishes the full-screen editor route pattern reused by the Page and
+Form editors later.
+
+### Added — full-screen editor route tree (outside `/dashboard`)
+- **`app/[locale]/website-editor/layout.tsx`** — enforces an authenticated session
+  and loads the builder design system (`builder.css` + `blog-editor.css`). No
+  dashboard chrome, so editors fill the viewport.
+- **`website-editor/[websiteId]/layout.tsx`** — owner + `website_builder` feature
+  gate (mirrors the dashboard `[websiteId]/layout`; reuses `loadWebsiteEditorData`
+  + `WebsiteLocked`).
+- **`website-editor/[websiteId]/blog/[postId]/{page,loadBlogPost,PostEditor}.tsx`**
+  — the editor route, moved here from under `(editor)`.
+- **`website-editor/blog-editor.css`** — the document + SERP/preview styles the
+  mockup keeps inline, scoped `.vilo-builder` (incl. `.tag` pills, since
+  `builder.css` has none; body typography also targets the Tiptap `.ProseMirror`).
+
+### Changed
+- **`PostEditor`** rebuilt to the mockup: `.etop` top bar (back · page pill · status
+  pill · word count · Preview · Publish/Update/Schedule), a centered `.post-doc`
+  document (cover w/ replace · category eyebrow · auto-growing title + standfirst ·
+  author meta · rich body), a right `.epanel` settings rail (Status choice + schedule
+  + feature toggle · Organise: category/tags/author · Featured image · Link & SEO
+  with a live Google SERP preview), and a Preview mode that hides the chrome. All
+  existing wiring preserved (`saveBlogPostAction`, delete, media-library cover + body
+  image upload with alt, tags). The body keeps the Tiptap `RichTextEditor`, restyled
+  to the document; its toolbar approximates the mockup's top formatting bar.
+- **`BlogManager`** links (New post + row) now point to `/website-editor/...`.
+- **`RichTextEditor`** toolbar gained a stable `rte-toolbar` class (sticky + hidden
+  in preview).
+- Removed the old in-shell editor route `(editor)/blog/[postId]`.
+- +13 `website` i18n keys.
+
+### Notes
+- Verified by tsc + lint (not a live render). The mockup's standfirst serif falls
+  back to Georgia (Spectral isn't bundled); the top formatting toolbar is the
+  RichTextEditor's own bar rather than a separate `.ftbar` — refinements for later.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Phase 1: Blog tab
 
 Rebuilds the Blog tab to the `Blog Manager.html` mockup — a posts table with a

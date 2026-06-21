@@ -1,0 +1,317 @@
+/* Blog post editor — document + settings-rail styles the mockup keeps inline.
+   Hand-authored, scoped under .vilo-builder (loaded alongside the generated
+   builder.css). Typography rules target both `.post-body` and the Tiptap
+   content (`.post-body-wrap .ProseMirror`) so the rich-text body matches.
+   The serif standfirst/quote fall back to Georgia (Spectral isn't bundled). */
+
+/* ---------- status pills (builder.css has none) ---------- */
+.vilo-builder .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 10px 3px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.vilo-builder .tag .d {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+}
+.vilo-builder .tag.green {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #c7f0dc;
+}
+.vilo-builder .tag.green .d {
+  background: #10b981;
+}
+.vilo-builder .tag.amber {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fce9b6;
+}
+.vilo-builder .tag.amber .d {
+  background: #f59e0b;
+}
+.vilo-builder .tag.sky {
+  background: #ecfaff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+.vilo-builder .tag.sky .d {
+  background: #0ea5e9;
+}
+
+/* ---------- document ---------- */
+.vilo-builder .post-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: #e8eeea;
+  display: flex;
+  justify-content: center;
+  padding: 26px 20px 120px;
+}
+.vilo-builder .post-doc {
+  width: 100%;
+  max-width: 768px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -30px rgba(6, 78, 59, 0.5);
+  overflow: hidden;
+  align-self: flex-start;
+}
+.vilo-builder .post-cover {
+  height: 320px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  cursor: pointer;
+  background-color: #dceae0;
+}
+.vilo-builder .post-cover .cv-ov {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(5, 46, 31, 0.36);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: opacity 0.14s;
+}
+.vilo-builder .post-cover:hover .cv-ov,
+.vilo-builder .post-cover.empty .cv-ov {
+  opacity: 1;
+}
+.vilo-builder .post-inner {
+  padding: 36px 56px 60px;
+}
+.vilo-builder .post-cat {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--primary);
+  display: inline-block;
+}
+.vilo-builder .post-title {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  font-family: "Plus Jakarta Sans";
+  font-weight: 800;
+  font-size: 40px;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 14px 0 0;
+  background: transparent;
+}
+.vilo-builder .post-title::placeholder,
+.vilo-builder .post-stand::placeholder {
+  color: #9db4a8;
+}
+.vilo-builder .post-stand {
+  display: block;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  resize: none;
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--mute);
+  margin: 16px 0 0;
+  font-family: "Spectral", Georgia, serif;
+  background: transparent;
+}
+.vilo-builder .post-meta {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 22px 0 8px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--line);
+}
+.vilo-builder .post-meta .pav {
+  height: 38px;
+  width: 38px;
+  border-radius: 9999px;
+  background: #064e3b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: "Plus Jakarta Sans";
+  font-size: 13px;
+  overflow: hidden;
+}
+.vilo-builder .post-meta .pav img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vilo-builder .post-meta .pn {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.vilo-builder .post-meta .pd {
+  font-size: 12.5px;
+  color: var(--mute);
+}
+
+/* ---------- rich body (mockup `.post-body` + Tiptap content) ---------- */
+.vilo-builder .post-body-wrap {
+  margin-top: 12px;
+}
+.vilo-builder .post-body-wrap .rte-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin-bottom: 10px;
+}
+.vilo-builder .post-body-wrap .ProseMirror {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  max-height: none !important;
+  min-height: 240px;
+  font-size: 17.5px;
+  line-height: 1.78;
+  color: #243b32;
+  outline: 0;
+}
+.vilo-builder .post-body-wrap .ProseMirror:focus {
+  box-shadow: none !important;
+}
+.vilo-builder .post-body-wrap .ProseMirror p {
+  margin: 0 0 20px;
+}
+.vilo-builder .post-body-wrap .ProseMirror h2 {
+  font-family: "Plus Jakarta Sans";
+  font-weight: 800;
+  font-size: 25px;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 34px 0 14px;
+}
+.vilo-builder .post-body-wrap .ProseMirror h3 {
+  font-family: "Plus Jakarta Sans";
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--ink);
+  margin: 26px 0 10px;
+}
+.vilo-builder .post-body-wrap .ProseMirror blockquote {
+  margin: 24px 0;
+  padding: 6px 0 6px 22px;
+  border-left: 3px solid var(--primary);
+  font-family: "Spectral", serif;
+  font-size: 21px;
+  line-height: 1.5;
+  color: var(--secondary);
+}
+.vilo-builder .post-body-wrap .ProseMirror ul,
+.vilo-builder .post-body-wrap .ProseMirror ol {
+  margin: 0 0 20px;
+  padding-left: 22px;
+}
+.vilo-builder .post-body-wrap .ProseMirror li {
+  margin-bottom: 9px;
+}
+.vilo-builder .post-body-wrap .ProseMirror img {
+  border-radius: 12px;
+  margin: 10px 0 24px;
+  width: 100%;
+}
+.vilo-builder .post-body-wrap .ProseMirror a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---------- settings rail extras ---------- */
+.vilo-builder .chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.vilo-builder .chip-t {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f0fdf4;
+  border: 1px solid #d7eee2;
+  color: #3a7a5e;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 9999px;
+}
+.vilo-builder .chip-t button {
+  border: 0;
+  background: none;
+  color: #7fae97;
+  cursor: pointer;
+  display: flex;
+  padding: 0;
+}
+.vilo-builder .seo-prev {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+.vilo-builder .seo-prev .su {
+  font-size: 11.5px;
+  color: #3a7a5e;
+  font-family: "JetBrains Mono";
+  word-break: break-all;
+}
+.vilo-builder .seo-prev .st {
+  font-size: 15px;
+  color: #1a0dab;
+  margin-top: 3px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.vilo-builder .seo-prev .sd {
+  font-size: 12px;
+  color: #4d5156;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ---------- preview mode ---------- */
+.vilo-builder.previewing .epanel,
+.vilo-builder.previewing .editor-only {
+  display: none !important;
+}
+.vilo-builder.previewing .post-body-wrap .rte-toolbar {
+  display: none !important;
+}
+.vilo-builder.previewing .post-cover .cv-ov {
+  display: none;
+}
+.vilo-builder .exitpv {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: none;
+}
+.vilo-builder.previewing .exitpv {
+  display: inline-flex;
+}
