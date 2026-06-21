@@ -49,8 +49,9 @@ const TITLE_REC = 60;
 const DESC_REC = 160;
 
 function CharCount({ len, max }: { len: number; max: number }) {
+  const over = len > max;
   return (
-    <span className={`cc${len > max ? "warn" : ""}`}>
+    <span className={over ? "cc warn" : "cc"}>
       {len} / {max}
     </span>
   );
