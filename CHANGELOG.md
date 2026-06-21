@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 7 save-point (a): blog editor → media library
+
+Completes Phase 7 save-point (a) "TipTap". The Tiptap editor, `body_html`
+storage, sanitised render (allows `<img src alt>`) and inline image *upload* were
+already in place; the gap was inserting an image from the **media library**
+(reusing an already-uploaded asset + its stored alt-text) rather than only
+uploading a fresh file. NO DB change, NO AI.
+
+- **`RichTextEditor`** gains an optional `onPickFromLibrary()` → a "Choose from
+  library" toolbar button (alongside upload). The chosen image is inserted with
+  its `src` AND stored `alt` (alt survives the public sanitiser).
+- **`MediaLibrary`** gains an optional `onSelectItem(item)` that returns the whole
+  media row (url + alt), not just the path; `onSelect` is now optional. Existing
+  callers (brand, specials, page/blog image fields) are unchanged.
+- **Blog `PostEditor`** wires a promise-based picker: the editor's library button
+  opens the `MediaLibrary` modal and resolves the selected asset back into the
+  body. tsc + lint green.
+- **Deferred to 7(c):** alt-text capture for fresh in-editor uploads + registering
+  editor uploads into `website_media` (so they appear in the library); next/image
+  pipeline; lightbox; perf score. **7(b)** = blog tags (+ archive pages) + RSS
+  (the scheduled-publish cron already exists).
+
+---
+
 ## 2026-06-21 — Add-ons + coupons on the on-site checkout (Phase 6c follow-up)
 
 Bring add-ons and coupon codes to the on-site checkout (the booking core already

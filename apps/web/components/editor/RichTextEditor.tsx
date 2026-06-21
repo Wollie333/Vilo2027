@@ -9,6 +9,7 @@ import {
   Heading3,
   ImagePlus,
   Italic,
+  Library,
   List,
   ListOrdered,
   Loader2,
@@ -30,6 +31,12 @@ type Props = {
    * it (e.g. listing descriptions) and the editor behaves exactly as before.
    */
   onImageUpload?: (file: File) => Promise<string | null>;
+  /**
+   * Opt-in "insert from media library": opens the caller's media picker and
+   * resolves the chosen image (url + its stored alt), or null if cancelled. When
+   * provided, a "Choose from library" toolbar button appears alongside upload.
+   */
+  onPickFromLibrary?: () => Promise<{ url: string; alt?: string } | null>;
 };
 
 export function RichTextEditor({
@@ -38,6 +45,7 @@ export function RichTextEditor({
   placeholder,
   disabled,
   onImageUpload,
+  onPickFromLibrary,
 }: Props) {
   const editor = useEditor({
     extensions: [
@@ -83,6 +91,7 @@ export function RichTextEditor({
         editor={editor}
         disabled={!!disabled}
         onImageUpload={onImageUpload}
+        onPickFromLibrary={onPickFromLibrary}
       />
       <div className="relative">
         <EditorContent editor={editor} />
@@ -103,13 +112,16 @@ function Toolbar({
   editor,
   disabled,
   onImageUpload,
+  onPickFromLibrary,
 }: {
   editor: Editor | null;
   disabled: boolean;
   onImageUpload?: (file: File) => Promise<string | null>;
+  onPickFromLibrary?: () => Promise<{ url: string; alt?: string } | null>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
 
   async function onPickImage(file: File) {
     if (!editor || !onImageUpload) return;
@@ -119,6 +131,18 @@ function Toolbar({
       if (url) editor.chain().focus().setImage({ src: url }).run();
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function onBrowse() {
+    if (!editor || !onPickFromLibrary) return;
+    setBrowsing(true);
+    try {
+      const img = await onPickFromLibrary();
+      if (img)
+        editor.chain().focus().setImage({ src: img.url, alt: img.alt }).run();
+    } finally {
+      setBrowsing(false);
     }
   }
 
@@ -259,6 +283,23 @@ function Toolbar({
             }}
           />
         </>
+      ) : null}
+
+      {onPickFromLibrary ? (
+        <button
+          type="button"
+          onClick={onBrowse}
+          disabled={disabled || browsing}
+          aria-label="Insert image from library"
+          title="Insert image from library"
+          className="inline-flex h-7 w-7 items-center justify-center rounded text-brand-mute transition-colors hover:bg-white hover:text-brand-ink disabled:opacity-50"
+        >
+          {browsing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Library className="h-3.5 w-3.5" />
+          )}
+        </button>
       ) : null}
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { ArrowLeft, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Link } from "@/i18n/navigation";
@@ -12,8 +12,10 @@ import {
   createWebsiteAssetUploadUrl,
   deleteBlogPostAction,
   saveBlogPostAction,
+  type MediaItem,
 } from "@/app/[locale]/dashboard/website/actions";
 import { RichTextEditor } from "@/components/editor/RichTextEditor";
+import { MediaLibrary } from "@/components/website/MediaLibrary";
 import { modal } from "@/components/ui/modal-host";
 import { slugify } from "@/lib/help/slug";
 import { createClient } from "@/lib/supabase/client";
@@ -80,6 +82,31 @@ export function PostEditor({
 
   const slugPlaceholder = slugify(post.title) || "post";
   const previewHref = `/site/blog/${savedSlug}?site=${subdomain}&preview=1`;
+
+  // Media-library image insert for the body editor. Opens the picker and resolves
+  // the chosen image (url + its stored alt) back to the editor; null on cancel.
+  const [mediaOpen, setMediaOpen] = useState(false);
+  const mediaResolver = useRef<
+    ((img: { url: string; alt?: string } | null) => void) | null
+  >(null);
+
+  function pickFromLibrary() {
+    return new Promise<{ url: string; alt?: string } | null>((resolve) => {
+      mediaResolver.current = resolve;
+      setMediaOpen(true);
+    });
+  }
+  function handleMediaOpenChange(open: boolean) {
+    setMediaOpen(open);
+    if (!open && mediaResolver.current) {
+      mediaResolver.current(null); // closed without choosing
+      mediaResolver.current = null;
+    }
+  }
+  function handleSelectItem(item: MediaItem) {
+    mediaResolver.current?.({ url: item.url, alt: item.alt ?? undefined });
+    mediaResolver.current = null;
+  }
 
   // Upload a body image browser→Storage and return its public URL (for the editor).
   async function uploadBodyImage(file: File): Promise<string | null> {
@@ -224,6 +251,7 @@ export function PostEditor({
               onChange={(html) => patch({ bodyHtml: html })}
               placeholder={t("blogBodyPlaceholder")}
               onImageUpload={uploadBodyImage}
+              onPickFromLibrary={pickFromLibrary}
             />
           </div>
         </div>
@@ -375,6 +403,13 @@ export function PostEditor({
           </button>
         </aside>
       </div>
+
+      <MediaLibrary
+        open={mediaOpen}
+        onOpenChange={handleMediaOpenChange}
+        websiteId={websiteId}
+        onSelectItem={handleSelectItem}
+      />
     </div>
   );
 }

@@ -55,18 +55,23 @@ function readDims(file: File): Promise<{ width?: number; height?: number }> {
  * Reusable Media Library (Phase 0B). Browses every asset already uploaded under a
  * site's `website-assets/{websiteId}/` folder, supports a fresh upload, alt-text
  * editing, and delete. `onSelect(path)` hands the chosen storage path back to the
- * caller (an image field, the logo picker, blog cover, OG image…).
+ * caller (an image field, the logo picker, blog cover, OG image…). `onSelectItem`
+ * is the richer variant — it hands back the whole media row (url + alt) for
+ * callers that need more than the path (e.g. the rich-text editor inserting an
+ * <img> with its stored alt). When provided, it takes precedence over onSelect.
  */
 export function MediaLibrary({
   open,
   onOpenChange,
   websiteId,
   onSelect,
+  onSelectItem,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   websiteId: string;
-  onSelect: (path: string) => void;
+  onSelect?: (path: string) => void;
+  onSelectItem?: (item: MediaItem) => void;
 }) {
   const t = useTranslations("website");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -147,7 +152,12 @@ export function MediaLibrary({
 
   function confirmSelect() {
     if (!selected) return;
-    onSelect(selected);
+    if (onSelectItem) {
+      const item = items.find((i) => i.path === selected);
+      if (item) onSelectItem(item);
+    } else {
+      onSelect?.(selected);
+    }
     onOpenChange(false);
   }
 
