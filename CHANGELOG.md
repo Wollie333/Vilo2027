@@ -5,6 +5,30 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Navigation full-screen editors
+
+Completes the manager → editor flow: the Navigation tab is now view-only cards, and
+each "Edit" opens a dedicated full-screen editor (canvas preview + inspector).
+
+### Added
+- **`website-editor/[websiteId]/navigation/[section]/`** — one parameterised
+  full-screen editor for `header` | `menu` | `footer`. `NavSectionEditor` holds the
+  full nav state, renders a live `.vilo-nav` preview in the canvas and a `.vilo-builder`
+  inspector for the section: Header (CTA + behaviour + announcement bar), Menu (reuses
+  `MenuBuilder`), Footer (powered-by/copyright + `FooterBuilder`). Saves via the
+  existing `saveNavigationAction`. `nav.css` now loads in the editor route tree.
+- +3 i18n keys.
+
+### Changed / Removed
+- **`navigation/page.tsx`** — dropped the inline editing form; the three cards' "Edit"
+  buttons now link to `/website-editor/.../navigation/{section}`.
+- **Deleted `NavigationForm.tsx`** — the old combined inline editor, now superseded by
+  the per-section full-screen editors.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Navigation manager
 
 Rebuilds the Navigation tab to the `Navigation Manager.html` mockup — three module

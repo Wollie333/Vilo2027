@@ -10,6 +10,7 @@ import { createServerClient } from "@/lib/supabase/server";
 // owner + feature gate lives in [websiteId]/layout. The emerald `.vilo-builder`
 // styles are scoped, so importing them here is inert until a page opts in.
 import "../dashboard/website/builder.css";
+import "../dashboard/website/nav.css";
 import "./blog-editor.css";
 
 export const dynamic = "force-dynamic";
