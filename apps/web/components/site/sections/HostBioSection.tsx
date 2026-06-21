@@ -1,6 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
+import { SiteImg } from "../SiteImg";
 import { SectionShell, SectionHeading, Card, siteImageStyle } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "host_bio" }>["props"];
@@ -47,8 +48,14 @@ function HostPhoto({
   className: string;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} style={siteImageStyle} className={className} />
+    <SiteImg
+      src={src}
+      alt={alt}
+      style={siteImageStyle}
+      className={className}
+      sizes="160px"
+      widths={[160, 320, 480]}
+    />
   );
 }
 

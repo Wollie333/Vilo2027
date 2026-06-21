@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/site/JsonLd";
 import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
@@ -129,10 +130,12 @@ export default async function SiteBlogPostPage({
               {post.date ? <span>{post.date}</span> : null}
             </div>
             {cover ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <SiteImg
                 src={cover}
                 alt={post.title}
+                priority
+                sizes="(min-width: 768px) 768px, 100vw"
+                widths={[480, 768, 1024, 1280]}
                 style={{ borderRadius: "var(--site-radius)" }}
                 className="mt-6 aspect-[16/9] w-full object-cover"
               />
@@ -175,10 +178,11 @@ export default async function SiteBlogPostPage({
                 className="mt-12 flex items-start gap-4 border p-5"
               >
                 {post.authorAvatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <SiteImg
                     src={post.authorAvatarUrl}
                     alt={post.authorName}
+                    sizes="56px"
+                    widths={[56, 112]}
                     className="h-14 w-14 shrink-0 rounded-full object-cover"
                   />
                 ) : null}
@@ -228,13 +232,13 @@ export default async function SiteBlogPostPage({
                         className="flex h-full flex-col overflow-hidden border"
                       >
                         {related.coverUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <SiteImg
                             src={
                               siteAsset(related.coverUrl) ?? related.coverUrl
                             }
                             alt={related.title}
-                            loading="lazy"
+                            sizes="(min-width: 640px) 33vw, 100vw"
+                            widths={[320, 480, 640]}
                             className="aspect-[16/9] w-full object-cover"
                           />
                         ) : null}

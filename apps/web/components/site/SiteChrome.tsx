@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { siteImageUrl } from "@/lib/site/image";
 import {
   DEFAULT_FOOTER,
   DEFAULT_HEADER,
@@ -86,7 +87,7 @@ function BrandLogo({
     <>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={primarySrc}
+        src={siteImageUrl(primarySrc, { width: 360, quality: 85 })}
         alt={brand.name}
         style={{ height, maxWidth: 180 }}
         className={`${imgCls} ${brand.logoIconUrl ? "hidden sm:block" : ""}`}
@@ -94,7 +95,7 @@ function BrandLogo({
       {brand.logoIconUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={brand.logoIconUrl}
+          src={siteImageUrl(brand.logoIconUrl, { width: 160, quality: 85 })}
           alt={brand.name}
           style={{ height }}
           className={`${imgCls} sm:hidden`}

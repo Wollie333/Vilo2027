@@ -5,6 +5,60 @@
 
 ---
 
+## 2026-06-21 — Website CMS Phase 7 save-point (c): image pipeline + lightbox + media + perf score — PHASE 7 COMPLETE
+
+Responsive, modern-format image delivery across the whole tenant site via
+Supabase image transforms; swipeable fullscreen galleries; fresh blog-editor
+uploads now land in the media library with alt + dimensions; an image-
+performance score on the dashboard. NO AI. NO DB change. tsc + lint green.
+
+### Added — image transform pipeline
+- **`lib/site/image.ts`** — `siteImageUrl` rewrites a public `website-assets`
+  object URL to its Supabase `/render/image/...` variant (resized + WebP/AVIF
+  via the Accept header); `siteImageSrcSet` builds a responsive `srcset`.
+  No-op for non-project URLs and SVGs (passthrough). Verified live: a 2.5 MB
+  PNG → 56 KB WebP at w=480, 133 KB at w=1280.
+- **`components/site/SiteImg.tsx`** — the one `<img>` for the public site:
+  responsive `srcset`/`sizes`, lazy by default (eager + `fetchpriority=high`
+  when `priority`), graceful fallback for non-transformable sources. Pure
+  presentational (no directive) so it renders in both server sections and the
+  client lightbox. Chosen over `next/image` deliberately — works on tenant
+  custom domains with no `/_next/image` dependency or Vercel optimizer cost.
+- Converted every public image to `SiteImg`/`siteImageUrl`: gallery, host bio,
+  rooms preview, blog preview, logos strip, specials preview, hero backgrounds
+  (CSS `background-image` resized at fixed widths), chrome logo, and the blog
+  index / tag-archive / post-detail covers + author avatar + related covers.
+
+### Added — lightbox
+- **`components/site/GalleryLightbox.tsx`** (client) — grid (grid/list/carousel)
+  + swipeable fullscreen overlay: prev/next, ArrowLeft/Right + Esc, touch-swipe,
+  counter, caption, scroll-lock. `GallerySection` now delegates to it.
+
+### Added — media library (fresh editor uploads)
+- `RichTextEditor.onImageUpload` now returns `{ url, alt }`. `PostEditor`'s
+  `uploadBodyImage` switched to the media path (`createWebsiteMediaUploadUrl` +
+  `registerWebsiteMediaAction`): prompts for alt text, captures intrinsic
+  dimensions, registers into `website_media` — so a fresh body image is reusable
+  in the library and alt/CLS-ready. +1 i18n key (`imageAltPrompt`).
+
+### Added — performance score (dashboard Overview)
+- **`lib/website/perfAnalyzer.ts`** — pure `analyzeSitePerformance` over the
+  media library (responsive ✓ always, alt coverage, known-dimensions/CLS) →
+  0–100 score + graded checks (mirrors the seo/a11y coach pattern). A
+  lab/readiness signal, not field CWV.
+- `loadOverviewData` counts `website_media` (alt/dims) and returns `performance`;
+  the Overview page renders an "Image performance" card (score + bar + checks).
+  +13 `website` i18n keys (`perf*`).
+
+### Deferred (founder)
+- Real field **Core Web Vitals** (RUM beacon + aggregation) — the dashboard
+  score is lab/readiness for now.
+- Media library: replace-in-place, folders. (Reusable picker, search, alt,
+  dimensions already shipped.)
+- Optimising user-inserted `<img>` inside sanitised blog `body_html`.
+
+---
+
 ## 2026-06-21 — Website CMS Phase 7 save-point (b): blog tags + archives
 
 Adds blog tags with public tag-archive pages. (The scheduled-publish cron and

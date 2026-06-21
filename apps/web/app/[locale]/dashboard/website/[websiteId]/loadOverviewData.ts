@@ -6,6 +6,10 @@ import {
   type AnalyticsRange,
   type WebsiteAnalytics,
 } from "@/lib/website/analytics";
+import {
+  analyzeSitePerformance,
+  type PerfScore,
+} from "@/lib/website/perfAnalyzer";
 
 import {
   loadWebsiteEditorData,
@@ -28,6 +32,8 @@ export type OverviewData = {
   isLive: boolean;
   /** Actionable nudges for the "needs attention" panel. */
   signals: OverviewSignal[];
+  /** Image-performance readiness (Phase 7c). */
+  performance: PerfScore;
 };
 
 /**
@@ -44,24 +50,29 @@ export async function loadOverviewData(
 
   const supabase = createServerClient();
 
-  const [analytics, domainRow, postsRes, hiddenRoomsRes] = await Promise.all([
-    loadWebsiteAnalytics(supabase, websiteId, range),
-    supabase
-      .from("host_websites")
-      .select("domain_status")
-      .eq("id", websiteId)
-      .maybeSingle(),
-    supabase
-      .from("website_blog_posts")
-      .select("seo, status")
-      .eq("website_id", websiteId)
-      .is("deleted_at", null),
-    supabase
-      .from("website_rooms")
-      .select("id", { count: "exact", head: true })
-      .eq("website_id", websiteId)
-      .eq("is_visible", false),
-  ]);
+  const [analytics, domainRow, postsRes, hiddenRoomsRes, mediaRes] =
+    await Promise.all([
+      loadWebsiteAnalytics(supabase, websiteId, range),
+      supabase
+        .from("host_websites")
+        .select("domain_status")
+        .eq("id", websiteId)
+        .maybeSingle(),
+      supabase
+        .from("website_blog_posts")
+        .select("seo, status")
+        .eq("website_id", websiteId)
+        .is("deleted_at", null),
+      supabase
+        .from("website_rooms")
+        .select("id", { count: "exact", head: true })
+        .eq("website_id", websiteId)
+        .eq("is_visible", false),
+      supabase
+        .from("website_media")
+        .select("alt, width, height")
+        .eq("website_id", websiteId),
+    ]);
 
   const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "vilo.site";
   const domainStatus = (domainRow.data?.domain_status as string) ?? "none";
@@ -92,5 +103,22 @@ export async function loadOverviewData(
   if (!site.seo.title?.trim())
     signals.push({ key: "attnNoSeoTitle", seg: "seo" });
 
-  return { site, analytics, publicUrl, previewUrl, isLive, signals };
+  // Image-performance readiness over the media library (Phase 7c).
+  const mediaRows = mediaRes.data ?? [];
+  const performance = analyzeSitePerformance({
+    totalImages: mediaRows.length,
+    withAlt: mediaRows.filter((m) => (m.alt ?? "").trim()).length,
+    withDims: mediaRows.filter((m) => m.width != null && m.height != null)
+      .length,
+  });
+
+  return {
+    site,
+    analytics,
+    publicUrl,
+    previewUrl,
+    isLive,
+    signals,
+    performance,
+  };
 }

@@ -26,11 +26,12 @@ type Props = {
   placeholder?: string;
   disabled?: boolean;
   /**
-   * Opt-in image embeds: upload a picked File → return its public URL (or null
-   * on failure). When provided, an "Insert image" toolbar button appears. Omit
-   * it (e.g. listing descriptions) and the editor behaves exactly as before.
+   * Opt-in image embeds: upload a picked File → return its public URL plus an
+   * optional alt (or null on failure/cancel). When provided, an "Insert image"
+   * toolbar button appears. Omit it (e.g. listing descriptions) and the editor
+   * behaves exactly as before.
    */
-  onImageUpload?: (file: File) => Promise<string | null>;
+  onImageUpload?: (file: File) => Promise<{ url: string; alt?: string } | null>;
   /**
    * Opt-in "insert from media library": opens the caller's media picker and
    * resolves the chosen image (url + its stored alt), or null if cancelled. When
@@ -116,7 +117,7 @@ function Toolbar({
 }: {
   editor: Editor | null;
   disabled: boolean;
-  onImageUpload?: (file: File) => Promise<string | null>;
+  onImageUpload?: (file: File) => Promise<{ url: string; alt?: string } | null>;
   onPickFromLibrary?: () => Promise<{ url: string; alt?: string } | null>;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -127,8 +128,9 @@ function Toolbar({
     if (!editor || !onImageUpload) return;
     setUploading(true);
     try {
-      const url = await onImageUpload(file);
-      if (url) editor.chain().focus().setImage({ src: url }).run();
+      const img = await onImageUpload(file);
+      if (img)
+        editor.chain().focus().setImage({ src: img.url, alt: img.alt }).run();
     } finally {
       setUploading(false);
     }

@@ -4,6 +4,7 @@ import type {
   RoomsPreviewData,
 } from "@/lib/site/types";
 
+import { SiteImg } from "../SiteImg";
 import {
   SectionShell,
   SectionHeading,
@@ -41,11 +42,11 @@ function RoomCardView({ room, cta }: { room: RoomCardData; cta: string }) {
     >
       <div className="relative">
         {room.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SiteImg
             src={room.imageUrl}
             alt={room.name}
-            loading="lazy"
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            widths={[320, 480, 640, 768]}
             style={{ aspectRatio: "var(--site-card-ratio)" }}
             className="w-full object-cover"
           />
@@ -199,11 +200,11 @@ export function RoomsPreviewSection({
                 {g ? (
                   <div className="mb-6">
                     {g.heroUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <SiteImg
                         src={g.heroUrl}
                         alt={g.heading ?? ""}
-                        loading="lazy"
+                        sizes="100vw"
+                        widths={[768, 1024, 1280, 1600]}
                         style={siteImageStyle}
                         className="mb-5 aspect-[16/6] w-full object-cover"
                       />

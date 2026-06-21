@@ -9,8 +9,9 @@ import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 
 import {
-  createWebsiteAssetUploadUrl,
+  createWebsiteMediaUploadUrl,
   deleteBlogPostAction,
+  registerWebsiteMediaAction,
   saveBlogPostAction,
   type MediaItem,
 } from "@/app/[locale]/dashboard/website/actions";
@@ -42,6 +43,29 @@ function isoToLocalInput(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
     d.getHours(),
   )}:${pad(d.getMinutes())}`;
+}
+
+/** Read intrinsic dimensions of an image File (best-effort; nulls on error). */
+function readImageDims(
+  file: File,
+): Promise<{ width?: number; height?: number }> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !file.type.startsWith("image/")) {
+      resolve({});
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => {
+      resolve({});
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  });
 }
 
 function readingMinutes(html: string): number {
@@ -110,14 +134,19 @@ export function PostEditor({
     mediaResolver.current = null;
   }
 
-  // Upload a body image browser→Storage and return its public URL (for the editor).
-  async function uploadBodyImage(file: File): Promise<string | null> {
+  // Upload a body image browser→Storage, capture alt text + dimensions, and
+  // register it into the media library (so it's reusable and alt/CLS-ready).
+  // Returns the URL + alt for the editor to insert.
+  async function uploadBodyImage(
+    file: File,
+  ): Promise<{ url: string; alt?: string } | null> {
     if (file.size > 6 * 1024 * 1024) {
       toast.error(t("imageSizeError"));
       return null;
     }
+    const alt = window.prompt(t("imageAltPrompt"))?.trim() || "";
     const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const ticket = await createWebsiteAssetUploadUrl(websiteId, ext);
+    const ticket = await createWebsiteMediaUploadUrl(websiteId, ext);
     if (!ticket.ok) {
       toast.error(t("imageUploadError"));
       return null;
@@ -132,7 +161,16 @@ export function PostEditor({
       toast.error(t("imageUploadError"));
       return null;
     }
-    return websiteAssetUrl(ticket.data.path) ?? null;
+    const dims = await readImageDims(file);
+    await registerWebsiteMediaAction(websiteId, ticket.data.path, {
+      alt,
+      ...dims,
+      size: file.size,
+      mime: file.type,
+    });
+    const url = websiteAssetUrl(ticket.data.path);
+    if (!url) return null;
+    return { url, alt: alt || undefined };
   }
 
   function onSave() {

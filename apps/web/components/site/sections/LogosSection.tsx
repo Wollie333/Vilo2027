@@ -1,6 +1,7 @@
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
+import { SiteImg } from "../SiteImg";
 import { SectionShell, SectionHeading } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "logos" }>["props"];
@@ -15,10 +16,11 @@ function LogoImg({
   mono: boolean;
 }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <SiteImg
       src={url}
       alt={alt}
+      sizes="160px"
+      widths={[160, 320]}
       className={`h-10 w-auto max-w-[160px] object-contain md:h-12 ${
         mono
           ? "opacity-70 grayscale transition hover:opacity-100 hover:grayscale-0"

@@ -1,3 +1,4 @@
+import { siteImageUrl } from "@/lib/site/image";
 import type { WebsiteSection } from "@/lib/website/sections.schema";
 import type { SiteAssetResolver } from "@/lib/site/types";
 
@@ -68,9 +69,17 @@ export function HeroSection({
   props: Props;
   asset?: SiteAssetResolver;
 }) {
-  const bg = asset?.(props.image_path) ?? props.image_path ?? undefined;
+  const rawBg = asset?.(props.image_path) ?? props.image_path ?? undefined;
   const alignLeft = props.align === "left";
   const variant = props.variant ?? "classic";
+  // Background images can't ride <SiteImg>, so resize them through the same
+  // transform pipeline at a fixed, variant-appropriate width (Phase 7c).
+  const bgClassic = rawBg
+    ? siteImageUrl(rawBg, { width: 1920, quality: 68 })
+    : undefined;
+  const bgSplit = rawBg
+    ? siteImageUrl(rawBg, { width: 1200, quality: 72 })
+    : undefined;
 
   // SPLIT — text beside the image (stacks on mobile); text uses theme colours.
   if (variant === "split") {
@@ -80,12 +89,12 @@ export function HeroSection({
           <div style={{ textAlign: alignLeft ? "left" : "center" }}>
             <HeroInner props={props} onDark={false} alignLeft={alignLeft} />
           </div>
-          {bg ? (
+          {bgSplit ? (
             <div
               aria-hidden
               className="order-first h-56 w-full md:order-last md:h-[26rem]"
               style={{
-                backgroundImage: `url(${bg})`,
+                backgroundImage: `url(${bgSplit})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
                 borderRadius: "var(--site-img-radius)",
@@ -118,9 +127,9 @@ export function HeroSection({
   return (
     <section
       style={
-        bg
+        bgClassic
           ? {
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.42)), url(${bg})`,
+              backgroundImage: `linear-gradient(rgba(0,0,0,0.42), rgba(0,0,0,0.42)), url(${bgClassic})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }
@@ -132,7 +141,11 @@ export function HeroSection({
         className="mx-auto w-full max-w-4xl"
         style={{ textAlign: alignLeft ? "left" : "center" }}
       >
-        <HeroInner props={props} onDark={Boolean(bg)} alignLeft={alignLeft} />
+        <HeroInner
+          props={props}
+          onDark={Boolean(rawBg)}
+          alignLeft={alignLeft}
+        />
       </div>
     </section>
   );

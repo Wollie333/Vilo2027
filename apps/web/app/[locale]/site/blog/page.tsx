@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { SiteChrome } from "@/components/site/SiteChrome";
+import { SiteImg } from "@/components/site/SiteImg";
 import { SiteThemeRoot } from "@/components/site/SiteThemeRoot";
 import { siteAsset } from "@/components/site/SitePageView";
 import {
@@ -108,11 +109,11 @@ export default async function SiteBlogIndexPage({
                     className="flex h-full flex-col overflow-hidden border"
                   >
                     {post.coverUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <SiteImg
                         src={siteAsset(post.coverUrl) ?? post.coverUrl}
                         alt={post.title}
-                        loading="lazy"
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        widths={[320, 480, 640, 768]}
                         className="aspect-[16/9] w-full object-cover"
                       />
                     ) : null}

@@ -4,6 +4,7 @@ import type {
   SpecialsPreviewData,
 } from "@/lib/site/types";
 
+import { SiteImg } from "../SiteImg";
 import { SectionShell, SectionHeading, Muted, Card } from "./_shared";
 
 type Props = Extract<WebsiteSection, { type: "specials_preview" }>["props"];
@@ -37,11 +38,11 @@ function SpecialCardView({
     <Card className="flex flex-col">
       <div className="relative">
         {s.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <SiteImg
             src={s.imageUrl}
             alt={s.title}
-            loading="lazy"
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            widths={[320, 480, 640, 768]}
             className="aspect-[4/3] w-full object-cover"
           />
         ) : null}

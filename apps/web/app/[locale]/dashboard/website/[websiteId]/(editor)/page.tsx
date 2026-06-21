@@ -6,6 +6,7 @@ import {
   CircleCheck,
   ExternalLink,
   Feather,
+  Gauge,
   Globe,
   Image as ImageIcon,
   Newspaper,
@@ -70,8 +71,35 @@ export default async function WebsiteOverviewPage({
   ]);
   if (!data) notFound();
 
-  const { site, analytics, publicUrl, previewUrl, isLive, signals } = data;
+  const {
+    site,
+    analytics,
+    publicUrl,
+    previewUrl,
+    isLive,
+    signals,
+    performance,
+  } = data;
   const base = `/dashboard/website/${websiteId}`;
+
+  const perfColor =
+    performance.grade === "good"
+      ? "text-emerald-600"
+      : performance.grade === "fair"
+        ? "text-amber-600"
+        : "text-red-500";
+  const perfBar =
+    performance.grade === "good"
+      ? "bg-emerald-500"
+      : performance.grade === "fair"
+        ? "bg-amber-500"
+        : "bg-red-500";
+  const perfGradeKey =
+    performance.grade === "good"
+      ? "perfGradeGood"
+      : performance.grade === "fair"
+        ? "perfGradeFair"
+        : "perfGradePoor";
 
   const publishedWhen = site.publishedAt
     ? format.dateTime(new Date(site.publishedAt), {
@@ -368,6 +396,60 @@ export default async function WebsiteOverviewPage({
           )}
         </section>
       </div>
+
+      {/* ── Image performance ─────────────────────────────────── */}
+      <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
+        <div className="flex items-center gap-2">
+          <Gauge className="h-4 w-4 text-brand-mute" />
+          <h2 className="font-display text-lg font-bold text-brand-ink">
+            {t("perfTitle")}
+          </h2>
+        </div>
+        <p className="mt-1 text-[12.5px] text-brand-mute">{t("perfDesc")}</p>
+        <div className="mt-4 grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
+          <div>
+            {performance.imageCount > 0 ? (
+              <>
+                <div className="flex items-baseline gap-1">
+                  <span
+                    className={`font-display text-4xl font-bold ${perfColor}`}
+                  >
+                    {performance.score}
+                  </span>
+                  <span className="text-sm text-brand-mute">/ 100</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-pill bg-brand-light">
+                  <span
+                    className={`block h-full ${perfBar}`}
+                    style={{ width: `${performance.score}%` }}
+                  />
+                </div>
+                <span
+                  className={`mt-2 inline-block text-[13px] font-semibold ${perfColor}`}
+                >
+                  {t(perfGradeKey)}
+                </span>
+              </>
+            ) : (
+              <p className="text-sm text-brand-mute">{t("perfEmpty")}</p>
+            )}
+          </div>
+          <ul className="space-y-2">
+            {performance.checks.map((c) => (
+              <li key={c.key} className="flex items-start gap-2 text-[13px]">
+                {c.status === "good" ? (
+                  <CircleCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                ) : (
+                  <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                )}
+                <span className="text-brand-ink">
+                  {t(c.key, { count: c.count ?? 0 })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       {/* ── Needs attention ───────────────────────────────────── */}
       <section className="rounded-card border border-brand-line bg-white p-5 shadow-card">
