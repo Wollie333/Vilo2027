@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · shared editor shell (subheader + tab bar)
+
+Restyles the shared website-editor chrome to the mockup so every redesigned tab
+reads as a finished page. Non-breaking — same controls, emerald look.
+
+### Changed
+- **`(editor)/layout.tsx`** — the header is now the mockup subheader: a `.siteswitch`
+  site button (name + domain → back to the all-sites portfolio), a status `.tag`,
+  and right-aligned Visit + Publish. Wrapped in `.vilo-cms`.
+- **`WebsiteTabs`** — restyled to the emerald `.ctab` tab bar (active underline),
+  scoped `.vilo-cms`. Same navigation logic + loading state.
+- **`PublishBar`** — buttons restyled to `.btn`/`.btn-primary`/`.btn-ghost`; status
+  dot/label kept. Wrapped in `.vilo-cms`.
+
+tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · remove the Rooms tab
 
 Rooms are managed under Properties (sidebar → Rooms) and pulled into the website

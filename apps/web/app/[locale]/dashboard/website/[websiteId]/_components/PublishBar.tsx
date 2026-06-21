@@ -71,16 +71,20 @@ export function PublishBar({
       : t("allPublished");
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="inline-flex items-center text-[12.5px] font-medium text-brand-mute">
+    <div className="vilo-cms flex items-center gap-2.5">
+      <span
+        className="hidden items-center gap-1.5 text-[12px] font-medium md:inline-flex"
+        style={{
+          color:
+            isLive && !isDirty ? "#4A7C6A" : isDirty ? "#B45309" : "#4A7C6A",
+        }}
+      >
         <Dot
-          className={`h-5 w-5 ${
-            isLive && !isDirty
-              ? "text-emerald-500"
-              : isDirty
-                ? "text-amber-500"
-                : "text-brand-mute/50"
-          }`}
+          className="h-5 w-5"
+          style={{
+            color:
+              isLive && !isDirty ? "#10B981" : isDirty ? "#F59E0B" : "#9DB4A8",
+          }}
         />
         {statusLabel}
       </span>
@@ -90,7 +94,7 @@ export function PublishBar({
           type="button"
           onClick={onTakeOffline}
           disabled={offline}
-          className="rounded-[10px] border border-brand-line bg-white px-3 py-2 text-sm font-medium text-brand-mute transition-colors hover:bg-brand-light disabled:opacity-50"
+          className="btn btn-ghost btn-sm"
         >
           {t("takeOfflineCta")}
         </button>
@@ -101,14 +105,15 @@ export function PublishBar({
         onClick={onPublish}
         disabled={publishing || (isLive && !isDirty)}
         title={isLive && !isDirty ? t("allPublished") : undefined}
-        className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn btn-primary btn-sm"
+        style={{ cursor: isLive && !isDirty ? "not-allowed" : undefined }}
       >
         {publishing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="animate-spin" style={{ width: 15, height: 15 }} />
         ) : isLive && !isDirty ? (
-          <Check className="h-4 w-4" />
+          <Check style={{ width: 15, height: 15 }} />
         ) : (
-          <Rocket className="h-4 w-4" />
+          <Rocket style={{ width: 15, height: 15 }} />
         )}
         {isLive
           ? isDirty

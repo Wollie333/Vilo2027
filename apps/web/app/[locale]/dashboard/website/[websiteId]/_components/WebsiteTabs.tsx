@@ -51,54 +51,45 @@ export function WebsiteTabs({ websiteId }: { websiteId: string }) {
   }
 
   return (
-    <nav className="border-b border-brand-line">
-      <ol
-        className="-mb-px flex items-stretch gap-6 overflow-x-auto"
-        style={{ scrollbarWidth: "none" }}
-      >
+    <nav
+      className="vilo-cms thin-scroll -mb-px overflow-x-auto border-b"
+      style={{ borderColor: "var(--line)" }}
+    >
+      <div className="flex min-w-max items-center">
         {LIVE_TABS.map((tab) => {
           const active = isActive(tab.seg);
           const loading = loadingTab === tab.seg && isPending;
           return (
-            <li key={tab.key} className="shrink-0">
-              <a
-                href={tab.seg ? `${base}/${tab.seg}` : base}
-                onClick={(e) => handleClick(e, tab.seg)}
-                aria-current={active ? "page" : undefined}
-                className={`group relative block whitespace-nowrap py-3 text-[14px] font-semibold transition-colors ${
-                  active
-                    ? "text-brand-secondary"
-                    : "text-brand-mute hover:text-brand-ink"
-                } ${loading ? "pointer-events-none" : ""}`}
-              >
-                <span className="flex items-center gap-1.5">
-                  {loading ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : null}
-                  {t(tab.key)}
-                </span>
-                {/* Active indicator */}
-                {active ? (
-                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-primary" />
-                ) : (
-                  /* Hover indicator */
-                  <span className="absolute inset-x-0 -bottom-px h-[2.5px] rounded bg-brand-line opacity-0 transition-opacity group-hover:opacity-100" />
-                )}
-              </a>
-            </li>
+            <a
+              key={tab.key}
+              href={tab.seg ? `${base}/${tab.seg}` : base}
+              onClick={(e) => handleClick(e, tab.seg)}
+              aria-current={active ? "page" : undefined}
+              className={`ctab ${active ? "active" : ""} ${
+                loading ? "pointer-events-none" : ""
+              }`}
+            >
+              {loading ? (
+                <Loader2
+                  className="animate-spin"
+                  style={{ width: 14, height: 14 }}
+                />
+              ) : null}
+              {t(tab.key)}
+            </a>
           );
         })}
         {SOON_TABS.map((key) => (
-          <li key={key} className="shrink-0">
-            <span
-              title={t("comingSoon")}
-              className="block cursor-not-allowed whitespace-nowrap py-3 text-[14px] font-semibold text-brand-mute/40"
-            >
-              {t(key)}
-            </span>
-          </li>
+          <span
+            key={key}
+            title={t("comingSoon")}
+            className="ctab"
+            style={{ opacity: 0.4, cursor: "not-allowed" }}
+          >
+            {t(key)}
+          </span>
         ))}
-      </ol>
+      </div>
     </nav>
   );
 }
