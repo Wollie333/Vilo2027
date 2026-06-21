@@ -17,6 +17,11 @@ export type FormEditorRow = {
   fields: FormField[];
   settings: FormSettings;
   submissionCount: number;
+  // Derived tracking (no per-form status column — see below).
+  status: "live" | "draft";
+  embedLabels: string[];
+  submissionsThisMonth: number;
+  lastSubmissionAt: string | null;
 };
 
 export type FormsEditorData = {
@@ -25,12 +30,25 @@ export type FormsEditorData = {
   forms: FormEditorRow[];
 };
 
+/** True when a sections jsonb array embeds `formId` via a `form` section. */
+function sectionsEmbed(sections: unknown, formId: string): boolean {
+  if (!Array.isArray(sections)) return false;
+  return sections.some((s) => {
+    if (!s || typeof s !== "object") return false;
+    const sec = s as { type?: unknown; props?: { form_id?: unknown } };
+    return sec.type === "form" && sec.props?.form_id === formId;
+  });
+}
+
 /**
- * Owner-scoped load of the website's forms for the Forms tab (Phase 4). Parses
- * the stored fields/settings jsonb through the SSOT schemas (dropping anything
- * malformed → safe defaults) and counts non-archived submissions per form for a
- * lightweight "N responses" badge. Returns null when the site isn't owned by
- * the signed-in host.
+ * Owner-scoped load of the website's forms for the Forms manager. Parses the
+ * stored fields/settings jsonb through the SSOT schemas (dropping anything
+ * malformed → safe defaults) and derives real tracking per form:
+ *  - status: "live" when the form is embedded in at least one PUBLISHED page,
+ *    else "draft" (we deliberately derive this rather than add a status column).
+ *  - embedLabels: the page titles the form is embedded on (draft or published).
+ *  - submissionCount / submissionsThisMonth / lastSubmissionAt from real rows.
+ * Returns null when the site isn't owned by the signed-in host.
  */
 export async function loadFormsEditor(
   websiteId: string,
@@ -48,39 +66,71 @@ export async function loadFormsEditor(
     .maybeSingle();
   if (!site) return null;
 
-  const { data: formRows } = await supabase
-    .from("website_forms")
-    .select("id, name, type, fields, settings")
-    .eq("website_id", websiteId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: true });
+  const [{ data: formRows }, { data: pageRows }] = await Promise.all([
+    supabase
+      .from("website_forms")
+      .select("id, name, type, fields, settings")
+      .eq("website_id", websiteId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("website_pages")
+      .select("kind, slug, title, draft_sections, published_sections")
+      .eq("website_id", websiteId),
+  ]);
 
   const forms = formRows ?? [];
+  const pages = pageRows ?? [];
 
-  // One grouped count of live submissions across all this site's forms.
-  const counts = new Map<string, number>();
+  // Submissions: total + this-month + last, per form, from real rows.
+  const total = new Map<string, number>();
+  const month = new Map<string, number>();
+  const last = new Map<string, string>();
   if (forms.length > 0) {
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
     const { data: subRows } = await supabase
       .from("website_form_submissions")
-      .select("form_id")
+      .select("form_id, created_at")
       .eq("website_id", websiteId)
       .neq("status", "archived");
     for (const row of subRows ?? []) {
-      counts.set(row.form_id, (counts.get(row.form_id) ?? 0) + 1);
+      total.set(row.form_id, (total.get(row.form_id) ?? 0) + 1);
+      if (new Date(row.created_at) >= monthStart) {
+        month.set(row.form_id, (month.get(row.form_id) ?? 0) + 1);
+      }
+      const prev = last.get(row.form_id);
+      if (!prev || row.created_at > prev) last.set(row.form_id, row.created_at);
     }
+  }
+
+  function pageLabel(p: { kind: string; slug: string; title: string | null }) {
+    if (p.kind === "home") return "Home";
+    return p.title?.trim() || p.slug;
   }
 
   const parsed: FormEditorRow[] = forms.map((f) => {
     const fields = formFieldsSchema.safeParse(f.fields);
     const settings = formSettingsSchema.safeParse(f.settings ?? {});
+
+    const publishedOn = pages.filter((p) =>
+      sectionsEmbed(p.published_sections, f.id),
+    );
+    const draftOn = pages.filter((p) => sectionsEmbed(p.draft_sections, f.id));
+    const embedPages = draftOn.length > 0 ? draftOn : publishedOn;
+
     return {
       id: f.id,
       name: f.name,
       type: f.type as FormType,
       fields: fields.success ? fields.data : [],
-      // safeParse of {} fills the defaults, so this branch always succeeds.
       settings: settings.success ? settings.data : formSettingsSchema.parse({}),
-      submissionCount: counts.get(f.id) ?? 0,
+      submissionCount: total.get(f.id) ?? 0,
+      status: publishedOn.length > 0 ? "live" : "draft",
+      embedLabels: embedPages.map(pageLabel),
+      submissionsThisMonth: month.get(f.id) ?? 0,
+      lastSubmissionAt: last.get(f.id) ?? null,
     };
   });
 

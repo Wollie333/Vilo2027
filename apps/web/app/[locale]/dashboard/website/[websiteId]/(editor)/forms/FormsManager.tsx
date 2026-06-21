@@ -46,14 +46,16 @@ const TYPE_ICON: Record<FormType, typeof Mail> = {
 export function FormsManager({
   websiteId,
   initialForms,
+  preselectId,
 }: {
   websiteId: string;
   initialForms: FormEditorRow[];
+  preselectId?: string;
 }) {
   const t = useTranslations("website");
   const [forms, setForms] = useState<FormEditorRow[]>(initialForms);
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialForms[0]?.id ?? null,
+    preselectId ?? initialForms[0]?.id ?? null,
   );
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [creating, startCreate] = useTransition();
@@ -97,6 +99,10 @@ export function FormsManager({
           notifyInbox: true,
         },
         submissionCount: 0,
+        status: "draft",
+        embedLabels: [],
+        submissionsThisMonth: 0,
+        lastSubmissionAt: null,
       };
       setForms((prev) => [...prev, fresh]);
       setSelectedId(res.id);

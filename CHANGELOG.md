@@ -5,6 +5,34 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Forms manager (+ derived tracking)
+
+First Forms slice, true to `Forms Manager.html`. The full-screen form editor + the
+15-field catalogue (with public render + submission validation) is the next slice.
+
+### Added — real tracking, no migration
+- **`loadFormsEditor`** now derives per-form signals from real data: **status**
+  (`live` when the form is embedded in a *published* page via a `form` section's
+  `form_id`, else `draft`), **embedLabels** (the pages it's on), **submissionsThisMonth**,
+  and **lastSubmissionAt** — alongside the existing total submission count.
+
+### Added — the manager
+- **`FormsList`** — the Forms tab rebuilt to the mockup: title + count, three `.stat`
+  cards (submissions this month · live forms · total submissions), an `.eseg`
+  All/Published/Drafts filter, and the `.ptr` table — Form (`.fthumb` + name +
+  "N fields · where embedded") · Type (icon tag) · Status (`.tag`) · Submissions ·
+  Actions (Edit + a "⋯" menu: view submissions / delete). New-form template modal.
+- **`forms/[formId]`** route — opens the existing form editor preselected to that form
+  (so Edit/New work today); `FormsManager` gained a `preselectId` prop.
+- `.fthumb` styles in `cms-extra.css`; +33 i18n keys.
+
+### Notes
+- Real data only — the mockup's "completion rate" stat is omitted (we don't track form
+  starts). The editor is still today's inline builder (7 field types); the full-screen
+  mockup editor + the 15-field catalogue is the next slice. tsc + lint green.
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Pages manager + builder fidelity
 
 Two fixes against the real mockup files (`Page Builder A.html`, `Pages Manager.html`).
