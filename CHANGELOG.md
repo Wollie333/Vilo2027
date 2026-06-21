@@ -5,6 +5,42 @@
 
 ---
 
+## 2026-06-21 — Website CMS premium redesign · Page-builder free elements
+
+Adds the first batch of "free element" building blocks to the page builder —
+light, self-contained primitives the host drops between the curated sections.
+**Additive** to the existing section model (new section types in the same flat
+JSONB list — no element tree, no migration).
+
+### Added
+- **6 free-element section types** in `sections.schema.ts` (additive union
+  members + `SECTION_TYPES`): `el_heading` (text · H2/H3/H4 · align), `el_text`
+  (paragraph · align), `el_image` (image · alt · caption · link · width · align),
+  `el_button` (label · link · primary/secondary · align), `el_spacer`
+  (sm/md/lg/xl), `el_divider` (solid/dashed/dotted · narrow/full). All free-form
+  (not auto-populate). Starters in `sectionDefaults.ts`.
+- **Public renderers** — `components/site/sections/Elements.tsx`: six theme-aware
+  components driven entirely by the scoped `--site-*` vars (so they theme per
+  tenant). `el_image` uses the responsive `SiteImg`; an empty image shows a
+  selectable placeholder in the builder/preview but renders nothing on the live
+  site. Wired into `SectionRenderer`.
+- **Builder** — palette group "Elements" + per-type icons in the full-screen
+  `PageBuilder` (and the `SectionLibrary` modal); inspector cases in
+  `SectionEditor` (shared `AlignField`); schematics in `SectionThumb`.
+
+### Changed
+- `seoAnalyzer` text-walk now indexes the `text` + `alt` element props.
+- +46 `website` en i18n keys (`sectionType_/sectionDesc_el_*`, `catElements`,
+  element field + option labels, `align_right`). No DB change. tsc + lint +
+  themes-compat all green.
+
+### Deferred (next slices, same phase)
+- A **Columns** container block (bounded, single-level — not a general element
+  tree) and **per-block desktop/tablet/mobile style overrides** (additive
+  `sectionBase` field applied in the renderer + an inspector control).
+
+---
+
 ## 2026-06-21 — Website CMS premium redesign · Overview (portfolio + analytics)
 
 Rebuilds the Website Overview tab to the `Website CMS C.html` mockup — a multi-site

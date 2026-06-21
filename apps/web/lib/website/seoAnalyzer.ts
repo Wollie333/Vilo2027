@@ -42,6 +42,9 @@ const TEXT_KEYS = new Set([
   "intro",
   "excerpt",
   "blurb",
+  // Free-element text props.
+  "text",
+  "alt",
 ]);
 
 function walk(node: unknown, out: string[]): void {

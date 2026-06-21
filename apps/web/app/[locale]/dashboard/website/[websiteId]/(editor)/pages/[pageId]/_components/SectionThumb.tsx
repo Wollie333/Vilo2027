@@ -329,6 +329,54 @@ export function SectionThumb({ type }: { type: SectionType }) {
           </div>
         </Frame>
       );
+    case "el_heading":
+      return (
+        <Frame>
+          <div className="flex flex-1 items-center">
+            <div className="h-2.5 w-2/3 rounded-full bg-brand-mute/60" />
+          </div>
+        </Frame>
+      );
+    case "el_text":
+      return (
+        <Frame>
+          <div className="flex flex-1 flex-col justify-center gap-1">
+            <Bar />
+            <Bar w="w-5/6" />
+            <Bar w="w-2/3" />
+          </div>
+        </Frame>
+      );
+    case "el_image":
+      return (
+        <Frame>
+          <div className="flex-1 rounded bg-brand-line/50" />
+        </Frame>
+      );
+    case "el_button":
+      return (
+        <Frame>
+          <div className="flex flex-1 items-center">
+            <div className="h-3.5 w-12 rounded bg-brand-accent" />
+          </div>
+        </Frame>
+      );
+    case "el_spacer":
+      return (
+        <Frame>
+          <div className="flex flex-1 items-center justify-center">
+            <div className="h-6 w-px bg-brand-line" />
+          </div>
+        </Frame>
+      );
+    case "el_divider":
+      return (
+        <Frame>
+          <div className="flex flex-1 items-center">
+            <div className="h-px w-full bg-brand-mute/50" />
+          </div>
+        </Frame>
+      );
     default:
       return (
         <Frame>

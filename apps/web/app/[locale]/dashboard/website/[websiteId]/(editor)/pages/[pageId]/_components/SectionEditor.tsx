@@ -1227,9 +1227,205 @@ function SectionFields({
       );
     }
 
+    case "el_heading": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldElHeadingText")}
+            value={p.text}
+            onChange={(v) => set({ text: v })}
+            maxLength={200}
+          />
+          <SelectField
+            label={t("fldElLevel")}
+            value={p.level}
+            options={[
+              { value: "h2", label: t("elLevel_h2") },
+              { value: "h3", label: t("elLevel_h3") },
+              { value: "h4", label: t("elLevel_h4") },
+            ]}
+            onChange={(v) => set({ level: v })}
+          />
+          <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+        </div>
+      );
+    }
+
+    case "el_text": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextArea
+            label={t("fldBody")}
+            value={p.body}
+            onChange={(v) => set({ body: v })}
+            maxLength={4000}
+            rows={5}
+          />
+          <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+        </div>
+      );
+    }
+
+    case "el_image": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <ImageField
+            label={t("fldElImage")}
+            websiteId={websiteId}
+            path={p.image_path}
+            onChange={(path) => set({ image_path: path })}
+          />
+          <TextField
+            label={t("fldElImageAlt")}
+            value={p.alt ?? ""}
+            onChange={(v) => set({ alt: v })}
+            maxLength={200}
+            hint={t("fldElImageAltHint")}
+          />
+          <TextField
+            label={t("fldElImageCaption")}
+            value={p.caption ?? ""}
+            onChange={(v) => set({ caption: v })}
+            maxLength={300}
+          />
+          <TextField
+            label={t("fldElImageLink")}
+            value={p.href ?? ""}
+            onChange={(v) => set({ href: v })}
+            maxLength={500}
+          />
+          <SelectField
+            label={t("fldElWidth")}
+            value={p.width}
+            options={[
+              { value: "narrow", label: t("elWidth_narrow") },
+              { value: "medium", label: t("elWidth_medium") },
+              { value: "full", label: t("elWidth_full") },
+            ]}
+            onChange={(v) => set({ width: v })}
+          />
+          <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+        </div>
+      );
+    }
+
+    case "el_button": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <TextField
+            label={t("fldCtaLabel")}
+            value={p.label}
+            onChange={(v) => set({ label: v })}
+            maxLength={60}
+          />
+          <TextField
+            label={t("fldCtaHref")}
+            value={p.href}
+            onChange={(v) => set({ href: v })}
+            maxLength={500}
+          />
+          <SelectField
+            label={t("fldElButtonStyle")}
+            value={p.variant}
+            options={[
+              { value: "primary", label: t("elButton_primary") },
+              { value: "secondary", label: t("elButton_secondary") },
+            ]}
+            onChange={(v) => set({ variant: v })}
+          />
+          <AlignField value={p.align} onChange={(v) => set({ align: v })} />
+        </div>
+      );
+    }
+
+    case "el_spacer": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <SelectField
+            label={t("fldElSpacerSize")}
+            value={p.size}
+            options={[
+              { value: "sm", label: t("elSpacer_sm") },
+              { value: "md", label: t("elSpacer_md") },
+              { value: "lg", label: t("elSpacer_lg") },
+              { value: "xl", label: t("elSpacer_xl") },
+            ]}
+            onChange={(v) => set({ size: v })}
+          />
+        </div>
+      );
+    }
+
+    case "el_divider": {
+      const p = section.props;
+      const set = (patch: Partial<typeof p>) =>
+        onChange({ ...section, props: { ...p, ...patch } });
+      return (
+        <div className="space-y-4">
+          <SelectField
+            label={t("fldElDividerLine")}
+            value={p.line}
+            options={[
+              { value: "solid", label: t("elLine_solid") },
+              { value: "dashed", label: t("elLine_dashed") },
+              { value: "dotted", label: t("elLine_dotted") },
+            ]}
+            onChange={(v) => set({ line: v })}
+          />
+          <SelectField
+            label={t("fldElWidth")}
+            value={p.width}
+            options={[
+              { value: "narrow", label: t("elWidth_narrow") },
+              { value: "full", label: t("elWidth_full") },
+            ]}
+            onChange={(v) => set({ width: v })}
+          />
+        </div>
+      );
+    }
+
     default:
       return null;
   }
+}
+
+/** Left/Centre/Right alignment select shared by the free elements. */
+function AlignField({
+  value,
+  onChange,
+}: {
+  value: "left" | "center" | "right";
+  onChange: (v: "left" | "center" | "right") => void;
+}) {
+  const t = useTranslations("website");
+  return (
+    <SelectField
+      label={t("fldAlign")}
+      value={value}
+      options={[
+        { value: "left", label: t("align_left") },
+        { value: "center", label: t("align_center") },
+        { value: "right", label: t("align_right") },
+      ]}
+      onChange={onChange}
+    />
+  );
 }
 
 /**

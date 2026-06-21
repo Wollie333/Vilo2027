@@ -35,6 +35,14 @@ import { TrustSection } from "./sections/TrustSection";
 import { BookingSearchSection } from "./sections/BookingSearchSection";
 import { AvailabilityCalendarSection } from "./sections/AvailabilityCalendarSection";
 import { RateTableSection } from "./sections/RateTableSection";
+import {
+  ElHeadingSection,
+  ElTextSection,
+  ElImageSection,
+  ElButtonSection,
+  ElSpacerSection,
+  ElDividerSection,
+} from "./sections/Elements";
 
 /**
  * Renders an ordered list of validated sections — the ONE renderer shared by the
@@ -233,6 +241,24 @@ function SectionSwitch({
           data={dataFor(data, section.id, "rate_table")}
         />
       );
+    case "el_heading":
+      return <ElHeadingSection props={section.props} />;
+    case "el_text":
+      return <ElTextSection props={section.props} />;
+    case "el_image":
+      return (
+        <ElImageSection
+          props={section.props}
+          asset={asset}
+          interactive={interactive}
+        />
+      );
+    case "el_button":
+      return <ElButtonSection props={section.props} />;
+    case "el_spacer":
+      return <ElSpacerSection props={section.props} />;
+    case "el_divider":
+      return <ElDividerSection props={section.props} />;
     default:
       return null;
   }

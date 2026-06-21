@@ -52,6 +52,17 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   { key: "catLocation", types: ["location", "map"] },
   { key: "catConvert", types: ["cta", "contact_form", "form"] },
   { key: "catMore", types: ["rich_text", "faq"] },
+  {
+    key: "catElements",
+    types: [
+      "el_heading",
+      "el_text",
+      "el_image",
+      "el_button",
+      "el_spacer",
+      "el_divider",
+    ],
+  },
 ];
 
 /**

@@ -46,6 +46,13 @@ export const SECTION_TYPES = [
   "booking_search",
   "availability_calendar",
   "rate_table",
+  // Free elements — light building blocks (page-builder primitives).
+  "el_heading",
+  "el_text",
+  "el_image",
+  "el_button",
+  "el_spacer",
+  "el_divider",
 ] as const;
 export type SectionType = (typeof SECTION_TYPES)[number];
 
@@ -381,6 +388,49 @@ const rateTableProps = z.object({
   ctaLabel: z.string().max(60).optional(),
 });
 
+// ── Free elements (page-builder primitives) ───────────────────
+// Light, self-contained building blocks the host drops between the curated
+// sections — free-form (never auto-populate). Deliberately simple: text, image,
+// button + spacing helpers. (A "Columns" container and per-block responsive
+// style overrides are planned follow-up slices.)
+const ELEMENT_ALIGN = ["left", "center", "right"] as const;
+
+const elHeadingProps = z.object({
+  text: z.string().max(200),
+  level: z.enum(["h2", "h3", "h4"]).default("h2"),
+  align: z.enum(ELEMENT_ALIGN).default("left"),
+});
+
+const elTextProps = z.object({
+  body: z.string().max(4000),
+  align: z.enum(ELEMENT_ALIGN).default("left"),
+});
+
+const elImageProps = z.object({
+  image_path: z.string().optional(),
+  alt: z.string().max(200).optional(),
+  caption: z.string().max(300).optional(),
+  href: z.string().max(500).optional(),
+  width: z.enum(["narrow", "medium", "full"]).default("full"),
+  align: z.enum(ELEMENT_ALIGN).default("center"),
+});
+
+const elButtonProps = z.object({
+  label: z.string().max(60),
+  href: z.string().max(500),
+  variant: z.enum(["primary", "secondary"]).default("primary"),
+  align: z.enum(ELEMENT_ALIGN).default("left"),
+});
+
+const elSpacerProps = z.object({
+  size: z.enum(["sm", "md", "lg", "xl"]).default("md"),
+});
+
+const elDividerProps = z.object({
+  line: z.enum(["solid", "dashed", "dotted"]).default("solid"),
+  width: z.enum(["narrow", "full"]).default("full"),
+});
+
 // ── Section discriminated union ───────────────────────────────
 const sectionBase = {
   id: z.string().uuid(),
@@ -470,6 +520,32 @@ export const sectionSchema = z.discriminatedUnion("type", [
     ...sectionBase,
     type: z.literal("rate_table"),
     props: rateTableProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_heading"),
+    props: elHeadingProps,
+  }),
+  z.object({ ...sectionBase, type: z.literal("el_text"), props: elTextProps }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_image"),
+    props: elImageProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_button"),
+    props: elButtonProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_spacer"),
+    props: elSpacerProps,
+  }),
+  z.object({
+    ...sectionBase,
+    type: z.literal("el_divider"),
+    props: elDividerProps,
   }),
 ]);
 

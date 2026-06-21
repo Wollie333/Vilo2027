@@ -31,6 +31,7 @@ import {
   Eye,
   EyeOff,
   GripVertical,
+  Heading,
   Heart,
   HelpCircle,
   Image as ImageIcon,
@@ -41,9 +42,12 @@ import {
   Mail,
   Map as MapIcon,
   MapPin,
+  Minus,
   MousePointerClick,
   Monitor,
+  MoveVertical,
   Newspaper,
+  Pilcrow,
   Plus,
   Rocket,
   Search,
@@ -51,6 +55,7 @@ import {
   SlidersHorizontal,
   Smartphone,
   Sparkles,
+  SquareMousePointer,
   Star,
   Table,
   Tablet,
@@ -134,6 +139,17 @@ const GROUPS: Array<{ key: string; types: SectionType[] }> = [
   { key: "catLocation", types: ["location", "map"] },
   { key: "catConvert", types: ["cta", "contact_form", "form"] },
   { key: "catMore", types: ["rich_text", "faq"] },
+  {
+    key: "catElements",
+    types: [
+      "el_heading",
+      "el_text",
+      "el_image",
+      "el_button",
+      "el_spacer",
+      "el_divider",
+    ],
+  },
 ];
 
 const ICONS: Record<SectionType, LucideIcon> = {
@@ -163,6 +179,12 @@ const ICONS: Record<SectionType, LucideIcon> = {
   booking_search: Search,
   availability_calendar: CalendarDays,
   rate_table: Table,
+  el_heading: Heading,
+  el_text: Pilcrow,
+  el_image: ImageIcon,
+  el_button: SquareMousePointer,
+  el_spacer: MoveVertical,
+  el_divider: Minus,
 };
 
 /** Build the by-id SiteData map for the live preview from the per-type pool. */

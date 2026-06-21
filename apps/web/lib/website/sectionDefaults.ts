@@ -330,6 +330,62 @@ export function newSection(type: SectionType): WebsiteSection {
           note: "Rates are per night from — your final price is confirmed at checkout.",
         },
       };
+    case "el_heading":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { text: "Section heading", level: "h2", align: "left" },
+      };
+    case "el_text":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          body: "Write something here — a short paragraph of your own copy.",
+          align: "left",
+        },
+      };
+    case "el_image":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { width: "full", align: "center" },
+      };
+    case "el_button":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: {
+          label: "Learn more",
+          href: "#",
+          variant: "primary",
+          align: "left",
+        },
+      };
+    case "el_spacer":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { size: "md" },
+      };
+    case "el_divider":
+      return {
+        id,
+        type,
+        enabled: true,
+        tone: "default",
+        props: { line: "solid", width: "full" },
+      };
     default: {
       // Exhaustiveness guard — a new SectionType must add a default above.
       const never: never = type;
